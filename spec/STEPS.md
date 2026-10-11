@@ -14,7 +14,8 @@ feature step matches exactly one expression below.
 | `{date}`    | `\d{4}-\d{2}-\d{2}`         | Local date in Europe/Berlin.                   |
 | `{month}`   | `\d{4}-\d{2}`               |                                                |
 | `{time}`    | `\d{2}:\d{2}`               | 24 h local time. `24:00` = end of day.         |
-| `{view}`    | `month\|week\|day`          |                                                |
+| `{view}`    | `year\|month\|week\|day`     |                                                |
+| `{datelist}`| `\d{4}-\d{2}-\d{2}((, \| and )\d{4}-\d{2}-\d{2})*` | One or more dates: `A`, `A and B`, `A, B and C`. |
 | `{scheme}`  | `light\|dark`                |                                                |
 | `{float}`   | built-in                    |                                                |
 | `{weekday}` | `"(Monday\|...\|Sunday)"`   | Quoted English weekday name, resolved against the week currently shown (`data-week-start` on `week-view`). |
@@ -466,3 +467,209 @@ Google sets the color ID of the event {string} to {string}
 ```
 
 - Options = labels of the `event-color` picker options in DOM order.
+
+## Clock and time (`@timeline`, `@adhd`)
+
+```
+the time is {date} {time} and the clock is running
+{int} minutes pass
+```
+
+- `the time is D T and the clock is running`: `POST /api/__test/clock { now, frozen: false }` **and** install a fake
+  browser clock at the same instant before the page opens (Playwright `page.clock.install({ time })`), so app timers
+  only advance when the test says so.
+- `N minutes pass`: `page.clock.runFor(N * 60_000)` and `POST /api/__test/clock { now: previous + N min, frozen: false }`
+  so server and browser stay in step.
+
+## Timeline and Now card
+
+```
+the event {string} is about {int} times as tall as the event {string}
+the event {string} is at least {int} pixels tall
+the now marker is positioned at {time}
+the now marker is in the column of {date}
+I do not see the now marker
+the now marker is visible on screen
+the time grid is scrolled to show {time} at the top
+the now card shows the line {string}
+the now card does not show a current event
+the current event progress is {int} percent
+I do not see the now card
+I see the transition warning {string}
+I do not see a transition warning
+I dismiss the transition warning
+```
+
+- "about N times as tall": height ratio within ±10 %. Heights are measured from bounding boxes.
+- `now-marker` has `data-time="HH:mm"`; "positioned at" checks it and its top against the time grid (±3 px).
+- "visible on screen": its bounding box is inside the viewport. "scrolled to show T at the top": the scroll position of
+  `time-grid` equals T × hour height (±1 hour height / 4).
+- Now card lines are the texts of `now-card-line` elements (exact match of one of them). "does not show a current
+  event" = no `now-card-current`. Progress = `aria-valuenow` of `now-progress` (integer percent).
+
+## Open tasks tray (`@opentasks`)
+
+```
+the open tasks tray shows the count {string}
+I open the open tasks tray
+the open tasks tray lists {string}
+I open the task list {string} from the open tasks tray
+the task list {string} is shown as carried over from {string}
+the task list {string} is not flagged as overdue
+the overdue label of {string} does not use the error color
+I move the task list to today
+```
+
+- "does not use the error color": the computed `color` and `background-color` of `tasklist-card-overdue` differ from
+  `--md-sys-color-error` and `--md-sys-color-error-container`.
+
+## Year view and month picker (`@year`, `@picker`)
+
+```
+I open the year view for {int}
+the year view shows {int} months
+the density of {date} in the year view is {int}
+I click the month {string} in the year view
+I open the month picker
+the month picker is open
+the month picker is closed
+the month picker shows {string}
+I go to the next month in the month picker
+I go to the previous month in the month picker
+I swipe left in the month picker
+I swipe right in the month picker
+I pick {date} in the month picker
+{date} is selected in the month picker
+{date} is marked as having items in the month picker
+{date} is not marked as having items in the month picker
+```
+
+- `I open the month picker` clicks `period-title` (it toggles the picker).
+- Density = `data-density` of `year-day[data-date]`. "selected" = `aria-selected="true"` on `picker-day`; "marked" =
+  `data-has-items="true"`.
+
+## ADHD support, settings additions
+
+```
+I choose {string} as the transition warning time
+I turn on calm mode
+calm mode is active
+the collapsed task list {string} does not list its items
+the task list {string} shows the estimate {string}
+I choose the animation level {string}
+the animation level {string} is selected
+the animation level is {string}
+the sounds setting is off
+the device prefers reduced motion
+```
+
+- Task list form gains `estimate` (minutes, empty = none) and `repeat` (`Never`, `Daily`, `Weekly`, `Monthly`; `@optional`).
+- `the animation level is X` (Given) sets it through `PATCH /api/settings`.
+- `calm mode is active`: `document.documentElement.dataset.calm === "true"`.
+- `the device prefers reduced motion`: `page.emulateMedia({ reducedMotion: 'reduce' })`.
+
+## Reward effects (`@reward`)
+
+```
+a {string} effect appears and is removed within {int} ms
+no reward effect appears
+no {string} effect appears
+there are no reward effect elements left
+the progress ring of the task list {string} shows {int} percent
+the expanded task list shows the message {string}
+I quickly tick the items {string}
+the event dialog opened with an animation
+the event dialog opened without an animation
+I tick and untick the item {string} {int} times
+at most {int} app timers are active
+the page does not contain the words {string}
+```
+
+- Effects are elements `[data-testid="reward-effect"][data-kind="<kind>"]`, kinds: `tick`, `list-complete`, `drop`,
+  `streak`, `water`, `grow`, `perk-up`, `bloom`, `butterfly`. "appears and is removed within N ms": a `MutationObserver` init script records
+  insertion and removal times; the step waits until it was inserted (default timeout) and asserts removal ≤ N ms after
+  insertion.
+- "no reward effect appears": no effect of kind `tick`, `list-complete` or `drop` is inserted during the 1 500 ms after
+  the previous step. "no X effect appears": same for one kind, observed from page load.
+- "there are no reward effect elements left": count of `reward-effect` is 0 after 1 500 ms of idle.
+- Progress ring: `aria-valuenow` of `tasklist-progress-ring` in the expanded list (rounded integer percent).
+- "quickly tick": clicks each checkbox without waiting for responses or effects.
+- "opened with an animation": immediately after open, `dialog.getAnimations({ subtree: true }).length > 0`;
+  "without" = 0.
+- "at most N app timers are active": reads `window.__appTimers` (a test-mode-only counter maintained by the app's
+  timer helper; ARCHITECTURE §5a).
+- "the page does not contain the words": case-insensitive whole-word search in `document.body.innerText`; the list is
+  comma-separated.
+
+## Drag and drop (`@dnd`)
+
+```
+I drag the event {string} to {date} at {time}
+I drag the event {string} to {date}
+I drag the event {string} down by {int} minutes
+I drag the task list {string} to {date}
+I drag the task list {string} to {date} at {time}
+I drag the event {string} back and forth {int} times
+I pick up the event {string}
+I release the event without moving it
+the event {string} is lifted
+the event {string} is not lifted
+a haptic tick was requested
+```
+
+- Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
+  the `time-slot` of the date/hour plus the minute offset (quarter-hour precision), or the `month-cell` /
+  `week-allday-cell` of the date.
+- Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
+- After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
+- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = press and hold 500 ms without
+  moving; "release without moving" = mouse up / touch end.
+- "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
+- "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
+
+## Streak and plant (`@streak`, `@plant`)
+
+```
+I checked in on {datelist}
+the streak shows {int}
+I see the streak message {string}
+I do not see a streak message
+the best streak in settings is {int}
+the plant has {int} growth points and was last watered on {date}
+I see the plant
+I do not see the plant
+I see the streak flame
+I do not see the streak flame
+the plant is at the stage {string}
+the plant looks {string}
+I open the plant card
+the plant card shows the stage {string}
+the plant card shows {string}
+```
+
+- `I checked in on ...` → `POST /api/__test/motivation { checkIns: [dates] }` (replaces check-in history).
+- `the plant has N growth points and was last watered on D` → `POST /api/__test/motivation { plant: { growth: N,
+  lastWatered: D, todayPoints: 0 } }`.
+- Streak: `streak-flame` text content = count; message = `streak-message` (toast, auto-hides after 4 s).
+- Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
+
+```
+I turn the streak flame {string}
+I choose {string} as the garden style
+the garden style is {string}
+I see the sunflower field
+I do not see the sunflower field
+the sunflower field shows {int} flower(s)
+the sunflower field is labelled {string}
+the sunflowers are swaying
+the sunflowers are not swaying
+the sunflowers look {string}
+```
+
+- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state. Garden styles are the
+  labels `Single plant`, `Sunflower field` and `Off` of `settings-garden`. `the garden style is X` (Given) uses
+  `PATCH /api/settings`.
+- `sunflower-field` (in the top app bar background) has `aria-label` = the label and contains one `sunflower` element
+  per **visible** flower ("shows N flowers" counts them). Swaying = computed `animation-name` of `sunflower` is not
+  `none` and `animation-play-state` is `running`. "look X" = `data-mood` on `sunflower-field`.
+- Kinds `bloom` (a new sunflower) is added to the reward effect kinds.

@@ -5,7 +5,7 @@ spec files are named.
 
 ## Product
 
-- **A-01 Default view**: `/` opens the month view of today. No "last used view" memory. (navigation.feature)
+- **A-01 Default view**: `/` opens the default view from settings (Month by default) for today. No "last used view" memory.
 - **A-02 Focus date**: switching views keeps a focus date (kept if inside the new period, else today if inside, else
   the first day of the period). Prev/next therefore lands on the first day of the new period. (ARCHITECTURE §5)
 - **A-03 Week URL** with a non-Monday date is normalised to its Monday with a history `replace`.
@@ -116,3 +116,37 @@ spec files are named.
 - **A-47 Default event color** setting pre-selects the color in the new event form only; the API default stays
   "calendar color".
 - **A-48 Default view** setting only affects `/`; deep links are unaffected.
+
+## ADHD focus (owner update; see docs/ADHD-RESEARCH.md)
+
+- **A-49 Carry-over window**: open task lists from the last 30 days are carried to today. Older ones stay on their
+  date, so the tray does not grow forever. The API allows up to 90 days if this needs changing.
+- **A-50 Carried lists appear only on today**, not also on their original date, to avoid duplicates. Their Google date
+  does not change unless the user picks "Move to today" or drags them.
+- **A-51 Now card placement**: day view (today) and week view (current week) only; not in month or year view (less
+  clutter). The current event is the one ending first when several overlap.
+- **A-52 Transition warnings** are in-app snackbars only (default 10 min). System notifications need HTTPS,
+  permission and, on iOS, an installed PWA. They are deferred.
+- **A-53 Estimates** are per task list (minutes), not per item. Per-item estimates and estimate-vs-actual learning
+  are future work.
+- **A-54 Recurring task lists** are `@optional` for the prototype (Google recurrence with per-instance ticks).
+- **A-55 Drag and drop** keeps timed items timed and all-day items all-day (no conversion by dragging between the
+  all-day area and the grid), preserves duration, snaps to 15 min, and moves multi-day events by their first day.
+  Long-press threshold 450 ms. Haptics only where `navigator.vibrate` exists (not iOS Safari).
+- **A-56 Animation level** default Full. The system "reduce motion" preference always caps it at Reduced, even if Full
+  is chosen (accessibility wins). Sounds default off.
+- **A-57 Streak** (owner request) counts app opens per local day, not tasks done. A gap resets it quietly to 1 with
+  "Welcome back!". There is no loss messaging and no notifications. This is a deliberate owner A/B choice, made despite
+  research cautions about streaks (docs/ADHD-RESEARCH.md §1.8).
+- **A-58 Plant rules** (fixed for testability): check-in +10, create event/task list +5, tick +2 (once per item per
+  day), daily cap 30. Stages at 0/20/60/140/280. Mood by days since last watering: 0–1 happy, 2 thirsty, 3 dry,
+  ≥ 4 droopy (floor). It never dies, and growth never decreases. Motivation settings: streak flame on/off (default on)
+  and garden style Single plant (default) / Sunflower field / Off, for the owner's A/B comparison.
+- **A-62 Sunflowers**: one per 40 growth points, max 24 stored; 12 visible on phones (< 600 px), 24 on wider screens.
+  They share the plant's mood and never decrease.
+- **A-63 Butterfly**: once per browser-tab session (`sessionStorage`), only at motion level Full and with ≥ 1
+  sunflower. Its landing flower is random (not asserted in tests).
+- **A-59 Year view density** buckets: 0, 1, 2–3, ≥ 4 items per day.
+- **A-60 Month picker** jumps the current view to the picked day. It does not switch views.
+- **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
+  navigation bar, and the FAB floats above the tray.

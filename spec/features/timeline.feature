@@ -1,0 +1,93 @@
+@timeline @adhd
+Feature: Seeing time: proportional timeline, now marker and time remaining
+  Time blindness is a core ADHD difficulty. The day and week views are time-proportional
+  (block height = duration), a "now" line moves live, and a Now card states in words how much time is
+  left in the current event and until the next one, with a shrinking progress bar.
+  "the clock is running" means the app clock advances; "N minutes pass" advances it deterministically.
+
+  Background:
+    Given the calendar is empty
+    And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
+    And the calendar contains an event "Call" on 2026-10-12 from 13:00 to 13:30
+
+  Scenario: Block height is proportional to duration
+    Given today is 2026-10-12
+    And the calendar contains an event "Workshop" on 2026-10-12 from 14:00 to 15:40
+    When I open the day view for 2026-10-12
+    Then the event "Workshop" is about 2 times as tall as the event "Dentist"
+
+  Scenario: Very short events stay tappable but keep their start position
+    Given today is 2026-10-12
+    And the calendar contains an event "Pill" on 2026-10-12 from 08:00 to 08:05
+    When I open the day view for 2026-10-12
+    Then the event "Pill" is at least 24 pixels tall
+    And the event "Pill" is positioned from 08:00 to 08:05
+
+  Scenario: The phone month view opens the proportional day timeline, not an equal-height list
+    Given today is 2026-10-12
+    When I open the month view for 2026-10
+    And I tap the day 2026-10-12 in the month view
+    Then the day view is shown
+    And the event "Dentist" is positioned from 10:40 to 11:30
+
+  Scenario Outline: The now marker shows the current time and moves live
+    Given the time is 2026-10-12 09:20 and the clock is running
+    When I open the <view> view for 2026-10-12
+    Then the now marker is positioned at 09:20
+    And the now marker is in the column of 2026-10-12
+    When 30 minutes pass
+    Then the now marker is positioned at 09:50
+
+    Examples:
+      | view |
+      | day  |
+      | week |
+
+  Scenario Outline: No now marker when today is not visible
+    Given today is 2026-10-12
+    When I open the <view> view for <period>
+    Then I do not see the now marker
+
+    Examples:
+      | view  | period     |
+      | day   | 2026-10-13 |
+      | week  | 2026-10-19 |
+      | month | 2026-10    |
+
+  Scenario: Today's timeline scrolls to now
+    Given the time is 2026-10-12 18:30
+    When I open the day view for 2026-10-12
+    Then the now marker is visible on screen
+
+  Scenario: Other days scroll to the morning
+    Given the time is 2026-10-12 18:30
+    When I open the day view for 2026-10-13
+    Then the time grid is scrolled to show 07:00 at the top
+
+  Scenario: The Now card says how long until the next event
+    Given the time is 2026-10-12 09:20 and the clock is running
+    When I open the day view for 2026-10-12
+    Then the now card shows the line "Next: Dentist in 1 h 20 min"
+    And the now card does not show a current event
+
+  Scenario: The Now card counts down the current event with a progress bar
+    Given the time is 2026-10-12 09:20 and the clock is running
+    When I open the day view for 2026-10-12
+    And 95 minutes pass
+    Then the now card shows the line "Dentist · 35 min left"
+    And the current event progress is 30 percent
+    And the now card shows the line "Next: Call in 2 h 5 min"
+    When 20 minutes pass
+    Then the now card shows the line "Dentist · 15 min left"
+    And the current event progress is 70 percent
+
+  Scenario: The Now card when nothing else is scheduled today
+    Given the time is 2026-10-12 13:40
+    When I open the week view for 2026-10-12
+    Then the now card shows the line "Nothing else today"
+    And the now card does not show a current event
+
+  Scenario: The Now card is shown in the week view only for the current week
+    Given the time is 2026-10-12 09:20
+    When I open the week view for 2026-10-19
+    Then I do not see the now card

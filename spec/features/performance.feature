@@ -67,3 +67,24 @@ Feature: Resource efficiency and no memory leaks
     And I send 5000 requests to "GET /api/items?from=2026-09-28&to=2026-11-02"
     And I send 500 requests to "PATCH" the item "Milk" of the task list "Groceries" alternating done and not done
     Then the server memory has grown by less than 20 MB since the recording
+
+  Scenario: Reward effects and drag and drop leave nothing behind
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I tick and untick the item "Milk" 5 times
+    And I collapse the task list
+    And I record the browser memory after garbage collection
+    And I expand the task list "Groceries"
+    And I tick and untick the item "Milk" 50 times
+    And I collapse the task list
+    And I drag the event "Dentist" back and forth 20 times
+    Then there are no reward effect elements left
+    And the JS heap has grown by less than 10 percent since the recording
+    And the DOM node count has grown by less than 10 percent since the recording
+    And the event listener count has grown by less than 10 percent since the recording
+
+  Scenario: The live clock uses one timer and pauses while hidden
+    Given the time is 2026-10-12 09:20 and the clock is running
+    When I open the day view for 2026-10-12
+    And I cycle through the month, week and day views 10 times
+    Then at most 2 app timers are active

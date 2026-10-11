@@ -1,0 +1,144 @@
+@plant @reward
+Feature: Plant companion
+  A small plant in the top app bar grows when the user does things: daily check-in +10 points,
+  creating an event or task list +5, ticking an item +2 (each item counts once per day), at most
+  30 points per day. Growth never goes down. Stages: Seed (0), Sprout (20), Small plant (60),
+  Leafy (140), Flowering (280). Without activity it rests: 0–1 days since last watering = happy,
+  2 = thirsty, 3 = dry, 4 or more = droopy. It never dies and perks up as soon as it is watered.
+  Settings "Motivation": streak flame on/off (default on) and garden style Single plant (default) /
+  Sunflower field / Off.
+
+  Background:
+    Given the calendar is empty
+    And today is 2026-10-12
+
+  Scenario: Daily actions water the plant and it grows to the next stage
+    Given the calendar contains a task list "Chores" on 2026-10-12 with items:
+      | item  | done |
+      | Dust  | no   |
+      | Sweep | no   |
+      | Mop   | no   |
+    When I open the day view for 2026-10-12
+    Then I see the plant
+    And the plant is at the stage "Seed"
+    And the plant looks "happy"
+    When I expand the task list "Chores"
+    And I tick the item "Dust"
+    Then a "water" effect appears and is removed within 1000 ms
+    When I tick the item "Sweep"
+    And I tick the item "Mop"
+    And I collapse the task list
+    And I start creating a task list
+    And I fill in the task list form with:
+      | title | Ideas      |
+      | date  | 2026-10-12 |
+    And I save the task list
+    Then a "grow" effect appears and is removed within 1500 ms
+    And the plant is at the stage "Sprout"
+    When I request "GET /api/motivation"
+    Then the response JSON field "plant.growth" equals "21"
+    And the response JSON field "plant.todayPoints" equals "21"
+
+  Scenario: Watering has a daily cap and repeated ticks do not count twice
+    Given the calendar contains a task list "Chores" on 2026-10-12 with items:
+      | item  | done |
+      | Dust  | no   |
+      | Sweep | no   |
+      | Mop   | no   |
+    When I open the day view for 2026-10-12
+    And I expand the task list "Chores"
+    And I tick the item "Dust"
+    And I untick the item "Dust"
+    And I tick the item "Dust"
+    And I request "GET /api/motivation"
+    Then the response JSON field "plant.growth" equals "12"
+    When I tick the item "Sweep"
+    And I tick the item "Mop"
+    And I collapse the task list
+    And I start creating a task list
+    And I fill in the task list form with:
+      | title | One        |
+      | date  | 2026-10-12 |
+    And I save the task list
+    And I start creating a task list
+    And I fill in the task list form with:
+      | title | Two        |
+      | date  | 2026-10-12 |
+    And I save the task list
+    And I start creating a task list
+    And I fill in the task list form with:
+      | title | Three      |
+      | date  | 2026-10-12 |
+    And I save the task list
+    And I request "GET /api/motivation"
+    Then the response JSON field "plant.growth" equals "30"
+    And the response JSON field "plant.todayPoints" equals "30"
+
+  Scenario Outline: Without activity the plant rests gently but never dies
+    Given the plant has 70 growth points and was last watered on <last>
+    When I request "GET /api/motivation"
+    Then the response JSON field "plant.mood" equals "<mood>"
+    And the response JSON field "plant.vitality" equals "<vitality>"
+    And the response JSON field "plant.stage" equals "Small plant"
+
+    Examples:
+      | last       | mood    | vitality |
+      | 2026-10-11 | happy   | 100      |
+      | 2026-10-10 | thirsty | 75       |
+      | 2026-10-09 | dry     | 50       |
+      | 2026-10-08 | droopy  | 25       |
+      | 2026-01-01 | droopy  | 25       |
+
+  Scenario: A resting plant perks up when the app is opened
+    Given the plant has 70 growth points and was last watered on 2026-10-01
+    When I open the app
+    Then a "perk-up" effect appears and is removed within 1500 ms
+    And the plant looks "happy"
+    And the plant is at the stage "Small plant"
+
+  Scenario Outline: The plant card shows the plant larger with a friendly line
+    Given the plant has <growth> growth points and was last watered on 2026-10-12
+    When I open the app
+    And I open the plant card
+    Then the plant card shows the stage "<stage>"
+    And the plant card shows "Your plant is happy"
+
+    Examples:
+      | growth | stage       |
+      | 0      | Seed        |
+      | 20     | Sprout      |
+      | 60     | Small plant |
+      | 140    | Leafy       |
+      | 280    | Flowering   |
+
+  Scenario: No guilt wording anywhere
+    Given the plant has 70 growth points and was last watered on 2026-09-01
+    When I request "GET /api/motivation"
+    Then the response JSON field "plant.message" equals "Your plant is resting. Anything you do will perk it up."
+    When I open the app
+    And I open the plant card
+    Then the page does not contain the words "dead, died, dying, lost, failed, neglected"
+
+  Scenario Outline: The motivation settings decide what is shown
+    When I open the path "/settings"
+    And I turn the streak flame "<flame setting>"
+    And I choose "<garden>" as the garden style
+    And I open the app
+    Then I <flame> the streak flame
+    And I <plant> the plant
+    And I <field> the sunflower field
+
+    Examples:
+      | flame setting | garden          | flame      | plant      | field      |
+      | on            | Single plant    | see        | see        | do not see |
+      | on            | Off             | see        | do not see | do not see |
+      | off           | Single plant    | do not see | see        | do not see |
+      | off           | Sunflower field | do not see | do not see | see        |
+      | off           | Off             | do not see | do not see | do not see |
+
+  Scenario: The plant is synced across devices
+    When I open the app
+    And I switch to another device
+    And I open the app
+    And I request "GET /api/motivation"
+    Then the response JSON field "plant.growth" equals "10"

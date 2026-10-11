@@ -6,18 +6,27 @@ import glob, os, re, sys
 SPEC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARAMS = {
     'string': r'"[^"]*"', 'int': r'-?\d+', 'date': r'\d{4}-\d{2}-\d{2}', 'month': r'\d{4}-\d{2}',
-    'time': r'\d{2}:\d{2}', 'view': r'(?:month|week|day)',
+    'time': r'\d{2}:\d{2}', 'view': r'(?:year|month|week|day)',
+    'datelist': r'\d{4}-\d{2}-\d{2}(?:(?:, | and )\d{4}-\d{2}-\d{2})*',
     'scheme': r'(?:light|dark)', 'float': r'-?\d+(?:\.\d+)?',
     'weekday': r'"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"',
 }
 STEP = re.compile(r'\s*(Given|When|Then|And|But)\s+(.*?)\s*$')
 
+def lit(text):
+    """Escape literal text; Cucumber optional text like 'flower(s)' becomes optional."""
+    out, i = '', 0
+    for m in re.finditer(r'\(([^)]*)\)', text):
+        out += re.escape(text[i:m.start()]) + '(?:' + re.escape(m.group(1)) + ')?'
+        i = m.end()
+    return out + re.escape(text[i:])
+
 def to_regex(expr):
     out, i = '', 0
     for m in re.finditer(r'\{(\w+)\}', expr):
-        out += re.escape(expr[i:m.start()]) + PARAMS[m.group(1)]
+        out += lit(expr[i:m.start()]) + PARAMS[m.group(1)]
         i = m.end()
-    return re.compile('^' + out + re.escape(expr[i:]) + '$')
+    return re.compile('^' + out + lit(expr[i:]) + '$')
 
 def cells(line):
     return [c.strip() for c in line.strip().strip('|').split('|')]

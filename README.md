@@ -11,12 +11,13 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 | Path | Contents |
 |---|---|
 | `BRIEF.md` | Owner brief and fixed technical decisions (binding) |
-| `spec/features/` | Gherkin features (navigation, events, event colors, task lists, categories, settings, sync, mobile, PWA, theme, performance, health) |
+| `spec/features/` | Gherkin features (navigation, year, month picker, timeline, events, event colors, drag and drop, task lists, open tasks, categories, settings, ADHD support, reward, streak, plant, sunflowers, sync, mobile, PWA, theme, performance, health) |
 | `spec/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
-| `spec/ACCEPTANCE.md` | Numbered acceptance criteria (AC-01 … AC-72) mapped to scenarios and checks |
+| `spec/ACCEPTANCE.md` | Numbered acceptance criteria (AC-01 … AC-87) mapped to scenarios and checks |
 | `spec/ARCHITECTURE.md` | Components, `CalendarProvider`, task list ↔ Google mapping, sync, mobile UX, Material 3, resource budgets, PWA, testids, env, owner actions |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
 | `spec/ASSUMPTIONS.md` | Decisions made without the owner |
+| `docs/ADHD-RESEARCH.md` | ADHD research with sources and derived requirements (R1–R24) |
 | `spec/scripts/check-steps.py` | Checks that every feature step matches exactly one expression in `STEPS.md` |
 | `server/` | API and static hosting; stack per BRIEF / `docs/RESEARCH.md` *(to be built)* |
 | `web/` | Web app (PWA); stack per BRIEF / `docs/RESEARCH.md` *(to be built)* |

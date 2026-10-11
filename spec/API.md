@@ -93,6 +93,8 @@ interface TaskList {
   items: TaskItem[];       // max 200, in display order
   doneCount: number;
   totalCount: number;
+  estimateMinutes: number | null; // 5–720; a timed list lasts this long in Google (default 30 when null)
+  recurrence: 'daily' | 'weekly' | 'monthly' | null;  // @optional feature; instances have their own ids and ticks
   categoryId: string | null;   // null = no category; unknown/deleted ids are returned as null
   tags: string[];              // max 10, each 1–30 chars, no commas, unique case-insensitively, order kept
   color: string;               // category color, else calendar color
@@ -118,6 +120,12 @@ interface Settings {
   seedColor: string;                 // '#rrggbb', default '#1a73e8'
   defaultView: ViewName;             // default 'month'
   defaultEventColorId: string | null; // Google colorId '1'..'11' or null (= calendar color), default null
+  animationLevel: 'full' | 'reduced' | 'off';    // default 'full'; the system "reduce motion" caps it at 'reduced'
+  sounds: boolean;                    // default false
+  calmMode: boolean;                  // default false
+  transitionWarningMinutes: 0 | 5 | 10 | 15;     // default 10; 0 = off
+  streakFlame: boolean;               // default true: show the streak flame
+  garden: 'plant' | 'sunflowers' | 'off';  // default 'plant'
   categories: Category[];            // display order
   updated: DateTime;
   version: number;                   // increments on every change
@@ -233,6 +241,8 @@ interface CreateTaskListInput {
   items?: { title: string; done?: boolean }[];   // blank titles are dropped
   categoryId?: string | null;   // must exist in settings, else 400
   tags?: string[];
+  estimateMinutes?: number | null;
+  recurrence?: 'daily' | 'weekly' | 'monthly' | null;
 }
 interface UpdateTaskListInput {
   title?: string;
@@ -241,6 +251,7 @@ interface UpdateTaskListInput {
   items?: { id?: string; title: string; done: boolean }[];  // full replacement (used by fixtures)
   categoryId?: string | null;
   tags?: string[];
+  estimateMinutes?: number | null;
 }
 ```
 Item ops return the whole updated `TaskList`. `index` inserts at a position (default: append). `itemIds` must be a
@@ -256,7 +267,7 @@ the defaults on first start.
 | Method | Path | Body | Success |
 |---|---|---|---|
 | `GET` | `/api/settings` | – | `200` `Settings` |
-| `PATCH` | `/api/settings` | `Partial<Pick<Settings, 'themeMode' \| 'seedColor' \| 'defaultView' \| 'defaultEventColorId'>>` | `200` `Settings` |
+| `PATCH` | `/api/settings` | `Partial<Omit<Settings, 'categories' \| 'updated' \| 'version'>>` | `200` `Settings` |
 | `POST` | `/api/categories` | `{ name: string; color: string; icon?: string \| null }` | `201` `Settings` |
 | `PATCH` | `/api/categories/:id` | `{ name?; color?; icon? }` | `200` `Settings` |
 | `DELETE` | `/api/categories/:id` | – | `200` `Settings` |
@@ -273,6 +284,79 @@ in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `t
 `/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
 AND-ed. Events are never filtered.
 
+### Summary (year view, month picker dots)
+
+`GET /api/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` (to exclusive, max 400 days) → `200`
+```ts
+{ days: Record<LocalDate, { events: number; tasklists: number; openTasklists: number; density: 0 | 1 | 2 | 3 }> }
+```
+Only days with at least one item are listed. Multi-day items count on every covered day. Density: 0 items → 0,
+1 → 1, 2–3 → 2, ≥ 4 → 3. Errors: 400, 502, 503.
+
+### Open task lists (tray, carry-over)
+
+`GET /api/tasklists/open?today=YYYY-MM-DD&days=30` → `200 { items: TaskList[] }`. Returns task lists with at least one
+unticked item dated in `[today − days, today]` (inclusive). Order: date ascending, then untimed before timed, then
+time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
+date); lists with no open items are never carried. `days` max 90, default 30.
+
+### Motivation: check-in streak and plant
+
+Stored server-side in `DATA_DIR/motivation.json` (single user, synced across devices). Dates are local dates of the
+app clock (`TZ`).
+
+```ts
+interface Motivation {
+  streak: { current: number; best: number; lastCheckIn: LocalDate | null; checkedInToday: boolean };
+  plant: {
+    growth: number;            // total points, never decreases
+    stage: 'Seed' | 'Sprout' | 'Small plant' | 'Leafy' | 'Flowering';
+    stageIndex: 0 | 1 | 2 | 3 | 4;
+    nextStageAt: number | null;
+    todayPoints: number;       // points earned today (0–30)
+    lastWatered: LocalDate | null;
+    flowers: number;           // sunflower count, 0–24
+    vitality: 100 | 75 | 50 | 25;
+    mood: 'happy' | 'thirsty' | 'dry' | 'droopy';
+    message: string;
+  };
+}
+```
+
+| Method | Path | Success |
+|---|---|---|
+| `GET` | `/api/motivation` | `200` `Motivation` |
+| `POST` | `/api/streak/checkin` | `200 { current, best, checkedInToday: true, newToday: boolean, motivation: Motivation }` |
+
+**Streak rules:** the web app calls `POST /api/streak/checkin` once after startup and again when the app becomes
+visible on a new local day. If the last check-in was yesterday, `current + 1`; if it was today, unchanged
+(`newToday: false`); otherwise `current = 1` (quiet reset). `best = max(best, current)`. Idempotent per day.
+
+**Plant rules** (all server-side, so they cannot be spammed from a client):
+
+| Action | Points | Counted when |
+|---|---|---|
+| Daily check-in | +10 | first check-in of the day |
+| Create event | +5 | `POST /api/events` returns 201 |
+| Create task list | +5 | `POST /api/tasklists` returns 201 |
+| Tick an item | +2 | an item goes from not done to done; each item id counts at most once per day |
+
+- Daily cap: 30 points (`todayPoints` resets at local midnight). Points above the cap are dropped.
+- Stage thresholds on `growth`: Seed 0, Sprout 20, Small plant 60, Leafy 140, Flowering 280.
+- Watering sets `lastWatered = today` (any awarded point, even if capped to 0 extra points).
+- Mood from `d` = calendar days since `lastWatered`: d ≤ 1 → happy (100); 2 → thirsty (75); 3 → dry (50);
+  ≥ 4 → droopy (25, the floor). No `lastWatered` → happy. Growth never decreases; the plant never dies.
+- Messages (exact): happy "Your plant is happy", thirsty "Your plant is a little thirsty", dry "Your plant could use
+  some water", droopy "Your plant is resting. Anything you do will perk it up."
+- Streak and plant points are recorded regardless of `streakFlame` / `garden` (these settings only change what is shown).
+- **Sunflower field** (garden style `sunflowers`) uses the same points and mood: `plant.flowers = min(24,
+  floor(growth / 40))`. Flowers never decrease. The UI shows at most 12 on viewports < 600 px wide and up to 24 above
+  that; the accessible label always states the full count ("Sunflower field: 5 flowers", singular "1 flower").
+  A newly earned flower (the count went up since the last `Motivation` the client saw) plays the `bloom` effect.
+- Server-side awarding hooks: the event/task list/item handlers call `MotivationService.award(kind, key)`. Mutation
+  responses carry the header `X-Motivation-Changed: 1` when points were awarded, and the web app then refetches
+  `/api/motivation`.
+
 ## Test-only endpoints (`TEST_MODE=true`)
 
 Registered only when `TEST_MODE=true`; otherwise every `/api/__test/*` path is `404 NOT_FOUND`. `TEST_MODE` must be
@@ -280,8 +364,9 @@ false in the production compose file. They require `PROVIDER=mock`.
 
 | Method | Path | Body | Effect |
 |---|---|---|---|
-| `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories); then seeds or loads the fixture. `200 { calendars, items, settings }` |
-| `POST` | `/api/__test/clock` | `{ now: string \| null }` | Sets a **frozen** clock (`now` ISO with offset or `Z`), or clears it with `null`. `200 { now, clockFrozen }` |
+| `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories) and an empty motivation state; then seeds or loads the fixture. `200 { calendars, items, settings }` |
+| `POST` | `/api/__test/clock` | `{ now: string \| null; frozen?: boolean }` | Sets the clock (`now` ISO with offset or `Z`); `frozen` (default `true`) keeps it constant, `false` lets it run from `now` in real time. `null` clears it. `200 { now, clockFrozen }` |
+| `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |

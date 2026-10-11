@@ -47,6 +47,8 @@ calendar/
 | `EventService` | Validation, mapping `CalendarEvent` ⇄ `GoogleEvent`, If-Match handling. |
 | `TaskListService` | Task list CRUD + item operations as read-modify-write with retry on provider 412. |
 | `TaskListCodec` | Pure functions: `TaskList` ⇄ `GoogleEvent` (extended properties, chunking, description mirror). 100 % unit-tested. |
+| `MotivationService` | Check-in streak and plant state in `DATA_DIR/motivation.json`; awarding rules per API.md; pure rule functions unit-tested with fixed dates. |
+| `SummaryService` | Per-day counts for `/api/summary` (one provider list call per ≤ 100-day chunk). |
 | `SettingsStore` | Settings and categories in `DATA_DIR/settings.json` (atomic write, versioned, defaults on first run). Independent of the provider. |
 | `colors.ts` | Google palette, nearest-color (CIE76 ΔE), hex validation. Shared with `web/`. |
 | `CalendarProvider` | Abstraction over Google Calendar API v3 (below). |
@@ -118,7 +120,9 @@ One task list = one Google event in `TASKLIST_CALENDAR_ID` (default primary):
 |---|---|
 | `title` | `summary` |
 | `date`, `time = null` | all-day: `start.date = date`, `end.date = date + 1` |
-| `date`, `time = HH:mm` | timed: `start.dateTime = date T time`, `end.dateTime = start + 30 min`, `timeZone = TZ` |
+| `date`, `time = HH:mm` | timed: `start.dateTime = date T time`, `end.dateTime = start + (estimateMinutes ?? 30) min`, `timeZone = TZ` |
+| `estimateMinutes` | `extendedProperties.private.estimate` (decimal string; absent = none) |
+| `recurrence` (@optional) | Google `recurrence: ["RRULE:FREQ=DAILY\|WEEKLY\|MONTHLY"]`; per-occurrence ticks are stored by patching the instance (Google exception) |
 | marker | `extendedProperties.private.kind = "tasklist"` |
 | format version | `extendedProperties.private.tlv = "1"` |
 | `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
@@ -169,7 +173,7 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 
 ## 5. Web app
 
-- **Router**: `/` → the default view (settings, default month) for today, e.g. `/month/2026-10`; `/month/:ym`,
+- **Router**: `/year/:yyyy` (4 digits) added. `/` → the default view (settings, default month) for today, e.g. `/month/2026-10`; `/month/:ym`,
   `/week/:date` (normalised to Monday via `replace`), `/day/:date`, `/settings`; invalid or unknown →
   `/month/<today>` (replace). Calendar routes keep the filter query (`categories`, `tags`) when navigating. History mode (server SPA fallback).
 - **Focus date** (store): used by "switch view" and dialog defaults. On every route change: keep the focus date if it
@@ -197,7 +201,7 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
 
 - **Top app bar** (compact): period title, Today button, prev/next buttons (secondary to swiping), sync status, install
   button when available.
-- **Bottom bar** (`bottom-bar`, fixed, thumb zone): view switcher Month | Week | Day as tabs. On desktop the switcher
+- **Bottom bar** (`bottom-bar`, fixed, thumb zone): view switcher Year | Month | Week | Day as tabs. On desktop the switcher
   moves into the top bar (same testids).
 - **FAB** `create-button`: floating "+" bottom-right, above the bottom bar, opens a small menu (Event / Task list).
 - **Touch targets** ≥ 44 × 44 px for all buttons, checkboxes (hit area), chips that open things.
@@ -250,7 +254,7 @@ otherwise; bundle budget §5a applies).
 - **Components**:
   - *Top app bar* (small/center-aligned on phones): period title (title-large), Today, prev/next icon buttons,
     sync status, install button. Uses `surface`, switches to `surface-container` on scroll.
-  - *Navigation bar* (phones, bottom, 80 px + safe area): Month / Week / Day destinations with icons, active indicator
+  - *Navigation bar* (phones, bottom, 80 px + safe area): Year / Month / Week / Day destinations with icons, active indicator
     pill (`secondary-container`). *Navigation rail* on desktop ≥ 768 px is allowed (left), same testids.
   - *FAB*: large/regular FAB with "+", `primary-container`; opens a small menu (Event / Task list) — FAB menu style.
   - *Bottom sheets* (phones) and *dialogs* (desktop) with drag handle, `surface-container-low`, scrim.
@@ -289,6 +293,106 @@ otherwise; bundle budget §5a applies).
   The row scrolls inside itself (`overflow-x: auto`), never the page. Filter state = URL query (API.md).
 - **Event form**: adds `color` (Calendar color + the 11 Google colors, shown as swatches with names), default from
   settings.
+
+### 5b. ADHD-focused features (see `docs/ADHD-RESEARCH.md`)
+
+**Navigation bar on phones:** four destinations (Year, Month, Week, Day). The **open tasks tray** sits as a slim bar
+directly above the navigation bar, and the FAB floats above the tray. On desktop the tray is a right-hand side panel.
+The top app bar contains: the period title (button, opens the month picker), Today, prev/next, the streak flame,
+the plant, filter, settings and sync status. Compact icons collapse into an overflow menu below 360 px.
+
+- **Clock service** (`useClock`): one app-wide minute ticker (aligned to the minute, `setTimeout` chain) that drives the
+  now marker, the Now card and transition warnings. It pauses while hidden and resyncs on visibility. In test mode the
+  timer helper counts active timers in `window.__appTimers`.
+- **Proportional timeline**: block height = duration × hour height. Minimum rendered height 24 px for items shorter
+  than that; their top still matches their start. No equal-height agenda list anywhere; the phone "agenda" is the
+  proportional day view.
+- **Now marker** (`now-marker`, `data-time`): a primary-colour line with a dot across today's column in the day and
+  week views. It updates every minute. Today's day view scrolls so now sits in the upper third (other days: 07:00).
+- **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week).
+  - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
+    (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
+    `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is
+    the first unticked item of the oldest open list in the tray order.
+  - Duration format: `< 60 min` → `35 min`; whole hours → `2 h`; otherwise `1 h 20 min`. Values round down to whole
+    minutes.
+  - The current event is the one with start ≤ now < end; with several, the one ending first.
+- **Transition warning** (`transition-warning`): a non-modal M3 snackbar `"<title> starts in <N> min"` shown once per
+  event when now reaches start − N (N from settings, default 10), dismissible, auto-hides at event start. System
+  notifications are a later option (they need HTTPS, permission and, on iOS, an installed PWA; not in scope).
+- **Open tasks tray** (`task-tray`, `task-tray-count` text `"3 open"` / `"No open tasks"`, items `task-tray-item`
+  with `data-title`): fed by `GET /api/tasklists/open`, refreshed with every sync. Visible in all views and on all
+  pages except Settings.
+- **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
+  text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording). Their expanded
+  view offers `tasklist-move-today` ("Move to today"), which PATCHes the date. Completed lists stay on their own date.
+- **Duration estimate**: task list form field (minutes), card badge `tasklist-card-estimate` `"~45 min"` /
+  `"~1 h 30 min"`.
+- **Calm mode** (`html[data-calm="true"]`): collapsed cards show title and count only (no item preview, no tags),
+  item colours at reduced chroma, animation level capped at Reduced, month cells show at most 2 entries.
+- **Year view** (`year-view`, `year-month` with `data-month`, `year-day` with `data-date`, `data-density`,
+  `data-today`): 12 mini months (3 × 4 on phones, 4 × 3 on desktop), density as dot size or opacity (M3 primary
+  tones). Tapping a month opens it. Data from `/api/summary`.
+- **Month picker** (`month-picker`, header `month-picker-title`, `month-picker-prev`/`-next`, days `picker-day` with
+  `data-date`, `aria-selected`, `data-has-items`): opens from `period-title` as an expanding M3 surface under the top
+  app bar with a spring height animation. Swipe or arrows change the month (lazy summary fetch per month). Picking a
+  day sets the focus date and navigates the current view; tapping the title, the scrim or Escape closes it.
+
+### 5c. Motion, reward and drag and drop
+
+- **Motion system**: one small in-house module built on the Web Animations API with spring easing pre-computed into
+  `linear()` timing functions. It animates only `transform` and `opacity` (compositor-friendly). No animation library.
+  `html[data-motion="full|reduced|off"]` = min(setting, system preference: reduce → reduced).
+  - Reduced: fades ≤ 150 ms, no particles, no bounce.
+  - Off: no animations (`animation`/`transition` disabled, effects not created).
+- **Reward effects** (`reward-effect`, `data-kind`): created on demand in a single overlay layer, `pointer-events:
+  none`, removed on `animationend` or after a hard timeout of 1 200 ms (whichever comes first). At most 3 concurrent;
+  older ones are removed. Particles are ≤ 16 absolutely positioned elements (or one canvas) per effect.
+  - `tick`: checkbox spring scale 0.8 → 1.1 → 1, check path drawn (stroke-dashoffset), title strike-through grows
+    left to right, 6–10 sparkles burst from the checkbox. ~600 ms.
+  - `list-complete`: ~16 confetti particles, card bounce (scale 1 → 1.04 → 1 spring), progress ring
+    (`tasklist-progress-ring`) fills to 100 %, message `tasklist-complete-message` "All done! 🎉". ≤ 900 ms.
+  - `drop`: small settle wobble plus 4–6 sparkles at the drop point. `streak`: flame flicker plus number roll-up,
+    ≤ 1 000 ms. `bloom`: a new sunflower grows in. `water`: droplet falls onto the plant. `grow`: plant scales up with a leaf unfurl. `perk-up`: droop →
+    upright spring.
+  - Sounds (setting, default off): tiny pre-decoded WebAudio blips, never on load.
+- **Micro-interactions**: FAB press (spring scale), FAB menu (staggered), sheets and dialogs (spring slide or scale),
+  view switch (shared-axis slide ≤ 250 ms), checkbox state layer. Never block input: effects run after the state change
+  is applied, and clicks during an effect are handled normally.
+- **Drag and drop** (pointer events, no library):
+  - Pick-up: touch → long press 450 ms with < 8 px movement, then `navigator.vibrate(10)` if available (Android).
+    iOS Safari has no Vibration API, so iOS gets only the visual lift. Mouse → press and move > 4 px.
+  - While dragging: `data-dragging="true"`, the card lifts (scale 1.05, elevation shadow) and wiggles briefly. A ghost
+    follows the pointer with spring lag; tilt is proportional to horizontal velocity (max 6°). A drop indicator snaps
+    to 15-minute slots (time grid) or days (month and all-day). Page swipe and scroll are suppressed during a drag;
+    auto-scroll near the edges.
+  - Drop: optimistic move, settle spring + `drop` effect, then `PATCH` (with `If-Match`). On failure the card springs
+    back to its origin and the sync error banner shows. Escape cancels a drag (desktop).
+  - Duration is preserved. Timed items stay timed and all-day items stay all-day (no conversion by drag; assumption
+    A-55). Multi-day events move by their first day.
+  - Accessible alternative: the edit dialogs. Chips keep `role="button"`, and keyboard users use the dialog.
+- **Streak flame** (`streak-flame`, text = current count) and **plant** (`plant-button`, `data-stage`, `data-mood`) in
+  the top app bar, shown per the settings `streakFlame` and `garden`. `streak-message` is a small toast ("Checked in, day 4" /
+  "Welcome back!") that auto-hides after 4 s and never blocks input. The plant card (`plant-card`, `plant-card-stage`,
+  `plant-card-line`) is a small popover or sheet with the larger SVG plant.
+  - Plant art: 5 stage SVGs (≤ 3 kB each, inline, M3 tones of the seed colour). Wilting is drawn as a droop transform
+    plus reduced saturation by mood. It is never brown or dead.
+  - Best streak shows in Settings (`settings-best-streak`).
+- **Sunflower field** (`sunflower-field`, `aria-label` "Sunflower field: N flowers", `data-mood`; children `sunflower`):
+  - Drawn in the background layer of the top app bar, behind the title and buttons. Low contrast: the flowers use
+    `--md-sys-color-surface-container-highest` and tertiary tones at ≤ 35 % opacity in both themes. Text contrast
+    stays ≥ 4.5:1.
+  - One SVG `<symbol>` is reused via `<use>` per flower, with random-but-seeded size and height variation (seed = flower
+    index).
+  - Sway is a pure CSS keyframe on `transform: rotate()` with per-flower `animation-delay`. It is paused through
+    `animation-play-state` when hidden or when the motion level is not Full. No per-frame JS.
+  - Moods: droop (rotate down) and fade (lower opacity and saturation) by plant mood. Flowers are never removed. A new
+    flower grows in (`bloom` effect).
+- **Butterfly** (`reward-effect[data-kind="butterfly"]`): once per session (`sessionStorage` flag), on app open,
+  only if `flowers ≥ 1` and the motion level is Full. A small SVG butterfly flies in, lands on a random visible
+  sunflower, flaps (CSS keyframes on two wing paths), flies away and is removed after ≤ 4 500 ms. It has
+  `pointer-events: none` and sits beneath the buttons' hit areas (z-order below the top app bar actions). It is the
+  only effect allowed to exceed the 1 200 ms effect timeout.
 
 ### 5a. Resource efficiency and leak prevention (hard requirements)
 
@@ -336,6 +440,16 @@ Rules for implementers:
 | `settings-default-view`, `settings-default-event-color` | selects (option labels as in the features) |
 | `settings-category` | list rows with `data-category-id`, `data-name`, `data-color`; `settings-category-add` |
 | `category-dialog` | `category-name`, `category-color` (hex text field), `category-icon`, `category-error`, `category-save`, `category-cancel`, `category-delete` |
+| `view-switch-year`, `year-view`, `year-month`, `year-day` | year view (§5b) |
+| `month-picker`, `month-picker-title`, `month-picker-prev`, `month-picker-next`, `picker-day` | month picker (§5b) |
+| `now-marker`, `now-card`, `now-card-line`, `now-card-current`, `now-progress` | timeline (§5b) |
+| `transition-warning`, `transition-warning-dismiss` | snackbar |
+| `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item` | open tasks tray |
+| `tasklist-card-overdue`, `tasklist-move-today`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
+| `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
+| `reward-effect` (`data-kind`) | effect overlay elements |
+| `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
+| `settings-animation-level` (options Full/Reduced/Off), `settings-sounds`, `settings-calm-mode`, `settings-transition-warning` (Off/5 min/10 min/15 min), `settings-streak-flame` (switch), `settings-garden` (Single plant/Sunflower field/Off) | settings additions |
 | `filter-bar` | `filter-chip-category` (`data-name`, `data-category-id`, `aria-pressed`), `filter-chip-tag` (`data-name`, `aria-pressed`), `filter-clear` |
 | `period-title` | text per §5 |
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
