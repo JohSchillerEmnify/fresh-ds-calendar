@@ -1,34 +1,29 @@
+@import './theme/tokens.css';
+
+/*
+ * M3 color roles (--md-sys-color-*) come from theme/tokens.css (default seed, inlined: no flash)
+ * and may be overridden at runtime by theme/index.ts (user seed). The short aliases below keep
+ * the skeleton views working; new components should use --md-sys-* tokens directly.
+ */
 :root {
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f1f3f4;
-  --text: #202124;
-  --text-2: #5f6368;
-  --border: #e0e0e0;
-  --accent: #1a73e8;
-  --accent-contrast: #ffffff;
-  --accent-soft: #e8f0fe;
+  --bg: var(--md-sys-color-surface);
+  --surface: var(--md-sys-color-surface);
+  --surface-2: var(--md-sys-color-surface-container-high);
+  --text: var(--md-sys-color-on-surface);
+  --text-2: var(--md-sys-color-on-surface-variant);
+  --border: var(--md-sys-color-outline-variant);
+  --accent: var(--md-sys-color-primary);
+  --accent-contrast: var(--md-sys-color-on-primary);
+  --accent-soft: var(--md-sys-color-secondary-container);
   --today-bg: var(--accent);
-  --shadow: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+  --md-sys-elevation-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+  --shadow: var(--md-sys-elevation-3);
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-full: 9999px;
   --topbar-h: 56px;
   --tabbar-h: 60px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #202124;
-    --surface: #202124;
-    --surface-2: #303134;
-    --text: #e8eaed;
-    --text-2: #9aa0a6;
-    --border: #3c4043;
-    --accent: #8ab4f8;
-    --accent-contrast: #202124;
-    --accent-soft: #394457;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 4px 8px 3px rgba(0, 0, 0, 0.3);
-  }
 }
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }

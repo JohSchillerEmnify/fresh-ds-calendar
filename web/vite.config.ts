@@ -1,12 +1,14 @@
-/// <reference types="vitest" />
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
+import Icons from 'unplugin-icons/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   plugins: [
     vue(),
+    // Material Symbols as inline SVG components: `import IconAdd from '~icons/material-symbols/add'`.
+    Icons({ compiler: 'vue3', scale: 1 }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png'],
@@ -35,5 +37,10 @@ export default defineConfig({
   ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: { proxy: { '/api': 'http://localhost:3000' } },
-  test: { environment: 'jsdom', include: ['test/**/*.test.ts'] },
+  test: {
+    environment: 'jsdom',
+    include: ['test/**/*.test.ts'],
+    // MCU 0.4.0 ships extensionless ESM imports that Node cannot resolve; let Vite transform it.
+    server: { deps: { inline: ['@material/material-color-utilities'] } },
+  },
 });

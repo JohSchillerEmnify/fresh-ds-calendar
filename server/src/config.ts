@@ -1,13 +1,15 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { ProviderKind } from './providers/index.js';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export interface AppConfig {
   port: number;
   host: string;
   dataDir: string;
-  provider: 'mock' | 'google';
+  provider: ProviderKind;
   /** Directory of the built web app; null disables static serving. */
   webDist: string | null;
 }

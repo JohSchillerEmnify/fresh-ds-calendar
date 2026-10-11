@@ -6,5 +6,6 @@ playwright-report
 .git
 e2e
 spec
+docs
 *.md
 !CHANGELOG.md

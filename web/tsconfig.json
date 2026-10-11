@@ -6,7 +6,7 @@
     "strict": true,
     "jsx": "preserve",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "vite-plugin-pwa/client"],
+    "types": ["vite/client", "vite-plugin-pwa/client", "unplugin-icons/types/vue", "node"],
     "skipLibCheck": true,
     "noEmit": true,
     "isolatedModules": true,

@@ -2,22 +2,16 @@
   "name": "calendar",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "server",
-    "web"
-  ],
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
-    "build": "npm run build -w web && npm run build -w server",
-    "test": "npm test -w server && npm test -w web",
-    "dev:server": "npm run dev -w server",
-    "dev:web": "npm run dev -w web",
-    "deploy": "bash scripts/deploy.sh"
+    "build": "pnpm -F @calendar/web build && pnpm -F @calendar/server build",
+    "test": "pnpm -F @calendar/server test && pnpm -F @calendar/web test",
+    "size": "pnpm -F @calendar/web size",
+    "dev:server": "pnpm -F @calendar/server dev",
+    "dev:web": "pnpm -F @calendar/web dev",
+    "redeploy": "bash scripts/deploy.sh"
   },
   "engines": {
-    "node": ">=22"
-  },
-  "overrides": {
-    "light-my-request": "6.6.0"
-  },
-  "//overrides": "light-my-request>=6.8 needs ESM-only cookie@2; Node 22.11 cannot require(esm). Pin until Node >=22.12."
+    "node": ">=24.11"
+  }
 }

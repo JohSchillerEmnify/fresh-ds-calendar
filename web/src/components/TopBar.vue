@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { periodLabel, routePath, shiftPeriod } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
+import IconPrev from '~icons/material-symbols/chevron-left-rounded';
+import IconNext from '~icons/material-symbols/chevron-right-rounded';
 
 const store = useCalendarStore();
 const router = useRouter();
@@ -23,10 +25,10 @@ function today() {
     <div class="actions">
       <button class="today" data-testid="nav-today" @click="today">Today</button>
       <button class="icon-btn" aria-label="Previous" data-testid="nav-prev" @click="go(-1)">
-        <svg viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z" /></svg>
+        <IconPrev aria-hidden="true" />
       </button>
       <button class="icon-btn" aria-label="Next" data-testid="nav-next" @click="go(1)">
-        <svg viewBox="0 0 24 24"><path d="M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z" /></svg>
+        <IconNext aria-hidden="true" />
       </button>
     </div>
   </header>

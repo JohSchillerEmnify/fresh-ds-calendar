@@ -28,5 +28,6 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 - Deployment: `http://cal.mordor.local` (Traefik, compose file in `/home/sauron/docker-compose/calendar/`).
   HTTPS on `https://cal.<subdomain>.<owner-domain>` is planned (owner action), needed for full PWA install and real Google OAuth.
 - Key env: `PROVIDER=mock|google`, `DATA_DIR`, `SEED`, `TEST_MODE`, `PUBLIC_URL`, `POLL_INTERVAL_MS`, `TZ`.
-- Toolchain: Node 22 at `~/.local/opt/node-v22.11.0-linux-x64/bin`; e2e in `mcr.microsoft.com/playwright:v1.48.2-noble`.
+- Toolchain: Node 24.21.0 at `~/.local/opt/node-v24.21.0-linux-x64/bin` + pnpm 12.11.2. `pnpm install`, `pnpm test`,
+  `pnpm build`, `pnpm size`, `pnpm redeploy` (= `scripts/deploy.sh`). Theme tokens: `pnpm -F @calendar/web tokens`.
 - Check the step contract: `python3 spec/scripts/check-steps.py`.

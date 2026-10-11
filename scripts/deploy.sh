@@ -6,15 +6,15 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="/home/sauron/docker-compose/calendar/docker-compose.yaml"
 HOST="cal.mordor.local"
-NODE_BIN="$HOME/.local/opt/node-v22.11.0-linux-x64/bin"
+NODE_BIN="$HOME/.local/opt/node-v24.21.0-linux-x64/bin"
 export PATH="$NODE_BIN:$PATH"
 
 cd "$REPO"
 
 if [[ "${1:-}" != "--skip-tests" ]]; then
-  echo "==> npm ci + tests"
-  [[ -d node_modules ]] || npm ci --no-audit --no-fund
-  npm test
+  echo "==> pnpm install + tests"
+  pnpm install --frozen-lockfile
+  pnpm test
 fi
 
 # Data dir must be writable by the container's non-root `node` user (uid 1000).

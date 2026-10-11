@@ -36,9 +36,10 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 - Server serves the built web app as static files and the REST API under `/api`. Single container.
 - Week starts Monday everywhere. Timezone Europe/Berlin default. UI language English. 24h time.
 - Every UI element used by tests gets a stable `data-testid`.
-- Toolchain: Node 22 is at `~/.local/opt/node-v22.11.0-linux-x64/bin` (prepend to PATH; system node is 18).
-  No sudo. Playwright browsers: run e2e inside docker image `mcr.microsoft.com/playwright:v1.48.2-noble`
-  (already pulled). Immich is stopped for now, ~5 GB RAM free. Still avoid more than 2 heavy jobs (docker build / Playwright) at once.
+- Toolchain: Node 24.21.0 LTS at `~/.local/opt/node-v24.21.0-linux-x64/bin` (prepend to PATH; system node is 18),
+  with pnpm 12.11.2 installed globally in that Node (`packageManager` field pins it). No sudo. Playwright browsers:
+  run e2e inside the docker image matching the `@playwright/test` version (see "Stack (final)").
+  Immich is stopped for now, ~5 GB RAM free. Still avoid more than 2 heavy jobs (docker build / Playwright) at once.
 - Deployment: `/home/sauron/docker-compose/calendar/docker-compose.yaml` builds from the monorepo, joins external
   network `proxy-network`, Traefik labels `Host(\`cal.mordor.local\`)`, `TZ=Europe/Berlin`, data volume `./data`.
   Follow the style of `/home/sauron/docker-compose/filebrowser/docker-compose.yaml`.
@@ -69,3 +70,39 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
   categories (shopping list, weekend chores, packing list...) with some items ticked. Dates relative to "now" at first
   seed. Only when PROVIDER=mock and SEED is not false; never written to real Google. Tests reset data, so seed is off
   under TEST_MODE. A "Reset demo data" action in Settings (mock mode only) is welcome.
+
+## Update: ADHD focus, year view, month picker (owner, 2026-10-12)
+- Target users include people with ADHD. Key: time blindness (time-proportional timeline, live "now" marker,
+  "time remaining / starts in" displays) and out-of-sight-out-of-mind (open task lists always visible, overdue
+  carried forward gently). Research + derived requirements: docs/ADHD-RESEARCH.md and spec.
+- Year overview (brief, 12 mini months). Month/day picker dropdown from the top-bar title, like Google Calendar app,
+  with own M3 spin.
+
+## Update: reward + drag-and-drop physics (owner, 2026-10-12, high priority)
+- Ticking off must feel very rewarding: springy check, strike-through, sparkle burst; full-list completion =
+  bigger celebration. Micro-interactions throughout. Short, non-blocking, not overdone.
+- Drag and drop events/task lists in views (long-press on mobile). Lift + wiggle on pick-up, spring/tilt while
+  dragging, drop with settle wobble + bling, snap 15 min, persist, spring back on failure. Haptics where supported.
+- prefers-reduced-motion + Settings "Animations: Full/Reduced/Off". Compositor-only animations, no heavy libs,
+  particles cleaned up (no leaks).
+- Daily check-in streak: small flame + count in top app bar, ~1 s crackle on first open of a day, synced
+  server-side, quiet reset (no shaming).
+- Plant companion (A/B prototype vs flame): watered by check-ins/creating/ticking (daily cap), grows in 5 stages,
+  wilts gently without activity, never dies, perks up when watered. Settings: Flame / Plant / Both / None.
+- Sunflower field variant: sunflowers earned by sustained care grow subtly in the top app bar background,
+  sway gently, droop with neglect, never die. Selectable alongside flame/plant for A/B.
+- Butterfly: on app open lands on a sunflower, flaps, flies away (~3-4 s, once per session, Full animations only).
+
+## Stack (final, from docs/RESEARCH.md "Decision"; overrides the fixed decisions above)
+- Node 24.21.0 LTS (Docker `node:24.21.0-alpine3.24`), pnpm 12.11.2 workspaces (`server`, `web`, `e2e`, `catalog:`),
+  slim image via `pnpm deploy --prod`. Move to Node 26 LTS after 2026-10-28.
+- Server: Hono 4.13 + `@hono/node-server` 2.1 (not Fastify); tests use `app.request()`. Google via
+  `@googleapis/calendar` + `google-auth-library`, never the full `googleapis`.
+- Web: Vue 3.5, vue-router 5, Pinia 4, date-fns 4, @vueuse/core 15, Vite 8, TypeScript ~6.0 + vue-tsc 3.3.
+- UI: hand-built M3 Expressive components on `--md-sys-*` CSS tokens; colors from `@material/material-color-utilities`
+  (default seed inlined in `web/src/theme/tokens.css`, user seed generated at runtime by a lazy chunk). Icons:
+  `unplugin-icons` + Material Symbols (inline SVG). System fonts. No component library.
+- PWA: vite-plugin-pwa 2. Unit tests: Vitest 5, @vue/test-utils 2.5, jsdom 30.
+- E2E: `@playwright/test` 1.64.0 + playwright-bdd 9.2.1 in `mcr.microsoft.com/playwright:v1.64.0-noble` (versions must match).
+- Gates: size-limit budgets (`pnpm size`), heap/DOM growth and soak tests. Container: `mem_limit: 192m`,
+  `NODE_OPTIONS=--max-old-space-size=96 --heapsnapshot-signal=SIGUSR2`.
