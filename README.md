@@ -11,9 +11,9 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 | Path | Contents |
 |---|---|
 | `BRIEF.md` | Owner brief and fixed technical decisions (binding) |
-| `spec/features/` | Gherkin features (navigation, events, task lists, sync, mobile, PWA, theme, performance, health) |
+| `spec/features/` | Gherkin features (navigation, events, event colors, task lists, categories, settings, sync, mobile, PWA, theme, performance, health) |
 | `spec/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
-| `spec/ACCEPTANCE.md` | Numbered acceptance criteria (AC-01 … AC-62) mapped to scenarios and checks |
+| `spec/ACCEPTANCE.md` | Numbered acceptance criteria (AC-01 … AC-72) mapped to scenarios and checks |
 | `spec/ARCHITECTURE.md` | Components, `CalendarProvider`, task list ↔ Google mapping, sync, mobile UX, Material 3, resource budgets, PWA, testids, env, owner actions |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
 | `spec/ASSUMPTIONS.md` | Decisions made without the owner |

@@ -47,6 +47,8 @@ calendar/
 | `EventService` | Validation, mapping `CalendarEvent` ⇄ `GoogleEvent`, If-Match handling. |
 | `TaskListService` | Task list CRUD + item operations as read-modify-write with retry on provider 412. |
 | `TaskListCodec` | Pure functions: `TaskList` ⇄ `GoogleEvent` (extended properties, chunking, description mirror). 100 % unit-tested. |
+| `SettingsStore` | Settings and categories in `DATA_DIR/settings.json` (atomic write, versioned, defaults on first run). Independent of the provider. |
+| `colors.ts` | Google palette, nearest-color (CIE76 ΔE), hex validation. Shared with `web/`. |
 | `CalendarProvider` | Abstraction over Google Calendar API v3 (below). |
 | `MockGoogleProvider` | In-memory store + JSON file persistence in `DATA_DIR/mock-google.json` (atomic write: temp file + rename). Seeds demo data when empty unless `SEED=false`. Emulates ids, etag, `updated`, `sequence`, `status: cancelled`, `extendedProperties`, `syncToken`, 412 on stale `ifMatch`. Has test hooks: `reset`, `setOutage`. |
 | `GoogleProvider` | Google Calendar API v3 over HTTPS (official client library or plain `fetch`, per RESEARCH.md) with OAuth2 refresh-token auth. Unit-tested with mocked HTTP (injected `fetch` or an HTTP interceptor). Maps Google HTTP errors: 401/403 auth → `ProviderUnavailableError`, 404/410 → `NotFoundError`, 412 → `PreconditionFailedError`, 5xx/network → `ProviderUnavailableError`, other → `ProviderError`. |
@@ -122,6 +124,9 @@ One task list = one Google event in `TASKLIST_CALENDAR_ID` (default primary):
 | `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
+| `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
+| `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
+| color in Google | `colorId` = nearest Google color to the category color; no category → `colorId` removed (calendar color) |
 
 - Limits: 200 items, 200 chars per title; Google allows max 300 extended properties / 32 kB total, which these limits
   respect (200 × ~215 chars ≈ 43 kB worst case → the server rejects writes whose encoded size exceeds 30 kB with
@@ -132,7 +137,9 @@ One task list = one Google event in `TASKLIST_CALENDAR_ID` (default primary):
   stores proper `items`. Edits made to the description in the Google app are overwritten on the next app write
   (documented limitation).
 - Task lists are excluded from the plain event endpoints and vice versa (404).
-- `colorId`: unset (calendar color).
+- The app shows the category color from settings (exact hex), while Google shows the nearest `colorId`. When a
+  category's color changes, Google `colorId`s of existing task lists are updated lazily on their next write (no mass
+  rewrite; assumption A-44).
 
 ## 4. Sync strategy
 
@@ -162,8 +169,9 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 
 ## 5. Web app
 
-- **Router**: `/` → `/month/<today YYYY-MM>`; `/month/:ym`, `/week/:date` (normalised to Monday via `replace`),
-  `/day/:date`; invalid or unknown → `/month/<today>` (replace). History mode (server SPA fallback).
+- **Router**: `/` → the default view (settings, default month) for today, e.g. `/month/2026-10`; `/month/:ym`,
+  `/week/:date` (normalised to Monday via `replace`), `/day/:date`, `/settings`; invalid or unknown →
+  `/month/<today>` (replace). Calendar routes keep the filter query (`categories`, `tags`) when navigating. History mode (server SPA fallback).
 - **Focus date** (store): used by "switch view" and dialog defaults. On every route change: keep the focus date if it
   is inside the new period, else today if inside, else the first day of the period. Switching view navigates to the
   period of that view containing the focus date. Day view: focus = its date.
@@ -221,12 +229,18 @@ otherwise; bundle budget §5a applies).
   `tertiary`, `tertiary-container`, `surface`, `surface-dim`, `surface-bright`, `surface-container-lowest` …
   `surface-container-highest`, `on-surface`, `on-surface-variant`, `outline`, `outline-variant`, `error`, `on-error`,
   `error-container`, `inverse-surface`, `inverse-on-surface`, `scrim`.
-- **Dynamic-ish scheme**: the light and dark schemes are generated at build time from one seed color (`#1a73e8`) with
-  the M3 tonal-palette algorithm (tone mapping per the M3 spec) and committed as static CSS — no runtime color library.
-  Calendar colors (event chips) are harmonised toward the primary hue and get an on-color with contrast ≥ 4.5:1.
-- **Light + dark**: follow `prefers-color-scheme` live (media query listener); `<html data-theme="light|dark">`;
-  `<meta name="theme-color">` is updated to the current `surface` color; manifest `theme_color` stays `#1a73e8`.
-  No in-app theme toggle in v1 (assumption A-35).
+- **Dynamic color**: the whole scheme is generated **at runtime** from the user's seed color (settings) with the M3
+  algorithm (HCT color space, tonal palettes, "tonal spot" scheme variant; Expressive variant allowed if the result
+  stays readable). Only the needed parts of the algorithm are shipped (≤ 12 kB compressed; e.g. a tree-shaken subset
+  of the reference color utilities or an own port). The generated roles are written as `--md-sys-color-*` on `:root`
+  in one style update. The default scheme (seed `#1a73e8`, light and dark) is also inlined as static CSS in
+  `index.html`, so the first paint is never unstyled. The last applied scheme is cached in `localStorage` and applied
+  before the app mounts, to avoid a color flash on reload.
+- **Item colors**: event/category colors are shown as given (the user picked them), with an on-color chosen for
+  contrast ≥ 4.5:1; in dark theme chips use a tone-adjusted container of the same hue.
+- **Theme mode** (settings): `system` follows `prefers-color-scheme` live (media query listener); `light`/`dark`
+  force it. `<html data-theme="light|dark">`; `<meta name="theme-color">` is updated to the current `surface` color;
+  manifest `theme_color` stays `#1a73e8`.
 - **Type scale**: M3 roles as tokens `--md-sys-typescale-{display,headline,title,body,label}-{large,medium,small}-*`
   (size/line-height/weight). Font stack: `Roboto Flex, Roboto, system-ui, -apple-system, "Segoe UI", sans-serif`;
   no web font download required (system font on iOS = SF, which keeps it "fine on iOS"). Inputs ≥ 16 px.
@@ -252,6 +266,29 @@ otherwise; bundle budget §5a applies).
 - **iOS feel**: system font, respect safe areas, momentum scrolling, no Android-only gestures required, back via the
   in-app navigation (no reliance on a hardware back button).
 - **Accessibility**: contrast ≥ 4.5:1 for text in both themes, visible focus ring, accessible names.
+
+### Settings screen, categories and filters
+
+- **Settings** (`/settings`, `settings-button` in the top app bar; full-screen page on phones, centered page on
+  desktop) with M3 list sections:
+  1. *Appearance*: theme mode as a segmented button (System / Light / Dark); seed color as 8 preset swatches (Blue,
+     Purple, Teal, Green, Orange, Red, Pink, Slate; shown as round color buttons with check mark) plus "Custom" with a hex
+     text field (and native color input). Changes apply immediately (preview = the real UI) and are saved at once.
+  2. *Calendar*: default view (Month/Week/Day), default event color (Calendar color + 11 Google colors).
+  3. *Task list categories*: list with color dot, icon and name; tap opens the category dialog (name, color presets
+     from the Google palette + custom hex, emoji icon field, delete); "Add category" button.
+  Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
+  rolled back with the error banner on failure).
+- **Task list form**: adds `category` (select: categories + "No category"; default "No category") and `tags`
+  (comma-separated text field; shown as input chips).
+- **Collapsed task list card**: background/accent from the category color, category emoji before the title, done
+  count badge. Tags are shown in the expanded view as small assist chips.
+- **Filter bar** (`filter-bar`): toggled by `filter-button` in the top app bar (badge with the count of active
+  filters); always shown while a filter is active. One horizontally scrollable row of M3 filter chips: each category
+  (color dot + icon + name), "No category", then every tag used in the loaded items (alphabetical), and "Clear".
+  The row scrolls inside itself (`overflow-x: auto`), never the page. Filter state = URL query (API.md).
+- **Event form**: adds `color` (Calendar color + the 11 Google colors, shown as swatches with names), default from
+  settings.
 
 ### 5a. Resource efficiency and leak prevention (hard requirements)
 
@@ -292,6 +329,14 @@ Rules for implementers:
 |---|---|
 | `app-shell` | root |
 | `top-bar`, `bottom-bar` (`data-safe-area`) | top app bar; navigation bar (phones) / rail (desktop) |
+| `settings-button`, `filter-button` | top app bar actions |
+| `settings-view`, `settings-back` | settings page |
+| `settings-theme-mode` | segmented button; options with `data-value="system\|light\|dark"`, `aria-pressed`, labels System/Light/Dark |
+| `settings-seed-preset` | swatches with `data-name`, `data-color`, `aria-pressed`; `settings-seed-custom` (hex text field, Enter/blur applies), `settings-seed-error` |
+| `settings-default-view`, `settings-default-event-color` | selects (option labels as in the features) |
+| `settings-category` | list rows with `data-category-id`, `data-name`, `data-color`; `settings-category-add` |
+| `category-dialog` | `category-name`, `category-color` (hex text field), `category-icon`, `category-error`, `category-save`, `category-cancel`, `category-delete` |
+| `filter-bar` | `filter-chip-category` (`data-name`, `data-category-id`, `aria-pressed`), `filter-chip-tag` (`data-name`, `aria-pressed`), `filter-clear` |
 | `period-title` | text per §5 |
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
 | `view-switch-month`, `view-switch-week`, `view-switch-day` | tabs (`aria-selected`) |
@@ -310,10 +355,10 @@ Rules for implementers:
 | `time-grid` | `data-hour-height` (px) |
 | `time-slot` | `data-date`, `data-hour` (clickable, creates event) |
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
-| `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none); children `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`), `tasklist-card-count` (`1/3`), `tasklist-card-time` |
-| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-new-item` (Enter adds), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
-| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-error`, `event-save`, `event-cancel`, `event-delete` |
-| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`), `tasklist-card-count` (`1/3`), `tasklist-card-time` |
+| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-new-item` (Enter adds), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
+| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
+| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
 | `sync-status` | `data-state`, `data-last-sync` |
 | `sync-error-banner`, `sync-retry` | error strip |
@@ -379,7 +424,7 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 | `ALLOWED_ORIGINS` | `PUBLIC_URL` | comma-separated extra origins for CORS (same-origin needs none) |
 | `TZ` | `Europe/Berlin` | calendar time zone |
 | `PROVIDER` | `mock` | `mock` \| `google` |
-| `DATA_DIR` | `./data` | mock JSON store, `google-token.json` |
+| `DATA_DIR` | `./data` | mock JSON store, `settings.json`, `google-token.json` |
 | `SEED` | `true` | seed demo data into an empty mock store |
 | `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
 | `POLL_INTERVAL_MS` | `30000` | web polling interval |

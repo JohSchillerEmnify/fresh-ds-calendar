@@ -56,3 +56,16 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 - No memory leaks: clean up timers/listeners on unmount; automated heap-growth tests (frontend + server soak).
 - UI follows Material 3 (Expressive) design: M3 tokens/color roles, light+dark, top app bar, navigation bar, FAB,
   bottom sheets, chips, state layers. Still pleasant on iOS.
+
+## Update: prettiness, settings, categories (owner, 2026-10-12)
+- Not an exact Google clone; looks matter. Settings screen: theme seed color (presets + custom) generating M3
+  dynamic palettes, theme mode System/Light/Dark, persisted server-side (/api/settings).
+- Task lists have a user-defined category (name, color, icon) + optional tags; filter calendar by category/tag.
+  Default categories: Shopping, To-do, Work, Home. Events can pick a color.
+
+## Update: demo data (owner, 2026-10-12)
+- Mock mode ships with rich demo data: ~25 realistic events spread around the current date (past 2 weeks to next
+  4 weeks: work meetings, dentist, gym, birthdays, all-day and multi-day trips) and ~6 task lists across the default
+  categories (shopping list, weekend chores, packing list...) with some items ticked. Dates relative to "now" at first
+  seed. Only when PROVIDER=mock and SEED is not false; never written to real Google. Tests reset data, so seed is off
+  under TEST_MODE. A "Reset demo data" action in Settings (mock mode only) is welcome.

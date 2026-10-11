@@ -93,13 +93,48 @@ interface TaskList {
   items: TaskItem[];       // max 200, in display order
   doneCount: number;
   totalCount: number;
-  color: string;
+  categoryId: string | null;   // null = no category; unknown/deleted ids are returned as null
+  tags: string[];              // max 10, each 1–30 chars, no commas, unique case-insensitively, order kept
+  color: string;               // category color, else calendar color
   etag: string;
   updated: DateTime;
 }
 
 type CalendarItem = CalendarEvent | TaskList;
+
+interface Category {
+  id: string;              // defaults: 'shopping' | 'todo' | 'work' | 'home'; new: 8-char nanoid
+  name: string;            // 1–40 chars after trim, unique case-insensitively
+  color: string;           // '#rrggbb' lowercase
+  icon: string | null;     // one emoji (≤ 8 UTF-16 units) or null
+  googleColorId: string;   // derived: nearest Google event color (see "Colors")
+}
+
+type ThemeMode = 'system' | 'light' | 'dark';
+type ViewName = 'month' | 'week' | 'day';
+
+interface Settings {
+  themeMode: ThemeMode;              // default 'system'
+  seedColor: string;                 // '#rrggbb', default '#1a73e8'
+  defaultView: ViewName;             // default 'month'
+  defaultEventColorId: string | null; // Google colorId '1'..'11' or null (= calendar color), default null
+  categories: Category[];            // display order
+  updated: DateTime;
+  version: number;                   // increments on every change
+}
 ```
+
+### Colors
+
+Google event palette (`colorId` → hex, name): `1` #7986cb Lavender, `2` #33b679 Sage, `3` #8e24aa Grape,
+`4` #e67c73 Flamingo, `5` #f6bf26 Banana, `6` #f4511e Tangerine, `7` #039be5 Peacock, `8` #616161 Graphite,
+`9` #3f51b5 Blueberry, `10` #0b8043 Basil, `11` #d50000 Tomato.
+**Nearest color** = smallest CIE76 ΔE (sRGB → XYZ D65 → CIELAB) to the palette; ties → lower id. Shared pure function
+used by server (Google mapping) and web (none needed in UI, but available).
+Seed presets: Blue #1a73e8, Purple #6750a4, Teal #006a6a, Green #386a20, Orange #e8710a, Red #b3261e, Pink #c2185b,
+Slate #4f6170.
+Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
+`home` Home #f4511e 🏠.
 
 ## Endpoints
 
@@ -196,18 +231,47 @@ interface CreateTaskListInput {
   date: LocalDate;
   time?: LocalTime | null;
   items?: { title: string; done?: boolean }[];   // blank titles are dropped
+  categoryId?: string | null;   // must exist in settings, else 400
+  tags?: string[];
 }
 interface UpdateTaskListInput {
   title?: string;
   date?: LocalDate;
   time?: LocalTime | null; // null removes the time
   items?: { id?: string; title: string; done: boolean }[];  // full replacement (used by fixtures)
+  categoryId?: string | null;
+  tags?: string[];
 }
 ```
 Item ops return the whole updated `TaskList`. `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
+
+### Settings and categories
+
+Stored server-side in `DATA_DIR/settings.json` (single user, independent of the provider; atomic writes). Created with
+the defaults on first start.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/settings` | – | `200` `Settings` |
+| `PATCH` | `/api/settings` | `Partial<Pick<Settings, 'themeMode' \| 'seedColor' \| 'defaultView' \| 'defaultEventColorId'>>` | `200` `Settings` |
+| `POST` | `/api/categories` | `{ name: string; color: string; icon?: string \| null }` | `201` `Settings` |
+| `PATCH` | `/api/categories/:id` | `{ name?; color?; icon? }` | `200` `Settings` |
+| `DELETE` | `/api/categories/:id` | – | `200` `Settings` |
+| `PUT` | `/api/categories/order` | `{ categoryIds: string[] }` | `200` `Settings` |
+
+Validation messages: `Name is required`, `A category with this name already exists`, `Enter a color like #1a73e8`
+(invalid hex, also for `seedColor`). Colors are normalised to lowercase. `PATCH /api/settings` accepts
+`If-Match: <version>` (412 if stale); the web app sends it. Deleting a category does not rewrite Google events: task
+lists keep the stale `categoryId` in Google, and the API reports them as `categoryId: null` (calendar color). The
+settings endpoints do not touch the provider, so they work during a Google outage.
+
+Filtering by category/tag is done in the web app on the loaded items (no server query parameters). Filter state lives
+in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `tags=<tag>[,<tag>…]`, e.g.
+`/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
+AND-ed. Events are never filtered.
 
 ## Test-only endpoints (`TEST_MODE=true`)
 
@@ -216,7 +280,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 
 | Method | Path | Body | Effect |
 |---|---|---|---|
-| `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides; then seeds or loads the fixture. `200 { calendars, items }` |
+| `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories); then seeds or loads the fixture. `200 { calendars, items, settings }` |
 | `POST` | `/api/__test/clock` | `{ now: string \| null }` | Sets a **frozen** clock (`now` ISO with offset or `Z`), or clears it with `null`. `200 { now, clockFrozen }` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |

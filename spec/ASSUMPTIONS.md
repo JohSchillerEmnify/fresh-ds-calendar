@@ -17,8 +17,8 @@ spec files are named.
   banner `Can't reach Google Calendar. Showing the last known data.`
 - **A-07 New event defaults**: focus date; next full hour if today (capped at 23:00) else 09:00; 1 h; primary calendar.
   Editing start keeps duration. Form shows inclusive end dates for all-day events.
-- **A-08 Calendars in the mock**: `primary` "Personal" `#039be5` and `work` "Work" `#0b8043`. Event `colorId`
-  overrides are supported by the API but the UI only lets users pick the calendar (no per-event color picker in v1).
+- **A-08 Calendars in the mock**: `primary` "Personal" `#039be5` and `work` "Work" `#0b8043`. Events can pick one of
+  the 11 Google event colors or "Calendar color" (owner update).
 - **A-09 Multi-day rendering**: one chip per covered day (month and week), not a spanning bar. Simpler, deterministic,
   works on narrow phones.
 - **A-10 Month overflow**: desktop max 3 entries per cell + `+N more`; phone max 2 compact chips + `+N`.
@@ -84,11 +84,35 @@ spec files are named.
 
 ## Design and efficiency (owner update)
 
-- **A-35 Theme**: light/dark follows the system setting only; no in-app toggle in v1.
-- **A-36 Dynamic color**: "dynamic-ish" means a light and dark M3 scheme generated at build time from the seed `#1a73e8`.
-  Android wallpaper-based dynamic color is not available to web apps and is out of scope.
+- **A-35 Theme mode** (superseded by owner, 2026-10-12): Settings offer System / Light / Dark; default System.
+- **A-36 Dynamic color** (updated): the M3 scheme is generated at runtime from the user's seed color (8 presets or a
+  custom hex; default Blue `#1a73e8`). Android wallpaper-based dynamic color is not available to web apps and is out of
+  scope.
 - **A-37 Component library**: M3 components are built in-house on design tokens to meet the bundle budget, unless
   `docs/RESEARCH.md` decides otherwise. Navigation rail on desktop, navigation bar on phones.
 - **A-38 Stack overrides**: the "Decision" section of `docs/RESEARCH.md` overrides stack choices in the BRIEF and in
   ARCHITECTURE.md. The spec contracts (features, steps, API, testids, env vars) stay valid regardless of the stack.
 - **A-39 Fonts and icons**: system font stack (Roboto on Android, SF on iOS), inline SVG icons; no web font downloads.
+
+## Settings, categories, colors (owner update: "not an exact Google clone, prettiness matters")
+
+- **A-40 Settings storage**: one JSON file `DATA_DIR/settings.json`, single user, no auth; last write wins with a
+  `version` check (`If-Match`). Settings do not sync to Google.
+- **A-41 Default categories** ship with fixed ids so tests and URLs are stable: `shopping` Shopping #0b8043 🛒,
+  `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼, `home` Home #f4511e 🏠 (colors taken from the Google palette so
+  they look identical in Google Calendar). Default seed presets: Blue #1a73e8, Purple #6750a4, Teal #006a6a,
+  Green #386a20, Orange #e8710a, Red #b3261e, Pink #c2185b, Slate #4f6170.
+- **A-42 Icons** are emoji (one grapheme), not an icon set; this keeps the bundle small and looks native on both iOS
+  and Android.
+- **A-43 Filters** apply only to task lists (events always stay visible), live in the URL query (deep-linkable,
+  per tab, not persisted in settings). Categories OR, tags OR, category group AND tag group. The tag filter lists the
+  tags of the loaded items only.
+- **A-44 Category color in Google**: nearest Google `colorId` by CIE76 ΔE in CIELAB. A category color change updates
+  Google `colorId` lazily on the next write of each task list. Deleting a category leaves the stale `categoryId` in
+  Google; the API treats unknown ids as "no category".
+- **A-45 Tags**: free text, trimmed, max 10 per list, 1–30 chars, no commas, case-insensitively unique; displayed as
+  typed. Stored as a JSON array in `extendedProperties.private.tags`.
+- **A-46 Uncategorized task lists** use the calendar color (`#039be5` for Personal), like events without a color.
+- **A-47 Default event color** setting pre-selects the color in the new event form only; the API default stays
+  "calendar color".
+- **A-48 Default view** setting only affects `/`; deep links are unaffected.

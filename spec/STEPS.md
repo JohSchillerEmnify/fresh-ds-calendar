@@ -32,8 +32,10 @@ Define the custom types with `defineParameterType` in `e2e/steps/parameters.ts`.
 - **Lists in one string** (`"Milk, Eggs, Bread"`) are joined with `", "` and compared exactly and in order.
 - **Form tables** (`I fill in ... form with:`) are two-column rows-hash tables: field name, value.
   - Event fields: `title`, `all day` (`yes`/`no`), `start date`, `start time`, `end date`, `end time`,
-    `description`, `location`, `calendar` (calendar display name, e.g. `Personal`, `Work`).
-  - Task list fields: `title`, `date`, `time` (empty = no time), `items` (`; `-separated, typed as one item per line).
+    `description`, `location`, `calendar` (calendar display name, e.g. `Personal`, `Work`), `color` (`Calendar color`
+    or a Google color name, e.g. `Tomato`).
+  - Task list fields: `title`, `date`, `time` (empty = no time), `items` (`; `-separated, typed as one item per line),
+    `category` (category name or `No category`), `tags` (comma-separated text).
   - An empty cell clears the field. A cell wrapped in double quotes (`"   "`) is typed literally without the quotes.
   - `<N characters>` (e.g. `<201 characters>`) types N times the letter `x`.
   - Fields are filled in the table order; filling a field that is not visible (e.g. `start time` when `all day` is
@@ -377,3 +379,90 @@ pressing the create button shows a state layer
 - Contrast: WCAG relative luminance of the computed `color` vs. the first non-transparent ancestor `background-color`.
 - State layer: while the pointer is down on `create-button` (`mouse.down()`), the button carries
   `data-pressed="true"` and its state-layer element (`[data-state-layer]`) has a non-zero computed opacity.
+
+## Settings (`@settings`)
+
+```
+I open the settings
+the settings screen is shown
+I leave the settings
+I choose the theme mode {string}
+the theme mode {string} is selected
+I choose the seed color preset {string}
+I enter the custom seed color {string}
+the seed color {string} is selected
+the custom seed color field shows the error {string}
+the color role {string} has a hue within {int} degrees of {string}
+I choose {string} as the default view
+the default view {string} is selected
+I choose {string} as the default event color
+the default event color {string} is selected
+I switch to another device
+the settings are changed elsewhere to the theme mode {string}
+```
+
+- `I open the settings` clicks `settings-button` in the top app bar; `I leave the settings` clicks `settings-back`
+  (returns to the previous calendar URL, or `/` if none).
+- Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing.
+  A rejected custom color does not send a request.
+- Theme modes are the labels `System`, `Light`, `Dark`. Seed presets are the labels `Blue`, `Purple`, `Teal`, `Green`,
+  `Orange`, `Red`, `Pink`, `Slate`; a custom color is shown as `Custom`.
+- Hue check: computes the HCT hue (Material color science) of the computed `--md-sys-color-<role>` and of the hex value
+  and compares the circular difference (implementations may import the reference color utilities in the test code).
+- `I switch to another device` creates a new browser context with the same project options (no shared storage) and
+  a new page; all following steps act on it.
+- `the settings are changed elsewhere to ...` sends `PATCH /api/settings` directly through the API.
+
+## Categories, tags and filters (`@categories`)
+
+```
+the calendar contains a task list {string} in the category {string} on {date}
+the calendar contains a task list {string} in the category {string} with the tags {string} on {date}
+I add the category {string} with the color {string} and the icon {string}
+I add the category {string} with the color {string}
+I rename the category {string} to {string}
+I change the color of the category {string} to {string}
+I delete the category {string}
+the categories are {string}
+the category {string} has the color {string}
+the category dialog shows the error {string}
+the task list {string} has the color {string}
+the task list {string} shows the icon {string}
+the task list {string} shows no icon
+the expanded task list shows the tags {string}
+the Google event for the task list {string} stores the tags {string}
+the Google event for the task list {string} has the color ID {string}
+the Google event for the task list {string} has no color ID
+I show the filters
+I filter by the category {string}
+I filter by the tag {string}
+I clear the filters
+the category filter {string} is selected
+the tag filters are {string}
+the URL query is {string}
+```
+
+- Category fixtures create an empty task list (no items) via `POST /api/tasklists` with `categoryId` resolved by name
+  from `GET /api/settings`. Tags are comma-separated.
+- Category steps act in the Settings screen: add = `settings-category-add` → `category-dialog` → fill `category-name`,
+  `category-color` (hex text field), optional `category-icon` → `category-save`. Rename/recolor open the category
+  (`settings-category` with `data-name`) and save. Delete = open → `category-delete` (then the confirm steps).
+- "the categories are" = `data-name` of `settings-category` elements in DOM order.
+- "the task list X has the color" = `data-color` on its `tasklist-card` (lowercase hex). "shows the icon" = text of
+  `tasklist-card-icon`; "shows no icon" = no such element.
+- "stores the tags" parses `extendedProperties.private.tags` (JSON array) and compares it joined with `, `.
+- Filters: `I show the filters` clicks `filter-button` if `filter-bar` is not visible. "filter by" clicks the chip
+  `filter-chip-category` / `filter-chip-tag` with that `data-name` (toggles it). `I clear the filters` clicks
+  `filter-clear`. "is selected" = `aria-pressed="true"`. "the tag filters are" = `data-name` of all
+  `filter-chip-tag` in DOM order.
+- "the URL query is" compares `location.search` without the leading `?` (`""` = no query).
+
+## Event colors (`@colors`)
+
+```
+the event color options are {string}
+the Google event {string} has no color ID
+Google sets the color ID of the event {string} to {string}
+```
+
+- Options = labels of the `event-color` picker options in DOM order.
