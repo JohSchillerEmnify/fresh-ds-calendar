@@ -48,7 +48,7 @@ export function registerDialog(kind: string, loader: Loader): void {
 }
 
 // --- 3. item renderers (chips in month/week/day, blocks in the time grid) ---------------------------
-export type ItemVariant = 'dot' | 'chip' | 'allday' | 'block';
+export type ItemVariant = 'dot' | 'chip' | 'card' | 'allday' | 'block';
 export interface ItemRendererProps {
   segment: Segment;
   variant: ItemVariant;
