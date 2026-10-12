@@ -107,6 +107,7 @@ I switch to the {view} view
 I go back in the browser
 I reload the page
 I click the day number of {date}
+I click empty space in the month cell of {date}
 I click the week header of {date}
 I tap the day {date} in the month view
 I click the overflow link on {date}
@@ -519,6 +520,14 @@ I dismiss the transition warning
 the open tasks tray shows the count {string}
 I open the open tasks tray
 the open tasks tray lists {string}
+the open tasks tray shows the task list {string} with items:
+I tick the item {string} in the open tasks tray
+I untick the item {string} in the open tasks tray
+the item {string} of the task list {string} was ticked on {date}
+the open tasks tray shows all {int} items of the task list {string}
+I unfold the task list {string} in the open tasks tray
+the create button does not cover any control of the open tasks tray
+the task list {string} in the open tasks tray is struck through and shows only its title
 I open the task list {string} from the open tasks tray
 the task list {string} is shown as carried over from {string}
 the task list {string} is not flagged as overdue

@@ -196,6 +196,12 @@ export function matchesFilters(item: CalendarItem, f: Filters): boolean {
 /** Minimum rendered block height (px); the block keeps its start position (spec: timeline, short events). */
 export const MIN_BLOCK_PX = 24;
 /** Rendered top and height (px) of a timed segment: proportional to the duration, never below `MIN_BLOCK_PX`. */
-export function blockGeometry(startMin: number, endMin: number, hourHeight: number): { top: number; height: number } {
-  return { top: (startMin / 60) * hourHeight, height: Math.max(((endMin - startMin) / 60) * hourHeight, MIN_BLOCK_PX) };
+export function blockGeometry(startMin: number, endMin: number, hourHeight: number, minPx = MIN_BLOCK_PX): { top: number; height: number } {
+  return { top: (startMin / 60) * hourHeight, height: Math.max(((endMin - startMin) / 60) * hourHeight, minPx) };
+}
+/** Task lists with open items never render shorter than title row + 2 mini item rows (keeps the start, may overlap the next block like the 24 px event minimum). */
+export const TASKLIST_MIN_BLOCK_PX = 44;
+export function segmentMinPx(seg: Segment): number {
+  const i = seg.item;
+  return i.kind === 'tasklist' && i.items.some((x) => !x.done) ? TASKLIST_MIN_BLOCK_PX : MIN_BLOCK_PX;
 }

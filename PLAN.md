@@ -1,3 +1,56 @@
+# >>> HANDOFF: READ FIRST (another Claude session worked here while you were rate-limited) <<<
+
+Written by a separate Claude Code session (driven by the owner from the owner's laptop over ssh), 2026-10-12 from 12:30,
+while this orchestrator session (tmux `claude`, cwd ~/docker-compose) was waiting for its limit reset at 14:50.
+**Your in-context picture of the repo is stale. Re-read this section and `git -C <worktree> status/log` before acting.**
+
+## What changed while you were away
+- **timed-tl merged + deployed.** The owner approved ("Yes, deploy it"; that text may still sit unsent in your input box,
+  it is already done). Master: `82b3382` all-JS size budget 148 -> 152 kB, `5d5ecad` merge of timed-tl at `7f22038`
+  (exactly the preview the owner saw). Auto-deploy finished 12:39, live sha `5d5ecad`.
+- **Do NOT resume the dead agents** a61a21bbecd1d6bf2 (timed-tl) and a6e24e2c93635f109 (fix-tasks) via SendMessage:
+  their context no longer matches the worktrees.
+- **timed-tl worktree** still holds the killed agent's uncommitted WIP (setting `taskListPlacement` top/drawer/both in
+  server, spec/API.md, settings UI). The other session continues this slice (tray: FAB overlap, more items, "This day" section).
+- **New worktree `calendar-wt/month-cell`** (branch `month-cell`, from master): owner request "clicking empty space in a
+  month day cell opens the day (desktop too)". Spec first: navigation.feature (2 scenarios), STEPS.md (1 step),
+  ACCEPTANCE AC-09, ASSUMPTIONS A-E2; then MonthView.vue + unit test in web/test/app.test.ts, e2e step in navigation.steps.ts.
+  node_modules there are symlinks to timed-tl's.
+- **fix-tasks**: untouched so far.
+
+## New owner rules (2026-10-12, given to the other session)
+- **Spec-driven:** spec changes first (features, STEPS.md, ACCEPTANCE.md, ASSUMPTIONS.md, API.md), then code.
+- **NoVibe workflow per slice:** branch per slice -> requirements-engineer -> architect -> developer; the owner signs off each step.
+- Commits and merges by Claude are allowed for this app (merge to master = live deploy, so only with owner OK).
+
+## Coordination
+- The other session appends to "Handoff log" below. Until the owner says otherwise, assume it may still be working:
+  do not edit worktrees `month-cell` / `timed-tl` without checking the log and `git status` first.
+
+### Handoff log
+- 12:45 handoff written; next: NoVibe slice 1 (month-cell) sign-off, then slice 2 (tray) in timed-tl.
+- 13:05 month-cell DONE on branch (spec 834b1b1, feat 9362c5f; e2e scenarios red->green, desktop). Preview http://month-cell.cal.mordor.local, waiting for owner OK to merge. Worktree has its own pnpm install now.
+- 13:05 owner feedback for slice 2 (tray): desktop right panel must show task lists fully with tickable items (multiple paths are OK for now; owner collects UI feedback, then paths get reduced).
+- 13:10 month-cell MERGED to master (8115b12, owner OK), preview removed.
+- 13:25 slice 2a `tray-lists` (worktree calendar-wt/tray-lists, own pnpm install): spec ce9a432+47677b5 (open-tasks.feature, AC-76),
+  arch 7e7508c (TaskList.completedOn in Google extendedProperties, GET /api/tasklists/open adds finishedToday, tray rows
+  with tickable items, title tap = edit dialog, finished-today lists struck/collapsed/unfoldable). Build in progress (other session).
+- Queued slices (owner): 2b FAB must not cover tray controls; 2c "This day" in drawer + taskListPlacement (WIP in timed-tl);
+  2d all-day section modes: keep only Expanded + Titles only, drop Counts (owner 13:20).
+- Owner chose to keep spec/ARCHITECTURE.md + API.md as the architecture model (no LikeC4), no ADRs unless crucial.
+- 13:35 tray-lists build: server completedOn (taskCodec nextCompletedOn + CalendarService.modify/create), open endpoint
+  finishedToday, web store `finished`/`markFinished`, TaskTray rows with RewardCheckbox items, edit on title, unfold for finished.
+  Unit suites green (server 156, web 279). e2e open-tasks running. NOT committed yet.
+  Pre-existing e2e failures (not this slice): 4 carry-over scenarios fail on master because of task card data-date; fixed by
+  unmerged branch fix-tasks (9c1d269).
+- 13:35 preview.sh now also routes <name>.cal.mordor.lan (owner: Linux clients cannot resolve .local), commit 1e249a5. Always
+  give the owner both URLs.
+- 14:05 tray-lists (2a + 2b folded in by owner) DONE on branch: spec 1e5cc80, arch cbe9274, feat 0f82858. e2e open-tasks green on
+  desktop + mobile except the 4 known carry-over failures (fix-tasks). Preview http://tray-lists.cal.mordor.local | .lan,
+  waiting for owner OK to merge. Note: completedOn is only set by updates (a list created complete gets none).
+
+---
+
 # Build plan / status (orchestrator notes)
 
 - Wave A (running 2026-10-12 ~01:50): worktrees in ../calendar-wt/{server,web-foundation,web-motion,e2e}, branches feat/*.

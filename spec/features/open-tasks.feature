@@ -4,6 +4,9 @@ Feature: Open tasks stay in sight
   and overdue task lists that still have unticked items. Open task lists from the past 30 days are
   carried forward to today with a gentle "From <day>" label instead of disappearing in the past.
   Overdue is never shown in the error color.
+  Every list in the tray shows all of its items (ticked ones struck through), on phones once the tray
+  is opened; long lists make the tray scroll rather than hide items. Lists finished today follow the
+  open ones until the end of the day.
 
   Background:
     Given the calendar is empty
@@ -44,13 +47,69 @@ Feature: Open tasks stay in sight
     And I open the open tasks tray
     Then the open tasks tray lists "Laundry, Groceries, Packing"
 
-  Scenario: A task list can be opened and ticked from the tray
+  Scenario: The tray shows every item of an open task list
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    Then the open tasks tray shows the task list "Laundry" with items:
+      | item | done |
+      | Wash | yes  |
+      | Fold | no   |
+
+  Scenario: Finishing a task list in the tray keeps it there, struck through and collapsed
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    And I tick the item "Milk" in the open tasks tray
+    Then the open tasks tray shows the count "2 open"
+    And the task list "Groceries" in the open tasks tray is struck through and shows only its title
+
+  Scenario: A task list finished earlier today stays in the tray, struck through
+    Given the item "Fold" of the task list "Laundry" was ticked on 2026-10-12
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    Then the task list "Laundry" in the open tasks tray is struck through and shows only its title
+
+  Scenario: A task list finished yesterday is not in the tray
+    Given the item "Fold" of the task list "Laundry" was ticked on 2026-10-11
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    Then the open tasks tray lists "Groceries, Packing"
+
+  Scenario: Unticking an item in the tray
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    And I untick the item "Wash" in the open tasks tray
+    Then the open tasks tray shows the task list "Laundry" with items:
+      | item | done |
+      | Wash | no   |
+      | Fold | no   |
+
+  Scenario: A long task list shows all of its items in the tray
+    Given the calendar contains a task list "Move" on 2026-10-12 with 12 generated items
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    Then the open tasks tray shows all 12 items of the task list "Move"
+
+  Scenario: Tapping a task list in the tray opens it for editing
     When I open the month view for 2026-12
     And I open the open tasks tray
     And I open the task list "Groceries" from the open tasks tray
-    Then the task list "Groceries" is expanded
-    When I tick the item "Milk"
-    Then the open tasks tray shows the count "2 open"
+    Then the task list dialog is open
+
+  Scenario: A finished task list in the tray unfolds to its items
+    Given the item "Fold" of the task list "Laundry" was ticked on 2026-10-12
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    And I unfold the task list "Laundry" in the open tasks tray
+    Then the open tasks tray shows the task list "Laundry" with items:
+      | item | done |
+      | Wash | yes  |
+      | Fold | yes  |
+
+  @mobile
+  Scenario: The create button does not cover the open tasks tray
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    Then the create button does not cover any control of the open tasks tray
 
   Scenario: An overdue open task list is carried forward to today
     When I open the week view for 2026-10-05

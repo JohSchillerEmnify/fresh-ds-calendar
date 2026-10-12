@@ -6,7 +6,6 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
-import { isCollapsed } from '@/features/tasklists/collapse';
 import { allotHeights } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { laneCount } from '@/lib/spans';
@@ -48,7 +47,7 @@ function visible(date: string, lanes: number, hidden: number) {
     const phone = isPhone.value;
     const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
     const sized = (n: number) => titleH + n * rowH + extra;
-    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(isCollapsed(s.item.id) ? 0 : Math.min(2, s.item.items.filter((i) => !i.done).length) + (s.item.items.filter((i) => !i.done).length > 2 ? 1 : 0)) : evH);
+    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(Math.min(2, s.item.items.filter((i) => !i.done).length) + (s.item.items.filter((i) => !i.done).length > 2 ? 1 : 0)) : evH);
     /** Smallest useful size: events one line, task lists the title plus up to 3 rows (item rows and the "+k" line). */
     const minOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? Math.min(needOf(s), sized(phone ? 3 : 2)) : evH);
     const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - lanes * (phone ? 18 : 22) - (n - 1) * gap - (withMore || hidden > 0 ? 14 : 0) - 2;
@@ -57,6 +56,12 @@ function visible(date: string, lanes: number, hidden: number) {
     heights = allotHeights(shown.map(needOf), room(shown.length, shown.length < all.length), evH);
   }
   return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length + hidden };
+}
+
+/** Empty space in a cell opens the day; on desktop a click on an entry opens the entry instead. */
+function onCellClick(e: MouseEvent, day: Date): void {
+  if (!isPhone.value && (e.target as Element | null)?.closest('.chips > *')) return;
+  void nav.openDay(day);
 }
 
 function onChipsClick(e: MouseEvent, day: Date): void {
@@ -80,7 +85,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
         <div
           v-for="(day, ci) in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, cal.anchor) ? 'true' : undefined"
-          :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="isPhone && nav.openDay(day)"
+          :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div v-if="row.lanes" class="lanes" />

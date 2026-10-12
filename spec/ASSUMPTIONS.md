@@ -155,12 +155,14 @@ spec files are named.
 - **A-59 Year view density** buckets: 0, 1, 2–3, ≥ 4 items per day.
 - **A-60 Month picker** jumps the current view to the picked day. It does not switch views.
 - **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
-  navigation bar, and the FAB floats above the tray.
+  navigation bar, and the FAB floats above the tray bar. While the tray is expanded the FAB slides away (owner
+  2026-10-12), so it never covers the tray's controls; it returns when the tray is collapsed.
 - **A-E1 Month overflow, one hidden item**: on desktop a day with exactly one item more than the limit (4 items) shows all
   of them instead of 3 plus "+1 more" (the link would take the same room). 5 or more items show 3 plus "+N more".
   Needed by events-display "Items of a day are ordered all-day first, then by time" together with the "+2 more" scenario.
 - **A-E2 "I tap the day D in the month view" on desktop** (timeline "phone month view" scenario also runs on desktop):
-  without touch the step clicks the day number, because a desktop cell body does not open the day.
+  without touch the step clicks the day number. Since 2026-10-12 (owner request) empty space in a desktop cell also opens
+  the day, but the cell centre may hold an entry, whose click opens the entry instead.
 - **A-E3 Phone month chips**: a tap on a chip opens the day (like a tap anywhere in the cell); a long press picks the
   chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
 - **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the

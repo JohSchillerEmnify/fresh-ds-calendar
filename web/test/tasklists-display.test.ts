@@ -3,7 +3,6 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 import type { TaskList } from '@/api/types';
 import { dragPreview, planMove } from '@/features/calendar/dnd';
-import { isCollapsed, loadCollapseState, setAllCollapsed } from '@/features/tasklists/collapse';
 import { checkState } from '@/features/tasklists/format';
 import { allotHeights, fitItems } from '@/features/tasklists/layout';
 import TaskListCard from '@/features/tasklists/TaskListCard.vue';
@@ -36,6 +35,11 @@ describe('fitItems (line budget)', () => {
   });
   it('accounts for the footer row', () => {
     expect(fitItems({ ...g, count: 4, height: 17 + 5 + 14 * 4, footH: 14 }).shown).toBe(2);
+  });
+  it('a block of >= 34 px always gets one row, even with a footer', () => {
+    expect(fitItems({ titleH: 15, rowH: 11, pad: 6, footH: 14, count: 4, height: 34, minLines: 0 })).toEqual({ shown: 1, more: 3, inline: false });
+    expect(fitItems({ titleH: 15, rowH: 11, pad: 6, count: 3, height: 33, minLines: 0 }).inline).toBe(false);
+    expect(fitItems({ titleH: 15, rowH: 11, pad: 6, count: 3, height: 25, minLines: 0 }).inline).toBe(true);
   });
   it('timed blocks without a spare row go inline', () => {
     expect(fitItems({ ...g, count: 3, height: 22, minLines: 0 })).toEqual({ shown: 3, more: 0, inline: true });
@@ -197,29 +201,5 @@ describe('TaskListCard in a grid', () => {
     expect(d.findAll('.it:not(.over)')).toHaveLength(0);
     expect(d.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
     expect(d.classes()).toContain('complete');
-  });
-  it('chevron collapses to the title row, persists, and neither opens nor drags', async () => {
-    freshPinia();
-    localStorage.clear();
-    setAllCollapsed(false);
-    const tl = list({ items: mk(3), totalCount: 3 });
-    const w = mount(TaskListCard, { props: { segment: itemSegments(tl)[0], variant: 'allday' }, attachTo: document.body });
-    expect(w.findAll('.it:not(.over)')).toHaveLength(2);
-    await w.get('[data-testid=tasklist-card-toggle]').trigger('click');
-    expect(w.emitted('open')).toBeUndefined();
-    expect(w.classes()).toContain('collapsed');
-    expect(w.findAll('.it:not(.over)')).toHaveLength(0);
-    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
-    expect(loadCollapseState().ids).toEqual({ l: true });
-    const down = pe('pointerdown', { x: 5, y: 5 });
-    w.get('[data-testid=tasklist-card-toggle]').element.dispatchEvent(down);
-    window.dispatchEvent(pe('pointermove', { x: 40, y: 40 }));
-    expect((w.element as HTMLElement).dataset.dragging).toBeUndefined();
-    window.dispatchEvent(pe('pointerup', { x: 40, y: 40 }));
-    setAllCollapsed(true);
-    expect(isCollapsed('other')).toBe(true);
-    expect(loadCollapseState()).toEqual({ all: true, ids: {} });
-    setAllCollapsed(false);
-    w.unmount();
   });
 });

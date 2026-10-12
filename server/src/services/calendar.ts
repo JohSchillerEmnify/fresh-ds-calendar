@@ -15,7 +15,7 @@ import {
 import type { MotivationService } from './motivation.js';
 import type { SettingsStore } from './settingsStore.js';
 import {
-  categoryColorId, decodeTaskList, encodePrivate, encodeTaskList, encodeTaskListPatch, isTaskListEvent, MAX_PRIVATE_BYTES, privateSize,
+  categoryColorId, decodeTaskList, encodePrivate, encodeTaskList, encodeTaskListPatch, isTaskListEvent, MAX_PRIVATE_BYTES, nextCompletedOn, privateSize,
   type TaskListData,
 } from './taskCodec.js';
 
@@ -88,8 +88,13 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
-      tags: d.tags, color: cat ? cat.color : calColor, etag: ev.etag, updated: ev.updated,
+      tags: d.tags, color: cat ? cat.color : calColor, completedOn: d.completedOn, etag: ev.etag, updated: ev.updated,
     };
+  }
+
+  /** Today on the app clock (honours the test clock), for `completedOn`. */
+  private today(): string {
+    return localDateOf(this.clock.nowMs(), this.tz);
   }
 
   private async mapOne(ev: GoogleEvent): Promise<CalendarItem> {
@@ -239,6 +244,7 @@ export class CalendarService {
       title: input.title, date: input.date, time: input.time ?? null,
       items: (input.items ?? []).filter((i) => i.title.trim()).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done })),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
+      completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
     };
     this.checkTaskData(d);
     const g = encodeTaskList(d, this.tz, this.colorFor(d));
@@ -257,7 +263,8 @@ export class CalendarService {
       const cur = await this.locateKind(id, true);
       if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
       const before = decodeTaskList(cur, this.tz);
-      const d = fn(before);
+      const d = { ...fn(before) };
+      d.completedOn = nextCompletedOn(before, d, this.today());
       this.checkTaskData(d, before.categoryId);
       try {
         const ev = await this.provider.patchEvent(cur.calendarId, id, encodeTaskListPatch(d, this.tz, this.colorFor(d), cur), { ifMatch: cur.etag });
@@ -339,11 +346,15 @@ export class CalendarService {
   }
 
   // ---------- open lists and summary ----------
-  async openTaskLists(today: string, days: number): Promise<TaskList[]> {
-    const items = await this.fetchRange(addDays(today, -days), addDays(today, 1), undefined, true);
-    const lists = items.filter((i): i is TaskList => i.kind === 'tasklist' && i.doneCount < i.totalCount && i.date >= addDays(today, -days) && i.date <= today);
+  /** Open lists and lists finished today, both dated in `[today - days, today]`, in tray order (API.md). */
+  async openTaskLists(today: string, days: number): Promise<{ items: TaskList[]; finishedToday: TaskList[] }> {
+    const all = await this.fetchRange(addDays(today, -days), addDays(today, 1), undefined, true);
+    const lists = all.filter((i): i is TaskList => i.kind === 'tasklist' && i.date >= addDays(today, -days) && i.date <= today);
     lists.sort((a, b) => a.date.localeCompare(b.date) || Number(a.time !== null) - Number(b.time !== null) || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title));
-    return lists;
+    return {
+      items: lists.filter((l) => l.doneCount < l.totalCount),
+      finishedToday: lists.filter((l) => l.completedOn === today && l.totalCount > 0 && l.doneCount === l.totalCount),
+    };
   }
 
   async summary(from: string, to: string): Promise<Record<string, SummaryDay>> {
