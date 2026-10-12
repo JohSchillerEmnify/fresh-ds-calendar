@@ -32,6 +32,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
 
   Scenario Outline: The now marker shows the current time and moves live
     Given the time is 2026-10-12 09:20 and the clock is running
+    And the approaching track is off
     When I open the <view> view for 2026-10-12
     Then the now marker is positioned at 09:20
     And the now marker is in the column of 2026-10-12
@@ -66,12 +67,14 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
 
   Scenario: The Now card says how long until the next event
     Given the time is 2026-10-12 09:20 and the clock is running
+    And the approaching track is off
     When I open the day view for 2026-10-12
     Then the now card shows the line "Next: Dentist in 1 h 20 min"
     And the now card does not show a current event
 
   Scenario: The Now card counts down the current event with a progress bar
     Given the time is 2026-10-12 09:20 and the clock is running
+    And the approaching track is off
     When I open the day view for 2026-10-12
     And 95 minutes pass
     Then the now card shows the line "Dentist · 35 min left"
