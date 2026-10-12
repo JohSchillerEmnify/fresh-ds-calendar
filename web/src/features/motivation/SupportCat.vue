@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /**
  * One visit of the emotional support cat (ARCHITECTURE "Season scenes and the support cat"): walks in at the right
- * edge of the finished list card, puts a paw on the card, looks at the viewer, grins and fades out, then emits `done`
- * (the host removes it). Full ≈ 3 s; Reduced is shorter and calmer (no walk, smaller paw, still tail). The host never
+ * edge of the finished list card, puts a paw on the card while looking down at it, tilts its head and twitches an
+ * ear, looks at the viewer with a slow blink, grins with its eyes squinted into happy arcs and fades out, then emits
+ * `done` (the host removes it). Full ≈ 3 s; Reduced is shorter and calmer (no walk, smaller paw, no tilt or twitch,
+ * still tail). The host never
  * mounts it at level Off. Fixed overlay, `pointer-events: none`, so it never blocks anything.
  */
 import { computed, onBeforeUnmount, onMounted } from 'vue';
@@ -48,7 +50,9 @@ onBeforeUnmount(() => stop?.());
 .support-cat * { pointer-events: none; }
 .support-cat :deep(.paw) { animation: cat-paw var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.head) { animation: cat-head var(--cat-dur) ease-in-out both; }
-.support-cat :deep(.eyes) { animation: cat-look var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.pupils) { animation: cat-look var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.eyes) { animation: cat-slow-blink var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.ear-r) { animation: cat-ear var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.calm) { animation: cat-calm var(--cat-dur) step-end both; }
 .support-cat :deep(.grin) { animation: cat-grin var(--cat-dur) step-end both; }
 .support-cat :deep(.tail) { animation: cat-tail 1.1s ease-in-out infinite alternate; }
@@ -76,10 +80,15 @@ onBeforeUnmount(() => stop?.());
   58%, 86% { transform: rotate(5deg); }
   100% { transform: rotate(0deg); }
 }
+/* pupils: down at the card under the paw, then up at the viewer */
 @keyframes cat-look {
-  0%, 50% { transform: translate(-1.6px, 0.9px); }
-  56%, 100% { transform: translate(0, 0); }
+  0%, 22% { transform: translate(-1.300px, 0); }
+  30%, 48% { transform: translate(-1.500px, 1.300px); }
+  54%, 100% { transform: translate(0, 0); }
 }
+/* a slow, friendly blink at the viewer just before the grin */
+@keyframes cat-slow-blink { 0%, 55%, 64%, 100% { transform: scaleY(1); } 59%, 61% { transform: scaleY(0.12); } }
+@keyframes cat-ear { 0%, 48%, 58%, 100% { transform: none; } 51% { transform: rotate(15deg); } 54% { transform: rotate(-5deg); } 56% { transform: rotate(8deg); } }
 @keyframes cat-calm { 0% { opacity: 1; } 64% { opacity: 0; } }
 @keyframes cat-grin { 0% { opacity: 0; } 64% { opacity: 1; } }
 @keyframes cat-tail { from { transform: rotate(-6deg); } to { transform: rotate(10deg); } }
@@ -87,7 +96,7 @@ onBeforeUnmount(() => stop?.());
 /* Reduced: fades in already sitting, a small paw, still tail. */
 .support-cat[data-level='reduced'] { animation-name: cat-visit-calm; }
 .support-cat[data-level='reduced'] :deep(.paw) { animation-name: cat-paw-calm; }
-.support-cat[data-level='reduced'] :deep(.head) { animation: none; }
+.support-cat[data-level='reduced'] :deep(:is(.head, .ear-r)) { animation: none; }
 .support-cat[data-level='reduced'] :deep(.tail) { animation: none; }
 @keyframes cat-visit-calm {
   0% { opacity: 0; }
