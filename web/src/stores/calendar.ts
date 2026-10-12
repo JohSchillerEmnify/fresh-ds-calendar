@@ -21,11 +21,10 @@ export const useCalendarStore = defineStore('calendar', () => {
     anchor.value = d;
     const today = useClockStore().todayDate;
     focus.value = nextFocus(v, d, focus.value, today);
-    // the year view loads /api/summary itself; of the current year only today is loaded, for the Now card
-    if (v === 'year' && d.getFullYear() !== today.getFullYear()) return;
+    // the year view loads /api/summary itself, so only today is loaded there; every view keeps today for the Now card
     const [from, to] = v === 'year' ? [toIsoDate(today), toIsoDate(addDays(today, 1))] : fetchRange(v, d);
     const sync = useSyncStore();
-    useItemsStore().setVisible(from, to).then(
+    useItemsStore().setVisible(from, to, true).then(
       () => { if (sync.error) sync.clearError(); sync.markSynced(); },
       (e) => sync.reportError(e),
     );

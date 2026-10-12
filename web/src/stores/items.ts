@@ -5,7 +5,9 @@ import type {
   CalendarEvent, CalendarItem, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
+import { toIsoDate } from '@/lib/dates';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
+import { addDays } from 'date-fns';
 import { useClockStore } from './clock';
 import { useSyncStore } from './sync';
 
@@ -22,6 +24,7 @@ interface RangeEntry {
 /**
  * Range cache with normalized items (events and task lists share one id-keyed map, as ids are unique).
  * - `setVisible(from, to)` fetches the range the router needs; LRU of 6 ranges, unreferenced items are dropped.
+ *   With `withToday`, today is fetched (and refreshed) as its own range as well when outside `[from, to)` (Now card).
  * - A refresh replaces the range; items with a pending mutation keep their optimistic state.
  * - Mutations: events/task list details are not optimistic (`createEvent`...), item ops use `optimistic()`.
  */
@@ -29,7 +32,7 @@ export const useItemsStore = defineStore('items', () => {
   const byId = shallowRef<Record<string, CalendarItem>>({});
   const ranges = shallowRef<Record<string, RangeEntry>>({});
   const lru = ref<string[]>([]);
-  const visible = ref<{ from: LocalDate; to: LocalDate } | null>(null);
+  const visible = ref<{ from: LocalDate; to: LocalDate; withToday?: boolean } | null>(null);
   const pending = new Set<string>();
   /** Open task lists outside the visible ranges that are carried over to today (kept by gc). */
   const carriedIds = new Set<string>();
@@ -97,8 +100,8 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
-  async function setVisible(from: LocalDate, to: LocalDate): Promise<void> {
-    visible.value = { from, to };
+  async function setVisible(from: LocalDate, to: LocalDate, withToday = false): Promise<void> {
+    visible.value = { from, to, withToday };
     return refreshVisible();
   }
 
@@ -109,7 +112,11 @@ export const useItemsStore = defineStore('items', () => {
     const mine = (ctrl = new AbortController());
     loading.value = true;
     try {
-      await fetchRange(v.from, v.to, mine.signal);
+      const clock = useClockStore();
+      const today = clock.today;
+      const loads = [fetchRange(v.from, v.to, mine.signal)];
+      if (v.withToday && (today < v.from || today >= v.to)) loads.push(fetchRange(today, toIsoDate(addDays(clock.todayDate, 1)), mine.signal));
+      await Promise.all(loads);
       useSyncStore().markSynced();
     } catch (e) {
       if (e instanceof ApiError && e.isAbort) return;

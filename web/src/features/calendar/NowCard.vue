@@ -1,15 +1,12 @@
 <script setup lang="ts">
 /**
  * "Now" card above the time grid: the running event with time left and a shrinking progress bar, what comes next,
- * and (from other features) the next small task. Day view: only for today; week view: only the current week; month
- * view: only the current month; year view: only the current year. Rendered once by the shell above the views, so a
+ * and (from other features) the next small task. Shown above every calendar view whatever period is shown (it is
+ * about now; the calendar store keeps today loaded). Rendered once by the shell above the calendar views, so a
  * view switch keeps it; it animates in only when it really appears. `data-entered` counts those enter animations.
  */
 import { computed, ref } from 'vue';
-import { isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { useDaySegments } from '@/composables/useDaySegments';
-import { toIsoDate, weekDays } from '@/lib/dates';
-import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
 import ApproachBar from '@/features/labs/approach/ApproachBar.vue';
@@ -17,16 +14,8 @@ import { approachEntries } from '@/features/labs/approach/approach';
 import { nowCardLines } from './nowLines';
 import { nowCardModel } from './timeline';
 
-const cal = useCalendarStore();
 const clock = useClockStore();
 const segs = useDaySegments();
-const visible = computed(() => {
-  if (cal.view === 'day') return isSameDay(cal.anchor, clock.todayDate);
-  if (cal.view === 'week') return weekDays(cal.anchor).some((d) => toIsoDate(d) === clock.today);
-  if (cal.view === 'month') return isSameMonth(cal.anchor, clock.todayDate);
-  if (cal.view === 'year') return isSameYear(cal.anchor, clock.todayDate);
-  return false;
-});
 const model = computed(() => nowCardModel(segs(clock.today), clock.minutesNow));
 const prefs = usePrefsStore();
 /** Labs approach bar: replaces the "Next" line while something timed is still ahead today. */
@@ -47,7 +36,7 @@ const entered = ref(0);
 <template>
   <Transition name="now" appear @before-enter="entered++">
   <section
-    v-if="visible" class="now-card" :class="{ collapsed, track: showNext && track }" data-testid="now-card" aria-label="Now" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
+    class="now-card" :class="{ collapsed, track: showNext && track }" data-testid="now-card" aria-label="Now" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
     :data-collapsed="collapsed ? 'true' : 'false'" role="button" tabindex="0" :aria-expanded="!collapsed" :style="{ '--c': model.current?.color }"
     @click="toggle" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle"
   >
