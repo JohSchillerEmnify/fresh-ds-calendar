@@ -107,6 +107,7 @@ I switch to the {view} view
 I go back in the browser
 I reload the page
 I click the day number of {date}
+I click empty space in the month cell of {date}
 I click the week header of {date}
 I tap the day {date} in the month view
 I click the overflow link on {date}

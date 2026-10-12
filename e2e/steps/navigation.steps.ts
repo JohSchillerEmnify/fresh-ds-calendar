@@ -69,6 +69,12 @@ When('I click the day number of {date}', async function (this: World, date: stri
   await this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-day-number').click();
 });
 
+When('I click empty space in the month cell of {date}', async function (this: World, date: string) {
+  const cell = this.byTestId('month-cell', attr('data-date', date));
+  const box = (await cell.boundingBox())!;
+  await cell.click({ position: { x: box.width - 6, y: box.height - 6 } }); // bottom-right corner: below any entries
+});
+
 When('I click the week header of {date}', async function (this: World, date: string) {
   await this.byTestId('week-header', attr('data-date', date)).click();
 });
