@@ -1016,3 +1016,35 @@ Google shows the calendar {string}
   `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
   "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
   … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
+
+## Theme import (`@theme-import`)
+
+```
+I choose "Create with AI"
+I see a prompt that describes the theme file {string}
+I can copy the prompt
+I import the theme file {string}
+I paste the theme text {string}
+the import preview shows the theme {string}
+I save the imported theme
+the gallery offers the theme {string}
+the gallery does not offer the theme {string}
+the import says {string}
+I cannot save the imported theme
+the import notes that unsafe content was removed
+no script from the theme runs
+{string} imported the theme file {string}
+I delete the theme {string}
+```
+
+- Fixture theme files live in `e2e/fixtures/themes/` (`ocean.json`: valid, scene SVG with light/dark; `sneaky.json`:
+  valid apart from a `<script>`, an `onload` attribute and an external `href` in its SVG, which sets
+  `window.__pwned = true` if it ever runs).
+- "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
+  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text.
+- "import the theme file" uploads through `theme-import-file`; "paste" fills `theme-import-text` and submits.
+  Preview = `theme-import-preview` (`data-name`); errors = `theme-import-error` items (exact text of one of them);
+  "cannot save" = `theme-import-save` disabled; "unsafe content was removed" = `theme-import-sanitized` visible;
+  "no script runs" = `window.__pwned` is undefined after 1 s and no `<script>` inside the scene.
+- "imported the theme file" = `POST /api/themes` with the fixture as that person. "delete" = the theme card's
+  `theme-delete` (with undo snackbar like other deletes; the step waits until it is gone).
