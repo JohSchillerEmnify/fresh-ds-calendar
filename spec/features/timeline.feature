@@ -104,7 +104,8 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     And I switch to the month view
     Then the now card stayed in place
 
-  Scenario: The Now card is shown in the week view only for the current week
+  Scenario: The Now card stays when I look at another week
     Given the time is 2026-10-12 09:20
+    And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
     When I open the week view for 2026-10-19
-    Then I do not see the now card
+    Then the now card shows the line "Next: Dentist in 1 h 20 min"

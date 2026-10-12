@@ -332,12 +332,13 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   proportional day view.
 - **Now marker** (`now-marker`, `data-time`): a primary-colour line with a dot across today's column in the day and
   week views. It updates every minute. Today's day view scrolls so now sits in the upper third (other days: 07:00).
-- **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week), and
-  above the grid in the month view (current month) and the year view (current year) (owner, 2026-10-13: keep it in
-  view).
+- **Now card** (`now-card`): above every calendar view (day, week, month, year) whatever period is shown — it is
+  about now, not about the shown period (owner, 2026-10-13: hiding it on other days/weeks "diminishes the
+  usefulness"). Today's entries are always loaded for it (the calendar store keeps today in its fetched range in
+  addition to the shown period).
   It is one instance above the calendar views, not part of each view: switching between day, week, month and year
   keeps it in place without leaving or entering again (owner, 2026-10-13: "keep it there persistently"); it only
-  animates when it first appears or when it really appears/disappears (e.g. navigating to another week).
+  animates when it first appears.
   - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
     `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is
