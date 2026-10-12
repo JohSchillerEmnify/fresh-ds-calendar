@@ -2,7 +2,8 @@
 Feature: Creating, editing and deleting task lists
   Task lists are created in the same "new" dialog as events (owner): it opens from the floating "+" button or by
   tapping an empty time slot, has a switch "Event | Task list" at the top and keeps the date and time of the slot
-  for either kind. A task list has a title, a date, an optional time and optional initial items (one per line).
+  for either kind. A task list has a date, an optional time, items (one per line) and a title, which may be left
+  empty when there are items (owner: quick lists): such a list is titled "List".
   In Google each task list is one event with extendedProperties.private.kind = "tasklist".
 
   Background:
@@ -70,15 +71,24 @@ Feature: Creating, editing and deleting task lists
     And I reload the page
     Then the collapsed task list "Groceries" lists the items "Milk, Eggs"
 
+  Scenario: A task list can be created with items only, without a title
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    And I fill in the task list form with:
+      | date  | 2026-10-14 |
+      | items | Milk; Eggs |
+    And I save the task list
+    Then the collapsed task list "List" lists the items "Milk, Eggs"
+
   @validation
-  Scenario Outline: A task list needs a non-blank title
+  Scenario Outline: A task list needs a title or at least one item
     When I open the day view for 2026-10-14
     And I start creating a task list
     And I fill in the task list form with:
       | title | <title>    |
       | date  | 2026-10-14 |
     And I save the task list
-    Then the task list dialog shows the error "Title is required"
+    Then the task list dialog shows the error "Add a title or an item"
     And the task list dialog is open
 
     Examples:
