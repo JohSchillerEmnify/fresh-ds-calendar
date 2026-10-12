@@ -241,8 +241,9 @@ otherwise; bundle budget §5a applies).
   in one style update. The default scheme (seed `#1a73e8`, light and dark) is also inlined as static CSS in
   `index.html`, so the first paint is never unstyled. The last applied scheme is cached in `localStorage` and applied
   before the app mounts, to avoid a color flash on reload.
-- **Item colors**: event/category colors are shown as given (the user picked them), with an on-color chosen for
-  contrast ≥ 4.5:1; in dark theme chips use a tone-adjusted container of the same hue.
+- **Item colors** (owner, 2026-10-12: solid like Google Calendar): events and task lists are filled with their colour
+  as given, in both themes; the text is white or black, whichever has the higher contrast (≥ 4.5:1). Task lists keep
+  their checkbox mark and progress; they are no longer told apart by a dashed edge and tint.
 - **Theme mode** (settings): `system` follows `prefers-color-scheme` live (media query listener); `light`/`dark`
   force it. `<html data-theme="light|dark">`; `<meta name="theme-color">` is updated to the current `surface` color;
   manifest `theme_color` stays `#1a73e8`.
