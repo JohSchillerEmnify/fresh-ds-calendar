@@ -29,6 +29,8 @@ export function fitItems(i: FitInput): Fit {
   const maxLines = i.maxLines ?? i.count;
   const minLines = i.minLines ?? 2;
   let lines = i.height === undefined ? maxLines : Math.floor((i.height - i.titleH - i.pad - (i.footH ?? 0)) / i.rowH);
+  // A block of at least 34 px always gets one row (titleH + one row + padding fits by design).
+  if (i.height !== undefined && i.height >= 34) lines = Math.max(lines, 1);
   if (minLines === 0 && lines < 1) return { shown: i.count, more: 0, inline: true };
   lines = Math.min(maxLines, Math.max(lines, minLines, 1));
   if (lines >= i.count) return { shown: i.count, more: 0, inline: false };
@@ -57,4 +59,16 @@ export function allotHeights(needs: number[], avail: number, min: number): numbe
     open = next;
   }
   return out.map((v) => Math.floor(v));
+}
+
+export interface RowStep { scale: number; opacity: number }
+/** Min legible values: font never below 8 px (callers clamp), opacity never below 0.5. */
+export const MIN_SCALE = 0.7, MIN_OPACITY = 0.5;
+/**
+ * Fade/shrink step for visible row `index` (0 = first open item; the "+k" line uses index `shown`).
+ * Only applies when the list is truncated (`more > 0`); otherwise every row is 1 / 1.
+ */
+export function rowStep(index: number, more: number): RowStep {
+  if (more <= 0 || index <= 0) return { scale: 1, opacity: 1 };
+  return { scale: Math.max(MIN_SCALE, 1 - 0.15 * index), opacity: Math.max(MIN_OPACITY, 1 - 0.15 * index) };
 }

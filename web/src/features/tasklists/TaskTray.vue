@@ -15,7 +15,6 @@ import { ProgressRing } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { collapse, setAllCollapsed } from './collapse';
 import { carriedLabel, checkState, firstOpenItem } from './format';
 import { useTaskListsStore } from './store';
 
@@ -78,7 +77,6 @@ async function today(id: string) {
       <IconExpand class="chev" aria-hidden="true" />
     </button>
     <ul v-show="expanded || !isPhone" id="task-tray-list" class="list">
-      <li v-if="lists.count" class="all"><button type="button" data-testid="tasklists-collapse-all" @click="setAllCollapsed(!collapse.all)">{{ collapse.all ? 'Expand all cards' : 'Collapse all cards' }}</button></li>
       <li v-for="l in lists.tray" :key="l.id" class="row" data-testid="task-tray-item" :data-title="l.title" :data-date="l.date" :style="{ '--c': l.color }">
         <button v-ripple class="main" type="button" @click="open(l.id)">
           <ProgressRing :done="l.doneCount" :total="l.totalCount" :size="30" :stroke="3.5" />
@@ -131,6 +129,4 @@ async function today(id: string) {
 .cb[data-state='partial'] { background: linear-gradient(to top, var(--c) var(--fill), transparent var(--fill)); }
 .cb[data-state='done'] { background: var(--c); }
 .cb[data-state='done']::after { content: ''; position: absolute; left: 3px; top: 0; width: 3px; height: 6px; border: solid var(--md-sys-color-surface); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
-.all { display: flex; justify-content: flex-end; }
-.all button { font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-primary); padding: 4px 8px; min-height: 32px; }
 </style>
