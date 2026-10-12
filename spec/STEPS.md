@@ -820,6 +820,7 @@ the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
 on the approach bar {string} is {int} times as long as {string}
 the title of {string} is shown next to its block
+on the approach bar {string} starts at now and shows {int} minutes
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -930,3 +931,5 @@ Google shows the calendar {string}
   "shown next to its block": `data-title-outside="true"` and the title's left edge ≥ the block's right edge.
 - "the now card stayed in place": the `now-card` element present before the previous step is the same DOM node
   afterwards (a marker property set on it survives) and no enter animation ran on it (`data-entered` unchanged).
+- "starts at now and shows N minutes": the block's left edge is at `approach-now` (± 2 px) and its width equals N
+  minutes on the track scale (± 10 %); `data-running="true"` on the item.
