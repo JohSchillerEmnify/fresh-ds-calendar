@@ -128,7 +128,7 @@ One task list = one Google event in `TASKLIST_CALENDAR_ID` (default primary):
 | `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
-| `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on the write that leaves no open item (date from the app clock, so the test clock applies) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
 | `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
 | `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
 | color in Google | `colorId` = nearest Google color to the category color; no category → `colorId` removed (calendar color) |
@@ -328,7 +328,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   unticks through the same optimistic item queue as the calendar (`features/tasklists/ops.ts`); the tray list scrolls
   instead of hiding items. Tapping a list title opens the task list edit dialog. Lists from `finishedToday` follow the
   open ones, struck through and collapsed to their title (`task-tray-item` with `data-finished="true"`); `task-tray-unfold`
-  shows their items in place (unfold state is UI-only, not persisted). The count counts open lists only. A list ticked
+  shows their items in place (unfold state is UI-only, not persisted). The count counts open lists only. On phones the tray's expanded state lives in the
+  `ui` store (`trayExpanded`), and the FAB slides out of view while it is true. A list ticked
   complete in the tray moves to the finished rows at once, with a move animation (the store moves it from open to
   finished locally, the next refresh confirms it).
 - **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
@@ -452,7 +453,7 @@ Rules for implementers:
 | `month-picker`, `month-picker-title`, `month-picker-prev`, `month-picker-next`, `picker-day` | month picker (§5b) |
 | `now-marker`, `now-card`, `now-card-line`, `now-card-current`, `now-progress` | timeline (§5b) |
 | `transition-warning`, `transition-warning-dismiss` | snackbar |
-| `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-list-item`, `task-tray-item-check`, `task-tray-unfold` | open tasks tray |
+| `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-list-item`, `task-tray-item-check`, `task-tray-unfold` | open tasks tray |
 | `tasklist-card-overdue`, `tasklist-move-today`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
 | `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
 | `reward-effect` (`data-kind`) | effect overlay elements |
