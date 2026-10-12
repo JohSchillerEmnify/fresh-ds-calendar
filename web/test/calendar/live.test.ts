@@ -47,7 +47,7 @@ describe('now marker', () => {
 });
 
 describe('now card', () => {
-  it('counts down the current event and shows next; hides outside today', async () => {
+  it('counts down the current event and shows next, also while another period is shown', async () => {
     const { pinia } = await boot('09:20', false);
     const cal = useCalendarStore();
     cal.view = 'day';
@@ -65,12 +65,34 @@ describe('now card', () => {
     await nextTick();
     expect(lines()).toContain('Next task: Fold (Laundry)');
     stop();
-    cal.anchor = at('00:00'); cal.anchor = new Date(2026, 9, 13);
-    await nextTick();
-    expect(w.find('[data-testid="now-card"]').exists()).toBe(false);
     cal.view = 'week'; cal.anchor = new Date(2026, 9, 19);
     await nextTick();
-    expect(w.find('[data-testid="now-card"]').exists()).toBe(false);
+    expect(lines()).toEqual(['Dentist · 35 min left', 'Next: Call in 2 h 5 min']);
+  });
+
+  it('browsing another week keeps today\'s next event loaded for the card (and refreshes it on poll)', async () => {
+    const pinia = freshPinia();
+    let title = 'Dentist';
+    const { calls } = mockFetch({
+      'GET /api/config': () => config({ now: at('09:20').toISOString(), clockFrozen: true }),
+      'GET /api/items': ({ url }) => ({
+        items: url.searchParams.get('from') === D ? [ev('dentist', t(D, '10:40'), t(D, '11:00'), { title })] : [],
+        from: url.searchParams.get('from'), to: url.searchParams.get('to'), syncedAt: 's',
+      }),
+    });
+    await useClockStore().load();
+    const items = useItemsStore();
+    useCalendarStore().setFromRoute('week', new Date(2026, 9, 19));
+    await flushPromises();
+    const ranges = calls.filter((c) => c.path === '/api/items').map((c) => `${c.url.searchParams.get('from')}_${c.url.searchParams.get('to')}`);
+    expect(ranges).toEqual(['2026-10-19_2026-10-26', '2026-10-12_2026-10-13']);
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
+    const w = mount(NowCard, { global: { plugins: [pinia, router] } });
+    expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual(['Next: Dentist in 1 h 20 min']);
+    title = 'Doctor';
+    await items.refreshVisible();
+    await nextTick();
+    expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual(['Next: Doctor in 1 h 20 min']);
   });
 });
 
