@@ -706,7 +706,7 @@ It never reloads by itself and never interrupts an open dialog.
   halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
   Winter, Mordor and Automatic (resolves to the season by date; Halloween for all of October, owner 2026-10-13: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
-- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Halloween" for Automatic in October),
   `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
   Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows
   but stop animated ones.
