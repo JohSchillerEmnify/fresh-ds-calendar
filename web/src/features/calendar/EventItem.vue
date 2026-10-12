@@ -54,10 +54,10 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 
 <template>
   <button
-    ref="root" v-ripple class="ev" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing }]"
+    ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-past="past || undefined" :data-current="current || undefined"
-    :style="{ '--c': ev.color, '--on': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
+    :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
     <template v-else-if="variant === 'block'">
@@ -76,15 +76,15 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 
 <style scoped>
 .ev {
-  display: flex; min-width: 0; width: 100%; text-align: left; color: var(--on); background: var(--c);
-  border-radius: var(--md-sys-shape-corner-extra-small); font: var(--md-sys-typescale-label-medium);
+  display: flex; min-width: 0; width: 100%; text-align: left;
+  font: var(--md-sys-typescale-label-medium);
   padding: 1px 4px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .ev[data-dragging='true'] { cursor: grabbing; }
 /* the handles stick out of the block: the title and meta lines clip themselves */
 .ev.resizing { position: relative; overflow: visible; }
 .ev.past { opacity: 0.62; }
-.ev.current { box-shadow: 0 0 0 1.5px var(--md-sys-color-surface), 0 0 0 3px var(--c); }
+.ev.current { box-shadow: 0 0 0 1.5px var(--md-sys-color-surface), 0 0 0 3px var(--c), var(--glow-sh); }
 html[data-calm='true'] .ev { filter: saturate(0.55); }
 
 .chip { min-height: 18px; align-items: center; gap: 4px; line-height: 16px; }
@@ -97,7 +97,7 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 .allday.nofirst { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .allday.nolast { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: 7px; box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28); }
+.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: var(--r-block); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
 .block .title {
   font: var(--md-sys-typescale-label-large); font-size: 13px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none;
@@ -113,7 +113,7 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 
 /* phones: smaller type, tight padding, no ellipsis in the month: clip with a fade instead */
 @media (max-width: 767.98px) {
-  .chip { font: var(--md-sys-typescale-label-small); font-size: 10px; line-height: 14px; min-height: 16px; padding: 0 2px 0 3px; border-radius: 3px; }
+  .chip { font: var(--md-sys-typescale-label-small); font-size: 10px; line-height: 14px; min-height: 16px; padding: 0 2px 0 3px; }
   .chip .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
   .allday { font-size: 10px; line-height: 14px; min-height: 18px; padding: 0 3px; }
   .allday .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }

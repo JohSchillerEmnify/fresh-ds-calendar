@@ -9,7 +9,7 @@ import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
 import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
-  parse, patchItemSchema, settingsPatchSchema, updateEventSchema, updateTaskListSchema,
+  parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
@@ -112,6 +112,9 @@ export function apiRoutes(ctx: Ctx): Hono {
     }
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });
+  // ---- per-person theme ----
+  r.get('/prefs/theme', (c) => c.json(ctx.prefs.theme(person(c))));
+  r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));
 
   // ---- items ----
   r.get('/items', async (c) => {

@@ -827,3 +827,27 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
+## Theme menu (`@themes`)
+
+```
+I open the theme menu
+I choose the theme {string}
+I chose the theme {string}
+{string} chose the theme {string}
+the theme {string} is marked as chosen
+the theme {string} is in use
+every option for {string} shows a sample event drawn in that style
+I pick {string} for {string}
+the preview event is drawn as an outline
+the event {string} is drawn as an outline
+the event {string} glows
+{string} may use the calendar
+```
+
+- "glows": the event chip has a visible glow (a non-`none` `box-shadow` or `filter: drop-shadow` in the item colour).
+- "drawn as an outline": transparent or surface fill with a 1.5 px or wider border in the item colour.
+- "every option ... shows a sample": each option of that setting contains a sample event chip drawn in that style.
+- "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
+  browser context signed in as that person.
+- "the theme X is in use": `<html data-theme-name>` equals X.
+

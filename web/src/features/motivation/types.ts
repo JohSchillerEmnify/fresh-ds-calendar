@@ -27,4 +27,4 @@ export interface CheckInResult {
 }
 
 export type ChangeKind = 'water' | 'grow' | 'bloom' | 'perk-up';
-export type SceneName = 'sunflowers' | 'mordor' | 'none';
+export type SceneName = 'sunflowers' | 'mordor' | 'none' | 'spring' | 'summer' | 'fall' | 'winter';
