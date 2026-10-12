@@ -26,7 +26,8 @@ const visible = computed(() => {
 const model = computed(() => nowCardModel(segs(clock.today), clock.minutesNow));
 const prefs = usePrefsStore();
 /** Labs approach bar: replaces the "Next" line while something timed is still ahead today. */
-const approach = computed(() => (prefs.approachBar ? approachEntries(segs(clock.today), clock.minutesNow) : []));
+const approach = computed(() => (prefs.approachBar ? approachEntries(segs(clock.today), clock.minutesNow, prefs.approachWindowHours * 60) : { entries: [], atEnd: false }));
+const track = computed(() => approach.value.entries.length > 0);
 const KEY = 'now-card-collapsed';
 const collapsed = ref(false);
 try { collapsed.value = localStorage.getItem(KEY) === '1'; } catch { /* storage unavailable */ }
@@ -40,15 +41,15 @@ const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is strin
 
 <template>
   <section
-    v-if="visible" class="now-card" :class="{ collapsed }" data-testid="now-card" aria-label="Now" :data-has-current="model.current ? 'true' : 'false'"
+    v-if="visible" class="now-card" :class="{ collapsed, track: showNext && track }" data-testid="now-card" aria-label="Now" :data-has-current="model.current ? 'true' : 'false'"
     :data-collapsed="collapsed ? 'true' : 'false'" role="button" tabindex="0" :aria-expanded="!collapsed" :style="{ '--c': model.current?.color }"
     @click="toggle" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle"
   >
     <div class="one" :data-testid="model.current ? 'now-card-current' : undefined">
       <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ model.current.line }}</p>
-      <p v-if="showNext && !approach.length" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
+      <p v-if="showNext && !track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
-    <ApproachBar v-if="showNext && approach.length" :entries="approach" :now-min="clock.minutesNow" />
+    <ApproachBar v-if="showNext && track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" />
     <div v-if="model.current && !collapsed" class="bar" data-testid="now-progress" role="progressbar" aria-label="Event progress" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
       <span class="fill" :style="{ transform: `scaleX(${(100 - model.current.elapsedPercent) / 100})` }" />
     </div>
@@ -63,6 +64,8 @@ const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is strin
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
 }
 .now-card.collapsed { min-height: 28px; max-height: 28px; justify-content: center; padding-top: 0; padding-bottom: 0; }
+/* the approach track keeps its rows inside the card, collapsed or not */
+.now-card.collapsed.track { max-height: none; padding-top: 2px; padding-bottom: 3px; }
 .one { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .line { margin: 0; font: var(--md-sys-typescale-body-medium); font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .strong { flex: 0 1 auto; font: var(--md-sys-typescale-title-medium); font-size: 14px; line-height: 20px; }

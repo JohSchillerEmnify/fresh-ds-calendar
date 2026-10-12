@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { LOCAL_PERSON } from '../services/prefsStore.js';
+import { APPROACH_WINDOWS, LOCAL_PERSON, type LabsPrefs } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -104,11 +104,16 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
-    const patch: { labs?: boolean; approachBar?: boolean } = {};
+    const patch: Partial<LabsPrefs> = {};
     for (const k of ['labs', 'approachBar'] as const) {
       if (b[k] === undefined) continue;
       if (typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
       patch[k] = b[k] as boolean;
+    }
+    if (b.approachWindowHours !== undefined) {
+      const h = APPROACH_WINDOWS.find((w) => w === b.approachWindowHours);
+      if (h === undefined) throw validation('approachWindowHours must be 3, 6 or 12', 'approachWindowHours');
+      patch.approachWindowHours = h;
     }
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });

@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, Calendar, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LabsPrefs, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 
@@ -145,10 +145,10 @@ export class ApiClient {
   }
 
   prefs(o?: RequestOptions) {
-    return this.request<{ labs: boolean; approachBar: boolean }>('GET', '/api/prefs', undefined, o);
+    return this.request<LabsPrefs>('GET', '/api/prefs', undefined, o);
   }
-  patchPrefs(p: { labs?: boolean; approachBar?: boolean }, o?: RequestOptions) {
-    return this.request<{ labs: boolean; approachBar: boolean }>('PATCH', '/api/prefs', p, o);
+  patchPrefs(p: Partial<LabsPrefs>, o?: RequestOptions) {
+    return this.request<LabsPrefs>('PATCH', '/api/prefs', p, o);
   }
 
   setCalendarHidden(id: string, hidden: boolean, o?: RequestOptions) {
