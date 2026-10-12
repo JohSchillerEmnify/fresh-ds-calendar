@@ -643,6 +643,12 @@ the page does not contain the words {string}
 
 ```
 I drag the event {string} to {date} at {time}
+I hold the event {string} at the bottom edge of the time grid for {int} ms
+I move the dragged event to the middle of the time grid
+I scroll the mouse wheel up by {int} pixels while dragging
+the dragged event is drawn on the drop indicator
+I drop the dragged event
+the event {string} starts at the time the drop indicator showed
 I drag the event {string} to {date}
 I drag the event {string} down by {int} minutes
 I drag the task list {string} to {date}
@@ -844,3 +850,6 @@ the app runs the new version
 - "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
   `document.documentElement.dataset.appVersion` equals the deployed version.
 
+- Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
+  container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
+  vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
