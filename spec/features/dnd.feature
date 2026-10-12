@@ -136,6 +136,14 @@ Feature: Drag and drop to reschedule
       When I drag the bottom handle of "Packing" down by 30 minutes
       Then the Google event for the task list "Packing" is a timed event on 2026-10-15 from 18:00 to 19:00
 
+    Scenario: A task list cannot be resized longer than 12 hours
+      Given the calendar contains a task list "Shift" on 2026-10-15 at 08:00 for 600 minutes with items:
+        | item  | done |
+        | Start | no   |
+      And the task list "Shift" shows resize handles in the day view for 2026-10-15
+      When I drag the bottom handle of "Shift" down by 180 minutes
+      Then the Google event for the task list "Shift" is a timed event on 2026-10-15 from 08:00 to 20:00
+
     @mobile
     Scenario: On a phone, resizing in the week view does not swipe to the next week
       Given I am using a phone

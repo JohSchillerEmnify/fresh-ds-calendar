@@ -138,7 +138,7 @@ spec files are named.
 - **A-54 Recurring task lists** are `@optional` for the prototype (Google recurrence with per-instance ticks).
 - **A-55 Drag and drop** keeps timed items timed and all-day items all-day (no conversion by dragging between the
   all-day area and the grid), preserves duration, snaps to 15 min, and moves multi-day events by whole days (bars: the day cell grabbed to the drop cell).
-  Long-press threshold 450 ms. Haptics only where `navigator.vibrate` exists (not iOS Safari).
+  Long-press threshold 350 ms (touch, and mouse press-and-hold). Haptics only where `navigator.vibrate` exists (not iOS Safari).
 - **A-56 Animation level** default Full. The system "reduce motion" preference always caps it at Reduced, even if Full
   is chosen (accessibility wins). Sounds default off.
 - **A-57 Streak** (owner request) counts app opens per local day, not tasks done. A gap resets it quietly to 1 with
