@@ -772,3 +772,14 @@ they hide the calendar {string} in the filter bar
   into the faded band. "shows no overflow count": no `+N` / `+k more` text and no `month-cell-more` /
   `tasklist-card-more` element.
 
+## Reduced motion override
+
+```
+the settings say the device asks for less motion
+I allow full animations despite the device setting
+```
+
+- The hint is `settings-system-reduced-motion` (shown only while `prefers-reduced-motion: reduce`); the switch is
+  `settings-ignore-system-motion`. With it on, the app's own animation level applies; off (default) the system caps
+  it at Reduced as before. Kept per person.
+

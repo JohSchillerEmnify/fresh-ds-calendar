@@ -21,6 +21,7 @@ import { useMotivationStore } from '@/features/motivation/store';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { systemReducedMotion } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
@@ -154,6 +155,8 @@ async function resetDemo() {
       <section class="card" aria-labelledby="h-focus">
         <h2 id="h-focus">Motion and motivation</h2>
         <div class="row col"><span class="lab">Animations</span><SegmentedButton :model-value="s.animationLevel" :options="[...levels]" label="Animations" data-testid="settings-animation-level" @update:model-value="save({ animationLevel: $event as AnimationLevel })" /></div>
+        <p v-if="systemReducedMotion" class="sub" data-testid="settings-system-reduced-motion">Your device asks for less motion, so animations are capped at Reduced.</p>
+        <div class="row"><div class="grow"><span class="lab">Ignore the device setting</span><span class="sub">Use the animation level above even if the device asks for less motion</span></div><Switch :model-value="s.ignoreSystemMotion" label="Ignore the device setting" data-testid="settings-ignore-system-motion" @update:model-value="save({ ignoreSystemMotion: $event })" /></div>
         <div class="row"><span class="lab grow">Sounds</span><Switch :model-value="s.sounds" label="Sounds" data-testid="settings-sounds" @update:model-value="save({ sounds: $event })" /></div>
         <div class="row"><div class="grow"><span class="lab">Calm mode</span><span class="sub">Fewer details, quieter colors, reduced motion</span></div><Switch :model-value="s.calmMode" label="Calm mode" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
         <div class="row col"><span class="lab">Warn before an event starts</span><SegmentedButton :model-value="String(s.transitionWarningMinutes)" :options="[...warns]" label="Transition warning" data-testid="settings-transition-warning" @update:model-value="save({ transitionWarningMinutes: Number($event) as 0 | 5 | 10 | 15 })" /></div>

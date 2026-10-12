@@ -15,7 +15,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 
 export const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system', seedColor: DEFAULT_SEED, defaultView: 'month', defaultEventColorId: null,
-  animationLevel: 'full', sounds: false, calmMode: false, transitionWarningMinutes: 10,
+  animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false, transitionWarningMinutes: 10,
   streakFlame: true, garden: 'plant', scene: 'sunflowers', categories: DEFAULT_CATEGORIES,
   updated: '', version: 0,
 };

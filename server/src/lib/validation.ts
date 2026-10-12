@@ -88,6 +88,7 @@ export const settingsPatchSchema = so({
   animationLevel: v.optional(v.picklist(['full', 'reduced', 'off'], 'Invalid animation level')),
   sounds: v.optional(v.boolean()),
   calmMode: v.optional(v.boolean()),
+  ignoreSystemMotion: v.optional(v.boolean()),
   transitionWarningMinutes: v.optional(v.picklist([0, 5, 10, 15], 'Invalid warning time')),
   streakFlame: v.optional(v.boolean()),
   garden: v.optional(v.picklist(['plant', 'sunflowers', 'off'], 'Invalid garden style')),

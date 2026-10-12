@@ -44,7 +44,7 @@ const filters = useFilters();
 const calendars = useCalendarsStore();
 const settings = useSettingsStore();
 const motivation = useMotivationStore();
-useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode);
+useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
 watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });
 
 const isCalendar = computed(() => !!route.meta.view);

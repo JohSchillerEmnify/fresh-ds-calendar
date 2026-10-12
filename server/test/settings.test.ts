@@ -14,7 +14,7 @@ describe('settings', () => {
   it('has the documented defaults incl. scene and the four categories', async () => {
     const { body: s } = await t.json('GET', '/api/settings');
     expect(s).toMatchObject({
-      themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false, calmMode: false,
+      themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
       transitionWarningMinutes: 10, streakFlame: true, garden: 'plant', scene: 'sunflowers', version: 1,
     });
     expect(s.categories.map((c: any) => [c.id, c.name, c.color, c.icon, c.googleColorId])).toEqual([

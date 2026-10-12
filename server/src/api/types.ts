@@ -83,6 +83,7 @@ export interface Settings {
   animationLevel: AnimationLevel;
   sounds: boolean;
   calmMode: boolean;
+  ignoreSystemMotion: boolean;
   transitionWarningMinutes: 0 | 5 | 10 | 15;
   streakFlame: boolean;
   garden: GardenStyle;
