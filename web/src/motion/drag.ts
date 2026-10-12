@@ -64,6 +64,8 @@ export function isGestureClaimed(): boolean {
 export const GESTURE_CLAIM_EVENT = 'gesture-claim';
 
 const MAX_TILT = 6;
+/** How long the pointer must rest in an edge zone before the scroll container starts to auto-scroll. */
+const EDGE_DWELL_MS = 400;
 
 export interface DragController {
   readonly state: DragState;
@@ -89,6 +91,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let raf = 0;
   let lastT = 0;
+  let edgeSince = 0;
   let anims: Animation[] = [];
   let claimedHere = false;
   let listening = false;
@@ -235,6 +238,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     el.style.zIndex = '60';
     el.style.userSelect = 'none';
     el.style.willChange = 'transform';
+    edgeSince = 0;
     sx.snap(0); sy.snap(0); tilt.snap(0);
     haptic(10);
     setState('dragging');
@@ -325,7 +329,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     let v = 0;
     if (cur.y < r.top + edge) v = -(1 - clamp((cur.y - r.top) / edge, 0, 1));
     else if (cur.y > r.bottom - edge) v = 1 - clamp((r.bottom - cur.y) / edge, 0, 1);
-    if (v) {
+    // dwell first: a pointer that merely arrives in the edge zone (and is released there) must not move the grid under the target
+    if (!v) edgeSince = 0;
+    else if (!edgeSince) edgeSince = performance.now();
+    if (v && performance.now() - edgeSince >= EDGE_DWELL_MS) {
       const before = sc.scrollTop;
       sc.scrollTop += v * 600 * dt;
       if (sc.scrollTop !== before) update(cur.x, cur.y);
