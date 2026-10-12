@@ -82,6 +82,7 @@ the calendar contains an all-day event {string} on {date}
 the calendar contains an all-day event {string} from {date} to {date}
 the calendar contains a task list {string} on {date} with items:
 the calendar contains a task list {string} on {date} at {time} with items:
+the calendar contains a task list {string} on {date} at {time} for {int} minutes with items:
 the calendar contains an empty task list {string} on {date}
 the calendar contains a task list {string} on {date} with {int} generated items
 Google contains a raw task list event {string} on {date} with the description:
@@ -192,6 +193,9 @@ the task list form shows:
 I see the task list {string} on {date}
 I do not see the task list {string}
 the task list {string} shows the done count {string}
+the task list {string} shows the item {string} below its title
+the task list {string} shows the item {string} next to its title
+the task list {string} shows no items
 the collapsed task list {string} lists the items {string}
 the collapsed task list {string} shows {string}
 the task list {string} shows the time {string}
@@ -220,6 +224,11 @@ I delete the task list
 ```
 
 "the task list X shows the done count" checks the expanded header if X is expanded, else the collapsed card.
+"the task list X shows the item Y below / next to its title": the `tasklist-card-item` with `data-title` Y in X's
+collapsed card is visible and not clipped (its text fits its box and the box lies inside the card); "below" = its top
+is at or under the bottom of `tasklist-card-title`, "next to" = it shares the title's line. "shows no items" = no
+`tasklist-card-item` of X is visible.
+"for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
 
 ## Google (provider) side
