@@ -4,7 +4,7 @@ import type { DataTable } from 'playwright-bdd';
 import { Then, When } from './fixtures.js';
 import { field, fillField, readField, type FieldKind } from './support/forms.js';
 import { expectPositioned } from './support/grid.js';
-import { expandTaskList } from './support/tasklist.js';
+import { expandTaskList, itemById } from './support/tasklist.js';
 import { cellValue, formRows } from './support/tables.js';
 import { expectBottomSheet, expectInViewport, expectJoined } from './support/ui.js';
 import { attr, exactText, tid, type World } from './support/world.js';
@@ -146,14 +146,6 @@ Then('the expanded task list fits within the viewport', async function (this: Wo
 });
 
 // --- items (act on the expanded list) -------------------------------------------------------------------------
-
-/** Stable locator for an item: resolved once by title, then addressed by data-item-id (survives edit mode). */
-async function itemById(world: World, title: string) {
-  const item = world.expandedItem(title);
-  await expect(item).toHaveCount(1);
-  const id = await item.getAttribute('data-item-id');
-  return id ? world.expanded.locator(`${tid('tasklist-item')}${attr('data-item-id', id)}`) : item;
-}
 
 When('I tick the item {string}', async function (this: World, title: string) {
   const item = await itemById(this, title);

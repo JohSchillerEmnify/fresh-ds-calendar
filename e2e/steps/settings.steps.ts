@@ -2,23 +2,11 @@
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { expectRoleHue } from './support/color.js';
+import { chooseSelect, saveSetting } from './support/settings.js';
 import { chooseOption, expectJoined, selectedLabel } from './support/ui.js';
 import { attr, tid, type World } from './support/world.js';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
-
-/**
- * Perform a settings change and wait for the `PATCH`/`PUT /api/settings` 200 response. If the control already shows
- * the requested value, the app may legitimately send nothing, so the wait is skipped (spec ambiguity, see README).
- */
-async function saveSetting(world: World, alreadySelected: boolean, act: () => Promise<void>) {
-  if (alreadySelected) return act();
-  const saved = world.page.waitForResponse(
-    (r) => new URL(r.url()).pathname === '/api/settings' && ['PATCH', 'PUT'].includes(r.request().method()),
-  );
-  await act();
-  expect((await saved).status(), 'settings saved').toBe(200);
-}
 
 const themeOption = (w: World, label: string) =>
   w.page.getByTestId('settings-theme-mode').locator(attr('data-value', label.toLowerCase()));
@@ -90,11 +78,6 @@ Then(
     await expectRoleHue(this.page, role, degrees, hex);
   },
 );
-
-async function chooseSelect(world: World, control: Locator, label: string) {
-  await expect(control).toBeVisible();
-  await saveSetting(world, (await selectedLabel(control)) === label, () => chooseOption(control, label));
-}
 
 When('I choose {string} as the default view', async function (this: World, label: string) {
   await chooseSelect(this, this.page.getByTestId('settings-default-view'), label);

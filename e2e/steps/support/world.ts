@@ -11,6 +11,55 @@ export const tid = (id: string) => attr('data-testid', id);
 /** Regex that matches the whole (trimmed) text exactly. */
 export const exactText = (s: string) => new RegExp(`^\\s*${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
 
+/** Page-side recorders (see support/probes.ts for the readers). Runs before any app code. */
+function installProbes() {
+  const w = window as unknown as ProbeWindow;
+  // `new Event().timeStamp` is a native monotonic clock that page.clock does not fake (unlike Date / performance.now).
+  const nativeNow = () => new Event('t').timeStamp;
+  w.__haptics = [];
+  const originalVibrate = navigator.vibrate?.bind(navigator);
+  Object.defineProperty(Navigator.prototype, 'vibrate', {
+    configurable: true,
+    writable: true,
+    value: (pattern: number | number[]) => {
+      w.__haptics!.push(pattern);
+      return originalVibrate ? originalVibrate(pattern) : true;
+    },
+  });
+  w.__rewardLog = [];
+  const open = new Map<Element, RewardLogEntry>();
+  const scan = (node: Node, added: boolean) => {
+    if (!(node instanceof Element)) return;
+    const effects = node.matches('[data-testid="reward-effect"]') ? [node] : [];
+    node.querySelectorAll('[data-testid="reward-effect"]').forEach((e) => effects.push(e));
+    for (const el of effects) {
+      if (added) {
+        const entry: RewardLogEntry = { kind: el.getAttribute('data-kind') ?? '', insertedAt: nativeNow() };
+        open.set(el, entry);
+        w.__rewardLog!.push(entry);
+      } else if (open.has(el)) {
+        open.get(el)!.removedAt = nativeNow();
+        open.delete(el);
+      }
+    }
+  };
+  const start = () => {
+    new MutationObserver((records) => {
+      for (const r of records) {
+        r.addedNodes.forEach((n) => scan(n, true));
+        r.removedNodes.forEach((n) => scan(n, false));
+      }
+    }).observe(document, { childList: true, subtree: true });
+  };
+  start();
+}
+
+export interface RewardLogEntry { kind: string; insertedAt: number; removedAt?: number }
+export interface ProbeWindow extends Window {
+  __haptics?: (number | number[])[];
+  __rewardLog?: RewardLogEntry[];
+}
+
 export interface BrowserMemory { heap: number; nodes: number; listeners: number }
 
 /**
@@ -25,8 +74,12 @@ export class World {
   private ownContexts: BrowserContext[] = [];
   colorScheme: 'light' | 'dark' | null = null;
   pollIntervalMs = DEFAULT_POLL_MS;
+  /** Epoch ms the app clock currently shows (set by "the time is ... and the clock is running"). */
+  clockNowMs?: number;
 
   // Results remembered between steps.
+  /** A pointer/touch press kept down by "I pick up ..."; released by "I release ...". */
+  held?: () => Promise<void>;
   lastResponse?: { status: number; json: unknown; url: string };
   browserMemory?: BrowserMemory;
   serverRss?: number;
@@ -133,6 +186,7 @@ export class World {
   /** Scripts every page of the scenario gets before any app code runs. */
   static async prepareContext(context: BrowserContext) {
     // Records when the first month cell becomes visible (for "the month view was rendered within N ms").
+    await context.addInitScript(installProbes);
     await context.addInitScript(() => {
       const w = window as unknown as { __monthRenderedAt?: number };
       const check = () => {
@@ -169,6 +223,7 @@ export class World {
   }
 
   async dispose() {
+    await this.held?.().catch(() => {});
     for (const c of this.ownContexts) await c.close().catch(() => {});
     // Leave the shared backend clean (outage, clock, poll interval) for the next scenario.
     if (this.api.usedTestApi) await this.api.reset().catch(() => {});

@@ -53,7 +53,12 @@ export class Api {
 
   // --- test endpoints ------------------------------------------------------------------------------------------
   reset(body: unknown = { seed: false }) { return this.setup('/api/__test/reset', body); }
-  setClock(now: string | null) { return this.setup('/api/__test/clock', { now }); }
+  setClock(now: string | null, frozen?: boolean) {
+    return this.setup('/api/__test/clock', frozen === undefined ? { now } : { now, frozen });
+  }
+  setMotivation(body: { checkIns?: string[]; plant?: { growth: number; lastWatered: string | null; todayPoints?: number } }) {
+    return this.setup('/api/__test/motivation', body);
+  }
   setConfig(cfg: { pollIntervalMs?: number }) { return this.setup('/api/__test/config', cfg); }
   setOutage(down: boolean) { return this.setup('/api/__test/outage', down ? { down, status: 503 } : { down }); }
 
