@@ -22,10 +22,25 @@ async function hourHeight(w: World): Promise<number> {
  */
 async function grabPoint(w: World, card: Locator): Promise<Point> {
   const b = await box(card);
+  // A multi-day bar moves by (drop day - grabbed day): grab it in the middle of its first day, not at the day boundary.
+  if (await isBar(card)) return { x: b.x + b.width / (2 * (await barDays(card))), y: b.y + b.height / 2 };
   const inGrid = (await card.locator('xpath=ancestor::*[@data-testid="week-day-column" or @data-testid="day-column"]').count()) > 0;
   if (!inGrid) return centre(b);
   const offset = Math.min(b.height / 2, (await hourHeight(w)) / 12);
   return { x: b.x + b.width / 2, y: b.y + offset };
+}
+
+const isBar = async (card: Locator) => (await card.getAttribute('data-testid')) === 'event-bar';
+
+/** Number of days the bar segment spans (data-start/data-end are inclusive). */
+async function barDays(bar: Locator): Promise<number> {
+  const [s, e] = await Promise.all([bar.getAttribute('data-start'), bar.getAttribute('data-end')]);
+  return Math.round((Date.parse(e!) - Date.parse(s!)) / 864e5) + 1;
+}
+
+/** Event element to grab: its chip, or its first visible multi-day bar segment when it is drawn as a bar. */
+function eventHandle(w: World, title: string): Locator {
+  return w.eventChip(title).or(w.eventBars(title).locator('visible=true').first()).first();
 }
 
 /** Point on the page for "{date}" [at "{time}"], relative to the card being dragged. */
@@ -44,7 +59,7 @@ async function targetPoint(w: World, card: Locator, from: Point, date: string, t
   const month = w.byTestId('month-cell', attr('data-date', date));
   if (await month.isVisible()) return centre(await box(month));
   const allDayCell = w.page.locator(`${tid('week-allday-cell')}${attr('data-date', date)}, ${tid('day-allday-area')}${attr('data-date', date)}`).first();
-  const inAllDay = (await card.locator('xpath=ancestor::*[@data-testid="week-allday-cell" or @data-testid="day-allday-area"]').count()) > 0;
+  const inAllDay = (await isBar(card)) || (await card.locator('xpath=ancestor::*[@data-testid="week-allday-cell" or @data-testid="day-allday-area"]').count()) > 0;
   if (inAllDay) return centre(await box(allDayCell));
   // Timed card moved to another day without a time: same height in that day's column.
   const col = await box(w.dayColumn(date));
@@ -103,7 +118,7 @@ When('I drag the event {string} to {date} at {time}', async function (this: Worl
 });
 
 When('I drag the event {string} to {date}', async function (this: World, title: string, date: string) {
-  await drag(this, this.eventChip(title), (c, f) => targetPoint(this, c, f, date));
+  await drag(this, eventHandle(this, title), (c, f) => targetPoint(this, c, f, date));
 });
 
 When('I drag the event {string} down by {int} minutes', async function (this: World, title: string, minutes: number) {
