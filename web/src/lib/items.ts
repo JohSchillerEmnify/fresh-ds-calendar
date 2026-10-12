@@ -4,8 +4,14 @@
  */
 import { addDays, differenceInCalendarDays, parseIsoDate, timeToMinutes, toIsoDate } from './dates';
 import type { CalendarItem, LocalDate } from '@/api/types';
+import { t } from '@/i18n';
 
 export const TASKLIST_BLOCK_MINUTES = 30;
+
+/** Title as shown in the UI: an untitled task list reads "List" (its stored title stays empty). */
+export function displayTitle(item: Pick<CalendarItem, 'kind' | 'title'>): string {
+  return item.kind === 'tasklist' && !item.title.trim() ? t('tasklist.untitled') : item.title;
+}
 
 export interface Segment {
   item: CalendarItem;

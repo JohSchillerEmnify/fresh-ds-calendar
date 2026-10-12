@@ -45,6 +45,9 @@ function blank(): EventForm {
 }
 const form = ref<EventForm>(props.draft ? { ...props.draft } : blank());
 const initial = ref<string>(JSON.stringify(form.value));
+/** Time carried to the task list form on switching: a tapped slot's or one the person changed, never the default. */
+const startShown = form.value.startTime;
+const switchTime = computed(() => (form.value.allDay ? null : props.time != null || form.value.startTime !== startShown ? form.value.startTime : undefined));
 const error = ref(props.error ?? '');
 const saving = ref(false);
 const confirming = ref(false);
@@ -183,7 +186,7 @@ function onClose() {
 <template>
   <AdaptiveSheet :open="true" :label="isEdit ? 'Edit event' : 'New event'" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="onClose">
     <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save">
-      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="form.allDay ? null : form.startTime" />
+      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
         <h2 class="t">{{ isEdit ? 'Edit event' : 'New event' }}</h2>

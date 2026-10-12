@@ -92,6 +92,37 @@ describe('shell navigation', () => {
     await w.get(tid('new-kind-tasklist')).trigger('click');
     await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
   });
+  it('a tapped time slot keeps its date and time in both kinds; the FAB task list form has no time', async () => {
+    localStorage.removeItem('calendar.newKind');
+    const { w } = await mountAt('/day/2026-10-14');
+    const val = (id: string) => (w.get(tid(id)).element as HTMLInputElement).value;
+    await w.get('[data-testid="time-slot"][data-date="2026-10-14"][data-hour="15"]').trigger('click');
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect([val('tasklist-date'), val('tasklist-time')]).toEqual(['2026-10-14', '15:00']);
+    await w.get(tid('tasklist-cancel')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(false));
+    // the remembered kind is now "task list": a slot opens it directly with the slot's time
+    await w.get('[data-testid="time-slot"][data-date="2026-10-14"][data-hour="9"]').trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect(val('tasklist-time')).toBe('09:00');
+    await w.get(tid('new-kind-event')).trigger('click');
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect(val('tasklist-time')).toBe('09:00');
+    await w.get(tid('tasklist-cancel')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(false));
+    await w.get(tid('create-button')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect([val('tasklist-date'), val('tasklist-time')]).toEqual(['2026-10-14', '']);
+    await w.get(tid('new-kind-event')).trigger('click');
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect(val('tasklist-time')).toBe('');
+  });
   it('swiping left goes to the next period, a vertical swipe does nothing', async () => {
     const { w, router } = await mountAt('/day/2026-10-12');
     const area = w.get(tid('calendar-swipe-area')).element;

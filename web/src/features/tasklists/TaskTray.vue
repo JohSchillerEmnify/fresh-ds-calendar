@@ -11,6 +11,7 @@ import IconExpand from '~icons/material-symbols/keyboard-arrow-up';
 import { isPhone } from '@/composables/useViewport';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';
+import { displayTitle } from '@/lib/items';
 import { useUiStore } from '@/stores/ui';
 import { useTaskListsStore } from './store';
 import TaskListView from './TaskListView.vue';
@@ -84,15 +85,15 @@ function toggleFold(id: string) {
     </button>
     <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
-        v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="r.list.title"
+        v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)"
         :data-date="r.list.date" :data-finished="r.fin ? 'true' : undefined" :style="{ '--c': r.list.color }"
       >
         <div v-if="r.fin" class="head">
-          <span class="t" data-testid="task-tray-title">{{ r.list.title }}</span>
+          <span class="t" data-testid="task-tray-title">{{ displayTitle(r.list) }}</span>
           <span class="c">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
           <button
             v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
-            :aria-label="unfolded.has(r.list.id) ? `Fold ${r.list.title}` : `Show items of ${r.list.title}`" @click="toggleFold(r.list.id)"
+            :aria-label="unfolded.has(r.list.id) ? `Fold ${displayTitle(r.list)}` : `Show items of ${displayTitle(r.list)}`" @click="toggleFold(r.list.id)"
           ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></button>
         </div>
         <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="linger(r.list.id)" />

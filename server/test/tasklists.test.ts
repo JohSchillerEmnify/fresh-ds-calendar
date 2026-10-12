@@ -98,6 +98,42 @@ describe('task lists CRUD', () => {
     expect((await t.json('POST', '/api/tasklists', { date: '2026-10-12' })).body.error.message).toBe('Title is required');
   });
 
+  it('accepts an empty or blank title when there is an item; stores items as the Google summary', async () => {
+    for (const title of ['', '   ']) {
+      const r = await t.json('POST', '/api/tasklists', { title, date: '2026-10-12', items: [{ title: 'Milk' }, { title: ' ' }, { title: 'Eggs' }] });
+      expect(r.status).toBe(201);
+      expect(r.body.title).toBe('');
+      const g = await raw(r.body.id);
+      expect(g.summary).toBe('Milk, Eggs');
+      expect(g.extendedProperties.private.untitled).toBe('1');
+      expect((await t.json('GET', `/api/tasklists/${r.body.id}`)).body.title).toBe('');
+    }
+  });
+
+  it('needs a title or an item (create, PATCH and deleting the last item)', async () => {
+    for (const b of [{ title: '', date: '2026-10-12' }, { title: '  ', date: '2026-10-12', items: [{ title: ' ' }] }]) {
+      const r = await t.json('POST', '/api/tasklists', b);
+      expect(r.status).toBe(400);
+      expect(r.body.error.message).toBe('Add a title or an item');
+    }
+    const a = await mk({ items: [{ title: 'Milk' }] });
+    const p = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: '', items: [] });
+    expect(p.status).toBe(400);
+    expect(p.body.error.message).toBe('Add a title or an item');
+    const u = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: '' });
+    expect(u.status).toBe(200);
+    expect(u.body.title).toBe('');
+    expect((await raw(a.id)).summary).toBe('Milk');
+    const d = await t.json('DELETE', `/api/tasklists/${a.id}/items/${u.body.items[0].id}`);
+    expect(d.status).toBe(400);
+    expect(d.body.error.message).toBe('Add a title or an item');
+    const named = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: 'Shop' });
+    expect(named.body.title).toBe('Shop');
+    const g = await raw(a.id);
+    expect(g.summary).toBe('Shop');
+    expect(g.extendedProperties.private.untitled).toBeUndefined();
+  });
+
   it('rejects over-large lists', async () => {
     const items = Array.from({ length: 200 }, (_, i) => ({ title: `${i}`.padEnd(200, 'x') }));
     const r = await t.json('POST', '/api/tasklists', { title: 'big', date: '2026-10-12', items });
