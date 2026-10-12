@@ -56,7 +56,8 @@ const timeText = computed(() => {
 }
 .chip { min-height: 18px; line-height: 16px; font-size: 11px; }
 .allday { min-height: 22px; align-items: center; background: var(--c); color: #fff; border-left: 0; }
-.block { height: 100%; flex-direction: column; gap: 1px; padding: 2px 6px; border-radius: var(--md-sys-shape-corner-small); }
+.block { height: 100%; flex-direction: column; gap: 0; padding: 2px 5px; border-radius: var(--md-sys-shape-corner-small); }
+.block.tasklist .head { flex: none; }
 .tasklist { flex-direction: column; background: color-mix(in srgb, var(--c) 20%, var(--md-sys-color-surface-container-high)); }
 .head { display: flex; align-items: center; gap: 3px; min-width: 0; }
 .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }

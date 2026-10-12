@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue';
+import { computed, useAttrs, useId } from 'vue';
 
 defineOptions({ inheritAttrs: false });
 const props = defineProps<{
@@ -9,14 +9,16 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ 'update:modelValue': [v: string]; commit: [] }>();
 const id = useId();
+const attrs = useAttrs();
+const rest = computed(() => { const { class: _c, style: _s, ...r } = attrs; return r; });
 const hint = computed(() => props.error || props.supporting || '');
 </script>
 
 <template>
-  <div class="tf" :class="{ err: !!error, filled: modelValue !== '' || type === 'date' || type === 'time' || type === 'color' }">
+  <div class="tf" :style="$attrs.style as never" :class="[$attrs.class, { err: !!error, filled: modelValue !== '' || type === 'date' || type === 'time' || type === 'color' }]">
     <div class="box">
       <component
-        :is="multiline ? 'textarea' : 'input'" :id="id" v-bind="$attrs" class="in" :type="multiline ? undefined : (type ?? 'text')" :rows="multiline ? (rows ?? 3) : undefined"
+        :is="multiline ? 'textarea' : 'input'" :id="id" v-bind="rest" class="in" :type="multiline ? undefined : (type ?? 'text')" :rows="multiline ? (rows ?? 3) : undefined"
         :value="modelValue" placeholder=" " :aria-invalid="!!error" :aria-describedby="hint ? id + '-h' : undefined"
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @blur="emit('commit')" @keydown.enter="!multiline && emit('commit')"

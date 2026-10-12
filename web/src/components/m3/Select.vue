@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends string">
-import { useId } from 'vue';
+import { computed, useAttrs, useId } from 'vue';
 import IconExpand from '~icons/material-symbols/expand-more';
 import type { Option } from './types';
 
@@ -7,11 +7,13 @@ defineOptions({ inheritAttrs: false });
 defineProps<{ modelValue: T; options: Option<T>[]; label: string }>();
 defineEmits<{ 'update:modelValue': [v: T] }>();
 const id = useId();
+const attrs = useAttrs();
+const rest = computed(() => { const { class: _c, style: _s, ...r } = attrs; return r; });
 </script>
 
 <template>
-  <div class="sel">
-    <select :id="id" v-bind="$attrs" class="in" :value="modelValue" @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value as T)">
+  <div class="sel" :class="$attrs.class" :style="$attrs.style as never">
+    <select :id="id" v-bind="rest" class="in" :value="modelValue" @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value as T)">
       <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>
     <label class="lbl" :for="id">{{ label }}</label>

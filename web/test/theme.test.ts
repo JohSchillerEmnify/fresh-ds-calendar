@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_SEED, applySeed, applyThemeMode } from '@/theme';
+import { DEFAULT_SEED, applySeed, applyThemeMode, resolveTheme } from '@/theme';
 import { schemeVars, themeCss } from '@/theme/scheme';
 
 const TOKENS = path.join(import.meta.dirname, '../src/theme/tokens.css');
@@ -37,10 +37,13 @@ describe('M3 theme', () => {
     expect(document.getElementById('m3-dynamic-theme')).toBeNull();
   });
 
-  it('forces light/dark via data-theme, system clears it', () => {
+  it('data-theme is always light or dark; system resolves to the OS preference', () => {
     applyThemeMode('dark');
     expect(document.documentElement.dataset.theme).toBe('dark');
-    applyThemeMode('system');
-    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+    applyThemeMode('light');
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(resolveTheme('system', true)).toBe('dark');
+    expect(resolveTheme('system', false)).toBe('light');
+    expect(resolveTheme('light', true)).toBe('light');
   });
 });
