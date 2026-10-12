@@ -114,7 +114,19 @@ recurring events is out of scope.
 
 ## 3. Task lists in Google Calendar
 
-One task list = one Google event in `TASKLIST_CALENDAR_ID` (default primary):
+One task list = one Google event in the person's **tasks calendar** (owner, 2026-10-13: keep the main calendar clean;
+option A of two — B, server storage with Drive backup, may follow in the VPS track and would replace this):
+
+- The tasks calendar is a secondary calendar "Calendar app: tasks" in the person's own Google account. Its id is kept
+  per person in `DATA_DIR/users/<sub>/prefs.json` (`tasksCalendarId`). When it is first needed (first read or create of
+  task lists) the server looks it up (stored id, else the calendar list by that summary), else creates it
+  (`calendars.insert`) and switches it off in Google's list (`calendarList.patch` `hidden: true`). One in-flight
+  creation per person (a promise per `sub`), so parallel requests never make two.
+- Task lists are read and written only there. The calendar never appears as an event calendar or filter chip
+  (`GET /api/calendars` leaves it out), and events in it that are not task lists are ignored.
+- Setting "Show tasks calendar in Google" (Calendar section, per person `tasksCalendarVisible` in prefs, default
+  off) sets the calendar list entry `hidden` accordingly; it changes nothing in the app.
+- Mock mode does the same against the mock account. No migration: there were no real Google accounts yet (owner).
 
 | Task list | Google event |
 |---|---|
@@ -190,6 +202,8 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   (or one hour before the current time if today is visible and later than 08:00). Overlap layout: Google-like column
   packing — events in a connected overlap cluster are split into equal columns; touching (end == start) is not overlap.
   Timed task lists are 30 min blocks in the grid.
+- **Event blocks** fill their room in this order (owner): title (as many lines as fit), time, location
+  (`event-chip-location`), then description lines; each row only when there is room for it.
 - **Use the space given** (owner principle, 2026-10-12): cells, cards, lists and rows show as much as their measured
   space allows; no hard-coded item or line counts anywhere. What does not fit fades out at the bottom (no `+N`).
 - **Month overflow** (owner 2026-10-12): a cell shows as many entries as fit and fades the rest out with a gradient
@@ -197,7 +211,11 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 - **Defaults for new event**: date = focus date; if that is today, the next full hour after now (capped at 23:00),
   else 09:00; duration 1 h; calendar primary. Changing the start keeps the duration.
 - **Clock**: `useClock()` (see API.md `/api/config`).
-- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere.
+- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere. German comes later (owner, 2026-10-13), so
+  every user-visible string (labels, buttons, placeholders such as "List", validation messages, snackbars) lives in one
+  message catalogue (`web/src/i18n/en.ts`, keyed, read via `t('key')`); server validation messages are returned as
+  keys plus the English text. New and touched code uses the catalogue; no new hard-coded UI strings. Dates and times
+  are formatted with `Intl` from one locale setting. Moving the remaining existing strings is its own slice.
 
 ### Mobile-first UX (primary target 375–430 px portrait)
 
@@ -390,8 +408,10 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
     hold 350 ms without moving (same gesture as touch, so release-without-moving works with a mouse too).
   - While dragging: `data-dragging="true"`, the card lifts (scale 1.05, elevation shadow) and wiggles briefly. A ghost
     follows the pointer with spring lag; tilt is proportional to horizontal velocity (max 6°). A drop indicator snaps
-    to 15-minute slots (time grid) or days (month and all-day). Page swipe and scroll are suppressed during a drag;
-    auto-scroll near the edges.
+    to 15-minute slots (time grid) or days (month and all-day). Page swipe and touch scroll are suppressed during a drag;
+    mouse-wheel scrolling keeps working and the time grid auto-scrolls near its edges (owner, 2026-10-13). Any scroll
+    of the grid while dragging recomputes the drop indicator from pointer and current scroll, and the card's transform
+    makes up for the scroll, so the card stays under the pointer and on the indicator, and lands where it shows.
   - Drop: optimistic move, settle spring + `drop` effect, then `PATCH` (with `If-Match`). On failure the card springs
     back to its origin and the sync error banner shows. Escape cancels a drag (desktop).
   - Duration is preserved. Timed items stay timed and all-day items stay all-day (no conversion by drag; assumption
@@ -498,7 +518,7 @@ Rules for implementers:
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
 | `view-switch-month`, `view-switch-week`, `view-switch-day` | tabs (`aria-selected`) |
 | `view-switcher` | container of the three tabs |
-| `create-button`, `create-menu-event`, `create-menu-tasklist` | FAB and menu |
+| `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | FAB and the one "new" dialog (no create menu) |
 | `calendar-swipe-area` | swipe target wrapping the active view |
 | `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
 | `month-weekday-header` | 7 elements, text `Mon`..`Sun` |
@@ -618,6 +638,26 @@ pushes a history entry when it opens (`history.pushState` with an overlay marker
 overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
 history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
 all overlays; no per-component history code.
+### Delete with undo (owner, 2026-10-13)
+
+- Events, task lists and task list items are deleted with one tap, no confirmation dialog (owner: undo is enough).
+  Category deletion keeps its confirmation.
+- The entry disappears at once (optimistic) and the shared `Snackbar` shows "Deleted: <title>" (item: the item
+  title; untitled list: "List") with "Undo" for 6 s (`undo-snackbar`, `undo-action`). The DELETE request is sent only
+  when the snackbar times out (owner: "hide, delete later"): undo then needs no request, keeps the Google id and its
+  details. One pending delete at a time: a new delete sends the previous one at once. `pagehide`/`visibilitychange →
+  hidden` sends pending deletes immediately with `fetch(…, { keepalive: true })`. In-app navigation does not.
+- A small `pendingDeletes` store owns the timers; the items store hides pending ids (same filter as the deleted-id set
+  of the stale-poll fix) and a failed delete brings the entry back with the sync error banner.
+- Item delete = `DELETE /api/tasklists/:id/items/:itemId` after the timeout; undo restores the item at its index.
+
+### Snackbars and toasts follow the theme (owner, 2026-10-13)
+
+Every snackbar-like surface — the undo and update snackbars, the transition warning, the sync error banner and the
+check-in toast (`streak-message`) — uses the one `Snackbar` look built from the active theme's tokens
+(`surface-container-highest` / `on-surface`, action in `primary`, the theme's corner radius and glow; owner
+2026-10-13: not M3's inverse colours, which turn white on a dark theme), never fixed colours, so a theme or automatic season change restyles them too.
+
 ### Labs (experiments, owner 2026-10-12)
 
 - Settings get a Labs section: `labs` (experimental views on/off) and `approachBar` (on/off), stored per person in
@@ -629,7 +669,18 @@ all overlays; no per-component history code.
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
   (`clock` store), progress ring.
-- Approach bar: above every calendar view when on; next 3 hours, "now" at the left, the next event placed by minutes.
+- Approach bar (owner v3, 2026-10-13: "the next-event element becomes the timeline", then absolute and configurable):
+  no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
+  the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end
+  `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
+  person in prefs, default 3). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
+  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
+  that start within the window (events and task lists with a time, by start, excluding the current event) as chips
+  at their start position; when none is within the window, the next timed entry of today sits at the right end
+  (`data-at-end="true"`, label "in 5 h"). Chips are the month view's compact `ItemView` (same colours, title, tap
+  opens the entry). Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
+  shortened and overlapping with a fade, so the card never grows further (owner: "don't take too much space").
+  Nothing ahead today → the usual "Nothing else today" line. The current-event and next-task lines are unchanged.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
   equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
 - Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all
@@ -638,6 +689,14 @@ all overlays; no per-component history code.
 - Strip: CSS scroll-snap columns, one per day, sharing ONE time scale (owner: aligned, like the week view): one hour
   gutter, one vertical scroll for all columns, all-day bands equally tall across columns; heights proportional to
   duration; extended in both directions as the user scrolls (virtualised).
+
+### New version notice (owner, 2026-10-12)
+
+The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
+`version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
+back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
+"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
+It never reloads by itself and never interrupts an open dialog.
 
 ### Themes
 
@@ -680,6 +739,25 @@ all overlays; no per-component history code.
   (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
   support cat share one cat drawing (`CatFigure`), posed differently.
 
+### Untitled task lists (owner, 2026-10-12)
+
+A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
+such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list)` in one place, the stored title stays
+empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
+`extendedProperties.private.untitled = "1"` keeps the app title empty.
+
+### One "new" dialog (owner, 2026-10-12)
+
+The FAB and a tap on an empty time slot (or all-day cell) open the same dialog with a segmented switch "Event | Task
+list" at the top (last choice remembered per device); the event form and the task list form are the existing dialog
+bodies, sharing the prefilled date/time so switching keeps them. No create menu.
+
+### Rounded fields and shapes (owner, 2026-10-12)
+
+Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
+softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
+the same corner scale so shapes look consistent.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |
@@ -694,7 +772,6 @@ all overlays; no per-component history code.
 | `SEED` | `true` | seed demo data into an empty mock store |
 | `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
 | `POLL_INTERVAL_MS` | `30000` | web polling interval |
-| `TASKLIST_CALENDAR_ID` | `primary` | calendar for new task lists |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
 | `GOOGLE_REFRESH_TOKEN` | – | long-lived refresh token (or `DATA_DIR/google-token.json` from the auth flow) |
 | `GOOGLE_CALENDAR_IDS` | `primary` | comma-separated calendars to show |

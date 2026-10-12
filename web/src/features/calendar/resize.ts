@@ -9,7 +9,7 @@
 import { shallowRef } from 'vue';
 import { api } from '@/api/client';
 import type { CalendarEvent, CalendarItem, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
-import type { Segment } from '@/lib/items';
+import { displayTitle, type Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -85,7 +85,7 @@ export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void
     resizePreview.value = null;
   } catch (e) {
     const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : 'Something went wrong';
-    useUiStore().notify(`Could not resize “${item.title}”. ${msg}`, { testid: 'move-failed' });
+    useUiStore().notify(`Could not resize “${displayTitle(item)}”. ${msg}`, { testid: 'move-failed' });
     // the store has rolled back: animate from the dragged size to the old one, then hand the geometry back to the store
     resizePreview.value = { id: item.id, date: seg.date, startMin: seg.startMin, endMin: seg.endMin, settle: true };
     setTimeout(() => { resizePreview.value = null; }, 300);

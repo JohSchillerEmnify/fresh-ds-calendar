@@ -81,17 +81,18 @@ describe('GoogleProvider (mocked HTTP)', () => {
     expect(m.calendarId).toBe('work');
   });
 
-  it('lists every calendar of the person and aliases the primary one', async () => {
-    const { provider } = setup(() => ({ json: { items: [
+  it('lists every calendar of the person (hidden ones too) and aliases the primary one', async () => {
+    const { provider, calls } = setup(() => ({ json: { items: [
       { id: 'me@gmail.com', summary: 'me', primary: true, backgroundColor: '#9FE1E7', accessRole: 'owner' },
       { id: 'team@group.calendar.google.com', summary: 'Team', summaryOverride: 'Team (mine)', backgroundColor: '#000000', accessRole: 'reader' },
-      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', accessRole: 'owner' },
+      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', accessRole: 'owner', hidden: true },
     ] } }));
     expect(await provider.listCalendars()).toEqual([
-      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner' },
-      { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader' },
-      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', primary: false, accessRole: 'owner' },
+      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner', hidden: false },
+      { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader', hidden: false },
+      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', primary: false, accessRole: 'owner', hidden: true },
     ]);
+    expect(calls[0]!.url.searchParams.get('showHidden')).toBe('true');
   });
 
   it('pings with a cheap call', async () => {
@@ -119,9 +120,22 @@ describe('GoogleProvider (mocked HTTP)', () => {
 
   it('drives the whole REST API through GoogleProvider (task list item op against a fake Google)', async () => {
     const store = new Map<string, any>();
+    const calendarList: any[] = [{ id: 'me', primary: true, summary: 'Me', backgroundColor: '#039be5', accessRole: 'owner' }];
     const { provider } = setup((c) => {
       const m = /\/calendars\/([^/]+)\/events(?:\/([^/]+))?$/.exec(c.url.pathname);
-      if (c.url.pathname.endsWith('/calendarList')) return { json: { items: [{ id: 'me', primary: true, summary: 'Me', backgroundColor: '#039be5', accessRole: 'owner' }] } };
+      if (c.url.pathname.endsWith('/calendarList')) return { json: { items: calendarList } };
+      // calendars.insert + calendarList.patch: the tasks calendar is created on first use and hidden
+      if (c.method === 'POST' && c.url.pathname.endsWith('/calendar/v3/calendars')) {
+        const cal = { id: 'tasks1@group.calendar.google.com', summary: c.body.summary, backgroundColor: '#7986cb', accessRole: 'owner' };
+        calendarList.push(cal);
+        return { json: cal };
+      }
+      const entry = /\/users\/me\/calendarList\/([^/]+)$/.exec(c.url.pathname);
+      if (c.method === 'PATCH' && entry) {
+        const cal = calendarList.find((k) => k.id === decodeURIComponent(entry[1]!));
+        Object.assign(cal, c.body);
+        return { json: cal };
+      }
       if (!m) return { status: 404, json: {} };
       if (c.method === 'GET' && !m[2]) return { json: { items: [...store.values()] } };
       if (c.method === 'GET') return store.has(m[2]!) ? { json: store.get(m[2]!) } : { status: 404, json: {} };
@@ -141,7 +155,8 @@ describe('GoogleProvider (mocked HTTP)', () => {
       const create = await app.request('/api/tasklists', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'L', date: '2026-10-12', items: [{ title: 'a' }] }) });
       expect(create.status).toBe(201);
       const list = await create.json();
-      expect(list.calendarId).toBe('primary');
+      expect(list.calendarId).toBe('tasks1@group.calendar.google.com');
+      expect(calendarList[1]).toMatchObject({ summary: 'Calendar app: tasks', hidden: true });
       const tick = await app.request(`/api/tasklists/g1/items/${list.items[0].id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ done: true }) });
       expect((await tick.json()).doneCount).toBe(1);
       expect(store.get('g1').description).toBe('☑ a');

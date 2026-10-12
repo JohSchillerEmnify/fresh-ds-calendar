@@ -11,7 +11,7 @@ pnpm -F @calendar/server dev     # tsx watch
 ```
 
 Env: see `spec/ARCHITECTURE.md` section 8 (`PORT HOST PUBLIC_URL ALLOWED_ORIGINS TZ PROVIDER DATA_DIR SEED TEST_MODE
-POLL_INTERVAL_MS TASKLIST_CALENDAR_ID GOOGLE_* LOG_LEVEL`). `ALLOWED_ORIGINS` defaults to `PUBLIC_URL`; CORS is only
+POLL_INTERVAL_MS GOOGLE_* LOG_LEVEL`). `ALLOWED_ORIGINS` defaults to `PUBLIC_URL`; CORS is only
 sent for listed origins (same-origin needs none).
 
 Layout: `src/app.ts` (buildApp), `context.ts` (wiring), `api/` (routes, test routes, OAuth routes, shared `types.ts`),
@@ -63,6 +63,11 @@ Internal (provider layer):
   `PreconditionFailedError`, other 4xx to `ProviderError`. With no stored token every call fails with
   `PROVIDER_UNAVAILABLE` ("open /api/auth/google/start"); missing client id/secret fails fast at startup.
 - When PATCHing a Google event between all-day and timed, the other of `date`/`dateTime` is sent as `null`.
+- Task lists live in each person's own calendar "Calendar app: tasks" (`services/tasksCalendar.ts`): stored id in
+  `prefs.json` (`tasksCalendarId`), else found by name, else created (`insertCalendar`) and hidden in Google's list
+  (`setCalendarHidden`). `listCalendars` includes hidden entries (`showHidden`); hidden calendars and the tasks
+  calendar are not event calendars. `PATCH /api/prefs` `tasksCalendarVisible` switches the list entry's `hidden`.
+  TEST_MODE: `GET/POST /api/__test/remote/calendars` (raw calendar list), `GET /api/__test/tasks-calendar` (its id).
 - Task list writes larger than 30 000 chars of extended properties are rejected with `Task list is too large`.
 - The mock persists to `DATA_DIR/mock-google.json` with a 200 ms debounced atomic flush (also flushed on SIGTERM).
   Settings and motivation are tiny and written synchronously and atomically.

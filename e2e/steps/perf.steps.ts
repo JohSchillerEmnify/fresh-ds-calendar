@@ -25,7 +25,7 @@ When('I open and close the event dialog {int} times', async function (this: Worl
   const dialog = this.page.getByTestId('event-dialog');
   for (let i = 0; i < n; i++) {
     await this.page.getByTestId('create-button').click();
-    await this.page.getByTestId('create-menu-event').click();
+    await this.page.getByTestId('new-kind-event').click();
     await expect(dialog).toBeVisible();
     await dialog.getByTestId('event-cancel').click();
     await expect(dialog).toHaveCount(0);

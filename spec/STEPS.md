@@ -76,6 +76,7 @@ the app runs as an installed app
 
 ```
 the calendar contains an event {string} on {date} from {time} to {time}
+the calendar contains an event {string} on {date} from {time} to {time} at {string}
 the calendar contains an event {string} in the calendar {string} on {date} from {time} to {time}
 the calendar contains an event {string} from {date} {time} to {date} {time}
 the calendar contains an all-day event {string} on {date}
@@ -141,6 +142,7 @@ the event {string} shows the time {string}
 the event {string} is positioned from {time} to {time}
 the event {string} is positioned on {date} from {time} to {time}
 the events {string} and {string} do not overlap
+the event {string} shows the location {string}
 the title of the event {string} is not covered
 the events {string} and {string} are side by side
 the event {string} is stacked on the event {string}
@@ -172,6 +174,9 @@ I open the event {string}
 I delete the event
 I confirm the deletion
 I cancel the deletion
+I undo the deletion
+the undo time is over
+the snackbar says {string}
 the event dialog is open
 the event dialog is closed
 the event dialog shows the error {string}
@@ -184,6 +189,7 @@ the event dialog fits within the viewport
 
 ```
 I start creating a task list
+I switch the new dialog to {string}
 I fill in the task list form with:
 I save the task list
 I cancel the task list dialog
@@ -207,6 +213,7 @@ I expand the task list {string}
 I collapse the task list
 the task list {string} is expanded
 the task list {string} is collapsed
+no task list is expanded
 the expanded task list items are {string}
 the expanded task list is shown as a bottom sheet
 the expanded task list fits within the viewport
@@ -535,6 +542,7 @@ the open tasks tray shows the count {string}
 I open the open tasks tray
 the open tasks tray is collapsed
 the open tasks tray lists {string}
+the open tasks tray does not list {string}
 the open tasks tray shows the task list {string} with items:
 I tick the item {string} in the open tasks tray
 I untick the item {string} in the open tasks tray
@@ -641,6 +649,12 @@ the page does not contain the words {string}
 
 ```
 I drag the event {string} to {date} at {time}
+I hold the event {string} at the bottom edge of the time grid for {int} ms
+I move the dragged event to the middle of the time grid
+I scroll the mouse wheel up by {int} pixels while dragging
+the dragged event is drawn on the drop indicator
+I drop the dragged event
+the event {string} starts at the time the drop indicator showed
 I drag the event {string} to {date}
 I drag the event {string} down by {int} minutes
 I drag the task list {string} to {date}
@@ -783,6 +797,8 @@ I allow full animations despite the device setting
 - The hint is `settings-system-reduced-motion` (shown only while `prefers-reduced-motion: reduce`); the switch is
   `settings-ignore-system-motion`. With it on, the app's own animation level applies; off (default) the system caps
   it at Reduced as before. Kept per person.
+- "shows the location": the event chip's `event-chip-location` is visible with that text (it may be ellipsised at the
+  end only when the block is narrower than the text).
 
 ## Labs (`@labs`)
 
@@ -796,6 +812,11 @@ the arc of {string} is labelled {string}
 the approach bar is on
 the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
+I turn on the approach bar and open the week view for {date}
+the approach bar shows {string}, {string} and {string} in this order
+the approach bar shows {string} at its end
+the approach bar is on with a window of {int} hours
+the approach bar shows {string} and {string}
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -816,8 +837,10 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 ```
 
 - Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
-- Approach bar: `approach-bar` with `approach-item` (`data-title`, `data-minutes` = minutes until start); "closer"
-  compares the item's distance from `approach-now` before and after the clock step.
+- Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
+  (`data-title`, `data-minutes` = minutes until start) and `approach-now`; "in this order" = exactly these chips, by
+  distance from `approach-now`; "closer" compares the item's distance from `approach-now` before and after the clock
+  step. "I turn on the approach bar and open …" = the settings switch `settings-approach-bar`, then the week view.
 - Timeline: `timeline-item` (`data-title`) and `timeline-now`, positions compared along the timeline's axis.
 - Strip: `strip-column` (`data-date`); "in front" = the leftmost fully visible column; "did not reload" = a marker set
   on `window` before the step is still there.
@@ -827,6 +850,25 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
+## App updates
+
+```
+a new version of the app is deployed
+the app syncs
+I am told a new version is available
+I choose to reload
+the app runs the new version
+```
+
+- "deployed": `POST /api/__test/version { version }` makes the server report a new build version (TEST_MODE).
+- "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.
+- "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
+  `document.documentElement.dataset.appVersion` equals the deployed version.
+
+- Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
+  "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
+  until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
+  the visible `undo-snackbar` message (`snackbar-text`).
 ## Theme menu (`@themes`)
 
 ```
@@ -850,6 +892,13 @@ the event {string} glows
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X.
+- New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
+  `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
+  (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
+  "Task list".
+- Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
+  container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
+  vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
 
 ## Scenes and the support cat (`@scenes`, `@cat`)
 
@@ -870,3 +919,25 @@ the support cat does not appear
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
   reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in
   `settings-support-cat` (values `off|sometimes|always`, labels Off/Sometimes/Every time) and waits for the save. "does not appear": no `support-cat` inserted within 4 000 ms after the tick.
+
+## Tasks calendar (`@tasks-calendar`)
+
+```
+I create the task list {string} on {date} with the item {string}
+Google has a hidden calendar {string}
+Google has a hidden calendar {string} with the event {string}
+the main calendar has no event {string}
+Google has exactly one calendar {string}
+the filter bar does not offer the calendar {string}
+I turn on {string} in the settings
+Google shows the calendar {string}
+```
+
+- "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
+- "hidden" = the mock account's calendar list entry has `hidden: true` (switched off in Google's list). "the main
+  calendar" = the person's primary calendar. "exactly one" counts calendars with that summary in the calendar list.
+- "does not offer": no filter chip with that calendar's name after "I show the filters".
+- "I turn on {string} in the settings" flips the switch with that label (settings page). "Google shows" = the mock
+  calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
+- Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
+  left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).

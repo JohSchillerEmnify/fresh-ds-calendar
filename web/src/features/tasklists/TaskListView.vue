@@ -17,14 +17,15 @@ import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
-import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import SupportCat from '@/features/motivation/SupportCat.vue';
 import { catComes, takeForcedCat } from '@/features/motivation/supportCat';
+import { displayTitle } from '@/lib/items';
 import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
@@ -47,6 +48,7 @@ const emit = defineEmits<{
   completed: [];
 }>();
 const items = useItemsStore();
+const pendingDeletes = usePendingDeletesStore();
 const ui = useUiStore();
 const clock = useClockStore();
 const settings = useSettingsStore();
@@ -166,7 +168,6 @@ async function commitRename() {
 }
 
 // --- list actions -----------------------------------------------------------------------------------------------
-const confirming = ref(false);
 async function moveToday() {
   try {
     await items.updateTaskList(props.id, { date: clock.today });
@@ -176,25 +177,30 @@ async function moveToday() {
   }
 }
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
-async function remove() {
-  confirming.value = false;
-  try {
-    await items.deleteTaskList(props.id);
-    lists.drop(props.id);
-    emit('deleted');
-  } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : "Couldn't delete the task list.");
-  }
+/** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
+function remove() {
+  if (!tl.value) return;
+  pendingDeletes.deleteTaskList(tl.value);
+  emit('deleted');
+}
+function move(itemId: string, dir: -1 | 1) {
+  pendingDeletes.flushList(props.id);
+  moveItem(props.id, itemId, dir);
+}
+/** An item still being added (temporary id) has nothing to undo on the server yet: removed directly. */
+function removeEntry(item: TaskItem, index: number) {
+  if (item.id.startsWith('tmp-')) removeItem(props.id, item.id);
+  else pendingDeletes.deleteTaskItem(props.id, item, index);
 }
 
-/** True while a field or the delete confirmation owns Escape (the host must not close then). */
-const busy = computed(() => confirming.value || renaming.value || !!editingItem.value || adding.value);
+/** True while a field owns Escape (the host must not close then). */
+const busy = computed(() => renaming.value || !!editingItem.value || adding.value);
 defineExpose({ root, busy });
 </script>
 
 <template>
   <section
-    v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="tl.title"
+    v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
     :style="{ '--c': tl.color }"
   >
     <header class="head">
@@ -205,7 +211,7 @@ defineExpose({ root, busy });
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
         <button v-else class="name" type="button" data-testid="tasklist-expanded-title" @click="startRename">
-          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span>{{ tl.title }}
+          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span>{{ displayTitle(tl) }}
         </button>
         <p class="sub">
           <span :key="tl.doneCount" class="cnt" data-testid="tasklist-expanded-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
@@ -233,9 +239,9 @@ defineExpose({ root, busy });
           @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
         />
         <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
-        <IconButton class="act" label="Move up" data-testid="tasklist-item-up" :disabled="i === 0" @click="moveItem(id, item.id, -1)"><IconUp /></IconButton>
-        <IconButton class="act" label="Move down" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="moveItem(id, item.id, 1)"><IconDown /></IconButton>
-        <IconButton class="act" label="Delete item" data-testid="tasklist-item-delete" @click="removeItem(id, item.id)"><IconDelete /></IconButton>
+        <IconButton class="act" label="Move up" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
+        <IconButton class="act" label="Move down" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
+        <IconButton class="act" label="Delete item" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
       </li>
     </ul>
     <p v-if="!tl.items.length" class="empty">No items yet. Add the first small step.</p>
@@ -252,10 +258,9 @@ defineExpose({ root, busy });
       <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>Move to today</Button>
       <span class="grow" />
       <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>Edit</Button>
-      <Button variant="text" class="danger" data-testid="tasklist-delete" @click="confirming = true"><template #icon><IconDelete /></template>Delete</Button>
+      <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>Delete</Button>
     </footer>
     <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :level="cat.level" @done="cat = null" /></Teleport>
-    <ConfirmDialog :open="confirming" :title="`Delete “${tl.title}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
   </section>
 </template>
 
@@ -265,8 +270,9 @@ defineExpose({ root, busy });
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
 .name-in, .item-in, .new {
   width: 100%; min-height: 44px; font-size: 16px; color: inherit; background: var(--md-sys-color-surface-container-highest); border: 0;
-  border-bottom: 2px solid var(--md-sys-color-primary); border-radius: 8px 8px 0 0; padding: 0 10px; outline: 0; min-width: 0;
+  border-radius: var(--md-sys-shape-corner-small); padding: 0 14px; outline: 0; min-width: 0;
 }
+.name-in:focus, .item-in:focus, .new:focus { outline: 2px solid var(--md-sys-color-primary); }
 .emoji { margin-right: 6px; }
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }

@@ -32,8 +32,13 @@ const typed = (name: string, cell: string) => {
 
 When('I start creating a task list', async function (this: World) {
   await this.page.getByTestId('create-button').click();
-  await this.page.getByTestId('create-menu-tasklist').click();
+  await this.page.getByTestId('new-kind-tasklist').click();
   await expect(dialog(this)).toBeVisible();
+});
+
+When('I switch the new dialog to {string}', async function (this: World, kind: string) {
+  await this.page.getByTestId(kind === 'Task list' ? 'new-kind-tasklist' : 'new-kind-event').click();
+  await expect(this.page.getByTestId(kind === 'Task list' ? 'tasklist-dialog' : 'event-dialog')).toBeVisible();
 });
 
 When('I fill in the task list form with:', async function (this: World, table: DataTable) {
@@ -157,6 +162,10 @@ Then('the task list {string} is expanded', async function (this: World, title: s
 Then('the task list {string} is collapsed', async function (this: World, title: string) {
   await expect(this.byTestId('tasklist-expanded', attr('data-title', title))).toBeHidden();
   await expect(this.taskCard(title)).toBeVisible();
+});
+
+Then('no task list is expanded', async function (this: World) {
+  await expect(this.page.getByTestId('tasklist-expanded')).toHaveCount(0);
 });
 
 Then('the expanded task list items are {string}', async function (this: World, list: string) {

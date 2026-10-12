@@ -7,6 +7,8 @@ const TITLE_MAX = 'Title must be at most 200 characters';
 const HEX_MSG = 'Enter a color like #1a73e8';
 
 const title = v.pipe(v.string(TITLE_REQ), v.trim(), v.minLength(1, TITLE_REQ), v.maxLength(200, TITLE_MAX));
+/** Task list titles may be empty when the list has an item; the service checks "Add a title or an item". */
+const listTitle = v.pipe(v.string(TITLE_REQ), v.trim(), v.maxLength(200, TITLE_MAX));
 const str = (max: number, label: string) => v.pipe(v.string(`${label} must be a string`), v.maxLength(max, `${label} must be at most ${max} characters`));
 const localDate = v.pipe(v.string('Date must be YYYY-MM-DD'), v.regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'));
 const localTime = v.pipe(v.string('Time must be HH:mm'), v.regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Time must be HH:mm'));
@@ -57,8 +59,7 @@ export const updateEventSchema = so({
 });
 
 export const createTaskListSchema = so({
-  calendarId: v.optional(v.string()),
-  title,
+  title: listTitle,
   date: localDate,
   time: v.optional(v.nullable(localTime)),
   items: v.optional(v.pipe(v.array(so({ title: v.pipe(v.string(), v.trim(), v.maxLength(200, 'Item title must be at most 200 characters')), done: v.optional(v.boolean()) })), v.maxLength(200, 'At most 200 items'))),
@@ -68,7 +69,7 @@ export const createTaskListSchema = so({
   recurrence: v.optional(recurrence),
 });
 export const updateTaskListSchema = so({
-  title: v.optional(title),
+  title: v.optional(listTitle),
   date: v.optional(localDate),
   time: v.optional(v.nullable(localTime)),
   items: v.optional(v.pipe(v.array(so({ id: v.optional(v.string()), title: v.pipe(v.string(), v.trim(), v.maxLength(200, 'Item title must be at most 200 characters')), done: v.boolean() })), v.maxLength(200, 'At most 200 items'))),
@@ -122,6 +123,7 @@ export const testMotivationSchema = so({
   checkIns: v.optional(v.array(localDate)),
   plant: v.optional(so({ growth: v.number(), lastWatered: v.nullable(localDate), todayPoints: v.optional(v.number()) })),
 });
+export const testVersionSchema = so({ version: v.pipe(v.string(), v.minLength(1)) });
 export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
 export const outageSchema = so({ down: v.boolean(), status: v.optional(v.picklist([500, 503])) });
 

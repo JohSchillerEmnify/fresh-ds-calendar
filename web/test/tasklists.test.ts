@@ -4,7 +4,7 @@ import { defineComponent, h } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createAppRouter } from '@/router';
 import type { TaskList } from '@/api/types';
-import { itemSegments } from '@/lib/items';
+import { displayTitle, itemSegments } from '@/lib/items';
 import { enableTimerCounting } from '@/lib/timers';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -72,6 +72,25 @@ describe('collapsed card', () => {
     expect(w.get(tid('tasklist-card-estimate')).text()).toBe('~1 h 30 min');
     expect(w.get(tid('tasklist-card-time')).text()).toBe('18:00');
     expect(w.get(tid('tasklist-progress-ring')).attributes('data-percent')).toBe('33');
+  });
+  it('shows an untitled list as "List" (card, tray, expanded list)', async () => {
+    const list = tl('U', { title: '' });
+    expect(displayTitle(list)).toBe('List');
+    expect(displayTitle({ kind: 'event', title: '' })).toBe('');
+    const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [list] }) });
+    const w = mountIn(TaskListCard, { segment: seg(list), variant: 'chip' }, pinia);
+    expect(w.get(tid('tasklist-card-title')).text()).toBe('List');
+    expect(w.get(tid('tasklist-card')).attributes('data-title')).toBe('List');
+    w.unmount();
+    const tray = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    expect(tray.get(tid('task-tray-item')).attributes('data-title')).toBe('List');
+    expect(tray.get(tid('tasklist-expanded-title')).text()).toBe('List');
+    tray.unmount();
+    useItemsStore().upsert(list);
+    mountIn(ExpandedTaskList, { id: 'U' }, pinia);
+    await flushPromises();
+    expect(document.querySelector(tid('tasklist-expanded-title'))?.textContent?.trim()).toBe('List');
   });
   it('says "No items" for an empty list and exposes the root element for drag and drop', async () => {
     const { pinia } = await setup();
@@ -250,9 +269,12 @@ describe('expanded list', () => {
     await w.findAll(tid('tasklist-item-delete'))[1].trigger('click');
     await flushPromises();
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Oat milk', 'Bread', 'Butter']);
+    expect(m.calls.some((c) => c.method === 'DELETE')).toBe(false); // sent when the undo time is over
+    // a reorder sends the pending item delete first (the server needs every item id)
     await w.findAll(tid('tasklist-item-up'))[1].trigger('click');
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Bread', 'Oat milk', 'Butter']);
     await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'DELETE' || c.method === 'PUT').map((c) => c.method)).toEqual(['DELETE', 'PUT']);
     expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', 'new1']);
   });
 });
@@ -303,13 +325,13 @@ describe('dialog', () => {
     await w.get('form').trigger('submit');
     await flushPromises();
   };
-  it('rejects blank and whitespace titles with "Title is required" and stays open', async () => {
+  it('rejects a blank title without items with "Add a title or an item" and stays open', async () => {
     const { pinia, m } = await setup();
     const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
     await fill(w, '');
-    expect(w.get(tid('tasklist-error')).text()).toBe('Title is required');
+    expect(w.get(tid('tasklist-error')).text()).toBe('Add a title or an item');
     await fill(w, '   ');
-    expect(w.get(tid('tasklist-error')).text()).toBe('Title is required');
+    expect(w.get(tid('tasklist-error')).text()).toBe('Add a title or an item');
     expect(w.emitted('close')).toBeUndefined();
     expect(m.calls.some((c) => c.method === 'POST')).toBe(false);
   });
@@ -332,6 +354,24 @@ describe('dialog', () => {
     });
     expect(w.emitted('close')).toHaveLength(1);
   });
+  it('creates an untitled list from items only', async () => {
+    const created: { title: string }[] = [];
+    const { pinia } = await setup({ 'POST /api/tasklists': ({ body }) => { created.push(body); return { status: 201, body: tl('new', { title: '' }) }; } });
+    const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
+    await w.get(tid('tasklist-items')).setValue('Milk\nEggs');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(created[0]).toMatchObject({ title: '', items: [{ title: 'Milk' }, { title: 'Eggs' }] });
+    expect(w.emitted('close')).toHaveLength(1);
+  });
+  it('prefills the tapped slot time, and no time without one', async () => {
+    const { pinia } = await setup();
+    const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14', time: '15:00' }, pinia);
+    expect((w.get(tid('tasklist-time')).element as HTMLInputElement).value).toBe('15:00');
+    wrapper?.unmount();
+    const v = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
+    expect((v.get(tid('tasklist-time')).element as HTMLInputElement).value).toBe('');
+  });
   it('shows a conflict message on 412 with a reload button', async () => {
     const list = tl('G');
     const { pinia } = await setup({
@@ -350,7 +390,9 @@ describe('dialog', () => {
   it('validateForm and parseTags', () => {
     const base = { title: 'x', date: '2026-10-14', time: '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' as const };
     expect(validateForm(base)).toBeNull();
-    expect(validateForm({ ...base, title: ' ' })).toBe('Title is required');
+    expect(validateForm({ ...base, title: ' ' })).toBe('Add a title or an item');
+    expect(validateForm({ ...base, title: ' ', items: 'Milk\n' })).toBeNull();
+    expect(validateForm({ ...base, title: '' }, 2)).toBeNull();
     expect(validateForm({ ...base, date: '2026-02-30' })).toBe('Pick a date');
     expect(validateForm({ ...base, estimate: '3' })).toMatch(/Estimate/);
     expect(validateForm({ ...base, estimate: '45.5' })).toMatch(/Estimate/);

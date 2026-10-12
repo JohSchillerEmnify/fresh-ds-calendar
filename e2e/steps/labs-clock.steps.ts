@@ -2,17 +2,10 @@
 import { expect } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { tid, type World } from './support/world.js';
+import { turnOnLabsSwitch } from './support/ui.js';
 
 When('I turn on experimental views in the settings', async function (this: World) {
-  await this.page.getByTestId('settings-button').click();
-  const control = this.page.getByTestId('settings-labs');
-  await expect(control).toBeVisible();
-  if ((await control.getAttribute('aria-checked')) !== 'true') {
-    const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
-    await control.click();
-    expect((await saved).status(), 'prefs saved').toBe(200);
-  }
-  await this.page.getByTestId('settings-back').click();
+  await turnOnLabsSwitch(this.page, 'settings-labs');
 });
 
 Then(

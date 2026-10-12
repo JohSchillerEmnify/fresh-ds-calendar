@@ -3,7 +3,7 @@
 /* ---- M3 (Expressive) design tokens other than color (color: theme/tokens.css) ---- */
 :root {
   --md-sys-shape-corner-extra-small: 6px;
-  --md-sys-shape-corner-small: 10px;
+  --md-sys-shape-corner-small: 12px; /* text fields, selects, textareas */
   --md-sys-shape-corner-medium: 16px;
   --md-sys-shape-corner-large: 22px;
   --md-sys-shape-corner-extra-large: 32px;
@@ -55,6 +55,13 @@ body {
 }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; touch-action: manipulation; }
 input, select, textarea { font: inherit; color: inherit; }
+/* Native dropdown popups follow color-scheme (set per theme in tokens.css); explicit colors are the fallback. */
+option, optgroup { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+/* Thin, rounded scrollbars (standard props first, WebKit fallback). */
+* { scrollbar-width: thin; scrollbar-color: var(--md-sys-color-outline-variant) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 4px; }
 :focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

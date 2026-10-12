@@ -41,7 +41,7 @@ type ErrorCode =
   | 'INTERNAL';             // 500
 ```
 
-Validation messages are the exact UI strings where one exists: `Title is required`,
+Validation messages are the exact UI strings where one exists: `Title is required`, `Add a title or an item`,
 `Title must be at most 200 characters`, `End must be after start`.
 The web app maps `PROVIDER_UNAVAILABLE` / network failure to `Could not save: Google Calendar is unavailable` and
 `PRECONDITION_FAILED` to `This event was changed elsewhere. Reload it and try again.`
@@ -251,8 +251,8 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 
 ```ts
 interface CreateTaskListInput {
-  calendarId?: string;     // default: TASKLIST_CALENDAR_ID env, else primary
-  title: string;
+  // no calendarId: task lists always go to the person's tasks calendar (ARCHITECTURE §3)
+  title: string;          // may be empty/blank (stored as "") when at least one non-blank item is given
   date: LocalDate;
   time?: LocalTime | null;
   items?: { title: string; done?: boolean }[];   // blank titles are dropped
@@ -272,7 +272,7 @@ interface UpdateTaskListInput {
 }
 ```
 Item ops return the whole updated `TaskList`. `index` inserts at a position (default: append). `itemIds` must be a
-permutation of the current ids, else 400. Blank item titles → 400 (the UI ignores blank input without calling the API).
+permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
 
@@ -387,6 +387,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
+| `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |

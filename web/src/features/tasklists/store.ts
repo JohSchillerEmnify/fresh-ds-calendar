@@ -24,24 +24,19 @@ export const useTaskListsStore = defineStore('tasklists', () => {
   const finishedFromApi = shallowRef<TaskList[]>([]);
   /** Lists finished in this tab today, shown as finished before the server's `completedOn` arrives (no flicker). */
   const finishedHere = reactive(new Set<string>());
-  const dropped = new Set<string>();
   const loaded = ref(false);
 
   async function refresh(): Promise<void> {
     const res = await api.openTaskLists(clock.today, CARRY_OVER_DAYS);
-    dropped.clear();
-    fromApi.value = res.items;
-    finishedFromApi.value = res.finishedToday ?? [];
-    items.setCarried(res.items);
+    const alive = (l: TaskList) => !items.isDeleted(l.id); // a response in flight during a delete still lists it
+    fromApi.value = res.items.filter(alive);
+    finishedFromApi.value = (res.finishedToday ?? []).filter(alive);
+    items.setCarried(fromApi.value);
     loaded.value = true;
   }
   /** Called after a tick that leaves no open item in the list. */
   function markFinished(id: string): void {
     finishedHere.add(id);
-  }
-  function drop(id: string): void {
-    dropped.add(id);
-    fromApi.value = fromApi.value.filter((l) => l.id !== id);
   }
 
   const inWindow = (l: TaskList): boolean => {
@@ -54,7 +49,8 @@ export const useTaskListsStore = defineStore('tasklists', () => {
     const map = new Map<string, TaskList>();
     for (const l of [...fromApi.value, ...finishedFromApi.value]) map.set(l.id, l);
     for (const it of Object.values(items.byId)) if (it.kind === 'tasklist') map.set(it.id, it);
-    return [...map.values()].filter((l) => !dropped.has(l.id) && inWindow(l)).sort(compareOpen);
+    // `isDeleted` also covers lists hidden by a pending delete (byId changes with it, so this recomputes).
+    return [...map.values()].filter((l) => !items.isDeleted(l.id) && inWindow(l)).sort(compareOpen);
   });
   /** Open lists dated within the last 30 days up to today, in tray order. */
   const tray = computed<TaskList[]>(() => known.value.filter((l) => l.totalCount > l.doneCount));
@@ -72,5 +68,5 @@ export const useTaskListsStore = defineStore('tasklists', () => {
   });
   const isCarried = (l: TaskList) => isCarriedOver(l, clock.today);
 
-  return { tray, finished, count, nextTask, loaded, refresh, drop, isCarried, markFinished };
+  return { tray, finished, count, nextTask, loaded, refresh, isCarried, markFinished };
 });

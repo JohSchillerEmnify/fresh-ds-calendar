@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import EventDialog from '@/features/calendar/EventDialog.vue';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { apiError, config, freshPinia, mockFetch, settingsFixture } from '../helpers';
 import { ev, t } from './helpers';
@@ -98,19 +99,16 @@ describe('event dialog', () => {
     expect(items.get('dentist')!.title).toBe('Dentist');
   });
 
-  it('delete asks first; cancelling keeps the event; confirming removes it', async () => {
+  it('delete removes at once without asking; the request goes out when the undo time is over', async () => {
     const { w, m, items } = await open({ id: 'dentist' }, { 'DELETE /api/events/dentist': () => ({ status: 204 }) });
     await w.get(tid('event-delete')).trigger('click');
-    expect(w.find(tid('confirm-dialog')).exists()).toBe(true);
-    await w.get(tid('confirm-cancel')).trigger('click');
     expect(w.find(tid('confirm-dialog')).exists()).toBe(false);
-    expect(items.get('dentist')).toBeTruthy();
-    await w.get(tid('event-delete')).trigger('click');
-    await w.get(tid('confirm-ok')).trigger('click');
-    await flushPromises();
-    expect(m.calls.some((c) => c.method === 'DELETE' && c.headers['If-Match'] === dentist.etag)).toBe(true);
     expect(items.get('dentist')).toBeUndefined();
     expect(w.emitted('close')).toHaveLength(1);
+    expect(m.calls.some((c) => c.method === 'DELETE')).toBe(false);
+    await usePendingDeletesStore().flush();
+    expect(m.calls.some((c) => c.method === 'DELETE' && c.headers['If-Match'] === dentist.etag)).toBe(true);
+    expect(items.get('dentist')).toBeUndefined();
   });
 
   it('Escape and Cancel close without saving; all-day hides times and uses an exclusive end', async () => {

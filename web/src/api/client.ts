@@ -9,9 +9,8 @@
  */
 import type {
   AppConfig, Calendar, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
-  Prefs,
 } from './types';
 import type { ThemePref } from '@/theme/presets';
 
@@ -55,6 +54,8 @@ export class ApiError extends Error {
 export interface RequestOptions {
   signal?: AbortSignal;
   ifMatch?: string | number;
+  /** Let the request outlive the page (deferred deletes sent on `pagehide`). */
+  keepalive?: boolean;
 }
 
 type Fetch = typeof fetch;
@@ -99,6 +100,7 @@ export class ApiClient {
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: o.signal,
         cache: 'no-store',
+        keepalive: o.keepalive,
       });
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') throw new ApiError(0, 'ABORTED', 'Request aborted');

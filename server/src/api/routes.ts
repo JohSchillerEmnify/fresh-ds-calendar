@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { LOCAL_PERSON, SUPPORT_CAT_VALUES, type SupportCat } from '../services/prefsStore.js';
+import { APPROACH_WINDOWS, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -48,7 +48,7 @@ export function configResponse(ctx: Ctx) {
     provider: ctx.provider.name,
     testMode: ctx.config.testMode,
     publicUrl: ctx.config.publicUrl,
-    version: VERSION,
+    version: ctx.overrides.version ?? VERSION,
   };
 }
 
@@ -104,16 +104,23 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
-    const patch: { labs?: boolean; approachBar?: boolean; supportCat?: SupportCat } = {};
-    for (const k of ['labs', 'approachBar'] as const) {
-      if (b[k] === undefined) continue;
-      if (typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
-      patch[k] = b[k] as boolean;
+    // validate every field first, so a bad value changes neither Google nor the stored prefs
+    const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
+    for (const k of ['labs', 'approachBar', 'tasksCalendarVisible'] as const) {
+      if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
+    }
+    for (const k of ['labs', 'approachBar'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    if (b.approachWindowHours !== undefined) {
+      const h = APPROACH_WINDOWS.find((w) => w === b.approachWindowHours);
+      if (h === undefined) throw validation('approachWindowHours must be 3, 6 or 12', 'approachWindowHours');
+      patch.approachWindowHours = h;
     }
     if (b.supportCat !== undefined) {
       if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
       patch.supportCat = b.supportCat as SupportCat;
     }
+    // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
+    if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });
   // ---- per-person theme ----

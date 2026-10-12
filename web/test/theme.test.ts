@@ -23,6 +23,14 @@ describe('M3 theme', () => {
     expect(schemeVars('#6750a4', false)['--md-sys-color-surface']).not.toBe(schemeVars('#6750a4', true)['--md-sys-color-surface']);
   });
 
+  it('sets color-scheme per theme so native selects and pickers match', () => {
+    const css = themeCss(DEFAULT_SEED);
+    expect(css).toMatch(/^:root \{\n  color-scheme: light;/);
+    expect(css).toMatch(/:root:not\(\[data-theme="light"\]\) \{\n  color-scheme: dark;/);
+    expect(css).toMatch(/:root\[data-theme="dark"\] \{\n  color-scheme: dark;/);
+    expect(fs.readFileSync(path.join(import.meta.dirname, '../src/styles.css'), 'utf8')).toMatch(/option, optgroup \{ background: var\(--md-sys-color-surface-container-high\)/);
+  });
+
   it('inlined tokens.css matches the default seed (run with UPDATE_TOKENS=1 to regenerate)', () => {
     const expected = HEADER + themeCss(DEFAULT_SEED) + '\n';
     if (process.env.UPDATE_TOKENS) fs.writeFileSync(TOKENS, expected);
@@ -53,5 +61,22 @@ describe('M3 theme', () => {
     document.head.appendChild(document.createElement('style'));
     await applySeed('#6750a4');
     expect(document.head.lastElementChild?.id).toBe('m3-dynamic-theme');
+  });
+});
+
+describe('snackbar look follows the theme', () => {
+  const src = (p: string) => fs.readFileSync(path.join(import.meta.dirname, '../src', p), 'utf8');
+  const surfaces = ['components/m3/Snackbar.vue', 'components/shell/SyncErrorBanner.vue', 'features/motivation/StreakToast.vue'];
+
+  it('the one snackbar look is built from theme tokens, corner radius and glow', () => {
+    const skin = src('theme/theme.css').match(/\.snack-skin \{([^}]*)\}/)![1];
+    for (const t of ['--md-sys-color-surface-container-highest', '--md-sys-color-on-surface', '--md-sys-color-primary', '--r-block', '--glow-r']) expect(skin).toContain(t);
+    expect(skin).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
+  });
+  it.each(surfaces)('%s uses it and sets no colours of its own', (p) => {
+    const s = src(p);
+    expect(s).toContain('snack-skin');
+    const style = s.slice(s.indexOf('<style'));
+    expect(style).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|background:|--md-sys-color-/i);
   });
 });

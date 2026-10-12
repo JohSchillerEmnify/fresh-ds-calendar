@@ -63,6 +63,8 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
   const p: Record<string, string | null> = {
     kind: 'tasklist',
     tlv: '1',
+    // An untitled list keeps an empty app title although Google's summary shows the items.
+    untitled: d.title ? null : '1',
     ...encodeItems(d.items),
     categoryId: d.categoryId,
     tags: d.tags.length ? JSON.stringify(d.tags) : null,
@@ -72,6 +74,11 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
   };
   Object.assign(p, staleChunkKeys(existing, p));
   return p;
+}
+
+/** Google summary: the title, or the items joined with ", " for an untitled list (so Google's apps show something). */
+function summaryOf(d: TaskListData): string {
+  return d.title || d.items.map((i) => i.title).join(', ');
 }
 
 export function privateSize(p: Record<string, string | null>): number {
@@ -98,7 +105,7 @@ export function encodeTaskList(d: TaskListData, tz: string, colorId: string | nu
   const priv: Record<string, string> = {};
   for (const [k, v] of Object.entries(encodePrivate(d))) if (v != null) priv[k] = v;
   const ev: GoogleEventInput = {
-    summary: d.title,
+    summary: summaryOf(d),
     description: mirror(d.items),
     ...times(d, tz),
     extendedProperties: { private: priv },
@@ -111,7 +118,7 @@ export function encodeTaskList(d: TaskListData, tz: string, colorId: string | nu
 /** Full-replacement patch for an existing task list event (null removes stale keys/fields). */
 export function encodeTaskListPatch(d: TaskListData, tz: string, colorId: string | null, existing: GoogleEvent): GoogleEventPatch {
   const patch: GoogleEventPatch = {
-    summary: d.title,
+    summary: summaryOf(d),
     description: mirror(d.items),
     ...times(d, tz),
     colorId,
@@ -177,7 +184,7 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
   const r = p.recurrence ?? /FREQ=(DAILY|WEEKLY|MONTHLY)/.exec(ev.recurrence?.[0] ?? '')?.[1]?.toLowerCase();
   if (r === 'daily' || r === 'weekly' || r === 'monthly') recurrence = r;
   return {
-    title: ev.summary ?? '',
+    title: p.untitled === '1' ? '' : ev.summary ?? '',
     date,
     time,
     items: readItems(ev),

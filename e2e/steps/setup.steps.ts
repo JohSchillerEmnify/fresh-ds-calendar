@@ -96,6 +96,13 @@ Given(
 );
 
 Given(
+  'the calendar contains an event {string} on {date} from {time} to {time} at {string}',
+  async function (this: World, title: string, date: string, from: string, to: string, location: string) {
+    await createEvent(this, { title, allDay: false, start: berlinIso(date, from), end: berlinIso(date, to), location });
+  },
+);
+
+Given(
   'the calendar contains an event {string} in the calendar {string} on {date} from {time} to {time}',
   async function (this: World, title: string, calendar: string, date: string, from: string, to: string) {
     const calendarId = await this.api.calendarId(calendar);
@@ -176,7 +183,7 @@ Given(
   'Google contains a raw task list event {string} on {date} with the description:',
   async function (this: World, title: string, date: string, description: string) {
     await this.api.remoteInsert({
-      calendarId: 'primary',
+      calendarId: await this.api.tasksCalendarId(),
       summary: title,
       description,
       start: { date },

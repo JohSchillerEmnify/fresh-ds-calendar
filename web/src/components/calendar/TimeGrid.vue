@@ -11,7 +11,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
-import { openCreate } from '@/extensions/create';
+import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
 import { gridLayers, viewHeaders } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
@@ -104,7 +104,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         <div v-for="c in cols" :key="c.date" class="col" :class="{ today: c.today }" :data-testid="ids.col" :data-date="c.date">
           <button
             v-for="h in HOURS" :key="h" class="slot" type="button" data-testid="time-slot" :data-date="c.date" :data-hour="h"
-            :aria-label="`Create at ${c.date} ${hourLabel(h)}`" @click="openCreate('event', c.date, hourLabel(h))"
+            :aria-label="`Create at ${c.date} ${hourLabel(h)}`" @click="openNew(c.date, hourLabel(h))"
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk" :class="{ settle: settling(p.seg.item.id, p.seg.date) }"

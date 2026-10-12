@@ -87,6 +87,17 @@ describe('TaskListCodec', () => {
     const back = decodeTaskList({ ...ev, id: 'x', calendarId: 'primary', etag: 'e', status: 'confirmed', created: '', updated: '' }, 'Europe/Berlin');
     expect(back).toEqual(data);
   });
+  it('an untitled list is stored with the items as summary and the untitled flag, and decodes to an empty title', () => {
+    const data = { title: '', date: '2026-10-12', time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null };
+    const ev = encodeTaskList(data, 'Europe/Berlin', null);
+    expect(ev.summary).toBe('One, Two');
+    expect(ev.extendedProperties?.private?.untitled).toBe('1');
+    const back = decodeTaskList({ ...ev, id: 'x', calendarId: 'primary', etag: 'e', status: 'confirmed', created: '', updated: '' }, 'Europe/Berlin');
+    expect(back.title).toBe('');
+    const titled = encodeTaskList({ ...data, title: 'T' }, 'Europe/Berlin', null);
+    expect(titled.summary).toBe('T');
+    expect(titled.extendedProperties?.private?.untitled).toBeUndefined();
+  });
   it('reads a missing or malformed completedOn as null', () => {
     const ev = (completedOn?: string) => ({ id: 'x', calendarId: 'p', etag: '', status: 'confirmed' as const, start: { date: '2026-10-12' }, end: { date: '2026-10-13' }, created: '', updated: '', extendedProperties: { private: { kind: 'tasklist', items: '[]', ...(completedOn === undefined ? {} : { completedOn }) } } });
     expect(decodeTaskList(ev(), 'Europe/Berlin').completedOn).toBeNull();

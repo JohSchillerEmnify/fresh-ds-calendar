@@ -19,6 +19,8 @@ export interface GoogleEvent {
 export interface Category { id: string; name: string; color: string; icon: string | null }
 export interface Settings { categories: Category[]; version: number; [key: string]: unknown }
 export interface Calendar { id: string; name: string }
+/** Raw Google calendar list entry of the mock account (/api/__test/remote/calendars). */
+export interface RemoteCalendar { id: string; summary: string; primary: boolean; accessRole: string; hidden?: boolean }
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
@@ -95,6 +97,20 @@ export class Api {
   }
   remotePatch(id: string, patch: Partial<GoogleEvent>) {
     return this.patch<GoogleEvent>(`/api/__test/remote/events/${encodeURIComponent(id)}`, patch);
+  }
+  /** The mock account's calendar list, hidden entries included; `owner` as for `remoteInsert`. */
+  async remoteCalendars(owner?: string): Promise<RemoteCalendar[]> {
+    const qs = owner === undefined ? '' : `?owner=${encodeURIComponent(owner)}`;
+    return (await this.get<{ calendars: RemoteCalendar[] }>(`/api/__test/remote/calendars${qs}`)).calendars;
+  }
+  /** Adds a calendar to the mock account's list as another Google client would. */
+  remoteInsertCalendar(summary: string, hidden: boolean, owner?: string) {
+    return this.post<RemoteCalendar>('/api/__test/remote/calendars', { summary, hidden, owner });
+  }
+  /** The id of the person's "Calendar app: tasks" calendar (found or created like the app does on first use). */
+  async tasksCalendarId(owner?: string): Promise<string> {
+    const qs = owner === undefined ? '' : `?owner=${encodeURIComponent(owner)}`;
+    return (await this.get<{ id: string }>(`/api/__test/tasks-calendar${qs}`)).id;
   }
   remoteDelete(id: string) { return this.delete(`/api/__test/remote/events/${encodeURIComponent(id)}`); }
   memory() { return this.get<{ rss: number; heapUsed: number }>('/api/__test/memory?gc=true'); }

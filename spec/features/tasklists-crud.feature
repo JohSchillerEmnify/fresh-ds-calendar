@@ -1,7 +1,9 @@
 @tasklists @crud
 Feature: Creating, editing and deleting task lists
-  Task lists are created from the floating "+" button ("Task list"), with a title, a date,
-  an optional time and optional initial items (one per line).
+  Task lists are created in the same "new" dialog as events (owner): it opens from the floating "+" button or by
+  tapping an empty time slot, has a switch "Event | Task list" at the top and keeps the date and time of the slot
+  for either kind. A task list has a date, an optional time, items (one per line) and a title, which may be left
+  empty when there are items (owner: quick lists): such a list is titled "List".
   In Google each task list is one event with extendedProperties.private.kind = "tasklist".
 
   Background:
@@ -69,15 +71,24 @@ Feature: Creating, editing and deleting task lists
     And I reload the page
     Then the collapsed task list "Groceries" lists the items "Milk, Eggs"
 
+  Scenario: A task list can be created with items only, without a title
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    And I fill in the task list form with:
+      | date  | 2026-10-14 |
+      | items | Milk; Eggs |
+    And I save the task list
+    Then the collapsed task list "List" lists the items "Milk, Eggs"
+
   @validation
-  Scenario Outline: A task list needs a non-blank title
+  Scenario Outline: A task list needs a title or at least one item
     When I open the day view for 2026-10-14
     And I start creating a task list
     And I fill in the task list form with:
       | title | <title>    |
       | date  | 2026-10-14 |
     And I save the task list
-    Then the task list dialog shows the error "Title is required"
+    Then the task list dialog shows the error "Add a title or an item"
     And the task list dialog is open
 
     Examples:
@@ -163,22 +174,36 @@ Feature: Creating, editing and deleting task lists
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And I delete the task list
-    And I confirm the deletion
     Then I do not see the task list "Groceries"
-    And Google contains no event "Groceries"
+    When the undo time is over
+    Then Google contains no event "Groceries"
     When I reload the page
     Then I do not see the task list "Groceries"
 
-  @cancel
-  Scenario: Cancelling the delete confirmation keeps the task list
+  Scenario: Deleting a task list from its expanded view closes it and it stays gone
+    Given automatic sync runs every 2 seconds
+    And the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I delete the task list
+    Then no task list is expanded
+    And I do not see the task list "Groceries"
+    When I wait for the automatic sync
+    Then I do not see the task list "Groceries"
+    And the open tasks tray does not list "Groceries"
+
+  @undo
+  Scenario: Undoing a deletion brings the task list back
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
       | Milk | no   |
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And I delete the task list
-    And I cancel the deletion
-    Then the task list "Groceries" is expanded
+    And I undo the deletion
+    Then I see the task list "Groceries" on 2026-10-14
 
   Scenario: A task list with many items is stored in chunks and survives a reload
     Given the calendar contains a task list "Big" on 2026-10-14 with 40 generated items
@@ -189,3 +214,17 @@ Feature: Creating, editing and deleting task lists
     And I expand the task list "Big"
     And I tick the item "Generated item 40"
     Then the task list "Big" shows the done count "1/40"
+
+  @day
+  Scenario: Tapping an empty time slot can create a task list at that time
+    When I open the day view for 2026-10-14
+    And I click the time slot 15:00 on 2026-10-14
+    And I switch the new dialog to "Task list"
+    Then the task list form shows:
+      | date | 2026-10-14 |
+      | time | 15:00      |
+    When I fill in the task list form with:
+      | title | Errands |
+    And I save the task list
+    Then the task list "Errands" is positioned at 15:00
+

@@ -259,6 +259,74 @@ describe('drag state machine', () => {
   });
 });
 
+describe('drag inside a scroll container', () => {
+  // The card lives inside the scroller: scrolling moves its layout box (and the grid) up by scrollTop.
+  let sc: HTMLElement;
+  let scrollTop = 0;
+  const TOP0 = 300; // card's viewport top at pick-up (scrollTop 0), grid starts at viewport y 0, 1 px per minute
+  beforeEach(() => {
+    setAnimationSetting('reduced'); // no spring lag: the ghost sits exactly at its target every frame
+    scrollTop = 0;
+    sc = document.createElement('div');
+    Object.defineProperty(sc, 'scrollTop', { get: () => scrollTop, set: (v: number) => { scrollTop = Math.max(0, Math.min(1000, v)); } });
+    sc.getBoundingClientRect = () => rect(0, 0, 800, 400);
+    sc.appendChild(el);
+    document.body.appendChild(sc);
+    el.getBoundingClientRect = () => rect(40, TOP0 - scrollTop, 100, 40);
+  });
+  afterEach(() => sc.remove());
+
+  function makeScroll() {
+    const grid = createSlotGrid({ rect: () => rect(0, -scrollTop, 800, 1440), columns: 1, pxPerMinute: 1 });
+    const targets: (number | null)[] = [];
+    let last: { key: { minutes: number } } | null = null;
+    const c = createDragController(el, {
+      hitTest: grid, onDrop: async () => {}, scrollEl: () => sc,
+      onTarget: (t) => { last = t; targets.push(t ? t.key.minutes : null); },
+    });
+    // where the ghost is drawn (layout box + transform) vs where the drop indicator is drawn (slot in the scrolled grid)
+    const ghostTop = () => el.getBoundingClientRect().top + Number(/translate3d\([^,]+, (-?[\d.]+)px/.exec(el.style.transform)![1]);
+    const indicatorTop = () => -scrollTop + last!.key.minutes;
+    return { c, targets, ghostTop, indicatorTop, minutes: () => last!.key.minutes };
+  }
+
+  it('wheel scroll while dragging recomputes the indicator and keeps the ghost on it', () => {
+    const { c, ghostTop, indicatorTop, minutes } = makeScroll();
+    down('mouse', 50, 310); move(50, 350, 'mouse'); vi.advanceTimersByTime(40);
+    expect(minutes()).toBe(345);
+    expect(ghostTop()).toBeCloseTo(indicatorTop(), 1);
+    // wheel: the browser scrolls the container, no pointermove follows
+    sc.scrollTop = 200; sc.dispatchEvent(new Event('scroll'));
+    vi.advanceTimersByTime(40);
+    expect(minutes()).toBe(540); // pointer still at viewport 350 -> content 550, minus the 10 px grab
+    expect(ghostTop()).toBeCloseTo(indicatorTop(), 1);
+    expect(ghostTop()).toBeCloseTo(350 - 10, 1); // still under the pointer
+    c.cancel(); finishAll();
+  });
+
+  it.each(['reduced', 'full'] as const)('auto-scroll at the bottom edge keeps the ghost on the indicator (%s motion)', (lvl) => {
+    setAnimationSetting(lvl);
+    const { c, ghostTop, indicatorTop } = makeScroll();
+    down('mouse', 50, 310); move(50, 390, 'mouse');
+    vi.advanceTimersByTime(1500);
+    expect(scrollTop).toBeGreaterThan(50);
+    // while scrolling the full-motion magnet may trail the snapping indicator by less than one 15 min slot
+    expect(Math.abs(ghostTop() - indicatorTop())).toBeLessThan(15);
+    move(50, 300, 'mouse'); // out of the edge zone: scrolling stops, the ghost settles exactly on the indicator
+    vi.advanceTimersByTime(1000);
+    expect(ghostTop()).toBeCloseTo(indicatorTop(), 1);
+    c.cancel(); finishAll();
+  });
+
+  it('a scroll after the drag ends is ignored', () => {
+    const { c, targets } = makeScroll();
+    down('mouse', 50, 310); move(50, 350, 'mouse'); c.cancel(); finishAll();
+    const n = targets.length;
+    sc.scrollTop = 100; sc.dispatchEvent(new Event('scroll'));
+    expect(targets.length).toBe(n);
+  });
+});
+
 describe('hit-test grids', () => {
   const ctx = { originRect: rect(40, 100, 80, 60), grab: { x: 10, y: 10 } };
   it('slot grid snaps to 15 minutes and columns', () => {

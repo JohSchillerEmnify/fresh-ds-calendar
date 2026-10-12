@@ -13,11 +13,13 @@ import {
   type ProviderCalendar,
 } from '../providers/CalendarProvider.js';
 import type { MotivationService } from './motivation.js';
+import type { PrefsStore } from './prefsStore.js';
 import type { SettingsStore } from './settingsStore.js';
 import {
   categoryColorId, decodeTaskList, encodePrivate, encodeTaskList, encodeTaskListPatch, isTaskListEvent, MAX_PRIVATE_BYTES, nextCompletedOn, privateSize,
   type TaskListData,
 } from './taskCodec.js';
+import { TasksCalendar } from './tasksCalendar.js';
 
 const DAY = 86_400_000;
 const CAL_TTL_MS = 30_000;
@@ -26,17 +28,26 @@ export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
   /** Test/seed hook: insert with a caller-chosen event id (mock only). */
   rawInsert?: (calendarId: string, ev: GoogleEventInput & { id: string }) => Promise<GoogleEvent>;
+  /** The person's hidden "Calendar app: tasks" calendar: the only place task lists are read and written. */
+  readonly tasks: TasksCalendar;
 
   constructor(
     private readonly provider: CalendarProvider,
     private readonly settings: SettingsStore,
     private readonly motivation: MotivationService,
     private readonly clock: Clock,
-    private readonly config: Pick<AppConfig, 'tz' | 'tasklistCalendarId'>,
-  ) {}
+    private readonly config: Pick<AppConfig, 'tz'>,
+    prefs: PrefsStore,
+    sub: string,
+  ) {
+    this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.calCache = null; });
+  }
 
   private get tz() { return this.config.tz; }
-  invalidate(): void { this.calCache = null; }
+  invalidate(): void {
+    this.calCache = null;
+    this.tasks.forget();
+  }
 
   // ---------- calendars ----------
   private async providerCalendars(): Promise<ProviderCalendar[]> {
@@ -47,15 +58,21 @@ export class CalendarService {
     return cals;
   }
 
+  /** Calendars that hold events: not switched off in Google's list and not the tasks calendar. */
+  private async eventCalendars(): Promise<ProviderCalendar[]> {
+    const tasksId = this.tasks.knownId();
+    return (await this.providerCalendars()).filter((c) => !c.hidden && c.id !== tasksId);
+  }
+
   async calendars(): Promise<Calendar[]> {
     this.calCache = null; // the endpoint always hits the provider (outages must surface)
-    return (await this.providerCalendars()).map((c) => ({
+    return (await this.eventCalendars()).map((c) => ({
       id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: c.accessRole === 'owner' || c.accessRole === 'writer',
     }));
   }
 
   private async primaryId(): Promise<string> {
-    const cals = await this.providerCalendars();
+    const cals = await this.eventCalendars();
     return (cals.find((c) => c.primary) ?? cals[0])?.id ?? 'primary';
   }
 
@@ -64,7 +81,7 @@ export class CalendarService {
   }
 
   private async requireCalendar(id: string): Promise<void> {
-    if (!(await this.providerCalendars()).some((c) => c.id === id)) throw validation('Unknown calendar', 'calendarId');
+    if (!(await this.eventCalendars()).some((c) => c.id === id)) throw validation('Unknown calendar', 'calendarId');
   }
 
   // ---------- mapping ----------
@@ -103,10 +120,12 @@ export class CalendarService {
   }
 
   // ---------- lookup ----------
-  private async locate(id: string): Promise<GoogleEvent> {
-    for (const c of await this.providerCalendars()) {
+  private async locate(id: string, tasklist: boolean): Promise<GoogleEvent> {
+    // task lists live only in the tasks calendar, events only in the event calendars
+    const ids = tasklist ? [await this.tasks.id()] : (await this.eventCalendars()).map((c) => c.id);
+    for (const calId of ids) {
       try {
-        const ev = await this.provider.getEvent(c.id, id);
+        const ev = await this.provider.getEvent(calId, id);
         if (ev.status !== 'cancelled') return ev;
       } catch (e) {
         if (!(e instanceof NotFoundError)) throw e;
@@ -116,24 +135,31 @@ export class CalendarService {
   }
 
   private async locateKind(id: string, tasklist: boolean): Promise<GoogleEvent> {
-    const ev = await this.locate(id);
+    const ev = await this.locate(id, tasklist);
     if (isTaskListEvent(ev) !== tasklist) throw notFound(tasklist ? 'Task list not found' : 'Event not found');
     return ev;
   }
 
   // ---------- items ----------
+  /** Events of the event calendars plus the task lists of the tasks calendar (`calendarIds` narrows both). */
   private async fetchRange(from: string, to: string, calendarIds?: string[], tasklistsOnly = false): Promise<CalendarItem[]> {
-    const cals = (await this.providerCalendars()).filter((c) => !calendarIds || calendarIds.includes(c.id));
+    const tasksId = await this.tasks.id();
+    const cals = tasklistsOnly ? [] : (await this.eventCalendars()).filter((c) => !calendarIds || calendarIds.includes(c.id));
     const timeMin = formatInZone(startOfLocalDay(from, this.tz), this.tz);
     const timeMax = formatInZone(startOfLocalDay(to, this.tz), this.tz);
     const cats = this.settings.categories();
-    const lists = await Promise.all(cals.map(async (c) => {
-      const r = await this.provider.listEvents({
-        calendarId: c.id, timeMin, timeMax, ...(tasklistsOnly ? { privateExtendedProperty: ['kind=tasklist'] } : {}),
-      });
-      return r.items.filter((e) => e.status !== 'cancelled').map((e) => (isTaskListEvent(e) ? this.toTaskList(e, c.backgroundColor, cats) : this.toEvent(e, c.backgroundColor)));
-    }));
-    return lists.flat();
+    const eventLists = cals.map(async (c) => {
+      const r = await this.provider.listEvents({ calendarId: c.id, timeMin, timeMax });
+      // task-list-shaped events outside the tasks calendar are not task lists (ARCHITECTURE §3)
+      return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.toEvent(e, c.backgroundColor));
+    });
+    const taskLists = (async (): Promise<CalendarItem[]> => {
+      if (calendarIds && !calendarIds.includes(tasksId)) return [];
+      const r = await this.provider.listEvents({ calendarId: tasksId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
+      const color = await this.calendarColor(tasksId);
+      return r.items.filter((e) => e.status !== 'cancelled' && isTaskListEvent(e)).map((e): CalendarItem => this.toTaskList(e, color, cats));
+    })();
+    return (await Promise.all([...eventLists, taskLists])).flat();
   }
 
   private sortKey(i: CalendarItem): [string, number, number, string] {
@@ -226,6 +252,7 @@ export class CalendarService {
 
   // ---------- task lists ----------
   private checkTaskData(d: TaskListData, keepCategory?: string | null): void {
+    if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title');
     if (d.items.length > 200) throw validation('A task list can have at most 200 items', 'items');
     if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags');
     if (!isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
@@ -238,8 +265,7 @@ export class CalendarService {
   }
 
   async createTaskList(input: CreateTaskListInput, extra?: { id?: string }): Promise<TaskList> {
-    const calendarId = input.calendarId ?? this.config.tasklistCalendarId ?? (await this.primaryId());
-    await this.requireCalendar(calendarId);
+    const calendarId = await this.tasks.id();
     const d: TaskListData = {
       title: input.title, date: input.date, time: input.time ?? null,
       items: (input.items ?? []).filter((i) => i.title.trim()).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done })),

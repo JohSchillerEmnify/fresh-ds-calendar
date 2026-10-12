@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { useSettingsStore } from '@/stores/settings';
 import { vRipple } from '@/lib/ripple';
+import { displayTitle } from '@/lib/items';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
@@ -34,12 +35,12 @@ const timeText = computed(() => {
     <span v-if="variant === 'block' && timeText" class="time" data-testid="event-chip-time">{{ timeText }}</span>
   </button>
   <button
-    v-else v-ripple class="item tasklist" :class="[variant, { done: it.totalCount > 0 && it.doneCount >= it.totalCount }]" type="button" data-testid="tasklist-card" :data-tasklist-id="it.id" :data-title="it.title"
+    v-else v-ripple class="item tasklist" :class="[variant, { done: it.totalCount > 0 && it.doneCount >= it.totalCount }]" type="button" data-testid="tasklist-card" :data-tasklist-id="it.id" :data-title="displayTitle(it)"
     :data-date="it.date" :data-time="it.time ?? ''" :data-color="it.color" :data-category-id="it.categoryId ?? ''" :style="{ '--c': it.color }" @click.stop="emit('open')"
   >
     <span class="head">
       <span v-if="icon" class="icon" data-testid="tasklist-card-icon">{{ icon }}</span>
-      <span class="title" data-testid="tasklist-card-title">{{ it.title }}</span>
+      <span class="title" data-testid="tasklist-card-title">{{ displayTitle(it) }}</span>
       <span class="count" data-testid="tasklist-card-count">{{ it.doneCount }}/{{ it.totalCount }}</span>
     </span>
     <span v-if="variant === 'block'" class="items" data-testid="tasklist-card-items">{{ items }}</span>

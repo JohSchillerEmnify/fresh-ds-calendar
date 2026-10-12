@@ -157,3 +157,14 @@ Feature: Drag and drop to reschedule
       And I pick up the event "Dentist"
       And I release the event without moving it
       Then the event "Dentist" shows no resize handles
+
+  @desktop
+  Scenario: Auto-scroll and wheel while dragging keep the card on the drop indicator
+    When I open the day view for 2026-10-14
+    And I hold the event "Dentist" at the bottom edge of the time grid for 1000 ms
+    Then the dragged event is drawn on the drop indicator
+    When I move the dragged event to the middle of the time grid
+    And I scroll the mouse wheel up by 300 pixels while dragging
+    Then the dragged event is drawn on the drop indicator
+    When I drop the dragged event
+    Then the event "Dentist" starts at the time the drop indicator showed

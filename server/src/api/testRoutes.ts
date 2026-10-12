@@ -3,7 +3,7 @@ import { configResponse } from './routes.js';
 import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
 import { mockSub, parseEmails } from '../auth/people.js';
-import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -40,7 +40,8 @@ export function testRoutes(ctx: Ctx): Hono {
     }
     // Fixture creation must not leave plant points / streak behind.
     if (input.fixture) ctx.motivation.reset();
-    const items = (await ctx.calendar.items('1970-01-01', '2100-01-01')).items;
+    // an empty reset must not create the tasks calendar (scenarios set up Google's calendar list themselves)
+    const items = input.seed || input.fixture ? (await ctx.calendar.items('1970-01-01', '2100-01-01')).items : [];
     return c.json({ calendars: await ctx.calendar.calendars(), items, settings });
   });
 
@@ -63,6 +64,12 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json(configResponse(ctx));
   });
 
+  // "A new version of the app is deployed": /api/config reports this build version from now on.
+  t.post('/version', async (c) => {
+    ctx.overrides.version = parse(testVersionSchema, await body(c)).version;
+    return c.json(configResponse(ctx));
+  });
+
   t.post('/outage', async (c) => {
     const b = parse(outageSchema, await body(c));
     mock.setOutage(b.down, (b.status as 500 | 503 | undefined) ?? 503);
@@ -72,6 +79,7 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // `owner` (a Google address) selects that person's mock calendar; without it the shared one is used.
   const store = (owner: string | undefined) => (owner ? ctx.mockFor(mockSub(owner)) : mock);
+  const calendarOf = (owner: string | undefined) => (owner ? ctx.calendarFor(mockSub(owner)) : ctx.calendar);
 
   // Sets one person's calendar list; `shared` calendars are read-only and not their primary.
   t.post('/calendars', async (c) => {
@@ -84,6 +92,21 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.calendarFor(mockSub(b.owner)).invalidate();
     return c.json({ ok: true });
   });
+
+  // The raw calendar list of one account, hidden entries included.
+  t.get('/remote/calendars', (c) => c.json({ calendars: store(c.req.query('owner')).remote.calendars() }));
+
+  // Adds a calendar to one account's list as another Google client would (e.g. an existing tasks calendar).
+  t.post('/remote/calendars', async (c) => {
+    const b = (await body(c)) as { owner?: string; summary?: unknown; hidden?: unknown } | undefined;
+    if (typeof b?.summary !== 'string' || !b.summary) throw validation('summary is required', 'summary');
+    const cal = store(b.owner).remote.insertCalendar(b.summary, b.hidden === true);
+    calendarOf(b.owner).invalidate();
+    return c.json(cal, 201);
+  });
+
+  // The person's tasks calendar id, found or created like the app does on first use.
+  t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
 
   t.get('/remote/events', (c) => {
     const q = c.req.query('q');

@@ -146,7 +146,7 @@ onBeforeUnmount(() => stopTimer?.());
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
 .handle { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: -12px 0; touch-action: none; cursor: grab; flex: none; }
 .handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.4; }
-.body { overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; min-height: 0; }
+.body { border-radius: inherit; /* clips the scrollbar to the panel's rounding */ overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; min-height: 0; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes up { from { transform: translateY(100%); } }
 @keyframes zoom { from { transform: scale(0.9); opacity: 0; } }
