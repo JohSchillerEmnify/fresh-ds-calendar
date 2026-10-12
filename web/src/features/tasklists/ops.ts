@@ -9,7 +9,7 @@
  * - a failed operation is dropped (rolled back, the others stay) and a snackbar says so;
  * - a poll never overwrites the list while operations are pending (items store `beginPending`).
  */
-import { api, ApiError } from '@/api/client';
+import { api, ApiError, type RequestOptions } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
@@ -30,6 +30,8 @@ interface Op {
   apply(tl: TaskList, r: Resolve): TaskList;
   call(q: Queue, r: Resolve): Promise<TaskList>;
   done?(fresh: TaskList, q: Queue, before: TaskList): void;
+  /** The request failed (the queue still rolls back and reports as usual). */
+  failed?(e: unknown): void;
 }
 
 const queues = new Map<string, Queue>();
@@ -65,6 +67,7 @@ async function run(listId: string, q: Queue): Promise<void> {
         q.base = fresh;
         op.done?.(fresh, q, before);
       } catch (e) {
+        op.failed?.(e);
         if (e instanceof ApiError) {
           if (e.isUnavailable) useSyncStore().reportError(e);
           if (e.status === 404) {
@@ -141,15 +144,23 @@ export function addItem(listId: string, title: string): void {
   enqueue(listId, op);
 }
 
-export function removeItem(listId: string, itemId: string): void {
+/** Remove an item. `o` is passed to the request; `done` is called once it finished (with the error if it failed). */
+export function removeItem(listId: string, itemId: string, o: RequestOptions = {}, done?: (err?: unknown) => void): void {
+  // A deferred delete may land after the list left the cache (no queue possible): send it directly.
+  if (useItemsStore().get(listId)?.kind !== 'tasklist') {
+    api.deleteTaskItem(listId, itemId, o).then(() => done?.(), (e) => { useSyncStore().reportError(e); done?.(e); });
+    return;
+  }
   enqueue(listId, {
     inflight: false,
     apply: (tl, r) => mapItem(tl, r(itemId), () => null),
     call: async (q, r) => {
       const id = r(itemId);
       if (id.startsWith('tmp-')) return q.base;
-      return api.deleteTaskItem(listId, id);
+      return api.deleteTaskItem(listId, id, o);
     },
+    done: () => done?.(),
+    failed: (e) => done?.(e ?? new Error('delete failed')),
   });
 }
 

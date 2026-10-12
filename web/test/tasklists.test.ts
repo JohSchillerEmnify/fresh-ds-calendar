@@ -269,9 +269,12 @@ describe('expanded list', () => {
     await w.findAll(tid('tasklist-item-delete'))[1].trigger('click');
     await flushPromises();
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Oat milk', 'Bread', 'Butter']);
+    expect(m.calls.some((c) => c.method === 'DELETE')).toBe(false); // sent when the undo time is over
+    // a reorder sends the pending item delete first (the server needs every item id)
     await w.findAll(tid('tasklist-item-up'))[1].trigger('click');
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Bread', 'Oat milk', 'Butter']);
     await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'DELETE' || c.method === 'PUT').map((c) => c.method)).toEqual(['DELETE', 'PUT']);
     expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', 'new1']);
   });
 });

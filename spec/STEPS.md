@@ -174,6 +174,9 @@ I open the event {string}
 I delete the event
 I confirm the deletion
 I cancel the deletion
+I undo the deletion
+the undo time is over
+the snackbar says {string}
 the event dialog is open
 the event dialog is closed
 the event dialog shows the error {string}
@@ -844,6 +847,25 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
+## App updates
+
+```
+a new version of the app is deployed
+the app syncs
+I am told a new version is available
+I choose to reload
+the app runs the new version
+```
+
+- "deployed": `POST /api/__test/version { version }` makes the server report a new build version (TEST_MODE).
+- "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.
+- "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
+  `document.documentElement.dataset.appVersion` equals the deployed version.
+
+- Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
+  "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
+  until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
+  the visible `undo-snackbar` message (`snackbar-text`).
 ## Theme menu (`@themes`)
 
 ```

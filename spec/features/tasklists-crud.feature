@@ -174,9 +174,9 @@ Feature: Creating, editing and deleting task lists
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And I delete the task list
-    And I confirm the deletion
     Then I do not see the task list "Groceries"
-    And Google contains no event "Groceries"
+    When the undo time is over
+    Then Google contains no event "Groceries"
     When I reload the page
     Then I do not see the task list "Groceries"
 
@@ -188,23 +188,22 @@ Feature: Creating, editing and deleting task lists
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And I delete the task list
-    And I confirm the deletion
     Then no task list is expanded
     And I do not see the task list "Groceries"
     When I wait for the automatic sync
     Then I do not see the task list "Groceries"
     And the open tasks tray does not list "Groceries"
 
-  @cancel
-  Scenario: Cancelling the delete confirmation keeps the task list
+  @undo
+  Scenario: Undoing a deletion brings the task list back
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
       | Milk | no   |
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And I delete the task list
-    And I cancel the deletion
-    Then the task list "Groceries" is expanded
+    And I undo the deletion
+    Then I see the task list "Groceries" on 2026-10-14
 
   Scenario: A task list with many items is stored in chunks and survives a reload
     Given the calendar contains a task list "Big" on 2026-10-14 with 40 generated items
