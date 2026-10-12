@@ -16,6 +16,13 @@ export interface OpenDialog {
   props: Record<string, unknown>;
 }
 
+/** The timed entry whose resize handles are shown (set by releasing it without moving, ARCHITECTURE "Resize handles"). */
+export interface ResizingEntry {
+  kind: 'event' | 'tasklist';
+  id: string;
+  date: string;
+}
+
 let seq = 0;
 
 /** Shell UI state that must survive refreshes (open pickers, dialogs, snackbars). */
@@ -26,6 +33,7 @@ export const useUiStore = defineStore('ui', () => {
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
   const dialog = ref<OpenDialog | null>(null);
+  const resizing = ref<ResizingEntry | null>(null);
   const snackbars = ref<SnackbarMessage[]>([]);
 
   /** Opens a dialog registered with `registerDialog(kind, component)`. */
@@ -46,5 +54,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, createMenuOpen, trayExpanded, dialog, snackbars, openDialog, closeDialog, notify, dismiss };
+  return { pickerOpen, filtersShown, createMenuOpen, trayExpanded, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
 });

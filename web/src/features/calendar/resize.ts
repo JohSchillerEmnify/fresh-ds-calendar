@@ -1,0 +1,103 @@
+/**
+ * Resize handles for timed entries in the week and day time grid: pure planning (`resizeEdges`, `planResize`), the live
+ * preview the grid draws while a handle is dragged (`resizePreview`) and the optimistic save (`commitResize`).
+ *
+ * A dragged edge "covers" the pointer: the end rounds up and the start rounds down to the 15-minute grid (with 2 minutes of
+ * leniency, so a drag that lands a pixel or two past a slot line does not jump a whole slot). Keeps at least 15 minutes
+ * between start and end; a task list stops at 720 minutes (the server's `estimateMinutes` range), events at the day's end.
+ */
+import { shallowRef } from 'vue';
+import { api } from '@/api/client';
+import type { CalendarEvent, CalendarItem, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import type { Segment } from '@/lib/items';
+import { minutesToTime } from '@/lib/dates';
+import { useClockStore } from '@/stores/clock';
+import { useItemsStore } from '@/stores/items';
+import { useUiStore } from '@/stores/ui';
+import { fromWallMinutes, localToIso, wallMinutes } from './zone';
+
+export type ResizeEdge = 'top' | 'bottom';
+
+export const RESIZE_STEP = 15;
+export const RESIZE_MIN = 15;
+export const TASKLIST_MAX_MINUTES = 720;
+/** Minutes a drag may fall short of a slot line and still snap to it. */
+const LENIENCY = 2;
+
+/** Block geometry the grid draws instead of the stored one while a handle is dragged (or springing back). */
+export const resizePreview = shallowRef<{ id: string; date: string; startMin: number; endMin: number; settle?: boolean } | null>(null);
+
+export interface ResizePlan {
+  startMin: number;
+  endMin: number;
+  next: CalendarItem;
+  patch: UpdateEventInput | UpdateTaskListInput;
+}
+
+/** Pure: the segment's new start and end minute of day when `edge` is dragged by `deltaMin` minutes. */
+export function resizeEdges(seg: Segment, edge: ResizeEdge, deltaMin: number): { startMin: number; endMin: number } {
+  const { startMin, endMin } = seg;
+  const list = seg.item.kind === 'tasklist';
+  if (edge === 'top') {
+    const snapped = Math.floor((startMin + deltaMin + LENIENCY) / RESIZE_STEP) * RESIZE_STEP;
+    const lo = list ? Math.max(0, endMin - TASKLIST_MAX_MINUTES) : 0;
+    return { startMin: Math.min(Math.max(snapped, lo), endMin - RESIZE_MIN), endMin };
+  }
+  const snapped = Math.ceil((endMin + deltaMin - LENIENCY) / RESIZE_STEP) * RESIZE_STEP;
+  const hi = list ? Math.min(1440, startMin + TASKLIST_MAX_MINUTES) : 1440;
+  return { startMin, endMin: Math.max(Math.min(snapped, hi), startMin + RESIZE_MIN) };
+}
+
+/** Pure: what dragging `edge` of `seg` by `deltaMin` changes. Null when the edge lands where it was. */
+export function planResize(seg: Segment, edge: ResizeEdge, deltaMin: number, tz: string): ResizePlan | null {
+  const { startMin, endMin } = resizeEdges(seg, edge, deltaMin);
+  if (startMin === seg.startMin && endMin === seg.endMin) return null;
+  const item = seg.item;
+  if (item.kind === 'tasklist') {
+    const estimateMinutes = endMin - startMin;
+    const patch: UpdateTaskListInput = edge === 'top' ? { time: minutesToTime(startMin), estimateMinutes } : { estimateMinutes };
+    return { startMin, endMin, next: { ...item, time: minutesToTime(startMin), estimateMinutes }, patch };
+  }
+  const ev: CalendarEvent = item;
+  // wall-clock arithmetic from the segment's midnight: 24:00 rolls over to the next day's 00:00
+  const base = wallMinutes(seg.date, '00:00');
+  const iso = (min: number) => {
+    const w = fromWallMinutes(base + min);
+    return localToIso(w.date, w.time, tz);
+  };
+  const start = edge === 'top' ? iso(startMin) : ev.start;
+  const end = edge === 'bottom' ? iso(endMin) : ev.end;
+  return { startMin, endMin, next: { ...ev, start, end }, patch: { start, end } };
+}
+
+/**
+ * Optimistic save of a finished handle drag, like `applyMove`: the block keeps the dragged size meanwhile; on failure it
+ * springs back to its old size and a snackbar says so. Never rejects.
+ */
+export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void> {
+  const items = useItemsStore();
+  const { item } = seg;
+  const etag = items.get(item.id)?.etag ?? item.etag;
+  try {
+    await items.optimisticItem<CalendarItem>(item.id, plan.next, () => (item.kind === 'event'
+      ? api.updateEvent(item.id, plan.patch as UpdateEventInput, { ifMatch: etag })
+      : api.updateTaskList(item.id, plan.patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
+    resizePreview.value = null;
+  } catch (e) {
+    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : 'Something went wrong';
+    useUiStore().notify(`Could not resize “${item.title}”. ${msg}`, { testid: 'move-failed' });
+    // the store has rolled back: animate from the dragged size to the old one, then hand the geometry back to the store
+    resizePreview.value = { id: item.id, date: seg.date, startMin: seg.startMin, endMin: seg.endMin, settle: true };
+    setTimeout(() => { resizePreview.value = null; }, 300);
+  }
+}
+
+/** Plans and saves a finished drag; the caller keeps `resizePreview` at the dragged geometry until this settles. */
+export function finishResize(seg: Segment, edge: ResizeEdge, deltaMin: number): Promise<void> {
+  const plan = planResize(seg, edge, deltaMin, useClockStore().timeZone);
+  if (!plan) {
+    resizePreview.value = null;
+    return Promise.resolve();
+  }
+  return commitResize(seg, plan);
+}

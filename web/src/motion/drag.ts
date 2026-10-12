@@ -39,7 +39,7 @@ export interface DragOptions<K = unknown> {
   hitTest: (x: number, y: number, ctx: DragContext) => DropTarget<K> | null;
   /** Called on drop over a valid target. Reject to spring back. */
   onDrop: (target: DropTarget<K>) => void | Promise<unknown>;
-  /** Long-press for touch/pen in ms (default 350). */
+  /** Long-press (touch, pen, and a mouse held still) in ms (default 350). */
   touchDelay?: number;
   /** Touch movement that cancels the long-press (default 8 px). */
   touchSlop?: number;
@@ -216,11 +216,12 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     vt.add(e.clientX, e.clientY, e.timeStamp || performance.now());
     listen();
     setState('pending');
-    if (isTouch) timer = setTimeout(pickUp, touchDelay);
+    // press-and-hold picks up like a long press (mouse too); a mouse still picks up early past the slop
+    timer = setTimeout(pickUp, touchDelay);
   }
 
   function pickUp() {
-    timer = null;
+    clearTimer();
     if (state !== 'pending' || !ctx) return;
     claim();
     window.dispatchEvent(new CustomEvent(GESTURE_CLAIM_EVENT));
@@ -317,7 +318,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   function autoScroll(dt: number) {
     const sc = opts.scrollEl?.();
-    if (!sc) return;
+    // a card held still near the edge (press-and-hold release) must not drift under the pointer
+    if (!sc || Math.hypot(cur.x - start.x, cur.y - start.y) <= touchSlop) return;
     const r = sc.getBoundingClientRect();
     const edge = 56;
     let v = 0;
