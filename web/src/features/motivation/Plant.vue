@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { animate } from '@/motion/animate';
-import { markEffect, spawnDroplets, spawnSparkle } from '@/motion/effects';
+import { spawnDroplets, spawnSparkle } from '@/motion/effects';
 import { springs } from '@/motion/spring';
 import type { ChangeKind, Mood } from './types';
 
@@ -67,7 +67,7 @@ watch(
       track(animate(g, [{ transform: `rotate(${deg.value + 14}deg)` }, { transform: `rotate(${deg.value}deg)` }], { spring: springs.gentle, reduced: 'skip' }));
     }
     if (kinds.includes('grow')) {
-      markEffect('grow', { x: p.x, y: p.y });
+      spawnSparkle({ x: p.x, y: p.y - 6 }, { kind: 'grow', count: 8, spread: 30, colors: ['#9be37a', '#ffe08a', '#ffffff', '#5cc04a'] });
       track(animate(g, [{ transform: `rotate(${deg.value}deg) scale(0.7)` }, { transform: `rotate(${deg.value}deg) scale(1)` }], { spring: springs.gentle, reduced: 'skip' }));
     }
   },

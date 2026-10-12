@@ -535,6 +535,8 @@ export interface SlotGridOptions {
   gutter?: number;
   /** Snap step in minutes (default 15). */
   step?: number;
+  /** Minutes-of-day at the top of rect (default 0), e.g. 480 when the grid starts at 08:00. Added to key.minutes. */
+  startMinutes?: number;
 }
 export interface SlotKey { column: number; minutes: number }
 
@@ -552,7 +554,7 @@ export function createSlotGrid(o: SlotGridOptions): (x: number, y: number, ctx: 
     const minutes = clamp(snap(topY / o.pxPerMinute, step), 0, Math.max(0, Math.round(maxMin / step) * step));
     const colLeft = r.left + gutter + column * colW;
     return {
-      key: { column, minutes },
+      key: { column, minutes: minutes + (o.startMinutes ?? 0) },
       dx: colLeft - ctx.originRect.left,
       dy: r.top + minutes * o.pxPerMinute - ctx.originRect.top,
     };

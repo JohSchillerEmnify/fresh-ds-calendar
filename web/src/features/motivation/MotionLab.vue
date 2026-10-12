@@ -68,7 +68,7 @@ const cols = ['Mon', 'Tue', 'Wed'];
 const ev = reactive({ day: 1, min: 9 * 60, label: 'Dentist', failNext: false });
 const grid = ref<HTMLElement | null>(null);
 const evEl = ref<HTMLElement | null>(null);
-const slotHit = createSlotGrid({ rect: () => grid.value?.getBoundingClientRect() ?? null, columns: 3, pxPerMinute: HOUR / 60, gutter: 30 });
+const slotHit = createSlotGrid({ rect: () => grid.value?.getBoundingClientRect() ?? null, columns: 3, pxPerMinute: HOUR / 60, gutter: 30, startMinutes: 480 });
 const hover = ref<{ column: number; minutes: number } | null>(null);
 const log = ref('');
 useDraggable(evEl, {

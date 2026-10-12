@@ -258,7 +258,7 @@ describe('scenes', () => {
     const w = mount(TopBarScene, { props: { scene: 'mordor', flowers: 5 }, attachTo: document.body });
     await nextTick();
     expect(w.find('[data-testid="scene-mordor"]').exists()).toBe(true);
-    expect(w.find('.eye').exists()).toBe(true);
+    expect(w.find('[data-testid="sauron-eye"]').exists()).toBe(true);
     expect(w.find('[data-animated="true"]').exists()).toBe(true);
     expect(document.querySelector('[data-kind="eye-open"]')).not.toBeNull();
     expect(document.querySelector('[data-kind="butterfly"]')).toBeNull();

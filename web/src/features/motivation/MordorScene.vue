@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
       <path class="body" d="M14 64 L19 50 L18 42 L22 38 L22 28 L25 25 L25 19 L29 17 L30 15 L31 17 L35 19 L35 25 L38 28 L38 38 L42 42 L41 50 L46 64Z" />
       <path class="spire" d="M22 38 L19 28 L24 33Z M38 38 L41 28 L36 33Z M18 48 L11 41 L20 44Z M42 48 L49 41 L40 44Z M25 25 L23 17 L27 22Z M35 25 L37 17 L33 22Z" />
       <path class="spire" d="M25 20 Q18 10 21 0 Q24 8 29 14Z M35 20 Q42 10 39 0 Q36 8 31 14Z" />
-      <g ref="eye" class="eye">
+      <g ref="eye" class="eye" data-testid="sauron-eye">
         <g class="flames"><path class="fl" d="M23 9 Q25 2 28 7 Q29 -2 31 6 Q33 -1 35 7 Q38 2 37 9 Q30 5 23 9Z" /></g>
         <path class="almond" d="M16 12 Q30 0 44 12 Q30 24 16 12Z" fill="url(#mo-eye-g)" />
         <g class="pupil-g"><ellipse class="pupil" cx="30" cy="12" rx="1.9" ry="8.6" /></g>
