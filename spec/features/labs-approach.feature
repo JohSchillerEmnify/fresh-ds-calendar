@@ -22,6 +22,7 @@ Feature: Labs: the approach bar
   Scenario: The next entry comes closer as time passes
     Given the time is 2026-10-14 08:00
     And the approach bar is on
+    And the calendar contains an event "Gym" on 2026-10-14 from 11:00 to 12:00
     When I open the week view for 2026-10-12
     Then the approach bar shows "Dentist" in 60 minutes
     When the time is 2026-10-14 08:45
