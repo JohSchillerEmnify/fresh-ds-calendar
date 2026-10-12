@@ -1,33 +1,60 @@
 import fs from 'node:fs';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { ApiException } from './lib/errors.js';
+import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, type CalendarProvider } from './providers/CalendarProvider.js';
+import { apiRoutes } from './api/routes.js';
+import { testRoutes } from './api/testRoutes.js';
+import { authRoutes } from './api/authRoutes.js';
+import { createContext, type Ctx } from './context.js';
 import type { AppConfig } from './config.js';
-import { healthRoutes } from './routes/health.js';
+import type { Clock } from './lib/clock.js';
 import { staticRoutes } from './routes/static.js';
 
-export type App = Hono;
+export type App = Hono & { ctx: Ctx; close(): void };
+
+export interface BuildOptions {
+  provider?: CalendarProvider;
+  clock?: Clock;
+}
 
 /**
- * Builds the HTTP app. Pure web-standard Request/Response (Hono), so tests use `app.request()`
- * and the runtime adapter (node-server today) lives only in index.ts.
+ * Builds the HTTP app. Pure web-standard Request/Response (Hono): tests use `app.request()`, the runtime adapter
+ * lives only in index.ts. Seeding is the caller's job (see `startup()` in index.ts / `ctx.seed()`).
  */
-export function buildApp(config: AppConfig): App {
-  const app = new Hono();
+export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
+  const ctx = createContext(config, opts.provider, opts.clock);
+  const app = new Hono() as App;
+  app.ctx = ctx;
+  app.close = () => ctx.close();
+
+  if (config.allowedOrigins.length) {
+    app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed'] }));
+  }
 
   const api = new Hono();
-  api.route('/', healthRoutes(config));
-  // Later: event / tasklist / settings routes backed by a CalendarProvider (see ./providers).
+  api.route('/', apiRoutes(ctx));
+  if (config.testMode && ctx.mock) api.route('/', testRoutes(ctx));
+  api.route('/', authRoutes(ctx));
   app.route('/api', api);
-  // Unknown API paths must stay JSON 404 and never hit the SPA fallback below.
-  app.all('/api/*', (c) => c.json({ error: 'Not Found', path: c.req.path }, 404));
+  app.all('/api/*', () => {
+    throw new ApiException('NOT_FOUND', 404, 'Not found');
+  });
 
   app.onError((err, c) => {
-    console.error(err);
-    return c.json({ error: 'Internal Server Error' }, 500);
+    const body = (code: string, message: string, details?: unknown) => ({ error: { code, message, ...(details ? { details } : {}) } });
+    if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details), err.status);
+    if (err instanceof ProviderUnavailableError) return c.json(body('PROVIDER_UNAVAILABLE', 'Google Calendar is unavailable'), 503);
+    if (err instanceof PreconditionFailedError) return c.json(body('PRECONDITION_FAILED', 'This item was changed elsewhere. Reload it and try again.'), 412);
+    if (err instanceof NotFoundError) return c.json(body('NOT_FOUND', 'Not found'), 404);
+    if (err instanceof ProviderError) return c.json(body('PROVIDER_ERROR', 'Google Calendar returned an error'), 502);
+    if (err instanceof SyntaxError) return c.json(body('VALIDATION_ERROR', 'Request body must be valid JSON'), 400);
+    if (config.logLevel !== 'error') console.error(err);
+    return c.json(body('INTERNAL', 'Internal server error'), 500);
   });
 
   const hasWeb = config.webDist !== null && fs.existsSync(config.webDist);
   if (hasWeb) app.route('/', staticRoutes(config.webDist!));
-
-  app.notFound((c) => c.json({ error: 'Not Found', path: c.req.path }, 404));
+  app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Not found' } }, 404));
   return app;
 }
