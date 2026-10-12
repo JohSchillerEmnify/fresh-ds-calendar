@@ -687,7 +687,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   (`data-at-end="true"`, label "in 5 h"). Each entry is a block as long as its duration on the track's scale (owner, 2026-10-13: entries take up only the
   time they take); the title sits inside when it fits, else right after the block (`data-title-outside="true"`) on the card colour, so the track line has a gap there and the title never looks struck through (owner), so
   a short entry on a phone or in a 6/12 h window shows a short block followed by its title. Blocks use the entry's
-  colour like `ItemView` chips (reuse its colour/skin and open handling); tap opens the entry. A block is at least
+  colour like `ItemView` chips (reuse its colour/skin and open handling) but show only the title: no time, estimate,
+  done count or item preview (owner, 2026-10-13: a narrow block must not leak card internals); tap opens the entry. A block is at least
   4 px wide. Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
   shortened and overlapping with a fade, so the card never grows further (owner: "don't take too much space").
   Nothing ahead today → the usual "Nothing else today" line. The current-event and next-task lines are unchanged.
