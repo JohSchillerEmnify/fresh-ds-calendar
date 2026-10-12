@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { springs } from '@/motion/spring';
+import ButterflyWings from './ButterflyWings.vue';
 
 /**
  * One butterfly visit (~3.6 s): flies in, lands on a random sunflower inside `container`, flaps, flies away,
@@ -68,20 +69,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="root" class="bf" data-testid="reward-effect" data-kind="butterfly" :data-landed="landed" aria-hidden="true">
-    <svg viewBox="0 0 28 24" width="28" height="24">
-      <g class="wing wl"><path d="M14 12 C8 2 1 3 2 9 C3 14 9 14 14 12Z" /><path d="M14 12 C9 14 5 20 9 21 C12 21 14 16 14 12Z" class="lo" /></g>
-      <g class="wing wr"><path d="M14 12 C20 2 27 3 26 9 C25 14 19 14 14 12Z" /><path d="M14 12 C19 14 23 20 19 21 C16 21 14 16 14 12Z" class="lo" /></g>
-      <ellipse cx="14" cy="12.500" rx="1.100" ry="5" class="body" />
-    </svg>
+    <ButterflyWings />
   </div>
 </template>
 
 <style scoped>
 .bf { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; will-change: transform; opacity: 0; }
-.wing { fill: var(--md-sys-color-tertiary, #b5486f); opacity: 0.85; transform-box: view-box; transform-origin: 14px 12px; animation: bf-flap 0.2s ease-in-out infinite alternate; }
-.wing .lo { fill: var(--md-sys-color-primary, #6750a4); opacity: 0.8; }
-.wr { animation-name: bf-flap; }
-.body { fill: var(--md-sys-color-on-surface, #1d1b20); }
-.bf[data-landed='true'] .wing { animation-duration: 0.55s; }
-@keyframes bf-flap { from { transform: scaleX(1); } to { transform: scaleX(0.25); } }
+.bf[data-landed='true'] :deep(.wing) { animation-duration: 0.55s; }
 </style>
