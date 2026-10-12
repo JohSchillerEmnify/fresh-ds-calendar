@@ -6,6 +6,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
+import { isCollapsed } from '@/features/tasklists/collapse';
 import { allotHeights } from '@/features/tasklists/layout';
 import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
@@ -34,7 +35,7 @@ function visible(date: string) {
     const phone = isPhone.value;
     const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
     const sized = (n: number) => titleH + n * rowH + extra;
-    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(Math.min(s.item.items.length, 8)) : evH);
+    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(isCollapsed(s.item.id) ? 0 : Math.min(2, s.item.items.filter((i) => !i.done).length) + (s.item.items.filter((i) => !i.done).length > 2 ? 1 : 0)) : evH);
     /** Smallest useful size: events one line, task lists the title plus up to 3 rows (item rows and the "+k" line). */
     const minOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? Math.min(needOf(s), sized(phone ? 3 : 2)) : evH);
     const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - (n - 1) * gap - (withMore ? 14 : 0) - 2;

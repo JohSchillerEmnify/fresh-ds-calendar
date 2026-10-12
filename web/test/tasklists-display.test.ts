@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h } from 'vue';
 import type { TaskList } from '@/api/types';
 import { dragPreview, planMove } from '@/features/calendar/dnd';
+import { isCollapsed, loadCollapseState, setAllCollapsed } from '@/features/tasklists/collapse';
 import { checkState } from '@/features/tasklists/format';
 import { allotHeights, fitItems } from '@/features/tasklists/layout';
 import TaskListCard from '@/features/tasklists/TaskListCard.vue';
@@ -172,14 +173,53 @@ describe('TaskListCard in a grid', () => {
     add.mockRestore(); remove.mockRestore();
   });
 
-  it('keeps every item in the text, marks surplus as over and shows "+k"', async () => {
+  it('overview: max 2 open items, ticked ones hidden, "+k" counts open ones, text keeps everything', async () => {
     freshPinia();
     const tl = list({ items: mk(6, 1), doneCount: 1, totalCount: 6 });
-    const w = mount(TaskListCard, { props: { segment: itemSegments(tl)[0], variant: 'card', height: 17 + 5 + 14 * 3 } });
+    const w = mount(TaskListCard, { props: { segment: itemSegments(tl)[0], variant: 'card', height: 200 } });
     expect(w.get('[data-testid=tasklist-card-items]').text()).toBe('Item 0, Item 1, Item 2, Item 3, Item 4, Item 5');
-    expect(w.findAll('.it.over')).toHaveLength(4);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+4 more');
+    const visible = w.findAll('.it').filter((i) => i.classes().indexOf('over') < 0);
+    expect(visible.map((i) => i.text())).toEqual(['Item 1', 'Item 2']);
+    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+3 more');
     expect(w.get('[data-testid=tasklist-card-check]').attributes('data-state')).toBe('partial');
-    expect(w.findAll('.it.done')).toHaveLength(1);
+    expect(w.get('[data-testid=tasklist-card-count]').text()).toBe('1/6');
+  });
+  it('overview: three open items show 2 and "+1"; less room shows fewer; all done shows no rows', async () => {
+    freshPinia();
+    const three = list({ items: mk(3), totalCount: 3 });
+    const w = mount(TaskListCard, { props: { segment: itemSegments(three)[0], variant: 'card', height: 200 } });
+    expect(w.findAll('.it:not(.over)')).toHaveLength(2);
+    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+1 more');
+    const tight = mount(TaskListCard, { props: { segment: itemSegments(three)[0], variant: 'card', height: 17 + 5 + 14 } });
+    expect(tight.findAll('.it:not(.over)')).toHaveLength(1);
+    const done = list({ items: mk(2, 2), doneCount: 2, totalCount: 2 });
+    const d = mount(TaskListCard, { props: { segment: itemSegments(done)[0], variant: 'card', height: 200 } });
+    expect(d.findAll('.it:not(.over)')).toHaveLength(0);
+    expect(d.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
+    expect(d.classes()).toContain('complete');
+  });
+  it('chevron collapses to the title row, persists, and neither opens nor drags', async () => {
+    freshPinia();
+    localStorage.clear();
+    setAllCollapsed(false);
+    const tl = list({ items: mk(3), totalCount: 3 });
+    const w = mount(TaskListCard, { props: { segment: itemSegments(tl)[0], variant: 'allday' }, attachTo: document.body });
+    expect(w.findAll('.it:not(.over)')).toHaveLength(2);
+    await w.get('[data-testid=tasklist-card-toggle]').trigger('click');
+    expect(w.emitted('open')).toBeUndefined();
+    expect(w.classes()).toContain('collapsed');
+    expect(w.findAll('.it:not(.over)')).toHaveLength(0);
+    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
+    expect(loadCollapseState().ids).toEqual({ l: true });
+    const down = pe('pointerdown', { x: 5, y: 5 });
+    w.get('[data-testid=tasklist-card-toggle]').element.dispatchEvent(down);
+    window.dispatchEvent(pe('pointermove', { x: 40, y: 40 }));
+    expect((w.element as HTMLElement).dataset.dragging).toBeUndefined();
+    window.dispatchEvent(pe('pointerup', { x: 40, y: 40 }));
+    setAllCollapsed(true);
+    expect(isCollapsed('other')).toBe(true);
+    expect(loadCollapseState()).toEqual({ all: true, ids: {} });
+    setAllCollapsed(false);
+    w.unmount();
   });
 });
