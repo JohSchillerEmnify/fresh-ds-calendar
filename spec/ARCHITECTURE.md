@@ -635,8 +635,8 @@ all overlays; no per-component history code.
 
 Every snackbar-like surface — the undo and update snackbars, the transition warning, the sync error banner and the
 check-in toast (`streak-message`) — uses the one `Snackbar` look built from the active theme's tokens
-(`inverse-surface` / `inverse-on-surface`, action in `inverse-primary`, the theme's corner radius and glow), never
-fixed colours, so a theme or automatic season change restyles them too.
+(`surface-container-highest` / `on-surface`, action in `primary`, the theme's corner radius and glow; owner
+2026-10-13: not M3's inverse colours, which turn white on a dark theme), never fixed colours, so a theme or automatic season change restyles them too.
 
 ### Labs (experiments, owner 2026-10-12)
 
