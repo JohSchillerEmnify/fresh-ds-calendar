@@ -3,7 +3,7 @@ import { configResponse } from './routes.js';
 import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
 import { mockSub, parseEmails } from '../auth/people.js';
-import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -60,6 +60,12 @@ export function testRoutes(ctx: Ctx): Hono {
   t.post('/config', async (c) => {
     const b = parse(testConfigSchema, await body(c));
     if (b.pollIntervalMs !== undefined) ctx.overrides.pollIntervalMs = b.pollIntervalMs;
+    return c.json(configResponse(ctx));
+  });
+
+  // "A new version of the app is deployed": /api/config reports this build version from now on.
+  t.post('/version', async (c) => {
+    ctx.overrides.version = parse(testVersionSchema, await body(c)).version;
     return c.json(configResponse(ctx));
   });
 
