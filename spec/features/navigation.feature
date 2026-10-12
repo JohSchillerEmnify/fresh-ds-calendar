@@ -168,6 +168,20 @@ Feature: Navigation and view switching
     And I click the day number of 2026-10-14
     Then the URL path is "/day/2026-10-14"
 
+  @month @desktop
+  Scenario: Clicking empty space in a month day cell opens that day
+    When I open the month view for 2026-10
+    And I click empty space in the month cell of 2026-10-20
+    Then the URL path is "/day/2026-10-20"
+
+  @month @desktop
+  Scenario: Clicking an entry in a month day cell opens the entry, not the day
+    Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When I open the month view for 2026-10
+    And I open the event "Dentist"
+    Then the event dialog is open
+    And the URL path is "/month/2026-10"
+
   @week
   Scenario: Tapping a week column header opens that day
     When I open the week view for 2026-10-12

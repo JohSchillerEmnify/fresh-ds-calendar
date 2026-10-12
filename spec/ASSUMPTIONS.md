@@ -160,7 +160,8 @@ spec files are named.
   of them instead of 3 plus "+1 more" (the link would take the same room). 5 or more items show 3 plus "+N more".
   Needed by events-display "Items of a day are ordered all-day first, then by time" together with the "+2 more" scenario.
 - **A-E2 "I tap the day D in the month view" on desktop** (timeline "phone month view" scenario also runs on desktop):
-  without touch the step clicks the day number, because a desktop cell body does not open the day.
+  without touch the step clicks the day number. Since 2026-10-12 (owner request) empty space in a desktop cell also opens
+  the day, but the cell centre may hold an entry, whose click opens the entry instead.
 - **A-E3 Phone month chips**: a tap on a chip opens the day (like a tap anywhere in the cell); a long press picks the
   chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
 - **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
