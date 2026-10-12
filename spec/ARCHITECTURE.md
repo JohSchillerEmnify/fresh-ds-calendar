@@ -342,8 +342,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   animates when it first appears.
   - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
-    `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is
-    the first unticked item of the oldest open list in the tray order.
+    `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things; each list's own "Next task"
+    stays in its expanded view).
   - Duration format: `< 60 min` → `35 min`; whole hours → `2 h`; otherwise `1 h 20 min`. Values round down to whole
     minutes.
   - The current event is the one with start ≤ now < end; with several, the one ending first.
