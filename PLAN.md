@@ -45,3 +45,9 @@
 - Remaining: full e2e run on merged master (flock /tmp/calendar-e2e.lock pnpm e2e), review agent, final deploy, CHANGELOG.
 - Owner-approved previews: multiday looked good (merged). Later items: German translation, resize handles on long press, range slider (shelved).
 - Owner idea backlog is in this file; user prefers previews before merge, Sonnet agents, token-efficient work.
+
+## Auto-deploy (owner 2026-10-12: "always deploy on merge")
+- git hooks in scripts/hooks (core.hooksPath) call scripts/auto-deploy.sh after a merge on master in the main checkout:
+  tests + docker build + restart, serialized, log /tmp/calendar-autodeploy.log, last deployed sha in /tmp/calendar-deployed-sha.
+- Merging a branch to master therefore deploys it live automatically. Still do `scripts/preview.sh up <branch>` BEFORE merging.
+- Manual: `FORCE_AUTODEPLOY=1 scripts/auto-deploy.sh`. Failed deploy leaves the old version running.
