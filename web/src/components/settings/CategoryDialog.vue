@@ -1,0 +1,75 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { ApiError } from '@/api/client';
+import { GOOGLE_COLORS, isHexColor, MSG_INVALID_COLOR } from '@/api/colors';
+import type { Category } from '@/api/types';
+import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
+import Button from '@/components/m3/Button.vue';
+import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
+import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import TextField from '@/components/m3/TextField.vue';
+import { useSettingsStore } from '@/stores/settings';
+
+const props = defineProps<{ category?: Category }>();
+const emit = defineEmits<{ close: [] }>();
+const settings = useSettingsStore();
+
+const name = ref(props.category?.name ?? '');
+const color = ref(props.category?.color ?? GOOGLE_COLORS[9].hex);
+const icon = ref(props.category?.icon ?? '');
+const error = ref('');
+const saving = ref(false);
+const confirming = ref(false);
+const swatches = GOOGLE_COLORS.map((c) => ({ value: c.hex, name: c.name, color: c.hex }));
+
+async function run(fn: () => Promise<unknown>) {
+  saving.value = true;
+  error.value = '';
+  try {
+    await fn();
+    emit('close');
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.userMessage : 'Something went wrong';
+  } finally {
+    saving.value = false;
+  }
+}
+function save() {
+  if (!name.value.trim()) { error.value = 'Name is required'; return; }
+  if (!isHexColor(color.value)) { error.value = MSG_INVALID_COLOR; return; }
+  const body = { name: name.value.trim(), color: color.value.trim().toLowerCase(), icon: icon.value.trim() || null };
+  void run(() => (props.category ? settings.updateCategory(props.category.id, body) : settings.addCategory(body)));
+}
+</script>
+
+<template>
+  <AdaptiveSheet :open="true" :label="category ? 'Edit category' : 'New category'" testid="category-dialog" @close="emit('close')">
+    <form class="f" novalidate @submit.prevent="save">
+      <h2 class="t">{{ category ? 'Edit category' : 'New category' }}</h2>
+      <TextField v-model="name" label="Name" data-testid="category-name" maxlength="40" autocomplete="off" />
+      <ColorSwatchPicker :swatches="swatches" :model-value="color.toLowerCase()" label="Color" @update:model-value="color = $event" />
+      <TextField v-model="color" label="Color (hex)" data-testid="category-color" autocomplete="off" autocapitalize="off" />
+      <TextField v-model="icon" label="Icon (emoji)" data-testid="category-icon" autocomplete="off" />
+      <p v-if="error" class="err" role="alert" data-testid="category-error">{{ error }}</p>
+      <div class="actions">
+        <Button v-if="category" variant="text" class="del" data-testid="category-delete" @click="confirming = true">Delete</Button>
+        <span class="sp" />
+        <Button variant="text" data-testid="category-cancel" @click="emit('close')">Cancel</Button>
+        <Button type="submit" :disabled="saving" data-testid="category-save">Save</Button>
+      </div>
+    </form>
+    <ConfirmDialog
+      :open="confirming" :title="`Delete “${category?.name}”?`" message="Task lists in this category keep their items but lose the category color."
+      @cancel="confirming = false" @ok="confirming = false; run(() => settings.deleteCategory(category!.id))"
+    />
+  </AdaptiveSheet>
+</template>
+
+<style scoped>
+.f { display: flex; flex-direction: column; gap: 12px; }
+.t { margin: 8px 0 0; font: var(--md-sys-typescale-title-large); }
+.err { margin: 0; color: var(--md-sys-color-error); font: var(--md-sys-typescale-body-medium); }
+.actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.sp { flex: 1; }
+.del { color: var(--md-sys-color-error); }
+</style>

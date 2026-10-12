@@ -1,0 +1,24 @@
+<script setup lang="ts">
+import IconDownload from '~icons/material-symbols/download';
+import IconShare from '~icons/material-symbols/ios-share';
+import Button from '@/components/m3/Button.vue';
+
+import { canInstall, dismissIosHint, promptInstall, showIosHint } from '@/pwa/install';
+defineProps<{ part: 'button' | 'hint' }>();
+</script>
+
+<template>
+  <Button v-if="part === 'button' && canInstall" variant="tonal" data-testid="install-app-button" @click="promptInstall"><template #icon><IconDownload /></template>Install app</Button>
+  <div v-if="part === 'hint' && showIosHint" class="hint" role="note" data-testid="ios-install-hint">
+    <IconShare class="ico" aria-hidden="true" />
+    <span>Tap Share, then Add to Home Screen</span>
+    <button type="button" class="x" aria-label="Dismiss" data-testid="ios-install-hint-dismiss" @click="dismissIosHint">✕</button>
+  </div>
+</template>
+
+<style scoped>
+.hint { display: flex; align-items: center; gap: 12px; margin: 8px 12px; padding: 4px 4px 4px 16px; min-height: 52px; border-radius: var(--md-sys-shape-corner-large); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); font: var(--md-sys-typescale-body-medium); }
+.hint span { flex: 1; }
+.ico { width: 22px; height: 22px; }
+.x { width: 44px; height: 44px; border-radius: 50%; }
+</style>

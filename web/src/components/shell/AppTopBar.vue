@@ -1,0 +1,91 @@
+<script setup lang="ts">
+import { computed, defineAsyncComponent } from 'vue';
+import { useRouter } from 'vue-router';
+import IconPrev from '~icons/material-symbols/chevron-left';
+import IconNext from '~icons/material-symbols/chevron-right';
+import IconExpand from '~icons/material-symbols/expand-more';
+import IconFilter from '~icons/material-symbols/filter-list';
+import IconSettings from '~icons/material-symbols/settings-outline';
+import Button from '@/components/m3/Button.vue';
+import IconButton from '@/components/m3/IconButton.vue';
+import TopAppBar from '@/components/m3/TopAppBar.vue';
+import { useFilters } from '@/composables/useFilters';
+import { useNav } from '@/composables/useNav';
+import { topBarWidgets } from '@/extensions/registry';
+import { useCalendarStore } from '@/stores/calendar';
+import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
+import InstallPrompts from './InstallPrompts.vue';
+import MonthPicker from './MonthPicker.vue';
+import SyncStatus from './SyncStatus.vue';
+import ScenePlaceholder from './TopBarScenePlaceholder.vue';
+
+// Use features/motivation/TopBarScene.vue when it exists (glob is resolved at build time), else the placeholder.
+const sceneModules = import.meta.glob('/src/features/motivation/TopBarScene.vue');
+const loader = sceneModules['/src/features/motivation/TopBarScene.vue'];
+const Scene = loader ? defineAsyncComponent(loader as () => Promise<{ default: object }>) : ScenePlaceholder;
+
+const cal = useCalendarStore();
+const ui = useUiStore();
+const settings = useSettingsStore();
+const nav = useNav();
+const router = useRouter();
+const filters = useFilters();
+const filterOpen = computed(() => ui.filtersShown || filters.active.value);
+
+function toggleFilters() {
+  if (filters.active.value) return; // always shown while a filter is active
+  ui.filtersShown = !ui.filtersShown;
+}
+</script>
+
+<template>
+  <TopAppBar>
+    <template #background><component :is="Scene" :scene="settings.effectiveScene" /></template>
+    <div class="grid">
+      <button class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
+        <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
+      </button>
+      <div class="nav">
+        <IconButton label="Previous period" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
+        <Button variant="tonal" class="today" data-testid="nav-today" @click="nav.today()">Today</Button>
+        <IconButton label="Next period" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
+      </div>
+      <div class="widgets">
+        <slot name="leading-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" /></slot>
+        <slot name="trailing-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.trailing" :key="'t' + i" /></slot>
+        <SyncStatus />
+        <InstallPrompts part="button" />
+      </div>
+      <div class="actions">
+        <span class="fwrap">
+          <IconButton label="Filters" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
+          <b v-if="filters.count.value" class="badge" aria-hidden="true">{{ filters.count.value }}</b>
+        </span>
+        <IconButton label="Settings" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
+      </div>
+    </div>
+    <MonthPicker v-if="ui.pickerOpen" />
+  </TopAppBar>
+</template>
+
+<style scoped>
+.grid {
+  display: grid; align-items: center; column-gap: 4px; padding: 2px 4px 2px 8px;
+  grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title actions' 'nav widgets';
+}
+.title { grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
+.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
+.chev.up { transform: rotate(180deg); }
+.nav { grid-area: nav; display: flex; align-items: center; gap: 2px; }
+.today { padding: 0 16px; }
+.widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
+.actions { grid-area: actions; display: flex; }
+.fwrap { position: relative; display: inline-flex; }
+.badge { position: absolute; top: 4px; right: 2px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font: var(--md-sys-typescale-label-small); display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+@media (min-width: 768px) {
+  .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
+  .title { font-size: 24px; }
+}
+</style>
