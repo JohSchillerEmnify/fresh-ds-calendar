@@ -813,6 +813,10 @@ the middle of the clock lists {string}
 the clock fills the available space
 the arc of {string} is labelled {string}
 the approach bar is on
+the approaching track is off
+I set the approaching window to {int} hours in the settings
+I switch off the Approaching card in the settings
+I do not see the Approaching card
 the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
 I turn on the approach bar and open the week view for {date}
@@ -820,6 +824,7 @@ the approach bar shows {string}, {string} and {string} in this order
 the approach bar shows {string} at its end
 the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
+the approach bar shows {int} entries
 on the approach bar {string} is {int} times as long as {string}
 the title of {string} is shown next to its block
 on the approach bar {string} starts at now and shows {int} minutes
@@ -951,3 +956,12 @@ Google shows the calendar {string}
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
+- "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.
+  "shown next to its block": `data-title-outside="true"` and the title's left edge ≥ the block's right edge.
+- "the now card stayed in place": the `now-card` element present before the previous step is the same DOM node
+  afterwards (a marker property set on it survives) and no enter animation ran on it (`data-entered` unchanged).
+- "starts at now and shows N minutes": the block's left edge is at `approach-now` (± 2 px) and its width equals N
+  minutes on the track scale (± 10 %); `data-running="true"` on the item.
+- Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
+  (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
+  for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.

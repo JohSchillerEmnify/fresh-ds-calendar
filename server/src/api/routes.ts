@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { APPROACH_WINDOWS, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
+import { isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -106,14 +106,13 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'tasksCalendarVisible'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.approachWindowHours !== undefined) {
-      const h = APPROACH_WINDOWS.find((w) => w === b.approachWindowHours);
-      if (h === undefined) throw validation('approachWindowHours must be 3, 6 or 12', 'approachWindowHours');
-      patch.approachWindowHours = h;
+      if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
+      patch.approachWindowHours = b.approachWindowHours;
     }
     if (b.supportCat !== undefined) {
       if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');

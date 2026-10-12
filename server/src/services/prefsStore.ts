@@ -16,13 +16,21 @@ export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
 export type SupportCat = 'off' | 'sometimes' | 'always';
 export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'always'];
 
-/** Window lengths the approach bar offers (ARCHITECTURE "Labs"). */
-export const APPROACH_WINDOWS = [3, 6, 12] as const;
-export type ApproachWindowHours = (typeof APPROACH_WINDOWS)[number];
+/** How far ahead the approach bar reaches, in whole hours (ARCHITECTURE "Labs"): 3, 6, 12 or any custom value. */
+export const APPROACH_WINDOW_MIN = 1;
+export const APPROACH_WINDOW_MAX = 24;
+export type ApproachWindowHours = number;
 
-/** The per-person preferences returned by `GET /api/prefs` (Labs switches, tasks calendar visibility, support cat). */
+/** Whether `v` is an allowed approach window length (a whole number of hours, 1–24). */
+export function isApproachWindow(v: unknown): v is ApproachWindowHours {
+  return Number.isInteger(v) && (v as number) >= APPROACH_WINDOW_MIN && (v as number) <= APPROACH_WINDOW_MAX;
+}
+
+/** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat). */
 export interface Prefs {
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
+  /** The Approaching card above the calendar views (ARCHITECTURE "Approaching card"). */
+  approachingCard: boolean;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
   tasksCalendarVisible: boolean;
   supportCat: SupportCat;
@@ -50,8 +58,9 @@ export class PrefsStore {
       ...p,
       hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
       labs: p?.labs === true,
-      approachBar: p?.approachBar === true,
-      approachWindowHours: APPROACH_WINDOWS.find((h) => h === p?.approachWindowHours) ?? 3,
+      approachBar: p?.approachBar !== false,
+      approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
+      approachingCard: p?.approachingCard !== false,
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
@@ -91,8 +100,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, tasksCalendarVisible, supportCat } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, tasksCalendarVisible, supportCat };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat };
   }
 
   /**

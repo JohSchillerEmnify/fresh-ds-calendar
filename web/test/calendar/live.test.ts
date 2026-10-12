@@ -9,6 +9,7 @@ import { enableTimerCounting } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { config, freshPinia, mockFetch, settingsFixture } from '../helpers';
@@ -47,8 +48,25 @@ describe('now marker', () => {
 });
 
 describe('now card', () => {
+  it('is the always-open Approaching card with the approach track on by default', async () => {
+    const { pinia } = await boot('09:20', false);
+    expect(usePrefsStore()).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3 });
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
+    const w = mount(NowCard, { global: { plugins: [pinia, router] } });
+    const card = w.get('[data-testid="now-card"]');
+    expect(card.attributes('aria-label')).toBe('Approaching');
+    expect(card.attributes('role')).toBeUndefined();
+    expect(card.attributes('data-collapsed')).toBeUndefined();
+    expect(w.find('[data-testid="approach-bar"]').exists()).toBe(true);
+    expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual([]);
+    // tapping the card no longer collapses it
+    await card.trigger('click');
+    expect(w.find('[data-testid="approach-bar"]').exists()).toBe(true);
+  });
+
   it('counts down the current event and shows next, also while another period is shown', async () => {
     const { pinia } = await boot('09:20', false);
+    usePrefsStore().approachBar = false;
     const cal = useCalendarStore();
     cal.view = 'day';
     cal.anchor = at('00:00');
@@ -81,6 +99,7 @@ describe('now card', () => {
       }),
     });
     await useClockStore().load();
+    usePrefsStore().approachBar = false;
     const items = useItemsStore();
     useCalendarStore().setFromRoute('week', new Date(2026, 9, 19));
     await flushPromises();

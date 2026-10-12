@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/client';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { apiError, config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
@@ -229,6 +230,26 @@ describe('items store', () => {
     const s = useItemsStore();
     await Promise.all([s.setVisible('2026-10-12', '2026-10-19'), s.setVisible('2026-10-19', '2026-10-26')]);
     expect(s.visible!.from).toBe('2026-10-19');
+  });
+});
+
+describe('prefs store', () => {
+  beforeEach(() => freshPinia());
+  it('starts with the Approaching card and its track on (3 h), applies loaded prefs and rolls back a refused change', async () => {
+    let fail = false;
+    mockFetch({
+      'GET /api/prefs': () => ({ labs: false, approachBar: false, approachWindowHours: 5, approachingCard: false, tasksCalendarVisible: false }),
+      'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}),
+    });
+    const p = usePrefsStore();
+    expect(p).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3 });
+    await p.load();
+    expect(p).toMatchObject({ approachBar: false, approachingCard: false, approachWindowHours: 5 });
+    await p.set({ approachingCard: true, approachWindowHours: 24 });
+    expect(p).toMatchObject({ approachingCard: true, approachWindowHours: 24 });
+    fail = true;
+    await expect(p.set({ approachingCard: false })).rejects.toThrow();
+    expect(p.approachingCard).toBe(true);
   });
 });
 

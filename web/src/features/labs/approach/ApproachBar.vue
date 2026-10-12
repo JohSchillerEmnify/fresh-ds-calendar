@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Approach bar (Labs): the now card's "Next" line as an absolute time track. Now at the left end, now + the chosen
+ * Approach bar: the Approaching card's "Next" line as an absolute time track. Now at the left end, now + the chosen
  * window at the right end, HH:MM ticks thinned to fit, the next timed entries of today as blocks as long as their
  * duration at their start time (the entry's colour and skin like its card, tap opens; only the title, no time,
  * estimate or count), the title inside when it fits, else right after the block; an entry beyond the window waits at the end with "in 5 h".
@@ -42,10 +42,9 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
 </script>
 
 <template>
-  <!-- .stop: a tap or key on a chip opens the entry, it does not collapse the now card -->
   <div
     ref="el" class="approach" data-testid="approach-bar" role="group" aria-label="Next" :data-window-hours="windowMin / 60"
-    :style="{ height: `${TICK_PX + layout.rows * ROW_PX}px` }" @click.stop @keydown.enter.stop @keydown.space.stop
+    :style="{ height: `${TICK_PX + layout.rows * ROW_PX}px` }"
   >
     <span v-for="t in ticks" :key="t.min" class="tick" data-testid="approach-tick" :style="{ left: `${NOW_PX + t.x}px` }">{{ t.label }}</span>
     <span class="line" />
@@ -76,7 +75,9 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
 .tick { position: absolute; top: 0; transform: translateX(-50%); font-size: 10px; line-height: 12px; opacity: 0.7; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
 .line { position: absolute; left: 0; right: 0; top: 21px; height: 2px; border-radius: 1px; background: color-mix(in srgb, currentColor 30%, transparent); }
 .now { position: absolute; left: 0; top: 17px; width: 10px; height: 10px; border-radius: 50%; background: var(--md-sys-color-primary); z-index: 1; }
-.in { position: absolute; font-size: 11px; line-height: 20px; opacity: 0.85; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* like .title: the card colour behind "in 5 h" cuts a gap into the track line, so it never reads as struck through */
+.in { position: absolute; z-index: 1; padding: 0 4px; border-radius: 4px; background: var(--approach-bg, var(--md-sys-color-secondary-container));
+  font-size: 11px; line-height: 20px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .item { position: absolute; display: flex; align-items: center; gap: 4px; height: 18px; transition: left 300ms ease; }
 .block { flex: none; display: flex; align-items: center; box-sizing: border-box; height: 18px; min-width: 0; margin: 0; padding: 0 4px; overflow: hidden;
   font: inherit; font-size: 12px; font-weight: 500; line-height: 16px; text-align: left; cursor: pointer; transition: width 300ms ease; }

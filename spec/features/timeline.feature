@@ -32,6 +32,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
 
   Scenario Outline: The now marker shows the current time and moves live
     Given the time is 2026-10-12 09:20 and the clock is running
+    And the approaching track is off
     When I open the <view> view for 2026-10-12
     Then the now marker is positioned at 09:20
     And the now marker is in the column of 2026-10-12
@@ -66,12 +67,14 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
 
   Scenario: The Now card says how long until the next event
     Given the time is 2026-10-12 09:20 and the clock is running
+    And the approaching track is off
     When I open the day view for 2026-10-12
     Then the now card shows the line "Next: Dentist in 1 h 20 min"
     And the now card does not show a current event
 
   Scenario: The Now card counts down the current event with a progress bar
     Given the time is 2026-10-12 09:20 and the clock is running
+    And the approaching track is off
     When I open the day view for 2026-10-12
     And 95 minutes pass
     Then the now card shows the line "Dentist · 35 min left"
@@ -89,6 +92,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
 
   Scenario Outline: The Now card is shown in the month and year views of today too
     Given the time is 2026-10-12 09:20
+    And the approaching track is off
     And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
     When I open the <view> view for <period>
     Then the now card shows the line "Next: Dentist in 1 h 20 min"
@@ -100,12 +104,14 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
 
   Scenario: Switching views keeps the Now card in place
     Given the time is 2026-10-12 09:20
+    And the approaching track is off
     When I open the week view for 2026-10-12
     And I switch to the month view
     Then the now card stayed in place
 
   Scenario: The Now card stays when I look at another week
     Given the time is 2026-10-12 09:20
+    And the approaching track is off
     And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
     When I open the week view for 2026-10-19
     Then the now card shows the line "Next: Dentist in 1 h 20 min"
