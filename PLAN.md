@@ -22,6 +22,6 @@
    dimmed (not only the n/n indicator).
 4. Month view with tasks: show the individual tasks (item names) inside the day cell when space allows; show names
    fully when there is room (use container queries; phone month stays compact).
-5. New: range slider to choose how many days the calendar shows: 1,2,3,4,5,6,7 days, then 2,3,4 weeks (custom N-day view,
+5. SHELVED by owner 07:5x (focus on core): range slider to choose how many days the calendar shows: 1,2,3,4,5,6,7 days, then 2,3,4 weeks (custom N-day view,
    like Google's "custom view"). Implement as a view setting/segmented control + slider; week keeps Monday start;
    persist in settings (defaultView/rangeDays) and URL. Add spec scenarios (spec/features/range.feature + STEPS.md + ACs).
