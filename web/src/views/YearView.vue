@@ -22,7 +22,7 @@ const months = computed(() => Array.from({ length: 12 }, (_, m) => {
 }));
 
 watch(year, (y) => {
-  items.loadSummary(`${y}-01-01`, `${y + 1}-01-01`).then(() => { if (sync.error) sync.clearError(); }, (e) => sync.reportError(e));
+  items.loadSummary(`${y}-01-01`, `${y + 1}-01-01`).then(() => { if (sync.error) sync.clearError(); sync.markSynced(); }, (e) => sync.reportError(e));
 }, { immediate: true });
 
 const density = (date: string) => items.summary[date]?.density ?? 0;

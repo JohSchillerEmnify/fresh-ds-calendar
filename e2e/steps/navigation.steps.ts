@@ -111,7 +111,7 @@ Then('the week columns are {string}', async function (this: World, list: string)
   await expectJoined(this.page.getByTestId('week-header'), list);
 });
 
-const TODAY_HOLDERS = ['month-cell', 'week-header', 'day-header'];
+const TODAY_HOLDERS = ['month-cell', 'week-header', 'day-header', 'year-day'];
 const todaySelector = (date?: string) =>
   TODAY_HOLDERS.map((t) => `${tid(t)}[data-today="true"]${date ? attr('data-date', date) : ''}`).join(', ');
 
