@@ -8,7 +8,7 @@
 # Env: E2E_BASE_URL, E2E_SPEC_DIR (spec folder relative to e2e/), E2E_SKIP_BUILD=1, E2E_SKIP_INSTALL=1,
 #      E2E_SOFT_TEST_API=1 (diagnostics only: setup test-endpoint failures warn instead of fail),
 #      E2E_HOST_IP (address cal.mordor.local resolves to in smoke mode, default 192.168.1.38).
-# The HTML report lands in e2e/playwright-report, JSON results in e2e/test-results/results.json,
+# The HTML report lands in e2e/playwright-report, JSON results in e2e/results.json,
 # the server log in e2e/server.log.
 set -euo pipefail
 
