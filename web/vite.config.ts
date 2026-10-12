@@ -4,9 +4,15 @@ import vue from '@vitejs/plugin-vue';
 import Icons from 'unplugin-icons/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+/** Build version; must equal the server's APP_VERSION (default '0.1.0') for /api/config comparison. */
+const APP_VERSION = process.env.APP_VERSION ?? '0.1.0';
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
   plugins: [
     vue(),
+    // <html data-app-version> carries the build version (e2e reads it after a reload).
+    { name: 'app-version-attr', transformIndexHtml: (html: string) => html.replace('<html ', `<html data-app-version="${APP_VERSION}" `) },
     // Material Symbols as inline SVG components: `import IconAdd from '~icons/material-symbols/add'`.
     Icons({ compiler: 'vue3', scale: 1 }),
     VitePWA({

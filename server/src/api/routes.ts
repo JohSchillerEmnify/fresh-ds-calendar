@@ -48,7 +48,7 @@ export function configResponse(ctx: Ctx) {
     provider: ctx.provider.name,
     testMode: ctx.config.testMode,
     publicUrl: ctx.config.publicUrl,
-    version: VERSION,
+    version: ctx.overrides.version ?? VERSION,
   };
 }
 

@@ -859,4 +859,18 @@ the event {string} glows
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
   "Task list".
+## App updates
+
+```
+a new version of the app is deployed
+the app syncs
+I am told a new version is available
+I choose to reload
+the app runs the new version
+```
+
+- "deployed": `POST /api/__test/version { version }` makes the server report a new build version (TEST_MODE).
+- "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.
+- "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
+  `document.documentElement.dataset.appVersion` equals the deployed version.
 

@@ -20,8 +20,10 @@ fi
 # Data dir must be writable by the container's non-root `node` user (uid 1000).
 mkdir -p "$(dirname "$COMPOSE_FILE")/data"
 
-echo "==> docker compose up -d --build"
-docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate  # compose v2.3 sometimes keeps the old container
+APP_VERSION="$(git -C "$REPO" rev-parse --short HEAD)"
+echo "==> docker compose build (APP_VERSION=$APP_VERSION) + up -d"
+docker compose -f "$COMPOSE_FILE" build --build-arg "APP_VERSION=$APP_VERSION"
+docker compose -f "$COMPOSE_FILE" up -d --force-recreate  # compose v2.3 sometimes keeps the old container
 
 echo "==> waiting for http://$HOST/api/health"
 for i in $(seq 1 60); do

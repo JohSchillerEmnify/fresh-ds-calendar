@@ -671,6 +671,13 @@ bodies, sharing the prefilled date/time so switching keeps them. No create menu.
 Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
 softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
 the same corner scale so shapes look consistent.
+### New version notice (owner, 2026-10-12)
+
+The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
+`version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
+back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
+"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
+It never reloads by itself and never interrupts an open dialog.
 
 ## 8. Configuration (env)
 

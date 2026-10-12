@@ -4,7 +4,7 @@ import { ref } from 'vue';
 export interface SnackbarMessage {
   id: number;
   text: string;
-  action?: { label: string; run: () => void };
+  action?: { label: string; run: () => void; testid?: string };
   /** ms; 0 = stays until dismissed. */
   duration: number;
   testid?: string;
