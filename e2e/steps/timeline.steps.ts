@@ -106,6 +106,20 @@ Then('I do not see the now card', async function (this: World) {
   await expect(nowCard(this)).toHaveCount(0);
 });
 
+Then('the now card stayed in place', async function (this: World) {
+  await this.settled();
+  await expect(nowCard(this)).toBeVisible();
+  // The step cannot run before the previous one: the probe numbers every now-card node inserted since the page
+  // loaded, so "same node, no new enter animation" = only one node was ever inserted, it is the one shown, and it
+  // entered once.
+  const state = await nowCard(this).evaluate((el) => ({
+    inserts: (window as unknown as { __nowCardInserts?: number }).__nowCardInserts,
+    seq: (el as Element & { __nowCardSeq?: number }).__nowCardSeq,
+  }));
+  expect(state, 'now-card nodes inserted since load / sequence of the shown node').toEqual({ inserts: 1, seq: 1 });
+  await expect(nowCard(this)).toHaveAttribute('data-entered', '1');
+});
+
 const warning = (w: World) => w.page.getByTestId('transition-warning');
 
 Then('I see the transition warning {string}', async function (this: World, text: string) {

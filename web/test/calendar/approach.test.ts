@@ -23,11 +23,11 @@ describe('approach bar entries', () => {
   });
   it('leaves out what starts after the window', () => {
     expect(titles(8 * 60, 120)).toEqual(['Dentist', 'Groceries']);
-    expect(titles(9 * 60 + 30, 180)).toEqual(['Groceries', 'Gym', 'Lunch']);
-    expect(titles(9 * 60 + 30, 120)).toEqual(['Groceries', 'Gym']);
+    expect(titles(8 * 60, 60)).toEqual(['Dentist']);
   });
-  it('leaves out the current event and what has started', () => {
-    expect(titles(9 * 60, 240)).toEqual(['Groceries', 'Gym', 'Lunch']);
+  it('keeps a running entry, counting it towards the three, and drops it when it ends', () => {
+    expect(titles(9 * 60 + 15, 240)).toEqual(['Dentist', 'Groceries', 'Gym']);
+    expect(titles(10 * 60, 240)).toEqual(['Groceries', 'Gym', 'Lunch']);
   });
   it('with nothing in the window the next entry of today waits at the end', () => {
     const r = approachEntries(segs, 5 * 60, 180);
@@ -75,6 +75,13 @@ describe('approach bar layout', () => {
   const at = (nowMin: number, track = 360, windowMin = 180, entries = segs) =>
     approachLayout(approachEntries(entries, nowMin, windowMin).entries, nowMin, windowMin, track, sizes());
 
+  it('starts a running entry at now with only the time it has left, so it slides out to the left', () => {
+    const l = at(9 * 60 + 15, 360, 180, segsOf([dentist], D));
+    expect(l.chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 90, true]]); // 45 min left at 2 px/min
+    const later = at(9 * 60 + 45, 360, 180, segsOf([dentist], D));
+    expect(later.chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 30, true]]);
+    expect(at(10 * 60, 360, 180, segsOf([dentist], D)).chips).toEqual([]);
+  });
   it('places each block at its start time on an absolute window, now at 0', () => {
     const l = at(8 * 60, 720, 360);
     expect(l.chips.map((c) => c.minutes)).toEqual([60, 120, 180]);

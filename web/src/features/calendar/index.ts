@@ -3,7 +3,7 @@
  * Registered once from extensions/builtin.ts. Other features can reuse `useCalendarDrag` (./dnd) and
  * `registerNowCardLine` (./nowLines).
  */
-import { registerDialog, registerGridLayer, registerItemRenderer, registerViewHeader } from '@/extensions/registry';
+import { registerDialog, registerGridLayer, registerCalendarHeader, registerItemRenderer } from '@/extensions/registry';
 import DropIndicator from './DropIndicator.vue';
 import EventItem from './EventItem.vue';
 import NowCard from './NowCard.vue';
@@ -23,7 +23,5 @@ export function registerCalendarFeature(): void {
   registerItemRenderer('event', EventItem);
   registerGridLayer(DropIndicator);
   registerGridLayer(NowMarker);
-  registerViewHeader('time', NowCard);
-  registerViewHeader('month', NowCard);
-  registerViewHeader('year', NowCard);
+  registerCalendarHeader(NowCard);
 }

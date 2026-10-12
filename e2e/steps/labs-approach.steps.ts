@@ -94,3 +94,28 @@ Then('the title of {string} is shown next to its block', async function (this: W
     return block && text ? text.x - (block.x + block.width) : -1;
   }).toBeGreaterThanOrEqual(0);
 });
+
+/** Track scale in px per minute, from the first and last HH:MM tick (centred on their time). */
+async function pxPerMinute(w: World): Promise<number> {
+  const ticks = await w.page.getByTestId('now-card').getByTestId('approach-tick').evaluateAll((els) =>
+    els.map((e) => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, label: e.textContent?.trim() ?? '' }; }));
+  if (ticks.length < 2) return NaN;
+  const min = (l: string) => Number(l.slice(0, 2)) * 60 + Number(l.slice(3, 5));
+  const a = ticks[0], b = ticks[ticks.length - 1];
+  const span = (((min(b.label) - min(a.label)) % 1440) + 1440) % 1440;
+  return span > 0 ? (b.x - a.x) / span : NaN;
+}
+
+Then('on the approach bar {string} starts at now and shows {int} minutes', async function (this: World, title: string, minutes: number) {
+  // the server clock may have moved: make the app re-read it (a focus triggers a sync with config)
+  await this.page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(item(this, title)).toHaveAttribute('data-running', 'true');
+  // left edge of the block at the now dot (± 2 px; blocks start just right of the dot)
+  await expect.poll(async () => {
+    const now = await this.page.getByTestId('now-card').getByTestId('approach-now').boundingBox();
+    const block = await item(this, title).getByTestId('approach-block').boundingBox();
+    return now && block ? Math.abs(block.x - (now.x + now.width)) : NaN;
+  }).toBeLessThanOrEqual(2);
+  // width = N minutes on the track scale (± 10 %)
+  await expect.poll(async () => Math.abs((await blockWidth(this, title)) / ((await pxPerMinute(this)) * minutes) - 1)).toBeLessThanOrEqual(0.1);
+});

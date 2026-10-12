@@ -12,14 +12,14 @@ export interface ApproachEntries { entries: Segment[]; atEnd: boolean }
 
 /**
  * Up to three timed entries of today (events and task lists with a time) starting within `windowMin` after now, by
- * start. Only entries starting after now, so the current event is never among them. When none is within the window,
- * the next timed entry of today is returned with `atEnd` (it waits at the right end of the track).
+ * start. Entries already running stay (owner, 2026-10-13: they slide out to the left) and count towards the three.
+ * When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
+ * of the track).
  */
 export function approachEntries(daySegments: Segment[], nowMin: number, windowMin: number): ApproachEntries {
-  const ahead = daySegments
-    .filter((s) => !s.allDay && s.startTime !== null && s.startMin > nowMin)
-    .sort((a, b) => a.startMin - b.startMin);
-  const within = ahead.filter((s) => s.startMin <= nowMin + windowMin).slice(0, APPROACH_COUNT);
+  const timed = daySegments.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin);
+  const ahead = timed.filter((s) => s.startMin > nowMin);
+  const within = timed.filter((s) => s.endMin > nowMin && s.startMin <= nowMin + windowMin).slice(0, APPROACH_COUNT);
   if (within.length || !ahead.length) return { entries: within, atEnd: false };
   return { entries: [ahead[0]], atEnd: true };
 }
@@ -48,6 +48,8 @@ export function approachTicks(nowMin: number, windowMin: number, trackPx: number
 export interface ApproachChip {
   segment: Segment;
   minutes: number;
+  /** Already started: the block starts at now and shows only the time left. */
+  running: boolean;
   /** Left edge of the block (now at 0). */
   x: number;
   /** Block width: the entry's duration on the track's scale. */
@@ -77,7 +79,7 @@ const chipEnd = (c: ApproachChip, gapPx: number) => c.x + c.width + (c.titleOuts
 
 /**
  * Block positions on a track `trackPx` wide spanning `windowMin`: a block's left edge is its start time (now at 0) and
- * its width is its duration on the same scale (at least `minBlockPx`, clipped at the track end). The title sits inside
+ * its width is its duration on the same scale (a running entry starts at now with the time it has left; at least `minBlockPx`, clipped at the track end). The title sits inside
  * when it fits, else right after the block (shortened to the room left on the track). The waiting entry (`atEnd`) is a
  * chip at the right end, at most a quarter of the track wide, title inside. Overlapping chips (block and outside title)
  * take a second row; with both rows taken a chip goes to the row that frees up first, the title of the chip before it
@@ -98,7 +100,8 @@ export function approachLayout(
       x = track - width;
     } else {
       const raw = Math.min(Math.max(0, minutes), windowMin) * pxPerMin;
-      const duration = Math.max(0, segment.endMin - segment.startMin) * pxPerMin;
+      // a running entry shows only the time it has left
+      const duration = Math.max(0, segment.endMin - Math.max(segment.startMin, nowMin)) * pxPerMin;
       width = Math.min(Math.max(sizes.minBlockPx, Math.min(duration, track - raw)), track);
       x = Math.max(0, Math.min(raw, track - width));
       const need = sizes.titlePx(segment);
@@ -108,7 +111,7 @@ export function approachLayout(
         titleWidth = Math.min(need, room);
       }
     }
-    const chip: ApproachChip = { segment, minutes, x, width, row: 0, faded: false, titleOutside, titleWidth };
+    const chip: ApproachChip = { segment, minutes, running: !atEnd && minutes <= 0, x, width, row: 0, faded: false, titleOutside, titleWidth };
     // first row whose last chip ends before this one starts, else a new row, else the row that frees up first
     let row = last.findIndex((c) => chipEnd(c, gapPx) <= x);
     if (row < 0 && last.length < MAX_ROWS) row = last.length;
