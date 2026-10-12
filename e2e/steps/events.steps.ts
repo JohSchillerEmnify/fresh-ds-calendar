@@ -84,6 +84,18 @@ Then('the events {string} and {string} do not overlap', async function (this: Wo
   expect(intersect, `boxes ${JSON.stringify(ba)} and ${JSON.stringify(bb)} intersect`).toBe(false);
 });
 
+Then('the title of the event {string} is not covered', async function (this: World, title: string) {
+  const t = this.eventChip(title).getByTestId('event-chip-title');
+  await expect(t).toBeVisible();
+  await t.scrollIntoViewIfNeeded();
+  // Whatever is on top at the middle of the title must belong to this event's chip.
+  await expect.poll(() => t.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!top && el.closest('[data-testid="event-chip"]')!.contains(top);
+  })).toBe(true);
+});
+
 Then('the events {string} and {string} are side by side', async function (this: World, a: string, b: string) {
   const [ba, bb] = [await box(this.eventChip(a)), await box(this.eventChip(b))];
   const within = (y: number, r: typeof ba) => y >= r.y && y <= r.y + r.height;

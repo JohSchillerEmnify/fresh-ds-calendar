@@ -81,6 +81,12 @@ describe('packing and proportions', () => {
     const back = packColumns(segsOf([a, c], D));
     expect(back.map((p) => [p.col, p.cols, p.span])).toEqual([[0, 1, 1], [0, 1, 1]]);
   });
+  it('a block drawn taller than its duration counts with its drawn height (A-E5)', () => {
+    // "a" lasts 15 min but is drawn an hour tall (like a task list with open items on a phone), "c" starts after it.
+    const a = ev('a', t(D, '20:00'), t(D, '20:15')), c = ev('c', t(D, '20:15'), t(D, '21:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, c], D), (s) => (s.item.id === 'a' ? 60 : 0)).map((x) => [x.seg.item.id, x]));
+    expect(p.c.level > p.a.level || p.c.col !== p.a.col).toBe(true);
+  });
   it('a block widens into free columns to its right', () => {
     const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:00'), t(D, '09:10')), c = ev('c', t(D, '09:10'), t(D, '12:00'));
     const placed = packColumns(segsOf([a, b, c], D));
