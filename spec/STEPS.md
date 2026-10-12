@@ -637,6 +637,14 @@ I release the event without moving it
 the event {string} is lifted
 the event {string} is not lifted
 a haptic tick was requested
+the event {string} shows resize handles in the day view for {date}
+the event {string} shows resize handles in the week view for {date}
+the task list {string} shows resize handles in the day view for {date}
+I drag the bottom handle of {string} down by {int} minutes
+I drag the bottom handle of {string} up by {int} minutes
+I drag the top handle of {string} up by {int} minutes
+the event {string} shows resize handles
+the event {string} shows no resize handles
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
@@ -648,6 +656,11 @@ a haptic tick was requested
   moving; "release without moving" = mouse up / touch end.
 - "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
 - "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
+- "X shows resize handles in the day/week view for D" (Given): opens that view, picks X up and releases it without
+  moving, then checks the handles are shown. "shows resize handles" = both `resize-handle-top` and
+  `resize-handle-bottom` of X are visible; "shows no resize handles" = neither is.
+- "I drag the top/bottom handle of X up/down by N minutes": press on the handle centre (mouse; touch without the
+  long press) and move N minutes of grid height in 10 steps, release; then wait for the save as after a drop.
 
 ## Streak and plant (`@streak`, `@plant`)
 

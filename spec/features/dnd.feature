@@ -4,6 +4,8 @@ Feature: Drag and drop to reschedule
   15-minute slots) or to another day (month view). Touch: long-press to pick up (with a haptic tick where
   the device supports it); mouse: press and drag. The card lifts, follows with a spring and settles on drop.
   The move is saved to Google at once; if saving fails the card springs back and the error banner shows.
+  Picking up a timed entry and releasing it without moving shows resize handles on its top and bottom edge
+  (day and week views); dragging a handle changes when it starts or ends.
   The edit dialog stays available as an accessible alternative.
 
   Background:
@@ -66,15 +68,6 @@ Feature: Drag and drop to reschedule
     And I see the event "Dentist" on 2026-10-14
     And the event "Dentist" is positioned from 09:00 to 10:00
 
-  Scenario: Picking up lifts the card and releasing without moving puts it back
-    When I open the day view for 2026-10-14
-    And I pick up the event "Dentist"
-    Then the event "Dentist" is lifted
-    When I release the event without moving it
-    Then the event "Dentist" is not lifted
-    And the event "Dentist" is positioned from 09:00 to 10:00
-    And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
-
   @mobile
   Scenario: Long-press on a phone picks up with a haptic tick, a short tap still opens
     Given I am using a phone
@@ -93,3 +86,66 @@ Feature: Drag and drop to reschedule
     And I drag the event "Dentist" to 2026-10-16 at 14:00
     Then the URL path is "/week/2026-10-12"
     And I see the event "Dentist" on "Friday"
+
+  Rule: Releasing a timed entry without moving it shows resize handles
+
+    Scenario: Releasing a picked-up event without moving shows resize handles
+      When I open the day view for 2026-10-14
+      And I pick up the event "Dentist"
+      And I release the event without moving it
+      Then the event "Dentist" is not lifted
+      And the event "Dentist" shows resize handles
+      And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+
+    Scenario: Dragging the bottom handle changes when the event ends
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      When I drag the bottom handle of "Dentist" down by 52 minutes
+      Then the event "Dentist" is positioned from 09:00 to 11:00
+      And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 11:00
+
+    Scenario: Dragging the top handle changes when the event starts
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      When I drag the top handle of "Dentist" up by 30 minutes
+      Then the event "Dentist" is positioned from 08:30 to 10:00
+      And Google contains an event "Dentist" on 2026-10-14 from 08:30 to 10:00
+
+    Scenario: An event cannot be resized shorter than 15 minutes
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      When I drag the bottom handle of "Dentist" up by 90 minutes
+      Then the event "Dentist" is positioned from 09:00 to 09:15
+      And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 09:15
+
+    Scenario: A failed resize springs the event back
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      And Google becomes unavailable
+      When I drag the bottom handle of "Dentist" down by 60 minutes
+      Then I see the sync error banner
+      And the event "Dentist" is positioned from 09:00 to 10:00
+
+    Scenario: Tapping elsewhere hides the resize handles
+      Given the event "Dentist" shows resize handles in the day view for 2026-10-14
+      When I click the time slot 15:00 on 2026-10-14
+      Then the event "Dentist" shows no resize handles
+      And the event dialog is closed
+
+    Scenario: Resizing a timed task list changes its estimated duration
+      Given the calendar contains a task list "Packing" on 2026-10-15 at 18:00 for 30 minutes with items:
+        | item     | done |
+        | Passport | no   |
+      And the task list "Packing" shows resize handles in the day view for 2026-10-15
+      When I drag the bottom handle of "Packing" down by 30 minutes
+      Then the Google event for the task list "Packing" is a timed event on 2026-10-15 from 18:00 to 19:00
+
+    @mobile
+    Scenario: On a phone, resizing in the week view does not swipe to the next week
+      Given I am using a phone
+      And the event "Dentist" shows resize handles in the week view for 2026-10-12
+      When I drag the bottom handle of "Dentist" down by 60 minutes
+      Then the URL path is "/week/2026-10-12"
+      And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 11:00
+
+    Scenario: Entries in the month view show no resize handles
+      When I open the month view for 2026-10
+      And I pick up the event "Dentist"
+      And I release the event without moving it
+      Then the event "Dentist" shows no resize handles
