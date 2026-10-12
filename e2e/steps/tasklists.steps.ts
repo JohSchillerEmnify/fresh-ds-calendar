@@ -251,3 +251,22 @@ When('I edit the task list details', async function (this: World) {
 When('I delete the task list', async function (this: World) {
   await this.expanded.getByTestId('tasklist-delete').click();
 });
+
+const cardOf = (w: World, title: string) => w.page.getByTestId('tasklist-card').filter({ has: w.page.getByTestId('tasklist-card-title').getByText(title, { exact: true }) }).first();
+
+Then('the items of the task list {string} fade out towards the bottom', async function (this: World, title: string) {
+  const items = cardOf(this, title).getByTestId('tasklist-card-items');
+  await expect.poll(() => items.evaluate((el) => { const c = getComputedStyle(el); return c.maskImage !== 'none' ? c.maskImage : c.webkitMaskImage; })).toContain('linear-gradient');
+  // at least one visible item reaches into the faded band (the bottom 14 px)
+  const reaches = await items.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return [...el.querySelectorAll('[data-testid=tasklist-card-item]')].some((i) => { const r = i.getBoundingClientRect(); return r.height > 0 && r.bottom > box.bottom - 14; });
+  });
+  expect(reaches).toBe(true);
+});
+
+Then('the task list {string} shows no overflow count', async function (this: World, title: string) {
+  const card = cardOf(this, title);
+  await expect(card.getByTestId('tasklist-card-more')).toHaveCount(0);
+  expect(await card.innerText()).not.toMatch(/\+\d|\bmore\b/);
+});

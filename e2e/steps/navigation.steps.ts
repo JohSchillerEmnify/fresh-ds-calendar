@@ -85,10 +85,6 @@ When('I tap the day {date} in the month view', async function (this: World, date
   else await cell.getByTestId('month-cell-day-number').click(); // desktop: a cell body does not open the day (A-E2)
 });
 
-When('I click the overflow link on {date}', async function (this: World, date: string) {
-  await this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-more').click();
-});
-
 Then('the {view} view is shown', async function (this: World, view: View) {
   await expect(this.page.getByTestId(`${view}-view`)).toBeVisible();
 });
@@ -144,7 +140,22 @@ Then('no day is highlighted as today', async function (this: World) {
   await expect(this.page.locator(todaySelector())).toHaveCount(0);
 });
 
-Then('the overflow link on {date} reads {string}', async function (this: World, date: string, text: string) {
-  await expect(this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-more')).toHaveText(text);
+/** Computed mask of an element, `none` when absent (the WebKit-prefixed property counts too). */
+const maskOf = (el: Element) => { const c = getComputedStyle(el); return c.maskImage && c.maskImage !== 'none' ? c.maskImage : c.webkitMaskImage; };
+
+Then('the entries on {date} fade out towards the bottom of the month cell', async function (this: World, date: string) {
+  const box = this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-entries');
+  await expect.poll(() => box.evaluate(maskOf)).toContain('linear-gradient');
+  // the last entry is cut off or at least reaches into the faded band (the bottom 18 px)
+  const reaches = await box.evaluate((el) => {
+    const last = el.lastElementChild!.getBoundingClientRect();
+    return last.bottom > el.getBoundingClientRect().bottom - 18;
+  });
+  expect(reaches).toBe(true);
 });
 
+Then('the month cell of {date} shows no overflow count', async function (this: World, date: string) {
+  const cell = this.byTestId('month-cell', attr('data-date', date));
+  await expect(cell.getByTestId('month-cell-more')).toHaveCount(0);
+  expect(await cell.innerText()).not.toMatch(/\+\d|\bmore\b/);
+});

@@ -170,7 +170,7 @@ describe('year view', () => {
 
 describe('month, week and day views', () => {
   const items = [ev('Dentist', '2026-10-14'), ev('B', '2026-10-14', '10'), ev('C', '2026-10-14', '11'), ev('D', '2026-10-14', '12')];
-  it('month grid: Monday first, outside days, today, +N overflow, chips', async () => {
+  it('month grid: Monday first, outside days, today, chips', async () => {
     const { w } = await mountAt('/month/2026-10', {}, items);
     await wait(() => expect(w.find(tid('event-chip')).exists()).toBe(true));
     expect(w.findAll(tid('month-weekday-header')).map((x) => x.text())).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
@@ -178,8 +178,9 @@ describe('month, week and day views', () => {
     expect(w.get('[data-testid="month-cell"][data-date="2026-09-30"]').attributes('data-outside-month')).toBe('true');
     expect(w.findAll('[data-testid="month-cell"][data-today="true"]')).toHaveLength(1);
     const cell = w.get('[data-testid="month-cell"][data-date="2026-10-14"]');
-    expect(cell.findAll(tid('event-chip'))).toHaveLength(2); // phone layout: 2 chips
-    expect(cell.get(tid('month-cell-more')).text()).toBe('+2');
+    expect(cell.findAll(tid('event-chip'))).toHaveLength(4); // every entry is rendered, the cell clips and fades what does not fit
+    expect(cell.find(tid('month-cell-more')).exists()).toBe(false);
+    expect(cell.text()).not.toMatch(/\+\d/);
   });
   it('tapping a cell on a phone opens the day', async () => {
     const { w, router } = await mountAt('/month/2026-10');

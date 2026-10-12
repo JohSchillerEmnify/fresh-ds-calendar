@@ -21,20 +21,20 @@ describe('fitItems (line budget)', () => {
   it('shows everything when there is room', () => {
     expect(fitItems({ ...g, count: 3, height: 80 })).toEqual({ shown: 3, more: 0, inline: false });
   });
-  it('shows what fits plus a "+k" line', () => {
-    expect(fitItems({ ...g, count: 6, height: 17 + 5 + 14 * 3 })).toEqual({ shown: 2, more: 4, inline: false });
+  it('shows what fits, the rest is cut off (faded, not counted)', () => {
+    expect(fitItems({ ...g, count: 6, height: 17 + 5 + 14 * 3 })).toEqual({ shown: 3, more: 3, inline: false });
   });
   it('never drops to the title only: at least minLines lines', () => {
     expect(fitItems({ ...g, count: 5, height: 20 })).toEqual({ shown: 1, more: 4, inline: false });
-    expect(fitItems({ ...g, count: 5, height: 20, minLines: 3 })).toEqual({ shown: 2, more: 3, inline: false });
+    expect(fitItems({ ...g, count: 5, height: 20, minLines: 3 })).toEqual({ shown: 3, more: 2, inline: false });
     expect(fitItems({ ...g, count: 1, height: 20 })).toEqual({ shown: 1, more: 0, inline: false });
   });
   it('unmeasured uses maxLines; empty list shows nothing', () => {
-    expect(fitItems({ ...g, count: 9, maxLines: 4 })).toEqual({ shown: 3, more: 6, inline: false });
+    expect(fitItems({ ...g, count: 9, maxLines: 4 })).toEqual({ shown: 4, more: 5, inline: false });
     expect(fitItems({ ...g, count: 0, height: 100 })).toEqual({ shown: 0, more: 0, inline: false });
   });
   it('accounts for the footer row', () => {
-    expect(fitItems({ ...g, count: 4, height: 17 + 5 + 14 * 4, footH: 14 }).shown).toBe(2);
+    expect(fitItems({ ...g, count: 4, height: 17 + 5 + 14 * 4, footH: 14 }).shown).toBe(3);
   });
   it('a block of >= 34 px always gets one row, even with a footer', () => {
     expect(fitItems({ titleH: 15, rowH: 11, pad: 6, footH: 14, count: 4, height: 34, minLines: 0 })).toEqual({ shown: 1, more: 3, inline: false });
@@ -185,10 +185,11 @@ describe('TaskListCard in a grid', () => {
     const visible = w.findAll('.it').filter((i) => i.classes().indexOf('over') < 0);
     expect(visible.map((i) => i.text())).toEqual(['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5']);
     expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
+    expect(w.get('[data-testid=tasklist-card-items]').attributes('data-fade')).toBeUndefined();
     expect(w.get('[data-testid=tasklist-card-check]').attributes('data-state')).toBe('partial');
     expect(w.get('[data-testid=tasklist-card-count]').text()).toBe('1/6');
   });
-  it('overview: three open items all show with room; less room shows fewer and "+k"; all done shows no rows', async () => {
+  it('overview: three open items all show with room; less room shows fewer and fades them out without a count; all done shows no rows', async () => {
     freshPinia();
     const three = list({ items: mk(3), totalCount: 3 });
     const w = mount(TaskListCard, { props: { segment: itemSegments(three)[0], variant: 'card', height: 200 } });
@@ -196,7 +197,9 @@ describe('TaskListCard in a grid', () => {
     expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
     const tight = mount(TaskListCard, { props: { segment: itemSegments(three)[0], variant: 'card', height: 17 + 5 + 14 } });
     expect(tight.findAll('.it:not(.over)')).toHaveLength(1);
-    expect(tight.get('[data-testid=tasklist-card-more]').text()).toBe('+2 more');
+    expect(tight.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
+    expect(tight.get('[data-testid=tasklist-card-items]').attributes('data-fade')).toBe('true');
+    expect(tight.text()).not.toMatch(/\+\d/);
     const done = list({ items: mk(2, 2), doneCount: 2, totalCount: 2 });
     const d = mount(TaskListCard, { props: { segment: itemSegments(done)[0], variant: 'card', height: 200 } });
     expect(d.findAll('.it:not(.over)')).toHaveLength(0);
