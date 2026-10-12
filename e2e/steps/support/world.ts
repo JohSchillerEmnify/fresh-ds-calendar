@@ -153,7 +153,7 @@ export class World {
   /** One of the three calendar views is rendered. */
   async calendarShown() {
     await expect(
-      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}`).first(),
+      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}, ${tid('year-view')}`).first(),
     ).toBeVisible();
   }
 

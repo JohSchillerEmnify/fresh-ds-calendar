@@ -31,6 +31,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        clientsClaim: true, // first visit: the worker controls the page right after install (offline shell)
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         // /api is never cached: no runtime caching rules at all.
