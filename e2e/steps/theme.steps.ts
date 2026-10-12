@@ -1,5 +1,5 @@
 /** Material 3 theme steps (STEPS.md "Theme"). */
-import { expect } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
@@ -56,6 +56,32 @@ Then('the event {string} has a text contrast ratio of at least {float}', async f
   const text = chip.getByTestId('event-chip-title');
   const target = (await text.count()) ? text.first() : chip;
   expect(await contrastRatio(target)).toBeGreaterThanOrEqual(min);
+});
+
+/** The element's computed background equals its `data-color` (both resolved to sRGB bytes). */
+async function expectFilled(world: World, el: Locator) {
+  await expect(el).toBeVisible();
+  const want = await cssColorToRgba(world.page, (await el.getAttribute('data-color')) ?? '');
+  const got = await cssColorToRgba(world.page, await el.evaluate((n) => getComputedStyle(n).backgroundColor));
+  expect(got && toHex(got)).toBe(want && toHex(want));
+  expect(got?.a).toBe(1);
+}
+
+Then('the event {string} is filled with its color', async function (this: World, name: string) {
+  await expectFilled(this, this.eventChip(name));
+});
+
+Then('the task list {string} is filled with its color', async function (this: World, title: string) {
+  await expectFilled(this, this.taskCard(title));
+});
+
+Then('the task list {string} has a text contrast ratio of at least {float}', async function (this: World, title: string, min: number) {
+  const card = this.taskCard(title);
+  await expect(card).toBeVisible();
+  for (const id of ['tasklist-card-title', 'tasklist-card-item', 'tasklist-card-count', 'tasklist-card-time']) {
+    const text = card.getByTestId(id).locator('visible=true');
+    for (let i = 0; i < (await text.count()); i++) expect(await contrastRatio(text.nth(i)), id).toBeGreaterThanOrEqual(min);
+  }
 });
 
 Then('pressing the create button shows a state layer', async function (this: World) {

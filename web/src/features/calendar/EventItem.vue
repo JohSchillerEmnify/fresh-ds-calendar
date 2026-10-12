@@ -76,29 +76,28 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 
 <style scoped>
 .ev {
-  --bg: color-mix(in srgb, var(--c) 26%, var(--md-sys-color-surface));
-  display: flex; min-width: 0; width: 100%; text-align: left; color: var(--md-sys-color-on-surface); background: var(--bg);
-  border-radius: var(--md-sys-shape-corner-extra-small); font: var(--md-sys-typescale-label-medium); border-left: 3px solid var(--c);
+  display: flex; min-width: 0; width: 100%; text-align: left; color: var(--on); background: var(--c);
+  border-radius: var(--md-sys-shape-corner-extra-small); font: var(--md-sys-typescale-label-medium);
   padding: 1px 4px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .ev[data-dragging='true'] { cursor: grabbing; }
 /* the handles stick out of the block: the title and meta lines clip themselves */
 .ev.resizing { position: relative; overflow: visible; }
 .ev.past { opacity: 0.62; }
-.ev.current { box-shadow: 0 0 0 1.5px var(--c); }
-html[data-calm='true'] .ev { --bg: color-mix(in srgb, var(--c) 13%, var(--md-sys-color-surface)); filter: saturate(0.55); }
+.ev.current { box-shadow: 0 0 0 1.5px var(--md-sys-color-surface), 0 0 0 3px var(--c); }
+html[data-calm='true'] .ev { filter: saturate(0.55); }
 
-.chip { min-height: 18px; align-items: center; gap: 4px; line-height: 16px; border-left-width: 2px; }
+.chip { min-height: 18px; align-items: center; gap: 4px; line-height: 16px; }
 .chip .title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; flex: 1; }
 .chip .time { flex: none; font-weight: 500; opacity: 0.85; font-variant-numeric: tabular-nums; }
 .dot { width: 8px; min-height: 8px; height: 8px; padding: 0; border: 0; background: var(--c); border-radius: 50%; }
 
-.allday { min-height: 22px; align-items: center; background: var(--c); color: var(--on); border-left: 0; padding: 1px 6px; }
+.allday { min-height: 22px; align-items: center; padding: 1px 6px; }
 .allday .title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
 .allday.nofirst { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .allday.nolast { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: 7px; box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28); --bg: color-mix(in srgb, var(--c) 30%, var(--md-sys-color-surface)); }
+.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: 7px; box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28); }
 .block .title {
   font: var(--md-sys-typescale-label-large); font-size: 13px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none;
@@ -107,7 +106,7 @@ html[data-calm='true'] .ev { --bg: color-mix(in srgb, var(--c) 13%, var(--md-sys
 .block.nofirst { border-top-left-radius: 0; border-top-right-radius: 0; }
 .block.nolast { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 @container (max-width: 76px) {
-  .block { padding: 1px 2px 1px 3px; border-left-width: 2px; }
+  .block { padding: 1px 2px 1px 3px; }
   .block .title { font-size: 11px; line-height: 13px; letter-spacing: -0.2px; }
   .block .dur { display: none; }
 }

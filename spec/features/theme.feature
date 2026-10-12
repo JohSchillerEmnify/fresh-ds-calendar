@@ -36,6 +36,21 @@ Feature: Material 3 look and light/dark theme
       | light  |
       | dark   |
 
+  Scenario Outline: Events and task lists are filled with their colour like in Google Calendar
+    Given the device prefers a <scheme> color scheme
+    And the calendar contains a task list "Groceries" on 2026-10-14 at 12:00 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the week view for 2026-10-12
+    Then the event "Dentist" is filled with its color
+    And the task list "Groceries" is filled with its color
+    And the task list "Groceries" has a text contrast ratio of at least 4.5
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
+
   Scenario Outline: Text stays readable in both themes
     Given the device prefers a <scheme> color scheme
     When I open the week view for 2026-10-12

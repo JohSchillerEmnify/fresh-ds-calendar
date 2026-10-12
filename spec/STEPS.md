@@ -384,6 +384,9 @@ the page theme color matches the {string} color role
 the color roles {string} are defined
 the period title has a contrast ratio of at least {float}
 the event {string} has a text contrast ratio of at least {float}
+the event {string} is filled with its color
+the task list {string} is filled with its color
+the task list {string} has a text contrast ratio of at least {float}
 pressing the create button shows a state layer
 ```
 
@@ -744,4 +747,5 @@ they are asked to sign in with Google again
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
-
+- "is filled with its color": the chip's computed background colour equals its `data-color` (the item colour as given, in
+  both themes); its text is white or black, whichever contrasts more.
