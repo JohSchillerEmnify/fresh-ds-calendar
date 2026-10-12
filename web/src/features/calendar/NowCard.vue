@@ -37,7 +37,7 @@ const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is strin
     :data-collapsed="collapsed ? 'true' : 'false'" role="button" tabindex="0" :aria-expanded="!collapsed" :style="{ '--c': model.current?.color }"
     @click="toggle" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle"
   >
-    <div class="one" data-testid="now-card-current">
+    <div class="one" :data-testid="model.current ? 'now-card-current' : undefined">
       <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ model.current.line }}</p>
       <p v-if="!collapsed || !model.current" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
