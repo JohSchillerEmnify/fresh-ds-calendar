@@ -17,3 +17,8 @@ export function carriedLabel(date: string): string {
 
 export const itemsText = (tl: TaskList): string => (tl.items.length ? tl.items.map((i) => i.title).join(', ') : 'No items');
 export const firstOpenItem = (tl: TaskList) => tl.items.find((i) => !i.done) ?? null;
+
+/** All items ticked (an empty list is not "done"). */
+export const isComplete = (tl: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => tl.totalCount > 0 && tl.doneCount >= tl.totalCount;
+/** Class for one item name in the card: struck through when ticked. */
+export const itemClass = (done: boolean): string => (done ? 'it done' : 'it');

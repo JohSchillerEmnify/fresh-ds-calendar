@@ -168,7 +168,7 @@ describe('components', () => {
   it('PlantCard shows stage and the exact friendly line for every mood', () => {
     for (const mood of ['happy', 'thirsty', 'dry', 'droopy'] as const) {
       const m = mot({ growth: 70, mood });
-      const w = mount(PlantCard, { props: { plant: m.plant } });
+      const w = mount(PlantCard, { props: { plant: m.plant }, global: { stubs: { teleport: true } } });
       expect(w.find('[data-testid="plant-card-stage"]').text()).toBe('Small plant');
       expect(w.find('[data-testid="plant-card-line"]').text()).toBe(MSG[mood]);
       expect(w.text()).not.toMatch(/\b(dead|died|dying|lost|failed|neglected)\b/i);
@@ -296,7 +296,7 @@ describe('LeadingWidgets', () => {
     const m = mot({ growth: 140, current: 4 });
     const f = vi.fn(async (_u: string, init?: RequestInit) => ({ ok: true, json: async () => (init?.method === 'POST' ? { current: 4, best: 5, checkedInToday: true, newToday: true, motivation: m } : m) })) as unknown as typeof fetch;
     vi.stubGlobal('fetch', f);
-    const w = mount(LeadingWidgets, { props: { today: () => '2026-10-12' }, attachTo: document.body });
+    const w = mount(LeadingWidgets, { props: { today: () => '2026-10-12' }, attachTo: document.body, global: { stubs: { teleport: true } } });
     await flushPromises();
     expect(w.find('[data-testid="streak-flame"]').text()).toBe('4');
     expect(document.querySelector('[data-testid="streak-message"]')!.textContent).toBe('Checked in, day 4');

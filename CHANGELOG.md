@@ -41,3 +41,15 @@ No visible feature change; the app looks and works as before, with Material 3 co
   Image 172 MB (was 208 MB), about 64 MB gzipped. Idle memory about 21 MiB (docker stats).
   Compose: `mem_limit: 192m`, `NODE_OPTIONS=--max-old-space-size=96 --heapsnapshot-signal=SIGUSR2 --diagnostic-dir=/data`.
 - Redeploy: `pnpm redeploy` or `scripts/deploy.sh` (renamed from `deploy`, because `pnpm deploy` is a pnpm command).
+
+## Iteration 2 — full feature set (2026-10-12 ~06:00)
+Live at http://cal.mordor.local (mock Google backend with demo data).
+- Server: mock Google Calendar provider (JSON in DATA_DIR), full REST API, task lists stored as Google events,
+  settings + categories, streak/plant/sunflowers rules, demo seed, inactive real Google adapter.
+- Web: Material 3 shell (month picker from title, year/month/week/day, swipe), settings (theme presets incl. Mordor,
+  custom color, light/dark, scenes, animations, calm mode, categories), event dialog, time-proportional timeline with
+  live now marker, Now card ("35 min left"), transition warnings, drag and drop with spring physics, task list cards,
+  expandable lists with rewarding ticks + list-complete celebration, open tasks tray with gentle carry-over,
+  streak flame, plant, sunflower field + butterfly, Mordor scene with the Eye.
+- Tests: 154 server + 203 web unit tests green; e2e suite (playwright-bdd) executes all spec features — being
+  driven to green next.

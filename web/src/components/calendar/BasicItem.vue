@@ -34,7 +34,7 @@ const timeText = computed(() => {
     <span v-if="variant === 'block' && timeText" class="time" data-testid="event-chip-time">{{ timeText }}</span>
   </button>
   <button
-    v-else v-ripple class="item tasklist" :class="variant" type="button" data-testid="tasklist-card" :data-tasklist-id="it.id" :data-title="it.title"
+    v-else v-ripple class="item tasklist" :class="[variant, { done: it.totalCount > 0 && it.doneCount >= it.totalCount }]" type="button" data-testid="tasklist-card" :data-tasklist-id="it.id" :data-title="it.title"
     :data-date="it.date" :data-time="it.time ?? ''" :data-color="it.color" :data-category-id="it.categoryId ?? ''" :style="{ '--c': it.color }" @click.stop="emit('open')"
   >
     <span class="head">
@@ -58,6 +58,8 @@ const timeText = computed(() => {
 .allday { min-height: 22px; align-items: center; background: var(--c); color: #fff; border-left: 0; }
 .block { height: 100%; flex-direction: column; gap: 0; padding: 2px 5px; border-radius: var(--md-sys-shape-corner-small); }
 .block.tasklist .head { flex: none; }
+.tasklist.done { opacity: 0.55; }
+.tasklist.done .title, .tasklist.done .items { text-decoration: line-through; }
 .tasklist { flex-direction: column; background: color-mix(in srgb, var(--c) 20%, var(--md-sys-color-surface-container-high)); }
 .head { display: flex; align-items: center; gap: 3px; min-width: 0; }
 .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
