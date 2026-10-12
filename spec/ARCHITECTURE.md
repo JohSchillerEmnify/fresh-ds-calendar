@@ -635,7 +635,13 @@ all overlays; no per-component history code.
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
   (`clock` store), progress ring.
-- Approach bar: above every calendar view when on; next 3 hours, "now" at the left, the next event placed by minutes.
+- Approach bar (owner v2, 2026-10-13: "the next-event element becomes the timeline"): no bar of its own; with
+  `approachBar` on, the now card's "Next:" line is rendered as a track (`approach-bar`) inside the now card. Left end
+  `approach-now`; the next three timed entries of today (events and task lists with a time, by start) as chips; the
+  track spans now → start of the third (fewer entries: the last one), chips placed proportionally, so the scale
+  tightens as they come closer. Chips are the month view's compact `ItemView` (same colours, title, tap opens the
+  entry), no new chip component. Nothing ahead today → the usual "Nothing else today" line. The current-event and
+  next-task lines are unchanged. The thin bar above every view is removed.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
   equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
 - Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all

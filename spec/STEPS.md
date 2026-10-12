@@ -803,6 +803,8 @@ the arc of {string} is labelled {string}
 the approach bar is on
 the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
+I turn on the approach bar and open the week view for {date}
+the approach bar shows {string}, {string} and {string} in this order
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -823,8 +825,10 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 ```
 
 - Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
-- Approach bar: `approach-bar` with `approach-item` (`data-title`, `data-minutes` = minutes until start); "closer"
-  compares the item's distance from `approach-now` before and after the clock step.
+- Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
+  (`data-title`, `data-minutes` = minutes until start) and `approach-now`; "in this order" = exactly these chips, by
+  distance from `approach-now`; "closer" compares the item's distance from `approach-now` before and after the clock
+  step. "I turn on the approach bar and open …" = the settings switch `settings-approach-bar`, then the week view.
 - Timeline: `timeline-item` (`data-title`) and `timeline-now`, positions compared along the timeline's axis.
 - Strip: `strip-column` (`data-date`); "in front" = the leftmost fully visible column; "did not reload" = a marker set
   on `window` before the step is still there.

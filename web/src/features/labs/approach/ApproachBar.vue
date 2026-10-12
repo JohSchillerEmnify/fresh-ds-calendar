@@ -1,50 +1,44 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { CalendarEvent } from '@/api/types';
-import { useClockStore } from '@/stores/clock';
-import { useItemsStore } from '@/stores/items';
+/**
+ * Approach bar (Labs): the now card's "Next" line as a track. Now at the left end, the next timed entries of today as
+ * the month view's compact chips, placed by how far away they start; the track ends at the last one.
+ */
+import { computed, ref } from 'vue';
+import { useElementSize } from '@vueuse/core';
+import ItemView from '@/components/calendar/ItemView.vue';
+import type { Segment } from '@/lib/items';
+import { approachLayout } from './approach';
 
-const WINDOW_MIN = 180;
-const clock = useClockStore();
-const items = useItemsStore();
-
-/** The next timed event starting within the window, with whole minutes until it starts. */
-const next = computed(() => {
-  const now = clock.nowTick;
-  let best: { ev: CalendarEvent; minutes: number } | null = null;
-  for (const it of items.all) {
-    if (it.kind !== 'event' || it.allDay) continue;
-    const minutes = Math.floor((Date.parse(it.start) - now) / 60000);
-    if (minutes < 0 || minutes > WINDOW_MIN) continue;
-    if (!best || minutes < best.minutes) best = { ev: it, minutes };
-  }
-  return best;
-});
+const props = defineProps<{ entries: Segment[]; nowMin: number }>();
+const CHIP_PX = 96;
+const ROW_PX = 20;
+/** Chips start right of the now dot, so a chip about to start never hides it. */
+const NOW_PX = 12;
+const el = ref<HTMLElement | null>(null);
+const { width } = useElementSize(el);
+const layout = computed(() => approachLayout(props.entries, props.nowMin, Math.max(0, width.value - NOW_PX), CHIP_PX));
 </script>
 
 <template>
-  <div class="approach" data-testid="approach-bar" role="group" aria-label="Next three hours">
-    <span class="now" data-testid="approach-now" />
+  <!-- .stop: a tap or key on a chip opens the entry, it does not collapse the now card -->
+  <div ref="el" class="approach" data-testid="approach-bar" role="group" aria-label="Next" :style="{ height: `${layout.rows * ROW_PX}px` }" @click.stop @keydown.enter.stop @keydown.space.stop>
     <span class="line" />
-    <span
-      v-if="next"
-      class="item"
-      data-testid="approach-item"
-      :data-title="next.ev.title"
-      :data-minutes="next.minutes"
-      :style="{ left: `${(next.minutes / WINDOW_MIN) * 100}%`, '--c': next.ev.color }"
+    <span class="now" data-testid="approach-now" />
+    <div
+      v-for="c in layout.chips" :key="c.segment.item.id + c.segment.date" class="item" data-testid="approach-item"
+      :data-title="c.segment.item.title" :data-minutes="c.minutes"
+      :style="{ left: `${NOW_PX + c.x}px`, top: `${c.row * ROW_PX + 1}px`, width: `${CHIP_PX}px` }"
     >
-      <span class="dot" />
-      <span class="label">{{ next.ev.title }}</span>
-    </span>
+      <ItemView :segment="c.segment" variant="chip" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.approach { position: relative; height: 28px; margin: 0 16px; flex: none; }
-.line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; border-radius: 1px; background: var(--md-sys-color-outline-variant); }
-.now { position: absolute; left: 0; top: 50%; width: 10px; height: 10px; transform: translateY(-50%); border-radius: 50%; background: var(--md-sys-color-primary); z-index: 1; }
-.item { position: absolute; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; max-width: calc(100% - 20px); transition: left 300ms ease; }
-.dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--md-sys-color-secondary)); }
-.label { font: var(--md-sys-typescale-label-small, 500 11px/16px sans-serif); color: var(--md-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.approach { position: relative; flex: none; min-width: 0; }
+.line { position: absolute; left: 0; right: 0; top: 9px; height: 2px; border-radius: 1px; background: color-mix(in srgb, currentColor 30%, transparent); }
+.now { position: absolute; left: 0; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--md-sys-color-primary); z-index: 1; }
+.item { position: absolute; display: flex; min-width: 0; transition: left 300ms ease; }
+.item > * { flex: 1 1 auto; min-width: 0; }
+html[data-motion='off'] .item, html[data-motion='reduced'] .item { transition: none; }
 </style>

@@ -1,0 +1,5 @@
+# Spec documents grow by appended sections from parallel slices: keep both sides on merge.
+spec/STEPS.md merge=union
+spec/ARCHITECTURE.md merge=union
+spec/ACCEPTANCE.md merge=union
+spec/ASSUMPTIONS.md merge=union

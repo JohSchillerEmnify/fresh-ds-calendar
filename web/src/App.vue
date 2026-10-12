@@ -23,7 +23,6 @@ import { dialogs, trayComponents } from '@/extensions/registry';
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
 import { usePrefsStore } from '@/stores/prefs';
-import ApproachBar from '@/features/labs/approach/ApproachBar.vue';
 import { useMotivationStore } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
@@ -109,7 +108,6 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
     <ReauthBanner />
     <SyncErrorBanner />
     <FilterBar v-if="filterShown" />
-    <ApproachBar v-if="isCalendar && labs.approachBar" />
     <div class="body">
       <NavigationRail v-if="isCalendar && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
       <div class="col">
