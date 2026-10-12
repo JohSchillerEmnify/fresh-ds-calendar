@@ -87,6 +87,18 @@ Feature: Task lists in the calendar views
     When I open the day view for 2026-10-14
     Then the task list "Einkaufen" shows the item "Milk" next to its title
 
+  @desktop @day
+  Scenario: A short timed task list in a wide column shows only its open items next to the title
+    Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 45 minutes with items:
+      | item     | done |
+      | Oat milk | no   |
+      | Pasta    | yes  |
+      | Bread    | no   |
+      | Tomatoes | no   |
+    When I open the day view for 2026-10-14
+    Then the task list "Einkaufen" shows the item "Oat milk" next to its title
+    And the task list "Einkaufen" does not show the item "Pasta"
+
   Scenario: An empty task list shows a zero count and a placeholder
     Given the calendar contains an empty task list "Ideas" on 2026-10-14
     When I open the day view for 2026-10-14
