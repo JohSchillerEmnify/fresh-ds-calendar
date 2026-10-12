@@ -7,7 +7,7 @@ import SproutingTree from '@/features/motivation/SproutingTree.vue';
 import { useClockStore } from '@/stores/clock';
 import { setAnimationSetting } from '@/motion/level';
 import { enableTimerCounting } from '@/lib/timers';
-import { BUTTERFLY_VISIT_MS, butterflyFlight, butterflyWait, forcedButterfly } from '@/features/motivation/butterflyVisits';
+import { BUTTERFLY_VISIT_MS, GHOST_RHYTHM, butterflyFlight, butterflyWait, forcedButterfly, visitWait } from '@/features/motivation/butterflyVisits';
 import type { SceneName } from '@/features/motivation/types';
 
 const parts = (el: Element, part: string) => el.querySelectorAll(`[data-part="${part}"]`).length;
@@ -37,12 +37,16 @@ describe('themed top bar scenes', () => {
     ['fall', ['butterfly', 'cat']],
     ['winter', ['butterfly', 'cat']],
     ['mordor', ['butterfly', 'cat']],
-  ])('%s shows its own parts, a visiting butterfly and one cat', (scene, want) => {
+    ['halloween', ['moon', 'bare-tree', 'jack-o-lantern', 'pumpkin', 'bat', 'cat']],
+  ])('%s shows its own parts, a visiting butterfly (a bat at Halloween) and one cat', (scene, want) => {
     const w = mountScene(scene, true);
     const root = w.get('[data-testid="top-bar-scene"]').element;
     for (const p of want) expect(parts(root, p), p).toBeGreaterThan(0);
     expect(parts(root, 'cat')).toBe(1);
-    expect(parts(root, 'butterfly')).toBe(1);
+    // one visitor at a time, and at Halloween it is a bat instead of a butterfly
+    const [flyer, other] = scene === 'halloween' ? ['bat', 'butterfly'] : ['butterfly', 'bat'];
+    expect(parts(root, flyer)).toBe(1);
+    expect(parts(root, other)).toBe(0);
     // the visiting butterfly is scene decoration, never a reward effect
     expect(root.querySelector('[data-testid="reward-effect"]')).toBeNull();
     w.unmount();
@@ -91,6 +95,53 @@ describe('themed top bar scenes', () => {
     enableTimerCounting(false);
   });
 
+  it('Halloween: the jack-o\'-lanterns glow, the cat sits next to a pumpkin, and no ghost is there between visits', () => {
+    const w = mountScene('halloween');
+    expect(w.find('[data-season="halloween"]').exists()).toBe(true);
+    expect(parts(w.element, 'jack-o-lantern')).toBeGreaterThanOrEqual(2);
+    expect(w.findAll('[data-part="jack-o-lantern"] .flame').length).toBe(parts(w.element, 'jack-o-lantern'));
+    expect(parts(w.element, 'pumpkin')).toBe(1);
+    expect(parts(w.element, 'ghost')).toBe(0);
+    w.unmount();
+  });
+
+  it('the ghost floats past every 8–12 min for ~8 s; Reduced fades it in place; Off has none', async () => {
+    vi.useFakeTimers();
+    // random = 0.5: the ghost comes after 10 min, the bat after 40 s and 4 min after that
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    const w = mountScene('halloween');
+    const ghost = () => w.findAll('[data-part="ghost"]');
+    await vi.advanceTimersByTimeAsync(599_999);
+    expect(ghost()).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(ghost()).toHaveLength(1);
+    expect(ghost()[0].classes()).toContain('float');
+    await vi.advanceTimersByTimeAsync(GHOST_RHYTHM.lengthMs);
+    expect(ghost()).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(ghost()).toHaveLength(1);
+    // a level change ends the visit and waits afresh; Reduced fades in place
+    setAnimationSetting('reduced');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(ghost()).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(ghost()[0].classes()).toContain('fade');
+    setAnimationSetting('off');
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(ghost()).toHaveLength(0);
+    w.unmount();
+  });
+
+  it('Halloween leaves no timers after unmount (bat and ghost each wait on one)', () => {
+    enableTimerCounting();
+    const before = window.__appTimers ?? 0;
+    const w = mountScene('halloween');
+    expect(window.__appTimers).toBe(before + 2);
+    w.unmount();
+    expect(window.__appTimers).toBe(before);
+    enableTimerCounting(false);
+  });
+
   it('keeps the season backdrop and the Mordor eye under the living layer', () => {
     setActivePinia(createPinia());
     const w = mount(TopBarScene, { props: { scene: 'mordor' } });
@@ -134,6 +185,12 @@ describe('butterfly visit schedule', () => {
     expect(butterflyFlight('full', 0.9)).toBe('fly');
     expect(butterflyFlight('reduced', 0.9)).toBe('rest');
     expect(butterflyFlight('off', 0.1)).toBeNull();
+  });
+
+  it('the ghost waits 8–12 min before each visit and stays ~8 s', () => {
+    expect(visitWait(GHOST_RHYTHM, true, false, 0)).toBe(480_000);
+    expect(visitWait(GHOST_RHYTHM, false, false, 0.999999)).toBe(720_000);
+    expect(GHOST_RHYTHM.lengthMs).toBe(8_000);
   });
 
   it('honours the test hook only in test mode', () => {

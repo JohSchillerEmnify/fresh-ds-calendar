@@ -722,10 +722,10 @@ It never reloads by itself and never interrupts an open dialog.
 - A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
-  Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
-  Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
+  halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
+  Winter, Mordor and Automatic (resolves to the season by date; Halloween for all of October, owner 2026-10-13: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
-- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Halloween" for Automatic in October),
   `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
   Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows
   but stop animated ones.
@@ -738,6 +738,12 @@ It never reloads by itself and never interrupts an open dialog.
   checkbox. Picking applies at once and saves in the background.
 
 ### Season scenes and the support cat (owner, 2026-10-13)
+
+- Halloween (owner, 2026-10-13): pumpkin-orange seed, follows the person's light/dark setting (light = dusk,
+  dark = night). Scene: a moon behind thin clouds, bare gnarled trees, jack-o'-lanterns on the ground whose candle
+  light flickers softly, the cat sitting next to a pumpkin and blinking, bats instead of butterflies (same visiting
+  rhythm and hook), and now and then (every 8–12 min, about 8 s) a small friendly ghost floating past. Parts
+  `moon`, `bare-tree`, `jack-o-lantern`, `bat`, `ghost`, `cat`. Same rules: theme tokens, animation levels.
 
 - Every scene works in light and dark (its colours come from the theme tokens, not fixed hex), so a season theme never
   needs a mode. Scenes are SVG compositions in the existing `TopBarScene`/`SeasonScene` family under
@@ -757,6 +763,12 @@ It never reloads by itself and never interrupts an open dialog.
   the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
   (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
   support cat share one cat drawing (`CatFigure`), posed differently.
+- Cat look (owner, 2026-10-13, after a reference picture): a black, geometric, slightly naive cat — tall narrow body
+  seen half from the side, head turned to the viewer, two sharp triangle ears with pink insides, big round eyes as
+  yellow rings around dark pupils, a small grey triangle nose, a few fine light whiskers, and a thick tail curled
+  around the bottom; a subtle fur texture. Our own drawing in that style, not a copy. On dark themes a soft
+  rim light keeps the black body readable. More expressive: pupils follow what the cat looks at, slow blinks, ear
+  twitches, head tilt; the support cat's grin squints the eyes into happy arcs.
 
 ### Untitled task lists (owner, 2026-10-12)
 

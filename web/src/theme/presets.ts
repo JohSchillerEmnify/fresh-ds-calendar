@@ -7,9 +7,9 @@ import type { ThemeMode } from './index';
 export type Glow = 'off' | 'soft' | 'neon';
 export type Entries = 'solid' | 'tinted' | 'outline';
 export type Corners = 'square' | 'round' | 'pill';
-export type ThemeScene = 'none' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter';
+export type ThemeScene = 'none' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter' | 'halloween';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
-export type PresetName = 'Default' | 'Neon' | 'Spring' | 'Summer' | 'Fall' | 'Winter' | 'Mordor' | 'Automatic';
+export type PresetName = 'Default' | 'Neon' | 'Spring' | 'Summer' | 'Fall' | 'Halloween' | 'Winter' | 'Mordor' | 'Automatic';
 
 export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene }
 /** `seed`/`mode` null = keep the person's own seed colour / mode setting. */
@@ -17,7 +17,7 @@ export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode
 export interface ThemePref { preset: PresetName; overrides: Partial<ThemeAttrs> }
 export interface ResolvedTheme { name: Exclude<PresetName, 'Automatic'>; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
 
-export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Winter', 'Mordor', 'Automatic'];
+export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic'];
 export const DEFAULT_PREF: ThemePref = { preset: 'Default', overrides: {} };
 
 const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none' };
@@ -28,6 +28,8 @@ export const PRESETS: Record<Exclude<PresetName, 'Automatic'>, Preset> = {
   Spring: { name: 'Spring', seed: '#4f9d3a', mode: null, attrs: { ...base, corners: 'pill', scene: 'spring' } },
   Summer: { name: 'Summer', seed: '#e09a00', mode: null, attrs: { ...base, glow: 'soft', scene: 'summer' } },
   Fall: { name: 'Fall', seed: '#b8540c', mode: null, attrs: { ...base, entries: 'tinted', scene: 'fall' } },
+  /** Pumpkin orange; keeps the person's mode: light = dusk, dark = night (owner 2026-10-13). */
+  Halloween: { name: 'Halloween', seed: '#e8650c', mode: null, attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'halloween' } },
   Winter: { name: 'Winter', seed: '#3d79b8', mode: null, attrs: { ...base, glow: 'soft', corners: 'square', scene: 'winter' } },
   Mordor: { name: 'Mordor', seed: '#c43e00', mode: 'dark', attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'mordor' } },
 };
@@ -38,14 +40,19 @@ export function seasonOf(date: string): Season {
   return m >= 3 && m <= 5 ? 'Spring' : m >= 6 && m <= 8 ? 'Summer' : m >= 9 && m <= 11 ? 'Fall' : 'Winter';
 }
 
-/** The scene that stands for "the season" on a date. */
-export function seasonScene(date: string): ThemeScene {
-  return seasonOf(date).toLowerCase() as ThemeScene;
+/** The preset Automatic stands for on a date: Halloween for all of October, otherwise the season. */
+export function automaticPreset(date: string): Season | 'Halloween' {
+  return date.slice(5, 7) === '10' ? 'Halloween' : seasonOf(date);
 }
 
-/** Resolves a preset (Automatic follows the season of `today`) without overrides. */
+/** The scene that stands for "the season" on a date (Automatic's scene, so Halloween in October). */
+export function seasonScene(date: string): ThemeScene {
+  return PRESETS[automaticPreset(date)].attrs.scene;
+}
+
+/** Resolves a preset (Automatic follows `automaticPreset` of `today`) without overrides. */
 export function presetFor(name: PresetName, today: string): Preset {
-  return PRESETS[name === 'Automatic' ? seasonOf(today) : name];
+  return PRESETS[name === 'Automatic' ? automaticPreset(today) : name];
 }
 
 /** The preset plus the person's overrides, ready to be applied. */

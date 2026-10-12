@@ -6,9 +6,9 @@ import SunflowerScene from './SunflowerScene.vue';
 import type { SceneName } from './types';
 
 /** A themed scene: its own backdrop plus the living layer (scene parts, butterflies and the cat) on top. */
-const lively = (scene: 'spring' | 'summer' | 'fall' | 'winter' | 'mordor', backdrop: () => VNode): Component =>
+const lively = (scene: 'spring' | 'summer' | 'fall' | 'winter' | 'halloween' | 'mordor', backdrop: () => VNode): Component =>
   defineComponent({ name: `Scene-${scene}`, render: () => [backdrop(), h(SceneLife, { scene })] });
-const season = (s: 'spring' | 'summer' | 'fall' | 'winter'): Component => lively(s, () => h(SeasonScene, { season: s }));
+const season = (s: 'spring' | 'summer' | 'fall' | 'winter' | 'halloween'): Component => lively(s, () => h(SeasonScene, { season: s }));
 
 /** Scene registry. Add a scene = add an entry (+ the name to SceneName). `none` renders nothing. */
 export const scenes: Record<SceneName, Component | null> = {
@@ -18,5 +18,6 @@ export const scenes: Record<SceneName, Component | null> = {
   summer: season('summer'),
   fall: season('fall'),
   winter: season('winter'),
+  halloween: season('halloween'),
   none: null,
 };
