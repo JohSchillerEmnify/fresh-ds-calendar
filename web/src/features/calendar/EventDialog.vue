@@ -236,6 +236,6 @@ function onClose() {
 .actions { display: flex; align-items: center; gap: 8px; position: sticky; bottom: -16px; margin: 4px -16px -16px; padding: 8px 16px 12px; background: var(--md-sys-color-surface-container-low); }
 .sp { flex: 1; }
 .del { color: var(--md-sys-color-error); }
-:global(html[data-motion='full']) .rise { animation: rise 300ms var(--md-sys-motion-emphasized) both; animation-delay: calc(var(--i) * 28ms); }
+:global(html[data-motion='full'] .rise) { animation: rise 300ms var(--md-sys-motion-emphasized) both; animation-delay: calc(var(--i) * 28ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 </style>
