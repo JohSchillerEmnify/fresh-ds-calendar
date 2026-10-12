@@ -1,0 +1,183 @@
+/**
+ * Task list item operations with optimistic UI that stays correct under rapid input.
+ *
+ * Per list there is one serial queue. The list shown in the UI is `base` (the last server-confirmed TaskList)
+ * with every still-pending operation replayed on top. So:
+ * - each tap shows its result at once;
+ * - requests are sent one after another (the server merges item operations itself, no etag needed);
+ * - patches to the same item that have not been sent yet are merged (last write wins per field);
+ * - a failed operation is dropped (rolled back, the others stay) and a snackbar says so;
+ * - a poll never overwrites the list while operations are pending (items store `beginPending`).
+ */
+import { api, ApiError } from '@/api/client';
+import type { TaskItem, TaskList } from '@/api/types';
+import { useItemsStore } from '@/stores/items';
+import { useSyncStore } from '@/stores/sync';
+import { useUiStore } from '@/stores/ui';
+
+type Resolve = (id: string) => string;
+interface Queue {
+  base: TaskList;
+  ops: Op[];
+  running: boolean;
+  alias: Map<string, string>;
+}
+interface Op {
+  /** Same-key ops that are not in flight yet are merged. */
+  key?: string;
+  patch?: { title?: string; done?: boolean };
+  inflight: boolean;
+  apply(tl: TaskList, r: Resolve): TaskList;
+  call(q: Queue, r: Resolve): Promise<TaskList>;
+  done?(fresh: TaskList, q: Queue, before: TaskList): void;
+}
+
+const queues = new Map<string, Queue>();
+/** real id -> temporary id of items added in this session, so list keys stay stable when the server id arrives. */
+const keyOf = new Map<string, string>();
+let tmpSeq = 0;
+
+export const ROLLBACK_MESSAGE = "Couldn't save that change. It was undone.";
+
+function recount(tl: TaskList): TaskList {
+  return { ...tl, doneCount: tl.items.filter((i) => i.done).length, totalCount: tl.items.length };
+}
+const mapItem = (tl: TaskList, id: string, fn: (i: TaskItem) => TaskItem | null): TaskList =>
+  recount({ ...tl, items: tl.items.flatMap((i) => (i.id === id ? (fn(i) ? [fn(i)!] : []) : [i])) });
+
+function render(q: Queue): void {
+  const r: Resolve = (id) => q.alias.get(id) ?? id;
+  const tl = q.ops.reduce((t, o) => o.apply(t, r), recount(structuredClone(q.base)));
+  useItemsStore().upsert(tl);
+}
+
+async function run(listId: string, q: Queue): Promise<void> {
+  const items = useItemsStore();
+  q.running = true;
+  const r: Resolve = (id) => q.alias.get(id) ?? id;
+  try {
+    while (q.ops.length) {
+      const op = q.ops[0];
+      op.inflight = true;
+      const before = q.base;
+      try {
+        const fresh = await op.call(q, r);
+        q.base = fresh;
+        op.done?.(fresh, q, before);
+      } catch (e) {
+        if (e instanceof ApiError) {
+          if (e.isUnavailable) useSyncStore().reportError(e);
+          if (e.status === 404) {
+            // The list was removed elsewhere: stop, drop it from the cache.
+            q.ops.length = 0;
+            items.remove(listId);
+            useUiStore().notify('This task list no longer exists.');
+            break;
+          }
+        }
+        useUiStore().notify(ROLLBACK_MESSAGE, { testid: 'tasklist-rollback' });
+      }
+      q.ops.shift();
+      if (q.ops.length) render(q);
+    }
+  } finally {
+    queues.delete(listId);
+    items.endPending(listId);
+    if (items.get(listId)) items.upsert(q.base);
+  }
+}
+
+function enqueue(listId: string, op: Op): void {
+  const items = useItemsStore();
+  let q = queues.get(listId);
+  if (!q) {
+    const cur = items.get(listId);
+    if (!cur || cur.kind !== 'tasklist') return;
+    q = { base: cur, ops: [], running: false, alias: new Map() };
+    queues.set(listId, q);
+    items.beginPending(listId);
+  }
+  const prev = op.key ? q.ops.find((o) => o.key === op.key && !o.inflight) : undefined;
+  if (prev && prev.patch && op.patch) {
+    prev.patch = { ...prev.patch, ...op.patch }; // `apply`/`call` of prev read prev.patch
+  } else {
+    q.ops.push(op);
+  }
+  render(q);
+  if (!q.running) void run(listId, q);
+}
+
+// --- public operations --------------------------------------------------------------------------------
+/** Set or merge a patch for one item (tick / rename). */
+export function patchItem(listId: string, itemId: string, patch: { title?: string; done?: boolean }): void {
+  const op: Op = {
+    key: `patch:${itemId}`, patch: { ...patch }, inflight: false,
+    apply: () => { throw new Error('replaced below'); },
+    call: async (q, r) => {
+      const id = r(itemId);
+      if (id.startsWith('tmp-')) return q.base; // the add failed, nothing to patch
+      return api.updateTaskItem(listId, id, op.patch!);
+    },
+  };
+  op.apply = (tl, r) => mapItem(tl, r(itemId), (i) => ({ ...i, ...op.patch }));
+  enqueue(listId, op);
+}
+
+export function addItem(listId: string, title: string): void {
+  const tmp = `tmp-${++tmpSeq}`;
+  const op: Op = {
+    inflight: false,
+    apply: (tl) => recount({ ...tl, items: [...tl.items, { id: tmp, title, done: false }] }),
+    call: () => api.addTaskItem(listId, { title }),
+    done: (fresh, q, before) => {
+      const known = new Set(before.items.map((i) => i.id));
+      const real = [...fresh.items].reverse().find((i) => !known.has(i.id));
+      if (real) {
+        q.alias.set(tmp, real.id);
+        keyOf.set(real.id, tmp);
+      }
+    },
+  };
+  enqueue(listId, op);
+}
+
+export function removeItem(listId: string, itemId: string): void {
+  enqueue(listId, {
+    inflight: false,
+    apply: (tl, r) => mapItem(tl, r(itemId), () => null),
+    call: async (q, r) => {
+      const id = r(itemId);
+      if (id.startsWith('tmp-')) return q.base;
+      return api.deleteTaskItem(listId, id);
+    },
+  });
+}
+
+/** Move an item one step; `dir` -1 = up. */
+export function moveItem(listId: string, itemId: string, dir: -1 | 1): void {
+  const swapped = <T,>(l: T[], i: number): T[] => {
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= l.length) return l;
+    const out = [...l];
+    [out[i], out[j]] = [out[j], out[i]];
+    return out;
+  };
+  enqueue(listId, {
+    inflight: false,
+    apply: (tl, r) => ({ ...tl, items: swapped(tl.items, tl.items.findIndex((i) => i.id === r(itemId))) }),
+    call: async (q, r) => {
+      const ids = q.base.items.map((i) => i.id);
+      const id = r(itemId);
+      if (id.startsWith('tmp-') || !ids.includes(id)) return q.base;
+      return api.reorderTaskItems(listId, swapped(ids, ids.indexOf(id)));
+    },
+  });
+}
+
+/** Stable v-for key: the temporary id an item had when added in this session. */
+export const stableKey = (id: string): string => keyOf.get(id) ?? id;
+export function forget(listId: string): void {
+  const items = useItemsStore().get(listId);
+  if (items?.kind === 'tasklist') for (const i of items.items) keyOf.delete(i.id);
+}
+export const hasPending = (listId: string): boolean => queues.has(listId);

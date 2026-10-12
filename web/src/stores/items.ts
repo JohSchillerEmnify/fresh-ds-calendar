@@ -6,6 +6,7 @@ import type {
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
+import { useClockStore } from './clock';
 import { useSyncStore } from './sync';
 
 const MAX_RANGES = 6;
@@ -30,13 +31,15 @@ export const useItemsStore = defineStore('items', () => {
   const lru = ref<string[]>([]);
   const visible = ref<{ from: LocalDate; to: LocalDate } | null>(null);
   const pending = new Set<string>();
+  /** Open task lists outside the visible ranges that are carried over to today (kept by gc). */
+  const carriedIds = new Set<string>();
   const loading = ref(false);
   let ctrl: AbortController | null = null;
 
   const all = computed<CalendarItem[]>(() => Object.values(byId.value));
   /** Segments per day over every cached item. Views read this (after filtering via `useDaySegments`). */
-  const segmentsOf = (items: Iterable<CalendarItem>): Map<LocalDate, Segment[]> => segmentsByDate(items);
-  const byDate = computed(() => segmentsByDate(all.value));
+  const segmentsOf = (items: Iterable<CalendarItem>): Map<LocalDate, Segment[]> => segmentsByDate(items, useClockStore().today);
+  const byDate = computed(() => segmentsByDate(all.value, useClockStore().today));
   const tagsInUse = computed(() => {
     const set = new Set<string>();
     for (const i of all.value) if (i.kind === 'tasklist') i.tags.forEach((t) => set.add(t));
@@ -57,7 +60,7 @@ export const useItemsStore = defineStore('items', () => {
     const keep = new Set<string>();
     for (const r of Object.values(ranges.value)) r.ids.forEach((i) => keep.add(i));
     const next: Record<string, CalendarItem> = {};
-    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id)) next[id] = it;
+    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id)) next[id] = it;
     byId.value = next;
   }
 
@@ -120,7 +123,22 @@ export const useItemsStore = defineStore('items', () => {
     }
     ranges.value = next;
   }
+  /** Mark an id as having local, unconfirmed changes: polls will not overwrite it. Balanced by `endPending`. */
+  function beginPending(id: string): void { pending.add(id); }
+  function endPending(id: string): void { pending.delete(id); }
+  /** Keep these open task lists (carried over to today) in the cache even when no range holds them. */
+  function setCarried(lists: TaskList[]): void {
+    carriedIds.clear();
+    const next = { ...byId.value };
+    for (const l of lists) {
+      carriedIds.add(l.id);
+      if (!pending.has(l.id)) next[l.id] = l;
+    }
+    byId.value = next;
+    gc();
+  }
   function remove(id: string): void {
+    carriedIds.delete(id);
     const { [id]: _gone, ...rest } = byId.value;
     byId.value = rest;
     const next = { ...ranges.value };
@@ -234,6 +252,7 @@ export const useItemsStore = defineStore('items', () => {
     lru.value = [];
     visible.value = null;
     pending.clear();
+    carriedIds.clear();
     summaryByKey.clear();
     summaryKeys.value = [];
     summary.value = {};
@@ -241,7 +260,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, tagsInUse, get, summary,
-    setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove,
+    setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic,
     loadSummary, refreshSummaries, $reset,
   };

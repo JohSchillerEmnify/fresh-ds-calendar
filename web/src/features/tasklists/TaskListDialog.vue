@@ -1,0 +1,143 @@
+<script setup lang="ts">
+/** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date }` or `{ mode: 'edit', id }`). */
+import { computed, onMounted, reactive, ref } from 'vue';
+import { api, ApiError } from '@/api/client';
+import type { TaskList } from '@/api/types';
+import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
+import Button from '@/components/m3/Button.vue';
+import Chip from '@/components/m3/Chip.vue';
+import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import Select from '@/components/m3/Select.vue';
+import TextField from '@/components/m3/TextField.vue';
+import { useItemsStore } from '@/stores/items';
+import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
+import { parseItems, parseTags, validateForm, type TaskListForm } from './validate';
+import { useTaskListsStore } from './store';
+
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string; time?: string | null }>();
+const emit = defineEmits<{ close: [] }>();
+const items = useItemsStore();
+const settings = useSettingsStore();
+const ui = useUiStore();
+const lists = useTaskListsStore();
+
+const editing = computed(() => props.mode === 'edit');
+const loading = ref(false);
+let etag = '';
+let original = '';
+const form = reactive<TaskListForm>({ title: '', date: props.date ?? '', time: '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' });
+const error = ref('');
+const conflict = ref(false);
+const saving = ref(false);
+const confirming = ref(false);
+
+function fill(t: TaskList) {
+  etag = t.etag;
+  Object.assign(form, {
+    title: t.title, date: t.date, time: t.time ?? '', estimate: t.estimateMinutes ? String(t.estimateMinutes) : '',
+    categoryId: t.categoryId ?? 'none', tags: t.tags.join(', '),
+  });
+  original = JSON.stringify(form);
+}
+onMounted(async () => {
+  if (!editing.value) { original = JSON.stringify(form); return; }
+  const cur = items.get(props.id!);
+  if (cur?.kind === 'tasklist') return fill(cur);
+  loading.value = true;
+  try { const t = await api.getTaskList(props.id!); items.upsert(t); fill(t); }
+  catch { ui.notify('This task list no longer exists.'); emit('close'); }
+  finally { loading.value = false; }
+});
+
+const dirty = computed(() => JSON.stringify(form) !== original);
+const tagList = computed(() => parseTags(form.tags));
+const catOptions = computed(() => [{ value: 'none', label: 'No category' }, ...settings.categories.map((c) => ({ value: c.id, label: c.name }))]);
+const cat = computed(() => settings.categoryById(form.categoryId === 'none' ? null : form.categoryId));
+const repeatOptions = [{ value: '', label: 'Does not repeat' }, { value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }];
+function removeTag(t: string) { form.tags = tagList.value.filter((x) => x !== t).join(', '); }
+
+async function save() {
+  error.value = validateForm(form) ?? '';
+  conflict.value = false;
+  if (error.value || saving.value) return;
+  saving.value = true;
+  const body = {
+    title: form.title.trim(), date: form.date, time: form.time || null,
+    estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
+    categoryId: form.categoryId === 'none' ? null : form.categoryId, tags: tagList.value,
+  };
+  try {
+    if (editing.value) await items.updateTaskList(props.id!, body, etag);
+    else {
+      await items.createTaskList({
+        ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: form.repeat || null,
+      });
+    }
+    void lists.refresh().catch(() => undefined);
+    emit('close');
+  } catch (e) {
+    saving.value = false;
+    if (e instanceof ApiError) {
+      error.value = e.userMessage.replace('This event was', 'This task list was');
+      conflict.value = e.isConflict;
+    } else error.value = 'Something went wrong. Try again.';
+  }
+}
+async function reload() {
+  try { const t = await api.getTaskList(props.id!); items.upsert(t); fill(t); error.value = ''; conflict.value = false; }
+  catch (e) { error.value = e instanceof ApiError ? e.userMessage : 'Could not reload.'; }
+}
+async function remove() {
+  confirming.value = false;
+  try { await items.deleteTaskList(props.id!, etag); lists.drop(props.id!); emit('close'); }
+  catch (e) { error.value = e instanceof ApiError ? e.userMessage.replace('This event was', 'This task list was') : 'Could not delete.'; conflict.value = e instanceof ApiError && e.isConflict; }
+}
+</script>
+
+<template>
+  <AdaptiveSheet open :label="editing ? 'Edit task list' : 'New task list'" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
+    <form class="form" novalidate @submit.prevent="save">
+      <h2 class="h">{{ editing ? 'Edit task list' : 'New task list' }}</h2>
+      <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
+      <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">Load latest version</Button></div>
+      <TextField v-model="form.title" label="Title" data-testid="tasklist-title" maxlength="200" autocomplete="off" />
+      <div class="two">
+        <TextField v-model="form.date" label="Date" type="date" data-testid="tasklist-date" />
+        <TextField v-model="form.time" label="Time (optional)" type="time" data-testid="tasklist-time" />
+      </div>
+      <TextField v-model="form.estimate" label="Estimate in minutes (optional)" type="number" inputmode="numeric" min="5" max="720" step="5" data-testid="tasklist-estimate" />
+      <div class="catrow">
+        <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
+        <Select v-model="form.categoryId" label="Category" :options="catOptions" class="grow" data-testid="tasklist-category" />
+      </div>
+      <TextField v-model="form.tags" label="Tags (comma separated)" data-testid="tasklist-tags" autocomplete="off" />
+      <div v-if="tagList.length" class="chips">
+        <Chip v-for="t in tagList" :key="t" variant="assist" :title="`Remove ${t}`" @click="removeTag(t)">{{ t }} ✕</Chip>
+      </div>
+      <TextField v-if="!editing" v-model="form.items" label="Items (one per line)" multiline :rows="4" data-testid="tasklist-items" />
+      <Select v-if="!editing" v-model="form.repeat" label="Repeat" :options="repeatOptions" data-testid="tasklist-repeat" />
+      <div class="actions">
+        <Button v-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="confirming = true">Delete</Button>
+        <span class="grow" />
+        <Button variant="text" data-testid="tasklist-cancel" @click="emit('close')">Cancel</Button>
+        <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">Save</Button>
+      </div>
+    </form>
+    <ConfirmDialog :open="confirming" :title="`Delete “${form.title}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
+  </AdaptiveSheet>
+</template>
+
+<style scoped>
+.form { display: flex; flex-direction: column; gap: 12px; }
+.h { margin: 4px 0 0; font: var(--md-sys-typescale-title-large); }
+.err { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); font: var(--md-sys-typescale-body-medium); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.two > * { min-width: 0; }
+.catrow { display: flex; gap: 10px; align-items: center; }
+.dot { flex: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.grow { flex: 1; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.danger { color: var(--md-sys-color-error); }
+</style>
