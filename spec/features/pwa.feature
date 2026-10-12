@@ -86,3 +86,12 @@ Feature: Installable progressive web app
   Scenario: No iOS hint on other browsers
     When I open the app
     Then I do not see the iOS install hint
+
+  Scenario: A new build offers a reload
+    When I open the week view for 2026-10-12
+    And a new version of the app is deployed
+    And the app syncs
+    Then I am told a new version is available
+    When I choose to reload
+    Then the app runs the new version
+
