@@ -396,8 +396,10 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
     hold 350 ms without moving (same gesture as touch, so release-without-moving works with a mouse too).
   - While dragging: `data-dragging="true"`, the card lifts (scale 1.05, elevation shadow) and wiggles briefly. A ghost
     follows the pointer with spring lag; tilt is proportional to horizontal velocity (max 6°). A drop indicator snaps
-    to 15-minute slots (time grid) or days (month and all-day). Page swipe and scroll are suppressed during a drag;
-    auto-scroll near the edges.
+    to 15-minute slots (time grid) or days (month and all-day). Page swipe and touch scroll are suppressed during a drag;
+    mouse-wheel scrolling keeps working and the time grid auto-scrolls near its edges (owner, 2026-10-13). Any scroll
+    of the grid while dragging recomputes the drop indicator from pointer and current scroll, and the card's transform
+    makes up for the scroll, so the card stays under the pointer and on the indicator, and lands where it shows.
   - Drop: optimistic move, settle spring + `drop` effect, then `PATCH` (with `If-Match`). On failure the card springs
     back to its origin and the sync error banner shows. Escape cancels a drag (desktop).
   - Duration is preserved. Timed items stay timed and all-day items stay all-day (no conversion by drag; assumption
