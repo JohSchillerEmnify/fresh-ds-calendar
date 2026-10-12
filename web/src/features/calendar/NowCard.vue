@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * "Now" card above the time grid: the running event with time left and a shrinking progress bar, what comes next,
- * and (from other features) the next small task. Day view: only for today; week view: only the current week.
+ * and (from other features) the next small task. Day view: only for today; week view: only the current week; month
+ * view: only the current month; year view: only the current year.
  */
 import { computed, ref } from 'vue';
-import { isSameDay } from 'date-fns';
+import { isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { useDaySegments } from '@/composables/useDaySegments';
 import { toIsoDate, weekDays } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
@@ -21,6 +22,8 @@ const segs = useDaySegments();
 const visible = computed(() => {
   if (cal.view === 'day') return isSameDay(cal.anchor, clock.todayDate);
   if (cal.view === 'week') return weekDays(cal.anchor).some((d) => toIsoDate(d) === clock.today);
+  if (cal.view === 'month') return isSameMonth(cal.anchor, clock.todayDate);
+  if (cal.view === 'year') return isSameYear(cal.anchor, clock.todayDate);
   return false;
 });
 const model = computed(() => nowCardModel(segs(clock.today), clock.minutesNow));

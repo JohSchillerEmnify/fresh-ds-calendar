@@ -2,6 +2,7 @@
 import { computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useNav } from '@/composables/useNav';
+import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, MONTH_NAMES, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -30,26 +31,31 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
 
 <template>
   <section class="year" data-testid="year-view" :data-year="year">
-    <button
-      v-for="m in months" :key="m.key" class="ym" type="button" data-testid="year-month" :data-month="m.key" :aria-label="`${m.name} ${year}`" @click="nav.go('month', m.first)"
-    >
-      <span class="name">{{ m.name }}</span>
-      <span class="mini">
-        <template v-for="week in m.weeks" :key="toIsoDate(week[0])">
-          <span
-            v-for="d in week" :key="toIsoDate(d)" class="d" :class="{ out: d.getMonth() !== m.first.getMonth(), today: toIsoDate(d) === clock.today }"
-            :data-testid="d.getMonth() === m.first.getMonth() ? 'year-day' : undefined" :data-date="toIsoDate(d)" :data-density="density(toIsoDate(d))"
-            :data-today="d.getMonth() === m.first.getMonth() && toIsoDate(d) === clock.today ? 'true' : undefined"
-          ><i>{{ d.getMonth() === m.first.getMonth() ? d.getDate() : '' }}</i></span>
-        </template>
-      </span>
-    </button>
+    <component :is="h" v-for="(h, i) in viewHeaders.year" :key="i" />
+    <div class="months">
+      <button
+        v-for="m in months" :key="m.key" class="ym" type="button" data-testid="year-month" :data-month="m.key" :aria-label="`${m.name} ${year}`" @click="nav.go('month', m.first)"
+      >
+        <span class="name">{{ m.name }}</span>
+        <span class="mini">
+          <template v-for="week in m.weeks" :key="toIsoDate(week[0])">
+            <span
+              v-for="d in week" :key="toIsoDate(d)" class="d" :class="{ out: d.getMonth() !== m.first.getMonth(), today: toIsoDate(d) === clock.today }"
+              :data-testid="d.getMonth() === m.first.getMonth() ? 'year-day' : undefined" :data-date="toIsoDate(d)" :data-density="density(toIsoDate(d))"
+              :data-today="d.getMonth() === m.first.getMonth() && toIsoDate(d) === clock.today ? 'true' : undefined"
+            ><i>{{ d.getMonth() === m.first.getMonth() ? d.getDate() : '' }}</i></span>
+          </template>
+        </span>
+      </button>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.year { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 4px; padding: 8px 8px 16px; align-content: start; }
-@media (min-width: 768px) { .year { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px; padding: 16px 24px; } }
+.year { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* the months scroll below the headers (Now card), which stay in view */
+.months { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 4px; padding: 8px 8px 16px; align-content: start; }
+@media (min-width: 768px) { .months { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px; padding: 16px 24px; } }
 .ym { display: block; min-width: 0; padding: 6px 4px 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; transition: background 150ms, transform 250ms var(--md-sys-motion-spring); }
 .ym:hover { background: var(--md-sys-color-surface-container); }
 .ym:active { transform: scale(0.97); }
