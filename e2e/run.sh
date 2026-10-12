@@ -81,7 +81,7 @@ start_server() {
 }
 
 install_deps
-DOCKER_ARGS=(--rm --init --cpus=1.5 --memory=2g --ipc=host --network host -u "$(id -u):$(id -g)" -e HOME=/tmp
+DOCKER_ARGS=(--rm --init --cpus=1.5 --memory=1536m --memory-swap=1536m --ipc=host --network host -u "$(id -u):$(id -g)" -e HOME=/tmp
   -v "$ROOT:/work" -w /work/e2e)
 PW_ARGS=("$@")
 

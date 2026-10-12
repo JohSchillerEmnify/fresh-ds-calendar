@@ -5,13 +5,15 @@
 #   scripts/preview.sh down <name>                  stop + remove preview and its data
 #   scripts/preview.sh list                         show running previews
 # <name> defaults the worktree dir to /home/sauron/projects/calendar-wt/<name>.
-# Previews use the mock provider with fresh demo data (tmpfs-like dir under /tmp), never touch the real data volume.
+# Previews use the mock provider with fresh demo data (under ~/.local/share, not /tmp: after a reboot docker would
+# recreate a missing bind-mount source as root), never touch the real data volume.
 set -euo pipefail
 
 cmd="${1:-list}"; name="${2:-}"
 WT_ROOT="/home/sauron/projects/calendar-wt"
 BASE="cal.mordor.local"
 BASE_LAN="cal.mordor.lan"
+DATA_ROOT="$HOME/.local/share/calendar-preview"
 
 case "$cmd" in
   up)
@@ -27,7 +29,7 @@ case "$cmd" in
     nice -n 19 docker build -q -t "calendar-preview:$name" "$dir" >/dev/null
     flock -u 8
     docker rm -f "$cname" >/dev/null 2>&1 || true
-    mkdir -p "/tmp/calendar-preview-data/$name"
+    mkdir -p "$DATA_ROOT/$name"
     docker run -d --name "$cname" --restart unless-stopped --network proxy-network \
       --memory 192m \
       -l traefik.enable=true \
@@ -35,7 +37,7 @@ case "$cmd" in
       -l "traefik.http.services.$cname.loadbalancer.server.port=3000" \
       -e TZ=Europe/Berlin -e PROVIDER=mock -e PORT=3000 -e DATA_DIR=/data \
       -e NODE_OPTIONS=--max-old-space-size=96 \
-      -v "/tmp/calendar-preview-data/$name:/data" \
+      -v "$DATA_ROOT/$name:/data" \
       "calendar-preview:$name" >/dev/null
     for _ in $(seq 1 30); do
       if curl -fs -H "Host: $host" http://127.0.0.1/api/health >/dev/null 2>&1; then
@@ -49,7 +51,7 @@ case "$cmd" in
     [ -n "$name" ] || { echo "usage: preview.sh down <name>" >&2; exit 2; }
     docker rm -f "calendar-preview-$name" >/dev/null 2>&1 || true
     docker rmi "calendar-preview:$name" >/dev/null 2>&1 || true
-    rm -rf "/tmp/calendar-preview-data/$name"
+    rm -rf "$DATA_ROOT/$name"
     echo "removed preview $name"
     ;;
   list)
