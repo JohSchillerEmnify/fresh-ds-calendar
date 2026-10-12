@@ -397,7 +397,9 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   - Trigger: a pick-up released without moving (`drag.ts` drop with no target change) sets `ui.resizing =
     { kind, id, date }` instead of doing nothing. One entry at a time.
   - The block shows `resize-handle-top` and `resize-handle-bottom`: small pills centred on the top and bottom edge
-    (styled per theme), each with a 44 px touch target. A handle drags at once (no long press); it snaps to 15 minutes
+    (styled per theme), each with a 44 px touch target. A handle drags at once (no long press); it snaps to 15 minutes outwards (owner: a dragged end rounds
+    up, a dragged start rounds down, 2 minutes leniency) outwards (owner: the dragged end rounds up, a dragged
+    start rounds down, with 2 minutes of leniency, so "down by 52 minutes" from 10:00 ends at 11:00)
     on the same slot grid as moves, and the dragged edge never comes closer than 15 minutes to the other one. A task
     list's duration stops at 720 minutes (the server's `estimateMinutes` range); events end at the day's end at most.
   - Save: `items.optimisticItem` like a move. Event: `PATCH /api/events/:id` with `start`/`end` (top handle moves only
