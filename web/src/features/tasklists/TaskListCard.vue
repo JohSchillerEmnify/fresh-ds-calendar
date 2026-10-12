@@ -94,10 +94,10 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
   <button
-    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
+    ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
-    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
+    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on-solid': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
@@ -126,10 +126,10 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 <style scoped>
 .tl {
   container-type: inline-size; position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; text-align: left;
-  color: var(--on); background: var(--c); border-radius: var(--md-sys-shape-corner-extra-small);
+  
   padding: 1px 4px 2px; overflow: hidden; cursor: pointer; font: var(--md-sys-typescale-label-medium);
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  transition: background var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-short);
+  transition: background var(--md-sys-motion-duration-medium), box-shadow var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-short);
 }
 .tl[data-dragging='true'] { cursor: grabbing; }
 /* the handles stick out of the block */
@@ -150,7 +150,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .cb { position: relative; flex: none; box-sizing: border-box; width: 11px; height: 11px; border: 1.5px solid var(--on); border-radius: 3px; background: transparent; }
 .cb[data-state='partial'] { background: linear-gradient(to top, var(--on) var(--fill), transparent var(--fill)); }
 .cb[data-state='done'] { background: var(--on); }
-.cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--c); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--e-mark, var(--c)); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
 
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
 .items, .est, .from, .time { font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
@@ -186,7 +186,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .allday { padding: 3px 6px 4px 6px; }
 .allday .ring { display: none; }
 /* block: timed, sized by estimate */
-.block { height: 100%; padding: 3px 5px; border-radius: var(--md-sys-shape-corner-small); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28); }
+.block { height: 100%; padding: 3px 5px; border-radius: var(--r-block); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
 .block { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-content: start; }
 .block .row { min-width: 0; }
 .block .items { min-height: 0; }

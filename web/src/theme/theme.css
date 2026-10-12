@@ -1,0 +1,46 @@
+/*
+ * Theme attributes -> custom properties and the shared "skin" of calendar entries.
+ * The attributes (`data-glow`, `data-entries`, `data-corners`) sit on <html> and on the scoped containers of the
+ * theme menu (gallery cards, option samples). Only custom properties are defined per attribute, so the nearest
+ * ancestor wins by inheritance; everything that draws an entry reads them through `.skin`.
+ */
+:root {
+  --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial;
+  --e-fill: 100%; --e-bw: 0px; --e-bl: initial; --e-fg: initial; --e-mark: initial;
+  --r-chip: 6px; --r-block: 8px;
+}
+[data-glow='off'] { --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial; }
+[data-glow='soft'] { --glow-r: 9px; --glow-s: 0px; --glow-a: 55%; --glow-anim: initial; }
+[data-glow='neon'] { --glow-r: 14px; --glow-s: 2px; --glow-a: 95%; --glow-anim: neon-pulse; }
+
+[data-entries='solid'] { --e-fill: 100%; --e-bw: 0px; --e-bl: initial; --e-fg: initial; --e-mark: initial; }
+[data-entries='tinted'] {
+  --e-fill: 24%; --e-bw: 0px; --e-bl: 3px;
+  --e-fg: var(--md-sys-color-on-surface); --e-mark: var(--md-sys-color-surface);
+}
+[data-entries='outline'] {
+  --e-fill: 0%; --e-bw: 2px; --e-bl: initial;
+  --e-fg: var(--md-sys-color-on-surface); --e-mark: var(--md-sys-color-surface);
+}
+
+[data-corners='square'] { --r-chip: 2px; --r-block: 2px; }
+[data-corners='round'] { --r-chip: 6px; --r-block: 8px; }
+[data-corners='pill'] { --r-chip: 999px; --r-block: 16px; }
+
+/* Entries (events, task lists, samples) read --c (item colour) and --on-solid (text on that colour). */
+.skin {
+  --on: var(--e-fg, var(--on-solid));
+  --glow-sh: 0 0 var(--glow-r) var(--glow-s) color-mix(in srgb, var(--c) var(--glow-a), transparent);
+  color: var(--on);
+  background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface));
+  border: var(--e-bw) solid var(--c);
+  border-left-width: var(--e-bl, var(--e-bw));
+  border-radius: var(--r-chip);
+  box-shadow: var(--glow-sh);
+}
+/* Neon pulses slightly, only at the Full animation level (static glow otherwise). */
+html[data-motion='full'] .skin { animation: var(--glow-anim, none) 2.8s ease-in-out infinite alternate; }
+@keyframes neon-pulse {
+  from { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--c) 60%, transparent)); }
+  to { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--c) 90%, transparent)); }
+}

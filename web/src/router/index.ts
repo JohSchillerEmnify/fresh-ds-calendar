@@ -61,6 +61,7 @@ export const routes: RouteRecordRaw[] = [
   labDated('strip', () => import('@/features/labs/strip/StripView.vue')),
   { path: '/signin', name: 'signin', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
   { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { settings: true } },
+  { path: '/settings/theme', name: 'theme', component: () => import('@/views/ThemeView.vue'), meta: { settings: true } },
   { path: '/lab', name: 'lab', component: () => import('@/features/motivation/MotionLab.vue'), meta: { settings: true } },
   { path: '/:pathMatch(.*)*', redirect: (to) => ({ path: routePath('month', useClockStore().todayDate), query: to.query }) },
 ];
