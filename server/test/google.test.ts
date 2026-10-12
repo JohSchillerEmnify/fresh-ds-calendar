@@ -5,9 +5,9 @@ import { OAuth2Client } from 'google-auth-library';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
-import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError } from '../src/providers/CalendarProvider.js';
+import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError } from '../src/providers/CalendarProvider.js';
 import { createGoogleProvider, GoogleProvider, makeApi, mapGoogleError } from '../src/providers/google/GoogleProvider.js';
-import * as gauth from '../src/providers/google/auth.js';
+import { GoogleOAuth } from '../src/providers/google/auth.js';
 
 interface Call { url: URL; method: string; headers: Headers; body: any }
 function setup(handler: (c: Call) => { status?: number; json?: unknown } | Promise<{ status?: number; json?: unknown }>) {
@@ -112,7 +112,8 @@ describe('GoogleProvider (mocked HTTP)', () => {
     auth.setCredentials({ access_token: 't', expiry_date: Date.now() + 3_600_000 });
     const provider = new GoogleProvider({ api: makeApi(auth, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), calendarIds: ['primary'] });
     await expect(provider.ping()).rejects.toBeInstanceOf(ProviderUnavailableError);
-    expect(mapGoogleError(new Error('invalid_grant'))).toBeInstanceOf(ProviderUnavailableError);
+    expect(mapGoogleError(new Error('invalid_grant'))).toBeInstanceOf(ReauthRequiredError);
+    expect(mapGoogleError(Object.assign(new Error('x'), { response: { status: 400, data: { error: 'invalid_grant' } } }))).toBeInstanceOf(ReauthRequiredError);
   });
 
   it('drives the whole REST API through GoogleProvider (task list item op against a fake Google)', async () => {
@@ -134,6 +135,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
     });
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-g-'));
     const app = buildApp({ ...loadConfig({ DATA_DIR: dir, PROVIDER: 'google' }), webDist: null }, { provider });
+    app.ctx.auth.on = false; // this test drives the REST API through the provider, not sign-in
     try {
       const create = await app.request('/api/tasklists', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'L', date: '2026-10-12', items: [{ title: 'a' }] }) });
       expect(create.status).toBe(201);
@@ -147,14 +149,14 @@ describe('GoogleProvider (mocked HTTP)', () => {
   });
 
   it('createGoogleProvider fails fast without client credentials', () => {
-    expect(() => createGoogleProvider(loadConfig({ PROVIDER: 'google' }))).toThrow(/GOOGLE_CLIENT_ID/);
+    expect(() => createGoogleProvider(loadConfig({ PROVIDER: 'google' }), 'p1')).toThrow(/GOOGLE_CLIENT_ID/);
   });
 
-  it('without any token every call is unavailable with a hint', async () => {
+  it('without any token every call asks the person to sign in again', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-g-'));
     try {
-      const p = createGoogleProvider(loadConfig({ PROVIDER: 'google', GOOGLE_CLIENT_ID: 'a', GOOGLE_CLIENT_SECRET: 'b', DATA_DIR: dir }));
-      await expect(p.ping()).rejects.toThrow(/auth\/google\/start/);
+      const p = createGoogleProvider(loadConfig({ PROVIDER: 'google', GOOGLE_CLIENT_ID: 'a', GOOGLE_CLIENT_SECRET: 'b', DATA_DIR: dir }), 'p1');
+      await expect(p.ping()).rejects.toBeInstanceOf(ReauthRequiredError);
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 });
@@ -189,22 +191,67 @@ describe('Google OAuth routes', () => {
     expect(loc.searchParams.get('state')).toMatch(/^[0-9a-f]{32}$/);
   });
 
-  it('callback rejects an invalid state, then stores the token (mode 600) and redirects', async () => {
-    const { app, dir, config } = mkApp({ ...g, GOOGLE_CLIENT_ID: 'cid-cb' });
+  const startFlow = async (app: ReturnType<typeof buildApp>) => {
+    const res = await app.request('/api/auth/google/start');
+    const state = new URL(res.headers.get('location')!).searchParams.get('state')!;
+    return { state, cookie: `cal_oauth_state=${state}` };
+  };
+  const mockGoogle = (email: string, refreshToken: string | null = 'rt-1') =>
+    vi.spyOn(GoogleOAuth.prototype, 'exchange').mockResolvedValue({ sub: 'g-123', email, emailVerified: true, name: 'Jo', refreshToken });
+
+  it('start asks for sign-in scopes and binds the state to a cookie', async () => {
+    const { app } = mkApp(g);
+    const res = await app.request('/api/auth/google/start');
+    expect(new URL(res.headers.get('location')!).searchParams.get('scope')).toBe('openid email https://www.googleapis.com/auth/calendar');
+    expect(res.headers.get('set-cookie')).toMatch(/cal_oauth_state=[0-9a-f]{32}.*HttpOnly.*SameSite=Lax/i);
+  });
+
+  it('callback rejects an invalid state or a state without the matching cookie', async () => {
+    const { app } = mkApp({ ...g, ALLOWED_EMAILS: 'jo@example.com' });
     expect((await app.request('/api/auth/google/callback?code=c&state=nope')).status).toBe(400);
     expect((await app.request('/api/auth/google/callback')).status).toBe(400);
-    const state = new URL((await app.request('/api/auth/google/start')).headers.get('location')!).searchParams.get('state')!;
-    vi.spyOn(gauth.getClient(config), 'getToken').mockResolvedValue({ tokens: { refresh_token: 'rt-1', access_token: 'at' }, res: null } as never);
-    const res = await app.request(`/api/auth/google/callback?code=c&state=${state}`);
+    const { state } = await startFlow(app);
+    expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`)).status).toBe(400);
+  });
+
+  it('callback stores the token per person (mode 600), starts a Secure session and redirects', async () => {
+    const { app, dir } = mkApp({ ...g, ALLOWED_EMAILS: 'JO@example.com' });
+    mockGoogle('jo@Example.com');
+    const { state, cookie } = await startFlow(app);
+    const res = await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } });
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('/');
-    const file = path.join(dir, 'google-token.json');
+    const file = path.join(dir, 'users', 'g-123', 'google-token.json');
     expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual({ refresh_token: 'rt-1' });
     expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    const set = res.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!;
+    expect(set).toMatch(/HttpOnly/i);
+    expect(set).toMatch(/Secure/i);
+    expect(set).toMatch(/SameSite=Lax/i);
+    const me = await app.request('/api/auth/me', { headers: { cookie: set.split(';')[0]! } });
+    expect(await me.json()).toEqual({ email: 'jo@example.com', name: 'Jo' });
     // state is single use
-    expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`)).status).toBe(400);
-    // start is hidden once a token exists, unless forced
-    expect((await app.request('/api/auth/google/start')).status).toBe(404);
-    expect((await app.request('/api/auth/google/start?force=true')).status).toBe(302);
+    expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } })).status).toBe(400);
+  });
+
+  it('callback turns away an address that is not allowed and keeps no token', async () => {
+    const { app, dir } = mkApp({ ...g, ALLOWED_EMAILS: 'jo@example.com' });
+    mockGoogle('stranger@example.com');
+    const { state, cookie } = await startFlow(app);
+    const res = await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/signin?error=private');
+    expect(res.headers.getSetCookie().some((c) => c.startsWith('cal_session='))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'users'))).toBe(false);
+  });
+
+  it('migrates the old single-user token to the first person who signs in', async () => {
+    const { app, dir } = mkApp({ ...g, ALLOWED_EMAILS: 'jo@example.com' });
+    fs.writeFileSync(path.join(dir, 'google-token.json'), JSON.stringify({ refresh_token: 'old' }));
+    mockGoogle('jo@example.com', null);
+    const { state, cookie } = await startFlow(app);
+    expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } })).status).toBe(302);
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'users', 'g-123', 'google-token.json'), 'utf8'))).toEqual({ refresh_token: 'old' });
+    expect(fs.existsSync(path.join(dir, 'google-token.json'))).toBe(false);
   });
 });

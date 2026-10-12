@@ -80,6 +80,10 @@ export class World {
   // Results remembered between steps.
   /** A pointer/touch press kept down by "I pick up ..."; released by "I release ...". */
   held?: () => Promise<void>;
+  /** The person of the last sign-in step ("they" in the sign-in scenarios). */
+  person?: string;
+  /** The week the last "without signing in" step opened. */
+  weekOpened?: string;
   lastResponse?: { status: number; json: unknown; url: string };
   browserMemory?: BrowserMemory;
   serverRss?: number;

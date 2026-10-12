@@ -131,6 +131,8 @@ export interface UpdateTaskListInput {
 export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
+  | 'UNAUTHENTICATED'
+  | 'GOOGLE_REAUTH'
   | 'PRECONDITION_FAILED'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'

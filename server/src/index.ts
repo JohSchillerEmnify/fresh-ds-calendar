@@ -6,13 +6,14 @@ import { loadConfig } from './config.js';
 const config = loadConfig();
 fs.mkdirSync(config.dataDir, { recursive: true });
 
-let provider;
+let opts = {};
 if (config.provider === 'google') {
   // Lazy: the Google client libraries are only loaded when PROVIDER=google.
   const { createGoogleProvider } = await import('./providers/google/GoogleProvider.js');
-  provider = createGoogleProvider(config);
+  // The shared provider has no person behind it; every signed-in person gets their own (ctx.calendarFor).
+  opts = { provider: createGoogleProvider(config, 'anonymous'), personProvider: (sub: string) => createGoogleProvider(config, sub) };
 }
-const app = buildApp(config, provider ? { provider } : {});
+const app = buildApp(config, opts);
 if (config.provider === 'mock' && config.seed && !config.testMode && app.ctx.mock && !app.ctx.mock.loadedFromDisk) {
   await app.ctx.seed();
 }

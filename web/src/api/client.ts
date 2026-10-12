@@ -5,10 +5,11 @@
  * - Etags: pass `ifMatch` to send `If-Match` (events, task list details, settings version).
  * - Every call accepts an optional `AbortSignal`.
  * - Mutation responses with `X-Motivation-Changed: 1` notify `onMotivationChanged` listeners.
+ * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
   AppConfig, Calendar, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 
@@ -65,6 +66,7 @@ export class ApiClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: Fetch;
   private readonly motivationListeners = new Set<() => void>();
+  private readonly authListeners = new Set<(code: ErrorCode) => void>();
 
   constructor(opts: ApiClientOptions = {}) {
     this.baseUrl = opts.baseUrl ?? '';
@@ -75,6 +77,12 @@ export class ApiClient {
   onMotivationChanged(fn: () => void): () => void {
     this.motivationListeners.add(fn);
     return () => this.motivationListeners.delete(fn);
+  }
+
+  /** Called when a response says the person must sign in (again). Returns an unsubscribe function. */
+  onAuthError(fn: (code: ErrorCode) => void): () => void {
+    this.authListeners.add(fn);
+    return () => this.authListeners.delete(fn);
   }
 
   async request<T>(method: string, path: string, body?: unknown, o: RequestOptions = {}): Promise<T> {
@@ -109,9 +117,20 @@ export class ApiClient {
     }
     if (!res.ok) {
       const err = (data as { error?: { code?: ErrorCode; message?: string; details?: [] } } | null)?.error;
+      if (res.status === 401 && (err?.code === 'UNAUTHENTICATED' || err?.code === 'GOOGLE_REAUTH')) {
+        for (const fn of this.authListeners) fn(err.code);
+      }
       throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? []);
     }
     return data as T;
+  }
+
+  // --- sign-in ----------------------------------------------------------------
+  me(o?: RequestOptions) {
+    return this.request<Me>('GET', '/api/auth/me', undefined, o);
+  }
+  signOut(o?: RequestOptions) {
+    return this.request<void>('POST', '/api/auth/signout', undefined, o);
   }
 
   // --- health & config ----------------------------------------------------

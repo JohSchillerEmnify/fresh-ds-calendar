@@ -18,6 +18,7 @@ import TextField from '@/components/m3/TextField.vue';
 import CategoryDialog from '@/components/settings/CategoryDialog.vue';
 import { StreakFlame } from '@/features/motivation';
 import { useMotivationStore } from '@/features/motivation/store';
+import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
@@ -27,6 +28,7 @@ import { useUiStore } from '@/stores/ui';
 const router = useRouter();
 const settings = useSettingsStore();
 const clock = useClockStore();
+const auth = useAuthStore();
 const sync = useSyncStore();
 const ui = useUiStore();
 const items = useItemsStore();
@@ -173,6 +175,11 @@ async function resetDemo() {
           </li>
         </ul>
         <div class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>Add category</Button></div>
+      </section>
+
+      <section v-if="auth.status === 'in'" class="card" aria-labelledby="h-account">
+        <h2 id="h-account">Account</h2>
+        <div class="row"><div class="grow"><span class="lab">Signed in with Google</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">Sign out</Button></div>
       </section>
 
       <section v-if="isMock" class="card" aria-labelledby="h-data">

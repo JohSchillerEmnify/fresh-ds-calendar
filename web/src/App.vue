@@ -9,6 +9,7 @@ import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
 import InstallPrompts from '@/components/shell/InstallPrompts.vue';
+import ReauthBanner from '@/components/shell/ReauthBanner.vue';
 import SyncErrorBanner from '@/components/shell/SyncErrorBanner.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
@@ -23,6 +24,7 @@ import { api } from '@/api/client';
 import { useMotivationStore } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
+import { useAuthStore } from '@/stores/auth';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useFilters } from '@/composables/useFilters';
@@ -31,6 +33,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 
 const route = useRoute();
+const auth = useAuthStore();
 const cal = useCalendarStore();
 const ui = useUiStore();
 const nav = useNav();
@@ -55,9 +58,10 @@ const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefin
 const swipeArea = ref<HTMLElement | null>(null);
 let undo: Array<() => void> = [];
 onMounted(() => {
-  undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }));
+  undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }), auth.listen());
   clock.startTicker();
-  sync.start();
+  // the sign-in page has no data to sync (and every call would be refused)
+  if (!route.meta.public) sync.start();
   if (swipeArea.value) {
     undo.push(bindSwipe(swipeArea.value, {
       onLeft: () => void nav.next(),
@@ -82,6 +86,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = f
       <AppTopBar />
       <InstallPrompts part="hint" />
     </template>
+    <ReauthBanner />
     <SyncErrorBanner />
     <FilterBar v-if="filterShown" />
     <div class="body">

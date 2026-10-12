@@ -1,4 +1,5 @@
 import type { AppConfig } from './config.js';
+import { AuthState } from './auth/state.js';
 import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CalendarService } from './services/calendar.js';
@@ -18,16 +19,23 @@ export interface Ctx {
   settings: SettingsStore;
   motivation: MotivationService;
   calendar: CalendarService;
+  auth: AuthState;
+  /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
+  personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
   overrides: { pollIntervalMs?: number };
   health: { at: number; status: 'ok' | 'unavailable' } | null;
-  /** Late-bound hooks. */
-  googleAuth?: unknown;
+  /** The calendar of the signed-in person; the shared one when auth is off. */
+  calendarFor(sub: string | null | undefined): CalendarService;
+  /** Mock calendar of one person (TEST_MODE): separate data per Google account. */
+  mockFor(sub: string): MockGoogleProvider;
+  /** Forgets all per-person calendars (test reset). */
+  resetPeople(): void;
   seed(): Promise<void>;
   close(): void;
 }
 
-export function createContext(config: AppConfig, provider?: CalendarProvider, clock = new Clock()): Ctx {
+export function createContext(config: AppConfig, provider?: CalendarProvider, clock = new Clock(), personProvider?: (sub: string) => CalendarProvider): Ctx {
   const mock = provider ? (provider instanceof MockGoogleProvider ? provider : null)
     : config.provider === 'mock' ? new MockGoogleProvider({ dataDir: config.dataDir, tz: config.tz, clock }) : null;
   const prov: CalendarProvider = provider ?? mock ?? (() => { throw new Error('Google provider must be passed in (see index.ts)'); })();
@@ -35,8 +43,31 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const calendar = new CalendarService(prov, settings, motivation, clock, config);
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
+  const mocks = new Map<string, MockGoogleProvider>();
+  const people = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, motivation, calendar, overrides: {}, health: null,
+    config, clock, provider: prov, mock, settings, motivation, calendar, overrides: {}, health: null, personProvider,
+    auth: new AuthState(config, () => clock.real()),
+    mockFor(sub) {
+      let m = mocks.get(sub);
+      if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
+      return m;
+    },
+    calendarFor(sub) {
+      if (!ctx.auth.on || !sub) return calendar;
+      let c = people.get(sub);
+      if (!c) {
+        // google: one provider per person; mock: one calendar per person; tests with an injected provider share it
+        const p = personProvider ? personProvider(sub) : mock ? ctx.mockFor(sub) : null;
+        if (!p) return calendar;
+        people.set(sub, (c = new CalendarService(p, settings, motivation, clock, config)));
+      }
+      return c;
+    },
+    resetPeople() {
+      people.clear();
+      mocks.clear();
+    },
     async seed() {
       await seedDemo(calendar, motivation, clock.nowMs(), config.tz);
     },

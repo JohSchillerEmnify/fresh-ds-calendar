@@ -9,7 +9,7 @@ export interface ErrorDetail {
 export class ApiException extends Error {
   constructor(
     readonly code: ErrorCode,
-    readonly status: 400 | 404 | 412 | 500 | 502 | 503,
+    readonly status: 400 | 401 | 404 | 412 | 500 | 502 | 503,
     message: string,
     readonly details?: ErrorDetail[],
   ) {

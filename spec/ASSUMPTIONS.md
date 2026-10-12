@@ -174,3 +174,10 @@ spec files are named.
   step switches client-side to the week view (no reload) before moving the event +1/-1 day.
 - **A-T2 Fixtures award no plant points**: setup steps that create events/task lists through the API restore the plant
   state afterwards, so scenarios count only points earned by their own actions.
+- **A-65 Who may sign in** (owner, 2026-10-12): an allow-list of Google addresses in the server configuration
+  (`ALLOWED_EMAILS`); changing it means a restart. At least the owner and one more person. Passkeys come later.
+- **A-66 Session length** (owner): 90 days, extended every time the app is used.
+- **A-67 Public instance** (owner): the real instance runs on a small netcup VPS under a domain at INWX/Namecheap/
+  Porkbun, reachable from the internet; sauron keeps the mock instance and previews. Supersedes A-24/A-25 (LAN-only
+  HTTPS via Cloudflare) for the real instance.
+

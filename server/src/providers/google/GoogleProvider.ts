@@ -3,10 +3,10 @@ import type { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError,
-  type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
+  ReauthRequiredError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
-import { getClient, hasStoredToken } from './auth.js';
+import { getUserClient, hasUserToken } from './auth.js';
 
 type Api = calendar_v3.Calendar;
 type Dt = calendar_v3.Schema$EventDateTime;
@@ -21,8 +21,10 @@ export interface GoogleProviderOptions {
 
 /** Maps googleapis/gaxios errors to the provider error classes (ARCHITECTURE §2). */
 export function mapGoogleError(e: unknown): Error {
-  if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof NotFoundError || e instanceof PreconditionFailedError) return e;
-  const err = e as { code?: number | string; status?: number; response?: { status?: number }; message?: string };
+  if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof ReauthRequiredError || e instanceof NotFoundError || e instanceof PreconditionFailedError) return e;
+  const err = e as { code?: number | string; status?: number; response?: { status?: number; data?: { error?: string } }; message?: string };
+  // Google refuses the stored refresh token: only signing in again helps
+  if (err.response?.data?.error === 'invalid_grant' || err.message === 'invalid_grant') return new ReauthRequiredError('invalid_grant');
   const status = Number(err.response?.status ?? err.status ?? (typeof err.code === 'number' ? err.code : NaN));
   const msg = err.message ?? 'Google API error';
   if (status === 401 || status === 403 || status === 429) return new ProviderUnavailableError(msg);
@@ -159,22 +161,22 @@ function toApi(x: GoogleEventInput | GoogleEventPatch): calendar_v3.Schema$Event
   return structuredClone(rest) as calendar_v3.Schema$Event;
 }
 
-/** Builds the provider for PROVIDER=google; fails fast when the OAuth client is not configured. */
+/** Builds the Google Calendar API client for an OAuth client. */
 export function makeApi(auth: OAuth2Client, fetchImplementation?: typeof fetch): Api {
   return makeCalendar({ version: 'v3', auth, ...(fetchImplementation ? { fetchImplementation } : {}) } as Parameters<typeof makeCalendar>[0]);
 }
 
-export function createGoogleProvider(config: AppConfig, fetchImplementation?: typeof fetch): GoogleProvider {
+/** Builds one person's provider for PROVIDER=google; fails fast when the OAuth client is not configured. */
+export function createGoogleProvider(config: AppConfig, sub: string, fetchImplementation?: typeof fetch): GoogleProvider {
   const g = config.google;
   if (!g.clientId || !g.clientSecret) throw new Error('PROVIDER=google requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
-  const auth: OAuth2Client = getClient(config);
-  const api = makeApi(auth, fetchImplementation);
+  const auth: OAuth2Client = getUserClient(config, sub);
   return new GoogleProvider({
-    api,
+    api: makeApi(auth, fetchImplementation),
     calendarIds: g.calendarIds,
     ready: () => {
-      if (!hasStoredToken(config) && !auth.credentials.refresh_token && !auth.credentials.access_token) {
-        throw new ProviderUnavailableError('Not authorised with Google yet: open /api/auth/google/start');
+      if (!hasUserToken(config, sub) && !auth.credentials.refresh_token && !auth.credentials.access_token) {
+        throw new ReauthRequiredError('No Google access stored for this person');
       }
     },
   });

@@ -716,3 +716,32 @@ the sunflowers look {string}
   per **visible** flower ("shows N flowers" counts them). Swaying = computed `animation-name` of `sunflower` is not
   `none` and `animation-play-state` is `running`. "look X" = `data-mood` on `sunflower-field`.
 - Kinds `bloom` (a new sunflower) is added to the reward effect kinds.
+
+## Signing in (`@signin`)
+
+```
+{string} and {string} may use the calendar
+{string} has an event {string} on {date} from {time} to {time}
+{string} signs in with Google
+{string} is signed in
+Google no longer accepts the access of {string}
+someone opens the week view for {date} without signing in
+they sign out in the settings
+they open the week view for {date}
+they see the week view for {date}
+they see the event {string} on {date}
+they do not see the event {string}
+they are told the calendar is private
+they see no events
+they see the sign-in page
+opening the week view for {date} shows the sign-in page
+the calendar data cannot be read without signing in
+they are asked to sign in with Google again
+```
+
+- Google is the mock provider with one calendar per person (`TEST_MODE`); "signs in with Google" completes the OAuth
+  round trip through the test double, no real Google. "they" is the person of the last sign-in step.
+- "may use the calendar": the allow-list of sign-in addresses for the scenario.
+- "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
+- "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
+

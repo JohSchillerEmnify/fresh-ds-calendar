@@ -1,58 +1,52 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { randomBytes } from 'node:crypto';
 import { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
-import { readJson, writeJsonAtomic } from '../../lib/atomicJson.js';
+import type { OAuthBackend, OAuthResult } from '../../auth/oauth.js';
+import { readUserToken, writeUserToken } from '../../auth/people.js';
 
-export const SCOPES = ['https://www.googleapis.com/auth/calendar'];
+/** One OAuth round trip signs in (`openid email`) and connects the calendar. */
+export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar'];
+type Cfg = Pick<AppConfig, 'dataDir' | 'google'>;
+
+const newClient = (config: Cfg) =>
+  new OAuth2Client({ clientId: config.google.clientId ?? undefined, clientSecret: config.google.clientSecret ?? undefined, redirectUri: config.google.redirectUri ?? undefined });
+
 const clients = new Map<string, OAuth2Client>();
-const states = new Map<string, number>();
-const STATE_TTL_MS = 10 * 60_000;
 
-export const tokenFile = (config: Pick<AppConfig, 'dataDir'>) => path.join(config.dataDir, 'google-token.json');
-
-export function storedRefreshToken(config: Pick<AppConfig, 'dataDir' | 'google'>): string | null {
-  return config.google.refreshToken ?? readJson<{ refresh_token?: string }>(tokenFile(config))?.refresh_token ?? null;
-}
-
-export function hasStoredToken(config: Pick<AppConfig, 'dataDir' | 'google'>): boolean {
-  return storedRefreshToken(config) !== null;
-}
-
-/** One shared OAuth client per process so a token obtained via the callback is used immediately. */
-export function getClient(config: Pick<AppConfig, 'dataDir' | 'google'>): OAuth2Client {
-  const k = config.dataDir;
+/** One OAuth client per person (cached), seeded with that person's stored refresh token. */
+export function getUserClient(config: Cfg, sub: string): OAuth2Client {
+  const k = `${config.dataDir}\u0000${sub}`;
   let c = clients.get(k);
   if (!c) {
-    c = new OAuth2Client({ clientId: config.google.clientId ?? undefined, clientSecret: config.google.clientSecret ?? undefined, redirectUri: config.google.redirectUri ?? undefined });
-    const rt = storedRefreshToken(config);
+    c = newClient(config);
+    const rt = readUserToken(config.dataDir, sub);
     if (rt) c.setCredentials({ refresh_token: rt });
     clients.set(k, c);
   }
   return c;
 }
 
-export function startUrl(config: Pick<AppConfig, 'dataDir' | 'google'>): string {
-  const state = randomBytes(16).toString('hex');
-  const now = Date.now();
-  for (const [s, t] of states) if (now - t > STATE_TTL_MS) states.delete(s);
-  if (states.size > 50) states.delete(states.keys().next().value!);
-  states.set(state, now);
-  return getClient(config).generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state });
+/** Stores a person's refresh token (0600) and drops the cached client so the next call uses it. */
+export function storeUserToken(config: Cfg, sub: string, refreshToken: string): void {
+  writeUserToken(config.dataDir, sub, refreshToken);
+  clients.delete(`${config.dataDir}\u0000${sub}`);
 }
 
-export function consumeState(state: string): boolean {
-  const t = states.get(state);
-  states.delete(state);
-  return t !== undefined && Date.now() - t <= STATE_TTL_MS;
-}
+export const hasUserToken = (config: Cfg, sub: string): boolean => readUserToken(config.dataDir, sub) !== null;
 
-export async function exchangeAndStore(config: Pick<AppConfig, 'dataDir' | 'google'>, code: string): Promise<void> {
-  const client = getClient(config);
-  const { tokens } = await client.getToken(code);
-  if (!tokens.refresh_token) throw new Error('Google did not return a refresh token (revoke access and retry)');
-  client.setCredentials(tokens);
-  fs.mkdirSync(config.dataDir, { recursive: true });
-  writeJsonAtomic(tokenFile(config), { refresh_token: tokens.refresh_token }, 0o600);
+/** The real Google side of sign-in. */
+export class GoogleOAuth implements OAuthBackend {
+  constructor(private readonly config: Cfg) {}
+
+  authUrl(state: string): string {
+    return newClient(this.config).generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state });
+  }
+
+  async exchange(code: string): Promise<OAuthResult> {
+    const client = newClient(this.config);
+    const { tokens } = await client.getToken(code);
+    if (!tokens.id_token) throw new Error('Google did not return an id_token');
+    const payload = (await client.verifyIdToken({ idToken: tokens.id_token, audience: this.config.google.clientId ?? undefined })).getPayload();
+    if (!payload?.sub || !payload.email) throw new Error('Google id_token has no email');
+    return { sub: payload.sub, email: payload.email, emailVerified: payload.email_verified === true, name: payload.name ?? null, refreshToken: tokens.refresh_token ?? null };
+  }
 }
