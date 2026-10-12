@@ -52,3 +52,23 @@ Then('{string} is closer to now on the approach bar', async function (this: Worl
   await this.page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect.poll(() => distance(this, title)).toBeLessThan(was - 1);
 });
+
+Given('the approach bar is on with a window of {int} hours', async function (this: World, hours: number) {
+  await this.api.patch('/api/prefs', { approachBar: true, approachWindowHours: hours });
+});
+
+Then('the approach bar shows {string} at its end', async function (this: World, title: string) {
+  await expect(items(this)).toHaveCount(1);
+  await expect(item(this, title)).toHaveAttribute('data-at-end', 'true');
+  // its left edge is in the last quarter of the track
+  await expect.poll(async () => {
+    const bar = await this.page.getByTestId('now-card').getByTestId('approach-bar').boundingBox();
+    const it = await item(this, title).boundingBox();
+    if (!bar || !it) return -1;
+    return (it.x - bar.x) / bar.width;
+  }).toBeGreaterThanOrEqual(0.75);
+});
+
+Then('the approach bar shows {string} and {string}', async function (this: World, a: string, b: string) {
+  await expect.poll(async () => (await items(this).evaluateAll((els) => els.map((e) => e.getAttribute('data-title')))).sort()).toEqual([a, b].sort());
+});

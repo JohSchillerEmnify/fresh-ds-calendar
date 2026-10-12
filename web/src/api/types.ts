@@ -221,3 +221,13 @@ export interface CheckInResponse {
   newToday: boolean;
   motivation: Motivation;
 }
+
+/** Approach bar window lengths in hours (ARCHITECTURE "Labs"). */
+export type ApproachWindowHours = 3 | 6 | 12;
+
+/** Per-person Labs switches (`GET/PATCH /api/prefs`). */
+export interface LabsPrefs {
+  labs: boolean;
+  approachBar: boolean;
+  approachWindowHours: ApproachWindowHours;
+}

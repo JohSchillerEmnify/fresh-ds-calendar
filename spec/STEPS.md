@@ -814,6 +814,9 @@ the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
 I turn on the approach bar and open the week view for {date}
 the approach bar shows {string}, {string} and {string} in this order
+the approach bar shows {string} at its end
+the approach bar is on with a window of {int} hours
+the approach bar shows {string} and {string}
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -930,3 +933,5 @@ Google shows the calendar {string}
 - "does not offer": no filter chip with that calendar's name after "I show the filters".
 - "I turn on {string} in the settings" flips the switch with that label (settings page). "Google shows" = the mock
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
+- Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
+  left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).

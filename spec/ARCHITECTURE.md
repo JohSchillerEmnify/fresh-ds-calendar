@@ -669,13 +669,18 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
   (`clock` store), progress ring.
-- Approach bar (owner v2, 2026-10-13: "the next-event element becomes the timeline"): no bar of its own; with
-  `approachBar` on, the now card's "Next:" line is rendered as a track (`approach-bar`) inside the now card. Left end
-  `approach-now`; the next three timed entries of today (events and task lists with a time, by start) as chips; the
-  track spans now → start of the third (fewer entries: the last one), chips placed proportionally, so the scale
-  tightens as they come closer. Chips are the month view's compact `ItemView` (same colours, title, tap opens the
-  entry), no new chip component. Nothing ahead today → the usual "Nothing else today" line. The current-event and
-  next-task lines are unchanged. The thin bar above every view is removed.
+- Approach bar (owner v3, 2026-10-13: "the next-event element becomes the timeline", then absolute and configurable):
+  no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
+  the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end
+  `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
+  person in prefs, default 3). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
+  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
+  that start within the window (events and task lists with a time, by start, excluding the current event) as chips
+  at their start position; when none is within the window, the next timed entry of today sits at the right end
+  (`data-at-end="true"`, label "in 5 h"). Chips are the month view's compact `ItemView` (same colours, title, tap
+  opens the entry). Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
+  shortened and overlapping with a fade, so the card never grows further (owner: "don't take too much space").
+  Nothing ahead today → the usual "Nothing else today" line. The current-event and next-task lines are unchanged.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
   equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
 - Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all

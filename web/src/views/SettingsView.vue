@@ -7,7 +7,7 @@ import IconDown from '~icons/material-symbols/keyboard-arrow-down';
 import IconAdd from '~icons/material-symbols/add';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS, isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
-import type { AnimationLevel, Category, GardenStyle, Motivation, Prefs, SceneName, ThemeMode, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, Category, GardenStyle, LabsPrefs, Motivation, Prefs, SceneName, ThemeMode, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -38,7 +38,7 @@ const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 
 /** Persist a Labs switch; a refusal rolls back in the store and shows a snackbar. */
-async function saveLabs(p: Partial<Prefs>) {
+async function saveLabs(p: Partial<Prefs & LabsPrefs>) {
   try { await labs.set(p); } catch (e) { ui.notify(e instanceof ApiError ? e.userMessage : 'Could not save settings'); }
 }
 
@@ -85,6 +85,7 @@ function commitHex() {
 const scenes = [{ value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] as const;
 const views = [{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }, { value: 'day', label: 'Day' }] as const;
 const colorOptions = [{ value: '', label: 'Calendar color' }, ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, label: c.name }))];
+const approachWindows = [{ value: '3', label: '3 hours' }, { value: '6', label: '6 hours' }, { value: '12', label: '12 hours' }] as const;
 const levels = [{ value: 'full', label: 'Full' }, { value: 'reduced', label: 'Reduced' }, { value: 'off', label: 'Off' }] as const;
 const warns = [{ value: '0', label: 'Off' }, { value: '5', label: '5 min' }, { value: '10', label: '10 min' }, { value: '15', label: '15 min' }] as const;
 const gardens = [{ value: 'plant', label: 'Single plant' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'off', label: 'Off' }] as const;
@@ -160,7 +161,8 @@ async function resetDemo() {
       <section class="card" aria-labelledby="h-labs">
         <h2 id="h-labs">Labs</h2>
         <div class="row"><div class="grow"><span class="lab">Experimental views</span><span class="sub">Clock, Timeline and Strip in the view switcher</span></div><Switch :model-value="labs.labs" label="Experimental views" data-testid="settings-labs" @update:model-value="saveLabs({ labs: $event })" /></div>
-        <div class="row"><div class="grow"><span class="lab">Approach bar</span><span class="sub">The next three hours above every calendar view</span></div><Switch :model-value="labs.approachBar" label="Approach bar" data-testid="settings-approach-bar" @update:model-value="saveLabs({ approachBar: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Approach bar</span><span class="sub">What comes next today as a track in the now card</span></div><Switch :model-value="labs.approachBar" label="Approach bar" data-testid="settings-approach-bar" @update:model-value="saveLabs({ approachBar: $event })" /></div>
+        <div class="row"><Select class="fw" :model-value="String(labs.approachWindowHours)" :options="[...approachWindows]" label="Approach bar reaches ahead" data-testid="settings-approach-window" @update:model-value="saveLabs({ approachWindowHours: Number($event) as ApproachWindowHours })" /></div>
       </section>
 
       <section class="card" aria-labelledby="h-cal">

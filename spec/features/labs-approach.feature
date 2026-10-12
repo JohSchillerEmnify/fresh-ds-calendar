@@ -1,9 +1,11 @@
 @labs @approach @id:labs-approach-bar
 Feature: Labs: the approach bar
   With the approach bar switched on in the Labs settings, the "Next" line of the now card becomes a track (owner,
-  2026-10-13): "now" at its start, the next three entries with a time today (events and task lists with a time) as
-  small chips placed by how far away they are, the track ending at the third. As time passes the chips move towards
-  "now". The other lines of the now card stay as they are.
+  2026-10-13): "now" at its start and a fixed time window ahead (3, 6 or 12 hours, chosen in the settings, 3 by
+  default), marked with times that thin out as the window grows. The next three entries with a time today (events
+  and task lists with a time) within the window sit on it as small chips at their start time and move towards "now"
+  as time passes. When nothing is within the window, the next entry waits at the end of the track. No "Next:" text
+  is shown while the track is on; the other lines of the now card stay as they are.
 
   Background:
     Given the calendar is empty
@@ -27,3 +29,16 @@ Feature: Labs: the approach bar
     Then the approach bar shows "Dentist" in 60 minutes
     When the time is 2026-10-14 08:45
     Then "Dentist" is closer to now on the approach bar
+
+  Scenario: An entry beyond the window waits at the end of the track
+    Given the time is 2026-10-14 05:00
+    And the approach bar is on
+    When I open the week view for 2026-10-12
+    Then the approach bar shows "Dentist" at its end
+
+  Scenario: A longer window reaches further ahead
+    Given the time is 2026-10-14 08:00
+    And the calendar contains an event "Lunch" on 2026-10-14 from 12:30 to 13:00
+    And the approach bar is on with a window of 6 hours
+    When I open the week view for 2026-10-12
+    Then the approach bar shows "Dentist" and "Lunch"

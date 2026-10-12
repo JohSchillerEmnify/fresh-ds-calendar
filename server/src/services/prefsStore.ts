@@ -12,8 +12,12 @@ export interface ThemeOverrides { glow?: string; entries?: string; corners?: str
 export interface ThemePref { preset: string; overrides: ThemeOverrides }
 export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
 
+/** Window lengths the approach bar offers (ARCHITECTURE "Labs"). */
+export const APPROACH_WINDOWS = [3, 6, 12] as const;
+export type ApproachWindowHours = (typeof APPROACH_WINDOWS)[number];
+
 interface Prefs {
-  hiddenCalendars: string[]; labs: boolean; approachBar: boolean;
+  hiddenCalendars: string[]; labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
   /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
   tasksCalendarId: string | null;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
@@ -22,7 +26,7 @@ interface Prefs {
 }
 
 /** The experimental-feature switches returned by `GET /api/prefs`. */
-export interface LabsPrefs { labs: boolean; approachBar: boolean }
+export interface LabsPrefs { labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours }
 
 /** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, theme, tasks calendar). */
 export class PrefsStore {
@@ -39,6 +43,7 @@ export class PrefsStore {
       hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
       labs: p?.labs === true,
       approachBar: p?.approachBar === true,
+      approachWindowHours: APPROACH_WINDOWS.find((h) => h === p?.approachWindowHours) ?? 3,
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
     };
@@ -76,15 +81,15 @@ export class PrefsStore {
   }
 
   labsPrefs(sub: string): LabsPrefs {
-    const { labs, approachBar } = this.read(sub);
-    return { labs, approachBar };
+    const { labs, approachBar, approachWindowHours } = this.read(sub);
+    return { labs, approachBar, approachWindowHours };
   }
 
   /** Merges the given Labs switches into the person's preferences and returns the result. */
   setLabs(sub: string, patch: Partial<LabsPrefs>): LabsPrefs {
     const p = { ...this.read(sub), ...patch };
     writeJsonAtomic(this.file(sub), p satisfies Prefs);
-    return { labs: p.labs, approachBar: p.approachBar };
+    return { labs: p.labs, approachBar: p.approachBar, approachWindowHours: p.approachWindowHours };
   }
 
   tasksCalendarId(sub: string): string | null {
