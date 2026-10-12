@@ -610,6 +610,14 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 Windows ("Animation effects" off), macOS and phones report `prefers-reduced-motion: reduce`; the app then caps the
 animation level at Reduced (no particles). Settings show a hint while the device asks for less motion and a switch
 `ignoreSystemMotion` (per person, default off) that lets the app's own level apply.
+### Back closes overlays (owner, 2026-10-12)
+
+Every overlay (expanded task list, dialogs and sheets, the expanded phone tray, filter bar, month picker, create menu)
+pushes a history entry when it opens (`history.pushState` with an overlay marker, no route change) and closes on
+`popstate`; closing it by other means goes back over its entry. So the system back gesture/button closes the topmost
+overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
+history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
+all overlays; no per-component history code.
 
 ## 8. Configuration (env)
 

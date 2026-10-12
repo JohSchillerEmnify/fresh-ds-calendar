@@ -533,6 +533,7 @@ I dismiss the transition warning
 ```
 the open tasks tray shows the count {string}
 I open the open tasks tray
+the open tasks tray is collapsed
 the open tasks tray lists {string}
 the open tasks tray shows the task list {string} with items:
 I tick the item {string} in the open tasks tray

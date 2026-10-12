@@ -9,6 +9,7 @@ import { isPhone, acquireViewport } from '@/composables/useViewport';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { createVelocityTracker } from '@/motion/spring';
 import { getMotionLevel } from '@/motion/level';
+import { useOverlayHistory } from '@/lib/overlayHistory';
 
 const props = withDefaults(defineProps<{
   open: boolean; label: string; dismissOnScrim?: boolean; testid?: string;
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<{
   panelAttrs?: Record<string, string>; panelStyle?: Record<string, string>; anchor?: { left: number; top: number; maxH: number } | null; escape?: boolean;
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
+useOverlayHistory(() => props.open, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
 const release = acquireViewport();

@@ -187,3 +187,27 @@ Feature: Navigation and view switching
     When I open the week view for 2026-10-12
     And I click the week header of 2026-10-16
     Then the URL path is "/day/2026-10-16"
+
+  Rule: Going back closes the topmost open overlay first
+
+    @mobile
+    Scenario: Going back closes the open task list instead of leaving the view
+      Given I am using a phone
+      And the calendar contains a task list "Groceries" on 2026-10-14 with items:
+        | item | done |
+        | Milk | no   |
+      When I open the week view for 2026-10-12
+      And I expand the task list "Groceries"
+      And I go back in the browser
+      Then the task list "Groceries" is collapsed
+      And the URL path is "/week/2026-10-12"
+
+    @mobile
+    Scenario: Going back with the open tasks tray expanded collapses the tray
+      Given I am using a phone
+      When I open the week view for 2026-10-12
+      And I open the open tasks tray
+      And I go back in the browser
+      Then the open tasks tray is collapsed
+      And the URL path is "/week/2026-10-12"
+
