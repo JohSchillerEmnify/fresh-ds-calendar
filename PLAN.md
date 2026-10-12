@@ -5,7 +5,7 @@
   task-list UI (expandable lists, reward checkbox, open-tasks tray, filters, estimates).
 - Then: merge, full Playwright run (mcr.microsoft.com/playwright:v1.64.0-noble), fixes, review agent, deploy, CHANGELOG.
 - Pending spec edits: settings `scene` field + `mordor` preset in spec/API.md.
-- Immich stopped for RAM; restart at the end: cd /home/sauron/docker-compose/immich && docker compose start
+- Immich is running again (started by something else ~02:20); no restart needed. Do not stop it again without asking.
 - Owner actions: HTTPS via /home/sauron/docker-compose/traefik/HTTPS-GUIDE.md; Google OAuth setup (spec/ARCHITECTURE.md).
 
 ## Status 2026-10-12 ~07:30 (session limit hit again; resets 09:50)
@@ -25,3 +25,10 @@
 5. SHELVED by owner 07:5x (focus on core): range slider to choose how many days the calendar shows: 1,2,3,4,5,6,7 days, then 2,3,4 weeks (custom N-day view,
    like Google's "custom view"). Implement as a view setting/segmented control + slider; week keeps Monday start;
    persist in settings (defaultView/rangeDays) and URL. Add spec scenarios (spec/features/range.feature + STEPS.md + ACs).
+
+## Process rules (owner 2026-10-12)
+- Deploy previews BEFORE merging (active development): `scripts/preview.sh up <branch-name>` serves the worktree
+  calendar-wt/<name> at http://<name>.cal.mordor.local (mock data, isolated). `down <name>` removes it. Tell the owner the URL, merge after OK
+  (or merge when owner is asleep, but still keep previews of big UI changes up for review).
+- Shelved: range/slider view.
+- Load: serialize Playwright/docker runs with `flock /tmp/calendar-e2e.lock <cmd>`.
