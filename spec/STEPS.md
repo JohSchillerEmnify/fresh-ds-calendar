@@ -908,6 +908,7 @@ the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
 the support cat does not appear
+the title of the task list {string} is struck through
 ```
 
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
@@ -942,3 +943,6 @@ Google shows the calendar {string}
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
+- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
+  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
+  element over it).
