@@ -18,8 +18,11 @@ case "$cmd" in
     [ -f "$dir/Dockerfile" ] || { echo "no Dockerfile in $dir" >&2; exit 1; }
     host="$name.$BASE"
     cname="calendar-preview-$name"
-    echo "==> building image calendar-preview:$name from $dir"
-    docker build -q -t "calendar-preview:$name" "$dir" >/dev/null
+    echo "==> building image calendar-preview:$name from $dir (low priority, waits for other heavy jobs)"
+    exec 8>/tmp/calendar-heavy.lock; flock 8
+    renice -n 19 $$ >/dev/null 2>&1 || true
+    nice -n 19 docker build -q -t "calendar-preview:$name" "$dir" >/dev/null
+    flock -u 8
     docker rm -f "$cname" >/dev/null 2>&1 || true
     mkdir -p "/tmp/calendar-preview-data/$name"
     docker run -d --name "$cname" --restart unless-stopped --network proxy-network \
