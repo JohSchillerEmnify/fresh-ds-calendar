@@ -15,14 +15,17 @@ When('I open the path {string}', async function (this: World, path: string) {
 
 When('I open the month view for {month}', async function (this: World, month: string) {
   await this.page.goto(`/month/${month}`);
+  await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
 When('I open the week view for {date}', async function (this: World, date: string) {
   await this.page.goto(`/week/${date}`);
+  await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
 When('I open the day view for {date}', async function (this: World, date: string) {
   await this.page.goto(`/day/${date}`);
+  await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
 /** Click a period navigation button and wait until the route changed. */
