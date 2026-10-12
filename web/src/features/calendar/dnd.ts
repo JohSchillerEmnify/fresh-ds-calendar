@@ -17,6 +17,7 @@ import type { CalendarEvent, CalendarItem, TaskList, UpdateEventInput, UpdateTas
 import type { ItemVariant } from '@/extensions/registry';
 import type { Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
+import { isPhone } from '@/composables/useViewport';
 import { createCellGrid, createSlotGrid, haptic, useDraggable, type DragContext, type DropTarget } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -30,6 +31,8 @@ export interface MoveTarget {
   date: string;
   /** Start minute of day (time grid); null = keep the time of day (month, all-day row). */
   minutes: number | null;
+  /** Dropped on an all-day cell (not the month): task lists lose their time. */
+  allDay?: boolean;
 }
 
 export interface MovePlan {
@@ -41,11 +44,11 @@ export interface MovePlan {
 export function planMove(seg: Segment, target: MoveTarget, tz: string): MovePlan | null {
   const item = seg.item;
   if (item.kind === 'tasklist') {
-    const timed = item.time !== null;
-    const time = timed && target.minutes !== null ? minutesToTime(target.minutes) : item.time;
+    // time grid -> gets that time (snapped); all-day row -> loses it; month -> keeps whatever it had
+    const time = target.minutes !== null ? minutesToTime(target.minutes) : target.allDay ? null : item.time;
     if (target.date === item.date && time === item.time) return null;
     const patch: UpdateTaskListInput = { date: target.date };
-    if (timed && time !== item.time) patch.time = time;
+    if (time !== item.time) patch.time = time;
     return { next: { ...item, date: target.date, time }, patch };
   }
   const ev: CalendarEvent = item;
@@ -117,9 +120,11 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
     }
     const tg = node.closest('.tg');
     if (!tg) return null;
-    if (!slotsMode()) {
+    // task lists may cross between the all-day row and the time grid (gain / lose their time); events keep their kind
+    if (!slotsMode() || segment().item.kind === 'tasklist') {
       const t = createCellGrid<CellKey>({ cells: () => cells(tg, '[data-testid="week-allday-cell"],[data-testid="day-allday-area"]') })(x, y, ctx);
-      return t ? { ...t, key: { date: t.key, minutes: null } } : null;
+      if (t) return { ...t, key: { date: t.key, minutes: null, allDay: true } };
+      if (!slotsMode() && segment().item.kind !== 'tasklist') return null;
     }
     const grid = tg.querySelector<HTMLElement>('[data-testid="time-grid"]');
     const cols = [...tg.querySelectorAll<HTMLElement>('[data-testid="week-day-column"],[data-testid="day-column"]')];
@@ -133,14 +138,13 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
 
   function onTarget(t: DropTarget<MoveTarget> | null) {
     const seg = segment();
-    if (slotsMode()) {
-      dragPreview.value = t && t.key.minutes !== null
-        ? { date: t.key.date, minutes: t.key.minutes, durationMin: Math.max(15, seg.endMin - seg.startMin || 30) }
-        : null;
-      return;
-    }
+    const timedTarget = !!t && t.key.minutes !== null;
+    dragPreview.value = t && timedTarget
+      ? { date: t.key.date, minutes: t.key.minutes!, durationMin: Math.max(15, seg.endMin - seg.startMin || 30) }
+      : null;
+    if (slotsMode() && seg.item.kind !== 'tasklist') return;
     const root = el.value?.closest('[data-testid="month-view"]') ?? el.value?.closest('.tg') ?? null;
-    const cell = t && root ? [...root.querySelectorAll('[data-date]')].find((c) => (c as HTMLElement).dataset.date === t.key.date
+    const cell = t && !timedTarget && root ? [...root.querySelectorAll('[data-date]')].find((c) => (c as HTMLElement).dataset.date === t.key.date
       && ['month-cell', 'week-allday-cell', 'day-allday-area'].includes((c as HTMLElement).dataset.testid ?? '')) ?? null : null;
     marked = setDropAttr(marked, cell);
   }
@@ -162,4 +166,15 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
       await applyMove(segment(), t.key);
     },
   });
+}
+
+/**
+ * Click handler for item cards. In the phone month a tap opens the day (the click bubbles to the cell), elsewhere it opens
+ * the item. A click right after a drag is swallowed by the drag controller before it gets here.
+ */
+export function cardClick(e: MouseEvent, open: () => void): void {
+  const month = (e.currentTarget as Element | null)?.closest('[data-testid="month-view"]');
+  if (month && isPhone.value) return;
+  e.stopPropagation();
+  open();
 }

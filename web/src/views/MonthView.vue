@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useElementSize } from '@vueuse/core';
 import { isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
+import { allotHeights } from '@/features/tasklists/layout';
 import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
@@ -20,9 +22,23 @@ const segs = useDaySegments();
 const weeks = computed(() => monthGrid(cal.anchor));
 /** Entries per cell: phone 2, desktop 3, calm mode 2. */
 const limit = computed(() => (isPhone.value || settings.settings.calmMode ? 2 : 3));
+const gridEl = ref<HTMLElement | null>(null);
+const { height: gridH } = useElementSize(gridEl);
+/** Pixels one entry may take: the cell minus day number, paddings, gaps and the "+n" line, shared by need (task lists get what their items need). */
 function visible(date: string) {
   const all = segs(date);
-  return { shown: all.slice(0, limit.value), more: Math.max(0, all.length - limit.value) };
+  const shown = all.slice(0, limit.value);
+  const more = Math.max(0, all.length - limit.value);
+  const cellH = gridH.value / weeks.value.length;
+  let heights: number[] = [];
+  if (cellH > 0 && shown.length) {
+    const phone = isPhone.value;
+    const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5;
+    const avail = cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - (shown.length - 1) * (phone ? 2 : 3) - (more ? 14 : 0) - 2;
+    const needs = shown.map((s) => (s.item.kind === 'tasklist' ? titleH + Math.min(s.item.items.length, 8) * rowH + extra : phone ? 16 : 18));
+    heights = allotHeights(needs, avail, phone ? 16 : 18);
+  }
+  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more };
 }
 </script>
 
@@ -32,7 +48,7 @@ function visible(date: string) {
     <div class="weekdays" role="row">
       <div v-for="w in WEEKDAY_LABELS" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
-    <div class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
+    <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
       <template v-for="week in weeks" :key="toIsoDate(week[0])">
         <div
           v-for="day in week" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
@@ -41,7 +57,7 @@ function visible(date: string) {
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div class="chips">
-            <ItemView v-for="s in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : isPhone ? 'chip' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
+            <ItemView v-for="{ s, h } in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
           </div>
           <button v-if="visible(toIsoDate(day)).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
             +{{ visible(toIsoDate(day)).more }}{{ isPhone ? '' : ' more' }}
@@ -67,7 +83,6 @@ function visible(date: string) {
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
 .chips { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
 .more { font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); text-align: left; padding: 0 4px; }
-.phone .chips { pointer-events: none; }
 .phone .more { pointer-events: none; text-align: center; }
 .phone .cell { cursor: pointer; padding: 2px 1px 0; }
 .phone .num { width: 26px; height: 26px; }

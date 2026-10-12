@@ -68,7 +68,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
     <div class="alldays">
       <div class="gutter" />
       <div v-for="c in cols" :key="c.date" class="adcol" :data-testid="ids.all" :data-date="c.date">
-        <ItemView v-for="s in c.top" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : 'chip'" />
+        <ItemView v-for="s in c.top" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" />
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
@@ -108,6 +108,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .head.today .dn { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .head.today .dow { color: var(--md-sys-color-primary); }
 .alldays { border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.tg:has([data-dragging='true']) .adcol { min-height: 30px; }
 .adcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 1px 4px; min-height: 6px; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .grid { position: relative; display: grid; grid-template-columns: var(--gw) repeat(var(--n), minmax(0, 1fr)); height: calc(24 * var(--hh)); }

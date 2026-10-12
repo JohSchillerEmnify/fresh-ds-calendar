@@ -22,3 +22,11 @@ export const firstOpenItem = (tl: TaskList) => tl.items.find((i) => !i.done) ?? 
 export const isComplete = (tl: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => tl.totalCount > 0 && tl.doneCount >= tl.totalCount;
 /** Class for one item name in the card: struck through when ticked. */
 export const itemClass = (done: boolean): string => (done ? 'it done' : 'it');
+
+export type CheckState = 'empty' | 'partial' | 'done';
+/** Glyph state of the list's checkbox: empty, partly filled (fill 15..85 %) or checked. */
+export function checkState(done: number, total: number): { state: CheckState; fill: number } {
+  if (total <= 0 || done <= 0) return { state: 'empty', fill: 0 };
+  if (done >= total) return { state: 'done', fill: 100 };
+  return { state: 'partial', fill: Math.min(85, Math.max(15, Math.round((done / total) * 100))) };
+}
