@@ -13,7 +13,7 @@ Visual checks: `pnpm build && node scripts/mock-api.mjs 4173` (serves `dist/` pl
 | `src/stores/` | `clock` (`useClock`), `settings` (+ categories, theme wiring), `items` (range cache), `sync`, `calendar` (period + focus date), `ui` (picker, filter bar, dialog, snackbars) |
 | `src/lib/` | `dates.ts` (pure date math, titles, ranges), `items.ts` (segments, ordering, column packing, filter semantics), `timers.ts` (leak-safe timers/listeners), `ripple.ts` (`v-ripple`) |
 | `src/components/m3/` | the kit: `Button`, `IconButton`, `Fab`, `TopAppBar`, `NavigationBar`, `NavigationRail`, `AdaptiveSheet` (bottom sheet on phones, modal from 768 px), `ConfirmDialog`, `TextField`, `Select`, `Menu`, `Chip`, `Switch`, `SegmentedButton`, `Snackbar`, `ColorSwatchPicker` |
-| `src/components/shell/` | `AppTopBar`, `MonthPicker`, `FilterBar`, `CreateFab`, `SyncErrorBanner`, `SyncStatus`, `InstallPrompts`, scene placeholder |
+| `src/components/shell/` | `AppTopBar`, `MonthPicker`, `FilterBar`, `CreateFab`, `SyncErrorBanner`, `SyncStatus`, `InstallPrompts`, |
 | `src/components/calendar/` | `TimeGrid` (week/day), `ItemView` + `BasicItem` (default chip/card/block renderer) |
 | `src/views/` | `MonthView`, `WeekView`, `DayView` (eager chunks per route), `YearView`, `SettingsView` (lazy) |
 | `src/extensions/` | `registry.ts` (all extension points), `create.ts` (new-item defaults), `builtin.ts` |
@@ -46,10 +46,11 @@ Other hooks:
 - `useNav()`: `go/prev/next/today/switchView/pickDay/openDay` (keeps the filter query). `openCreate(id, date?, time?)` in `extensions/create.ts`.
 - `useUiStore().notify(text, { action, duration, testid })` for snackbars (transition warning, streak message).
 - `TimeGrid` exposes `scrollToMinutes(min)`; blocks are `top = start/60 * hourHeight`, min height 24 px, Google-like column packing in `lib/items.ts#packColumns`.
-- Motion: the shell mirrors `html[data-motion]` (min of setting, calm, system) and `html[data-calm]` in `settings.installAppearance()`.
-  When `src/motion/level.ts` is merged, call `useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode)` in `App.vue` and drop the mirror.
-- Top bar scene: `AppTopBar` mounts `features/motivation/TopBarScene.vue` when that file exists (resolved with `import.meta.glob`), otherwise `components/shell/TopBarScenePlaceholder.vue`.
-  It receives `:scene` = `settings.effectiveScene` (`mordor` always; `sunflowers` only with garden `sunflowers`; else `none`).
+- Motion/motivation (merged from feat/web-motion): `App.vue` feeds `animationLevel`/`calmMode` to `useAnimationLevel`, `sounds` to `setSoundsEnabled`;
+  `main.ts` calls `installMotion()`. `AppTopBar` mounts `<TopBarScene :scene="settings.effectiveScene">` (`mordor` always; `sunflowers` only with garden
+  `sunflowers`; else `none`) in the `background` slot and `<LeadingWidgets>` in `leading-widgets`. `api.onMotivationChanged` triggers `motivation.refresh()`.
+  Swipe navigation bails when `isGestureClaimed()`. `/lab` is the lazy MotionLab route. See `src/motion/README.md` for the reward/drag APIs the event and task list UI should use.
+- `settings.installAppearance()` sets `data-theme`, the theme-color meta and `html[data-calm]`; `html[data-motion]` is owned by `motion/level.ts`.
 
 ## Conventions
 
@@ -62,7 +63,7 @@ Other hooks:
 ## API assumptions beyond spec/API.md
 
 - `Settings.scene` (`sunflowers|mordor|none`), sent in `PATCH /api/settings`; falls back to `localStorage cal.scene` if the server omits it.
-- `POST /api/demo/reset` for "Reset demo data" (shown only when `/api/config.provider === 'mock'`). The server agent must provide it (or tell us the real path).
+- `POST /api/demo/reset` for "Reset demo data" (exists on the server; shown only when `/api/config.provider === 'mock'`). Etags are opaque: sent verbatim.
 - Dialog props shape and testids `settings-theme-mordor`, `settings-scene`, `settings-category-up/down`, `settings-reset-demo` are additions to the catalog.
 - `year-month` carries `data-month="YYYY-MM"`.
 

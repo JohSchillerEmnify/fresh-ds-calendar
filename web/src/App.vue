@@ -19,11 +19,15 @@ import { useNav } from '@/composables/useNav';
 import { bindSwipe } from '@/composables/useSwipe';
 import { dialogs, trayComponents } from '@/extensions/registry';
 import type { ViewKind } from '@/lib/dates';
+import { api } from '@/api/client';
+import { useMotivationStore } from '@/features/motivation';
+import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useFilters } from '@/composables/useFilters';
 import { useSyncStore } from '@/stores/sync';
+import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 
 const route = useRoute();
@@ -33,6 +37,10 @@ const nav = useNav();
 const sync = useSyncStore();
 const clock = useClockStore();
 const filters = useFilters();
+const settings = useSettingsStore();
+const motivation = useMotivationStore();
+useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode);
+watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });
 
 const isCalendar = computed(() => !!route.meta.view);
 const items: NavItem[] = [
@@ -47,14 +55,14 @@ const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefin
 const swipeArea = ref<HTMLElement | null>(null);
 let undo: Array<() => void> = [];
 onMounted(() => {
-  undo.push(acquireViewport(), initInstall());
+  undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }));
   clock.startTicker();
   sync.start();
   if (swipeArea.value) {
     undo.push(bindSwipe(swipeArea.value, {
       onLeft: () => void nav.next(),
       onRight: () => void nav.prev(),
-      disabled: () => ui.pickerOpen || !!ui.dialog || !isCalendar.value,
+      disabled: () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !isCalendar.value,
     }));
   }
 });
