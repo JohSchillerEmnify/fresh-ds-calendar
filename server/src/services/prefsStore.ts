@@ -12,6 +12,10 @@ export interface ThemeOverrides { glow?: string; entries?: string; corners?: str
 export interface ThemePref { preset: string; overrides: ThemeOverrides }
 export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
 
+/** How often the emotional support cat comes by when a task list is finished. */
+export type SupportCat = 'off' | 'sometimes' | 'always';
+export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'always'];
+
 /** How far ahead the approach bar reaches, in whole hours (ARCHITECTURE "Labs"): 3, 6, 12 or any custom value. */
 export const APPROACH_WINDOW_MIN = 1;
 export const APPROACH_WINDOW_MAX = 24;
@@ -22,21 +26,25 @@ export function isApproachWindow(v: unknown): v is ApproachWindowHours {
   return Number.isInteger(v) && (v as number) >= APPROACH_WINDOW_MIN && (v as number) <= APPROACH_WINDOW_MAX;
 }
 
-interface Prefs {
-  hiddenCalendars: string[]; labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
+/** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat). */
+export interface Prefs {
+  labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
   /** The Approaching card above the calendar views (ARCHITECTURE "Approaching card"). */
   approachingCard: boolean;
-  /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
-  tasksCalendarId: string | null;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
   tasksCalendarVisible: boolean;
+  supportCat: SupportCat;
+}
+
+/** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
+interface StoredPrefs extends Prefs {
+  hiddenCalendars: string[];
+  /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
+  tasksCalendarId: string | null;
   theme?: ThemePref;
 }
 
-/** The switches returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card). */
-export interface LabsPrefs { labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours; approachingCard: boolean }
-
-/** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, theme, tasks calendar). */
+/** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, support cat, theme, tasks calendar). */
 export class PrefsStore {
   constructor(private readonly dataDir: string) {}
 
@@ -44,8 +52,8 @@ export class PrefsStore {
     return path.join(userDir(this.dataDir, sub), 'prefs.json');
   }
 
-  private read(sub: string): Prefs {
-    const p = readJson<Partial<Prefs>>(this.file(sub));
+  private read(sub: string): StoredPrefs {
+    const p = readJson<Partial<StoredPrefs>>(this.file(sub));
     return {
       ...p,
       hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
@@ -55,12 +63,13 @@ export class PrefsStore {
       approachingCard: p?.approachingCard !== false,
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
+      supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
     };
   }
 
-  private merge(sub: string, patch: Partial<Prefs>): Prefs {
+  private merge(sub: string, patch: Partial<StoredPrefs>): StoredPrefs {
     const p = { ...this.read(sub), ...patch };
-    writeJsonAtomic(this.file(sub), p satisfies Prefs);
+    writeJsonAtomic(this.file(sub), p satisfies StoredPrefs);
     return p;
   }
 
@@ -79,26 +88,29 @@ export class PrefsStore {
     const prev = this.read(sub);
     const cur = this.theme(sub);
     const theme: ThemePref = { preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides };
-    writeJsonAtomic(this.file(sub), { ...prev, theme } satisfies Prefs);
+    writeJsonAtomic(this.file(sub), { ...prev, theme } satisfies StoredPrefs);
     return theme;
   }
 
   setHidden(sub: string, calendarId: string, hidden: boolean): void {
     const p = this.read(sub);
     const rest = p.hiddenCalendars.filter((i) => i !== calendarId);
-    writeJsonAtomic(this.file(sub), { ...p, hiddenCalendars: hidden ? [...rest, calendarId] : rest } satisfies Prefs);
+    writeJsonAtomic(this.file(sub), { ...p, hiddenCalendars: hidden ? [...rest, calendarId] : rest } satisfies StoredPrefs);
   }
 
-  labsPrefs(sub: string): LabsPrefs {
-    const { labs, approachBar, approachWindowHours, approachingCard } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard };
+  /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
+  labsPrefs(sub: string): Prefs {
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat };
   }
 
-  /** Merges the given Labs switches into the person's preferences and returns the result. */
-  setLabs(sub: string, patch: Partial<LabsPrefs>): LabsPrefs {
-    const p = { ...this.read(sub), ...patch };
-    writeJsonAtomic(this.file(sub), p satisfies Prefs);
-    return { labs: p.labs, approachBar: p.approachBar, approachWindowHours: p.approachWindowHours, approachingCard: p.approachingCard };
+  /**
+   * Merges the given switches into the person's preferences and returns the result. `tasksCalendarVisible` is not
+   * accepted here: it changes Google first, through `TasksCalendar.setVisible` and `setTasksCalendarVisible`.
+   */
+  setLabs(sub: string, patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>>): Prefs {
+    this.merge(sub, patch);
+    return this.labsPrefs(sub);
   }
 
   tasksCalendarId(sub: string): string | null {

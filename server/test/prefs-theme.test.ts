@@ -23,5 +23,6 @@ describe('per-person theme', () => {
   it('rejects unknown presets and values', async () => {
     expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Halloween' })).status).toBe(400);
     expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { glow: 'blinding' } })).status).toBe(400);
+    expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { cat: 'off' } })).status).toBe(400);
   });
 });

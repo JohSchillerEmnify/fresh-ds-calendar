@@ -97,13 +97,24 @@ export type AnimationLevel = 'full' | 'reduced' | 'off';
 export type GardenStyle = 'plant' | 'sunflowers' | 'off';
 /** Top app bar background scene (owner addition, not yet in API.md; see web/README.md). */
 export type SceneName = 'sunflowers' | 'mordor' | 'none';
+/** How often the emotional support cat comes by when a task list is finished (per person, `GET/PATCH /api/prefs`). */
+export type SupportCatSetting = 'off' | 'sometimes' | 'always';
 
-/** Per-person preferences (`GET/PATCH /api/prefs`). */
+/** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
+export type ApproachWindowHours = number;
+
+/**
+ * Per-person preferences (`GET/PATCH /api/prefs`): Labs, the approach track and window, the Approaching card, tasks
+ * calendar visibility and the support cat.
+ */
 export interface Prefs {
   labs: boolean;
   approachBar: boolean;
+  approachWindowHours: ApproachWindowHours;
+  approachingCard: boolean;
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;
+  supportCat: SupportCatSetting;
 }
 
 export interface Settings {
@@ -220,15 +231,4 @@ export interface CheckInResponse {
   checkedInToday: true;
   newToday: boolean;
   motivation: Motivation;
-}
-
-/** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
-export type ApproachWindowHours = number;
-
-/** Per-person switches (`GET/PATCH /api/prefs`): Labs, the approach track and window, the Approaching card. */
-export interface LabsPrefs {
-  labs: boolean;
-  approachBar: boolean;
-  approachWindowHours: ApproachWindowHours;
-  approachingCard: boolean;
 }

@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes' };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -44,5 +44,23 @@ describe('prefs (Labs switches)', () => {
     await t.json('PATCH', '/api/prefs', { labs: true });
     await t.req('POST', '/api/__test/reset');
     expect((await t.json('GET', '/api/prefs')).body.labs).toBe(false);
+  });
+
+  it('keeps the support cat setting per person, independent of the theme', async () => {
+    expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
+    await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always' });
+    expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
+  });
+
+  it('rejects an unknown support cat value', async () => {
+    expect((await t.json('PATCH', '/api/prefs', { supportCat: 'maybe' })).status).toBe(400);
+    expect((await t.json('PATCH', '/api/prefs', { supportCat: true })).status).toBe(400);
+    expect((await t.json('GET', '/api/prefs')).body.supportCat).toBe('sometimes');
+  });
+
+  it('validates the whole patch before changing Google or the stored prefs', async () => {
+    expect((await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: true, labs: true, supportCat: 'maybe' })).status).toBe(400);
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ labs: false, tasksCalendarVisible: false });
   });
 });

@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
-import type { ApproachWindowHours, LabsPrefs, Prefs } from '@/api/types';
+import type { ApproachWindowHours, Prefs, SupportCatSetting } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
- * approach track and window length (both on by default, like the server) and "Show tasks calendar in Google".
+ * approach track and window length (both on by default, like the server), "Show tasks calendar in Google" and the
+ * support cat.
  */
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
@@ -13,13 +14,15 @@ export const usePrefsStore = defineStore('prefs', () => {
   const approachWindowHours = ref<ApproachWindowHours>(3);
   const approachingCard = ref(true);
   const tasksCalendarVisible = ref(false);
+  const supportCat = ref<SupportCatSetting>('sometimes');
 
-  function apply(p: Partial<Prefs & LabsPrefs>): void {
+  function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
     approachBar.value = p.approachBar ?? approachBar.value;
     approachWindowHours.value = p.approachWindowHours ?? approachWindowHours.value;
     approachingCard.value = p.approachingCard ?? approachingCard.value;
     tasksCalendarVisible.value = p.tasksCalendarVisible ?? tasksCalendarVisible.value;
+    supportCat.value = p.supportCat ?? supportCat.value;
   }
 
   async function load(): Promise<void> {
@@ -28,11 +31,11 @@ export const usePrefsStore = defineStore('prefs', () => {
     } catch { /* offline or signed out: switches keep their defaults */ }
   }
 
-  /** Optimistic switch change; rolls back when the server refuses. */
-  async function set(p: Partial<Prefs & LabsPrefs>): Promise<void> {
+  /** Optimistic change; rolls back when the server refuses. */
+  async function set(p: Partial<Prefs>): Promise<void> {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
-      tasksCalendarVisible: tasksCalendarVisible.value,
+      tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
     };
     apply(p);
     try {
@@ -43,5 +46,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, load, set };
 });

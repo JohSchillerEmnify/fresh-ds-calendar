@@ -7,7 +7,7 @@ import IconDown from '~icons/material-symbols/keyboard-arrow-down';
 import IconAdd from '~icons/material-symbols/add';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS, isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, Category, GardenStyle, LabsPrefs, Motivation, Prefs, SceneName, ThemeMode, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, Category, GardenStyle, Motivation, Prefs, SceneName, SupportCatSetting, ThemeMode, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -37,8 +37,8 @@ const items = useItemsStore();
 const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 
-/** Persist a Labs switch; a refusal rolls back in the store and shows a snackbar. */
-async function saveLabs(p: Partial<Prefs & LabsPrefs>) {
+/** Persist a per-person preference (Labs switch, support cat, tasks calendar); a refusal rolls back in the store and shows a snackbar. */
+async function savePrefs(p: Partial<Prefs>) {
   try { await labs.set(p); } catch (e) { ui.notify(e instanceof ApiError ? e.userMessage : 'Could not save settings'); }
 }
 
@@ -98,11 +98,12 @@ function commitCustomHours() {
   const h = Number(customHours.value.trim());
   if (!Number.isInteger(h) || h < 1 || h > 24) { customHoursError.value = 'Enter a whole number from 1 to 24'; return; }
   customHoursError.value = '';
-  if (h !== labs.approachWindowHours) void saveLabs({ approachWindowHours: h });
+  if (h !== labs.approachWindowHours) void savePrefs({ approachWindowHours: h });
 }
 const levels = [{ value: 'full', label: 'Full' }, { value: 'reduced', label: 'Reduced' }, { value: 'off', label: 'Off' }] as const;
 const warns = [{ value: '0', label: 'Off' }, { value: '5', label: '5 min' }, { value: '10', label: '10 min' }, { value: '15', label: '15 min' }] as const;
 const gardens = [{ value: 'plant', label: 'Single plant' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'off', label: 'Off' }] as const;
+const supportCats = [{ value: 'off', label: 'Off' }, { value: 'sometimes', label: 'Sometimes' }, { value: 'always', label: 'Every time' }] as const;
 
 // --- categories ---------------------------------------------------------------------------
 const editing = ref<Category | null>(null);
@@ -174,20 +175,20 @@ async function resetDemo() {
 
       <section class="card" aria-labelledby="h-labs">
         <h2 id="h-labs">Labs</h2>
-        <div class="row"><div class="grow"><span class="lab">Experimental views</span><span class="sub">Clock, Timeline and Strip in the view switcher</span></div><Switch :model-value="labs.labs" label="Experimental views" data-testid="settings-labs" @update:model-value="saveLabs({ labs: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Experimental views</span><span class="sub">Clock, Timeline and Strip in the view switcher</span></div><Switch :model-value="labs.labs" label="Experimental views" data-testid="settings-labs" @update:model-value="savePrefs({ labs: $event })" /></div>
       </section>
 
       <section class="card" aria-labelledby="h-cal">
         <h2 id="h-cal">Calendar</h2>
         <div class="row"><Select class="fw" :model-value="s.defaultView" :options="[...views]" label="Default view" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
         <div class="row"><Select class="fw" :model-value="s.defaultEventColorId ?? ''" :options="colorOptions" label="Default event color" data-testid="settings-default-event-color" @update:model-value="save({ defaultEventColorId: $event || null })" /></div>
-        <div class="row"><div class="grow"><span class="lab">Approaching card</span><span class="sub">What is on now and next, above the calendar</span></div><Switch :model-value="labs.approachingCard" label="Approaching card" data-testid="settings-approaching-card" @update:model-value="saveLabs({ approachingCard: $event })" /></div>
-        <div class="row"><div class="grow"><span class="lab">Approaching track</span><span class="sub">What comes next today as a track in the Approaching card</span></div><Switch :model-value="labs.approachBar" label="Approaching track" data-testid="settings-approach-bar" @update:model-value="saveLabs({ approachBar: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Approaching card</span><span class="sub">What is on now and next, above the calendar</span></div><Switch :model-value="labs.approachingCard" label="Approaching card" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Approaching track</span><span class="sub">What comes next today as a track in the Approaching card</span></div><Switch :model-value="labs.approachBar" label="Approaching track" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" /></div>
         <div class="row">
-          <Select class="grow" :model-value="String(labs.approachWindowHours)" :options="approachWindows" label="Track reaches ahead" data-testid="settings-approach-window" @update:model-value="saveLabs({ approachWindowHours: Number($event) as ApproachWindowHours })" />
+          <Select class="grow" :model-value="String(labs.approachWindowHours)" :options="approachWindows" label="Track reaches ahead" data-testid="settings-approach-window" @update:model-value="savePrefs({ approachWindowHours: Number($event) as ApproachWindowHours })" />
           <TextField v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" label="Hours" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
         </div>
-        <div class="row"><div class="grow"><span class="lab">Show tasks calendar in Google</span><span class="sub">Task lists stay in the app either way</span></div><Switch :model-value="labs.tasksCalendarVisible" label="Show tasks calendar in Google" data-testid="settings-tasks-calendar-visible" @update:model-value="saveLabs({ tasksCalendarVisible: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Show tasks calendar in Google</span><span class="sub">Task lists stay in the app either way</span></div><Switch :model-value="labs.tasksCalendarVisible" label="Show tasks calendar in Google" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
       </section>
 
       <section class="card" aria-labelledby="h-focus">
@@ -200,6 +201,7 @@ async function resetDemo() {
         <div class="row col"><span class="lab">Warn before an event starts</span><SegmentedButton :model-value="String(s.transitionWarningMinutes)" :options="[...warns]" label="Transition warning" data-testid="settings-transition-warning" @update:model-value="save({ transitionWarningMinutes: Number($event) as 0 | 5 | 10 | 15 })" /></div>
         <div class="row"><span class="lab grow">Streak flame</span><Switch :model-value="s.streakFlame" label="Streak flame" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
         <div class="row col"><span class="lab">Garden</span><SegmentedButton :model-value="s.garden" :options="[...gardens]" label="Garden" data-testid="settings-garden" @update:model-value="save({ garden: $event as GardenStyle })" /></div>
+        <div class="row col"><span class="lab">Support cat</span><SegmentedButton :model-value="labs.supportCat" :options="[...supportCats]" label="Support cat" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" /></div>
         <div v-if="currentStreak !== null" class="row"><span class="lab grow">Current streak</span><StreakFlame :count="currentStreak" /></div>
         <div class="row"><span class="lab grow">Best streak</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>
       </section>

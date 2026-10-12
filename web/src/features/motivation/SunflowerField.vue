@@ -114,6 +114,7 @@ defineExpose({ root });
       :key="f.i"
       class="sf"
       data-testid="sunflower"
+      data-part="sunflower"
       :style="{ left: f.left + '%', height: f.h + 'px', width: f.h * 0.625 + 'px', '--delay': f.delay + 's', '--dur': f.dur + 's', '--sign': f.sign }"
     >
       <svg class="sf-svg" viewBox="0 0 40 64" :style="{ transform: `rotate(${DROOP[mood] * f.sign}deg)` }"><use href="#mo-sunflower" /></svg>

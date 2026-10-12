@@ -910,6 +910,26 @@ the event {string} glows
   container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
   vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
 
+## Scenes and the support cat (`@scenes`, `@cat`)
+
+```
+the top bar scene shows {string}, {string}, {string} and {string}
+the support cat comes by on the next finished list
+the support cat is set to {string} in the settings
+the support cat appears and is gone within {int} ms
+the support cat does not appear
+```
+
+- Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
+  "butterfly" part is present for the check.
+- Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
+  `sunflower`, `sun`, `butterfly`, `cat`); the step lowercases and hyphenates the names. "I choose the theme" without
+  a prior "I open the theme menu" opens it from the week view for today first.
+- "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
+  `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
+  reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in
+  `settings-support-cat` (values `off|sometimes|always`, labels Off/Sometimes/Every time) and waits for the save. "does not appear": no `support-cat` inserted within 4 000 ms after the tick.
+
 ## Tasks calendar (`@tasks-calendar`)
 
 ```
