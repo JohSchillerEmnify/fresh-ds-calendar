@@ -804,6 +804,6 @@ in the strip {string} is about {int} times as tall as {string}
 - Labs v2 (owner feedback): sizes are always proportional to duration (time blindness), "about N times" allows ±15 %;
   all-day bands are `timeline-allday` / `strip-allday` above the timed area; clock labels are `clock-label`
   (`data-title`) next to or along each arc.
-- Phone timeline (owner): vertical axis (`timeline` has `data-orientation="vertical"`, later items have larger y);
+- Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
