@@ -21,7 +21,7 @@ fi
 mkdir -p "$(dirname "$COMPOSE_FILE")/data"
 
 echo "==> docker compose up -d --build"
-docker compose -f "$COMPOSE_FILE" up -d --build
+docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate  # compose v2.3 sometimes keeps the old container
 
 echo "==> waiting for http://$HOST/api/health"
 for i in $(seq 1 60); do
