@@ -98,6 +98,8 @@ interface TaskList {
   categoryId: string | null;   // null = no category; unknown/deleted ids are returned as null
   tags: string[];              // max 10, each 1–30 chars, no commas, unique case-insensitively, order kept
   color: string;               // category color, else calendar color
+  completedOn: LocalDate | null; // read-only: app-clock date of the write that ticked the last open item; null while
+                                 // an item is open (also for lists completed in the Google app); ignored on input
   etag: string;
   updated: DateTime;
 }
@@ -304,9 +306,10 @@ Only days with at least one item are listed. Multi-day items count on every cove
 
 ### Open task lists (tray, carry-over)
 
-`GET /api/tasklists/open?today=YYYY-MM-DD&days=30` → `200 { items: TaskList[] }`. Returns task lists with at least one
-unticked item dated in `[today − days, today]` (inclusive). Order: date ascending, then untimed before timed, then
-time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
+`GET /api/tasklists/open?today=YYYY-MM-DD&days=30` → `200 { items: TaskList[]; finishedToday: TaskList[] }`. `items`:
+task lists with at least one unticked item dated in `[today − days, today]` (inclusive). `finishedToday`: task lists
+in the same date window with `completedOn = today` (finished today, shown struck through in the tray). Order of both:
+date ascending, then untimed before timed, then time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
 date); lists with no open items are never carried. `days` max 90, default 30.
 
 ### Motivation: check-in streak and plant
