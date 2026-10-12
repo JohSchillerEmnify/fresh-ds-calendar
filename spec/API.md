@@ -432,12 +432,16 @@ immutable`. `/manifest.webmanifest` (`application/manifest+json`), `/sw.js` (`no
 served from the build output. Text responses (HTML, JS, CSS, JSON, manifest) are served compressed (brotli or gzip,
 pre-compressed at build time where possible) when the client accepts it.
 
-## Google OAuth (only when `PROVIDER=google`)
+## Sign-in (auth on when `PROVIDER=google`; off with `PROVIDER=mock` unless a test turns it on)
 
 | Method | Path | Effect |
 |---|---|---|
-| `GET` | `/api/auth/google/start` | 302 to Google consent (`access_type=offline`, `prompt=consent`). 404 if a token is already stored, unless `?force=true`. |
-| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code, stores the refresh token in `DATA_DIR/google-token.json`, 302 to `/`. 400 on invalid `state`. |
+| `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
+| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid `state`. |
+| `GET` | `/api/auth/me` | `{ email, name }` of the signed-in person; 401 without a session. Public. |
+| `POST` | `/api/auth/signout` | Ends the session (server side) and clears the cookie; 204. |
 
-Redirect URI = `GOOGLE_REDIRECT_URI` (default `${PUBLIC_URL}/api/auth/google/callback`). With `PROVIDER=mock` both
-return 404.
+While auth is on, every other `/api/*` route except `/api/health` and the two OAuth routes answers **401
+`UNAUTHENTICATED`** without a valid session. When a person's Google refresh fails with `invalid_grant`, the API answers
+**401 `GOOGLE_REAUTH`** for that person; the client then shows "sign in with Google again". Redirect URI =
+`GOOGLE_REDIRECT_URI` (default `${PUBLIC_URL}/api/auth/google/callback`).

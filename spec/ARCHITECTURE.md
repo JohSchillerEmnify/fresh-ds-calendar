@@ -549,6 +549,27 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   `E2E_BASE_URL` and `--grep @smoke`.
 - `spec/scripts/check-steps.py` must pass (every step has exactly one expression in STEPS.md).
 
+### Sign-in and per-person Google access
+
+- **Auth switch**: on when `PROVIDER=google` (the real VPS instance), off with `PROVIDER=mock` (sauron, previews):
+  owner decision, previews stay one tap away on the LAN. In `TEST_MODE` a test endpoint turns it on with an allow-list
+  (`POST /api/__test/auth { allowedEmails }`), so the e2e suite tests sign-in against the mock provider.
+- **One OAuth round trip** signs in and connects the calendar: scopes `openid email` + calendar. The callback reads the
+  verified email from the `id_token`; only addresses in `ALLOWED_EMAILS` get a session, others are sent to the private
+  page and their tokens are discarded.
+- **Sessions**: random 256-bit id in cookie `cal_session` (`HttpOnly`, `Secure` when `PUBLIC_URL` is https,
+  `SameSite=Lax`, `Path=/`). Server side in `DATA_DIR/sessions.json` (`id → { sub, email, expiresAt }`), 90 days,
+  `expiresAt` pushed forward on use (at most once an hour, to limit writes). Sign-out deletes the entry.
+- **Per-person Google access**: the refresh token lives in `DATA_DIR/users/<google sub>/google-token.json` (0600). The
+  provider is resolved per request from the session's person (one OAuth client per person, cached); the old single
+  `DATA_DIR/google-token.json` is migrated to the first person who signs in. In mock mode with auth on, each person
+  has their own mock calendar data. Settings, categories, streak and plant stay shared in this slice (per-person data
+  is the next slice).
+- **Client**: a `/signin` route (public) with the "Sign in with Google" button and the private notice
+  (`signin-page`, `signin-google`, `signin-private`); a router guard calls `/api/auth/me` once and sends 401 to
+  `/signin`. A 401 `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
+  `/api/auth/google/start`. Settings get `settings-signout`.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |
@@ -576,6 +597,8 @@ Deployment: `/home/sauron/docker-compose/calendar/docker-compose.yaml` (style of
 `PUBLIC_URL=http://cal.mordor.local`, `PROVIDER=mock`, `TEST_MODE=false`, network `proxy-network` (external).
 Multi-stage Dockerfile (`node:22-alpine`): build web + server, runtime contains only `server/dist`, `web/dist`,
 production deps. Healthcheck: `wget -qO- http://localhost:3000/api/health`.
+
+- `ALLOWED_EMAILS`: comma-separated Google addresses that may sign in (auth on with `PROVIDER=google`).
 
 ## 9. Owner actions
 
