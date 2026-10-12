@@ -50,3 +50,11 @@ Then('the sounds setting is off', async function (this: World) {
 Given('the device prefers reduced motion', async function (this: World) {
   await this.page.emulateMedia({ reducedMotion: 'reduce' });
 });
+
+Then('the settings say the device asks for less motion', async function (this: World) {
+  await expect(this.page.getByTestId('settings-system-reduced-motion')).toBeVisible();
+});
+
+When('I allow full animations despite the device setting', async function (this: World) {
+  await setSwitch(this, this.page.getByTestId('settings-ignore-system-motion'), true);
+});

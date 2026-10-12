@@ -23,6 +23,7 @@ export function defaultSettings(now: string): Settings {
     animationLevel: 'full',
     sounds: false,
     calmMode: false,
+    ignoreSystemMotion: false,
     transitionWarningMinutes: 10,
     streakFlame: true,
     garden: 'plant',

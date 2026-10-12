@@ -1,7 +1,7 @@
 /**
  * Animation level: Full / Reduced / Off.
  *
- * Effective level = min(user setting, calm mode cap, system `prefers-reduced-motion` cap).
+ * Effective level = min(user setting, calm mode cap, system `prefers-reduced-motion` cap unless `ignoreSystemMotion`).
  * One module-wide reactive value so non-component code (effects, DnD) can read it cheaply.
  * The system media-query listener is ref-counted: it only exists while at least one
  * `useAnimationLevel()` / `installMotion()` consumer is alive.
@@ -18,6 +18,7 @@ export function minLevel(a: MotionLevel, b: MotionLevel): MotionLevel {
 
 const setting = ref<MotionLevel>('full');
 const calm = ref(false);
+const ignoreSystem = ref(false);
 const systemReduced = ref(readSystemReduced());
 
 function readSystemReduced(): boolean {
@@ -28,11 +29,14 @@ function readSystemReduced(): boolean {
   }
 }
 
+/** Whether the device currently asks for less motion (read-only). */
+export const systemReducedMotion = computed(() => systemReduced.value);
+
 /** Effective motion level (read-only). */
 export const motionLevel = computed<MotionLevel>(() => {
   let l = setting.value;
   if (calm.value) l = minLevel(l, 'reduced');
-  if (systemReduced.value) l = minLevel(l, 'reduced');
+  if (systemReduced.value && !ignoreSystem.value) l = minLevel(l, 'reduced');
   return l;
 });
 
@@ -47,6 +51,10 @@ export function setAnimationSetting(level: MotionLevel): void {
 
 export function setCalmMode(on: boolean): void {
   calm.value = !!on;
+}
+
+export function setIgnoreSystemMotion(on: boolean): void {
+  ignoreSystem.value = !!on;
 }
 
 /** Test hook: override the system preference without a media query. */
@@ -109,6 +117,7 @@ export function installMotion(): () => void {
 export function useAnimationLevel(
   settingLevel?: MaybeRefOrGetter<MotionLevel | undefined>,
   calmMode?: MaybeRefOrGetter<boolean | undefined>,
+  ignoreSystemMotion?: MaybeRefOrGetter<boolean | undefined>,
 ) {
   const release = retain();
   const stops: (() => void)[] = [];
@@ -123,6 +132,9 @@ export function useAnimationLevel(
   }
   if (calmMode !== undefined) {
     stops.push(watch(() => toValue(calmMode), (v) => setCalmMode(!!v), { immediate: true }));
+  }
+  if (ignoreSystemMotion !== undefined) {
+    stops.push(watch(() => toValue(ignoreSystemMotion), (v) => setIgnoreSystemMotion(!!v), { immediate: true }));
   }
   if (getCurrentScope()) {
     onScopeDispose(() => {
