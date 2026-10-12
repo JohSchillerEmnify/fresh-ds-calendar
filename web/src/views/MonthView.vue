@@ -41,7 +41,7 @@ function visible(date: string) {
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div class="chips">
-            <ItemView v-for="s in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : 'chip'" />
+            <ItemView v-for="s in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : isPhone ? 'chip' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
           </div>
           <button v-if="visible(toIsoDate(day)).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
             +{{ visible(toIsoDate(day)).more }}{{ isPhone ? '' : ' more' }}

@@ -12,7 +12,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { vRipple } from '@/lib/ripple';
 import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
-import { carriedLabel, formatEstimate, itemsText } from './format';
+import { carriedLabel, formatEstimate, isComplete, itemClass } from './format';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
@@ -29,7 +29,9 @@ const tl = computed(() => {
 const icon = computed(() => settings.categoryById(tl.value.categoryId)?.icon ?? null);
 const calm = computed(() => settings.settings.calmMode);
 const carried = computed(() => !!props.segment.carriedFrom);
-const complete = computed(() => tl.value.totalCount > 0 && tl.value.doneCount >= tl.value.totalCount);
+const complete = computed(() => isComplete(tl.value));
+/** Timed blocks drop the item text when too short to hold the title row plus a line (never overlap). */
+const roomForItems = computed(() => !props.height || props.height >= 46);
 const lines = computed(() => (props.height ? Math.max(1, Math.floor((props.height - 26 - (tl.value.estimateMinutes ? 14 : 0)) / 14)) : 2));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.value.totalCount} done`);
@@ -51,7 +53,7 @@ const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.v
       </span>
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
-    <span v-if="!calm" class="items" data-testid="tasklist-card-items">{{ itemsText(tl) }}</span>
+    <span v-if="!calm && roomForItems" class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="itemClass(i.done)">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
     <span v-if="segment.startTime || tl.time || tl.estimateMinutes || carried" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
       <span v-else-if="tl.time" class="sr" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -70,8 +72,9 @@ const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.v
   transition: background var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-short);
 }
 .tl.carried { --bg: color-mix(in srgb, var(--md-sys-color-tertiary-container) 70%, color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-high))); }
-.tl.complete { --bg: color-mix(in srgb, var(--c) 10%, var(--md-sys-color-surface-container)); }
-.tl.complete .title { opacity: 0.7; }
+.tl.complete { opacity: 0.55; }
+.tl.complete .title, .it.done { text-decoration: line-through; }
+.it.done { opacity: 0.7; }
 .row { display: flex; align-items: center; gap: 3px; min-width: 0; min-height: 16px; }
 .emoji { flex: none; font-size: 11px; line-height: 1; }
 .title {
@@ -99,10 +102,22 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .allday .ring { display: none; }
 /* block: timed, sized by estimate */
 .block { height: 100%; padding: 3px 5px; border-radius: var(--md-sys-shape-corner-small); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); }
-.block .row { flex: none; }
-.block .items { white-space: normal; display: -webkit-box; -webkit-line-clamp: var(--lines); -webkit-box-orient: vertical; min-height: 0; }
-.block .foot { flex: none; margin-top: auto; }
+.block { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-content: start; }
+.block .row { min-width: 0; }
+.block .items { white-space: normal; display: block; overflow: hidden; min-height: 0; max-height: calc(var(--lines) * 14px); }
+.block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 .dot { display: none; }
+
+/* card: month cell on wide screens, task names listed one per line while the cell is wide enough */
+.card { flex: none; padding: 2px 4px 3px; }
+.card .items { display: none; }
+.card .foot { display: none; }
+@container (min-width: 60px) {
+  .card .items { display: flex; flex-direction: column; white-space: normal; overflow: visible; }
+  .card .items .sep { display: none; }
+  .card .items .it { overflow-wrap: anywhere; }
+}
+.card .title { white-space: normal; -webkit-mask-image: none; mask-image: none; overflow-wrap: anywhere; }
 
 /* narrow cards: title keeps priority */
 /* tight (phone month / week columns): no count text, no ring; a thin progress bar on the bottom edge keeps the whole width for the title */

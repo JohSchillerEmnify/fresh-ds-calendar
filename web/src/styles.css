@@ -43,6 +43,7 @@
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
+html, body { max-width: 100%; overflow-x: clip; }
 body {
   font: var(--md-sys-typescale-body-medium);
   background: var(--md-sys-color-surface);
