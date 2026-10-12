@@ -1,0 +1,9 @@
+.reward-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1000; overflow: hidden; contain: layout style; }
+.reward-effect { position: absolute; width: 0; height: 0; pointer-events: none; }
+.rp { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform, opacity; }
+.rp-star { width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
+.rp-conf { width: 7px; height: 11px; margin: -5px 0 0 -3px; border-radius: 1.5px; }
+.rp-ring { width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 2.5px solid #ffc83d; }
+.rp-drop { width: 8px; height: 11px; margin: -5px 0 0 -4px; border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: #5bb8ff; }
+.rp-dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; }
