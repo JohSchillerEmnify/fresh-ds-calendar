@@ -124,6 +124,8 @@ option A of two — B, server storage with Drive backup, may follow in the VPS t
   creation per person (a promise per `sub`), so parallel requests never make two.
 - Task lists are read and written only there. The calendar never appears as an event calendar or filter chip
   (`GET /api/calendars` leaves it out), and events in it that are not task lists are ignored.
+- Setting "Show tasks calendar in Google" (Calendar section, per person `tasksCalendarVisible` in prefs, default
+  off) sets the calendar list entry `hidden` accordingly; it changes nothing in the app.
 - Mock mode does the same against the mock account. No migration: there were no real Google accounts yet (owner).
 
 | Task list | Google event |

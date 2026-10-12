@@ -24,3 +24,8 @@ Feature: Task lists live in their own calendar
     When I open the week view for 2026-10-12
     And I show the filters
     Then the filter bar does not offer the calendar "Calendar app: tasks"
+
+  Scenario: The tasks calendar can be shown in Google from the settings
+    Given Google has a hidden calendar "Calendar app: tasks"
+    When I turn on "Show tasks calendar in Google" in the settings
+    Then Google shows the calendar "Calendar app: tasks"
