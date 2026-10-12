@@ -96,6 +96,7 @@ export const useSyncStore = defineStore('sync', () => {
         do {
           again = false;
           await run(withConfig);
+          if (typeof document !== 'undefined' && document.hidden) again = false; // no follow-up fetch while hidden
         } while (again);
       } finally {
         current = null;
@@ -116,6 +117,7 @@ export const useSyncStore = defineStore('sync', () => {
     if (!ms || ms <= 0) return;
     pollTimer = appTimeout(async () => {
       pollTimer = null;
+      if (document.hidden) return;
       await syncNow();
       schedule();
     }, ms);
@@ -133,6 +135,7 @@ export const useSyncStore = defineStore('sync', () => {
     focusTimer?.();
     focusTimer = appTimeout(() => {
       focusTimer = null;
+      if (document.hidden) return;
       void syncNow(true).then(schedule);
     }, FOCUS_DEBOUNCE_MS);
   }

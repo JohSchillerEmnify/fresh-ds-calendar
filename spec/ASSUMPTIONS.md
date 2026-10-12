@@ -150,3 +150,8 @@ spec files are named.
 - **A-60 Month picker** jumps the current view to the picked day. It does not switch views.
 - **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
   navigation bar, and the FAB floats above the tray.
+
+- **A-T1 Drag back and forth on a phone** (performance.feature): the day view on a phone has a single column, so the
+  step switches client-side to the week view (no reload) before moving the event +1/-1 day.
+- **A-T2 Fixtures award no plant points**: setup steps that create events/task lists through the API restore the plant
+  state afterwards, so scenarios count only points earned by their own actions.
