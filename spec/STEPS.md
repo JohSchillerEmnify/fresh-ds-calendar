@@ -522,7 +522,6 @@ the time grid is scrolled to show {time} at the top
 the now card shows the line {string}
 the now card does not show a current event
 the current event progress is {int} percent
-I do not see the now card
 the now card stayed in place
 I see the transition warning {string}
 I do not see a transition warning
