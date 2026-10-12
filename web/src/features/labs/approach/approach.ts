@@ -1,8 +1,6 @@
 /** Pure math of the approach bar (Labs): which entries it shows, its time ticks and where the chips sit on the track. */
 import type { Segment } from '@/lib/items';
 
-/** How many entries the track shows (ARCHITECTURE "Labs"). */
-export const APPROACH_COUNT = 3;
 /** Tick steps in minutes, tried from the finest; the first whose labels do not collide wins. */
 export const TICK_STEPS = [15, 30, 60, 120, 180] as const;
 /** The track never grows beyond this many chip rows (owner: "don't take too much space"). */
@@ -11,15 +9,14 @@ export const MAX_ROWS = 2;
 export interface ApproachEntries { entries: Segment[]; atEnd: boolean }
 
 /**
- * Up to three timed entries of today (events and task lists with a time) starting within `windowMin` after now, by
- * start. Entries already running stay (owner, 2026-10-13: they slide out to the left) and count towards the three.
- * When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
+ * All timed entries of today (events and task lists with a time) starting within `windowMin` after now, by start
+ * (owner, 2026-10-13: not only the next three). Entries already running stay (they slide out to the left). When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
  * of the track).
  */
 export function approachEntries(daySegments: Segment[], nowMin: number, windowMin: number): ApproachEntries {
   const timed = daySegments.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin);
   const ahead = timed.filter((s) => s.startMin > nowMin);
-  const within = timed.filter((s) => s.endMin > nowMin && s.startMin <= nowMin + windowMin).slice(0, APPROACH_COUNT);
+  const within = timed.filter((s) => s.endMin > nowMin && s.startMin <= nowMin + windowMin);
   if (within.length || !ahead.length) return { entries: within, atEnd: false };
   return { entries: [ahead[0]], atEnd: true };
 }
