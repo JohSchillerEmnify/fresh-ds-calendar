@@ -97,6 +97,7 @@ export const useItemsStore = defineStore('items', () => {
     loading.value = true;
     try {
       await fetchRange(v.from, v.to, mine.signal);
+      useSyncStore().markSynced();
     } catch (e) {
       if (e instanceof ApiError && e.isAbort) return;
       throw e;

@@ -98,6 +98,11 @@ export const useSyncStore = defineStore('sync', () => {
     return current;
   }
 
+  /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
+  function markSynced(): void {
+    if (state.value !== 'error') lastSync.value = new Date().toISOString();
+  }
+
   function retry(): Promise<void> {
     return syncNow(true);
   }
@@ -150,5 +155,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, errorMessage, running, registerTask, reportError, clearError, syncNow, retry, start, stop, schedule };
+  return { state, lastSync, error, errorMessage, running, registerTask, reportError, clearError, syncNow, markSynced, retry, start, stop, schedule };
 });

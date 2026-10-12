@@ -117,7 +117,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .col.today { background: color-mix(in srgb, var(--md-sys-color-primary) 5%, transparent); }
 .slot { display: block; width: 100%; height: var(--hh); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .slot:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
-.blk { position: absolute; padding: 0 1px 1px; z-index: 1; min-width: 0; }
+.blk { position: absolute; padding: 0 1px 1px; min-height: 25px; box-sizing: border-box; z-index: 1; min-width: 0; }
 .blk:has([data-dragging='true']) { z-index: 20; }
 .phone .head { min-height: 44px; }
 .phone.week .dow { font-size: 11px; }

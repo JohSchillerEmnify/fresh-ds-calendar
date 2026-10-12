@@ -1,4 +1,5 @@
 import { defineAsyncComponent } from 'vue';
+import { registerNowCardLine } from '@/features/calendar/nowLines';
 import { registerDialog, registerItemOpener, registerItemRenderer, registerTray } from '@/extensions/registry';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
@@ -21,5 +22,9 @@ export function registerTaskListFeature(): void {
   registerDialog('tasklist-expanded', () => import('./ExpandedTaskList.vue'));
   registerDialog('tasklist', () => import('./TaskListDialog.vue'));
   registerTray(Tray);
+  registerNowCardLine(() => {
+    const next = useTaskListsStore().nextTask;
+    return next ? `Next task: ${next.item.title} (${next.list.title})` : null;
+  });
   useSyncStore().registerTask('open-tasks', () => useTaskListsStore().refresh());
 }
