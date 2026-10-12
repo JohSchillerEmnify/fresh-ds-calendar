@@ -160,11 +160,15 @@ function toApi(x: GoogleEventInput | GoogleEventPatch): calendar_v3.Schema$Event
 }
 
 /** Builds the provider for PROVIDER=google; fails fast when the OAuth client is not configured. */
-export function createGoogleProvider(config: AppConfig): GoogleProvider {
+export function makeApi(auth: OAuth2Client, fetchImplementation?: typeof fetch): Api {
+  return makeCalendar({ version: 'v3', auth, ...(fetchImplementation ? { fetchImplementation } : {}) } as Parameters<typeof makeCalendar>[0]);
+}
+
+export function createGoogleProvider(config: AppConfig, fetchImplementation?: typeof fetch): GoogleProvider {
   const g = config.google;
   if (!g.clientId || !g.clientSecret) throw new Error('PROVIDER=google requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
   const auth: OAuth2Client = getClient(config);
-  const api = makeCalendar({ version: 'v3', auth });
+  const api = makeApi(auth, fetchImplementation);
   return new GoogleProvider({
     api,
     calendarIds: g.calendarIds,
