@@ -176,7 +176,7 @@ Given(
   'Google contains a raw task list event {string} on {date} with the description:',
   async function (this: World, title: string, date: string, description: string) {
     await this.api.remoteInsert({
-      calendarId: 'primary',
+      calendarId: await this.api.tasksCalendarId(),
       summary: title,
       description,
       start: { date },

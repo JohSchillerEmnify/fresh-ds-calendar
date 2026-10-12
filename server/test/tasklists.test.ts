@@ -218,7 +218,9 @@ describe('chunking, description fallback, recurrence', () => {
   });
 
   it('parses a list created in Google with only a description', async () => {
+    const { id: calendarId } = (await t.json('GET', '/api/__test/tasks-calendar')).body;
     const g = await t.json('POST', '/api/__test/remote/events', {
+      calendarId,
       summary: 'Made in Google', description: '☐ Milk\n☑ Eggs\n[ ] Bread\n[x] Jam\nplain line\n\n', start: { date: '2026-10-13' }, end: { date: '2026-10-14' },
       extendedProperties: { private: { kind: 'tasklist' } },
     });

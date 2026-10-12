@@ -7,7 +7,7 @@ import IconDown from '~icons/material-symbols/keyboard-arrow-down';
 import IconAdd from '~icons/material-symbols/add';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS, isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
-import type { AnimationLevel, Category, GardenStyle, Motivation, SceneName, ThemeMode, ViewName } from '@/api/types';
+import type { AnimationLevel, Category, GardenStyle, Motivation, Prefs, SceneName, ThemeMode, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -38,7 +38,7 @@ const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 
 /** Persist a Labs switch; a refusal rolls back in the store and shows a snackbar. */
-async function saveLabs(p: { labs?: boolean; approachBar?: boolean }) {
+async function saveLabs(p: Partial<Prefs>) {
   try { await labs.set(p); } catch (e) { ui.notify(e instanceof ApiError ? e.userMessage : 'Could not save settings'); }
 }
 
@@ -163,6 +163,7 @@ async function resetDemo() {
         <h2 id="h-cal">Calendar</h2>
         <div class="row"><Select class="fw" :model-value="s.defaultView" :options="[...views]" label="Default view" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
         <div class="row"><Select class="fw" :model-value="s.defaultEventColorId ?? ''" :options="colorOptions" label="Default event color" data-testid="settings-default-event-color" @update:model-value="save({ defaultEventColorId: $event || null })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Show tasks calendar in Google</span><span class="sub">Task lists stay in the app either way</span></div><Switch :model-value="labs.tasksCalendarVisible" label="Show tasks calendar in Google" data-testid="settings-tasks-calendar-visible" @update:model-value="saveLabs({ tasksCalendarVisible: $event })" /></div>
       </section>
 
       <section class="card" aria-labelledby="h-focus">

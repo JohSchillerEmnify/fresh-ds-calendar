@@ -98,6 +98,14 @@ export type GardenStyle = 'plant' | 'sunflowers' | 'off';
 /** Top app bar background scene (owner addition, not yet in API.md; see web/README.md). */
 export type SceneName = 'sunflowers' | 'mordor' | 'none';
 
+/** Per-person preferences (`GET/PATCH /api/prefs`). */
+export interface Prefs {
+  labs: boolean;
+  approachBar: boolean;
+  /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
+  tasksCalendarVisible: boolean;
+}
+
 export interface Settings {
   themeMode: ThemeMode;
   seedColor: string;
@@ -160,7 +168,6 @@ export interface CreateEventInput {
 export type UpdateEventInput = Partial<CreateEventInput>;
 
 export interface CreateTaskListInput {
-  calendarId?: string;
   title: string;
   date: LocalDate;
   time?: LocalTime | null;

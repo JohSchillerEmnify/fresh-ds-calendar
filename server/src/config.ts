@@ -18,7 +18,6 @@ export interface AppConfig {
   seed: boolean;
   testMode: boolean;
   pollIntervalMs: number;
-  tasklistCalendarId: string;
   publicUrl: string | null;
   allowedOrigins: string[];
   /** Google addresses that may sign in (auth is on with PROVIDER=google). */
@@ -51,7 +50,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     seed: bool(env.SEED, true) && !testMode,
     testMode,
     pollIntervalMs: Number.isFinite(poll) && poll >= 0 ? poll : 30000,
-    tasklistCalendarId: env.TASKLIST_CALENDAR_ID || 'primary',
     publicUrl,
     allowedOrigins: [...new Set([...(publicUrl ? [publicUrl] : []), ...list(env.ALLOWED_ORIGINS)])],
     allowedEmails: parseEmails(env.ALLOWED_EMAILS),

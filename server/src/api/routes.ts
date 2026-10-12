@@ -101,16 +101,17 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json({ ...k, hidden: b.hidden });
   });
 
-  r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
+  r.get('/prefs', (c) => c.json({ ...ctx.prefs.labsPrefs(person(c)), tasksCalendarVisible: cal(c).tasks.visible() }));
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     const patch: { labs?: boolean; approachBar?: boolean } = {};
-    for (const k of ['labs', 'approachBar'] as const) {
-      if (b[k] === undefined) continue;
-      if (typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
-      patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'tasksCalendarVisible'] as const) {
+      if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    return c.json(ctx.prefs.setLabs(person(c), patch));
+    for (const k of ['labs', 'approachBar'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
+    if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
+    return c.json({ ...ctx.prefs.setLabs(person(c), patch), tasksCalendarVisible: cal(c).tasks.visible() });
   });
 
   // ---- items ----

@@ -6,12 +6,18 @@ import { userDir } from '../auth/people.js';
 /** The person used while sign-in is off. */
 export const LOCAL_PERSON = 'local';
 
-interface Prefs { hiddenCalendars: string[]; labs: boolean; approachBar: boolean }
+interface Prefs {
+  hiddenCalendars: string[]; labs: boolean; approachBar: boolean;
+  /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
+  tasksCalendarId: string | null;
+  /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
+  tasksCalendarVisible: boolean;
+}
 
 /** The experimental-feature switches returned by `GET /api/prefs`. */
 export interface LabsPrefs { labs: boolean; approachBar: boolean }
 
-/** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches). */
+/** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, tasks calendar). */
 export class PrefsStore {
   constructor(private readonly dataDir: string) {}
 
@@ -25,7 +31,15 @@ export class PrefsStore {
       hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
       labs: p?.labs === true,
       approachBar: p?.approachBar === true,
+      tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
+      tasksCalendarVisible: p?.tasksCalendarVisible === true,
     };
+  }
+
+  private merge(sub: string, patch: Partial<Prefs>): Prefs {
+    const p = { ...this.read(sub), ...patch };
+    writeJsonAtomic(this.file(sub), p satisfies Prefs);
+    return p;
   }
 
   hiddenCalendars(sub: string): string[] {
@@ -48,6 +62,22 @@ export class PrefsStore {
     const p = { ...this.read(sub), ...patch };
     writeJsonAtomic(this.file(sub), p satisfies Prefs);
     return { labs: p.labs, approachBar: p.approachBar };
+  }
+
+  tasksCalendarId(sub: string): string | null {
+    return this.read(sub).tasksCalendarId;
+  }
+
+  setTasksCalendarId(sub: string, id: string): void {
+    this.merge(sub, { tasksCalendarId: id });
+  }
+
+  tasksCalendarVisible(sub: string): boolean {
+    return this.read(sub).tasksCalendarVisible;
+  }
+
+  setTasksCalendarVisible(sub: string, visible: boolean): void {
+    this.merge(sub, { tasksCalendarVisible: visible });
   }
 
   /** Forgets every person's preferences (test reset). */

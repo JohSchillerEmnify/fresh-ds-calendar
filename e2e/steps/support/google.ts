@@ -71,11 +71,14 @@ export function dig(value: unknown, path: string): unknown {
   return path.split('.').reduce<unknown>((v, k) => (v == null ? undefined : (v as Record<string, unknown>)[k]), value);
 }
 
-/** A task list event as another Google client would insert it (all-day, items in extended properties). */
-export function googleTaskListBody(title: string, date: string, items: { title: string; done: boolean }[]) {
+/**
+ * A task list event as another Google client would insert it (all-day, items in extended properties) into the
+ * person's tasks calendar (`calendarId`, see `Api.tasksCalendarId`).
+ */
+export function googleTaskListBody(calendarId: string, title: string, date: string, items: { title: string; done: boolean }[]) {
   const raw: RawItem[] = items.map((i) => ({ id: itemId(), t: i.title, d: i.done ? 1 : 0 }));
   return {
-    calendarId: 'primary',
+    calendarId,
     summary: title,
     description: describeItems(raw),
     start: { date },
