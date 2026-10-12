@@ -11,7 +11,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { isPhone } from '@/composables/useViewport';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
-import { useCalendarDrag } from './dnd';
+import { cardClick, useCalendarDrag } from './dnd';
 import { formatDuration } from './timeline';
 
 const props = defineProps<ItemRendererProps>();
@@ -43,7 +43,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
     ref="root" v-ripple class="ev" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-past="past || undefined" :data-current="current || undefined"
-    :style="{ '--c': ev.color, '--on': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click.stop="emit('open')"
+    :style="{ '--c': ev.color, '--on': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
     <template v-else-if="variant === 'block'">

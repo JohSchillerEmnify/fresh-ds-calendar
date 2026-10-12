@@ -15,7 +15,8 @@ import { ProgressRing } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel, firstOpenItem } from './format';
+import { collapse, setAllCollapsed } from './collapse';
+import { carriedLabel, checkState, firstOpenItem } from './format';
 import { useTaskListsStore } from './store';
 
 const route = useRoute();
@@ -77,11 +78,12 @@ async function today(id: string) {
       <IconExpand class="chev" aria-hidden="true" />
     </button>
     <ul v-show="expanded || !isPhone" id="task-tray-list" class="list">
+      <li v-if="lists.count" class="all"><button type="button" data-testid="tasklists-collapse-all" @click="setAllCollapsed(!collapse.all)">{{ collapse.all ? 'Expand all cards' : 'Collapse all cards' }}</button></li>
       <li v-for="l in lists.tray" :key="l.id" class="row" data-testid="task-tray-item" :data-title="l.title" :data-date="l.date" :style="{ '--c': l.color }">
         <button v-ripple class="main" type="button" @click="open(l.id)">
           <ProgressRing :done="l.doneCount" :total="l.totalCount" :size="30" :stroke="3.5" />
           <span class="txt">
-            <span class="t">{{ l.title }}</span>
+            <span class="t"><span class="cb" :data-state="checkState(l.doneCount, l.totalCount).state" :style="{ '--fill': checkState(l.doneCount, l.totalCount).fill + '%' }" aria-hidden="true" />{{ l.title }}</span>
             <span class="s">
               <span v-if="label(l.date)" class="from">{{ label(l.date) }}</span>
               <span v-else-if="l.time">{{ l.time }}</span>
@@ -107,7 +109,7 @@ async function today(id: string) {
 .open .chev { transform: rotate(180deg); }
 .list { list-style: none; margin: 0; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 2px; }
 .phone .list { max-height: 42dvh; }
-.row { display: flex; align-items: center; border-radius: 14px; border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 12%, var(--md-sys-color-surface-container-high)); }
+.row { display: flex; align-items: center; border-radius: 14px; border-left: 4px dashed var(--c); background: color-mix(in srgb, var(--c) 12%, var(--md-sys-color-surface-container-high)); }
 .main { flex: 1; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 8px; text-align: left; border-radius: 14px; }
 .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .t { font: var(--md-sys-typescale-title-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -125,4 +127,10 @@ async function today(id: string) {
   .chev { display: none; }
   .list { flex: 1; min-height: 0; max-height: none; }
 }
+.cb { position: relative; display: inline-block; vertical-align: -1px; margin-right: 5px; box-sizing: border-box; width: 12px; height: 12px; border: 1.5px solid var(--c); border-radius: 3px; }
+.cb[data-state='partial'] { background: linear-gradient(to top, var(--c) var(--fill), transparent var(--fill)); }
+.cb[data-state='done'] { background: var(--c); }
+.cb[data-state='done']::after { content: ''; position: absolute; left: 3px; top: 0; width: 3px; height: 6px; border: solid var(--md-sys-color-surface); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.all { display: flex; justify-content: flex-end; }
+.all button { font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-primary); padding: 4px 8px; min-height: 32px; }
 </style>

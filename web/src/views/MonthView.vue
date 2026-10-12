@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useElementSize } from '@vueuse/core';
 import { isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
+import { isCollapsed } from '@/features/tasklists/collapse';
+import { allotHeights } from '@/features/tasklists/layout';
 import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
@@ -20,9 +23,27 @@ const segs = useDaySegments();
 const weeks = computed(() => monthGrid(cal.anchor));
 /** Entries per cell: phone 2, desktop 3, calm mode 2. */
 const limit = computed(() => (isPhone.value || settings.settings.calmMode ? 2 : 3));
+const gridEl = ref<HTMLElement | null>(null);
+const { height: gridH } = useElementSize(gridEl);
+/** Pixels one entry may take: the cell minus day number, paddings, gaps and the "+n" line, shared by need (task lists get what their items need). */
 function visible(date: string) {
   const all = segs(date);
-  return { shown: all.slice(0, limit.value), more: Math.max(0, all.length - limit.value) };
+  let shown = all.slice(0, limit.value);
+  const cellH = gridH.value / weeks.value.length;
+  let heights: number[] = [];
+  if (cellH > 0 && shown.length) {
+    const phone = isPhone.value;
+    const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
+    const sized = (n: number) => titleH + n * rowH + extra;
+    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(isCollapsed(s.item.id) ? 0 : Math.min(2, s.item.items.filter((i) => !i.done).length) + (s.item.items.filter((i) => !i.done).length > 2 ? 1 : 0)) : evH);
+    /** Smallest useful size: events one line, task lists the title plus up to 3 rows (item rows and the "+k" line). */
+    const minOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? Math.min(needOf(s), sized(phone ? 3 : 2)) : evH);
+    const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - (n - 1) * gap - (withMore ? 14 : 0) - 2;
+    // drop trailing entries (they join "+n") until the rest fit at their minimum size
+    while (shown.length > 1 && shown.reduce((a, s) => a + minOf(s), 0) > room(shown.length, shown.length < all.length)) shown = shown.slice(0, -1);
+    heights = allotHeights(shown.map(needOf), room(shown.length, shown.length < all.length), evH);
+  }
+  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length };
 }
 </script>
 
@@ -32,7 +53,7 @@ function visible(date: string) {
     <div class="weekdays" role="row">
       <div v-for="w in WEEKDAY_LABELS" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
-    <div class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
+    <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
       <template v-for="week in weeks" :key="toIsoDate(week[0])">
         <div
           v-for="day in week" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
@@ -41,7 +62,7 @@ function visible(date: string) {
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div class="chips">
-            <ItemView v-for="s in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : isPhone ? 'chip' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
+            <ItemView v-for="{ s, h } in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
           </div>
           <button v-if="visible(toIsoDate(day)).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
             +{{ visible(toIsoDate(day)).more }}{{ isPhone ? '' : ' more' }}
@@ -67,7 +88,6 @@ function visible(date: string) {
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
 .chips { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
 .more { font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); text-align: left; padding: 0 4px; }
-.phone .chips { pointer-events: none; }
 .phone .more { pointer-events: none; text-align: center; }
 .phone .cell { cursor: pointer; padding: 2px 1px 0; }
 .phone .num { width: 26px; height: 26px; }
