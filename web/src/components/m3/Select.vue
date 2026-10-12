@@ -22,10 +22,9 @@ const rest = computed(() => { const { class: _c, style: _s, ...r } = attrs; retu
 </template>
 
 <style scoped>
-.sel { position: relative; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-small) var(--md-sys-shape-corner-small) 0 0; border-bottom: 1px solid var(--md-sys-color-on-surface-variant); }
-.sel:focus-within { border-bottom: 2px solid var(--md-sys-color-primary); margin-bottom: -1px; }
+.sel { position: relative; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-small); }
+.sel:focus-within { outline: 2px solid var(--md-sys-color-primary); }
 .in { width: 100%; min-height: 56px; appearance: none; background: transparent; border: 0; outline: 0; padding: 24px 40px 6px 16px; font-size: 16px; color: var(--md-sys-color-on-surface); border-radius: inherit; }
 .lbl { position: absolute; left: 16px; top: 8px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); pointer-events: none; }
 .chev { position: absolute; right: 12px; top: 16px; width: 24px; height: 24px; pointer-events: none; color: var(--md-sys-color-on-surface-variant); }
-.in option { color: initial; }
 </style>

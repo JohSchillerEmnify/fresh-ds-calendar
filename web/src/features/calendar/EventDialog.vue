@@ -12,6 +12,7 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { isPhone } from '@/composables/useViewport';
@@ -182,6 +183,7 @@ function onClose() {
 <template>
   <AdaptiveSheet :open="true" :label="isEdit ? 'Edit event' : 'New event'" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="onClose">
     <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save">
+      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="form.allDay ? null : form.startTime" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
         <h2 class="t">{{ isEdit ? 'Edit event' : 'New event' }}</h2>

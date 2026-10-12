@@ -186,6 +186,7 @@ the event dialog fits within the viewport
 
 ```
 I start creating a task list
+I switch the new dialog to {string}
 I fill in the task list form with:
 I save the task list
 I cancel the task list dialog
@@ -854,4 +855,8 @@ the event {string} glows
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X.
+- New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
+  `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
+  (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
+  "Task list".
 

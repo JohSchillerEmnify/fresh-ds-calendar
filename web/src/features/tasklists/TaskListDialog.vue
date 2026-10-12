@@ -7,6 +7,7 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useItemsStore } from '@/stores/items';
@@ -98,6 +99,7 @@ async function remove() {
 <template>
   <AdaptiveSheet open :label="editing ? 'Edit task list' : 'New task list'" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save">
+      <NewKindSwitch v-if="!editing" kind="tasklist" :date="form.date" :time="form.time || null" />
       <h2 class="h">{{ editing ? 'Edit task list' : 'New task list' }}</h2>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
       <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">Load latest version</Button></div>

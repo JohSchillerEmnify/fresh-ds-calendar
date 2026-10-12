@@ -500,7 +500,7 @@ Rules for implementers:
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
 | `view-switch-month`, `view-switch-week`, `view-switch-day` | tabs (`aria-selected`) |
 | `view-switcher` | container of the three tabs |
-| `create-button`, `create-menu-event`, `create-menu-tasklist` | FAB and menu |
+| `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | FAB and the one "new" dialog (no create menu) |
 | `calendar-swipe-area` | swipe target wrapping the active view |
 | `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
 | `month-weekday-header` | 7 elements, text `Mon`..`Sun` |
@@ -659,6 +659,18 @@ all overlays; no per-component history code.
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
+
+### One "new" dialog (owner, 2026-10-12)
+
+The FAB and a tap on an empty time slot (or all-day cell) open the same dialog with a segmented switch "Event | Task
+list" at the top (last choice remembered per device); the event form and the task list form are the existing dialog
+bodies, sharing the prefilled date/time so switching keeps them. No create menu.
+
+### Rounded fields and shapes (owner, 2026-10-12)
+
+Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
+softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
+the same corner scale so shapes look consistent.
 
 ## 8. Configuration (env)
 

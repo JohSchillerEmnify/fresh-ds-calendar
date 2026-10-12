@@ -250,8 +250,9 @@ defineExpose({ root, busy });
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
 .name-in, .item-in, .new {
   width: 100%; min-height: 44px; font-size: 16px; color: inherit; background: var(--md-sys-color-surface-container-highest); border: 0;
-  border-bottom: 2px solid var(--md-sys-color-primary); border-radius: 8px 8px 0 0; padding: 0 10px; outline: 0; min-width: 0;
+  border-radius: var(--md-sys-shape-corner-small); padding: 0 14px; outline: 0; min-width: 0;
 }
+.name-in:focus, .item-in:focus, .new:focus { outline: 2px solid var(--md-sys-color-primary); }
 .emoji { margin-right: 6px; }
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }

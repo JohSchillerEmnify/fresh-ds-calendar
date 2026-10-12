@@ -23,6 +23,14 @@ describe('M3 theme', () => {
     expect(schemeVars('#6750a4', false)['--md-sys-color-surface']).not.toBe(schemeVars('#6750a4', true)['--md-sys-color-surface']);
   });
 
+  it('sets color-scheme per theme so native selects and pickers match', () => {
+    const css = themeCss(DEFAULT_SEED);
+    expect(css).toMatch(/^:root \{\n  color-scheme: light;/);
+    expect(css).toMatch(/:root:not\(\[data-theme="light"\]\) \{\n  color-scheme: dark;/);
+    expect(css).toMatch(/:root\[data-theme="dark"\] \{\n  color-scheme: dark;/);
+    expect(fs.readFileSync(path.join(import.meta.dirname, '../src/styles.css'), 'utf8')).toMatch(/option, optgroup \{ background: var\(--md-sys-color-surface-container-high\)/);
+  });
+
   it('inlined tokens.css matches the default seed (run with UPDATE_TOKENS=1 to regenerate)', () => {
     const expected = HEADER + themeCss(DEFAULT_SEED) + '\n';
     if (process.env.UPDATE_TOKENS) fs.writeFileSync(TOKENS, expected);

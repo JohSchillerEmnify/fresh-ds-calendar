@@ -141,7 +141,7 @@ const dialog = (w: World) => w.page.getByTestId('event-dialog');
 
 When('I start creating an event', async function (this: World) {
   await this.page.getByTestId('create-button').click();
-  await this.page.getByTestId('create-menu-event').click();
+  await this.page.getByTestId('new-kind-event').click();
   await expect(dialog(this)).toBeVisible();
 });
 

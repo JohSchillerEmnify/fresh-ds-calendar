@@ -1,7 +1,7 @@
 import { minutesToTime, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
-import { createActions, dialogs, type CreateContext } from './registry';
+import { dialogs, type CreateContext } from './registry';
 import { useUiStore } from '@/stores/ui';
 
 /** Defaults for a new item (ARCHITECTURE §5): focus date; today → next full hour (cap 23:00), else 09:00. */
@@ -17,16 +17,21 @@ export function createContext(date?: string, time?: string | null): CreateContex
   return { date: d, time: '09:00' };
 }
 
-/** Default behaviour of the two built-in actions until a feature registers its dialog. */
-export function defaultCreateRun(kind: 'event' | 'tasklist') {
-  return (ctx: CreateContext) => {
-    const ui = useUiStore();
-    if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', ...ctx });
-    else ui.notify(`The ${kind === 'event' ? 'event' : 'task list'} editor is not available yet`);
-  };
+export type NewKind = 'event' | 'tasklist';
+const KIND_KEY = 'calendar.newKind';
+
+/** Last kind chosen in the "new" dialog (per device); events by default. */
+export function lastNewKind(): NewKind {
+  try { return localStorage.getItem(KIND_KEY) === 'tasklist' ? 'tasklist' : 'event'; } catch { return 'event'; }
+}
+export function rememberNewKind(k: NewKind): void {
+  try { localStorage.setItem(KIND_KEY, k); } catch { /* storage unavailable: the choice just is not remembered */ }
 }
 
-export function openCreate(id: 'event' | 'tasklist' | string, date?: string, time?: string | null): void {
-  const a = createActions.find((x) => x.id === id);
-  a?.run(createContext(date, time));
+/** Opens the one "new" dialog (FAB, empty slot) as the remembered kind, prefilled with the slot's date/time. */
+export function openNew(date?: string, time?: string | null): void {
+  const ui = useUiStore();
+  const kind = lastNewKind();
+  if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', ...createContext(date, time) });
+  else ui.notify('The editor is not available yet');
 }
