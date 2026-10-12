@@ -48,6 +48,7 @@ export class CalendarService {
   }
 
   async calendars(): Promise<Calendar[]> {
+    this.calCache = null; // the endpoint always hits the provider (outages must surface)
     return (await this.providerCalendars()).map((c) => ({
       id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: c.accessRole === 'owner' || c.accessRole === 'writer',
     }));

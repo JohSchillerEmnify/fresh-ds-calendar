@@ -21,8 +21,19 @@ const recurrence = v.nullable(v.picklist(['daily', 'weekly', 'monthly'], 'Recurr
 const itemTitle = v.pipe(v.string('Item title is required'), v.trim(), v.minLength(1, 'Item title is required'), v.maxLength(200, 'Item title must be at most 200 characters'));
 
 const strict = v.strictObject;
-const UNKNOWN = 'Unknown field';
-const so = <T extends v.ObjectEntries>(e: T) => strict(e, UNKNOWN);
+const so = <T extends v.ObjectEntries>(e: T) => strict(e);
+const REQUIRED: Record<string, string> = {
+  title: TITLE_REQ, name: 'Name is required', start: 'Start is required', end: 'End is required', date: 'Date is required',
+  allDay: 'allDay is required', color: HEX_MSG, now: 'now is required', down: 'down is required',
+};
+
+/** Strict-object issues carry no custom text: unknown keys and missing keys are described here. */
+function describe(i: v.BaseIssue<unknown>): string {
+  if (i.type !== 'strict_object') return i.message;
+  const key = i.path?.at(-1)?.key;
+  if (i.expected === 'never') return 'Unknown field';
+  return REQUIRED[String(key)] ?? `${String(key)} is required`;
+}
 
 export const createEventSchema = so({
   calendarId: v.optional(v.string()),
@@ -107,8 +118,8 @@ export const outageSchema = so({ down: v.boolean(), status: v.optional(v.picklis
 export function parse<S extends v.GenericSchema>(schema: S, data: unknown): v.InferOutput<S> {
   const r = v.safeParse(schema, data);
   if (r.success) return r.output;
-  const details: ErrorDetail[] = r.issues.map((i) => ({ field: i.path?.map((p) => String(p.key)).join('.') || undefined, issue: i.message }));
+  const details: ErrorDetail[] = r.issues.map((i) => ({ field: i.path?.map((p) => String(p.key)).join('.') || undefined, issue: describe(i) }));
   const bad = r.issues.find((i) => i.type === 'object' || i.type === 'strict_object');
-  const message = bad && !bad.path ? 'Request body must be a JSON object' : r.issues[0]!.message;
+  const message = bad && !bad.path ? 'Request body must be a JSON object' : describe(r.issues[0]!);
   throw new ApiException('VALIDATION_ERROR', 400, message, details);
 }
