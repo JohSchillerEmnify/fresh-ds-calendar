@@ -24,6 +24,12 @@ function visible(date: string) {
   const all = segs(date);
   return { shown: all.slice(0, limit.value), more: Math.max(0, all.length - limit.value) };
 }
+
+function onChipsClick(e: MouseEvent, day: Date): void {
+  if (!isPhone.value) return;
+  e.stopPropagation();
+  void nav.openDay(day);
+}
 </script>
 
 <template>
@@ -40,7 +46,7 @@ function visible(date: string) {
           :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="isPhone && nav.openDay(day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
-          <div class="chips">
+          <div class="chips" @click.capture="onChipsClick($event, day)">
             <ItemView v-for="s in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : isPhone ? 'chip' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
           </div>
           <button v-if="visible(toIsoDate(day)).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
@@ -67,7 +73,7 @@ function visible(date: string) {
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
 .chips { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
 .more { font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); text-align: left; padding: 0 4px; }
-.phone .chips { pointer-events: none; }
+/* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */
 .phone .more { pointer-events: none; text-align: center; }
 .phone .cell { cursor: pointer; padding: 2px 1px 0; }
 .phone .num { width: 26px; height: 26px; }

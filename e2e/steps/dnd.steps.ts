@@ -73,6 +73,7 @@ async function drag(
   target: (card: Locator, from: Point) => Promise<Point>,
   expectPersist = true,
 ) {
+  await card.scrollIntoViewIfNeeded();
   const from = await grabPoint(w, card);
   const to = await target(card, from);
   const saved = expectPersist ? w.page.waitForResponse((r) => isPersist(r.url(), r.request().method())) : null;
