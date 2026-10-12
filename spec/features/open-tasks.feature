@@ -105,6 +105,12 @@ Feature: Open tasks stay in sight
       | Wash | yes  |
       | Fold | yes  |
 
+  @mobile
+  Scenario: The create button does not cover the open tasks tray
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    Then the create button does not cover any control of the open tasks tray
+
   Scenario: An overdue open task list is carried forward to today
     When I open the week view for 2026-10-05
     Then I do not see the task list "Laundry"

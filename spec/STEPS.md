@@ -525,6 +525,7 @@ I untick the item {string} in the open tasks tray
 the item {string} of the task list {string} was ticked on {date}
 the open tasks tray shows all {int} items of the task list {string}
 I unfold the task list {string} in the open tasks tray
+the create button does not cover any control of the open tasks tray
 the task list {string} in the open tasks tray is struck through and shows only its title
 I open the task list {string} from the open tasks tray
 the task list {string} is shown as carried over from {string}
