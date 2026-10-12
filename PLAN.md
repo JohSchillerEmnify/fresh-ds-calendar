@@ -33,3 +33,4 @@
 - Shelved: range/slider view.
 - Load: serialize Playwright/docker runs with `flock /tmp/calendar-e2e.lock <cmd>`.
 - LATER (owner): German translation (i18n; UI strings extracted, de + en, Europe/Berlin locale, week Monday). Not started.
+- LATER (owner): long press WITHOUT moving shows resize handles on events (visual resize). Not started.
