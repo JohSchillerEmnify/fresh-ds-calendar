@@ -207,6 +207,7 @@ I expand the task list {string}
 I collapse the task list
 the task list {string} is expanded
 the task list {string} is collapsed
+no task list is expanded
 the expanded task list items are {string}
 the expanded task list is shown as a bottom sheet
 the expanded task list fits within the viewport
@@ -535,6 +536,7 @@ the open tasks tray shows the count {string}
 I open the open tasks tray
 the open tasks tray is collapsed
 the open tasks tray lists {string}
+the open tasks tray does not list {string}
 the open tasks tray shows the task list {string} with items:
 I tick the item {string} in the open tasks tray
 I untick the item {string} in the open tasks tray
