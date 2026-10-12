@@ -211,6 +211,26 @@ When('I cancel the deletion', async function (this: World) {
   await expect(this.page.getByTestId('confirm-dialog')).toBeHidden();
 });
 
+// --- delete with undo (events, task lists, items; STEPS.md "Undo") ---------------------------------------------
+
+const undoSnackbar = (w: World) => w.page.getByTestId('undo-snackbar');
+
+When('I undo the deletion', async function (this: World) {
+  await undoSnackbar(this).getByTestId('undo-action').click();
+  await expect(undoSnackbar(this)).toBeHidden();
+});
+
+When('the undo time is over', async function (this: World) {
+  // A paused fake clock ("the clock is running") only moves on demand: let the 6 s undo window pass.
+  if (this.clockNowMs !== undefined) await this.page.clock.runFor(7000);
+  await expect(undoSnackbar(this)).toBeHidden({ timeout: 8000 });
+  await expect.poll(() => this.page.evaluate(() => (window as { __pendingDeletes?: number }).__pendingDeletes ?? 0)).toBe(0);
+});
+
+Then('the snackbar says {string}', async function (this: World, text: string) {
+  await expect(undoSnackbar(this).getByTestId('snackbar-text')).toHaveText(text);
+});
+
 Then('the event dialog is open', async function (this: World) {
   await expect(dialog(this)).toBeVisible();
 });

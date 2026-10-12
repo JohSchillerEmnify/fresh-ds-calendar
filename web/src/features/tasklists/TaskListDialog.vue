@@ -6,10 +6,10 @@ import type { TaskList } from '@/api/types';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
-import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useItemsStore } from '@/stores/items';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { parseItems, parseTags, validateForm, type TaskListForm } from './validate';
@@ -18,6 +18,7 @@ import { useTaskListsStore } from './store';
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string; time?: string | null }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
+const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 const lists = useTaskListsStore();
@@ -30,7 +31,6 @@ const form = reactive<TaskListForm>({ title: '', date: props.date ?? '', time: '
 const error = ref('');
 const conflict = ref(false);
 const saving = ref(false);
-const confirming = ref(false);
 
 function fill(t: TaskList) {
   etag = t.etag;
@@ -88,10 +88,12 @@ async function reload() {
   try { const t = await api.getTaskList(props.id!); items.upsert(t); fill(t); error.value = ''; conflict.value = false; }
   catch (e) { error.value = e instanceof ApiError ? e.userMessage : 'Could not reload.'; }
 }
-async function remove() {
-  confirming.value = false;
-  try { await items.deleteTaskList(props.id!, etag); lists.drop(props.id!); emit('close'); }
-  catch (e) { error.value = e instanceof ApiError ? e.userMessage.replace('This event was', 'This task list was') : 'Could not delete.'; conflict.value = e instanceof ApiError && e.isConflict; }
+/** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
+function remove() {
+  const tl = items.get(props.id!);
+  if (tl?.kind !== 'tasklist') return;
+  pendingDeletes.deleteTaskList({ ...tl, etag: etag || tl.etag });
+  emit('close');
 }
 </script>
 
@@ -118,13 +120,12 @@ async function remove() {
       <TextField v-if="!editing" v-model="form.items" label="Items (one per line)" multiline :rows="4" data-testid="tasklist-items" />
       <Select v-if="!editing" v-model="form.repeat" label="Repeat" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div class="actions">
-        <Button v-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="confirming = true">Delete</Button>
+        <Button v-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="remove">Delete</Button>
         <span class="grow" />
         <Button variant="text" data-testid="tasklist-cancel" @click="emit('close')">Cancel</Button>
         <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">Save</Button>
       </div>
     </form>
-    <ConfirmDialog :open="confirming" :title="`Delete “${form.title}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
   </AdaptiveSheet>
 </template>
 

@@ -54,6 +54,8 @@ export class ApiError extends Error {
 export interface RequestOptions {
   signal?: AbortSignal;
   ifMatch?: string | number;
+  /** Let the request outlive the page (deferred deletes sent on `pagehide`). */
+  keepalive?: boolean;
 }
 
 type Fetch = typeof fetch;
@@ -98,6 +100,7 @@ export class ApiClient {
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: o.signal,
         cache: 'no-store',
+        keepalive: o.keepalive,
       });
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') throw new ApiError(0, 'ABORTED', 'Request aborted');

@@ -27,6 +27,19 @@
 [data-corners='round'] { --r-chip: 6px; --r-block: 8px; }
 [data-corners='pill'] { --r-chip: 999px; --r-block: 16px; }
 
+/*
+ * The one snackbar look (ARCHITECTURE "Snackbars and toasts follow the theme"): snackbars, the sync error banner and
+ * the check-in toast. Theme tokens only, so a theme or season change restyles them; action colour: --snack-action.
+ */
+.snack-skin {
+  --snack-action: var(--md-sys-color-inverse-primary);
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  border-radius: var(--r-block);
+  box-shadow: var(--md-sys-elevation-3), 0 0 var(--glow-r) var(--glow-s) color-mix(in srgb, var(--md-sys-color-inverse-primary) var(--glow-a), transparent);
+  font: var(--md-sys-typescale-body-medium);
+}
+
 /* Entries (events, task lists, samples) read --c (item colour) and --on-solid (text on that colour). */
 .skin {
   --on: var(--e-fg, var(--on-solid));

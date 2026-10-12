@@ -20,8 +20,8 @@ onBeforeUnmount(() => { stopWatch(); timers.forEach((s) => s()); timers.clear();
 
 <template>
   <div class="host" aria-live="polite">
-    <div v-for="s in ui.snackbars" :key="s.id" class="snack" role="status" :data-testid="s.testid ?? 'snackbar'">
-      <span class="msg">{{ s.text }}</span>
+    <div v-for="s in ui.snackbars" :key="s.id" class="snack snack-skin" role="status" :data-testid="s.testid ?? 'snackbar'">
+      <span class="msg" data-testid="snackbar-text">{{ s.text }}</span>
       <button v-if="s.action" class="act" type="button" :data-testid="s.action.testid" @click="s.action.run(); ui.dismiss(s.id)">{{ s.action.label }}</button>
       <button class="x" type="button" aria-label="Dismiss" :data-testid="s.testid ? s.testid + '-dismiss' : 'snackbar-dismiss'" @click="ui.dismiss(s.id)">✕</button>
     </div>
@@ -33,10 +33,9 @@ onBeforeUnmount(() => { stopWatch(); timers.forEach((s) => s()); timers.clear();
 @media (min-width: 768px) { .host { bottom: 16px; } }
 .snack {
   pointer-events: auto; display: flex; align-items: center; gap: 4px; min-height: 48px; max-width: 560px; width: 100%; padding: 4px 4px 4px 16px;
-  background: var(--md-sys-color-inverse-surface); color: var(--md-sys-color-inverse-on-surface); border-radius: var(--md-sys-shape-corner-small);
-  box-shadow: var(--md-sys-elevation-3); animation: in 250ms var(--md-sys-motion-spring) both;
+  animation: in 250ms var(--md-sys-motion-spring) both;
 }
-.msg { flex: 1; min-width: 0; font: var(--md-sys-typescale-body-medium); }
-.act, .x { min-width: 44px; min-height: 44px; font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-inverse-primary); border-radius: var(--md-sys-shape-corner-full); }
+.msg { flex: 1; min-width: 0; }
+.act, .x { min-width: 44px; min-height: 44px; font: var(--md-sys-typescale-label-large); color: var(--snack-action); border-radius: var(--md-sys-shape-corner-full); }
 @keyframes in { from { transform: translateY(16px); opacity: 0; } }
 </style>
