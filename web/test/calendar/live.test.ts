@@ -3,7 +3,6 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import NowMarker from '@/features/calendar/NowMarker.vue';
 import NowCard from '@/features/calendar/NowCard.vue';
-import { registerNowCardLine } from '@/features/calendar/nowLines';
 import { startTransitionWarnings, stopTransitionWarnings } from '@/features/calendar/transitionWarning';
 import { enableTimerCounting } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
@@ -48,7 +47,7 @@ describe('now marker', () => {
 });
 
 describe('now card', () => {
-  it('is the always-open Approaching card with the approach track on by default', async () => {
+  it('is the always-compact Approaching card with the approach track on by default', async () => {
     const { pinia } = await boot('09:20', false);
     expect(usePrefsStore()).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3 });
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
@@ -79,10 +78,6 @@ describe('now card', () => {
     await nextTick();
     expect(lines()).toEqual(['Dentist · 35 min left', 'Next: Call in 2 h 5 min']);
     expect(w.get('[data-testid="now-progress"]').attributes('aria-valuenow')).toBe('30');
-    const stop = registerNowCardLine(() => 'Next task: Fold (Laundry)');
-    await nextTick();
-    expect(lines()).toContain('Next task: Fold (Laundry)');
-    stop();
     cal.view = 'week'; cal.anchor = new Date(2026, 9, 19);
     await nextTick();
     expect(lines()).toEqual(['Dentist · 35 min left', 'Next: Call in 2 h 5 min']);
