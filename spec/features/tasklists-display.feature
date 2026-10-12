@@ -4,7 +4,7 @@ Feature: Task lists in the calendar views
   its item titles in a compact single line and a done count like "1/3".
   On phones, the month view shows only compact chips; tapping the day opens the day view.
   A timed task list in the grid shows its items next to the title only where the column is wide enough;
-  in narrow columns the items go below the title as far as the block has room, else only title and count.
+  in narrow columns the items go below the title; a timed task list with open items is always tall enough for one.
 
   Background:
     Given the calendar is empty
@@ -70,12 +70,12 @@ Feature: Task lists in the calendar views
     Then the task list "Einkaufen" shows the item "Milk" below its title
 
   @mobile @week
-  Scenario: A very short timed task list in a narrow week column shows only its title and count
+  Scenario: A very short timed task list in a narrow week column still shows its item below the title
     Given the calendar contains a task list "Call mum" on 2026-10-14 at 09:00 for 15 minutes with items:
       | item             | done |
       | Ask about Sunday | no   |
     When I open the week view for 2026-10-12
-    Then the task list "Call mum" shows no items
+    Then the task list "Call mum" shows the item "Ask about Sunday" below its title
     And the task list "Call mum" shows the done count "0/1"
 
   @desktop @day
