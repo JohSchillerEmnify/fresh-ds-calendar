@@ -154,6 +154,7 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
     onTarget,
     scrollEl: () => el.value?.closest<HTMLElement>('[data-scroll-area]') ?? null,
     onStateChange: (s) => {
+      if (s === 'dragging') useUiStore().resizing = null;
       if (s === 'idle' || s === 'returning') {
         dragPreview.value = null;
         marked = setDropAttr(marked, null);
@@ -163,7 +164,13 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
       haptic(8);
       dragPreview.value = null;
       marked = setDropAttr(marked, null);
-      await applyMove(segment(), t.key);
+      const seg = segment();
+      // released in place on a timed block: show the resize handles instead of doing nothing
+      if (slotsMode() && t.key.minutes !== null && !planMove(seg, t.key, useClockStore().timeZone)) {
+        useUiStore().resizing = { kind: seg.item.kind, id: seg.item.id, date: seg.date };
+        return;
+      }
+      await applyMove(seg, t.key);
     },
   });
 }

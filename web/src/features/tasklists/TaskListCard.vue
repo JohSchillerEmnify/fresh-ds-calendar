@@ -14,8 +14,10 @@ import { useElementSize } from '@vueuse/core';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
 import { vRipple } from '@/lib/ripple';
+import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
 import { fitItems, rowStep } from './layout';
 import { sectionKey } from './section';
@@ -25,6 +27,7 @@ const INLINE_BELOW_PX = 62;
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
 const settings = useSettingsStore();
+const ui = useUiStore();
 const el = ref<HTMLElement | null>(null);
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
@@ -36,6 +39,8 @@ const tl = computed(() => {
   if (i.kind !== 'tasklist') throw new Error('TaskListCard needs a task list');
   return i;
 });
+/** Resize handles show after a release without moving (time grid blocks only). */
+const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
 const icon = computed(() => settings.categoryById(tl.value.categoryId)?.icon ?? null);
 const calm = computed(() => settings.settings.calmMode);
 const carried = computed(() => !!props.segment.carriedFrom);
@@ -105,7 +110,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
 
 <template>
   <button
-    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight, titles }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
+    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
     :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
@@ -131,6 +136,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
       <span v-else-if="tl.time" class="sr" data-testid="tasklist-card-time">{{ tl.time }}</span>
     </span>
+    <ResizeHandles v-if="resizing" :segment="segment" />
   </button>
 </template>
 
@@ -144,6 +150,8 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
   transition: background var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-short);
 }
 .tl[data-dragging='true'] { cursor: grabbing; }
+/* the handles stick out of the block */
+.tl.resizing { overflow: visible; }
 .tl.carried { --bg: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); }
 .tl.carried .items, .tl.carried .more, .tl.carried .est, .tl.carried .time { color: var(--md-sys-color-on-tertiary-container); }
 .tl.carried .count { background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 16%, transparent); }

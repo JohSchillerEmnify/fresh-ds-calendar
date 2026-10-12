@@ -62,7 +62,7 @@ onMounted(() => {
     undo.push(bindSwipe(swipeArea.value, {
       onLeft: () => void nav.next(),
       onRight: () => void nav.prev(),
-      disabled: () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !isCalendar.value,
+      disabled: () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value,
     }));
   }
 });
@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
   clock.stopTicker();
 });
 // Close transient UI on navigation.
-watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = false; });
+watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = false; ui.resizing = null; });
 </script>
 
 <template>

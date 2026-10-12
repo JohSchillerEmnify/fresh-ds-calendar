@@ -12,6 +12,7 @@ import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
 import { openCreate } from '@/extensions/create';
+import { resizePreview } from '@/features/calendar/resize';
 import { gridLayers, viewHeaders } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
 import { blockGeometry, packColumns, STACK_INDENT_PX, segmentMinPx } from '@/lib/items';
@@ -63,6 +64,15 @@ watch(() => props.mode, () => nextTick(initialScroll));
 watch(() => toIsoDate(props.dates[0]), () => nextTick(initialScroll));
 defineExpose({ scrollToMinutes });
 
+/** Block box: the stored one, or the live one while its resize handle is dragged. */
+function geo(p: { seg: { item: { id: string }; date: string }; top: number; height: number }, minPx: number) {
+  const rp = resizePreview.value;
+  const live = !!rp && rp.id === p.seg.item.id && rp.date === p.seg.date;
+  const top = live ? rp.startMin : p.top;
+  return blockGeometry(top, live ? rp.endMin : top + p.height, hourHeight.value, minPx);
+}
+const settling = (id: string, date: string) => resizePreview.value?.settle && resizePreview.value.id === id && resizePreview.value.date === date;
+
 const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all: props.mode === 'week' ? 'week-allday-cell' : 'day-allday-area', col: props.mode === 'week' ? 'week-day-column' : 'day-column' };
 </script>
 
@@ -97,10 +107,10 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
             :aria-label="`Create at ${c.date} ${hourLabel(h)}`" @click="openCreate('event', c.date, hourLabel(h))"
           />
           <div
-            v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * indent}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * indent}px)`, '--z': 1 + p.level }"
+            v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk" :class="{ settle: settling(p.seg.item.id, p.seg.date) }"
+            :style="{ top: geo(p, segmentMinPx(p.seg)).top + 'px', height: geo(p, segmentMinPx(p.seg)).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * indent}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * indent}px)`, '--z': 1 + p.level }"
           >
-            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height" />
+            <ItemView :segment="p.seg" variant="block" :height="geo(p, segmentMinPx(p.seg)).height" />
           </div>
           <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hourHeight" />
         </div>
@@ -144,6 +154,9 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .slot:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
 .blk { position: absolute; padding: 0 1px 1px; box-sizing: border-box; z-index: var(--z, 1); min-width: 0; }
 .blk:has([data-dragging='true']) { z-index: 20; }
+.blk:has([data-resize-handle]) { z-index: 15; }
+.blk.settle { transition: top 220ms var(--md-sys-motion-spring, ease-out), height 220ms var(--md-sys-motion-spring, ease-out); }
+html[data-motion='off'] .blk.settle { transition: none; }
 .phone .head { min-height: 44px; }
 .phone.week .dow { font-size: 11px; }
 .day .head { flex-direction: row; min-height: 36px; gap: 8px; }

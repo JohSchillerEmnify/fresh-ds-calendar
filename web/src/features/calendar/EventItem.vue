@@ -12,16 +12,21 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { isPhone } from '@/composables/useViewport';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
+import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
+import ResizeHandles from './ResizeHandles.vue';
 import { blockBudget } from './lineBudget';
 import { formatDuration } from './timeline';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
 const clock = useClockStore();
+const ui = useUiStore();
 const root = ref<HTMLElement | null>(null);
 const ev = computed(() => props.segment.item as CalendarEvent);
 useCalendarDrag(root, () => props.segment, () => props.variant);
+/** Resize handles show after a release without moving (time grid blocks only). */
+const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'event' && ui.resizing.id === ev.value.id && ui.resizing.date === props.segment.date);
 
 const endText = computed(() => (props.segment.endTime === '24:00' ? '00:00' : props.segment.endTime));
 const isToday = computed(() => props.segment.date === clock.today);
@@ -49,7 +54,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 
 <template>
   <button
-    ref="root" v-ripple class="ev" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current }]"
+    ref="root" v-ripple class="ev" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-past="past || undefined" :data-current="current || undefined"
     :style="{ '--c': ev.color, '--on': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
@@ -60,6 +65,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
       <span v-if="showTime" class="meta">
         <span class="time" data-testid="event-chip-time">{{ timeText }}</span><span v-if="showDuration" class="dur"> · {{ duration }}</span>
       </span>
+      <ResizeHandles v-if="resizing" :segment="segment" />
     </template>
     <template v-else>
       <span v-if="showChipTime" class="time" data-testid="event-chip-time">{{ timeText }}</span>
@@ -76,6 +82,8 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
   padding: 1px 4px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .ev[data-dragging='true'] { cursor: grabbing; }
+/* the handles stick out of the block: the title and meta lines clip themselves */
+.ev.resizing { position: relative; overflow: visible; }
 .ev.past { opacity: 0.62; }
 .ev.current { box-shadow: 0 0 0 1.5px var(--c); }
 html[data-calm='true'] .ev { --bg: color-mix(in srgb, var(--c) 13%, var(--md-sys-color-surface)); filter: saturate(0.55); }
