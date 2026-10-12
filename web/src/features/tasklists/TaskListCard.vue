@@ -2,7 +2,7 @@
 /**
  * Collapsed task list card (registered for kind 'tasklist'), used in month cells, week/day all-day rows and as timed
  * blocks. Layout is driven by container queries on the card itself, so it never overflows at 50 px (phone month):
- *   title always wins; emoji only from 56 px; count text from 84 px (below that a tiny ring is the only count);
+ *   title always wins; emoji only from 56 px; count badge from 84 px (below that only a thin progress bar on the bottom edge shows progress);
  *   item titles inline from 150 px (always in the DOM for screen readers, visually hidden when narrow).
  * Drag and drop: the root element is the drag target. It is exposed (`defineExpose({ el })`), emitted once as
  * `el` after mount and carries `data-draggable="tasklist"`; wrap or `useDraggable(elRef)` it from outside.
@@ -31,6 +31,7 @@ const calm = computed(() => settings.settings.calmMode);
 const carried = computed(() => !!props.segment.carriedFrom);
 const complete = computed(() => tl.value.totalCount > 0 && tl.value.doneCount >= tl.value.totalCount);
 const lines = computed(() => (props.height ? Math.max(1, Math.floor((props.height - 26 - (tl.value.estimateMinutes ? 14 : 0)) / 14)) : 2));
+const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.value.totalCount} done`);
 </script>
 
@@ -49,6 +50,7 @@ const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.v
         <ProgressRing class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
       </span>
     </span>
+    <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <span v-if="!calm" class="items" data-testid="tasklist-card-items">{{ itemsText(tl) }}</span>
     <span v-if="segment.startTime || tl.time || tl.estimateMinutes || carried" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -103,7 +105,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .dot { display: none; }
 
 /* narrow cards: title keeps priority */
-@container (max-width: 83px) { .count { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } .chip .ring { display: inline-flex; } }
+/* tight (phone month / week columns): no count text, no ring; a thin progress bar on the bottom edge keeps the whole width for the title */
+.pbar { display: none; position: absolute; left: 0; bottom: 0; height: 2.5px; width: var(--p); background: var(--c); border-radius: 0 2px 2px 0; transition: width 480ms cubic-bezier(0.3, 0, 0.2, 1); }
+@container (max-width: 83px) { .count, .ring { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } .pbar { display: block; } .meta { gap: 0; } }
 @container (max-width: 55px) { .emoji { display: none; } .row { gap: 2px; } .block .items, .allday .items { display: none; } .block .foot, .allday .foot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } }
 @container (min-width: 150px) {
   .chip .title { flex: 0 1 auto; -webkit-mask-image: none; mask-image: none; text-overflow: ellipsis; }

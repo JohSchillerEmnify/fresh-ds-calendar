@@ -187,7 +187,7 @@ const panelStyle = computed(() => {
 </script>
 
 <template>
-  <div class="layer" :class="presentation">
+  <div class="layer" :class="isPhone ? 'phone' : 'popover'">
     <div class="scrim" data-testid="sheet-scrim" @click="emit('close')" />
     <section
       v-if="tl" ref="panel" class="panel" :class="{ anchored: !!pos, done: complete }" role="dialog" aria-modal="true" :aria-label="tl.title" tabindex="-1"
@@ -230,7 +230,7 @@ const panelStyle = computed(() => {
             v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" aria-label="Item title"
             @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
           />
-          <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)">{{ item.title }}</button>
+          <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
           <IconButton class="act" label="Move up" data-testid="tasklist-item-up" :disabled="i === 0" @click="moveItem(id, item.id, -1)"><IconUp /></IconButton>
           <IconButton class="act" label="Move down" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="moveItem(id, item.id, 1)"><IconDown /></IconButton>
           <IconButton class="act" label="Delete item" data-testid="tasklist-item-delete" @click="removeItem(id, item.id)"><IconDelete /></IconButton>
@@ -298,10 +298,12 @@ const panelStyle = computed(() => {
 html:not([data-motion='off']) .row.flash { animation: tickflash 700ms ease-out; }
 .ititle {
   flex: 1; min-width: 0; text-align: left; min-height: 44px; padding: 0 4px; overflow-wrap: anywhere; font: var(--md-sys-typescale-body-large);
-  background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0% 1.6px;
 }
-html:not([data-motion='off']) .ititle { transition: background-size 280ms cubic-bezier(0.3, 0, 0.2, 1) 60ms, opacity 240ms ease-out 60ms; }
-.ticked .ititle { background-size: 100% 1.6px; opacity: 0.55; }
+.tt { background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 0% 1.6px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+html:not([data-motion='off']) .tt { transition: background-size 280ms cubic-bezier(0.3, 0, 0.2, 1) 60ms; }
+html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms; }
+.ticked .tt { background-size: 100% 1.6px; }
+.ticked .ititle { opacity: 0.55; }
 .item-in { flex: 1; }
 .act { width: 36px; height: 44px; opacity: 0.75; }
 .act:disabled { opacity: 0.2; }
