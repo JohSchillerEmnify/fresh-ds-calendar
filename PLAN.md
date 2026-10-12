@@ -51,3 +51,10 @@
   tests + docker build + restart, serialized, log /tmp/calendar-autodeploy.log, last deployed sha in /tmp/calendar-deployed-sha.
 - Merging a branch to master therefore deploys it live automatically. Still do `scripts/preview.sh up <branch>` BEFORE merging.
 - Manual: `FORCE_AUTODEPLOY=1 scripts/auto-deploy.sh`. Failed deploy leaves the old version running.
+
+## Resource rules (owner 2026-10-12): PIHOLE (home DNS) RUNS ON THIS BOX — do not starve it
+- Heavy jobs (e2e, docker build, docker playwright, full vitest) only via `scripts/lowprio.sh <cmd>`: nice 19, ionice idle,
+  one heavy job machine-wide (flock /tmp/calendar-heavy.lock). e2e/run.sh and preview/auto-deploy already do this; e2e container capped 1.5 CPU / 2 GB.
+- E2E is expensive: NEVER run the whole suite casually. Narrow --grep only; full run only once, at the end, when idle (check `uptime` < 4 and pihole DNS fast:
+  `time nslookup google.com 127.0.0.1`). Prefer unit tests for iteration.
+- Watch: `uptime`; if load > 8 pause new heavy work.
