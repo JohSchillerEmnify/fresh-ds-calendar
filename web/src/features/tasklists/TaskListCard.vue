@@ -214,6 +214,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .meta { display: none; }
 .block[data-fit='inline'] .items { display: block; flex: 1 1 0; min-width: 0; align-self: center; }
 .block[data-fit='inline'] .it { display: inline; padding: 0; }
+/* inline keeps hiding ticked and surplus names: this selector outranks the general `.it.over` */
+.block[data-fit='inline'] .it.over { display: none; }
 .block[data-fit='inline'] .items { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); }
 .block[data-fit='inline'] .sep { display: inline; }
 .block[data-fit='inline'] .sep.nosep { display: none; }
