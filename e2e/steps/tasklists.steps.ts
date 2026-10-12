@@ -164,6 +164,10 @@ Then('the task list {string} is collapsed', async function (this: World, title: 
   await expect(this.taskCard(title)).toBeVisible();
 });
 
+Then('no task list is expanded', async function (this: World) {
+  await expect(this.page.getByTestId('tasklist-expanded')).toHaveCount(0);
+});
+
 Then('the expanded task list items are {string}', async function (this: World, list: string) {
   await expectJoined(this.expanded.getByTestId('tasklist-item-title'), list);
 });
