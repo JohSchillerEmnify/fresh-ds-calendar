@@ -16,6 +16,7 @@ const props = withDefaults(
 );
 const store = useMotivationStore();
 const cardOpen = ref(false);
+const plantBtn = ref<HTMLElement | null>(null);
 const plant = computed(() => store.motivation?.plant ?? null);
 const streak = computed(() => store.motivation?.streak ?? null);
 
@@ -30,6 +31,7 @@ onBeforeUnmount(() => store.stop());
       <button
         type="button"
         class="lw-btn"
+        ref="plantBtn"
         data-testid="plant-button"
         :data-stage="plant.stageIndex"
         :data-mood="plant.mood"
@@ -39,7 +41,7 @@ onBeforeUnmount(() => store.stop());
       >
         <Plant :stage="plant.stageIndex" :mood="plant.mood" :size="30" :change="store.change" />
       </button>
-      <PlantCard v-if="cardOpen" :plant="plant" :change="store.change" @close="cardOpen = false" />
+      <PlantCard v-if="cardOpen" :anchor="plantBtn" :plant="plant" :change="store.change" @close="cardOpen = false" />
     </div>
     <StreakToast v-if="streakFlame" :message="store.message" @hide="store.dismissMessage()" />
   </div>
