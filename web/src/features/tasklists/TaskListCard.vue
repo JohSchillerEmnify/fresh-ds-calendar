@@ -9,7 +9,7 @@
  * to the title. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
  */
-import { computed, onMounted, ref } from 'vue';
+import { computed, inject, onMounted, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
@@ -19,6 +19,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
 import { isCollapsed, toggleCollapsed } from './collapse';
 import { fitItems, rowStep } from './layout';
+import { sectionKey } from './section';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
@@ -46,7 +47,10 @@ const mini = computed(() => width.value > 0 && width.value < 84);
 const hasFoot = computed(() => !!tl.value.time);
 /** Overview shows open items only (ticked ones live in the expanded view), at most 2 by default, fewer when short of room. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
-const collapsed = computed(() => isCollapsed(tl.value.id));
+const section = inject(sectionKey, () => 'full' as const);
+/** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
+const titles = computed(() => section() === 'titles' && props.variant === 'allday');
+const collapsed = computed(() => titles.value || isCollapsed(tl.value.id));
 const fit = computed(() => {
   const block = props.variant === 'block';
   const footVisible = block && !!tl.value.time && !mini.value;
@@ -95,7 +99,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
 
 <template>
   <button
-    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
+    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight, titles }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="tl.date" :data-time="tl.time ?? ''" :data-color="tl.color"
     :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
@@ -112,7 +116,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
         <ProgressRing class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
       </span>
       <span
-        v-if="hasChev" class="chev" role="button" tabindex="0" :aria-expanded="!collapsed" :aria-label="collapsed ? 'Show items' : 'Hide items'" data-testid="tasklist-card-toggle"
+        v-if="hasChev && !titles" class="chev" role="button" tabindex="0" :aria-expanded="!collapsed" :aria-label="collapsed ? 'Show items' : 'Hide items'" data-testid="tasklist-card-toggle"
         @click.stop="toggleCollapsed(tl.id)" @pointerdown.stop @keydown.enter.stop.prevent="toggleCollapsed(tl.id)" @keydown.space.stop.prevent="toggleCollapsed(tl.id)"
       ><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
     </span>
@@ -183,6 +187,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .collapsed .chev svg { transform: rotate(-90deg); }
 .chev:hover, .chev:focus-visible { opacity: 1; background: color-mix(in srgb, currentColor 14%, transparent); }
 .mini.card .chev { display: none; }
+.titles { padding-top: 1px; padding-bottom: 1px; }
+.titles .row { min-height: 20px; }
 .mini .chev { width: 14px; height: 14px; margin: 0; }
 .mini .chev::after { inset: -12px -6px; }
 .mini .chev svg { width: 10px; height: 10px; }

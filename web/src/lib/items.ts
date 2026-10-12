@@ -104,50 +104,71 @@ export function segmentsByDate(items: Iterable<CalendarItem>, today?: LocalDate)
   return map;
 }
 
+/** Overlapping blocks whose starts are at least this far apart cascade (the later one drawn on top, indented). */
+export const OVERLAP_STACK_MIN_START_GAP_MIN = 15;
+/** Indent (px) per cascade level. */
+export const STACK_INDENT_PX = 10;
+/** Deepest cascade level; beyond it blocks fall back to side-by-side columns of the last group. */
+export const MAX_STACK_DEPTH = 3;
+
 export interface PlacedSegment {
   seg: Segment;
-  /** 0-based column inside the overlap cluster and the cluster's column count. */
+  /** 0-based column inside the start group and the group's column count (near-identical starts share columns). */
   col: number;
   cols: number;
   /** Columns this block may occupy (>= 1): it widens into free columns to its right, like Google Calendar. */
   span: number;
+  /** Cascade level (0 = base, drawn first); the renderer offsets level n by n * STACK_INDENT_PX and draws it on top. */
+  level: number;
   top: number; // minutes
   height: number; // minutes (>= min)
 }
 
 /**
- * Google-like column packing: items in a connected overlap cluster are split into equal columns;
- * touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration.
+ * Packing: items in a connected overlap cluster are grouped by start time. Blocks starting within
+ * OVERLAP_STACK_MIN_START_GAP_MIN of the group's first start share equal columns (a title would be hidden otherwise);
+ * a later group that overlaps cascades one level deeper (up to MAX_STACK_DEPTH, then it joins the last group's columns).
+ * Touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration.
  */
 export function packColumns(segs: Segment[], minMinutes = 0): PlacedSegment[] {
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const out: PlacedSegment[] = [];
-  let cluster: PlacedSegment[] = [];
+  interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[] }
+  let groups: Group[] = [];
   let clusterEnd = -1;
-  let colEnds: number[] = [];
   const flush = () => {
-    for (const p of cluster) p.cols = colEnds.length;
-    for (const p of cluster) {
-      let span = 1;
-      for (let c = p.col + 1; c < p.cols; c++) {
-        const blocked = cluster.some((q) => q.col === c && q.top < p.top + p.height && p.top < q.top + q.height);
-        if (blocked) break;
-        span++;
+    for (const g of groups) {
+      for (const p of g.items) p.cols = g.colEnds.length;
+      for (const p of g.items) {
+        let span = 1;
+        for (let c = p.col + 1; c < p.cols; c++) {
+          const blocked = g.items.some((q) => q.col === c && q.top < p.top + p.height && p.top < q.top + q.height);
+          if (blocked) break;
+          span++;
+        }
+        p.span = span;
       }
-      p.span = span;
+      out.push(...g.items);
     }
-    out.push(...cluster);
-    cluster = [];
-    colEnds = [];
+    groups = [];
     clusterEnd = -1;
   };
   for (const s of timed) {
-    if (cluster.length && s.startMin >= clusterEnd) flush();
-    let col = colEnds.findIndex((e) => e <= s.startMin);
-    if (col < 0) col = colEnds.length;
+    if (groups.length && s.startMin >= clusterEnd) flush();
     const visualEnd = Math.max(s.endMin, s.startMin + minMinutes);
-    colEnds[col] = visualEnd;
-    cluster.push({ seg: s, col, cols: 1, span: 1, top: s.startMin, height: Math.max(s.endMin - s.startMin, minMinutes) });
+    let g = groups[groups.length - 1];
+    if (!g || s.startMin - g.start >= OVERLAP_STACK_MIN_START_GAP_MIN) {
+      const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
+      if (!g || level <= MAX_STACK_DEPTH) {
+        g = { start: s.startMin, end: visualEnd, level, items: [], colEnds: [] };
+        groups.push(g);
+      }
+    }
+    let col = g.colEnds.findIndex((e) => e <= s.startMin);
+    if (col < 0) col = g.colEnds.length;
+    g.colEnds[col] = visualEnd;
+    g.end = Math.max(g.end, visualEnd);
+    g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: Math.max(s.endMin - s.startMin, minMinutes) });
     clusterEnd = Math.max(clusterEnd, visualEnd);
   }
   flush();

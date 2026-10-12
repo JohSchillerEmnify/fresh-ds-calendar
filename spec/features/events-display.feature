@@ -2,7 +2,8 @@
 Feature: Displaying events in the calendar views
   Times are local times in Europe/Berlin. Timed events are placed in the time grid of the
   week and day views; all-day events are placed in the all-day area. Multi-day events are
-  shown on every day they cover.
+  drawn as solid bars across the days they cover (cut at the week edge); timed events under
+  24 hours that cross midnight are shown as one block per day.
 
   Background:
     Given the calendar is empty
@@ -72,23 +73,37 @@ Feature: Displaying events in the calendar views
       | day   | 2026-10-16 |
 
   @month
-  Scenario: A multi-day all-day event is shown on every day it covers in the month view
+  Scenario: A multi-day all-day event is shown as a bar across the days it covers in the month view
     Given the calendar contains an all-day event "Trip" from 2026-10-17 to 2026-10-20
     When I open the month view for 2026-10
-    Then I see the event "Trip" on each day from 2026-10-17 to 2026-10-20
+    Then I see the event "Trip" on each day from 2026-10-17 to 2026-10-19
+    And I see the event "Trip" as a bar from 2026-10-17 to 2026-10-18
+    And I see the event "Trip" as a bar from 2026-10-19 to 2026-10-19
     And I do not see the event "Trip" on 2026-10-16
-    And I do not see the event "Trip" on 2026-10-21
+    And I do not see the event "Trip" on 2026-10-20
 
   @week
-  Scenario: A multi-day all-day event crossing a week boundary is split per week
+  Scenario: A multi-day all-day event crossing a week boundary is cut at the week edge
     Given the calendar contains an all-day event "Trip" from 2026-10-17 to 2026-10-20
     When I open the week view for 2026-10-12
-    Then I see the all-day event "Trip" on 2026-10-17
-    And I see the all-day event "Trip" on 2026-10-18
+    Then I see the event "Trip" as a bar from 2026-10-17 to 2026-10-18
     When I go to the next period
-    Then I see the all-day event "Trip" on 2026-10-19
-    And I see the all-day event "Trip" on 2026-10-20
-    And I do not see the event "Trip" on 2026-10-21
+    Then I see the event "Trip" as a bar from 2026-10-19 to 2026-10-19
+    And I do not see the event "Trip" on 2026-10-20
+
+  @month
+  Scenario: Overlapping multi-day events are stacked in separate lanes
+    Given the calendar contains an all-day event "Trip" from 2026-10-13 to 2026-10-16
+    And the calendar contains an all-day event "Course" from 2026-10-14 to 2026-10-17
+    When I open the month view for 2026-10
+    Then the event "Trip" is a bar in lane 0
+    And the event "Course" is a bar in lane 1
+
+  @week
+  Scenario: A timed event lasting a day or longer is a bar
+    Given the calendar contains an event "Conference" from 2026-10-14 10:00 to 2026-10-15 12:00
+    When I open the week view for 2026-10-12
+    Then I see the event "Conference" as a bar from 2026-10-14 to 2026-10-15
 
   @week
   Scenario: A timed event crossing midnight is shown on both days
@@ -99,20 +114,25 @@ Feature: Displaying events in the calendar views
     And the event "Night shift" is positioned on 2026-10-15 from 00:00 to 02:00
 
   @week @overlap
-  Scenario: Overlapping events are shown side by side in the week view
-    Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
+  Scenario: Events starting at nearly the same time are shown side by side in the week view
+    Given the calendar contains an event "Standup" on 2026-10-14 from 09:10 to 10:30
     When I open the week view for 2026-10-12
     Then the events "Dentist" and "Standup" do not overlap
     And the events "Dentist" and "Standup" are side by side
 
+  @week @overlap
+  Scenario: An overlapping event starting 15 minutes or more later is stacked on top
+    Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
+    When I open the week view for 2026-10-12
+    Then the event "Standup" is stacked on the event "Dentist"
+
   @day @overlap
-  Scenario: Three mutually overlapping events are all visible in the day view
+  Scenario: Three mutually overlapping events are cascaded in the day view
     Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
     And the calendar contains an event "Call" on 2026-10-14 from 09:45 to 11:00
     When I open the day view for 2026-10-14
-    Then the events "Dentist" and "Standup" do not overlap
-    And the events "Dentist" and "Call" do not overlap
-    And the events "Standup" and "Call" do not overlap
+    Then the event "Standup" is stacked on the event "Dentist"
+    And the event "Call" is stacked on the event "Standup"
 
   @day @overlap
   Scenario: Back-to-back events do not count as overlapping

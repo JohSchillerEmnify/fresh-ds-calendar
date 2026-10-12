@@ -112,7 +112,7 @@ describe('drag state machine', () => {
     const onDrop = vi.fn(async () => { throw new Error('409'); });
     const { c } = make({ onDrop });
     down('mouse'); move(70, 50, 'mouse'); up(70, 50, 'mouse');
-    await flush();
+    await flush(); finishAll(); await flush(); // wobble ends, rejection already known
     const frames = () => (installed.at(-1)!.frames as Keyframe[]);
     const installed = (await import('./helpers')).mockAnims;
     expect(c.state).toBe('returning');
@@ -121,6 +121,53 @@ describe('drag state machine', () => {
     finishAll(); await flush();
     expect(c.state).toBe('idle');
     expect(el.style.transform).toBe('');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('a slow PATCH does not keep the card in dropping: it can be picked up again right after the wobble', async () => {
+    let resolve!: () => void;
+    const onDrop = vi.fn(() => new Promise<void>((r) => { resolve = r; }));
+    const { c } = make({ onDrop });
+    down(); vi.advanceTimersByTime(351); move(80, 90); up(80, 90);
+    expect(c.state).toBe('dropping');
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+    down(); vi.advanceTimersByTime(351); // second pick-up while the first PATCH is still in flight
+    expect(c.state).toBe('dragging');
+    up(80, 90); await flush(); finishAll(); await flush();
+    resolve(); await flush();
+    expect(c.state).toBe('idle');
+    expect(onDrop).toHaveBeenCalledTimes(2);
+  });
+  it('late PATCH failure rolls back visually without touching a new gesture', async () => {
+    let reject!: (e: Error) => void;
+    const onDrop = vi.fn(() => new Promise<void>((_, r) => { reject = r; }));
+    const { c } = make({ onDrop });
+    down(); vi.advanceTimersByTime(351); up(80, 90);
+    await flush(); finishAll(); await flush();
+    down(); vi.advanceTimersByTime(351);
+    expect(c.state).toBe('dragging');
+    reject(new Error('412')); await flush();
+    expect(c.state).toBe('dragging');
+    c.cancel(); finishAll(); await flush();
+  });
+  it('touch: 2-6 px finger jitter during the hold still picks up', () => {
+    for (const j of [2, 4, 6]) {
+      const { c } = make();
+      down(); vi.advanceTimersByTime(100); move(50 + j, 50); vi.advanceTimersByTime(100); move(50, 50 - j);
+      vi.advanceTimersByTime(200);
+      expect(c.state).toBe('dragging');
+      c.destroy();
+      expect(isGestureClaimed()).toBe(false);
+    }
+  });
+  it('successive drops leave no stale claim; a destroy mid-drop releases it', async () => {
+    const { c } = make();
+    for (let i = 0; i < 3; i++) {
+      down(); vi.advanceTimersByTime(351); up(80, 90); await flush(); finishAll(); await flush();
+      expect(c.state).toBe('idle'); expect(isGestureClaimed()).toBe(false);
+    }
+    down(); vi.advanceTimersByTime(351); c.destroy();
     expect(isGestureClaimed()).toBe(false);
   });
   it('drop outside any target springs back without onDrop', async () => {
@@ -167,6 +214,22 @@ describe('drag state machine', () => {
     expect(vi.getTimerCount()).toBe(0);
     down(); expect(c.state).toBe('idle'); // pointerdown listener gone
     add.mockRestore(); rem.mockRestore();
+  });
+  it('useDraggable re-binds when the element is replaced', async () => {
+    const { ref, nextTick } = await import('vue');
+    const r = ref<HTMLElement | null>(el);
+    const s = effectScope();
+    s.run(() => useDraggable(r, { hitTest: () => target, onDrop: () => {} }));
+    await flush();
+    const el2 = document.createElement('div');
+    el2.getBoundingClientRect = () => rect(40, 40, 100, 40);
+    document.body.appendChild(el2);
+    r.value = el2; await nextTick(); await flush();
+    el2.dispatchEvent(pe('pointerdown', { x: 50, y: 50, pointerType: 'touch' }));
+    vi.advanceTimersByTime(351);
+    expect(el2.dataset.dragging).toBe('true');
+    window.dispatchEvent(pe('pointerup', { x: 50, y: 50, pointerType: 'touch' }));
+    s.stop(); el2.remove();
   });
   it('useDraggable cleans up on scope stop', async () => {
     const s = effectScope();

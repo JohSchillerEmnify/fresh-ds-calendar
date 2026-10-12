@@ -434,17 +434,29 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       );
       if (w) anims.push(w);
       spawnBling(blingAt);
-      try {
-        await p;
-      } catch {
-        // spring back from the new place to the origin after the consumer rolled back
-        await Promise.resolve();
+      // The card is usable again as soon as the wobble ends; the PATCH round trip (can take seconds) must not keep the
+      // controller in `dropping`, or a new long-press on this card is ignored meanwhile.
+      let failed = false;
+      let settled = false;
+      const outcome = Promise.resolve(p).then(() => { settled = true; }, () => { settled = true; failed = true; });
+      if (w) await w.finished.then(() => undefined, () => undefined);
+      if (!settled) {
+        finishVisual();
+        void outcome.then(() => {
+          // consumer rolled back: wobble the (re-laid out) card from the dropped place back to the origin, unless
+          // the user already grabbed it again
+          if (failed && state === 'idle' && el.isConnected) {
+            animate(el, [{ transform: `translate3d(${dest.x}px, ${dest.y}px, 0)` }, { transform: 'translate3d(0,0,0)' }], { spring: springs.wobble, reduced: 'same', duration: 220 });
+          }
+        });
+        return;
+      }
+      if (failed) {
         if (!el.isConnected) return finishVisual();
         cancelAnims();
         springBack(dest, 1);
         return;
       }
-      if (w) await w.finished.then(() => undefined, () => undefined);
       finishVisual();
       return;
     }

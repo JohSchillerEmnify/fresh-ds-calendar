@@ -27,7 +27,7 @@ describe('segments', () => {
 describe('overlap packing', () => {
   const seg = (id: string, s: string, e: string) => itemSegments(ev(id, `2026-10-14T${s}:00+02:00`, `2026-10-14T${e}:00+02:00`))[0];
   it('splits a cluster into equal columns; touching items do not overlap', () => {
-    const p = packColumns([seg('a', '09:00', '10:00'), seg('b', '09:30', '11:00'), seg('c', '11:00', '12:00')]);
+    const p = packColumns([seg('a', '09:00', '10:00'), seg('b', '09:10', '11:00'), seg('c', '11:00', '12:00')]);
     const by = Object.fromEntries(p.map((x) => [x.seg.item.id, x]));
     expect([by.a.cols, by.b.cols, by.c.cols]).toEqual([2, 2, 1]);
     expect(by.a.col).not.toBe(by.b.col);
