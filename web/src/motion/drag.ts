@@ -503,7 +503,7 @@ export function useDraggable<K>(elRef: Ref<HTMLElement | null | undefined> | (()
     get,
     (el) => {
       ctl?.destroy();
-      ctl = el ? createDragController(el, wrapped) : null;
+      ctl = el instanceof HTMLElement ? createDragController(el, wrapped) : null;
     },
     { immediate: true, flush: 'post' },
   );

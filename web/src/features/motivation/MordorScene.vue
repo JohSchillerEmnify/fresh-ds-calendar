@@ -41,7 +41,7 @@ onBeforeUnmount(() => {
       <path d="M0 40 V30 L10 24 L16 29 L28 14 L35 22 L44 18 L55 30 L66 20 L72 26 L86 10 L93 21 L104 17 L112 29 L125 19 L131 24 L146 8 L154 20 L163 16 L172 28 L184 17 L192 24 L200 18 V40Z" class="far" />
       <path d="M0 40 V34 L14 30 L22 35 L40 24 L50 32 L70 27 L82 34 L100 26 L116 35 L132 29 L150 36 L170 28 L186 34 L200 30 V40Z" class="near" />
     </svg>
-    <svg class="mo-tower" viewBox="0 0 60 64" preserveAspectRatio="xMidYMax meet" focusable="false">
+    <svg class="mo-tower" viewBox="0 -10 60 74" preserveAspectRatio="xMidYMax meet" focusable="false">
       <defs>
         <radialGradient id="mo-eye-g" cx="50%" cy="50%" r="55%">
           <stop offset="0" stop-color="#fff2a8" /><stop offset="0.45" stop-color="#ffa21a" /><stop offset="1" stop-color="#e5320f" />
@@ -50,18 +50,14 @@ onBeforeUnmount(() => {
           <stop offset="0" stop-color="#ff7a1a" stop-opacity="0.8" /><stop offset="1" stop-color="#ff3c0a" stop-opacity="0" />
         </radialGradient>
       </defs>
-      <circle ref="glow" class="halo" cx="30" cy="13" r="18" fill="url(#mo-halo)" />
-      <!-- tower -->
-      <path class="body" d="M10 64 L14 46 L12 40 L17 38 L18 30 L22 28 L22 22 L25 22 L24 14 L27 18 L28 24 L30 24 L32 18 L36 14 L35 22 L38 22 L38 28 L42 30 L43 38 L48 40 L46 46 L50 64Z" />
-      <path class="spire" d="M20 30 L19 20 L22 28Z M40 30 L41 20 L38 28Z M14 46 L9 36 L16 41Z M46 46 L51 36 L44 41Z" />
-      <!-- horns around the eye -->
-      <path class="spire" d="M20 17 Q15 8 18 1 Q21 8 26 13Z M40 17 Q45 8 42 1 Q39 8 34 13Z" />
+      <circle ref="glow" class="halo" cx="30" cy="12" r="20" fill="url(#mo-halo)" />
+      <path class="body" d="M14 64 L19 50 L18 42 L22 38 L22 28 L25 25 L25 19 L29 17 L30 15 L31 17 L35 19 L35 25 L38 28 L38 38 L42 42 L41 50 L46 64Z" />
+      <path class="spire" d="M22 38 L19 28 L24 33Z M38 38 L41 28 L36 33Z M18 48 L11 41 L20 44Z M42 48 L49 41 L40 44Z M25 25 L23 17 L27 22Z M35 25 L37 17 L33 22Z" />
+      <path class="spire" d="M25 20 Q18 10 21 0 Q24 8 29 14Z M35 20 Q42 10 39 0 Q36 8 31 14Z" />
       <g ref="eye" class="eye">
-        <g class="flames">
-          <path class="fl f1" d="M22 10 Q24 3 27 8 Q28 1 31 7 Q33 0 35 8 Q38 3 38 10 Q30 6 22 10Z" />
-        </g>
-        <path class="almond" d="M16 13 Q30 1.500 44 13 Q30 24.500 16 13Z" fill="url(#mo-eye-g)" />
-        <g class="pupil-g"><ellipse class="pupil" cx="30" cy="13" rx="1.900" ry="8.500" /></g>
+        <g class="flames"><path class="fl" d="M23 9 Q25 2 28 7 Q29 -2 31 6 Q33 -1 35 7 Q38 2 37 9 Q30 5 23 9Z" /></g>
+        <path class="almond" d="M16 12 Q30 0 44 12 Q30 24 16 12Z" fill="url(#mo-eye-g)" />
+        <g class="pupil-g"><ellipse class="pupil" cx="30" cy="12" rx="1.9" ry="8.6" /></g>
       </g>
     </svg>
     <div class="mo-embers"><i /><i /><i /><i /><i /><i /></div>
@@ -74,8 +70,8 @@ onBeforeUnmount(() => {
 .mo-ash { position: absolute; left: 0; bottom: 0; width: 100%; height: 62%; }
 .mo-ash .far { fill: var(--md-sys-color-on-surface, #000); fill-opacity: 0.1; }
 .mo-ash .near { fill: var(--md-sys-color-on-surface, #000); fill-opacity: 0.16; }
-.mo-tower { position: absolute; right: 14%; bottom: 0; height: 100%; width: auto; aspect-ratio: 60 / 64; overflow: visible; }
-.body { fill: var(--md-sys-color-on-surface, #000); fill-opacity: 0.3; }
+.mo-tower { position: absolute; right: 16%; bottom: 0; height: 100%; width: auto; aspect-ratio: 60 / 74; overflow: visible; }
+.body { fill: var(--md-sys-color-on-surface, #000); fill-opacity: 0.34; }
 .spire { fill: var(--md-sys-color-on-surface, #000); fill-opacity: 0.34; }
 .halo { transform-box: fill-box; transform-origin: center; opacity: 0.55; }
 .eye { transform-box: fill-box; transform-origin: 50% 50%; opacity: 0.88; }

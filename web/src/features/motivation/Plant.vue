@@ -14,7 +14,7 @@ const props = withDefaults(
   { mood: 'happy', size: 32, change: null, effects: true },
 );
 
-const DROOP: Record<Mood, number> = { happy: 0, thirsty: 6, dry: 14, droopy: 26 };
+const DROOP: Record<Mood, number> = { happy: 0, thirsty: 8, dry: 18, droopy: 30 };
 const deg = computed(() => DROOP[props.mood]);
 const svg = ref<SVGSVGElement | null>(null);
 const plantG = ref<SVGGElement | null>(null);
@@ -129,11 +129,11 @@ onBeforeUnmount(() => {
 .plant[data-mood='dry'] { filter: saturate(0.65); }
 .plant[data-mood='droopy'] { filter: saturate(0.5) opacity(0.92); }
 .grow { transform-origin: 50px 68px; transform-box: view-box; transition: transform 500ms cubic-bezier(0.34, 1.4, 0.64, 1); }
-.stem { stroke: var(--md-sys-color-primary, #386a20); stroke-width: 3.6; stroke-linecap: round; fill: none; }
+.stem { stroke: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 22%, #2f8a34); stroke-width: 3.6; stroke-linecap: round; fill: none; }
 .stem.thin { stroke-width: 2.4; }
-.leaf { fill: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 78%, #8fe06a); }
-.leaf2 { fill: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 62%, #8fe06a); }
-.bud { fill: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 60%, #b5f08c); }
+.leaf { fill: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 14%, #5cc04a); }
+.leaf2 { fill: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 14%, #3ea43f); }
+.bud { fill: #8be06a; }
 .seed { fill: #8a5a34; }
 .petal { fill: var(--md-sys-color-tertiary, #b5486f); }
 .center { fill: #ffc83d; }

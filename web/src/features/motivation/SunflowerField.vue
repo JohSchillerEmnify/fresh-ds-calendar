@@ -34,7 +34,7 @@ const rand = (i: number, k: number) => {
   const x = Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453;
   return x - Math.floor(x);
 };
-const DROOP: Record<Mood, number> = { happy: 0, thirsty: 9, dry: 18, droopy: 28 };
+const DROOP: Record<Mood, number> = { happy: 0, thirsty: 9, dry: 19, droopy: 32 };
 const items = computed(() =>
   Array.from({ length: shown.value }, (_, i) => ({
     i,
@@ -90,12 +90,12 @@ defineExpose({ root });
   >
     <svg class="sff-defs" width="0" height="0" aria-hidden="true" focusable="false">
       <symbol id="mo-sunflower" viewBox="0 0 40 64">
-        <path d="M20 64 V26" class="sfs-stem" />
-        <path d="M20 50 Q9 48 6 40 Q16 40 20 48Z" class="sfs-leaf" />
-        <path d="M20 44 Q31 43 34 35 Q24 35 20 42Z" class="sfs-leaf" />
+        <path d="M20 64 V26" fill="none" stroke-width="2.6" stroke-linecap="round" style="stroke: var(--sf-stem)" />
+        <path d="M20 50 Q9 48 6 40 Q16 40 20 48Z" style="fill: var(--sf-stem)" />
+        <path d="M20 44 Q31 43 34 35 Q24 35 20 42Z" style="fill: var(--sf-stem)" />
         <g transform="translate(20 18)">
-          <ellipse v-for="a in petals" :key="a" cx="0" cy="-9.5" rx="3.6" ry="7" :transform="`rotate(${a})`" class="sfs-petal" />
-          <circle r="6.4" class="sfs-center" />
+          <ellipse v-for="a in petals" :key="a" cx="0" cy="-9.5" rx="3.6" ry="7" :transform="`rotate(${a})`" style="fill: var(--sf-petal)" />
+          <circle r="6.4" style="fill: var(--sf-center)" />
         </g>
       </symbol>
     </svg>
@@ -112,7 +112,8 @@ defineExpose({ root });
 </template>
 
 <style scoped>
-.sff { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0.34; transition: opacity 600ms, filter 600ms; }
+.sff { --sf-petal: color-mix(in oklab, var(--md-sys-color-tertiary, #b5486f) 22%, #f6b81c); --sf-center: color-mix(in oklab, var(--md-sys-color-on-surface, #1d1b20) 45%, #7a4a1e); --sf-stem: color-mix(in oklab, var(--md-sys-color-primary, #386a20) 28%, #3f9a3a);
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0.4; transition: opacity 600ms, filter 600ms; }
 .sff[data-mood='thirsty'] { filter: saturate(0.85); opacity: 0.32; }
 .sff[data-mood='dry'] { filter: saturate(0.6); opacity: 0.28; }
 .sff[data-mood='droopy'] { filter: saturate(0.4); opacity: 0.24; }
@@ -122,10 +123,4 @@ defineExpose({ root });
 .sff[data-sway='on'] .sf { animation: sff-sway var(--dur, 5s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes sff-sway { from { rotate: -2.2deg; } to { rotate: 2.2deg; } }
 :global(html[data-motion='off']) .sf-svg, :global(html[data-motion='reduced']) .sf-svg { transition: none; }
-</style>
-<style>
-.sff .sfs-stem { stroke: var(--md-sys-color-primary, #386a20); stroke-width: 2.6; stroke-linecap: round; fill: none; }
-.sff .sfs-leaf { fill: var(--md-sys-color-primary, #386a20); }
-.sff .sfs-petal { fill: var(--md-sys-color-tertiary, #b5486f); }
-.sff .sfs-center { fill: var(--md-sys-color-on-surface-variant, #49454f); }
 </style>

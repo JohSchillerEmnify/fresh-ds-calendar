@@ -151,7 +151,7 @@ describe('components', () => {
   it('Plant moods droop and never look dead', () => {
     const rot = (m: any) => mount(Plant, { props: { stage: 3, mood: m } }).find('.grow').attributes('style');
     expect(rot('happy')).toContain('rotate(0deg)');
-    expect(rot('droopy')).toContain('rotate(26deg)');
+    expect(rot('droopy')).toContain('rotate(30deg)');
     expect(mount(Plant, { props: { stage: 3, mood: 'droopy' } }).html()).not.toMatch(/brown|dead/i);
   });
   it('Plant plays water droplets and grow on change; none when animations are Reduced', async () => {
