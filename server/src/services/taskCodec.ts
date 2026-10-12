@@ -17,6 +17,16 @@ export interface TaskListData {
   tags: string[];
   estimateMinutes: number | null;
   recurrence: Recurrence | null;
+  /** App-clock date of the write that ticked the last open item; null while an item is open or when unknown. */
+  completedOn: string | null;
+}
+
+const isFinished = (items: TaskItem[]): boolean => items.length > 0 && items.every((i) => i.done);
+
+/** `completedOn` after a write: today when the write finishes the list, the old value while it stays finished, else null. */
+export function nextCompletedOn(before: Pick<TaskListData, 'items' | 'completedOn'>, after: Pick<TaskListData, 'items'>, today: string): string | null {
+  if (!isFinished(after.items)) return null;
+  return isFinished(before.items) ? before.completedOn : today;
 }
 
 export function isTaskListEvent(ev: GoogleEvent): boolean {
@@ -58,6 +68,7 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
     tags: d.tags.length ? JSON.stringify(d.tags) : null,
     estimate: d.estimateMinutes === null ? null : String(d.estimateMinutes),
     recurrence: d.recurrence,
+    completedOn: d.completedOn,
   };
   Object.assign(p, staleChunkKeys(existing, p));
   return p;
@@ -174,5 +185,6 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
     tags,
     estimateMinutes: Number.isFinite(est) ? est : null,
     recurrence,
+    completedOn: p.completedOn && /^\d{4}-\d{2}-\d{2}$/.test(p.completedOn) ? p.completedOn : null,
   };
 }

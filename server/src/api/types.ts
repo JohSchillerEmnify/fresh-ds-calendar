@@ -53,6 +53,7 @@ export interface TaskList {
   categoryId: string | null;
   tags: string[];
   color: string;
+  completedOn: LocalDate | null;
   etag: string;
   updated: DateTime;
 }

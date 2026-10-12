@@ -176,7 +176,7 @@ export class ApiClient {
   }
   openTaskLists(today: LocalDate, days = 30, o?: RequestOptions) {
     const q = new URLSearchParams({ today, days: String(days) });
-    return this.request<{ items: TaskList[] }>('GET', `/api/tasklists/open?${q}`, undefined, o);
+    return this.request<{ items: TaskList[]; finishedToday: TaskList[] }>('GET', `/api/tasklists/open?${q}`, undefined, o);
   }
 
   // --- settings & categories ----------------------------------------------------
