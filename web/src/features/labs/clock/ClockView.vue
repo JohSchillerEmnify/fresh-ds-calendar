@@ -17,21 +17,38 @@ const dateLabel = computed(() => new Intl.DateTimeFormat('en-GB', { weekday: 'lo
 
 const segments = computed(() => (items.byDate.get(date.value) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)));
 
-const R_OUTER = 168;
+const R_OUTER = 172;
 const LANE_GAP = 17;
+const LABEL_H = 14;
+const MAX_LABEL = 18;
 const ARC_W = 14;
 /** Timed events as arcs, overlapping ones on inner lanes. */
 const arcs = computed(() =>
   assignLanes(segments.value.filter((s) => s.item.kind === 'event' && !s.allDay && s.startTime && s.endTime)).map((s) => ({
     key: `${s.item.id}-${s.date}`, title: s.item.title, start: s.startTime!, end: s.endTime!, color: s.item.color,
+    mid: (s.startMin + s.endMin) / 2, r: R_OUTER - 14 - s.lane * LANE_GAP,
     d: arcPath(s.startMin, s.endMin, R_OUTER - 14 - s.lane * LANE_GAP),
   })),
 );
+/** One readable label per arc, inside the innermost lane; pushed apart per side so they do not overlap. */
+const labels = computed(() => {
+  const rIn = Math.min(...arcs.value.map((a) => a.r)) - 16;
+  const all = arcs.value.map((a) => {
+    const p = pointAt(a.mid, rIn), from = pointAt(a.mid, a.r - 8);
+    const right = p.x >= CENTER;
+    return { key: a.key, title: a.title, text: a.title.length > MAX_LABEL ? a.title.slice(0, MAX_LABEL - 1) + '…' : a.title, color: a.color, right, x: p.x, y: p.y, fx: from.x, fy: from.y };
+  });
+  for (const side of [true, false]) {
+    const group = all.filter((l) => l.right === side).sort((a, b) => a.y - b.y);
+    group.forEach((l, i) => { if (i > 0) l.y = Math.max(l.y, group[i - 1].y + LABEL_H); });
+  }
+  return all;
+});
 /** Timed task lists as dots on the hour ring. */
 const dots = computed(() =>
   segments.value.filter((s) => s.item.kind === 'tasklist' && s.startTime).map((s) => ({
     key: s.item.id, title: s.item.title, time: s.startTime!, color: s.item.color, done: s.item.kind === 'tasklist' && s.item.doneCount >= s.item.totalCount,
-    ...pointAt(s.startMin, R_OUTER + 2),
+    ...pointAt(s.startMin, R_OUTER + 4),
   })),
 );
 
@@ -39,15 +56,15 @@ const isToday = computed(() => date.value === clock.today);
 /** Minutes of the day that have passed on the shown date. */
 const elapsed = computed(() => (date.value < clock.today ? 1440 : isToday.value ? clock.minutesNow : 0));
 const handTime = computed(() => minutesToTime(clock.minutesNow));
-const progress = computed(() => (elapsed.value > 0 ? arcPath(0, elapsed.value, 190) : ''));
-const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178), b: pointAt(h * 60, h % 6 === 0 ? 170 : 174), label: h % 3 === 0 ? pointAt(h * 60, 154) : null }));
+const progress = computed(() => (elapsed.value > 0 ? arcPath(0, elapsed.value, 205) : ''));
+const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178), b: pointAt(h * 60, h % 6 === 0 ? 170 : 174), label: h % 3 === 0 ? pointAt(h * 60, 190) : null }));
 </script>
 
 <template>
   <section class="clock" data-testid="clock-view" :data-date="date">
     <h2 class="date">{{ dateLabel }}</h2>
-    <svg class="face" viewBox="0 0 400 400" role="img" :aria-label="`24-hour clock for ${dateLabel}`">
-      <circle :cx="CENTER" :cy="CENTER" r="190" class="track" />
+    <svg class="face" viewBox="0 0 440 440" role="img" :aria-label="`24-hour clock for ${dateLabel}`">
+      <circle :cx="CENTER" :cy="CENTER" r="205" class="track" />
       <path v-if="progress" :d="progress" class="progress" data-testid="clock-progress" />
       <circle :cx="CENTER" :cy="CENTER" r="178" class="plate" />
       <g class="ticks">
@@ -62,6 +79,10 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
         v-for="a in arcs" :key="a.key" :d="a.d" class="arc" :stroke="a.color" :stroke-width="ARC_W" stroke-linecap="round"
         data-testid="clock-arc" :data-title="a.title" :data-start="a.start" :data-end="a.end"
       ><title>{{ a.title }} {{ a.start }}-{{ a.end }}</title></path>
+      <g v-for="l in labels" :key="l.key" class="lbl">
+        <line :x1="l.fx" :y1="l.fy" :x2="l.x" :y2="l.y" :stroke="l.color" />
+        <text :x="l.x" :y="l.y" :text-anchor="l.right ? 'end' : 'start'" dominant-baseline="central" data-testid="clock-label" :data-title="l.title">{{ l.text }}</text>
+      </g>
       <circle
         v-for="d in dots" :key="d.key" :cx="d.x" :cy="d.y" r="7" class="dot" :class="{ done: d.done }" :fill="d.color"
         data-testid="clock-dot" :data-title="d.title" :data-time="d.time"
@@ -92,5 +113,7 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
 .hand line { stroke: var(--md-sys-color-tertiary); stroke-width: 3; stroke-linecap: round; }
 .hand circle { fill: var(--md-sys-color-tertiary); }
 .hub { fill: var(--md-sys-color-tertiary); stroke: var(--md-sys-color-surface); stroke-width: 2; }
+.lbl line { stroke-width: 1; opacity: 0.7; }
+.lbl text { font: 600 12px var(--md-ref-typeface-plain, system-ui); fill: var(--md-sys-color-on-surface); paint-order: stroke; stroke: var(--md-sys-color-surface-container-low); stroke-width: 3px; }
 .now { font: 600 22px var(--md-ref-typeface-plain, system-ui); fill: var(--md-sys-color-on-surface); }
 </style>

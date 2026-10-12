@@ -34,3 +34,27 @@ Then(
     expect(d).toBeGreaterThan(n);
   },
 );
+
+/** Rendered width of a timeline item. */
+async function widthOf(w: World, title: string): Promise<number> {
+  const loc = w.page.locator(`[data-testid="timeline-item"][data-title="${title}"]`);
+  await expect(loc).toHaveCount(1);
+  return (await box(loc)).width;
+}
+
+Then('on the timeline {string} is about {int} times as long as {string}', async function (this: World, a: string, n: number, b: string) {
+  const ratio = (await widthOf(this, a)) / (await widthOf(this, b));
+  expect(ratio).toBeGreaterThan(n * 0.85);
+  expect(ratio).toBeLessThan(n * 1.15);
+});
+
+Then('{string} is in the all-day band above the timed entries', async function (this: World, title: string) {
+  const band = this.page.getByTestId('timeline-allday');
+  const entry = band.locator(`[data-testid="timeline-item"][data-title="${title}"]`);
+  await expect(entry).toHaveCount(1);
+  const y = (await box(entry)).y;
+  const timed = this.page.locator('[data-testid="timeline-item"]:not([data-testid="timeline-allday"] *)');
+  const ys = await timed.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().y));
+  expect(ys.length).toBeGreaterThan(0);
+  for (const t of ys) expect(y).toBeLessThan(t);
+});

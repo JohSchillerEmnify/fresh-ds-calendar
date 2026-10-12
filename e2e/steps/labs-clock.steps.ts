@@ -45,3 +45,10 @@ Then(
 Then('the clock hand points at {time}', async function (this: World, time: string) {
   await expect(this.page.getByTestId('clock-hand')).toHaveAttribute('data-time', time);
 });
+
+Then('the arc of {string} is labelled {string}', async function (this: World, title: string, label: string) {
+  const text = this.page.locator(tid('clock-label') + `[data-title="${title}"]`);
+  await expect(text).toHaveCount(1);
+  await expect(text).toBeVisible();
+  await expect(text).toHaveText(label);
+});

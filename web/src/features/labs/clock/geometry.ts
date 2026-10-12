@@ -1,5 +1,5 @@
 /** Geometry of the 24-hour clock: midnight at the top, clockwise, one full turn per day. */
-export const CENTER = 200;
+export const CENTER = 220;
 
 /** Angle in degrees (0 = top) of a minute of the day. */
 export const angleOf = (minutes: number): number => (minutes / 1440) * 360;
