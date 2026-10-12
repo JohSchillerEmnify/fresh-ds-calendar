@@ -92,6 +92,17 @@ Feature: Rewarding feedback and delightful motion
     And I tick the item "Milk"
     Then no reward effect appears
 
+  Scenario: I can choose full animations although the system asks for less motion
+    Given the device prefers reduced motion
+    When I open the path "/settings"
+    Then the settings say the device asks for less motion
+    When I allow full animations despite the device setting
+    And I choose the animation level "Full"
+    And I open the day view for 2026-10-12
+    And I expand the task list "Groceries"
+    And I tick the item "Milk"
+    Then a "tick" effect appears and is removed within 1000 ms
+
   Scenario: Micro-interactions animate dialogs and menus, unless animations are off
     When I open the week view for 2026-10-12
     And I start creating an event

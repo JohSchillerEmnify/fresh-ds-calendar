@@ -605,6 +605,12 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 - The client filters instantly (hidden calendars' entries are not drawn) and saves in the background; the filter bar
   gets one chip per calendar (`filter-chip-calendar`, `data-name`, `data-calendar-id`, `aria-pressed` = shown).
 
+### Reduced motion override (owner, 2026-10-12)
+
+Windows ("Animation effects" off), macOS and phones report `prefers-reduced-motion: reduce`; the app then caps the
+animation level at Reduced (no particles). Settings show a hint while the device asks for less motion and a switch
+`ignoreSystemMotion` (per person, default off) that lets the app's own level apply.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |
