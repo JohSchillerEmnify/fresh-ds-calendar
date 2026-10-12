@@ -46,7 +46,7 @@ const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.v
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < 84);
 const hasFoot = computed(() => !!tl.value.time && !fit.value.inline);
-/** Overview shows open items only (ticked ones live in the expanded view), at most 2 by default, fewer when short of room. */
+/** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const section = inject(sectionKey, () => 'full' as const);
 /** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
@@ -66,16 +66,15 @@ const fit = computed(() => {
     pad: block ? 6 : 5,
     footH: footVisible ? 14 : 0,
     minLines: block ? 0 : mini.value ? 3 : 2,
-    maxLines: 3,
   });
   // Mini cards are too narrow for inline names: rows below the title (TASKLIST_MIN_BLOCK_PX leaves room for one).
   if (mini.value && (f.inline || shortBlock)) {
-    const shown = f.inline ? 0 : Math.min(f.shown, 2);
+    const shown = f.inline ? 0 : f.shown;
     return { shown, more: open - shown, inline: false };
   }
-  if (f.inline || shortBlock) { const shown = Math.min(2, open); return { shown, more: open - shown, inline: true }; }
-  const shown = Math.min(f.shown, 2);
-  return { shown, more: open - shown, inline: false };
+  // Inline names run on in one line and fade out at the right edge, so every open one is shown.
+  if (f.inline || shortBlock) return { shown: open, more: 0, inline: true };
+  return { shown: f.shown, more: f.more, inline: false };
 });
 /** One-row block: the "+k" badge sits on the item row (right edge) instead of a row of its own. */
 const tight = computed(() => props.variant === 'block' && fit.value.more > 0 && !fit.value.inline && !!props.height
