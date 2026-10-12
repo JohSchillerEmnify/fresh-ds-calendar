@@ -519,6 +519,13 @@ I dismiss the transition warning
 the open tasks tray shows the count {string}
 I open the open tasks tray
 the open tasks tray lists {string}
+the open tasks tray shows the task list {string} with items:
+I tick the item {string} in the open tasks tray
+I untick the item {string} in the open tasks tray
+the item {string} of the task list {string} was ticked on {date}
+the open tasks tray shows all {int} items of the task list {string}
+I unfold the task list {string} in the open tasks tray
+the task list {string} in the open tasks tray is struck through and shows only its title
 I open the task list {string} from the open tasks tray
 the task list {string} is shown as carried over from {string}
 the task list {string} is not flagged as overdue
