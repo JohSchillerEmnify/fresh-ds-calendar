@@ -31,13 +31,14 @@ const hint = computed(() => props.error || props.supporting || '');
 
 <style scoped>
 .tf { min-width: 0; }
-.box { position: relative; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-small) var(--md-sys-shape-corner-small) 0 0; border-bottom: 1px solid var(--md-sys-color-on-surface-variant); transition: border-color var(--md-sys-motion-duration-short); }
-.box:focus-within { border-bottom: 2px solid var(--md-sys-color-primary); margin-bottom: -1px; }
+.box { position: relative; background: var(--md-sys-color-surface-container-highest); border-radius: var(--md-sys-shape-corner-small); }
+.box:focus-within { outline: 2px solid var(--md-sys-color-primary); }
 .in { width: 100%; min-height: 56px; background: transparent; border: 0; outline: 0; padding: 24px 16px 6px; font-size: 16px; line-height: 24px; resize: vertical; color: var(--md-sys-color-on-surface); }
 .lbl { position: absolute; left: 16px; top: 16px; font-size: 16px; line-height: 24px; color: var(--md-sys-color-on-surface-variant); pointer-events: none; transform-origin: left top; transition: transform var(--md-sys-motion-duration-short) var(--md-sys-motion-emphasized); }
 .in:focus ~ .lbl, .in:not(:placeholder-shown) ~ .lbl, .filled .lbl { transform: translateY(-10px) scale(0.75); }
 .in:focus ~ .lbl { color: var(--md-sys-color-primary); }
 .hint { margin: 4px 16px 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
-.err .box { border-bottom-color: var(--md-sys-color-error); }
+.err .box { outline: 1px solid var(--md-sys-color-error); }
+.err .box:focus-within { outline-width: 2px; }
 .err .hint, .err .in:focus ~ .lbl { color: var(--md-sys-color-error); }
 </style>

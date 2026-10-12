@@ -5,7 +5,7 @@ defineProps<{ label: string; expanded?: boolean }>();
 </script>
 
 <template>
-  <button v-ripple class="fab" type="button" :aria-label="label" aria-haspopup="menu" :aria-expanded="expanded">
+  <button v-ripple class="fab" type="button" :aria-label="label" aria-haspopup="dialog">
     <span class="plus" :class="{ open: expanded }"><slot /></span>
   </button>
 </template>
