@@ -602,6 +602,15 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 - The client filters instantly (hidden calendars' entries are not drawn) and saves in the background; the filter bar
   gets one chip per calendar (`filter-chip-calendar`, `data-name`, `data-calendar-id`, `aria-pressed` = shown).
 
+### Back closes overlays (owner, 2026-10-12)
+
+Every overlay (expanded task list, dialogs and sheets, the expanded phone tray, filter bar, month picker, create menu)
+pushes a history entry when it opens (`history.pushState` with an overlay marker, no route change) and closes on
+`popstate`; closing it by other means goes back over its entry. So the system back gesture/button closes the topmost
+overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
+history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
+all overlays; no per-component history code.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |
