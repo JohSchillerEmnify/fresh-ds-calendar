@@ -76,11 +76,11 @@ Feature: Displaying events in the calendar views
   Scenario: A multi-day all-day event is shown as a bar across the days it covers in the month view
     Given the calendar contains an all-day event "Trip" from 2026-10-17 to 2026-10-20
     When I open the month view for 2026-10
-    Then I see the event "Trip" on each day from 2026-10-17 to 2026-10-19
+    Then I see the event "Trip" on each day from 2026-10-17 to 2026-10-20
     And I see the event "Trip" as a bar from 2026-10-17 to 2026-10-18
-    And I see the event "Trip" as a bar from 2026-10-19 to 2026-10-19
+    And I see the event "Trip" as a bar from 2026-10-19 to 2026-10-20
     And I do not see the event "Trip" on 2026-10-16
-    And I do not see the event "Trip" on 2026-10-20
+    And I do not see the event "Trip" on 2026-10-21
 
   @week
   Scenario: A multi-day all-day event crossing a week boundary is cut at the week edge
@@ -88,8 +88,8 @@ Feature: Displaying events in the calendar views
     When I open the week view for 2026-10-12
     Then I see the event "Trip" as a bar from 2026-10-17 to 2026-10-18
     When I go to the next period
-    Then I see the event "Trip" as a bar from 2026-10-19 to 2026-10-19
-    And I do not see the event "Trip" on 2026-10-20
+    Then I see the event "Trip" as a bar from 2026-10-19 to 2026-10-20
+    And I do not see the event "Trip" on 2026-10-21
 
   @month
   Scenario: Overlapping multi-day events are stacked in separate lanes

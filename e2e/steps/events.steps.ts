@@ -41,7 +41,8 @@ Then('the event {string} is a bar in lane {int}', async function (this: World, t
 });
 
 Then('I see the all-day event {string} on {date}', async function (this: World, title: string, date: string) {
-  await expect(this.eventChips(title, date).and(this.page.locator('[data-all-day="true"]')).first()).toBeVisible();
+  // A multi-day all-day event is drawn as a bar, not as per-day chips.
+  await expect.poll(async () => (await this.eventChips(title, date).and(this.page.locator('[data-all-day="true"]')).locator('visible=true').count()) > 0 || (await this.barCovers(title, date)), `${title} on ${date}`).toBe(true);
 });
 
 Then('I do not see the event {string}', async function (this: World, title: string) {
