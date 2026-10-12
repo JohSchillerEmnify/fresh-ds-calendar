@@ -65,6 +65,8 @@ export interface TaskList {
   categoryId: string | null;
   tags: string[];
   color: string;
+  /** Date the last open item was ticked (server, app clock); null/absent while an item is open. */
+  completedOn?: LocalDate | null;
   etag: string;
   updated: DateTime;
 }
