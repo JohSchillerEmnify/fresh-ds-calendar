@@ -50,10 +50,12 @@ describe('rowStep (truncation fade)', () => {
     freshPinia();
     const few = mount(TaskListCard, { props: { segment: itemSegments(list(2))[0], variant: 'card', height: 200 } });
     expect(few.findAll('.it').every((e) => !e.attributes('style'))).toBe(true);
-    const many = mount(TaskListCard, { props: { segment: itemSegments(list(6))[0], variant: 'card', height: 200 } });
+    // Too little room for all six names, so the list is truncated: rows step down, the last shown one fades out.
+    const many = mount(TaskListCard, { props: { segment: itemSegments(list(6))[0], variant: 'card', height: 17 + 5 + 14 * 3 } });
     const vis = visible(many);
+    expect(vis.length).toBeLessThan(6);
     expect(vis[1].attributes('style')).toContain('opacity: 0.85');
-    expect(vis[1].classes()).toContain('fade');
+    expect(vis[vis.length - 1].classes()).toContain('fade');
   });
 });
 
@@ -61,13 +63,13 @@ describe('inline mode for blocks of about an hour or less in a wide column', () 
   beforeEach(() => { cardWidth.px = 200; });
   afterEach(() => { cardWidth.px = 47; });
   const mount2 = (n: number, height: number) => mount(TaskListCard, { props: { segment: itemSegments(list(n))[0], variant: 'block', height } });
-  it('44 px block: items inline, max 2 shown, +k, no time footer', () => {
+  it('44 px block: every open item inline (the line fades out), no +k, no time footer', () => {
     freshPinia();
     const w = mount2(5, 44);
     expect(w.attributes('data-fit')).toBe('inline');
-    expect(visible(w).map((e) => e.text())).toEqual(['Item 0', 'Item 1']);
-    expect(w.findAll('.sep:not(.nosep)')).toHaveLength(1);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toMatch(/\+3/);
+    expect(visible(w).map((e) => e.text())).toEqual(['Item 0', 'Item 1', 'Item 2', 'Item 3', 'Item 4']);
+    expect(w.findAll('.sep:not(.nosep)')).toHaveLength(4);
+    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
     expect(w.find('.foot').exists()).toBe(false);
   });
   it('taller blocks keep list rows', () => {

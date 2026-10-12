@@ -177,25 +177,26 @@ describe('TaskListCard in a grid', () => {
     add.mockRestore(); remove.mockRestore();
   });
 
-  it('overview: max 2 open items, ticked ones hidden, "+k" counts open ones, text keeps everything', async () => {
+  it('overview: every open item that fits, ticked ones hidden, text keeps everything', async () => {
     freshPinia();
     const tl = list({ items: mk(6, 1), doneCount: 1, totalCount: 6 });
     const w = mount(TaskListCard, { props: { segment: itemSegments(tl)[0], variant: 'card', height: 200 } });
     expect(w.get('[data-testid=tasklist-card-items]').text()).toBe('Item 0, Item 1, Item 2, Item 3, Item 4, Item 5');
     const visible = w.findAll('.it').filter((i) => i.classes().indexOf('over') < 0);
-    expect(visible.map((i) => i.text())).toEqual(['Item 1', 'Item 2']);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+3 more');
+    expect(visible.map((i) => i.text())).toEqual(['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5']);
+    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
     expect(w.get('[data-testid=tasklist-card-check]').attributes('data-state')).toBe('partial');
     expect(w.get('[data-testid=tasklist-card-count]').text()).toBe('1/6');
   });
-  it('overview: three open items show 2 and "+1"; less room shows fewer; all done shows no rows', async () => {
+  it('overview: three open items all show with room; less room shows fewer and "+k"; all done shows no rows', async () => {
     freshPinia();
     const three = list({ items: mk(3), totalCount: 3 });
     const w = mount(TaskListCard, { props: { segment: itemSegments(three)[0], variant: 'card', height: 200 } });
-    expect(w.findAll('.it:not(.over)')).toHaveLength(2);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+1 more');
+    expect(w.findAll('.it:not(.over)')).toHaveLength(3);
+    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
     const tight = mount(TaskListCard, { props: { segment: itemSegments(three)[0], variant: 'card', height: 17 + 5 + 14 } });
     expect(tight.findAll('.it:not(.over)')).toHaveLength(1);
+    expect(tight.get('[data-testid=tasklist-card-more]').text()).toBe('+2 more');
     const done = list({ items: mk(2, 2), doneCount: 2, totalCount: 2 });
     const d = mount(TaskListCard, { props: { segment: itemSegments(done)[0], variant: 'card', height: 200 } });
     expect(d.findAll('.it:not(.over)')).toHaveLength(0);

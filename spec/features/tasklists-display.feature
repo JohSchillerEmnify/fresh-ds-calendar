@@ -1,7 +1,8 @@
 @tasklists @display
 Feature: Task lists in the calendar views
   A task list is placed on a date, optionally at a time. Collapsed it shows its title,
-  its item titles in a compact single line and a done count like "1/3". A timed task list's place in the time
+  its open item titles, as many as there is room for (no fixed limit; untimed lists show them all), and a
+  done count like "1/3". A timed task list's place in the time
   grid tells its time; a short block does not repeat it as text.
   On phones, the month view shows only compact chips; tapping the day opens the day view.
   A timed task list in the grid shows its items next to the title only where the column is wide enough;
@@ -86,6 +87,42 @@ Feature: Task lists in the calendar views
       | Eggs | no   |
     When I open the day view for 2026-10-14
     Then the task list "Einkaufen" shows the item "Milk" next to its title
+
+  @desktop @day
+  Scenario: A short timed task list in a wide column shows only its open items next to the title
+    Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 45 minutes with items:
+      | item     | done |
+      | Oat milk | no   |
+      | Pasta    | yes  |
+      | Bread    | no   |
+      | Tomatoes | no   |
+    When I open the day view for 2026-10-14
+    Then the task list "Einkaufen" shows the item "Tomatoes" next to its title
+    And the task list "Einkaufen" does not show the item "Pasta"
+
+  @desktop @day
+  Scenario: A tall timed task list shows as many items below the title as fit
+    Given the calendar contains a task list "Packing" on 2026-10-14 at 09:00 for 180 minutes with items:
+      | item      | done |
+      | Passport  | no   |
+      | Charger   | no   |
+      | Tickets   | no   |
+      | Sunscreen | no   |
+      | Book      | no   |
+    When I open the day view for 2026-10-14
+    Then the task list "Packing" shows the item "Book" below its title
+
+  @desktop @week
+  Scenario: A task list without a time shows all of its open items in the all-day area
+    Given the calendar contains a task list "Weekend" on 2026-10-14 with items:
+      | item      | done |
+      | Laundry   | no   |
+      | Groceries | no   |
+      | Bike      | no   |
+      | Plants    | no   |
+      | Call mum  | no   |
+    When I open the week view for 2026-10-12
+    Then the task list "Weekend" shows the item "Call mum" below its title
 
   Scenario: An empty task list shows a zero count and a placeholder
     Given the calendar contains an empty task list "Ideas" on 2026-10-14
