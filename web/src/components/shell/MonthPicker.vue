@@ -50,6 +50,21 @@ watch(shown, load, { immediate: true });
 onMounted(() => {
   stops.push(listen(document, 'keydown', (e) => { if (e.key === 'Escape') ui.pickerOpen = false; }));
   if (grid.value) stops.push(bindSwipe(grid.value, { onLeft: () => move(1), onRight: () => move(-1) }));
+  if (grid.value) {
+    // Mouse drag counterpart of the touch swipe (same thresholds), for desktop.
+    const g = grid.value;
+    let sx = 0, sy = 0, st = 0, down = false;
+    stops.push(
+      listen(g, 'pointerdown', (e) => { const p = e as PointerEvent; down = p.pointerType === 'mouse'; sx = p.clientX; sy = p.clientY; st = Date.now(); }),
+      listen(document, 'pointerup', (e) => {
+        if (!down) return;
+        down = false;
+        const p = e as PointerEvent, dx = p.clientX - sx, dy = p.clientY - sy;
+        if (Date.now() - st > 600 || Math.abs(dx) < 60 || Math.abs(dx) <= 1.5 * Math.abs(dy)) return;
+        move(dx < 0 ? 1 : -1);
+      }),
+    );
+  }
 });
 onBeforeUnmount(() => stops.forEach((s) => s()));
 </script>
