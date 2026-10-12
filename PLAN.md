@@ -34,3 +34,14 @@
 - Load: serialize Playwright/docker runs with `flock /tmp/calendar-e2e.lock <cmd>`.
 - LATER (owner): German translation (i18n; UI strings extracted, de + en, Europe/Berlin locale, week Monday). Not started.
 - LATER (owner): long press WITHOUT moving shows resize handles on events (visual resize). Not started.
+
+## Status 2026-10-12 ~11:40
+- Master (3b22000) = all of: wave A/B features, fix-core, fix-events, tl-display, sheet-swipe, multiday (bars+overlap cascade), dnd-fix.
+  NOT yet deployed live (cal.mordor.local runs an older build): run `scripts/deploy.sh` (all-JS size limit is 148 kB).
+- Open branch/worktrees: timed-tl (agent a61a21bbecd1d6bf2 working: timed task-list items, fade/shrink truncated rows, section-level
+  collapse "Titles only / Compact / Detailed" for the task area, collapsible Now card). Preview: http://timed-tl.cal.mordor.local
+  (preview.sh up timed-tl to refresh). Merge after owner OK.
+- fix-tasks (agent a6e24e2c93635f109): e2e fixes for tasklists/reward/streak/plant/sunflowers/perf; not reported yet; merge when done.
+- Remaining: full e2e run on merged master (flock /tmp/calendar-e2e.lock pnpm e2e), review agent, final deploy, CHANGELOG.
+- Owner-approved previews: multiday looked good (merged). Later items: German translation, resize handles on long press, range slider (shelved).
+- Owner idea backlog is in this file; user prefers previews before merge, Sonnet agents, token-efficient work.
