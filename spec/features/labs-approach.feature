@@ -50,3 +50,11 @@ Feature: Labs: the approach bar
     When I open the week view for 2026-10-12
     Then on the approach bar "Dentist" is 4 times as long as "Call"
     And the title of "Call" is shown next to its block
+
+  Scenario: A running entry slides out to the left
+    Given the time is 2026-10-14 09:15
+    And the approach bar is on
+    When I open the week view for 2026-10-12
+    Then on the approach bar "Dentist" starts at now and shows 45 minutes
+    When the time is 2026-10-14 09:45
+    Then on the approach bar "Dentist" starts at now and shows 15 minutes

@@ -2,7 +2,8 @@
 /**
  * "Now" card above the time grid: the running event with time left and a shrinking progress bar, what comes next,
  * and (from other features) the next small task. Day view: only for today; week view: only the current week; month
- * view: only the current month; year view: only the current year.
+ * view: only the current month; year view: only the current year. Rendered once by the shell above the views, so a
+ * view switch keeps it; it animates in only when it really appears. `data-entered` counts those enter animations.
  */
 import { computed, ref } from 'vue';
 import { isSameDay, isSameMonth, isSameYear } from 'date-fns';
@@ -40,11 +41,13 @@ function toggle() {
 }
 const showNext = computed(() => !collapsed.value || !model.value.current);
 const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is string => !!x));
+const entered = ref(0);
 </script>
 
 <template>
+  <Transition name="now" appear @before-enter="entered++">
   <section
-    v-if="visible" class="now-card" :class="{ collapsed, track: showNext && track }" data-testid="now-card" aria-label="Now" :data-has-current="model.current ? 'true' : 'false'"
+    v-if="visible" class="now-card" :class="{ collapsed, track: showNext && track }" data-testid="now-card" aria-label="Now" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
     :data-collapsed="collapsed ? 'true' : 'false'" role="button" tabindex="0" :aria-expanded="!collapsed" :style="{ '--c': model.current?.color }"
     @click="toggle" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle"
   >
@@ -58,6 +61,7 @@ const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is strin
     </div>
     <template v-if="!collapsed"><p v-for="l in extra" :key="l" class="line sub" data-testid="now-card-line">{{ l }}</p></template>
   </section>
+  </Transition>
 </template>
 
 <style scoped>
@@ -78,4 +82,7 @@ const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is strin
 .bar { height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--c) 22%, transparent); overflow: hidden; }
 .fill { display: block; height: 100%; width: 100%; background: var(--c); border-radius: 2px; transform-origin: left center; transition: transform 800ms var(--md-sys-motion-emphasized); }
 html[data-motion='off'] .fill, html[data-motion='reduced'] .fill { transition: none; }
+.now-enter-active, .now-leave-active { transition: opacity 200ms ease, transform 200ms var(--md-sys-motion-emphasized); }
+.now-enter-from, .now-leave-to { opacity: 0; transform: translateY(-8px); }
+html[data-motion='off'] .now-enter-active, html[data-motion='off'] .now-leave-active { transition: none; }
 </style>

@@ -335,6 +335,9 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
 - **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week), and
   above the grid in the month view (current month) and the year view (current year) (owner, 2026-10-13: keep it in
   view).
+  It is one instance above the calendar views, not part of each view: switching between day, week, month and year
+  keeps it in place without leaving or entering again (owner, 2026-10-13: "keep it there persistently"); it only
+  animates when it first appears or when it really appears/disappears (e.g. navigating to another week).
   - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
     `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is
@@ -677,7 +680,9 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
   person in prefs, default 3). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
   2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
-  that start within the window (events and task lists with a time, by start, excluding the current event) as chips
+  that start within the window (events and task lists with a time, by start); entries already running stay on the
+  track (owner, 2026-10-13): their block starts at "now" and shows only the time left, so they slide out to the left
+  as time passes and leave when they end (they count towards the three) as chips
   at their start position; when none is within the window, the next timed entry of today sits at the right end
   (`data-at-end="true"`, label "in 5 h"). Each entry is a block as long as its duration on the track's scale (owner, 2026-10-13: entries take up only the
   time they take); the title sits inside when it fits, else right after the block (`data-title-outside="true"`) on the card colour, so the track line has a gap there and the title never looks struck through (owner), so

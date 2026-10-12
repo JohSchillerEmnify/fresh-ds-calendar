@@ -9,7 +9,6 @@ import { isPhone } from '@/composables/useViewport';
 import { allotHeights } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { laneCount } from '@/lib/spans';
-import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -74,7 +73,6 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 
 <template>
   <section class="month" :class="{ phone: isPhone }" data-testid="month-view" :data-month="cal.title">
-    <component :is="h" v-for="(h, i) in viewHeaders.month" :key="i" />
     <div class="weekdays" role="row">
       <div v-for="w in WEEKDAY_LABELS" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>

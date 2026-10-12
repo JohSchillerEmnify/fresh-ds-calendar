@@ -54,7 +54,7 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
       <span v-if="atEnd" class="in" :style="{ right: `${c.width + 4}px`, top: `${TICK_PX}px` }">in {{ formatDuration(c.minutes) }}</span>
       <div
         class="item" :class="{ faded: c.faded }" data-testid="approach-item" :data-title="c.segment.item.title" :data-minutes="c.minutes"
-        :data-at-end="atEnd ? 'true' : undefined" :data-title-outside="c.titleOutside ? 'true' : undefined"
+        :data-at-end="atEnd ? 'true' : undefined" :data-running="c.running ? 'true' : undefined" :data-title-outside="c.titleOutside ? 'true' : undefined"
         :style="{ left: `${NOW_PX + c.x}px`, top: `${TICK_PX + c.row * ROW_PX + 1}px`, zIndex: i + 2 }"
       >
         <div class="block" :class="{ bare: c.titleOutside }" data-testid="approach-block" :style="{ width: `${c.width}px` }">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Hour grid for the week and day views: all-day row, 24 hour rows, time-proportional blocks with column packing.
- * Extension points: `gridLayers` (rendered in every day column), `viewHeaders.time` (above the grid),
+ * Extension points: `gridLayers` (rendered in every day column),
  * `itemRenderers` (block content), `time-slot` clicks (create), and the exposed `scrollToMinutes`.
  */
 import { computed, nextTick, provide, onMounted, ref, watch } from 'vue';
@@ -13,7 +13,7 @@ import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
-import { gridLayers, viewHeaders } from '@/extensions/registry';
+import { gridLayers } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
 import { blockGeometry, packColumns, STACK_INDENT_PX, segmentMinPx } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
@@ -78,7 +78,6 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 
 <template>
   <div class="tg" :class="[mode, { phone: isPhone }]" :style="{ '--hh': hourHeight + 'px', '--n': dates.length }">
-    <component :is="h" v-for="(h, i) in viewHeaders.time" :key="i" />
     <div class="heads">
       <div class="gutter" />
       <button

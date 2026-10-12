@@ -2,7 +2,6 @@
 import { computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useNav } from '@/composables/useNav';
-import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, MONTH_NAMES, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -31,7 +30,6 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
 
 <template>
   <section class="year" data-testid="year-view" :data-year="year">
-    <component :is="h" v-for="(h, i) in viewHeaders.year" :key="i" />
     <div class="months">
       <button
         v-for="m in months" :key="m.key" class="ym" type="button" data-testid="year-month" :data-month="m.key" :aria-label="`${m.name} ${year}`" @click="nav.go('month', m.first)"
