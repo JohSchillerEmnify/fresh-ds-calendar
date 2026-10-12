@@ -29,8 +29,10 @@ export async function applySeed(seedHex: string, doc: Document = document): Prom
     return;
   }
   const { themeCss } = await import('./scheme');
-  const style = existing ?? doc.head.appendChild(Object.assign(doc.createElement('style'), { id: STYLE_ID }));
+  const style = existing ?? Object.assign(doc.createElement('style'), { id: STYLE_ID });
   style.textContent = themeCss(seedHex);
+  // Always (re)append: the pre-paint copy from index.html sits before the app stylesheet and would lose the cascade.
+  doc.head.appendChild(style);
   try { localStorage.setItem('cal.themeCss', style.textContent); } catch { /* storage unavailable */ }
 }
 

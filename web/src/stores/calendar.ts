@@ -23,7 +23,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     const [from, to] = fetchRange(v, d);
     const sync = useSyncStore();
     useItemsStore().setVisible(from, to).then(
-      () => { if (sync.error) sync.clearError(); },
+      () => { if (sync.error) sync.clearError(); sync.markSynced(); },
       (e) => sync.reportError(e),
     );
   }

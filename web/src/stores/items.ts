@@ -81,7 +81,6 @@ export const useItemsStore = defineStore('items', () => {
   async function fetchRange(from: LocalDate, to: LocalDate, signal?: AbortSignal): Promise<void> {
     const res = await api.items(from, to, undefined, { signal });
     applyResponse(from, to, res.items, res.syncedAt);
-    useSyncStore().noteSynced();
   }
 
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
@@ -98,6 +97,7 @@ export const useItemsStore = defineStore('items', () => {
     loading.value = true;
     try {
       await fetchRange(v.from, v.to, mine.signal);
+      useSyncStore().markSynced();
     } catch (e) {
       if (e instanceof ApiError && e.isAbort) return;
       throw e;

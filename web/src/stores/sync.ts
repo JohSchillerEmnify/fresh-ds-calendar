@@ -38,12 +38,6 @@ export const useSyncStore = defineStore('sync', () => {
     return () => { if (tasks.get(name) === fn) tasks.delete(name); };
   }
 
-  /** A range load outside a poll (navigation) succeeded: that is a successful sync too. */
-  function noteSynced(): void {
-    if (state.value === 'error') return;
-    lastSync.value = new Date().toISOString();
-  }
-
   function reportError(e: unknown): void {
     if (e instanceof ApiError && e.isUnavailable) {
       error.value = e;
@@ -105,6 +99,11 @@ export const useSyncStore = defineStore('sync', () => {
     return current;
   }
 
+  /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
+  function markSynced(): void {
+    if (state.value !== 'error') lastSync.value = new Date().toISOString();
+  }
+
   function retry(): Promise<void> {
     return syncNow(true);
   }
@@ -159,5 +158,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, errorMessage, running, registerTask, noteSynced, reportError, clearError, syncNow, retry, start, stop, schedule };
+  return { state, lastSync, error, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, retry, start, stop, schedule };
 });

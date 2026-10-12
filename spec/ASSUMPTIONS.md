@@ -19,8 +19,14 @@ spec files are named.
   Editing start keeps duration. Form shows inclusive end dates for all-day events.
 - **A-08 Calendars in the mock**: `primary` "Personal" `#039be5` and `work` "Work" `#0b8043`. Events can pick one of
   the 11 Google event colors or "Calendar color" (owner update).
-- **A-09 Multi-day rendering**: one chip per covered day (month and week), not a spanning bar. Simpler, deterministic,
-  works on narrow phones.
+- **A-09 Multi-day rendering** (owner update, replaces the one-chip-per-day assumption): events covering 2+ calendar days
+  (all-day with exclusive end, or timed lasting 24 h or more) are solid bars like Google Calendar. Month: one bar per
+  week row (Mon to Sun) in lanes above the single-day chips, flat edge and arrow on continued ends. Week and day: bars
+  in the all-day row across the covered columns. Timed events under 24 h that cross midnight keep one block per day.
+  Tap opens the event; dragging moves the whole event by whole days (shift = drop cell minus grabbed cell).
+- **A-64 Overlapping timed blocks** (week / day): overlapping events whose starts differ by 15 min or more cascade (later
+  one on top, indented 10 px per level, max 3 levels) so titles stay readable; starts closer than 15 min share equal
+  columns; beyond depth 3 blocks fall back to columns. Constants in `lib/items.ts`.
 - **A-10 Month overflow**: desktop max 3 entries per cell + `+N more`; phone max 2 compact chips + `+N`.
 - **A-11 Timed task lists** are 30-minute Google events; untimed ones are all-day events. They live in one calendar
   (`TASKLIST_CALENDAR_ID`, default primary); the task list form has no calendar picker.
@@ -131,7 +137,7 @@ spec files are named.
   are future work.
 - **A-54 Recurring task lists** are `@optional` for the prototype (Google recurrence with per-instance ticks).
 - **A-55 Drag and drop** keeps timed items timed and all-day items all-day (no conversion by dragging between the
-  all-day area and the grid), preserves duration, snaps to 15 min, and moves multi-day events by their first day.
+  all-day area and the grid), preserves duration, snaps to 15 min, and moves multi-day events by whole days (bars: the day cell grabbed to the drop cell).
   Long-press threshold 450 ms. Haptics only where `navigator.vibrate` exists (not iOS Safari).
 - **A-56 Animation level** default Full. The system "reduce motion" preference always caps it at Reduced, even if Full
   is chosen (accessibility wins). Sounds default off.
@@ -150,7 +156,15 @@ spec files are named.
 - **A-60 Month picker** jumps the current view to the picked day. It does not switch views.
 - **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
   navigation bar, and the FAB floats above the tray.
-
+- **A-E1 Month overflow, one hidden item**: on desktop a day with exactly one item more than the limit (4 items) shows all
+  of them instead of 3 plus "+1 more" (the link would take the same room). 5 or more items show 3 plus "+N more".
+  Needed by events-display "Items of a day are ordered all-day first, then by time" together with the "+2 more" scenario.
+- **A-E2 "I tap the day D in the month view" on desktop** (timeline "phone month view" scenario also runs on desktop):
+  without touch the step clicks the day number, because a desktop cell body does not open the day.
+- **A-E3 Phone month chips**: a tap on a chip opens the day (like a tap anywhere in the cell); a long press picks the
+  chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
+- **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
+  step "positioned from/to" allows the clamped height for such events.
 - **A-T1 Drag back and forth on a phone** (performance.feature): the day view on a phone has a single column, so the
   step switches client-side to the week view (no reload) before moving the event +1/-1 day.
 - **A-T2 Fixtures award no plant points**: setup steps that create events/task lists through the API restore the plant

@@ -11,7 +11,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { isPhone } from '@/composables/useViewport';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
-import { useCalendarDrag } from './dnd';
+import { cardClick, useCalendarDrag } from './dnd';
 import { formatDuration } from './timeline';
 
 const props = defineProps<ItemRendererProps>();
@@ -43,7 +43,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
     ref="root" v-ripple class="ev" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-past="past || undefined" :data-current="current || undefined"
-    :style="{ '--c': ev.color, '--on': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click.stop="emit('open')"
+    :style="{ '--c': ev.color, '--on': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
     <template v-else-if="variant === 'block'">
@@ -81,7 +81,7 @@ html[data-calm='true'] .ev { --bg: color-mix(in srgb, var(--c) 13%, var(--md-sys
 .allday.nofirst { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .allday.nolast { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: 7px; --bg: color-mix(in srgb, var(--c) 30%, var(--md-sys-color-surface)); }
+.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: 7px; box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28); --bg: color-mix(in srgb, var(--c) 30%, var(--md-sys-color-surface)); }
 .block .title {
   font: var(--md-sys-typescale-label-large); font-size: 13px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none; max-height: calc(var(--lines) * 16px);

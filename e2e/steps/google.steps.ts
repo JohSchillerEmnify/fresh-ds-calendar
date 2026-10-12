@@ -218,6 +218,8 @@ When('Google renames the task list {string} to {string}', async function (this: 
 });
 
 Given('Google becomes unavailable', async function (this: World) {
+  // The outage starts after what is on screen has loaded (the app may still be fetching right after navigation).
+  if (this.page.url().startsWith('http')) await this.settled().catch(() => undefined);
   await this.api.setOutage(true);
 });
 

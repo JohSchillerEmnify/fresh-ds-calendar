@@ -34,7 +34,7 @@ describe('event dialog', () => {
     expect((w.get(tid('event-end-time')).element as HTMLInputElement).value).toBe('10:00');
     const names = w.findAll(tid('event-color-option')).map((b) => b.attributes('data-name'));
     expect(names.join(', ')).toBe('Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite');
-    expect(w.get(tid('event-color-option')).attributes('aria-pressed')).toBe('true');
+    expect(w.get(tid('event-color-option')).attributes('aria-checked')).toBe('true');
     expect(w.get(tid('event-dialog')).attributes('data-presentation')).toMatch(/sheet|modal/);
   });
 

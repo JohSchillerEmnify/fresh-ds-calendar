@@ -119,6 +119,16 @@ export class World {
     return this.byTestId('event-chip', attr('data-title', title) + (date ? attr('data-date', date) : ''));
   }
 
+  eventBars(title: string): Locator {
+    return this.byTestId('event-bar', attr('data-title', title));
+  }
+
+  /** True when a visible multi-day bar of the event covers the date (bars replace per-day chips). */
+  async barCovers(title: string, date: string): Promise<boolean> {
+    return this.eventBars(title).locator('visible=true').evaluateAll(
+      (els, d) => els.some((e) => (e as HTMLElement).dataset.start! <= d && d <= (e as HTMLElement).dataset.end!), date);
+  }
+
   /** First visible chip segment of an event (several segments for multi-day events). */
   eventChip(title: string, date?: string): Locator {
     return this.eventChips(title, date).locator('visible=true').first();
@@ -153,7 +163,7 @@ export class World {
   /** One of the three calendar views is rendered. */
   async calendarShown() {
     await expect(
-      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}`).first(),
+      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}, ${tid('year-view')}`).first(),
     ).toBeVisible();
   }
 

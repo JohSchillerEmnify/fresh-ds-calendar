@@ -204,7 +204,7 @@ function onClose() {
       <Select v-model="form.calendarId" class="rise" style="--i: 5" label="Calendar" :options="calOptions" data-testid="event-calendar" />
       <div class="colors rise" style="--i: 6">
         <span class="lab">Color</span>
-        <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" label="Color" data-testid="event-color" />
+        <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" label="Color" radio data-testid="event-color" />
       </div>
       <TextField v-model="form.location" class="rise" style="--i: 7" label="Location" data-testid="event-location" data-field="location" autocomplete="off" />
       <TextField v-model="form.description" class="rise" style="--i: 8" label="Description" data-testid="event-description" data-field="description" multiline :rows="3" />

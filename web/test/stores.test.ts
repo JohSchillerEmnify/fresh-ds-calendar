@@ -11,6 +11,14 @@ function setHidden(v: boolean) {
 }
 
 describe('sync store', () => {
+  it('a successful initial load counts as a sync (data-last-sync)', async () => {
+    setup();
+    await useClockStore().load();
+    expect(useSyncStore().lastSync).toBeNull();
+    await useItemsStore().setVisible('2026-10-01', '2026-11-01');
+    expect(useSyncStore().lastSync).not.toBeNull();
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
     window.__appTimers = 0;

@@ -130,6 +130,8 @@ the overflow link on {date} reads {string}
 I see the event {string} on {date}
 I see the event {string} on {weekday}
 I see the event {string} on each day from {date} to {date}
+I see the event {string} as a bar from {date} to {date}
+the event {string} is a bar in lane {int}
 I see the all-day event {string} on {date}
 I do not see the event {string}
 I do not see the event {string} on {date}
@@ -138,15 +140,19 @@ the event {string} is positioned from {time} to {time}
 the event {string} is positioned on {date} from {time} to {time}
 the events {string} and {string} do not overlap
 the events {string} and {string} are side by side
+the event {string} is stacked on the event {string}
 the event {string} spans the full width of its day column
 the event {string} has the color {string}
 the items on {date} are shown in the order {string}
 ```
 
+- "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
+  `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
 - "positioned" checks `data-start-time`/`data-end-time` of the chip segment and that its top/height match the time
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span
-  and different left edges. "spans the full width": chip width ≥ 90 % of its day column width.
+  and different left edges. "stacked on": the first chip starts lower and further right than the second, boxes overlap
+  vertically (cascade, A-64). "spans the full width": chip width ≥ 90 % of its day column width.
 - "the items on D are shown in the order": DOM order of `data-title` of event chips and task list cards inside the
   month cell of D.
 

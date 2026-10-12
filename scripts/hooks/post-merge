@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Auto-deploy master after a merge. post-commit covers merges finished by hand after conflicts (merge commits only).
+hook="$(basename "$0")"
+if [ "$hook" = "post-commit" ]; then
+  [ "$(git rev-list --parents -n1 HEAD | wc -w)" -ge 3 ] || exit 0   # not a merge commit
+fi
+exec /home/sauron/projects/calendar/scripts/auto-deploy.sh

@@ -50,6 +50,21 @@ watch(shown, load, { immediate: true });
 onMounted(() => {
   stops.push(listen(document, 'keydown', (e) => { if (e.key === 'Escape') ui.pickerOpen = false; }));
   if (grid.value) stops.push(bindSwipe(grid.value, { onLeft: () => move(1), onRight: () => move(-1) }));
+  if (grid.value) {
+    // Mouse drag counterpart of the touch swipe (same thresholds), for desktop.
+    const g = grid.value;
+    let sx = 0, sy = 0, st = 0, down = false;
+    stops.push(
+      listen(g, 'pointerdown', (e) => { const p = e as PointerEvent; down = p.pointerType === 'mouse'; sx = p.clientX; sy = p.clientY; st = Date.now(); }),
+      listen(document, 'pointerup', (e) => {
+        if (!down) return;
+        down = false;
+        const p = e as PointerEvent, dx = p.clientX - sx, dy = p.clientY - sy;
+        if (Date.now() - st > 600 || Math.abs(dx) < 60 || Math.abs(dx) <= 1.5 * Math.abs(dy)) return;
+        move(dx < 0 ? 1 : -1);
+      }),
+    );
+  }
 });
 onBeforeUnmount(() => stops.forEach((s) => s()));
 </script>
@@ -83,7 +98,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 
 <style scoped>
 .wrap { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; }
-.scrim { position: fixed; inset: 0; top: 0; background: rgb(0 0 0 / 0.32); z-index: -1; animation: fade 200ms both; }
+.scrim { position: absolute; left: 0; right: 0; top: 0; height: 100vh; background: rgb(0 0 0 / 0.32); z-index: -1; animation: fade 200ms both; }
 .picker {
   background: var(--md-sys-color-surface-container-high); border-radius: 0 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large);
   padding: 4px 12px 12px; box-shadow: var(--md-sys-elevation-3); transform-origin: top; animation: open 380ms var(--md-sys-motion-spring) both;
