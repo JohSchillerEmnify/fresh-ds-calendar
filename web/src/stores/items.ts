@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
-import { api, ApiError } from '@/api/client';
+import { api, ApiError, type RequestOptions } from '@/api/client';
 import type {
-  CalendarEvent, CalendarItem, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskList,
+  CalendarEvent, CalendarItem, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
@@ -33,7 +33,10 @@ export const useItemsStore = defineStore('items', () => {
   const pending = new Set<string>();
   /** Open task lists outside the visible ranges that are carried over to today (kept by gc). */
   const carriedIds = new Set<string>();
-  /** Ids deleted in this session: a response that was already in flight when the delete landed must not re-add them. */
+  /**
+   * Ids deleted in this session or hidden while their delete waits for the undo time (`pendingDeletes` store):
+   * no response may (re-)add them. Holds task list item ids too; those are stripped from their list.
+   */
   const deleted = new Set<string>();
   const loading = ref(false);
   let ctrl: AbortController | null = null;
@@ -49,6 +52,12 @@ export const useItemsStore = defineStore('items', () => {
   });
   const get = (id: string) => byId.value[id];
   const isDeleted = (id: string) => deleted.has(id);
+  /** The item without its deleted/hidden task list items (counts follow). */
+  function strip<T extends CalendarItem>(it: T): T {
+    if (it.kind !== 'tasklist' || !it.items.some((i) => deleted.has(i.id))) return it;
+    const rest = it.items.filter((i) => !deleted.has(i.id));
+    return { ...it, items: rest, doneCount: rest.filter((i) => i.done).length, totalCount: rest.length };
+  }
 
   function touch(key: string) {
     lru.value = [key, ...lru.value.filter((k) => k !== key)];
@@ -74,7 +83,7 @@ export const useItemsStore = defineStore('items', () => {
     for (const it of items) {
       if (deleted.has(it.id)) continue; // stale response from before the delete
       if (pending.has(it.id)) continue; // keep optimistic state (also optimistic deletes)
-      next[it.id] = it;
+      next[it.id] = strip(it);
     }
     byId.value = next;
     ranges.value = { ...ranges.value, [key]: { from, to, ids: items.filter((i) => !deleted.has(i.id)).map((i) => i.id), syncedAt } };
@@ -117,7 +126,9 @@ export const useItemsStore = defineStore('items', () => {
   function overlaps(it: CalendarItem, r: RangeEntry): boolean {
     return itemSegments(it).some((s) => s.date >= r.from && s.date < r.to);
   }
-  function upsert(it: CalendarItem): void {
+  function upsert(item: CalendarItem): void {
+    if (deleted.has(item.id)) return; // e.g. a task list op finishing while its list waits for its delete
+    const it = strip(item);
     byId.value = { ...byId.value, [it.id]: it };
     const next = { ...ranges.value };
     for (const [k, r] of Object.entries(next)) {
@@ -137,7 +148,7 @@ export const useItemsStore = defineStore('items', () => {
     const next = { ...byId.value };
     for (const l of lists) {
       carriedIds.add(l.id);
-      if (!pending.has(l.id)) next[l.id] = l;
+      if (!pending.has(l.id) && !deleted.has(l.id)) next[l.id] = strip(l);
     }
     byId.value = next;
     gc();
@@ -149,6 +160,34 @@ export const useItemsStore = defineStore('items', () => {
     const next = { ...ranges.value };
     for (const [k, r] of Object.entries(next)) if (r.ids.includes(id)) next[k] = { ...r, ids: r.ids.filter((i) => i !== id) };
     ranges.value = next;
+  }
+
+  /** Hide an event or task list until `unhide` (deferred delete). Keeps a carried-over list carried for an undo. */
+  function hide(id: string): void {
+    const carried = carriedIds.has(id);
+    deleted.add(id);
+    remove(id);
+    if (carried) carriedIds.add(id);
+  }
+  /** Undo `hide`: show `it` (the item as it was when hidden) again. */
+  function unhide(it: CalendarItem): void {
+    deleted.delete(it.id);
+    upsert(it);
+  }
+  /** Hide one task list item until `unhideTaskItem`. */
+  function hideTaskItem(listId: string, itemId: string): void {
+    deleted.add(itemId);
+    const tl = byId.value[listId];
+    if (tl) byId.value = { ...byId.value, [listId]: strip(tl) };
+  }
+  /** Undo `hideTaskItem`: put `item` back at `index` (unless a fresher list already has it). */
+  function unhideTaskItem(listId: string, item: TaskItem, index: number): void {
+    deleted.delete(item.id);
+    const tl = byId.value[listId];
+    if (!tl || tl.kind !== 'tasklist' || tl.items.some((i) => i.id === item.id)) return;
+    const list = [...tl.items];
+    list.splice(Math.min(index, list.length), 0, item);
+    byId.value = { ...byId.value, [listId]: { ...tl, items: list, doneCount: list.filter((i) => i.done).length, totalCount: list.length } };
   }
 
   /** Reports unavailability to the sync banner, then rethrows so dialogs can show `error.userMessage`. */
@@ -173,9 +212,9 @@ export const useItemsStore = defineStore('items', () => {
       return ev;
     } catch (e) { return report(e); }
   }
-  async function deleteEvent(id: string, etag?: string): Promise<void> {
+  async function deleteEvent(id: string, etag?: string, o: RequestOptions = {}): Promise<void> {
     try {
-      await api.deleteEvent(id, { ifMatch: etag ?? byId.value[id]?.etag });
+      await api.deleteEvent(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
       deleted.add(id);
       remove(id);
     } catch (e) { report(e); }
@@ -194,9 +233,9 @@ export const useItemsStore = defineStore('items', () => {
       return tl;
     } catch (e) { return report(e); }
   }
-  async function deleteTaskList(id: string, etag?: string): Promise<void> {
+  async function deleteTaskList(id: string, etag?: string, o: RequestOptions = {}): Promise<void> {
     try {
-      await api.deleteTaskList(id, { ifMatch: etag ?? byId.value[id]?.etag });
+      await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
       deleted.add(id);
       remove(id);
     } catch (e) { report(e); }
@@ -293,7 +332,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, tagsInUse, get, summary,
-    isDeleted, setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
+    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };

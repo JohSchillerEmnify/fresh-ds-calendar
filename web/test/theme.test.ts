@@ -63,3 +63,20 @@ describe('M3 theme', () => {
     expect(document.head.lastElementChild?.id).toBe('m3-dynamic-theme');
   });
 });
+
+describe('snackbar look follows the theme', () => {
+  const src = (p: string) => fs.readFileSync(path.join(import.meta.dirname, '../src', p), 'utf8');
+  const surfaces = ['components/m3/Snackbar.vue', 'components/shell/SyncErrorBanner.vue', 'features/motivation/StreakToast.vue'];
+
+  it('the one snackbar look is built from theme tokens, corner radius and glow', () => {
+    const skin = src('theme/theme.css').match(/\.snack-skin \{([^}]*)\}/)![1];
+    for (const t of ['--md-sys-color-surface-container-highest', '--md-sys-color-on-surface', '--md-sys-color-primary', '--r-block', '--glow-r']) expect(skin).toContain(t);
+    expect(skin).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
+  });
+  it.each(surfaces)('%s uses it and sets no colours of its own', (p) => {
+    const s = src(p);
+    expect(s).toContain('snack-skin');
+    const style = s.slice(s.indexOf('<style'));
+    expect(style).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|background:|--md-sys-color-/i);
+  });
+});

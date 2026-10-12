@@ -104,3 +104,155 @@ Then('pressing the create button shows a state layer', async function (this: Wor
     await this.page.mouse.up();
   }
 });
+
+// ---- Theme menu (STEPS.md "Theme menu (`@themes`)") ----
+
+/** Signs this person in through the OAuth test double (as in signin.steps.ts) and waits for the calendar. */
+async function signInAs(world: World, email: string, date = '2026-10-12') {
+  world.person = email;
+  await world.api.chooseGoogleAccount(email);
+  await world.page.goto(`/week/${date}`);
+  await world.page.getByTestId('signin-google').click();
+  await world.page.waitForURL((u) => u.pathname !== '/signin' || u.searchParams.has('error'));
+  await world.calendarShown();
+}
+
+const card = (world: World, name: string) => world.page.locator(`[data-testid="theme-card"][data-name="${name}"]`);
+const option = (world: World, setting: string, value: string) =>
+  world.page.locator(`[data-testid="theme-option"][data-setting="${setting.toLowerCase()}"][data-value="${value.toLowerCase()}"]`);
+const isSaved = (r: { request(): { method(): string }; url(): string }) => r.request().method() === 'PATCH' && r.url().includes('/api/prefs/theme');
+
+async function openMenu(world: World) {
+  await world.page.getByTestId('settings-button').click();
+  await world.page.getByTestId('settings-theme').click();
+  await expect(world.page.getByTestId('theme-view')).toBeVisible();
+}
+
+/** The theme menu is a page over the calendar: leave it through the browser history to see the calendar again. */
+async function backToCalendar(world: World) {
+  // menu -> settings -> calendar
+  for (let i = 0; i < 2 && (await world.page.getByTestId('theme-view').or(world.page.getByTestId('settings-view')).isVisible()); i++) {
+    await world.page.goBack();
+  }
+  await world.calendarShown();
+}
+
+/** Clicks a gallery card and waits until the choice has been saved in the background. */
+async function chooseTheme(world: World, name: string) {
+  const saved = world.page.waitForResponse(isSaved);
+  await card(world, name).click();
+  await expect(card(world, name)).toHaveAttribute('aria-pressed', 'true');
+  await saved;
+}
+
+When('I open the theme menu', async function (this: World) {
+  await openMenu(this);
+});
+
+When('I choose the theme {string}', async function (this: World, name: string) {
+  await chooseTheme(this, name);
+});
+
+Given('I chose the theme {string}', async function (this: World, name: string) {
+  await this.page.goto('/settings/theme');
+  await chooseTheme(this, name);
+});
+
+Given('{string} chose the theme {string}', async function (this: World, email: string, name: string) {
+  await signInAs(this, email);
+  await this.page.goto('/settings/theme');
+  await chooseTheme(this, name);
+});
+
+Then('the theme {string} is marked as chosen', async function (this: World, name: string) {
+  // an earlier step may have looked at the calendar behind the menu: come back to the menu through the history
+  for (let i = 0; i < 2 && !(await this.page.getByTestId('theme-view').isVisible()); i++) await this.page.goForward();
+  await expect(card(this, name)).toHaveAttribute('aria-pressed', 'true');
+  await expect(this.page.locator('[data-testid="theme-card"][aria-pressed="true"]')).toHaveCount(1);
+});
+
+Then('the theme {string} is in use', async function (this: World, name: string) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-theme-name', name);
+});
+
+/** A style is outline when the fill is transparent or the surface and the border is 1.5 px or wider. */
+async function expectOutline(world: World, el: Locator) {
+  await expect(el).toBeVisible();
+  await expect
+    .poll(() =>
+      el.evaluate((n) => {
+        const cs = getComputedStyle(n);
+        const fill = cs.backgroundColor, border = cs.borderTopColor;
+        return { w: parseFloat(cs.borderTopWidth), fill, border, c: n.getAttribute('data-color') };
+      }).then(async (r) => {
+        const b = await cssColorToRgba(world.page, r.border);
+        const f = await cssColorToRgba(world.page, r.fill);
+        const want = r.c ? await cssColorToRgba(world.page, r.c) : null;
+        const surface = await roleHex(world.page, 'surface');
+        const fillOk = !f || f.a === 0 || toHex(f) === surface;
+        const borderOk = !!b && b.a > 0 && (!want || toHex(b) === toHex(want));
+        return r.w >= 1.5 && fillOk && borderOk;
+      }),
+    )
+    .toBe(true);
+}
+
+Then('the preview event is drawn as an outline', async function (this: World) {
+  await expectOutline(this, this.page.getByTestId('theme-preview-event'));
+});
+
+Then('the event {string} is drawn as an outline', async function (this: World, name: string) {
+  await backToCalendar(this);
+  await expectOutline(this, this.eventChip(name));
+});
+
+Then('every option for {string} shows a sample event drawn in that style', async function (this: World, label: string) {
+  const setting = label.toLowerCase();
+  const opts = this.page.locator(`[data-testid="theme-option"][data-setting="${setting}"]`);
+  await expect(opts).toHaveCount(3);
+  for (let i = 0; i < 3; i++) {
+    const o = opts.nth(i);
+    const sample = o.getByTestId('theme-sample-event');
+    await expect(sample).toBeVisible();
+    // the sample sits under an attribute of that very option, so the shared entry skin draws it in that style
+    const value = await o.getAttribute('data-value');
+    expect(await sample.evaluate((n, s) => n.closest(`[data-${s}]`)?.getAttribute(`data-${s}`), setting)).toBe(value);
+  }
+  // the three samples really look different
+  const looks = await opts.getByTestId('theme-sample-event').evaluateAll((els) =>
+    els.map((e) => { const c = getComputedStyle(e); return [c.backgroundColor, c.borderTopWidth, c.borderRadius, c.boxShadow].join('|'); }));
+  expect(new Set(looks).size).toBe(3);
+});
+
+When('I pick {string} for {string}', async function (this: World, value: string, label: string) {
+  const saved = this.page.waitForResponse(isSaved);
+  const o = option(this, label, value);
+  await o.click();
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
+  await saved;
+});
+
+/** True when a computed shadow list has a coloured (alpha > 0) shadow with a blur. */
+function hasGlow(shadow: string, filter: string): boolean {
+  const parts = (shadow + ',' + filter).split(/,(?![^(]*\))/);
+  return parts.some((p) => {
+    const alpha = /\/\s*([\d.]+)\s*\)/.exec(p)?.[1] ?? /rgba?\([^)]*?,\s*([\d.]+)\)/.exec(p)?.[1] ?? '1';
+    const lengths = p.replace(/(rgba?|color)\([^)]*\)/, '').match(/-?[\d.]+px/g) ?? [];
+    return Number(alpha) > 0 && lengths.length >= 3 && parseFloat(lengths[2]!) > 0 && !/^\s*none/.test(p);
+  });
+}
+
+Then('the event {string} glows', async function (this: World, name: string) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect
+    .poll(() => chip.evaluate((n) => { const c = getComputedStyle(n); return [c.boxShadow, c.filter]; }).then(([s, f]) => hasGlow(s!, f!)))
+    .toBe(true);
+});
+
+Given('{string} may use the calendar', async function (this: World, email: string) {
+  await this.api.setAuth([email]);
+  // each person has a calendar of their own: the events set up so far are theirs to see too
+  for (const ev of await this.api.remoteEvents()) await this.api.remoteInsert({ summary: ev.summary, start: ev.start, end: ev.end, owner: email });
+});

@@ -11,7 +11,6 @@ import type { CalendarEvent } from '@/api/types';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
-import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
@@ -19,6 +18,7 @@ import { isPhone } from '@/composables/useViewport';
 import { pop } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { calendars, loadCalendars } from './calendars';
@@ -50,7 +50,6 @@ const startShown = form.value.startTime;
 const switchTime = computed(() => (form.value.allDay ? null : props.time != null || form.value.startTime !== startShown ? form.value.startTime : undefined));
 const error = ref(props.error ?? '');
 const saving = ref(false);
-const confirming = ref(false);
 const sheet = ref<HTMLElement | null>(null);
 const dirty = computed(() => JSON.stringify(form.value) !== initial.value);
 
@@ -162,29 +161,17 @@ async function save() {
   }
 }
 
-async function remove() {
-  confirming.value = false;
+/** No confirmation: the entry goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
+function remove() {
   const ev = original.value;
   if (!ev || saving.value) return;
-  saving.value = true;
-  try {
-    await items.optimisticItem(ev.id, null, () => api.deleteEvent(ev.id, { ifMatch: items.get(ev.id)?.etag ?? ev.etag }));
-    emit('close');
-  } catch (e) {
-    fail(e, `Deleting “${ev.title}”`);
-  } finally {
-    saving.value = false;
-  }
-}
-
-function onClose() {
-  if (confirming.value) return; // Escape inside the confirmation only closes the confirmation
+  usePendingDeletesStore().deleteEvent((items.get(ev.id) as CalendarEvent | undefined) ?? ev);
   emit('close');
 }
 </script>
 
 <template>
-  <AdaptiveSheet :open="true" :label="isEdit ? 'Edit event' : 'New event'" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="onClose">
+  <AdaptiveSheet :open="true" :label="isEdit ? 'Edit event' : 'New event'" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
     <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save">
       <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
       <header class="hd rise" style="--i: 0">
@@ -215,13 +202,12 @@ function onClose() {
       <TextField v-model="form.description" class="rise" style="--i: 8" label="Description" data-testid="event-description" data-field="description" multiline :rows="3" />
       <p v-if="error" class="err" role="alert" data-testid="event-error">{{ error }}</p>
       <div class="actions">
-        <Button v-if="isEdit" variant="text" class="del" data-testid="event-delete" :disabled="saving || !original" @click="confirming = true">Delete</Button>
+        <Button v-if="isEdit" variant="text" class="del" data-testid="event-delete" :disabled="saving || !original" @click="remove">Delete</Button>
         <span class="sp" />
         <Button variant="text" data-testid="event-cancel" @click="emit('close')">Cancel</Button>
         <Button type="submit" :disabled="saving || loading" data-testid="event-save">{{ saving ? 'Saving…' : 'Save' }}</Button>
       </div>
     </form>
-    <ConfirmDialog :open="confirming" :title="`Delete “${original?.title ?? 'event'}”?`" message="It is removed from Google Calendar too." @cancel="confirming = false" @ok="remove" />
   </AdaptiveSheet>
 </template>
 

@@ -9,9 +9,10 @@
  */
 import type {
   AppConfig, Calendar, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LabsPrefs, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
+import type { ThemePref } from '@/theme/presets';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
 
@@ -53,6 +54,8 @@ export class ApiError extends Error {
 export interface RequestOptions {
   signal?: AbortSignal;
   ifMatch?: string | number;
+  /** Let the request outlive the page (deferred deletes sent on `pagehide`). */
+  keepalive?: boolean;
 }
 
 type Fetch = typeof fetch;
@@ -97,6 +100,7 @@ export class ApiClient {
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: o.signal,
         cache: 'no-store',
+        keepalive: o.keepalive,
       });
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') throw new ApiError(0, 'ABORTED', 'Request aborted');
@@ -145,10 +149,18 @@ export class ApiClient {
   }
 
   prefs(o?: RequestOptions) {
-    return this.request<{ labs: boolean; approachBar: boolean }>('GET', '/api/prefs', undefined, o);
+    return this.request<Prefs & LabsPrefs>('GET', '/api/prefs', undefined, o);
   }
-  patchPrefs(p: { labs?: boolean; approachBar?: boolean }, o?: RequestOptions) {
-    return this.request<{ labs: boolean; approachBar: boolean }>('PATCH', '/api/prefs', p, o);
+  patchPrefs(p: Partial<Prefs & LabsPrefs>, o?: RequestOptions) {
+    return this.request<Prefs & LabsPrefs>('PATCH', '/api/prefs', p, o);
+  }
+
+  themePref(o?: RequestOptions) {
+    return this.request<ThemePref>('GET', '/api/prefs/theme', undefined, o);
+  }
+
+  patchThemePref(p: Partial<ThemePref>, o?: RequestOptions) {
+    return this.request<ThemePref>('PATCH', '/api/prefs/theme', p, o);
   }
 
   setCalendarHidden(id: string, hidden: boolean, o?: RequestOptions) {

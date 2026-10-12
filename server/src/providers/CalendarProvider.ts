@@ -25,6 +25,8 @@ export type GoogleEventPatch = Partial<Omit<GoogleEventInput, 'extendedPropertie
 export interface ProviderCalendar {
   id: string; summary: string; backgroundColor: string; primary: boolean;
   accessRole: 'owner' | 'writer' | 'reader' | 'freeBusyReader';
+  /** Switched off in Google's own calendar list (`calendarList` entry `hidden`). */
+  hidden?: boolean;
 }
 
 export interface ListEventsParams {
@@ -41,7 +43,12 @@ export interface WriteOptions { ifMatch?: string }
 export interface CalendarProvider {
   readonly name: 'mock' | 'google';
   ping(): Promise<void>;
+  /** Every calendar list entry, including hidden ones (`hidden` set). */
   listCalendars(): Promise<ProviderCalendar[]>;
+  /** Creates a secondary calendar owned by the person (`calendars.insert`). */
+  insertCalendar(summary: string): Promise<ProviderCalendar>;
+  /** Switches a calendar list entry off or on in Google's list (`calendarList.patch` `hidden`). */
+  setCalendarHidden(calendarId: string, hidden: boolean): Promise<void>;
   listEvents(p: ListEventsParams): Promise<ListEventsResult>;
   getEvent(calendarId: string, eventId: string): Promise<GoogleEvent>;
   insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent>;

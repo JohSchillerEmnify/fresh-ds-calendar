@@ -193,7 +193,7 @@ When('Google sets the color ID of the event {string} to {string}', async functio
 When(
   'Google adds a task list {string} on {date} with items:',
   async function (this: World, title: string, date: string, table: DataTable) {
-    await this.api.remoteInsert(googleTaskListBody(title, date, itemsFrom(table)));
+    await this.api.remoteInsert(googleTaskListBody(await this.api.tasksCalendarId(), title, date, itemsFrom(table)));
   },
 );
 

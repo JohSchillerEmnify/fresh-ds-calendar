@@ -9,9 +9,9 @@ import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
 import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
-  parse, patchItemSchema, settingsPatchSchema, updateEventSchema, updateTaskListSchema,
+  parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { LOCAL_PERSON } from '../services/prefsStore.js';
+import { APPROACH_WINDOWS, LOCAL_PERSON, type LabsPrefs } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -101,17 +101,26 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json({ ...k, hidden: b.hidden });
   });
 
-  r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
+  r.get('/prefs', (c) => c.json({ ...ctx.prefs.labsPrefs(person(c)), tasksCalendarVisible: cal(c).tasks.visible() }));
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
-    const patch: { labs?: boolean; approachBar?: boolean } = {};
-    for (const k of ['labs', 'approachBar'] as const) {
-      if (b[k] === undefined) continue;
-      if (typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
-      patch[k] = b[k] as boolean;
+    const patch: Partial<LabsPrefs> = {};
+    for (const k of ['labs', 'approachBar', 'tasksCalendarVisible'] as const) {
+      if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    return c.json(ctx.prefs.setLabs(person(c), patch));
+    for (const k of ['labs', 'approachBar'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    if (b.approachWindowHours !== undefined) {
+      const h = APPROACH_WINDOWS.find((w) => w === b.approachWindowHours);
+      if (h === undefined) throw validation('approachWindowHours must be 3, 6 or 12', 'approachWindowHours');
+      patch.approachWindowHours = h;
+    }
+    // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
+    if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
+    return c.json({ ...ctx.prefs.setLabs(person(c), patch), tasksCalendarVisible: cal(c).tasks.visible() });
   });
+  // ---- per-person theme ----
+  r.get('/prefs/theme', (c) => c.json(ctx.prefs.theme(person(c))));
+  r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));
 
   // ---- items ----
   r.get('/items', async (c) => {

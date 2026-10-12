@@ -52,7 +52,10 @@ export interface DragOptions<K = unknown> {
   disabled?: () => boolean;
   onStateChange?: (s: DragState) => void;
   onTarget?: (t: DropTarget<K> | null) => void;
-  /** Scroll container auto-scrolled near its edges while dragging. */
+  /**
+   * Scroll container auto-scrolled near its edges while dragging. Any scroll of it (auto-scroll or wheel) re-runs the hit
+   * test, and when it contains the card the card's transform compensates, so the card stays under the pointer.
+   */
   scrollEl?: () => HTMLElement | null;
 }
 
@@ -92,6 +95,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let raf = 0;
   let lastT = 0;
   let edgeSince = 0;
+  /** Scroll container of this drag and its scroll position at pick-up (the card's layout box moves with it). */
+  let sc: HTMLElement | null = null;
+  let scroll0: Point = { x: 0, y: 0 };
+  let lastShift: Point = { x: 0, y: 0 };
   let anims: Animation[] = [];
   let claimedHere = false;
   let listening = false;
@@ -139,6 +146,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   };
   const onCtx = (e: Event) => {
     if (state !== 'idle') e.preventDefault();
+  };
+  const onScroll = () => {
+    if (state === 'dragging') update(cur.x, cur.y);
   };
   const onClickCapture = (e: Event) => {
     e.stopPropagation();
@@ -199,6 +209,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     clearTimer();
     stopRaf();
     unlisten();
+    sc?.removeEventListener('scroll', onScroll);
+    sc = null;
     releaseCapture();
     release();
     pointerId = -1;
@@ -239,6 +251,11 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     el.style.userSelect = 'none';
     el.style.willChange = 'transform';
     edgeSince = 0;
+    // wheel scrolling stays native during a drag; follow it so the indicator tracks the pointer over the moving grid
+    sc = opts.scrollEl?.() ?? null;
+    scroll0 = sc ? { x: sc.scrollLeft, y: sc.scrollTop } : { x: 0, y: 0 };
+    lastShift = { x: 0, y: 0 };
+    sc?.addEventListener('scroll', onScroll, { passive: true });
     sx.snap(0); sy.snap(0); tilt.snap(0);
     haptic(10);
     setState('dragging');
@@ -308,9 +325,17 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     } else if (state === 'dragging') cancel();
   }
 
-  function offsets(): { x: number; y: number } {
-    if (magnet && target && target.dx !== undefined && target.dy !== undefined) return { x: target.dx, y: target.dy };
-    return { x: cur.x - start.x, y: cur.y - start.y };
+  /** How far the card's layout box moved since pick-up because its scroll container scrolled (0 when outside it). */
+  function scrollShift(): Point {
+    if (!sc || !sc.contains(el)) return { x: 0, y: 0 };
+    return { x: sc.scrollLeft - scroll0.x, y: sc.scrollTop - scroll0.y };
+  }
+
+  /** Translation of the card from its layout box: hit-test dx/dy and pointer deltas are relative to the pick-up rect. */
+  function offsets(): Point {
+    const s = scrollShift();
+    if (magnet && target && target.dx !== undefined && target.dy !== undefined) return { x: target.dx + s.x, y: target.dy + s.y };
+    return { x: cur.x - start.x + s.x, y: cur.y - start.y + s.y };
   }
 
   function paint() {
@@ -321,7 +346,6 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   }
 
   function autoScroll(dt: number) {
-    const sc = opts.scrollEl?.();
     // a card held still near the edge (press-and-hold release) must not drift under the pointer
     if (!sc || Math.hypot(cur.x - start.x, cur.y - start.y) <= touchSlop) return;
     const r = sc.getBoundingClientRect();
@@ -344,8 +368,15 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     if (state !== 'dragging') return;
     const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016);
     lastT = t;
+    // scroll first so this frame's transform already matches the new scroll position
+    autoScroll(dt);
     const o = offsets();
     const lvl = getMotionLevel();
+    // a scroll moves the card's layout box: shift the spring with it, so only pointer motion lags, never the scroll
+    const s = scrollShift();
+    sx.x += s.x - lastShift.x; sx.target += s.x - lastShift.x;
+    sy.x += s.y - lastShift.y; sy.target += s.y - lastShift.y;
+    lastShift = s;
     if (lvl === 'full') {
       sx.target = o.x;
       sy.target = o.y;
@@ -354,7 +385,6 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       sx.snap(o.x); sy.snap(o.y); tilt.snap(0);
     }
     paint();
-    autoScroll(dt);
     raf = requestAnimationFrame(frame);
   }
 
@@ -418,9 +448,12 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     }
     setState('dropping');
     el.dataset.dragging = 'false';
-    const dest = t.dx !== undefined && t.dy !== undefined ? { x: t.dx, y: t.dy } : { x: cur.x - start.x, y: cur.y - start.y };
+    const shift = scrollShift();
+    const at = t.dx !== undefined && t.dy !== undefined ? { x: t.dx, y: t.dy } : { x: cur.x - start.x, y: cur.y - start.y };
+    // `at` is relative to the pick-up rect (viewport); the card's transform also has to undo the scroll since pick-up
+    const dest = { x: at.x + shift.x, y: at.y + shift.y };
     const blingAt = ctx
-      ? { x: ctx.originRect.left + ctx.originRect.width / 2 + dest.x, y: ctx.originRect.top + ctx.originRect.height / 2 + dest.y }
+      ? { x: ctx.originRect.left + ctx.originRect.width / 2 + at.x, y: ctx.originRect.top + ctx.originRect.height / 2 + at.y }
       : cur;
     let p: void | Promise<unknown>;
     try {
