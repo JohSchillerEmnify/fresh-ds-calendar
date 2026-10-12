@@ -639,6 +639,14 @@ all overlays; no per-component history code.
   gutter, one vertical scroll for all columns, all-day bands equally tall across columns; heights proportional to
   duration; extended in both directions as the user scrolls (virtualised).
 
+### New version notice (owner, 2026-10-12)
+
+The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
+`version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
+back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
+"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
+It never reloads by itself and never interrupts an open dialog.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |

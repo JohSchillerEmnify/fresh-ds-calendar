@@ -59,3 +59,36 @@ Then('I do not see the sync error banner', async function (this: World) {
   await this.calendarShown();
   await expect(this.page.getByTestId('sync-error-banner')).toBeHidden();
 });
+
+/** The version the last "a new version of the app is deployed" step announced. */
+let deployedVersion = '';
+
+When('a new version of the app is deployed', async function (this: World) {
+  deployedVersion = `e2e-${Date.now()}`;
+  // No service worker may serve the old index.html on reload: the version check must work without one.
+  await this.page.evaluate(async () => {
+    for (const reg of await navigator.serviceWorker.getRegistrations()) await reg.unregister();
+    for (const key of await caches.keys()) await caches.delete(key);
+  });
+  await this.api.post('/api/__test/version', { version: deployedVersion });
+});
+
+/** A focus-triggered sync, which also re-reads /api/config. */
+When('the app syncs', async function (this: World) {
+  await setVisibility(this.page, 'visible');
+});
+
+Then('I am told a new version is available', async function (this: World) {
+  await expect(this.page.getByTestId('update-available')).toBeVisible();
+});
+
+When('I choose to reload', async function (this: World) {
+  await Promise.all([
+    this.page.waitForEvent('load'),
+    this.page.getByTestId('update-reload').click(),
+  ]);
+});
+
+Then('the app runs the new version', async function (this: World) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-app-version', deployedVersion);
+});

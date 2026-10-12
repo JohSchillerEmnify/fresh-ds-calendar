@@ -25,7 +25,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number };
+  overrides: { pollIntervalMs?: number; version?: string };
   health: { at: number; status: 'ok' | 'unavailable' } | null;
   /** The calendar of the signed-in person; the shared one when auth is off. */
   calendarFor(sub: string | null | undefined): CalendarService;

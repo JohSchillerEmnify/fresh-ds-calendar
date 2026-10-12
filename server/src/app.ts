@@ -60,7 +60,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   });
 
   const hasWeb = config.webDist !== null && fs.existsSync(config.webDist);
-  if (hasWeb) app.route('/', staticRoutes(config.webDist!));
+  if (hasWeb) app.route('/', staticRoutes(config.webDist!, () => ctx.overrides.version));
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: 'Not found' } }, 404));
   return app;
 }

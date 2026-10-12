@@ -6,6 +6,7 @@ import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
 import { useItemsStore } from './items';
 import { useSettingsStore } from './settings';
+import { checkServerVersion, checkVersion } from '@/pwa/update';
 
 export type SyncState = 'idle' | 'syncing' | 'error';
 export const SYNC_ERROR_MESSAGE = "Can't reach Google Calendar. Showing the last known data.";
@@ -65,7 +66,12 @@ export const useSyncStore = defineStore('sync', () => {
     running.value = true;
     if (state.value !== 'error') state.value = 'syncing';
     const clock = useClockStore();
-    if (withConfig) await clock.load().catch(() => undefined);
+    if (withConfig) {
+      await clock.load().catch(() => undefined);
+      checkVersion(clock.config.version);
+    } else {
+      await checkServerVersion();
+    }
     const list = [...builtinTasks(), ...tasks.entries()];
     const results = await Promise.allSettled(list.map(([, fn]) => fn()));
     const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected' && !(r.reason instanceof ApiError && r.reason.isAbort));
