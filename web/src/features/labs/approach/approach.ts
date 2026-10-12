@@ -45,40 +45,79 @@ export function approachTicks(nowMin: number, windowMin: number, trackPx: number
   return ticks;
 }
 
-export interface ApproachChip { segment: Segment; minutes: number; x: number; width: number; row: number; faded: boolean }
+export interface ApproachChip {
+  segment: Segment;
+  minutes: number;
+  /** Left edge of the block (now at 0). */
+  x: number;
+  /** Block width: the entry's duration on the track's scale. */
+  width: number;
+  row: number;
+  faded: boolean;
+  /** The title does not fit in the block and sits right after it, `titleWidth` wide. */
+  titleOutside: boolean;
+  titleWidth: number;
+}
+
+export interface ApproachSizes {
+  /** Room the title needs inside a block (text plus the chip's padding). */
+  titlePx: (segment: Segment) => number;
+  /** Width of the waiting entry at the end of the track (at most a quarter of the track). */
+  endChipPx: number;
+  /** Smallest block width. */
+  minBlockPx: number;
+  /** Space between a block and its title outside. */
+  gapPx: number;
+  /** Below this much room after the block the title stays inside (clipped) instead. */
+  minTitlePx: number;
+}
+
+/** Right edge of what a chip takes on its row: the block, plus the title when it sits outside. */
+const chipEnd = (c: ApproachChip, gapPx: number) => c.x + c.width + (c.titleOutside && c.titleWidth > 0 ? gapPx + c.titleWidth : 0);
 
 /**
- * Chip positions on a track `trackPx` wide spanning `windowMin`: a chip's left edge is its start time (now at 0).
- * Chips near the end narrow down to `minChipPx` so they stay inside; the waiting entry (`atEnd`) sits at the right
- * end, at most a quarter of the track wide. Overlapping chips take a second row; with both rows taken a chip goes to
- * the row that frees up first, the chip before it is shortened to make room and, if it still overlaps, the new chip
- * is `faded`. Never more than {@link MAX_ROWS} rows.
+ * Block positions on a track `trackPx` wide spanning `windowMin`: a block's left edge is its start time (now at 0) and
+ * its width is its duration on the same scale (at least `minBlockPx`, clipped at the track end). The title sits inside
+ * when it fits, else right after the block (shortened to the room left on the track). The waiting entry (`atEnd`) is a
+ * chip at the right end, at most a quarter of the track wide, title inside. Overlapping chips (block and outside title)
+ * take a second row; with both rows taken a chip goes to the row that frees up first, the title of the chip before it
+ * is shortened to make room and, if it still overlaps, the new chip is `faded`. Never more than {@link MAX_ROWS} rows.
  */
 export function approachLayout(
-  entries: Segment[], nowMin: number, windowMin: number, trackPx: number, chipPx: number, minChipPx: number, atEnd = false,
+  entries: Segment[], nowMin: number, windowMin: number, trackPx: number, sizes: ApproachSizes, atEnd = false,
 ): { chips: ApproachChip[]; rows: number } {
   const track = Math.max(0, trackPx);
+  const pxPerMin = windowMin > 0 ? track / windowMin : 0;
+  const { gapPx } = sizes;
   const last: ApproachChip[] = [];
   const chips = entries.map((segment) => {
     const minutes = segment.startMin - nowMin;
-    let width: number, x: number;
+    let width: number, x: number, titleOutside = false, titleWidth = 0;
     if (atEnd) {
-      width = Math.min(chipPx, track / 4);
+      width = Math.min(sizes.endChipPx, track / 4);
       x = track - width;
     } else {
-      const raw = windowMin > 0 ? Math.min(1, minutes / windowMin) * track : 0;
-      width = Math.min(chipPx, Math.max(minChipPx, track - raw), track);
+      const raw = Math.min(Math.max(0, minutes), windowMin) * pxPerMin;
+      const duration = Math.max(0, segment.endMin - segment.startMin) * pxPerMin;
+      width = Math.min(Math.max(sizes.minBlockPx, Math.min(duration, track - raw)), track);
       x = Math.max(0, Math.min(raw, track - width));
+      const need = sizes.titlePx(segment);
+      const room = track - (x + width + gapPx);
+      if (need > width && room >= sizes.minTitlePx) {
+        titleOutside = true;
+        titleWidth = Math.min(need, room);
+      }
     }
-    const chip: ApproachChip = { segment, minutes, x, width, row: 0, faded: false };
+    const chip: ApproachChip = { segment, minutes, x, width, row: 0, faded: false, titleOutside, titleWidth };
     // first row whose last chip ends before this one starts, else a new row, else the row that frees up first
-    let row = last.findIndex((c) => c.x + c.width <= x);
+    let row = last.findIndex((c) => chipEnd(c, gapPx) <= x);
     if (row < 0 && last.length < MAX_ROWS) row = last.length;
     if (row < 0) {
-      row = last[0].x + last[0].width <= last[1].x + last[1].width ? 0 : 1;
+      row = chipEnd(last[0], gapPx) <= chipEnd(last[1], gapPx) ? 0 : 1;
       const prev = last[row];
-      prev.width = Math.max(minChipPx, x - prev.x);
-      chip.faded = prev.x + prev.width > x;
+      // a block keeps its duration; only an outside title gives way
+      if (prev.titleOutside) prev.titleWidth = Math.max(0, x - gapPx - (prev.x + prev.width));
+      chip.faded = chipEnd(prev, gapPx) > x;
     }
     chip.row = row;
     last[row] = chip;

@@ -332,7 +332,9 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   proportional day view.
 - **Now marker** (`now-marker`, `data-time`): a primary-colour line with a dot across today's column in the day and
   week views. It updates every minute. Today's day view scrolls so now sits in the upper third (other days: 07:00).
-- **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week).
+- **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week), and
+  above the grid in the month view (current month) and the year view (current year) (owner, 2026-10-13: keep it in
+  view).
   - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
     `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is
@@ -677,8 +679,11 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
   that start within the window (events and task lists with a time, by start, excluding the current event) as chips
   at their start position; when none is within the window, the next timed entry of today sits at the right end
-  (`data-at-end="true"`, label "in 5 h"). Chips are the month view's compact `ItemView` (same colours, title, tap
-  opens the entry). Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
+  (`data-at-end="true"`, label "in 5 h"). Each entry is a block as long as its duration on the track's scale (owner, 2026-10-13: entries take up only the
+  time they take); the title sits inside when it fits, else right after the block (`data-title-outside="true"`), so
+  a short entry on a phone or in a 6/12 h window shows a short block followed by its title. Blocks use the entry's
+  colour like `ItemView` chips (reuse its colour/skin and open handling); tap opens the entry. A block is at least
+  4 px wide. Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
   shortened and overlapping with a fade, so the card never grows further (owner: "don't take too much space").
   Nothing ahead today → the usual "Nothing else today" line. The current-event and next-task lines are unchanged.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never

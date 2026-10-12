@@ -42,3 +42,11 @@ Feature: Labs: the approach bar
     And the approach bar is on with a window of 6 hours
     When I open the week view for 2026-10-12
     Then the approach bar shows "Dentist" and "Lunch"
+
+  Scenario: Entries take only the room of their duration
+    Given the time is 2026-10-14 08:00
+    And the calendar contains an event "Call" on 2026-10-14 from 08:30 to 08:45
+    And the approach bar is on with a window of 12 hours
+    When I open the week view for 2026-10-12
+    Then on the approach bar "Dentist" is 4 times as long as "Call"
+    And the title of "Call" is shown next to its block

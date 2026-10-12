@@ -87,6 +87,17 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the now card shows the line "Nothing else today"
     And the now card does not show a current event
 
+  Scenario Outline: The Now card is shown in the month and year views of today too
+    Given the time is 2026-10-12 09:20
+    And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
+    When I open the <view> view for <period>
+    Then the now card shows the line "Next: Dentist in 1 h 20 min"
+
+    Examples:
+      | view  | period  |
+      | month | 2026-10 |
+      | year  | 2026    |
+
   Scenario: The Now card is shown in the week view only for the current week
     Given the time is 2026-10-12 09:20
     When I open the week view for 2026-10-19

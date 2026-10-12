@@ -71,9 +71,9 @@ export const gridLayers = shallowReactive<Component[]>([]);
 export function registerGridLayer(c: Component): void {
   if (!gridLayers.includes(c)) gridLayers.push(markRaw(c));
 }
-/** Rendered above the time grid in day/week views (e.g. the Now card) and above the month grid. */
-export const viewHeaders = shallowReactive<{ time: Component[]; month: Component[] }>({ time: [], month: [] });
-export function registerViewHeader(where: 'time' | 'month', c: Component): void {
+/** Rendered above the time grid in day/week views (e.g. the Now card), above the month grid and above the year's months. */
+export const viewHeaders = shallowReactive<{ time: Component[]; month: Component[]; year: Component[] }>({ time: [], month: [], year: [] });
+export function registerViewHeader(where: 'time' | 'month' | 'year', c: Component): void {
   viewHeaders[where].push(markRaw(c));
 }
 /** Rendered between the view and the navigation bar (open tasks tray). */

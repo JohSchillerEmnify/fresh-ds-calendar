@@ -72,3 +72,25 @@ Then('the approach bar shows {string} at its end', async function (this: World, 
 Then('the approach bar shows {string} and {string}', async function (this: World, a: string, b: string) {
   await expect.poll(async () => (await items(this).evaluateAll((els) => els.map((e) => e.getAttribute('data-title')))).sort()).toEqual([a, b].sort());
 });
+
+/** Width in px of an entry's block on the approach bar (NaN while it is not shown, so a poll keeps trying). */
+async function blockWidth(w: World, title: string): Promise<number> {
+  return (await item(w, title).getByTestId('approach-block').boundingBox())?.width ?? NaN;
+}
+
+Then('on the approach bar {string} is {int} times as long as {string}', async function (this: World, a: string, n: number, b: string) {
+  // factor N ± 10 %
+  await expect.poll(async () => Math.abs((await blockWidth(this, a)) / (await blockWidth(this, b)) / n - 1)).toBeLessThanOrEqual(0.1);
+});
+
+Then('the title of {string} is shown next to its block', async function (this: World, title: string) {
+  await expect(item(this, title)).toHaveAttribute('data-title-outside', 'true');
+  const label = item(this, title).getByTestId('approach-title');
+  await expect(label).toBeVisible();
+  // the title's left edge is at or right of the block's right edge
+  await expect.poll(async () => {
+    const block = await item(this, title).getByTestId('approach-block').boundingBox();
+    const text = await label.boundingBox();
+    return block && text ? text.x - (block.x + block.width) : -1;
+  }).toBeGreaterThanOrEqual(0);
+});

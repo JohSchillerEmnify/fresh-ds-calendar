@@ -24,4 +24,6 @@ export function registerCalendarFeature(): void {
   registerGridLayer(DropIndicator);
   registerGridLayer(NowMarker);
   registerViewHeader('time', NowCard);
+  registerViewHeader('month', NowCard);
+  registerViewHeader('year', NowCard);
 }
