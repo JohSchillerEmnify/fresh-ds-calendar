@@ -99,7 +99,7 @@ async function today(id: string) {
 
 <style scoped>
 .tray { flex: none; background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); display: flex; flex-direction: column; min-width: 0; }
-.bar { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px 0 16px; width: 100%; text-align: left; }
+.bar { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 88px 0 16px; width: 100%; text-align: left; }
 .chip { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 999px; padding: 4px 12px; font: var(--md-sys-typescale-label-large); }
 .chip.none { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .peek { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-small); }
@@ -121,7 +121,7 @@ async function today(id: string) {
 .phone { border-top: 1px solid var(--md-sys-color-outline-variant); }
 @media (min-width: 768px) {
   .tray { width: 300px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; }
-  .bar { cursor: default; }
+  .bar { cursor: default; padding-right: 12px; }
   .chev { display: none; }
   .list { flex: 1; min-height: 0; max-height: none; }
 }

@@ -15,14 +15,17 @@ When('I open the path {string}', async function (this: World, path: string) {
 
 When('I open the month view for {month}', async function (this: World, month: string) {
   await this.page.goto(`/month/${month}`);
+  await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
 When('I open the week view for {date}', async function (this: World, date: string) {
   await this.page.goto(`/week/${date}`);
+  await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
 When('I open the day view for {date}', async function (this: World, date: string) {
   await this.page.goto(`/day/${date}`);
+  await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
 /** Click a period navigation button and wait until the route changed. */
@@ -111,7 +114,7 @@ Then('the week columns are {string}', async function (this: World, list: string)
   await expectJoined(this.page.getByTestId('week-header'), list);
 });
 
-const TODAY_HOLDERS = ['month-cell', 'week-header', 'day-header'];
+const TODAY_HOLDERS = ['month-cell', 'week-header', 'day-header', 'year-day'];
 const todaySelector = (date?: string) =>
   TODAY_HOLDERS.map((t) => `${tid(t)}[data-today="true"]${date ? attr('data-date', date) : ''}`).join(', ');
 
@@ -120,7 +123,7 @@ Then('{date} is highlighted as today', async function (this: World, date: string
 });
 
 Then('exactly one day is highlighted as today', async function (this: World) {
-  await this.calendarShown();
+  await expect(this.page.locator(TODAY_HOLDERS.map(tid).join(', ')).first()).toBeVisible();
   await expect(this.page.locator(todaySelector())).toHaveCount(1);
 });
 

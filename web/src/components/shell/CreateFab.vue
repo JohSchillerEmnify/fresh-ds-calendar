@@ -26,7 +26,7 @@ function select(id: string) {
 
 <style scoped>
 .fab-wrap {
-  position: fixed; right: calc(16px + var(--safe-right)); bottom: calc(var(--navbar-h) + var(--safe-bottom) + var(--tray-h, 0px) + 16px);
+  position: fixed; right: calc(16px + var(--safe-right)); bottom: calc(var(--navbar-h) + var(--safe-bottom) + 12px); /* phone: floats over the tray bar (its toggle keeps clear), inside thumb reach */
   z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
 }
 @media (min-width: 768px) { .fab-wrap { bottom: 24px; right: 24px; } }

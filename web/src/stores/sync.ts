@@ -44,6 +44,10 @@ export const useSyncStore = defineStore('sync', () => {
       state.value = 'error';
     }
   }
+  /** A fetch outside the polling loop (route load) succeeded: counts as a completed sync. */
+  function markSynced(): void {
+    lastSync.value = new Date().toISOString();
+  }
   function clearError(): void {
     error.value = null;
     state.value = 'idle';
@@ -150,5 +154,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, errorMessage, running, registerTask, reportError, clearError, syncNow, retry, start, stop, schedule };
+  return { state, lastSync, error, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, retry, start, stop, schedule };
 });
