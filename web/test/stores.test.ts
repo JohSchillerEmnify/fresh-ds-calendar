@@ -34,6 +34,7 @@ describe('sync store', () => {
       'GET /api/config': () => config({ pollIntervalMs: 1000 }),
       'GET /api/items': () => ({ items: [], from: 'a', to: 'b', syncedAt: 'x' }),
       'GET /api/settings': () => settingsFixture(),
+      'GET /api/calendars': () => ({ calendars: [] }),
       'GET /api/summary': () => ({ days: {} }),
       ...extra,
     });

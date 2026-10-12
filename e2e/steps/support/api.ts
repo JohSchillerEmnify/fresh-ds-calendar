@@ -62,6 +62,10 @@ export class Api {
   setConfig(cfg: { pollIntervalMs?: number }) { return this.setup('/api/__test/config', cfg); }
   /** Turns sign-in on with this allow-list (it is off with the mock provider otherwise; reset turns it off). */
   setAuth(allowedEmails: string[]) { return this.setup('/api/__test/auth', { allowedEmails }); }
+  /** Sets the calendar list of one person's mock Google account (`shared`: read-only, not their primary). */
+  setCalendars(owner: string, calendars: Array<{ id: string; name: string; color: string; primary?: boolean; shared?: boolean }>) {
+    return this.setup('/api/__test/calendars', { owner, calendars });
+  }
   /** The Google account the OAuth test double's consent screen signs in next. */
   chooseGoogleAccount(email: string) { return this.setup('/api/__test/oauth/account', { email }); }
   /** Google answers this person's token refresh with invalid_grant from now on. */

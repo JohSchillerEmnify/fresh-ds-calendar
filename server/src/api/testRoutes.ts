@@ -26,6 +26,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.calendar.invalidate();
     ctx.auth.reset();
     ctx.resetPeople();
+    ctx.prefs.reset();
     const settings = ctx.settings.reset();
     ctx.motivation.reset();
     if (input.seed) await ctx.seed();
@@ -71,6 +72,18 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // `owner` (a Google address) selects that person's mock calendar; without it the shared one is used.
   const store = (owner: string | undefined) => (owner ? ctx.mockFor(mockSub(owner)) : mock);
+
+  // Sets one person's calendar list; `shared` calendars are read-only and not their primary.
+  t.post('/calendars', async (c) => {
+    const b = (await body(c)) as { owner?: unknown; calendars?: Array<{ id?: string; name?: string; color?: string; primary?: boolean; shared?: boolean }> } | undefined;
+    if (typeof b?.owner !== 'string' || !Array.isArray(b.calendars)) throw validation('owner and calendars are required');
+    store(b.owner).setCalendars(b.calendars.map((k) => ({
+      id: String(k.id), summary: String(k.name), backgroundColor: String(k.color ?? '#039be5'), primary: !!k.primary && !k.shared,
+      accessRole: k.shared ? 'reader' as const : 'owner' as const,
+    })));
+    ctx.calendarFor(mockSub(b.owner)).invalidate();
+    return c.json({ ok: true });
+  });
 
   t.get('/remote/events', (c) => {
     const q = c.req.query('q');

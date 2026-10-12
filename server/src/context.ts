@@ -4,6 +4,7 @@ import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
+import { PrefsStore } from './services/prefsStore.js';
 import { SettingsStore } from './services/settingsStore.js';
 import type { CalendarProvider } from './providers/CalendarProvider.js';
 import { MockGoogleProvider } from './providers/mock/MockGoogleProvider.js';
@@ -17,6 +18,7 @@ export interface Ctx {
   provider: CalendarProvider;
   mock: MockGoogleProvider | null;
   settings: SettingsStore;
+  prefs: PrefsStore;
   motivation: MotivationService;
   calendar: CalendarService;
   auth: AuthState;
@@ -40,13 +42,14 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     : config.provider === 'mock' ? new MockGoogleProvider({ dataDir: config.dataDir, tz: config.tz, clock }) : null;
   const prov: CalendarProvider = provider ?? mock ?? (() => { throw new Error('Google provider must be passed in (see index.ts)'); })();
   const settings = new SettingsStore(config.dataDir, clock, config.tz);
+  const prefs = new PrefsStore(config.dataDir);
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const calendar = new CalendarService(prov, settings, motivation, clock, config);
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>();
   const people = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, motivation, calendar, overrides: {}, health: null, personProvider,
+    config, clock, provider: prov, mock, settings, prefs, motivation, calendar, overrides: {}, health: null, personProvider,
     auth: new AuthState(config, () => clock.real()),
     mockFor(sub) {
       let m = mocks.get(sub);

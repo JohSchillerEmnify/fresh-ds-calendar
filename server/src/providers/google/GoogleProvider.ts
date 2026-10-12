@@ -13,8 +13,6 @@ type Dt = calendar_v3.Schema$EventDateTime;
 
 export interface GoogleProviderOptions {
   api: Api;
-  /** Calendar ids to expose; 'primary' resolves to the user's primary calendar. */
-  calendarIds: string[];
   /** Optional hook, e.g. a "not authorised" check performed before every call. */
   ready?: () => void;
 }
@@ -56,8 +54,6 @@ export class GoogleProvider implements CalendarProvider {
     const res = await this.call(() => this.o.api.calendarList.list({ maxResults: 250 }));
     const out: ProviderCalendar[] = [];
     for (const c of res.data.items ?? []) {
-      const wanted = this.o.calendarIds.includes(c.id!) || (c.primary && this.o.calendarIds.includes('primary'));
-      if (!wanted) continue;
       out.push({
         id: c.primary ? 'primary' : c.id!,
         summary: c.summaryOverride ?? c.summary ?? c.id!,
@@ -173,7 +169,6 @@ export function createGoogleProvider(config: AppConfig, sub: string, fetchImplem
   const auth: OAuth2Client = getUserClient(config, sub);
   return new GoogleProvider({
     api: makeApi(auth, fetchImplementation),
-    calendarIds: g.calendarIds,
     ready: () => {
       if (!hasUserToken(config, sub) && !auth.credentials.refresh_token && !auth.credentials.access_token) {
         throw new ReauthRequiredError('No Google access stored for this person');

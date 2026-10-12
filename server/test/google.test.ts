@@ -25,7 +25,7 @@ function setup(handler: (c: Call) => { status?: number; json?: unknown } | Promi
   }) as typeof fetch;
   const auth = new OAuth2Client({ clientId: 'id', clientSecret: 'secret' });
   auth.setCredentials({ access_token: 'tok', expiry_date: Date.now() + 3_600_000 });
-  const provider = new GoogleProvider({ api: makeApi(auth, fetchImpl), calendarIds: ['primary', 'team@group.calendar.google.com'] });
+  const provider = new GoogleProvider({ api: makeApi(auth, fetchImpl) });
   return { provider, calls };
 }
 
@@ -81,7 +81,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
     expect(m.calendarId).toBe('work');
   });
 
-  it('lists only configured calendars and aliases the primary one', async () => {
+  it('lists every calendar of the person and aliases the primary one', async () => {
     const { provider } = setup(() => ({ json: { items: [
       { id: 'me@gmail.com', summary: 'me', primary: true, backgroundColor: '#9FE1E7', accessRole: 'owner' },
       { id: 'team@group.calendar.google.com', summary: 'Team', summaryOverride: 'Team (mine)', backgroundColor: '#000000', accessRole: 'reader' },
@@ -90,6 +90,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
     expect(await provider.listCalendars()).toEqual([
       { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner' },
       { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader' },
+      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', primary: false, accessRole: 'owner' },
     ]);
   });
 
@@ -110,7 +111,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
   it('maps network failures to unavailable', async () => {
     const auth = new OAuth2Client();
     auth.setCredentials({ access_token: 't', expiry_date: Date.now() + 3_600_000 });
-    const provider = new GoogleProvider({ api: makeApi(auth, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), calendarIds: ['primary'] });
+    const provider = new GoogleProvider({ api: makeApi(auth, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch) });
     await expect(provider.ping()).rejects.toBeInstanceOf(ProviderUnavailableError);
     expect(mapGoogleError(new Error('invalid_grant'))).toBeInstanceOf(ReauthRequiredError);
     expect(mapGoogleError(Object.assign(new Error('x'), { response: { status: 400, data: { error: 'invalid_grant' } } }))).toBeInstanceOf(ReauthRequiredError);
@@ -168,7 +169,7 @@ describe('Google OAuth routes', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-auth-'));
     dirs.push(dir);
     const config = { ...loadConfig({ DATA_DIR: dir, ...env }), webDist: null };
-    return { dir, config, app: buildApp(config, env.PROVIDER === 'google' ? { provider: new GoogleProvider({ api: makeApi(new OAuth2Client()), calendarIds: ['primary'] }) } : {}) };
+    return { dir, config, app: buildApp(config, env.PROVIDER === 'google' ? { provider: new GoogleProvider({ api: makeApi(new OAuth2Client()) }) } : {}) };
   };
   const g = { PROVIDER: 'google', GOOGLE_CLIENT_ID: 'cid', GOOGLE_CLIENT_SECRET: 'sec', PUBLIC_URL: 'https://cal.example.org' };
 

@@ -149,9 +149,19 @@ describe('calendars, config, health, errors', () => {
   it('lists the mock calendars', async () => {
     const r = await t.json('GET', '/api/calendars');
     expect(r.body.calendars).toEqual([
-      { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true },
-      { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true },
+      { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, hidden: false },
+      { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, hidden: false },
     ]);
+  });
+
+  it('hides and shows a calendar per person, 404 for an unknown one', async () => {
+    const r = await t.json('PATCH', '/api/calendars/work', { hidden: true });
+    expect(r.status).toBe(200);
+    expect(r.body.hidden).toBe(true);
+    expect((await t.json('GET', '/api/calendars')).body.calendars.map((c: { hidden: boolean }) => c.hidden)).toEqual([false, true]);
+    await t.json('PATCH', '/api/calendars/work', { hidden: false });
+    expect((await t.json('GET', '/api/calendars')).body.calendars.every((c: { hidden: boolean }) => !c.hidden)).toBe(true);
+    expect((await t.json('PATCH', '/api/calendars/nope', { hidden: true })).status).toBe(404);
   });
 
   it('config honours the test clock and poll override', async () => {
