@@ -27,18 +27,22 @@ const { height: gridH } = useElementSize(gridEl);
 /** Pixels one entry may take: the cell minus day number, paddings, gaps and the "+n" line, shared by need (task lists get what their items need). */
 function visible(date: string) {
   const all = segs(date);
-  const shown = all.slice(0, limit.value);
-  const more = Math.max(0, all.length - limit.value);
+  let shown = all.slice(0, limit.value);
   const cellH = gridH.value / weeks.value.length;
   let heights: number[] = [];
   if (cellH > 0 && shown.length) {
     const phone = isPhone.value;
-    const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5;
-    const avail = cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - (shown.length - 1) * (phone ? 2 : 3) - (more ? 14 : 0) - 2;
-    const needs = shown.map((s) => (s.item.kind === 'tasklist' ? titleH + Math.min(s.item.items.length, 8) * rowH + extra : phone ? 16 : 18));
-    heights = allotHeights(needs, avail, phone ? 16 : 18);
+    const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
+    const sized = (n: number) => titleH + n * rowH + extra;
+    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(Math.min(s.item.items.length, 8)) : evH);
+    /** Smallest useful size: events one line, task lists the title plus up to 3 rows (item rows and the "+k" line). */
+    const minOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? Math.min(needOf(s), sized(phone ? 3 : 2)) : evH);
+    const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - (n - 1) * gap - (withMore ? 14 : 0) - 2;
+    // drop trailing entries (they join "+n") until the rest fit at their minimum size
+    while (shown.length > 1 && shown.reduce((a, s) => a + minOf(s), 0) > room(shown.length, shown.length < all.length)) shown = shown.slice(0, -1);
+    heights = allotHeights(shown.map(needOf), room(shown.length, shown.length < all.length), evH);
   }
-  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more };
+  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length };
 }
 </script>
 

@@ -152,13 +152,15 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 /* no spare row: names run next to the title */
 .block[data-fit='inline'] { display: flex; flex-direction: row; align-items: center; gap: 5px; padding-top: 1px; padding-bottom: 1px; }
-.block[data-fit='inline'] .row { flex: 0 1 auto; max-width: 62%; }
+.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 3ch; }
+.block[data-fit='inline'] .meta { display: none; }
 .block[data-fit='inline'] .items { display: block; flex: 1 1 0; min-width: 0; align-self: center; }
 .block[data-fit='inline'] .it { display: inline; padding: 0; }
 .block[data-fit='inline'] .it::before { display: none; }
 .block[data-fit='inline'] .sep { display: inline; }
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
-.block[data-fit='inline'] .pbar { display: none; }
+.mini.block[data-fit='inline'] .foot, .mini.block[data-fit='inline'] .items { display: none; }
+.block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
 
 /* card: month cell. Foot hidden, the cell is small */
 .card { flex: none; padding: 2px 4px 3px; }
