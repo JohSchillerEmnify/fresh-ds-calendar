@@ -33,3 +33,25 @@ describe('timed task list block in a 47 x 45 px column', () => {
     expect(blockGeometry(seg.startMin, seg.endMin, 48, segmentMinPx(seg)).height).toBe(44);
   });
 });
+
+import { rowStep } from '@/features/tasklists/layout';
+describe('rowStep (truncation fade)', () => {
+  it('steps down with the row index and respects the floors', () => {
+    expect(rowStep(0, 3)).toEqual({ scale: 1, opacity: 1 });
+    expect(rowStep(1, 3).opacity).toBeCloseTo(0.85);
+    expect(rowStep(2, 3).scale).toBeCloseTo(0.7);
+    expect(rowStep(9, 3)).toEqual({ scale: 0.7, opacity: 0.5 });
+  });
+  it('does nothing when nothing is truncated', () => {
+    expect(rowStep(2, 0)).toEqual({ scale: 1, opacity: 1 });
+  });
+  it('card applies the style only when truncated', () => {
+    freshPinia();
+    const few = mount(TaskListCard, { props: { segment: itemSegments(list(2))[0], variant: 'card', height: 200 } });
+    expect(few.findAll('.it').every((e) => !e.attributes('style'))).toBe(true);
+    const many = mount(TaskListCard, { props: { segment: itemSegments(list(6))[0], variant: 'card', height: 200 } });
+    const vis = visible(many);
+    expect(vis[1].attributes('style')).toContain('opacity: 0.85');
+    expect(vis[1].classes()).toContain('fade');
+  });
+});

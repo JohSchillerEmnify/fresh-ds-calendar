@@ -18,7 +18,7 @@ import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
 import { isCollapsed, toggleCollapsed } from './collapse';
-import { fitItems } from './layout';
+import { fitItems, rowStep } from './layout';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
@@ -76,6 +76,19 @@ const rank = computed(() => {
   return m;
 });
 const hideItem = (id: string) => (rank.value.get(id) ?? Infinity) >= fit.value.shown || !rank.value.has(id);
+/** Truncated lists: rows shrink and fade the further down they are, the last visible row also fades out at its bottom edge. */
+const rowStyle = (id: string) => {
+  const r = rank.value.get(id);
+  if (r === undefined || !fit.value.more || fit.value.inline) return undefined;
+  const st = rowStep(r, fit.value.more);
+  return { '--rs': st.scale, opacity: st.opacity, fontSize: `max(8px, calc(var(--fs) * ${st.scale}))` };
+};
+const lastShown = (id: string) => !!fit.value.more && !fit.value.inline && rank.value.get(id) === fit.value.shown - 1;
+const moreStyle = computed(() => {
+  if (!fit.value.more || fit.value.inline) return undefined;
+  const st = rowStep(fit.value.shown, fit.value.more);
+  return { opacity: st.opacity, fontSize: `max(8px, calc(var(--fs) * ${st.scale}))` };
+});
 const hasChev = computed(() => tl.value.items.length > 0);
 const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.value.more} more`));
 </script>
@@ -105,8 +118,8 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
-      <span v-if="fit.more" class="more" data-testid="tasklist-card-more" aria-hidden="true">{{ moreText }}</span>
+      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fade: lastShown(i.id) }]" :style="rowStyle(i.id)">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
+      <span v-if="fit.more" class="more" data-testid="tasklist-card-more" aria-hidden="true" :style="moreStyle">{{ moreText }}</span>
     </template>
     <span v-if="hasFoot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -154,6 +167,11 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .it::before { content: ''; position: absolute; left: 1px; top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--c); border-radius: 2px; }
 .it.done::before { background: var(--c); }
 .it.over { display: none; }
+.tl { --fs: 11px; }
+.tl.mini { --fs: 9px; }
+.it { font-size: var(--fs); }
+.it::before { transform: scale(var(--rs, 1)); transform-origin: left center; }
+.it.fade { -webkit-mask-image: linear-gradient(180deg, #000 45%, rgba(0, 0, 0, 0.45)); mask-image: linear-gradient(180deg, #000 45%, rgba(0, 0, 0, 0.45)); }
 .more { font-size: 10px; line-height: 13px; padding-left: 12px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; }
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
 .from { flex: 0 100 auto; max-width: 45%; background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 16%, transparent); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
@@ -211,7 +229,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: 2.5px; }
 .mini .cb[data-state='done']::after { left: 1.7px; top: -0.5px; width: 2.4px; height: 5px; border-width: 0 1.2px 1.2px 0; }
-.mini .items, .mini .it { font-size: 9px; line-height: 11px; }
+.mini .items, .mini .it { line-height: 11px; }
 .mini .it { padding-left: 8px; }
 .mini .it::before { left: 0.5px; top: 2px; width: 5px; height: 5px; border-radius: 1.5px; }
 .mini .more { font-size: 9px; line-height: 11px; padding-left: 8px; }
