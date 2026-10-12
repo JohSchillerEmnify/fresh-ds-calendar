@@ -58,23 +58,6 @@ Feature: ADHD support: estimates, transition warnings, next task, calm mode
     And 6 minutes pass
     Then I do not see a transition warning
 
-  # --- One next small task --------------------------------------------------
-
-  Scenario: The Now card names the next small task
-    Given today is 2026-10-12
-    And the calendar contains a task list "Laundry" on 2026-10-10 with items:
-      | item | done |
-      | Wash | yes  |
-      | Fold | no   |
-    And the calendar contains a task list "Groceries" on 2026-10-12 with items:
-      | item | done |
-      | Milk | no   |
-    When I open the day view for 2026-10-12
-    Then the now card shows the line "Next task: Fold (Laundry)"
-    When I expand the task list "Laundry"
-    And I tick the item "Fold"
-    Then the now card shows the line "Next task: Milk (Groceries)"
-
   # --- Calm mode ------------------------------------------------------------
 
   Scenario: Calm mode reduces clutter

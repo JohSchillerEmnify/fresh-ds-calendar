@@ -1,7 +1,6 @@
 /**
  * Calendar feature: event dialog (lazy), event renderer, now marker, Approaching card, drop indicator, transition
- * warnings. Registered once from extensions/builtin.ts. Other features can reuse `useCalendarDrag` (./dnd) and
- * `registerNowCardLine` (./nowLines).
+ * warnings. Registered once from extensions/builtin.ts. Other features can reuse `useCalendarDrag` (./dnd).
  */
 import { registerDialog, registerGridLayer, registerCalendarHeader, registerItemRenderer } from '@/extensions/registry';
 import DropIndicator from './DropIndicator.vue';
@@ -13,7 +12,6 @@ import { startTransitionWarnings } from './transitionWarning';
 import './calendar.css';
 
 export { useCalendarDrag, applyMove, planMove } from './dnd';
-export { registerNowCardLine } from './nowLines';
 
 let done = false;
 export function registerCalendarFeature(): void {
