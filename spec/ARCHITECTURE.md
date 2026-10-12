@@ -618,6 +618,26 @@ pushes a history entry when it opens (`history.pushState` with an overlay marker
 overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
 history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
 all overlays; no per-component history code.
+### Labs (experiments, owner 2026-10-12)
+
+- Settings get a Labs section: `labs` (experimental views on/off) and `approachBar` (on/off), stored per person in
+  `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
+  `settings-approach-bar`.
+- Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
+  flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
+- Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
+  store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
+- Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
+  (`clock` store), progress ring.
+- Approach bar: above every calendar view when on; next 3 hours, "now" at the left, the next event placed by minutes.
+- Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
+  equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
+- Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all
+  days with a date divider and an all-day band per day that takes its own room, items as long as they last with
+  horizontal readable titles, overlaps side by side (wider on desktop), `timeline-now` as a line, zoom on desktop.
+- Strip: CSS scroll-snap columns, one per day, sharing ONE time scale (owner: aligned, like the week view): one hour
+  gutter, one vertical scroll for all columns, all-day bands equally tall across columns; heights proportional to
+  duration; extended in both directions as the user scrolls (virtualised).
 
 ## 8. Configuration (env)
 

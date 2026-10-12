@@ -784,3 +784,46 @@ I allow full animations despite the device setting
   `settings-ignore-system-motion`. With it on, the app's own animation level applies; off (default) the system caps
   it at Reduced as before. Kept per person.
 
+## Labs (`@labs`)
+
+```
+I turn on experimental views in the settings
+the view switcher offers {string}, {string} and {string} marked as experimental
+I open the clock view for {date}
+the event {string} is an arc from {time} to {time}
+the clock hand points at {time}
+the arc of {string} is labelled {string}
+the approach bar is on
+the approach bar shows {string} in {int} minutes
+{string} is closer to now on the approach bar
+I open the timeline view
+{string} comes before {string} on the timeline
+the now marker is before {string} on the timeline
+on the timeline {string} is farther from {string} than {string} is from the now marker
+on the timeline {string} is about {int} times as long as {string}
+{string} is in the all-day band above the timed entries
+the timeline runs from top to bottom
+the title of {string} on the timeline reads left to right in one line
+I open the strip view for {date}
+I see the event {string} in the strip column of {date}
+I scroll the strip one day to the right
+the strip column of {date} is in front
+the page did not reload
+in the strip {string} is about {int} times as tall as {string}
+{string} is in the strip's all-day band
+the hour lines of the strip columns of {date} and {date} are at the same height
+the all-day bands of the strip columns of {date} and {date} are equally tall
+```
+
+- Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
+- Approach bar: `approach-bar` with `approach-item` (`data-title`, `data-minutes` = minutes until start); "closer"
+  compares the item's distance from `approach-now` before and after the clock step.
+- Timeline: `timeline-item` (`data-title`) and `timeline-now`, positions compared along the timeline's axis.
+- Strip: `strip-column` (`data-date`); "in front" = the leftmost fully visible column; "did not reload" = a marker set
+  on `window` before the step is still there.
+- Labs v2 (owner feedback): sizes are always proportional to duration (time blindness), "about N times" allows ±15 %;
+  all-day bands are `timeline-allday` / `strip-allday` above the timed area; clock labels are `clock-label`
+  (`data-title`) next to or along each arc.
+- Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
+  "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
+
