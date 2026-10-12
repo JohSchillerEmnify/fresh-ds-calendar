@@ -17,16 +17,19 @@ describe('approach bar entries', () => {
   const segs = segsOf([lunch, gym, dentist, list('groceries', '10:00', 'Groceries'), list('untimed', null), allDay], D);
   const titles = (nowMin: number, windowMin = 180) => approachEntries(segs, nowMin, windowMin).entries.map((s) => s.item.title);
 
-  it('takes up to three timed entries of today within the window by start, task lists with a time included', () => {
+  it('takes the timed entries of today within the window by start, task lists with a time included', () => {
     expect(titles(8 * 60)).toEqual(['Dentist', 'Groceries', 'Gym']);
     expect(approachEntries(segs, 8 * 60, 180).atEnd).toBe(false);
+  });
+  it('takes everything within the window, not only the next three', () => {
+    expect(titles(8 * 60, 360)).toEqual(['Dentist', 'Groceries', 'Gym', 'Lunch']);
   });
   it('leaves out what starts after the window', () => {
     expect(titles(8 * 60, 120)).toEqual(['Dentist', 'Groceries']);
     expect(titles(8 * 60, 60)).toEqual(['Dentist']);
   });
-  it('keeps a running entry, counting it towards the three, and drops it when it ends', () => {
-    expect(titles(9 * 60 + 15, 240)).toEqual(['Dentist', 'Groceries', 'Gym']);
+  it('keeps a running entry and drops it when it ends', () => {
+    expect(titles(9 * 60 + 15, 240)).toEqual(['Dentist', 'Groceries', 'Gym', 'Lunch']);
     expect(titles(10 * 60, 240)).toEqual(['Groceries', 'Gym', 'Lunch']);
   });
   it('with nothing in the window the next entry of today waits at the end', () => {
@@ -160,6 +163,29 @@ describe('approach bar layout', () => {
     expect(k.chips.map((c) => c.row)).toEqual([0, 1, 0]);
     expect(k.chips[0].width).toBe(60); // a block keeps its duration
     expect(k.chips[2].faded).toBe(true);
+  });
+  it('with many entries stays in two rows and inside the track', () => {
+    const many = segsOf(Array.from({ length: 12 }, (_, i) => {
+      const m = 8 * 60 + 5 + i * 10;
+      const hm = (x: number) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+      return ev(`e${i}`, t(D, hm(m)), t(D, hm(m + 20)), { title: `Meeting number ${i}` });
+    }), D);
+    const l = at(8 * 60, 320, 180, many);
+    expect(l.chips).toHaveLength(12);
+    expect(l.rows).toBe(2);
+    for (const c of l.chips) {
+      expect(c.row).toBeLessThan(2);
+      expect(c.x).toBeGreaterThanOrEqual(0);
+      expect(c.x + c.width + (c.titleOutside && c.titleWidth > 0 ? 4 + c.titleWidth : 0)).toBeLessThanOrEqual(320);
+    }
+    // per row, an outside title never runs into the next chip (it is shortened, or the next chip fades)
+    for (const row of [0, 1]) {
+      const r = l.chips.filter((c) => c.row === row);
+      r.slice(1).forEach((c, i) => {
+        const p = r[i];
+        expect(p.x + p.width + (p.titleOutside && p.titleWidth > 0 ? 4 + p.titleWidth : 0) <= c.x || c.faded).toBe(true);
+      });
+    }
   });
   it('an entry beyond the window sits at the right end, at most a quarter of the track wide, title inside', () => {
     const r = approachEntries(segs, 5 * 60, 180);

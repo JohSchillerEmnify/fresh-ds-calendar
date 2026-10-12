@@ -114,6 +114,11 @@ Then('the approach bar shows {string} and {string}', async function (this: World
   await expect.poll(async () => (await items(this).evaluateAll((els) => els.map((e) => e.getAttribute('data-title')))).sort()).toEqual([a, b].sort());
 });
 
+Then('the approach bar shows {int} entries', async function (this: World, n: number) {
+  await expect(this.page.getByTestId('now-card').getByTestId('approach-now')).toBeVisible();
+  await expect(items(this)).toHaveCount(n);
+});
+
 /** Width in px of an entry's block on the approach bar (NaN while it is not shown, so a poll keeps trying). */
 async function blockWidth(w: World, title: string): Promise<number> {
   return (await item(w, title).getByTestId('approach-block').boundingBox())?.width ?? NaN;
