@@ -120,7 +120,7 @@ Then('{date} is highlighted as today', async function (this: World, date: string
 });
 
 Then('exactly one day is highlighted as today', async function (this: World) {
-  await this.calendarShown();
+  await expect(this.page.locator(TODAY_HOLDERS.map(tid).join(', ')).first()).toBeVisible();
   await expect(this.page.locator(todaySelector())).toHaveCount(1);
 });
 

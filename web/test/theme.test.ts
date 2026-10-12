@@ -46,4 +46,12 @@ describe('M3 theme', () => {
     expect(resolveTheme('system', false)).toBe('light');
     expect(resolveTheme('light', true)).toBe('light');
   });
+
+  it('moves the pre-paint theme style behind later stylesheets', async () => {
+    const pre = Object.assign(document.createElement('style'), { id: 'm3-dynamic-theme', textContent: ':root{}' });
+    document.head.appendChild(pre);
+    document.head.appendChild(document.createElement('style'));
+    await applySeed('#6750a4');
+    expect(document.head.lastElementChild?.id).toBe('m3-dynamic-theme');
+  });
 });

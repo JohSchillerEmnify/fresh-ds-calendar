@@ -83,7 +83,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 
 <style scoped>
 .wrap { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; }
-.scrim { position: fixed; inset: 0; top: 0; background: rgb(0 0 0 / 0.32); z-index: -1; animation: fade 200ms both; }
+.scrim { position: absolute; left: 0; right: 0; top: 0; height: 100vh; background: rgb(0 0 0 / 0.32); z-index: -1; animation: fade 200ms both; }
 .picker {
   background: var(--md-sys-color-surface-container-high); border-radius: 0 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large);
   padding: 4px 12px 12px; box-shadow: var(--md-sys-elevation-3); transform-origin: top; animation: open 380ms var(--md-sys-motion-spring) both;
