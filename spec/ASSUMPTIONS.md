@@ -150,3 +150,12 @@ spec files are named.
 - **A-60 Month picker** jumps the current view to the picked day. It does not switch views.
 - **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
   navigation bar, and the FAB floats above the tray.
+- **A-E1 Month overflow, one hidden item**: on desktop a day with exactly one item more than the limit (4 items) shows all
+  of them instead of 3 plus "+1 more" (the link would take the same room). 5 or more items show 3 plus "+N more".
+  Needed by events-display "Items of a day are ordered all-day first, then by time" together with the "+2 more" scenario.
+- **A-E2 "I tap the day D in the month view" on desktop** (timeline "phone month view" scenario also runs on desktop):
+  without touch the step clicks the day number, because a desktop cell body does not open the day.
+- **A-E3 Phone month chips**: a tap on a chip opens the day (like a tap anywhere in the cell); a long press picks the
+  chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
+- **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
+  step "positioned from/to" allows the clamped height for such events.
