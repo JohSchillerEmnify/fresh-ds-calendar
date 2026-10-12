@@ -7,7 +7,7 @@ import { deltaE76, nearestGoogleColorId, GOOGLE_COLORS } from '../src/lib/colors
 import { addDays, addMonthsClamp, formatInZone, isDateTime, isLocalDate, localDateOf, offsetMinutes, startOfLocalDay, zonedToUtc } from '../src/lib/time.js';
 import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError } from '../src/providers/CalendarProvider.js';
-import { decodeTaskList, encodeItems, encodeTaskList, mirror, parseDescription, readItems } from '../src/services/taskCodec.js';
+import { decodeTaskList, encodeItems, encodeTaskList, mirror, nextCompletedOn, parseDescription, readItems } from '../src/services/taskCodec.js';
 
 describe('colors', () => {
   it('palette colors map to themselves', () => {
@@ -79,12 +79,27 @@ describe('TaskListCodec', () => {
     expect(mirror([])).toBe('');
   });
   it('round-trips through the Google shape', () => {
-    const data = { title: 'T', date: '2026-10-12', time: '09:00', items, categoryId: 'work', tags: ['a', 'b'], estimateMinutes: 45, recurrence: 'weekly' as const };
+    const data = { title: 'T', date: '2026-10-12', time: '09:00', items, categoryId: 'work', tags: ['a', 'b'], estimateMinutes: 45, recurrence: 'weekly' as const, completedOn: '2026-10-11' };
     const ev = encodeTaskList(data, 'Europe/Berlin', '3');
     expect(ev).toMatchObject({ summary: 'T', colorId: '3', recurrence: ['RRULE:FREQ=WEEKLY'] });
+    expect(ev.extendedProperties?.private?.completedOn).toBe('2026-10-11');
     expect(ev.end.dateTime).toBe('2026-10-12T09:45:00+02:00');
     const back = decodeTaskList({ ...ev, id: 'x', calendarId: 'primary', etag: 'e', status: 'confirmed', created: '', updated: '' }, 'Europe/Berlin');
     expect(back).toEqual(data);
+  });
+  it('reads a missing or malformed completedOn as null', () => {
+    const ev = (completedOn?: string) => ({ id: 'x', calendarId: 'p', etag: '', status: 'confirmed' as const, start: { date: '2026-10-12' }, end: { date: '2026-10-13' }, created: '', updated: '', extendedProperties: { private: { kind: 'tasklist', items: '[]', ...(completedOn === undefined ? {} : { completedOn }) } } });
+    expect(decodeTaskList(ev(), 'Europe/Berlin').completedOn).toBeNull();
+    expect(decodeTaskList(ev('yesterday'), 'Europe/Berlin').completedOn).toBeNull();
+  });
+  it('nextCompletedOn: set on the write that finishes a list, kept while finished, cleared when reopened', () => {
+    const open = [{ id: 'a', title: 'A', done: false }], done = [{ id: 'a', title: 'A', done: true }];
+    const d = (its: typeof items, completedOn: string | null) => ({ items: its, completedOn });
+    expect(nextCompletedOn(d(open, null), d(done, null), '2026-10-12')).toBe('2026-10-12');
+    expect(nextCompletedOn(d(done, '2026-10-10'), d(done, '2026-10-10'), '2026-10-12')).toBe('2026-10-10');
+    expect(nextCompletedOn(d(done, null), d(done, null), '2026-10-12')).toBeNull(); // finished outside the app: unknown date stays unknown
+    expect(nextCompletedOn(d(done, '2026-10-10'), d(open, '2026-10-10'), '2026-10-12')).toBeNull();
+    expect(nextCompletedOn(d(done, '2026-10-10'), d([], '2026-10-10'), '2026-10-12')).toBeNull(); // an empty list is not finished
   });
   it('splits at 1000 chars and reads chunks back in order', () => {
     const big = Array.from({ length: 60 }, (_, i) => ({ id: `id${String(i).padStart(6, '0')}`, title: `Title ${i} ${'x'.repeat(40)}`, done: i % 2 === 0 }));

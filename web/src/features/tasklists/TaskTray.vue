@@ -3,19 +3,20 @@
  * Open tasks tray. Phone: slim bar above the navigation bar (count chip, tap to expand, list slides up).
  * Desktop: right-hand panel. Sets `--tray-h` on :root so the FAB floats above it. Hidden outside calendar views.
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import IconExpand from '~icons/material-symbols/keyboard-arrow-up';
 import IconToday from '~icons/material-symbols/today-outline';
 import { ApiError } from '@/api/client';
+import type { TaskItem, TaskList } from '@/api/types';
 import { isPhone } from '@/composables/useViewport';
-import { openItem } from '@/extensions/registry';
 import { vRipple } from '@/lib/ripple';
-import { ProgressRing } from '@/motion';
+import { ProgressRing, RewardCheckbox } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel, checkState, firstOpenItem } from './format';
+import { carriedLabel } from './format';
+import { patchItem, stableKey } from './ops';
 import { useTaskListsStore } from './store';
 
 const route = useRoute();
@@ -24,9 +25,11 @@ const clock = useClockStore();
 const items = useItemsStore();
 const ui = useUiStore();
 const shown = computed(() => !!route.meta.view);
-const expanded = ref(false);
+const expanded = toRef(ui, 'trayExpanded');
 const root = ref<HTMLElement | null>(null);
 const countText = computed(() => (lists.count ? `${lists.count} open` : 'No open tasks'));
+/** Open lists, then lists finished today (struck through, collapsed unless unfolded). */
+const rows = computed(() => [...lists.tray.map((l) => ({ ...l, fin: false })), ...lists.finished.map((l) => ({ ...l, fin: true }))]);
 
 let ro: ResizeObserver | null = null;
 function setHeight() {
@@ -46,15 +49,26 @@ onMounted(() => { void lists.refresh().catch(() => undefined); });
 onBeforeUnmount(() => {
   ro?.disconnect();
   ro = null;
+  ui.trayExpanded = false;
   document.documentElement.style.removeProperty('--tray-h');
 });
 
 const label = (date: string) => (date < clock.today ? carriedLabel(date) : '');
-function open(id: string) {
-  const it = items.get(id);
-  if (it) openItem(it);
-  else ui.openDialog('tasklist-expanded', { id });
+/** Title tap: the task list edit dialog (items are ticked in place). */
+function edit(id: string) {
+  ui.openDialog('tasklist', { mode: 'edit', id });
   if (isPhone.value) expanded.value = false;
+}
+function tick(l: TaskList, item: TaskItem, done: boolean) {
+  const finishes = done && l.items.every((i) => i.id === item.id || i.done);
+  patchItem(l.id, item.id, { done });
+  if (finishes) lists.markFinished(l.id);
+}
+/** Finished lists unfolded in this tray (UI state only). */
+const unfolded = reactive(new Set<string>());
+function toggleFold(id: string) {
+  if (unfolded.has(id)) unfolded.delete(id);
+  else unfolded.add(id);
 }
 async function today(id: string) {
   try {
@@ -76,24 +90,38 @@ async function today(id: string) {
       <span v-if="lists.nextTask && !expanded && isPhone" class="peek">Next: {{ lists.nextTask.item.title }}</span>
       <IconExpand class="chev" aria-hidden="true" />
     </button>
-    <ul v-show="expanded || !isPhone" id="task-tray-list" class="list">
-      <li v-for="l in lists.tray" :key="l.id" class="row" data-testid="task-tray-item" :data-title="l.title" :data-date="l.date" :style="{ '--c': l.color }">
-        <button v-ripple class="main" type="button" @click="open(l.id)">
-          <ProgressRing :done="l.doneCount" :total="l.totalCount" :size="30" :stroke="3.5" />
-          <span class="txt">
-            <span class="t"><span class="cb" :data-state="checkState(l.doneCount, l.totalCount).state" :style="{ '--fill': checkState(l.doneCount, l.totalCount).fill + '%' }" aria-hidden="true" />{{ l.title }}</span>
-            <span class="s">
-              <span v-if="label(l.date)" class="from">{{ label(l.date) }}</span>
-              <span v-else-if="l.time">{{ l.time }}</span>
-              <span v-if="firstOpenItem(l)" class="n">{{ firstOpenItem(l)!.title }}</span>
+    <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
+      <li
+        v-for="l in rows" :key="l.id" class="row" :class="{ fin: l.fin }" data-testid="task-tray-item" :data-title="l.title" :data-date="l.date"
+        :data-finished="l.fin ? 'true' : undefined" :style="{ '--c': l.color }"
+      >
+        <div class="head">
+          <button v-ripple class="main" type="button" :aria-label="`Edit ${l.title}`" @click="edit(l.id)">
+            <ProgressRing v-if="!l.fin" :done="l.doneCount" :total="l.totalCount" :size="30" :stroke="3.5" />
+            <span class="txt">
+              <span class="t" data-testid="task-tray-title">{{ l.title }}</span>
+              <span v-if="!l.fin && (label(l.date) || l.time)" class="s">
+                <span v-if="label(l.date)" class="from">{{ label(l.date) }}</span>
+                <span v-else>{{ l.time }}</span>
+              </span>
             </span>
-          </span>
-          <span class="c">{{ l.doneCount }}/{{ l.totalCount }}</span>
-        </button>
-        <button v-if="l.date < clock.today" v-ripple class="mv" type="button" aria-label="Move to today" title="Move to today" data-testid="task-tray-move-today" @click="today(l.id)"><IconToday /></button>
+            <span class="c">{{ l.doneCount }}/{{ l.totalCount }}</span>
+          </button>
+          <button
+            v-if="l.fin" v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(l.id)"
+            :aria-label="unfolded.has(l.id) ? `Fold ${l.title}` : `Show items of ${l.title}`" @click="toggleFold(l.id)"
+          ><IconExpand class="fold" :class="{ up: unfolded.has(l.id) }" /></button>
+          <button v-else-if="l.date < clock.today" v-ripple class="mv" type="button" aria-label="Move to today" title="Move to today" data-testid="task-tray-move-today" @click="today(l.id)"><IconToday /></button>
+        </div>
+        <ul v-if="!l.fin || unfolded.has(l.id)" class="items">
+          <li v-for="it in l.items" :key="stableKey(it.id)" class="it" :class="{ done: it.done }" data-testid="task-tray-list-item" :data-title="it.title" :data-done="String(it.done)">
+            <RewardCheckbox :model-value="it.done" data-testid="task-tray-item-check" :aria-label="`Done: ${it.title}`" @update:model-value="tick(l, it, $event)" />
+            <span class="itt">{{ it.title }}</span>
+          </li>
+        </ul>
       </li>
-      <li v-if="!lists.count" class="empty">Nothing waiting. Nice.</li>
-    </ul>
+      <li v-if="!lists.count" key="empty" class="empty">Nothing waiting. Nice.</li>
+    </TransitionGroup>
   </aside>
 </template>
 
@@ -107,12 +135,22 @@ async function today(id: string) {
 .open .chev { transform: rotate(180deg); }
 .list { list-style: none; margin: 0; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 2px; }
 .phone .list { max-height: 42dvh; }
-.row { display: flex; align-items: center; border-radius: 14px; border-left: 4px dashed var(--c); background: color-mix(in srgb, var(--c) 12%, var(--md-sys-color-surface-container-high)); }
-.main { flex: 1; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 4px 8px; text-align: left; border-radius: 14px; }
+.row { display: flex; flex-direction: column; flex: none; border-radius: 14px; border-left: 4px dashed var(--c); background: color-mix(in srgb, var(--c) 12%, var(--md-sys-color-surface-container-high)); }
+.head { display: flex; align-items: center; }
+.main { flex: 1; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 4px 8px; text-align: left; border-radius: 14px; }
+.fin { opacity: 0.6; border-left-style: solid; }
+.fin .t { text-decoration-line: line-through; }
+.fin .main { min-height: 44px; }
+.fold { width: 22px; height: 22px; transform: rotate(180deg); transition: transform 200ms var(--md-sys-motion-spring); }
+.fold.up { transform: none; }
+.items { list-style: none; margin: 0; padding: 0 8px 6px 8px; display: flex; flex-direction: column; }
+.it { display: flex; align-items: center; gap: 6px; min-height: 36px; font: var(--md-sys-typescale-body-medium); }
+.it .itt { min-width: 0; overflow-wrap: anywhere; }
+.it.done .itt { text-decoration-line: line-through; color: var(--md-sys-color-on-surface-variant); }
+.tl-move { transition: transform 260ms var(--md-sys-motion-spring); }
 .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .t { font: var(--md-sys-typescale-title-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .s { display: flex; gap: 6px; font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); min-width: 0; }
-.s .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .from { flex: none; background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px; padding: 0 6px; }
 .c { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .mv { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; color: var(--md-sys-color-on-surface-variant); }
@@ -125,8 +163,4 @@ async function today(id: string) {
   .chev { display: none; }
   .list { flex: 1; min-height: 0; max-height: none; }
 }
-.cb { position: relative; display: inline-block; vertical-align: -1px; margin-right: 5px; box-sizing: border-box; width: 12px; height: 12px; border: 1.5px solid var(--c); border-radius: 3px; }
-.cb[data-state='partial'] { background: linear-gradient(to top, var(--c) var(--fill), transparent var(--fill)); }
-.cb[data-state='done'] { background: var(--c); }
-.cb[data-state='done']::after { content: ''; position: absolute; left: 3px; top: 0; width: 3px; height: 6px; border: solid var(--md-sys-color-surface); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
 </style>

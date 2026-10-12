@@ -111,7 +111,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     const daysRaw = c.req.query('days');
     const days = daysRaw === undefined ? 30 : Number(daysRaw);
     if (!Number.isInteger(days) || days < 0 || days > 90) throw validation('days must be 0-90', 'days');
-    return c.json({ items: await calendar.openTaskLists(today, days) });
+    return c.json(await calendar.openTaskLists(today, days));
   });
   r.post('/tasklists', async (c) => c.json(await calendar.createTaskList(parse(createTaskListSchema, await body(c))), 201));
   r.get('/tasklists/:id', async (c) => c.json(await calendar.getTaskList(c.req.param('id'))));
