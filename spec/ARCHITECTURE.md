@@ -602,6 +602,20 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 - The client filters instantly (hidden calendars' entries are not drawn) and saves in the background; the filter bar
   gets one chip per calendar (`filter-chip-calendar`, `data-name`, `data-calendar-id`, `aria-pressed` = shown).
 
+### Labs (experiments, owner 2026-10-12)
+
+- Settings get a Labs section: `labs` (experimental views on/off) and `approachBar` (on/off), stored per person in
+  `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
+  `settings-approach-bar`.
+- Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
+  flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
+- Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
+  store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
+- Clock: SVG 24-hour circle, events as arcs, task lists as dots, hand at the app clock (`clock` store), progress ring.
+- Approach bar: above every calendar view when on; next 3 hours, "now" at the left, the next event placed by minutes.
+- Timeline: one horizontal axis across days, items spaced by time, `timeline-now`, pinch/wheel zoom.
+- Strip: CSS scroll-snap columns, one per day, extended in both directions as the user scrolls (virtualised).
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |
