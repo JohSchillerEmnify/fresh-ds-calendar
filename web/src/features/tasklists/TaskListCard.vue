@@ -6,7 +6,7 @@
  * Item names are never dropped when the list has items. The degradation ladder (`fitItems`, budget from the `height` prop or
  * a default) goes: one name per line -> ellipsised names, as many lines as fit -> first N names + "+k" line -> (cards narrower
  * than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row) names inline next
- * to the title. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
+ * to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
  */
 import { computed, inject, onMounted, ref } from 'vue';
@@ -68,6 +68,11 @@ const fit = computed(() => {
     minLines: block ? 0 : mini.value ? 3 : 2,
     maxLines: 3,
   });
+  // Mini cards are too narrow for inline names: rows below the title (TASKLIST_MIN_BLOCK_PX leaves room for one).
+  if (mini.value && (f.inline || shortBlock)) {
+    const shown = f.inline ? 0 : Math.min(f.shown, 2);
+    return { shown, more: open - shown, inline: false };
+  }
   if (f.inline || shortBlock) { const shown = Math.min(2, open); return { shown, more: open - shown, inline: true }; }
   const shown = Math.min(f.shown, 2);
   return { shown, more: open - shown, inline: false };
@@ -120,7 +125,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fade: lastShown(i.id) }]" :style="rowStyle(i.id)">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
+      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fade: lastShown(i.id) }]" :style="rowStyle(i.id)" data-testid="tasklist-card-item" :data-title="i.title">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
       <span v-if="fit.more" class="more" data-testid="tasklist-card-more" aria-hidden="true" :style="moreStyle">{{ moreText }}</span>
     </template>
     <span v-if="hasFoot" class="foot">

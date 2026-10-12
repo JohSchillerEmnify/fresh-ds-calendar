@@ -1,11 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import type { TaskList } from '@/api/types';
 import { itemSegments, segmentMinPx, blockGeometry } from '@/lib/items';
 import { freshPinia } from './helpers';
 
-vi.mock('@vueuse/core', async (orig) => ({ ...(await orig<object>()), useElementSize: () => ({ width: ref(47), height: ref(45) }) }));
+const cardWidth = vi.hoisted(() => ({ px: 47 }));
+vi.mock('@vueuse/core', async (orig) => ({ ...(await orig<object>()), useElementSize: () => ({ width: ref(cardWidth.px), height: ref(45) }) }));
 const { default: TaskListCard } = await import('@/features/tasklists/TaskListCard.vue');
 
 const mk = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `i${i}`, title: `Item ${i}`, done: false }));
@@ -20,12 +21,12 @@ describe('timed task list block in a 47 x 45 px column', () => {
     expect(visible(w).length).toBeGreaterThanOrEqual(1);
     expect(w.get('[data-testid=tasklist-card-more]').text()).toMatch(/^\+\d/);
   });
-  it('a 24 px block shows up to two items inline with +k', () => {
+  it('a short block puts items in rows below the title, never inline', () => {
     freshPinia();
-    const w = mount(TaskListCard, { props: { segment: itemSegments(list(3))[0], variant: 'block', height: 24 } });
-    expect(w.attributes('data-fit')).toBe('inline');
-    expect(visible(w).map((e) => e.text())).toEqual(['Item 0', 'Item 1']);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+1');
+    const w = mount(TaskListCard, { props: { segment: itemSegments(list(3))[0], variant: 'block', height: 33 } });
+    expect(w.attributes('data-fit')).not.toBe('inline');
+    expect(visible(w).map((e) => e.text())).toEqual(['Item 0']);
+    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+2');
   });
   it('lists with open items get a 44 px minimum height, events 24', () => {
     const seg = itemSegments(list(2, 15))[0];
@@ -56,7 +57,9 @@ describe('rowStep (truncation fade)', () => {
   });
 });
 
-describe('inline mode for blocks of about an hour or less', () => {
+describe('inline mode for blocks of about an hour or less in a wide column', () => {
+  beforeEach(() => { cardWidth.px = 200; });
+  afterEach(() => { cardWidth.px = 47; });
   const mount2 = (n: number, height: number) => mount(TaskListCard, { props: { segment: itemSegments(list(n))[0], variant: 'block', height } });
   it('44 px block: items inline, max 2 shown, +k, no time footer', () => {
     freshPinia();

@@ -92,6 +92,29 @@ Then('the collapsed task list {string} lists the items {string}', async function
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(items));
 });
 
+/** Where an item sits in the collapsed card, relative to the title; null when it is hidden or outside the card. */
+async function itemPlacement(world: World, list: string, item: string): Promise<'below' | 'beside' | null> {
+  const card = world.taskCard(list);
+  const el = card.getByTestId('tasklist-card-item').and(world.page.locator(attr('data-title', item)));
+  if (!(await el.count()) || !(await el.isVisible())) return null;
+  return el.evaluate((e, titleSel) => {
+    const c = e.closest('[data-testid="tasklist-card"]')!.getBoundingClientRect();
+    const t = e.closest('[data-testid="tasklist-card"]')!.querySelector(titleSel)!.getBoundingClientRect();
+    const r = e.getBoundingClientRect();
+    const inside = r.width > 0 && r.left >= c.left - 1 && r.right <= c.right + 1 && r.top >= c.top - 1 && r.bottom <= c.bottom + 1;
+    if (!inside) return null;
+    return r.top >= t.bottom - 1 ? 'below' : 'beside';
+  }, '[data-testid="tasklist-card-title"]');
+}
+
+Then('the task list {string} shows the item {string} below its title', async function (this: World, list: string, item: string) {
+  await expect.poll(() => itemPlacement(this, list, item)).toBe('below');
+});
+
+Then('the task list {string} shows the item {string} next to its title', async function (this: World, list: string, item: string) {
+  await expect.poll(() => itemPlacement(this, list, item)).toBe('beside');
+});
+
 Then('the collapsed task list {string} shows {string}', async function (this: World, title: string, text: string) {
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(text));
 });
