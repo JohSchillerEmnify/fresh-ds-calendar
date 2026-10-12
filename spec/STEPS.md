@@ -808,6 +808,9 @@ the view switcher offers {string}, {string} and {string} marked as experimental
 I open the clock view for {date}
 the event {string} is an arc from {time} to {time}
 the clock hand points at {time}
+the task list {string} is an arc from {time} to {time}
+the middle of the clock lists {string}
+the clock fills the available space
 the arc of {string} is labelled {string}
 the approach bar is on
 the approach bar shows {string} in {int} minutes
@@ -836,7 +839,9 @@ the hour lines of the strip columns of {date} and {date} are at the same height
 the all-day bands of the strip columns of {date} and {date} are equally tall
 ```
 
-- Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
+- Clock: `clock-arc` per event and per timed task list (`data-title`, `data-start`, `data-end` as HH:MM, `data-kind`
+  `event|tasklist`), `clock-hand` (`data-time` HH:MM). "the middle lists X": a `clock-untimed` entry with that text.
+  "fills the available space": the dial's diameter is ≥ 90 % of the smaller side of the view's content area.
 - Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
   (`data-title`, `data-minutes` = minutes until start) and `approach-now`; "in this order" = exactly these chips, by
   distance from `approach-now`; "closer" compares the item's distance from `approach-now` before and after the clock
