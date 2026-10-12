@@ -197,7 +197,11 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 - **Defaults for new event**: date = focus date; if that is today, the next full hour after now (capped at 23:00),
   else 09:00; duration 1 h; calendar primary. Changing the start keeps the duration.
 - **Clock**: `useClock()` (see API.md `/api/config`).
-- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere.
+- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere. German comes later (owner, 2026-10-13), so
+  every user-visible string (labels, buttons, placeholders such as "List", validation messages, snackbars) lives in one
+  message catalogue (`web/src/i18n/en.ts`, keyed, read via `t('key')`); server validation messages are returned as
+  keys plus the English text. New and touched code uses the catalogue; no new hard-coded UI strings. Dates and times
+  are formatted with `Intl` from one locale setting. Moving the remaining existing strings is its own slice.
 
 ### Mobile-first UX (primary target 375–430 px portrait)
 
@@ -618,6 +622,13 @@ pushes a history entry when it opens (`history.pushState` with an overlay marker
 overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
 history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
 all overlays; no per-component history code.
+
+### Untitled task lists (owner, 2026-10-12)
+
+A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
+such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list)` in one place, the stored title stays
+empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
+`extendedProperties.private.untitled = "1"` keeps the app title empty.
 
 ### One "new" dialog (owner, 2026-10-12)
 
