@@ -132,13 +132,16 @@ Given('the support cat comes by on the next finished list', async function (this
   await this.context.addInitScript(() => { (window as unknown as { __catNext?: boolean }).__catNext = true; });
 });
 
-Given('the support cat is switched off in the theme menu', async function (this: World) {
-  await this.page.goto('/settings/theme');
-  const off = this.page.locator('[data-testid="theme-option"][data-setting="cat"][data-value="off"]');
-  const saved = this.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes('/api/prefs/theme'));
-  await off.click();
-  await expect(off).toHaveAttribute('aria-pressed', 'true');
-  await saved;
+/** STEPS.md: picks the option with that label in `settings-support-cat` and waits for the save (`PATCH /api/prefs`). */
+Given('the support cat is set to {string} in the settings', async function (this: World, label: string) {
+  await this.page.goto('/settings');
+  const option = this.page.getByTestId('settings-support-cat').getByRole('button', { name: label, exact: true });
+  await expect(option).toBeVisible();
+  if ((await option.getAttribute('aria-pressed')) === 'true') return;
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await option.click();
+  await expect(option).toHaveAttribute('aria-pressed', 'true');
+  expect((await saved).status(), 'support cat setting saved').toBe(200);
 });
 
 Then('the support cat appears and is gone within {int} ms', async function (this: World, ms: number) {

@@ -26,8 +26,8 @@ import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/mo
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
-import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, firstOpenItem } from './format';
 import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
@@ -53,7 +53,7 @@ const ui = useUiStore();
 const clock = useClockStore();
 const settings = useSettingsStore();
 const lists = useTaskListsStore();
-const theme = useThemeStore();
+const prefs = usePrefsStore();
 
 const root = ref<HTMLElement | null>(null);
 const tl = computed(() => {
@@ -102,12 +102,12 @@ function tick(item: TaskItem, done: boolean) {
   emit('completed');
 }
 
-/** The emotional support cat: rolled once per finished list (about one in ten), never at level Off or switched off. */
+/** The emotional support cat: rolled once per finished list (about one in ten, every time with "Every time"), never at level Off or set to Off. */
 const cat = ref<{ card: DOMRect; level: 'full' | 'reduced' } | null>(null);
 function maybeCat() {
   const level = getMotionLevel();
   const forced = takeForcedCat(clock.config.testMode);
-  if (!root.value || level === 'off' || !catComes({ level, setting: theme.resolved.attrs.cat, forced, random: Math.random() })) return;
+  if (!root.value || level === 'off' || !catComes({ level, setting: prefs.supportCat, forced, random: Math.random() })) return;
   cat.value = { card: root.value.getBoundingClientRect(), level };
 }
 

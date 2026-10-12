@@ -279,6 +279,11 @@ Given('{string} may use the calendar', async function (this: World, email: strin
 // ---- Scenes (STEPS.md "Scenes and the support cat") ----
 
 Then('the top bar scene shows {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
+  // butterflies only visit now and then: the test hook starts a visit at once (STEPS.md scene notes)
+  if ([a, b, c, d].some((n) => n.trim().toLowerCase() === 'butterfly')) {
+    await this.context.addInitScript(() => { (window as unknown as { __butterflyNow?: boolean }).__butterflyNow = true; });
+    await this.page.reload();
+  }
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
   for (const name of [a, b, c, d]) {

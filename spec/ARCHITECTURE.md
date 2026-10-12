@@ -702,6 +702,7 @@ The server reports its build version (`APP_VERSION`, else the git sha at build t
 back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
 "Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
 It never reloads by itself and never interrupts an open dialog.
+
 ### Themes
 
 - A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
@@ -722,6 +723,27 @@ It never reloads by itself and never interrupts an open dialog.
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
 
+### Season scenes and the support cat (owner, 2026-10-13)
+
+- Every scene works in light and dark (its colours come from the theme tokens, not fixed hex), so a season theme never
+  needs a mode. Scenes are SVG compositions in the existing `TopBarScene`/`SeasonScene` family under
+  `web/src/features/motivation/`, built from small reusable parts with `data-part`: spring = sprouting trees (buds
+  that leaf out over the day), lily of the valley and first flowers in the grass; summer = the existing sunflowers
+  (`SunflowerScene`) plus a small sun; fall and winter keep their scenes. Every scene gets butterflies (reusing
+  `Butterfly.vue`) — but only now and then (owner, 2026-10-13: always-on butterflies distract): one butterfly at a
+  time visits roughly every 3–5 min, flutters through for about 10 s, sometimes rests briefly on a flower, then
+  leaves; the first visit comes 20–60 s after the scene appears. Reduced: the visit only rests in place, no flight.
+  Off: none. Test hook `window.__butterflyNow` starts a visit at once — and a small cat that sits, stretches or naps in the scene (one shared `SceneCat` part). Motion
+  follows the animation level (Off: still picture).
+- The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
+  with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
+  card, paw on the card (the tick already happened, the paw is decoration), looks at the viewer, grins, fades out. It
+  never captures pointer events and is skipped at animation level Off. Setting "Support cat" (`settings-support-cat`:
+  Off / Sometimes / Every time, values `off|sometimes|always`, default `sometimes`) in the Focus & motivation part of
+  the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
+  (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
+  support cat share one cat drawing (`CatFigure`), posed differently.
+
 ### Untitled task lists (owner, 2026-10-12)
 
 A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
@@ -740,27 +762,6 @@ bodies, sharing the prefilled date/time so switching keeps them. No create menu.
 Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
 softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
 the same corner scale so shapes look consistent.
-### New version notice (owner, 2026-10-12)
-
-The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
-`version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
-back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
-"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
-It never reloads by itself and never interrupts an open dialog.
-### Season scenes and the support cat (owner, 2026-10-13)
-
-- Every scene works in light and dark (its colours come from the theme tokens, not fixed hex), so a season theme never
-  needs a mode. Scenes are SVG compositions in the existing `TopBarScene`/`SeasonScene` family under
-  `web/src/features/motivation/`, built from small reusable parts with `data-part`: spring = sprouting trees (buds
-  that leaf out over the day), lily of the valley and first flowers in the grass; summer = the existing sunflowers
-  (`SunflowerScene`) plus a small sun; fall and winter keep their scenes. Every scene gets butterflies (reusing
-  `Butterfly.vue`) and a small cat that sits, stretches or naps in the scene (one shared `SceneCat` part). Motion
-  follows the animation level (Off: still picture).
-- The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
-  with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
-  card, paw on the card (the tick already happened, the paw is decoration), looks at the viewer, grins, fades out. It
-  never captures pointer events and is skipped at animation level Off. Switch in the theme menu fine-tuning:
-  `theme-option` `data-setting="cat"` on/off (per person in the theme overrides, default on), shown in every theme.
 
 ## 8. Configuration (env)
 

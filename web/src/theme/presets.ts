@@ -8,12 +8,10 @@ export type Glow = 'off' | 'soft' | 'neon';
 export type Entries = 'solid' | 'tinted' | 'outline';
 export type Corners = 'square' | 'round' | 'pill';
 export type ThemeScene = 'none' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter';
-/** The emotional support cat (ARCHITECTURE "Season scenes and the support cat"): on in every preset. */
-export type CatSetting = 'on' | 'off';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type PresetName = 'Default' | 'Neon' | 'Spring' | 'Summer' | 'Fall' | 'Winter' | 'Mordor' | 'Automatic';
 
-export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene; cat: CatSetting }
+export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene }
 /** `seed`/`mode` null = keep the person's own seed colour / mode setting. */
 export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
 export interface ThemePref { preset: PresetName; overrides: Partial<ThemeAttrs> }
@@ -22,7 +20,7 @@ export interface ResolvedTheme { name: Exclude<PresetName, 'Automatic'>; seed: s
 export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Winter', 'Mordor', 'Automatic'];
 export const DEFAULT_PREF: ThemePref = { preset: 'Default', overrides: {} };
 
-const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none', cat: 'on' };
+const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none' };
 
 export const PRESETS: Record<Exclude<PresetName, 'Automatic'>, Preset> = {
   Default: { name: 'Default', seed: null, mode: null, attrs: base },
@@ -56,9 +54,12 @@ export function resolveTheme(pref: ThemePref, today: string): ResolvedTheme {
   return { name: p.name as ResolvedTheme['name'], seed: p.seed, mode: p.mode, attrs: { ...p.attrs, ...pref.overrides } };
 }
 
-/** Keeps only known values of a stored/cached preference. */
+const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
+
+/** Keeps only known values of a stored/cached preference (drops retired attributes such as the old `cat` switch). */
 export function sanitizePref(raw: unknown): ThemePref {
-  const r = (raw ?? {}) as { preset?: string; overrides?: Partial<ThemeAttrs> };
+  const r = (raw ?? {}) as { preset?: string; overrides?: Record<string, unknown> };
   const preset = PRESET_NAMES.includes(r.preset as PresetName) ? (r.preset as PresetName) : 'Default';
-  return { preset, overrides: { ...(r.overrides ?? {}) } };
+  const overrides = Object.fromEntries(Object.entries(r.overrides ?? {}).filter(([k]) => ATTR_KEYS.includes(k as keyof ThemeAttrs)));
+  return { preset, overrides: overrides as Partial<ThemeAttrs> };
 }

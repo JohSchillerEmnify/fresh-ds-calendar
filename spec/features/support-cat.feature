@@ -1,8 +1,9 @@
 @reward @cat @id:emotional-support-cat
 Feature: The emotional support cat
   Now and then (about one in ten finished task lists) a small cat comes by when I finish a list: it puts a paw on
-  the list as if it ticked it, looks at me, grins and disappears again, in every theme. It never blocks anything and
-  can be switched off in the theme menu. It does not come with the animation level Off.
+  the list as if it ticked it, looks at me, grins and disappears again, in every theme. It never blocks anything. A
+  setting chooses Off, Sometimes (the default) or Every time (owner: so I can see it without finishing ten lists);
+  it is kept per person whatever the theme. It does not come with the animation level Off.
 
   Background:
     Given the calendar is empty
@@ -19,9 +20,16 @@ Feature: The emotional support cat
     And I tick the item "Eggs"
     Then the support cat appears and is gone within 4000 ms
 
+  Scenario: With "Every time" the cat comes on every finished list
+    Given the support cat is set to "Every time" in the settings
+    When I open the day view for 2026-10-12
+    And I expand the task list "Groceries"
+    And I tick the item "Eggs"
+    Then the support cat appears and is gone within 4000 ms
+
   Scenario: Switched off, the cat stays away
     Given the support cat comes by on the next finished list
-    And the support cat is switched off in the theme menu
+    And the support cat is set to "Off" in the settings
     When I open the day view for 2026-10-12
     And I expand the task list "Groceries"
     And I tick the item "Eggs"

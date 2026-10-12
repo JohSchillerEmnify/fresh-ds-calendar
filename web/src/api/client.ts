@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, Calendar, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LabsPrefs, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 import type { ThemePref } from '@/theme/presets';
@@ -149,10 +149,10 @@ export class ApiClient {
   }
 
   prefs(o?: RequestOptions) {
-    return this.request<Prefs & LabsPrefs>('GET', '/api/prefs', undefined, o);
+    return this.request<Prefs>('GET', '/api/prefs', undefined, o);
   }
-  patchPrefs(p: Partial<Prefs & LabsPrefs>, o?: RequestOptions) {
-    return this.request<Prefs & LabsPrefs>('PATCH', '/api/prefs', p, o);
+  patchPrefs(p: Partial<Prefs>, o?: RequestOptions) {
+    return this.request<Prefs>('PATCH', '/api/prefs', p, o);
   }
 
   themePref(o?: RequestOptions) {
