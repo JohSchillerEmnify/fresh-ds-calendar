@@ -33,6 +33,8 @@ export const useItemsStore = defineStore('items', () => {
   const pending = new Set<string>();
   /** Open task lists outside the visible ranges that are carried over to today (kept by gc). */
   const carriedIds = new Set<string>();
+  /** Ids deleted in this session: a response that was already in flight when the delete landed must not re-add them. */
+  const deleted = new Set<string>();
   const loading = ref(false);
   let ctrl: AbortController | null = null;
 
@@ -46,6 +48,7 @@ export const useItemsStore = defineStore('items', () => {
     return [...set].sort((a, b) => a.localeCompare(b));
   });
   const get = (id: string) => byId.value[id];
+  const isDeleted = (id: string) => deleted.has(id);
 
   function touch(key: string) {
     lru.value = [key, ...lru.value.filter((k) => k !== key)];
@@ -69,11 +72,12 @@ export const useItemsStore = defineStore('items', () => {
     const next = { ...byId.value };
     const key = rangeKey(from, to);
     for (const it of items) {
+      if (deleted.has(it.id)) continue; // stale response from before the delete
       if (pending.has(it.id)) continue; // keep optimistic state (also optimistic deletes)
       next[it.id] = it;
     }
     byId.value = next;
-    ranges.value = { ...ranges.value, [key]: { from, to, ids: items.map((i) => i.id), syncedAt } };
+    ranges.value = { ...ranges.value, [key]: { from, to, ids: items.filter((i) => !deleted.has(i.id)).map((i) => i.id), syncedAt } };
     touch(key);
     gc();
   }
@@ -172,6 +176,7 @@ export const useItemsStore = defineStore('items', () => {
   async function deleteEvent(id: string, etag?: string): Promise<void> {
     try {
       await api.deleteEvent(id, { ifMatch: etag ?? byId.value[id]?.etag });
+      deleted.add(id);
       remove(id);
     } catch (e) { report(e); }
   }
@@ -192,6 +197,7 @@ export const useItemsStore = defineStore('items', () => {
   async function deleteTaskList(id: string, etag?: string): Promise<void> {
     try {
       await api.deleteTaskList(id, { ifMatch: etag ?? byId.value[id]?.etag });
+      deleted.add(id);
       remove(id);
     } catch (e) { report(e); }
   }
@@ -287,7 +293,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, tagsInUse, get, summary,
-    setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
+    isDeleted, setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };

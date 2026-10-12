@@ -169,6 +169,21 @@ Feature: Creating, editing and deleting task lists
     When I reload the page
     Then I do not see the task list "Groceries"
 
+  Scenario: Deleting a task list from its expanded view closes it and it stays gone
+    Given automatic sync runs every 2 seconds
+    And the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    And I delete the task list
+    And I confirm the deletion
+    Then no task list is expanded
+    And I do not see the task list "Groceries"
+    When I wait for the automatic sync
+    Then I do not see the task list "Groceries"
+    And the open tasks tray does not list "Groceries"
+
   @cancel
   Scenario: Cancelling the delete confirmation keeps the task list
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:

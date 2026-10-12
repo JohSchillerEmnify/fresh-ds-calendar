@@ -285,3 +285,16 @@ describe('settings store', () => {
     expect(s.effectiveScene).toBe('mordor');
   });
 });
+
+describe('deleted items', () => {
+  it('a fetch that was in flight during the delete does not bring the task list back', async () => {
+    freshPinia();
+    const items = useItemsStore();
+    const list = { kind: 'tasklist', id: 'g', title: 'G', date: '2026-10-14', time: null, items: [], doneCount: 0, totalCount: 0, categoryId: null, tags: [], color: '#000', etag: 'x' } as never;
+    items.upsert(list);
+    mockFetch({ 'DELETE /api/tasklists/g': () => ({}) });
+    await items.deleteTaskList('g');
+    items.applyResponse('2026-10-01', '2026-11-01', [list], 's');
+    expect(items.get('g')).toBeUndefined();
+  });
+});

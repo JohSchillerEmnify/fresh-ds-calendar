@@ -29,6 +29,12 @@ Then('the open tasks tray lists {string}', async function (this: World, list: st
   await expectJoined(trayItems(this), list, 'data-title');
 });
 
+Then('the open tasks tray does not list {string}', async function (this: World, list: string) {
+  const toggle = this.page.getByTestId('task-tray-toggle');
+  if (!(await trayItems(this).first().isVisible()) && (await toggle.isVisible())) await openTray(this);
+  await expect(trayRow(this, list)).toHaveCount(0);
+});
+
 // Open tray rows hold the same task list view as the expanded list (ARCHITECTURE "Task list view").
 const trayRow = (w: World, title: string) => w.byTestId('task-tray-item', attr('data-title', title));
 const trayItem = (w: World, list: string, item: string) =>
