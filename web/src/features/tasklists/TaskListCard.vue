@@ -49,7 +49,7 @@ const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const collapsed = computed(() => isCollapsed(tl.value.id));
 const fit = computed(() => {
   const block = props.variant === 'block';
-  const footVisible = block && !!tl.value.time;
+  const footVisible = block && !!tl.value.time && !mini.value;
   const open = openItems.value.length;
   if (collapsed.value || !open) return { shown: 0, more: 0, inline: false };
   const f = fitItems({
@@ -62,24 +62,27 @@ const fit = computed(() => {
     minLines: block ? 0 : mini.value ? 3 : 2,
     maxLines: 3,
   });
-  if (f.inline) return f;
+  if (f.inline) return { ...f, shown: 1, more: open - 1 };
   const shown = Math.min(f.shown, 2);
   return { shown, more: open - shown, inline: false };
 });
+/** One-row block: the "+k" badge sits on the item row (right edge) instead of a row of its own. */
+const tight = computed(() => props.variant === 'block' && fit.value.more > 0 && !fit.value.inline && !!props.height
+  && (props.height - (mini.value ? 15 : 17) - 6 - (hasFoot.value && !mini.value ? 14 : 0)) / (mini.value ? 11 : 14) < 2);
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */
 const rank = computed(() => {
   const m = new Map<string, number>();
   openItems.value.forEach((i, n) => m.set(i.id, n));
   return m;
 });
-const hideItem = (id: string) => (rank.value.get(id) ?? Infinity) >= fit.value.shown && !fit.value.inline || !rank.value.has(id);
+const hideItem = (id: string) => (rank.value.get(id) ?? Infinity) >= fit.value.shown || !rank.value.has(id);
 const hasChev = computed(() => tl.value.items.length > 0);
 const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.value.more} more`));
 </script>
 
 <template>
   <button
-    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
+    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="tl.date" :data-time="tl.time ?? ''" :data-color="tl.color"
     :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
@@ -184,6 +187,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block .row { min-width: 0; }
 .block .items { min-height: 0; }
 .block .more { grid-row: auto; }
+.block.tight .more { position: absolute; right: 3px; bottom: 2px; padding: 0 2px; border-radius: 4px; background: var(--bg); }
 .block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 /* no spare row: names run next to the title */
 .block[data-fit='inline'] { display: flex; flex-direction: row; align-items: center; gap: 5px; padding-top: 1px; padding-bottom: 1px; }
@@ -192,9 +196,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .items { display: block; flex: 1 1 0; min-width: 0; align-self: center; }
 .block[data-fit='inline'] .it { display: inline; padding: 0; }
 .block[data-fit='inline'] .it::before { display: none; }
-.block[data-fit='inline'] .sep { display: inline; }
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
-.mini.block[data-fit='inline'] .foot, .mini.block[data-fit='inline'] .items { display: none; }
+.block[data-fit='inline'] .more { padding-left: 0; flex: none; }
+.mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
 
 /* card: month cell. Foot hidden, the cell is small */
@@ -213,7 +217,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini .more { font-size: 9px; line-height: 11px; padding-left: 8px; }
 .mini.allday, .mini.block { padding: 1px 2px 2px 3px; }
 .mini .foot { display: none; }
-.mini.block .foot { display: flex; }
+.mini.block .foot { display: none; }
 .mini .time, .mini .est, .mini .from { font-size: 9px; line-height: 11px; }
 
 /* narrow cards: title keeps priority */

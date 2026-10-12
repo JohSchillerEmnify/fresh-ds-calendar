@@ -29,6 +29,8 @@ export function fitItems(i: FitInput): Fit {
   const maxLines = i.maxLines ?? i.count;
   const minLines = i.minLines ?? 2;
   let lines = i.height === undefined ? maxLines : Math.floor((i.height - i.titleH - i.pad - (i.footH ?? 0)) / i.rowH);
+  // A block of at least 34 px always gets one row (titleH + one row + padding fits by design).
+  if (i.height !== undefined && i.height >= 34) lines = Math.max(lines, 1);
   if (minLines === 0 && lines < 1) return { shown: i.count, more: 0, inline: true };
   lines = Math.min(maxLines, Math.max(lines, minLines, 1));
   if (lines >= i.count) return { shown: i.count, more: 0, inline: false };

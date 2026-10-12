@@ -13,7 +13,7 @@ import { isPhone } from '@/composables/useViewport';
 import { openCreate } from '@/extensions/create';
 import { gridLayers, viewHeaders } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
-import { blockGeometry, MIN_BLOCK_PX, packColumns } from '@/lib/items';
+import { blockGeometry, MIN_BLOCK_PX, packColumns, segmentMinPx } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 
 const props = defineProps<{ mode: 'week' | 'day'; dates: Date[] }>();
@@ -83,9 +83,9 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight).height + 'px', left: (p.col / p.cols) * 100 + '%', width: (p.span / p.cols) * 100 + '%' }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height + 'px', left: (p.col / p.cols) * 100 + '%', width: (p.span / p.cols) * 100 + '%' }"
           >
-            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, hourHeight).height" />
+            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height" />
           </div>
           <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hourHeight" />
         </div>
@@ -118,7 +118,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .col.today { background: color-mix(in srgb, var(--md-sys-color-primary) 5%, transparent); }
 .slot { display: block; width: 100%; height: var(--hh); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .slot:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
-.blk { position: absolute; padding: 0 1px 1px; min-height: 25px; box-sizing: border-box; z-index: 1; min-width: 0; }
+.blk { position: absolute; padding: 0 1px 1px; box-sizing: border-box; z-index: 1; min-width: 0; }
 .blk:has([data-dragging='true']) { z-index: 20; }
 .phone .head { min-height: 44px; }
 .phone.week .dow { font-size: 11px; }

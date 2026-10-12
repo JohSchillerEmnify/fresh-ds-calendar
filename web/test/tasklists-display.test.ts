@@ -37,6 +37,11 @@ describe('fitItems (line budget)', () => {
   it('accounts for the footer row', () => {
     expect(fitItems({ ...g, count: 4, height: 17 + 5 + 14 * 4, footH: 14 }).shown).toBe(2);
   });
+  it('a block of >= 34 px always gets one row, even with a footer', () => {
+    expect(fitItems({ titleH: 15, rowH: 11, pad: 6, footH: 14, count: 4, height: 34, minLines: 0 })).toEqual({ shown: 1, more: 3, inline: false });
+    expect(fitItems({ titleH: 15, rowH: 11, pad: 6, count: 3, height: 33, minLines: 0 }).inline).toBe(false);
+    expect(fitItems({ titleH: 15, rowH: 11, pad: 6, count: 3, height: 25, minLines: 0 }).inline).toBe(true);
+  });
   it('timed blocks without a spare row go inline', () => {
     expect(fitItems({ ...g, count: 3, height: 22, minLines: 0 })).toEqual({ shown: 3, more: 0, inline: true });
     expect(fitItems({ ...g, count: 3, height: 60, minLines: 0, maxLines: 12 }).inline).toBe(false);

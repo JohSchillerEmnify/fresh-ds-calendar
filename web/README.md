@@ -89,7 +89,8 @@ Registered by `registerTaskListFeature()` (called from `extensions/builtin.ts`):
 - `store.ts` (`useTaskListsStore`): `tray` (open lists of the last 30 days, tray order), `count`, `nextTask` (first unticked item of the oldest open list, for the Now card), `refresh()`.
 - Carry-over: `lib/items.ts#itemSegments(item, today)` puts an open list dated in the 30 days before today onto today (`segment.carriedFrom`); finishing it sends it back to its own date.
   `items.setCarried()` keeps open lists from outside the visible range in the cache.
-- Timed lists occupy `estimateMinutes` (default 30) in the grid.
+- Timed lists occupy `estimateMinutes` (default 30) in the grid, but never render shorter than 44 px when they have open items (`segmentMinPx`: title row + 2 mini rows; keeps the start, may overlap the next block like the 24 px event minimum).
+  Block ladder in narrow columns (<84 px, "mini"): no time footer; title row, then as many open item rows (9 px) as fit (one row from 34 px, the "+k" badge sits on that row), below that the first open item inline after the title plus "+k". Done items stay hidden.
 
 Assumptions: the create dialog ignores the suggested time (the spec form defaults to no time); the tray is not filtered by category/tag filters (out of sight is out of mind);
 tags are a comma separated text field with removable chips below it; the repeat field is create-only (the API cannot change recurrence); the desktop tray is a 300 px right-hand panel
