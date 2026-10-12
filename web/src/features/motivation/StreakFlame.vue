@@ -85,5 +85,5 @@ const label = computed(() => `Streak: ${props.count} ${props.count === 1 ? 'day'
 .sf-num { position: relative; display: inline-block; min-width: 0.6em; }
 .sf-num[data-old]::before { content: attr(data-old); position: absolute; right: 0; top: 0; animation: sf-out 360ms ease-in forwards; }
 @keyframes sf-out { to { transform: translateY(-70%); opacity: 0; } }
-:global(html[data-motion='off']) .sf-num::before, :global(html[data-motion='reduced']) .sf-num::before { display: none; }
+:global(html[data-motion='off'] .sf-num::before, html[data-motion='reduced'] .sf-num::before) { display: none; }
 </style>

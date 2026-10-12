@@ -132,5 +132,5 @@ defineExpose({ root });
 .sf-svg { width: 100%; height: 100%; display: block; transform-origin: 50% 100%; overflow: visible; transition: transform 700ms cubic-bezier(0.34, 1.3, 0.64, 1); }
 .sff[data-sway='on'] .sf { animation: sff-sway var(--dur, 5s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes sff-sway { from { rotate: -2.2deg; } to { rotate: 2.2deg; } }
-:global(html[data-motion='off']) .sf-svg, :global(html[data-motion='reduced']) .sf-svg { transition: none; }
+:global(html[data-motion='off'] .sf-svg, html[data-motion='reduced'] .sf-svg) { transition: none; }
 </style>

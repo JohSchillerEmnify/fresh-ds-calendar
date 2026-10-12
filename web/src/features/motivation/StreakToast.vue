@@ -40,7 +40,7 @@ onBeforeUnmount(() => timer && clearTimeout(timer));
 .st-leave-active { transition: transform 220ms ease-in, opacity 220ms; }
 .st-enter-from { opacity: 0; transform: translate(-50%, -14px) scale(0.9); }
 .st-leave-to { opacity: 0; transform: translate(-50%, -8px); }
-:global(html[data-motion='off']) .st-enter-active, :global(html[data-motion='off']) .st-leave-active { transition: none; }
-:global(html[data-motion='reduced']) .st-enter-active { transition: opacity 140ms; }
-:global(html[data-motion='reduced']) .st-enter-from { transform: translateX(-50%); }
+:global(html[data-motion='off'] .st-enter-active, html[data-motion='off'] .st-leave-active) { transition: none; }
+:global(html[data-motion='reduced'] .st-enter-active) { transition: opacity 140ms; }
+:global(html[data-motion='reduced'] .st-enter-from) { transform: translateX(-50%); }
 </style>

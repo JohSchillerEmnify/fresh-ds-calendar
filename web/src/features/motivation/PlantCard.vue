@@ -53,5 +53,5 @@ onBeforeUnmount(() => { document.removeEventListener('keydown', onKey); window.r
 .pc-bar span { display: block; height: 100%; background: var(--md-sys-color-primary, #386a20); border-radius: 4px; transition: width 500ms; }
 .pc-sub { margin: 0; font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant, #49454f); }
 @keyframes pc-in { from { opacity: 0; transform: scale(0.85); } }
-:global(html[data-motion='off']) .pc, :global(html[data-motion='reduced']) .pc { animation: none; }
+:global(html[data-motion='off'] .pc, html[data-motion='reduced'] .pc) { animation: none; }
 </style>

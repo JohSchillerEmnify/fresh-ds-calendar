@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
 import IconUp from '~icons/material-symbols/keyboard-arrow-up';
@@ -16,6 +16,8 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import CategoryDialog from '@/components/settings/CategoryDialog.vue';
+import { StreakFlame } from '@/features/motivation';
+import { useMotivationStore } from '@/features/motivation/store';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
@@ -86,9 +88,14 @@ async function move(id: string, dir: -1 | 1) {
 
 // --- streak, demo data --------------------------------------------------------------------------
 const best = ref<number | null>(null);
+const motivation = useMotivationStore();
+const currentStreak = computed(() => motivation.motivation?.streak.current ?? null);
 onMounted(() => {
+  // The top bar (which normally starts the check-in) is not shown on this page.
+  void motivation.start({ today: () => clock.today }).then(() => { if (motivation.motivation) best.value = motivation.motivation.streak.best; });
   api.motivation().then((m: Motivation) => { best.value = m.streak.best; }, () => { best.value = null; });
 });
+onBeforeUnmount(() => motivation.stop());
 const isMock = computed(() => clock.config.provider === 'mock');
 const resetting = ref(false);
 async function resetDemo() {
@@ -150,6 +157,7 @@ async function resetDemo() {
         <div class="row col"><span class="lab">Warn before an event starts</span><SegmentedButton :model-value="String(s.transitionWarningMinutes)" :options="[...warns]" label="Transition warning" data-testid="settings-transition-warning" @update:model-value="save({ transitionWarningMinutes: Number($event) as 0 | 5 | 10 | 15 })" /></div>
         <div class="row"><span class="lab grow">Streak flame</span><Switch :model-value="s.streakFlame" label="Streak flame" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
         <div class="row col"><span class="lab">Garden</span><SegmentedButton :model-value="s.garden" :options="[...gardens]" label="Garden" data-testid="settings-garden" @update:model-value="save({ garden: $event as GardenStyle })" /></div>
+        <div v-if="currentStreak !== null" class="row"><span class="lab grow">Current streak</span><StreakFlame :count="currentStreak" /></div>
         <div class="row"><span class="lab grow">Best streak</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>
       </section>
 

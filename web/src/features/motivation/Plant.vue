@@ -143,5 +143,5 @@ onBeforeUnmount(() => {
 .face { fill: #4a2c1a; stroke: none; }
 .mouth, .lid { fill: none; stroke: #4a2c1a; stroke-width: 1.6; stroke-linecap: round; }
 .blush { fill: #ff8f8f; opacity: 0.45; }
-:global(html[data-motion='off']) .grow, :global(html[data-motion='reduced']) .grow { transition: none; }
+:global(html[data-motion='off'] .grow, html[data-motion='reduced'] .grow) { transition: none; }
 </style>
