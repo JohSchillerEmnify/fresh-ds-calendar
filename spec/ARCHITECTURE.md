@@ -671,8 +671,11 @@ all overlays; no per-component history code.
 - The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
   with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
   card, paw on the card (the tick already happened, the paw is decoration), looks at the viewer, grins, fades out. It
-  never captures pointer events and is skipped at animation level Off. Switch in the theme menu fine-tuning:
-  `theme-option` `data-setting="cat"` on/off (per person in the theme overrides, default on), shown in every theme.
+  never captures pointer events and is skipped at animation level Off. Setting "Support cat" (`settings-support-cat`:
+  Off / Sometimes / Every time, values `off|sometimes|always`, default `sometimes`) in the Focus & motivation part of
+  the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
+  (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
+  support cat share one cat drawing (`CatFigure`), posed differently.
 
 ## 8. Configuration (env)
 

@@ -856,7 +856,7 @@ the event {string} glows
 ```
 the top bar scene shows {string}, {string}, {string} and {string}
 the support cat comes by on the next finished list
-the support cat is switched off in the theme menu
+the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
 the support cat does not appear
 ```
@@ -866,5 +866,5 @@ the support cat does not appear
   a prior "I open the theme menu" opens it from the week view for today first.
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
-  reward-effect observer (inserted, then removed ≤ N ms). "switched off" flips `theme-option` `data-setting="cat"`
-  `data-value="off"`. "does not appear": no `support-cat` inserted within 4 000 ms after the tick.
+  reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in
+  `settings-support-cat` (values `off|sometimes|always`, labels Off/Sometimes/Every time) and waits for the save. "does not appear": no `support-cat` inserted within 4 000 ms after the tick.
