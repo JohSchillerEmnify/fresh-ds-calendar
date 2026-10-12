@@ -817,6 +817,8 @@ the approach bar shows {string}, {string} and {string} in this order
 the approach bar shows {string} at its end
 the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
+on the approach bar {string} is {int} times as long as {string}
+the title of {string} is shown next to its block
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -869,6 +871,7 @@ the app runs the new version
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
   until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
   the visible `undo-snackbar` message (`snackbar-text`).
+
 ## Theme menu (`@themes`)
 
 ```
@@ -896,24 +899,11 @@ the event {string} glows
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
   "Task list".
-## App updates
-
-```
-a new version of the app is deployed
-the app syncs
-I am told a new version is available
-I choose to reload
-the app runs the new version
-```
-
-- "deployed": `POST /api/__test/version { version }` makes the server report a new build version (TEST_MODE).
-- "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.
-- "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
-  `document.documentElement.dataset.appVersion` equals the deployed version.
 
 - Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
   container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
   vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
+
 ## Tasks calendar (`@tasks-calendar`)
 
 ```
@@ -935,3 +925,5 @@ Google shows the calendar {string}
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
+- "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.
+  "shown next to its block": `data-title-outside="true"` and the title's left edge ≥ the block's right edge.
