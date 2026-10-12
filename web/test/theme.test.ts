@@ -62,7 +62,7 @@ describe('snackbar look follows the theme', () => {
 
   it('the one snackbar look is built from theme tokens, corner radius and glow', () => {
     const skin = src('theme/theme.css').match(/\.snack-skin \{([^}]*)\}/)![1];
-    for (const t of ['--md-sys-color-inverse-surface', '--md-sys-color-inverse-on-surface', '--md-sys-color-inverse-primary', '--r-block', '--glow-r']) expect(skin).toContain(t);
+    for (const t of ['--md-sys-color-surface-container-highest', '--md-sys-color-on-surface', '--md-sys-color-primary', '--r-block', '--glow-r']) expect(skin).toContain(t);
     expect(skin).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
   });
   it.each(surfaces)('%s uses it and sets no colours of its own', (p) => {
