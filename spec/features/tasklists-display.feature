@@ -1,7 +1,8 @@
 @tasklists @display
 Feature: Task lists in the calendar views
   A task list is placed on a date, optionally at a time. Collapsed it shows its title,
-  its item titles in a compact single line and a done count like "1/3".
+  its item titles in a compact single line and a done count like "1/3". A timed task list's place in the time
+  grid tells its time; a short block does not repeat it as text.
   On phones, the month view shows only compact chips; tapping the day opens the day view.
 
   Background:
@@ -51,7 +52,6 @@ Feature: Task lists in the calendar views
       | Passport | no   |
     When I open the <view> view for <period>
     Then the task list "Packing" is positioned at 18:00
-    And the task list "Packing" shows the time "18:00"
 
     Examples:
       | view | period     |
