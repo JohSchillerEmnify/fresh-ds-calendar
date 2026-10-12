@@ -135,6 +135,15 @@ Feature: Displaying events in the calendar views
     And the event "Call" is stacked on the event "Standup"
 
   @day @overlap
+  Scenario: A short task list does not cover the entry right after it
+    Given the calendar contains a task list "Call mum" on 2026-10-14 at 20:00 for 15 minutes with items:
+      | item             | done |
+      | Ask about Sunday | no   |
+    And the calendar contains an event "Foo" on 2026-10-14 from 20:15 to 21:00
+    When I open the day view for 2026-10-14
+    Then the title of the event "Foo" is not covered
+
+  @day @overlap
   Scenario: Back-to-back events do not count as overlapping
     Given the calendar contains an event "Gym" on 2026-10-14 from 10:00 to 11:00
     When I open the day view for 2026-10-14
