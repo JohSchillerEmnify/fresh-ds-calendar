@@ -92,6 +92,8 @@ export interface PlacedSegment {
   /** 0-based column inside the overlap cluster and the cluster's column count. */
   col: number;
   cols: number;
+  /** Columns this block may occupy (>= 1): it widens into free columns to its right, like Google Calendar. */
+  span: number;
   top: number; // minutes
   height: number; // minutes (>= min)
 }
@@ -108,6 +110,15 @@ export function packColumns(segs: Segment[], minMinutes = 0): PlacedSegment[] {
   let colEnds: number[] = [];
   const flush = () => {
     for (const p of cluster) p.cols = colEnds.length;
+    for (const p of cluster) {
+      let span = 1;
+      for (let c = p.col + 1; c < p.cols; c++) {
+        const blocked = cluster.some((q) => q.col === c && q.top < p.top + p.height && p.top < q.top + q.height);
+        if (blocked) break;
+        span++;
+      }
+      p.span = span;
+    }
     out.push(...cluster);
     cluster = [];
     colEnds = [];
@@ -119,7 +130,7 @@ export function packColumns(segs: Segment[], minMinutes = 0): PlacedSegment[] {
     if (col < 0) col = colEnds.length;
     const visualEnd = Math.max(s.endMin, s.startMin + minMinutes);
     colEnds[col] = visualEnd;
-    cluster.push({ seg: s, col, cols: 1, top: s.startMin, height: Math.max(s.endMin - s.startMin, minMinutes) });
+    cluster.push({ seg: s, col, cols: 1, span: 1, top: s.startMin, height: Math.max(s.endMin - s.startMin, minMinutes) });
     clusterEnd = Math.max(clusterEnd, visualEnd);
   }
   flush();
@@ -142,4 +153,11 @@ export function matchesFilters(item: CalendarItem, f: Filters): boolean {
     if (!f.tags.some((t) => have.includes(t.toLowerCase()))) return false;
   }
   return true;
+}
+
+/** Minimum rendered block height (px); the block keeps its start position (spec: timeline, short events). */
+export const MIN_BLOCK_PX = 24;
+/** Rendered top and height (px) of a timed segment: proportional to the duration, never below `MIN_BLOCK_PX`. */
+export function blockGeometry(startMin: number, endMin: number, hourHeight: number): { top: number; height: number } {
+  return { top: (startMin / 60) * hourHeight, height: Math.max(((endMin - startMin) / 60) * hourHeight, MIN_BLOCK_PX) };
 }

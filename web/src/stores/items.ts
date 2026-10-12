@@ -66,7 +66,7 @@ export const useItemsStore = defineStore('items', () => {
     const next = { ...byId.value };
     const key = rangeKey(from, to);
     for (const it of items) {
-      if (pending.has(it.id) && next[it.id]) continue; // keep optimistic state
+      if (pending.has(it.id)) continue; // keep optimistic state (also optimistic deletes)
       next[it.id] = it;
     }
     byId.value = next;
@@ -199,6 +199,32 @@ export const useItemsStore = defineStore('items', () => {
     }
   }
 
+  /**
+   * Optimistic replacement of any item (event move, edit): shows `next` at once, calls the API, swaps in the response.
+   * On failure the previous item is restored (a create with no previous item is removed) and the error is reported/rethrown.
+   * Polls never undo it while in flight.
+   */
+  async function optimisticItem<T extends CalendarItem>(id: string, next: CalendarItem | null, call: () => Promise<T | void>): Promise<T | undefined> {
+    const before = byId.value[id];
+    pending.add(id);
+    if (next) upsert(next);
+    else remove(id);
+    try {
+      const fresh = await call();
+      pending.delete(id);
+      if (fresh) {
+        if (fresh.id !== id) remove(id); // create: the temporary id is replaced by the server id
+        upsert(fresh);
+      }
+      return fresh ?? undefined;
+    } catch (e) {
+      pending.delete(id);
+      if (before) upsert(before);
+      else remove(id);
+      return report(e);
+    }
+  }
+
   // --- year view / month picker summaries --------------------------------------------
   const summary = shallowRef<Record<LocalDate, DaySummary>>({});
   const summaryKeys = ref<string[]>([]);
@@ -242,7 +268,7 @@ export const useItemsStore = defineStore('items', () => {
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, tagsInUse, get, summary,
     setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove,
-    createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic,
+    createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };
 });

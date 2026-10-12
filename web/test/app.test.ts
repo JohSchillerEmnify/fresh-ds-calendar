@@ -87,8 +87,8 @@ describe('shell navigation', () => {
     expect(w.find(tid('create-menu-event')).exists()).toBe(true);
     expect(w.find(tid('create-menu-tasklist')).exists()).toBe(true);
     await w.get(tid('create-menu-event')).trigger('click');
-    // no editor registered yet: a snackbar says so instead of failing
-    await wait(() => expect(w.find(tid('snackbar')).exists()).toBe(true));
+    // the calendar feature registers the lazy event dialog
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
   });
   it('swiping left goes to the next period, a vertical swipe does nothing', async () => {
     const { w, router } = await mountAt('/day/2026-10-12');

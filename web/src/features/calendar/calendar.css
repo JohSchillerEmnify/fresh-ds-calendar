@@ -1,0 +1,8 @@
+/* Drop target highlight for month and all-day cells while dragging (set by useCalendarDrag). */
+[data-testid='month-cell'][data-drop-target='true'],
+[data-testid='week-allday-cell'][data-drop-target='true'],
+[data-testid='day-allday-area'][data-drop-target='true'] {
+  background: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  outline: 2px dashed var(--md-sys-color-primary);
+  outline-offset: -2px;
+}
