@@ -74,23 +74,37 @@ describe('packing and proportions', () => {
     expect(pill.height).toBe(24);
     expect(pill.top).toBe(8 * hh);
   });
-  it('overlapping events share columns, back-to-back ones do not', () => {
-    const a = ev('a', t(D, '09:00'), t(D, '10:00')), b = ev('b', t(D, '09:30'), t(D, '10:30')), c = ev('c', t(D, '10:00'), t(D, '11:00'));
+  it('events starting close together share columns, back-to-back ones do not', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '10:00')), b = ev('b', t(D, '09:10'), t(D, '10:30')), c = ev('c', t(D, '10:00'), t(D, '11:00'));
     const placed = packColumns(segsOf([a, b], D));
-    expect(placed.map((p) => [p.col, p.cols])).toEqual([[0, 2], [1, 2]]);
+    expect(placed.map((p) => [p.col, p.cols, p.level])).toEqual([[0, 2, 0], [1, 2, 0]]);
     const back = packColumns(segsOf([a, c], D));
     expect(back.map((p) => [p.col, p.cols, p.span])).toEqual([[0, 1, 1], [0, 1, 1]]);
   });
   it('a block widens into free columns to its right', () => {
-    const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:00'), t(D, '10:00')), c = ev('c', t(D, '10:00'), t(D, '12:00'));
+    const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:00'), t(D, '09:10')), c = ev('c', t(D, '09:10'), t(D, '12:00'));
     const placed = packColumns(segsOf([a, b, c], D));
     const byId = Object.fromEntries(placed.map((p) => [p.seg.item.id, p]));
     expect(byId.a.cols).toBe(2);
     expect(byId.b.span).toBe(1);
     expect(byId.c.col).toBe(1);
     // three mutually overlapping
-    const x = ev('x', t(D, '09:00'), t(D, '10:30')), y = ev('y', t(D, '09:30'), t(D, '10:30')), z = ev('z', t(D, '09:45'), t(D, '11:00'));
+    const x = ev('x', t(D, '09:00'), t(D, '10:30')), y = ev('y', t(D, '09:05'), t(D, '10:30')), z = ev('z', t(D, '09:10'), t(D, '11:00'));
     expect(packColumns(segsOf([x, y, z], D)).every((p) => p.cols === 3)).toBe(true);
+  });
+  it('overlaps starting 15+ min apart cascade instead of splitting columns', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '10:30')), b = ev('b', t(D, '09:30'), t(D, '10:30')), c = ev('c', t(D, '09:45'), t(D, '11:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, b, c], D)).map((x) => [x.seg.item.id, x]));
+    expect([p.a, p.b, p.c].map((x) => [x.level, x.cols, x.span])).toEqual([[0, 1, 1], [1, 1, 1], [2, 1, 1]]);
+  });
+  it('a level frees up when its blocks end; depth is capped and falls back to columns', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:30'), t(D, '10:00')), c = ev('c', t(D, '10:00'), t(D, '11:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, b, c], D)).map((x) => [x.seg.item.id, x.level]));
+    expect(p).toEqual({ a: 0, b: 1, c: 1 });
+    const many = ['09:00', '09:20', '09:40', '10:00', '10:20', '10:40'].map((s, i) => ev('m' + i, t(D, s), t(D, '12:00')));
+    const placed = packColumns(segsOf(many, D));
+    expect(Math.max(...placed.map((x) => x.level))).toBe(3);
+    expect(placed.filter((x) => x.level === 3).every((x) => x.cols > 1)).toBe(true);
   });
   it('a short block occupies its minimum height when packing', () => {
     const pill = ev('p', t(D, '08:00'), t(D, '08:05')), next = ev('n', t(D, '08:10'), t(D, '09:00'));

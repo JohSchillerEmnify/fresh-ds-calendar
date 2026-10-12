@@ -26,9 +26,19 @@ Then('I see the event {string} on {weekday}', async function (this: World, title
 Then(
   'I see the event {string} on each day from {date} to {date}',
   async function (this: World, title: string, from: string, to: string) {
-    for (const d of datesBetween(from, to)) await expect(this.eventChip(title, d)).toBeVisible();
+    for (const d of datesBetween(from, to)) {
+      await expect.poll(async () => (await this.eventChips(title, d).locator('visible=true').count()) > 0 || (await this.barCovers(title, d)), `${title} on ${d}`).toBe(true);
+    }
   },
 );
+
+Then('I see the event {string} as a bar from {date} to {date}', async function (this: World, title: string, from: string, to: string) {
+  await expect(this.eventBars(title).and(this.page.locator(`[data-start="${from}"][data-end="${to}"]`)).locator('visible=true').first()).toBeVisible();
+});
+
+Then('the event {string} is a bar in lane {int}', async function (this: World, title: string, lane: number) {
+  await expect(this.eventBars(title).locator('visible=true').first()).toHaveAttribute('data-lane', String(lane));
+});
 
 Then('I see the all-day event {string} on {date}', async function (this: World, title: string, date: string) {
   await expect(this.eventChips(title, date).and(this.page.locator('[data-all-day="true"]')).first()).toBeVisible();
@@ -42,6 +52,7 @@ Then('I do not see the event {string}', async function (this: World, title: stri
 Then('I do not see the event {string} on {date}', async function (this: World, title: string, date: string) {
   await this.settled();
   await expect(this.eventChips(title, date).locator('visible=true')).toHaveCount(0);
+  expect(await this.barCovers(title, date), `bar of ${title} covers ${date}`).toBe(false);
 });
 
 Then('the event {string} shows the time {string}', async function (this: World, title: string, time: string) {
@@ -78,6 +89,13 @@ Then('the events {string} and {string} are side by side', async function (this: 
   const within = (y: number, r: typeof ba) => y >= r.y && y <= r.y + r.height;
   expect(within(ba.y, bb) || within(bb.y, ba), 'vertical spans overlap').toBe(true);
   expect(Math.abs(ba.x - bb.x), 'different left edges').toBeGreaterThan(1);
+});
+
+Then('the event {string} is stacked on the event {string}', async function (this: World, later: string, earlier: string) {
+  const [l, e] = [await box(this.eventChip(later)), await box(this.eventChip(earlier))];
+  expect(l.x, 'later block is indented').toBeGreaterThan(e.x + 2);
+  expect(l.y, 'later block starts lower').toBeGreaterThan(e.y);
+  expect(l.y, 'blocks overlap vertically').toBeLessThan(e.y + e.height);
 });
 
 Then('the event {string} spans the full width of its day column', async function (this: World, title: string) {

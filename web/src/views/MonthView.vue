@@ -3,11 +3,13 @@ import { computed, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
-import { useDaySegments } from '@/composables/useDaySegments';
+import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
 import { isCollapsed } from '@/features/tasklists/collapse';
 import { allotHeights } from '@/features/tasklists/layout';
+import EventBar from '@/features/calendar/EventBar.vue';
+import { laneCount } from '@/lib/spans';
 import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
@@ -19,16 +21,25 @@ const clock = useClockStore();
 const settings = useSettingsStore();
 const nav = useNav();
 const segs = useDaySegments();
+const barsOf = useBars();
 
 const weeks = computed(() => monthGrid(cal.anchor));
 /** Entries per cell: phone 2, desktop 3, calm mode 2. */
 const limit = computed(() => (isPhone.value || settings.settings.calmMode ? 2 : 3));
+/** Bars per week row: lanes beyond the limit are hidden and count in the cell's "+n". */
+const rows = computed(() => weeks.value.map((week) => {
+  const dates = week.map(toIsoDate);
+  const all = barsOf(dates);
+  const lanes = Math.min(laneCount(all), limit.value);
+  const hidden = dates.map((_, c) => all.filter((b) => b.lane >= lanes && b.startCol <= c && c <= b.endCol).length);
+  return { dates, lanes, hidden, bars: all.filter((b) => b.lane < lanes) };
+}));
 const gridEl = ref<HTMLElement | null>(null);
 const { height: gridH } = useElementSize(gridEl);
 /** Pixels one entry may take: the cell minus day number, paddings, gaps and the "+n" line, shared by need (task lists get what their items need). */
-function visible(date: string) {
+function visible(date: string, lanes: number, hidden: number) {
   const all = segs(date);
-  let shown = all.slice(0, limit.value);
+  let shown = all.slice(0, Math.max(0, limit.value - lanes));
   const cellH = gridH.value / weeks.value.length;
   let heights: number[] = [];
   if (cellH > 0 && shown.length) {
@@ -38,12 +49,12 @@ function visible(date: string) {
     const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(isCollapsed(s.item.id) ? 0 : Math.min(2, s.item.items.filter((i) => !i.done).length) + (s.item.items.filter((i) => !i.done).length > 2 ? 1 : 0)) : evH);
     /** Smallest useful size: events one line, task lists the title plus up to 3 rows (item rows and the "+k" line). */
     const minOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? Math.min(needOf(s), sized(phone ? 3 : 2)) : evH);
-    const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - (n - 1) * gap - (withMore ? 14 : 0) - 2;
+    const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - lanes * (phone ? 18 : 22) - (n - 1) * gap - (withMore || hidden > 0 ? 14 : 0) - 2;
     // drop trailing entries (they join "+n") until the rest fit at their minimum size
     while (shown.length > 1 && shown.reduce((a, s) => a + minOf(s), 0) > room(shown.length, shown.length < all.length)) shown = shown.slice(0, -1);
     heights = allotHeights(shown.map(needOf), room(shown.length, shown.length < all.length), evH);
   }
-  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length };
+  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length + hidden };
 }
 </script>
 
@@ -54,21 +65,25 @@ function visible(date: string) {
       <div v-for="w in WEEKDAY_LABELS" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
     <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
-      <template v-for="week in weeks" :key="toIsoDate(week[0])">
+      <div v-for="(row, wi) in rows" :key="row.dates[0]" class="week" :style="{ '--lanes': row.lanes }">
+        <div class="bars" :style="{ gridTemplateRows: `repeat(${row.lanes}, var(--lane-h))` }">
+          <EventBar v-for="b in row.bars" :key="b.item.id" :bar="b" :dates="row.dates" />
+        </div>
         <div
-          v-for="day in week" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
+          v-for="(day, ci) in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, cal.anchor) ? 'true' : undefined"
           :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="isPhone && nav.openDay(day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
+          <div v-if="row.lanes" class="lanes" />
           <div class="chips">
-            <ItemView v-for="{ s, h } in visible(toIsoDate(day)).shown" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
+            <ItemView v-for="{ s, h } in visible(toIsoDate(day), row.lanes, row.hidden[ci]).shown" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
           </div>
-          <button v-if="visible(toIsoDate(day)).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
-            +{{ visible(toIsoDate(day)).more }}{{ isPhone ? '' : ' more' }}
+          <button v-if="visible(toIsoDate(day), row.lanes, row.hidden[ci]).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
+            +{{ visible(toIsoDate(day), row.lanes, row.hidden[ci]).more }}{{ isPhone ? '' : ' more' }}
           </button>
         </div>
-      </template>
+      </div>
     </div>
   </section>
 </template>
@@ -77,12 +92,19 @@ function visible(date: string) {
 .month { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 4px 0; }
 .wd { text-align: center; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
-.grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--md-sys-color-outline-variant); }
+.grid { flex: 1; min-height: 0; display: grid; border-top: 1px solid var(--md-sys-color-outline-variant); }
 .cell {
   min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 2px 2px 0; overflow: hidden;
   border-right: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
-.cell:nth-child(7n) { border-right: 0; }
+.week { position: relative; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); --lane-h: 20px; --bar-h: 20px; grid-template-rows: minmax(0, 1fr); }
+.phone .week { --lane-h: 18px; --bar-h: 16px; }
+.cell:nth-child(8) { border-right: 0; }
+.lanes { flex: none; height: calc(var(--lanes) * var(--lane-h)); }
+/* bars overlay the cells just below the day number (cell padding 2/4px + number 28/26px + gap) */
+.bars { position: absolute; z-index: 2; left: 0; right: 0; top: 34px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; pointer-events: none; }
+.phone .bars { top: 30px; row-gap: 0; }
+@media (min-width: 768px) { .bars { top: 35px; } .lanes { height: calc(var(--lanes) * (var(--lane-h) + 2px)); } }
 .num { align-self: center; width: 28px; height: 28px; flex: none; border-radius: 50%; font: var(--md-sys-typescale-label-large); display: flex; align-items: center; justify-content: center; }
 .outside .num { color: var(--md-sys-color-on-surface-variant); opacity: 0.55; }
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
