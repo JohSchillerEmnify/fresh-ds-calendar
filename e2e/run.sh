@@ -42,9 +42,9 @@ build_app() {
   [ "${E2E_SKIP_BUILD:-0}" = 1 ] && return
   log "building app"
   if [ -f "$ROOT/pnpm-workspace.yaml" ]; then
-    (cd "$ROOT" && { [ -d node_modules ] || pnpm install --frozen-lockfile; } && pnpm run build)
+    (cd "$ROOT" && { [ -d node_modules ] || pnpm install --frozen-lockfile; } && pnpm run build:e2e)
   else
-    (cd "$ROOT" && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build)
+    (cd "$ROOT" && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && npm run build:e2e)
   fi
 }
 
