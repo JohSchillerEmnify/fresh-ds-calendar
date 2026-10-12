@@ -29,6 +29,8 @@ while this orchestrator session (tmux `claude`, cwd ~/docker-compose) was waitin
 
 ### Handoff log
 - 12:45 handoff written; next: NoVibe slice 1 (month-cell) sign-off, then slice 2 (tray) in timed-tl.
+- 13:05 month-cell DONE on branch (spec 834b1b1, feat 9362c5f; e2e scenarios red->green, desktop). Preview http://month-cell.cal.mordor.local, waiting for owner OK to merge. Worktree has its own pnpm install now.
+- 13:05 owner feedback for slice 2 (tray): desktop right panel must show task lists fully with tickable items (multiple paths are OK for now; owner collects UI feedback, then paths get reduced).
 
 ---
 
