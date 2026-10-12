@@ -295,24 +295,24 @@ Feature: Creating, editing and deleting events
     When I open the week view for 2026-10-12
     And I open the event "Dentist"
     And I delete the event
-    And I confirm the deletion
     Then the event dialog is closed
     And I do not see the event "Dentist"
-    And Google contains no event "Dentist"
+    And the snackbar says "Deleted: Dentist"
+    When the undo time is over
+    Then Google contains no event "Dentist"
     When I reload the page
     Then I do not see the event "Dentist"
 
-  @cancel
-  Scenario: Cancelling the delete confirmation keeps the event
+  @undo
+  Scenario: Undoing a deletion brings the event back
     Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     When I open the week view for 2026-10-12
     And I open the event "Dentist"
     And I delete the event
-    And I cancel the deletion
-    Then the event dialog is open
-    When I cancel the event dialog
+    And I undo the deletion
     Then I see the event "Dentist" on 2026-10-14
-    And Google contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When the undo time is over
+    Then Google contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
 
   @month @desktop
   Scenario: Open an event from the desktop month view

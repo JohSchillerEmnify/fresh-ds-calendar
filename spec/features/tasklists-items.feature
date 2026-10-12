@@ -80,6 +80,12 @@ Feature: Working with task list items
     When I reload the page
     Then the collapsed task list "Groceries" lists the items "Milk, Bread"
 
+  @undo
+  Scenario: Undoing a removed item puts it back in its place
+    When I delete the item "Eggs"
+    And I undo the deletion
+    Then the expanded task list items are "Milk, Eggs, Bread"
+
   Scenario: Removing the last item leaves an empty list
     When I delete the item "Milk"
     And I delete the item "Eggs"

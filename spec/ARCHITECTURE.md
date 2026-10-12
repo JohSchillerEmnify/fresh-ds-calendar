@@ -618,6 +618,26 @@ pushes a history entry when it opens (`history.pushState` with an overlay marker
 overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
 history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
 all overlays; no per-component history code.
+### Delete with undo (owner, 2026-10-13)
+
+- Events, task lists and task list items are deleted with one tap, no confirmation dialog (owner: undo is enough).
+  Category deletion keeps its confirmation.
+- The entry disappears at once (optimistic) and the shared `Snackbar` shows "Deleted: <title>" (item: the item
+  title; untitled list: "List") with "Undo" for 6 s (`undo-snackbar`, `undo-action`). The DELETE request is sent only
+  when the snackbar times out (owner: "hide, delete later"): undo then needs no request, keeps the Google id and its
+  details. One pending delete at a time: a new delete sends the previous one at once. `pagehide`/`visibilitychange →
+  hidden` sends pending deletes immediately with `fetch(…, { keepalive: true })`. In-app navigation does not.
+- A small `pendingDeletes` store owns the timers; the items store hides pending ids (same filter as the deleted-id set
+  of the stale-poll fix) and a failed delete brings the entry back with the sync error banner.
+- Item delete = `DELETE /api/tasklists/:id/items/:itemId` after the timeout; undo restores the item at its index.
+
+### Snackbars and toasts follow the theme (owner, 2026-10-13)
+
+Every snackbar-like surface — the undo and update snackbars, the transition warning, the sync error banner and the
+check-in toast (`streak-message`) — uses the one `Snackbar` look built from the active theme's tokens
+(`inverse-surface` / `inverse-on-surface`, action in `inverse-primary`, the theme's corner radius and glow), never
+fixed colours, so a theme or automatic season change restyles them too.
+
 ### Labs (experiments, owner 2026-10-12)
 
 - Settings get a Labs section: `labs` (experimental views on/off) and `approachBar` (on/off), stored per person in
