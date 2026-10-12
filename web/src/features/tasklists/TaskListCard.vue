@@ -12,6 +12,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { vRipple } from '@/lib/ripple';
 import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
+import { useCalendarDrag } from '@/features/calendar/dnd';
 import { carriedLabel, formatEstimate, isComplete, itemClass } from './format';
 
 const props = defineProps<ItemRendererProps>();
@@ -20,6 +21,7 @@ const settings = useSettingsStore();
 const el = ref<HTMLElement | null>(null);
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
+useCalendarDrag(el, () => props.segment, () => props.variant);
 
 const tl = computed(() => {
   const i = props.segment.item;
@@ -64,7 +66,7 @@ const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.v
 </template>
 
 <style scoped>
-.tl {
+.tl { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   --bg: color-mix(in srgb, var(--c) 20%, var(--md-sys-color-surface-container-high));
   container-type: inline-size; position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; text-align: left;
   color: var(--md-sys-color-on-surface); background: var(--bg); border-left: 3px solid var(--c); border-radius: var(--md-sys-shape-corner-extra-small);
