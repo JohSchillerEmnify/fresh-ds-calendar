@@ -744,6 +744,12 @@ It never reloads by itself and never interrupts an open dialog.
   the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
   (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
   support cat share one cat drawing (`CatFigure`), posed differently.
+- Cat look (owner, 2026-10-13, after a reference picture): a black, geometric, slightly naive cat — tall narrow body
+  seen half from the side, head turned to the viewer, two sharp triangle ears with pink insides, big round eyes as
+  yellow rings around dark pupils, a small grey triangle nose, a few fine light whiskers, and a thick tail curled
+  around the bottom; a subtle fur texture. Our own drawing in that style, not a copy. On dark themes a soft
+  rim light keeps the black body readable. More expressive: pupils follow what the cat looks at, slow blinks, ear
+  twitches, head tilt; the support cat's grin squints the eyes into happy arcs.
 
 ### Untitled task lists (owner, 2026-10-12)
 
