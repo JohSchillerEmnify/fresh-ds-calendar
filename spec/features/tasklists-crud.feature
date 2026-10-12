@@ -1,7 +1,8 @@
 @tasklists @crud
 Feature: Creating, editing and deleting task lists
-  Task lists are created from the floating "+" button ("Task list"), with a title, a date,
-  an optional time and optional initial items (one per line).
+  Task lists are created in the same "new" dialog as events (owner): it opens from the floating "+" button or by
+  tapping an empty time slot, has a switch "Event | Task list" at the top and keeps the date and time of the slot
+  for either kind. A task list has a title, a date, an optional time and optional initial items (one per line).
   In Google each task list is one event with extendedProperties.private.kind = "tasklist".
 
   Background:
@@ -189,3 +190,17 @@ Feature: Creating, editing and deleting task lists
     And I expand the task list "Big"
     And I tick the item "Generated item 40"
     Then the task list "Big" shows the done count "1/40"
+
+  @day
+  Scenario: Tapping an empty time slot can create a task list at that time
+    When I open the day view for 2026-10-14
+    And I click the time slot 15:00 on 2026-10-14
+    And I switch the new dialog to "Task list"
+    Then the task list form shows:
+      | date | 2026-10-14 |
+      | time | 15:00      |
+    When I fill in the task list form with:
+      | title | Errands |
+    And I save the task list
+    Then the task list "Errands" is positioned at 15:00
+

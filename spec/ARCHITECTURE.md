@@ -498,7 +498,7 @@ Rules for implementers:
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
 | `view-switch-month`, `view-switch-week`, `view-switch-day` | tabs (`aria-selected`) |
 | `view-switcher` | container of the three tabs |
-| `create-button`, `create-menu-event`, `create-menu-tasklist` | FAB and menu |
+| `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | FAB and the one "new" dialog (no create menu) |
 | `calendar-swipe-area` | swipe target wrapping the active view |
 | `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
 | `month-weekday-header` | 7 elements, text `Mon`..`Sun` |
@@ -618,6 +618,18 @@ pushes a history entry when it opens (`history.pushState` with an overlay marker
 overlay first and only then leaves the view. This covers Android's back gesture/button and iOS Safari's edge swipe (both go back in
 history). Whether an installed iOS home-screen app offers a back swipe at all is to be checked on a device (owner). One small overlay-stack helper (`web/src/lib/overlayHistory.ts`) used by
 all overlays; no per-component history code.
+
+### One "new" dialog (owner, 2026-10-12)
+
+The FAB and a tap on an empty time slot (or all-day cell) open the same dialog with a segmented switch "Event | Task
+list" at the top (last choice remembered per device); the event form and the task list form are the existing dialog
+bodies, sharing the prefilled date/time so switching keeps them. No create menu.
+
+### Rounded fields and shapes (owner, 2026-10-12)
+
+Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
+softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
+the same corner scale so shapes look consistent.
 
 ## 8. Configuration (env)
 
