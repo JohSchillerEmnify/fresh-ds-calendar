@@ -13,7 +13,7 @@ import { isPhone } from '@/composables/useViewport';
 import { openCreate } from '@/extensions/create';
 import { gridLayers, viewHeaders } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
-import { packColumns } from '@/lib/items';
+import { blockGeometry, MIN_BLOCK_PX, packColumns } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 
 const props = defineProps<{ mode: 'week' | 'day'; dates: Date[] }>();
@@ -22,7 +22,6 @@ const nav = useNav();
 const segs = useDaySegments();
 
 const hourHeight = computed(() => (isPhone.value ? 44 : 48));
-const MIN_BLOCK_PX = 24;
 const cols = computed(() => props.dates.map((d) => {
   const date = toIsoDate(d);
   const all = segs(date);
@@ -39,13 +38,16 @@ const scroller = ref<HTMLElement | null>(null);
 function scrollToMinutes(min: number) {
   if (scroller.value) scroller.value.scrollTop = Math.max(0, px(min));
 }
+/** Today visible: now sits in the upper third of the viewport; other periods start at 07:00 (ARCHITECTURE 5b). */
 function initialScroll() {
-  const n = clock.minutesNow;
+  const el = scroller.value;
+  if (!el) return;
   const todayVisible = props.dates.some((d) => toIsoDate(d) === clock.today);
-  scrollToMinutes(todayVisible && n > 8 * 60 ? n - 60 : 7 * 60);
+  el.scrollTop = Math.max(0, todayVisible ? px(clock.minutesNow) - el.clientHeight / 3 : px(7 * 60));
 }
 onMounted(() => nextTick(initialScroll));
 watch(() => props.mode, () => nextTick(initialScroll));
+watch(() => toIsoDate(props.dates[0]), () => nextTick(initialScroll));
 defineExpose({ scrollToMinutes });
 
 const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all: props.mode === 'week' ? 'week-allday-cell' : 'day-allday-area', col: props.mode === 'week' ? 'week-day-column' : 'day-column' };
@@ -69,7 +71,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         <ItemView v-for="s in c.top" :key="s.item.id + s.date" :segment="s" :variant="s.allDay ? 'allday' : 'chip'" />
       </div>
     </div>
-    <div ref="scroller" class="scroll">
+    <div ref="scroller" class="scroll" data-scroll-area>
       <div class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
         <div class="gutter hours">
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>
@@ -81,9 +83,9 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: px(p.top) + 'px', height: Math.max(px(p.height), MIN_BLOCK_PX) + 'px', left: (p.col / p.cols) * 100 + '%', width: 100 / p.cols + '%' }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight).height + 'px', left: (p.col / p.cols) * 100 + '%', width: (p.span / p.cols) * 100 + '%' }"
           >
-            <ItemView :segment="p.seg" variant="block" :height="px(p.height)" />
+            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, hourHeight).height" />
           </div>
           <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hourHeight" />
         </div>
@@ -116,4 +118,9 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .slot { display: block; width: 100%; height: var(--hh); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .slot:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
 .blk { position: absolute; padding: 0 1px 1px; z-index: 1; min-width: 0; }
+.blk:has([data-dragging='true']) { z-index: 20; }
+.phone .head { min-height: 44px; }
+.phone.week .dow { font-size: 11px; }
+.day .head { flex-direction: row; min-height: 36px; gap: 8px; }
+.day.phone .head { min-height: 36px; }
 </style>

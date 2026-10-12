@@ -71,5 +71,5 @@ function visible(date: string) {
 .phone .more { pointer-events: none; text-align: center; }
 .phone .cell { cursor: pointer; padding: 2px 1px 0; }
 .phone .num { width: 26px; height: 26px; }
-@media (min-width: 768px) { .cell { padding: 4px; gap: 3px; } .chips :deep(.item) { font-size: 12px; } }
+@media (min-width: 768px) { .cell { padding: 4px; gap: 3px; } .chips :deep(.ev) { font-size: 12px; } }
 </style>

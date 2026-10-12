@@ -1,0 +1,122 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
+import NowMarker from '@/features/calendar/NowMarker.vue';
+import NowCard from '@/features/calendar/NowCard.vue';
+import { registerNowCardLine } from '@/features/calendar/nowLines';
+import { startTransitionWarnings, stopTransitionWarnings } from '@/features/calendar/transitionWarning';
+import { enableTimerCounting } from '@/lib/timers';
+import { useCalendarStore } from '@/stores/calendar';
+import { useClockStore } from '@/stores/clock';
+import { useItemsStore } from '@/stores/items';
+import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
+import { config, freshPinia, mockFetch, settingsFixture } from '../helpers';
+import { createMemoryHistory, createRouter } from 'vue-router';
+import { advance, ev, t } from './helpers';
+
+const D = '2026-10-12';
+const at = (hm: string) => new Date(`${D}T${hm}:00+02:00`);
+
+async function boot(hm: string, running: boolean) {
+  const pinia = freshPinia();
+  mockFetch({ 'GET /api/config': () => config({ now: at(hm).toISOString(), clockFrozen: !running }) });
+  const clock = useClockStore();
+  await clock.load();
+  const items = useItemsStore();
+  items.applyResponse(D, '2026-10-13', [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's');
+  useSettingsStore().$patch({});
+  return { pinia, clock, items };
+}
+
+describe('now marker', () => {
+  beforeEach(() => { document.body.innerHTML = ''; });
+  it('sits at the current time in today\'s column only and follows the clock', async () => {
+    const { pinia, clock } = await boot('09:20', false);
+    const w = mount(NowMarker, { props: { date: D, hourHeight: 48 }, global: { plugins: [pinia] } });
+    const m = w.get('[data-testid="now-marker"]');
+    expect(m.attributes('data-time')).toBe('09:20');
+    expect(m.attributes('style')).toContain(`top: ${(560 / 60) * 48}px`);
+    advance(30);
+    await nextTick();
+    expect(w.get('[data-testid="now-marker"]').attributes('data-time')).toBe('09:50');
+    expect(clock.minutesNow).toBe(9 * 60 + 50);
+    const other = mount(NowMarker, { props: { date: '2026-10-13', hourHeight: 48 }, global: { plugins: [pinia] } });
+    expect(other.find('[data-testid="now-marker"]').exists()).toBe(false);
+  });
+});
+
+describe('now card', () => {
+  it('counts down the current event and shows next; hides outside today', async () => {
+    const { pinia } = await boot('09:20', false);
+    const cal = useCalendarStore();
+    cal.view = 'day';
+    cal.anchor = at('00:00');
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
+    const w = mount(NowCard, { global: { plugins: [pinia, router] } });
+    const lines = () => w.findAll('[data-testid="now-card-line"]').map((l) => l.text());
+    expect(lines()).toEqual(['Next: Dentist in 1 h 20 min']);
+    expect(w.find('[data-testid="now-card-current"]').exists()).toBe(false);
+    advance(95);
+    await nextTick();
+    expect(lines()).toEqual(['Dentist · 35 min left', 'Next: Call in 2 h 5 min']);
+    expect(w.get('[data-testid="now-progress"]').attributes('aria-valuenow')).toBe('30');
+    const stop = registerNowCardLine(() => 'Next task: Fold (Laundry)');
+    await nextTick();
+    expect(lines()).toContain('Next task: Fold (Laundry)');
+    stop();
+    cal.anchor = at('00:00'); cal.anchor = new Date(2026, 9, 13);
+    await nextTick();
+    expect(w.find('[data-testid="now-card"]').exists()).toBe(false);
+    cal.view = 'week'; cal.anchor = new Date(2026, 9, 19);
+    await nextTick();
+    expect(w.find('[data-testid="now-card"]').exists()).toBe(false);
+  });
+});
+
+describe('transition warning (fake timers, one shared ticker)', () => {
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] }); vi.setSystemTime(at('10:25')); document.body.innerHTML = ''; });
+  afterEach(() => { stopTransitionWarnings(); useClockStore().stopTicker(); vi.useRealTimers(); });
+
+  it('appears 10 min before, once, dismissible, and leaves no timers behind', async () => {
+    enableTimerCounting(true);
+    const { clock } = await boot('10:25', true);
+    const ui = useUiStore();
+    useSettingsStore().settings = settingsFixture();
+    startTransitionWarnings();
+    clock.startTicker();
+    const warn = () => ui.snackbars.filter((s) => s.testid === 'transition-warning');
+    expect(warn()).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(5 * 60000);
+    await flushPromises();
+    expect(warn().map((s) => s.text)).toEqual(['Dentist starts in 10 min']);
+    ui.dismiss(warn()[0].id);
+    await vi.advanceTimersByTimeAsync(2 * 60000);
+    await flushPromises();
+    expect(warn()).toHaveLength(0);
+    // the only live timer is the clock's next minute tick
+    expect(window.__appTimers).toBe(1);
+    stopTransitionWarnings();
+    clock.stopTicker();
+    expect(window.__appTimers).toBe(0);
+  });
+
+  it('auto-hides at the start and stays quiet when switched off', async () => {
+    const { clock } = await boot('10:25', true);
+    const ui = useUiStore();
+    const settings = useSettingsStore();
+    settings.settings = settingsFixture();
+    startTransitionWarnings();
+    clock.startTicker();
+    await vi.advanceTimersByTimeAsync(5 * 60000);
+    expect(ui.snackbars.some((s) => s.testid === 'transition-warning')).toBe(true);
+    await vi.advanceTimersByTimeAsync(10 * 60000);
+    await flushPromises();
+    expect(ui.snackbars.some((s) => s.testid === 'transition-warning')).toBe(false);
+    ui.snackbars = [];
+    settings.settings = settingsFixture({ transitionWarningMinutes: 0 });
+    useItemsStore().applyResponse(D, '2026-10-13', [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later' })], 's');
+    await vi.advanceTimersByTimeAsync(50 * 60000);
+    expect(ui.snackbars).toHaveLength(0);
+  });
+});
