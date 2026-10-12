@@ -798,6 +798,9 @@ the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
 I turn on the approach bar and open the week view for {date}
 the approach bar shows {string}, {string} and {string} in this order
+the approach bar shows {string} at its end
+the approach bar is on with a window of {int} hours
+the approach bar shows {string} and {string}
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -845,4 +848,5 @@ the app runs the new version
 - "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.
 - "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
   `document.documentElement.dataset.appVersion` equals the deployed version.
-
+- Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
+  left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
