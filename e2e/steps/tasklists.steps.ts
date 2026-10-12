@@ -115,6 +115,13 @@ Then('the task list {string} shows the item {string} next to its title', async f
   await expect.poll(() => itemPlacement(this, list, item)).toBe('beside');
 });
 
+Then('the task list {string} does not show the item {string}', async function (this: World, list: string, item: string) {
+  await expect(this.taskCard(list)).toBeVisible();
+  const el = this.taskCard(list).getByTestId('tasklist-card-item').and(this.page.locator(attr('data-title', item)));
+  await expect(el).toHaveCount(1);
+  await expect(el).toBeHidden();
+});
+
 Then('the collapsed task list {string} shows {string}', async function (this: World, title: string, text: string) {
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(text));
 });
