@@ -38,6 +38,13 @@ while this orchestrator session (tmux `claude`, cwd ~/docker-compose) was waitin
 - Queued slices (owner): 2b FAB must not cover tray controls; 2c "This day" in drawer + taskListPlacement (WIP in timed-tl);
   2d all-day section modes: keep only Expanded + Titles only, drop Counts (owner 13:20).
 - Owner chose to keep spec/ARCHITECTURE.md + API.md as the architecture model (no LikeC4), no ADRs unless crucial.
+- 13:35 tray-lists build: server completedOn (taskCodec nextCompletedOn + CalendarService.modify/create), open endpoint
+  finishedToday, web store `finished`/`markFinished`, TaskTray rows with RewardCheckbox items, edit on title, unfold for finished.
+  Unit suites green (server 156, web 279). e2e open-tasks running. NOT committed yet.
+  Pre-existing e2e failures (not this slice): 4 carry-over scenarios fail on master because of task card data-date; fixed by
+  unmerged branch fix-tasks (9c1d269).
+- 13:35 preview.sh now also routes <name>.cal.mordor.lan (owner: Linux clients cannot resolve .local), commit 1e249a5. Always
+  give the owner both URLs.
 
 ---
 
