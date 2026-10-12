@@ -60,8 +60,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         v-for="c in cols" :key="c.date" class="head" :class="{ today: c.today }" type="button" :data-testid="ids.header" :data-date="c.date"
         :data-today="c.today ? 'true' : undefined" @click="mode === 'week' && nav.openDay(c.d)"
       >
-        <span class="dow">{{ format(c.d, 'EEE') }}</span><span class="dn">{{ c.d.getDate() }}</span>
-        <span class="sr-only">{{ format(c.d, 'EEE d') }}</span>
+        <span class="dow">{{ format(c.d, 'EEE') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
       </button>
     </div>
     <div class="alldays">

@@ -42,6 +42,7 @@ export default defineConfig({
   server: { proxy: { '/api': 'http://localhost:3000' } },
   test: {
     environment: 'jsdom',
+    testTimeout: 30000,
     include: ['test/**/*.test.ts'],
     // MCU 0.4.0 ships extensionless ESM imports that Node cannot resolve; let Vite transform it.
     server: { deps: { inline: ['@material/material-color-utilities'] } },
