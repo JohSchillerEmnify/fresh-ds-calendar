@@ -9,7 +9,8 @@
     "size": "pnpm -F @calendar/web size",
     "dev:server": "pnpm -F @calendar/server dev",
     "dev:web": "pnpm -F @calendar/web dev",
-    "redeploy": "bash scripts/deploy.sh"
+    "redeploy": "bash scripts/deploy.sh",
+    "e2e": "bash e2e/run.sh"
   },
   "engines": {
     "node": ">=24.11"

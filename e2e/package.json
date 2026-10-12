@@ -1,0 +1,21 @@
+{
+  "name": "@calendar/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "bddgen",
+    "test": "bddgen && playwright test",
+    "check": "bddgen && tsc --noEmit -p tsconfig.json",
+    "steps": "python3 scripts/check-steps-impl.py",
+    "e2e": "bash run.sh",
+    "smoke": "bash run.sh --smoke"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@types/node": "catalog:",
+    "lighthouse": "13.5.0",
+    "playwright-bdd": "9.2.1",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,136 @@
+/** Navigation and view steps (STEPS.md "Navigation"). */
+import { expect } from '@playwright/test';
+import { Then, When } from './fixtures.js';
+import type { View } from './parameters.js';
+import { attr, tid, type World } from './support/world.js';
+import { expectJoined, pathname } from './support/ui.js';
+
+When('I open the app', async function (this: World) {
+  await this.page.goto('/');
+});
+
+When('I open the path {string}', async function (this: World, path: string) {
+  await this.page.goto(path);
+});
+
+When('I open the month view for {month}', async function (this: World, month: string) {
+  await this.page.goto(`/month/${month}`);
+});
+
+When('I open the week view for {date}', async function (this: World, date: string) {
+  await this.page.goto(`/week/${date}`);
+});
+
+When('I open the day view for {date}', async function (this: World, date: string) {
+  await this.page.goto(`/day/${date}`);
+});
+
+/** Click a period navigation button and wait until the route changed. */
+async function navigate(world: World, testId: string) {
+  const before = world.page.url();
+  await world.page.getByTestId(testId).click();
+  if (testId !== 'nav-today') await expect.poll(() => world.page.url()).not.toBe(before);
+}
+
+When('I go to the next period', async function (this: World) {
+  await navigate(this, 'nav-next');
+});
+
+When('I go to the previous period', async function (this: World) {
+  await navigate(this, 'nav-prev');
+});
+
+When('I go to today', async function (this: World) {
+  await navigate(this, 'nav-today');
+});
+
+When('I switch to the {view} view', async function (this: World, view: View) {
+  await this.page.getByTestId(`view-switch-${view}`).click();
+  await expect(this.page.getByTestId(`${view}-view`)).toBeVisible();
+});
+
+When('I go back in the browser', async function (this: World) {
+  await this.page.goBack();
+});
+
+When('I reload the page', async function (this: World) {
+  await this.page.reload();
+});
+
+When('I click the day number of {date}', async function (this: World, date: string) {
+  await this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-day-number').click();
+});
+
+When('I click the week header of {date}', async function (this: World, date: string) {
+  await this.byTestId('week-header', attr('data-date', date)).click();
+});
+
+When('I tap the day {date} in the month view', async function (this: World, date: string) {
+  const cell = this.byTestId('month-cell', attr('data-date', date));
+  if (this.testInfo.project.use.hasTouch) await cell.tap();
+  else await cell.click();
+});
+
+When('I click the overflow link on {date}', async function (this: World, date: string) {
+  await this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-more').click();
+});
+
+Then('the {view} view is shown', async function (this: World, view: View) {
+  await expect(this.page.getByTestId(`${view}-view`)).toBeVisible();
+});
+
+Then('the URL path is {string}', async function (this: World, path: string) {
+  await expect.poll(() => pathname(this.page)).toBe(path);
+});
+
+Then('the period title is {string}', async function (this: World, title: string) {
+  await expect(this.page.getByTestId('period-title')).toHaveText(title);
+});
+
+Then('the weekday headers are {string}', async function (this: World, list: string) {
+  await expectJoined(this.page.getByTestId('month-weekday-header'), list);
+});
+
+Then('the month grid starts on {date} and ends on {date}', async function (this: World, first: string, last: string) {
+  const cells = this.page.getByTestId('month-cell');
+  await expect(cells.first()).toHaveAttribute('data-date', first);
+  await expect(cells.last()).toHaveAttribute('data-date', last);
+});
+
+Then('{date} is shown as outside the current month', async function (this: World, date: string) {
+  await expect(this.byTestId('month-cell', attr('data-date', date))).toHaveAttribute('data-outside-month', 'true');
+});
+
+Then('{date} is shown as inside the current month', async function (this: World, date: string) {
+  const cell = this.byTestId('month-cell', attr('data-date', date));
+  await expect(cell).toBeVisible();
+  await expect(cell).not.toHaveAttribute('data-outside-month', 'true');
+});
+
+Then('the week columns are {string}', async function (this: World, list: string) {
+  await expectJoined(this.page.getByTestId('week-header'), list);
+});
+
+const TODAY_HOLDERS = ['month-cell', 'week-header', 'day-header'];
+const todaySelector = (date?: string) =>
+  TODAY_HOLDERS.map((t) => `${tid(t)}[data-today="true"]${date ? attr('data-date', date) : ''}`).join(', ');
+
+Then('{date} is highlighted as today', async function (this: World, date: string) {
+  await expect(this.page.locator(todaySelector(date)).first()).toBeVisible();
+});
+
+Then('exactly one day is highlighted as today', async function (this: World) {
+  await this.calendarShown();
+  await expect(this.page.locator(todaySelector())).toHaveCount(1);
+});
+
+Then('no day is highlighted as today', async function (this: World) {
+  // Wait until the view rendered its days, otherwise "none" would pass on an empty page.
+  await expect(this.page.locator(TODAY_HOLDERS.map(tid).join(', ')).first()).toBeVisible();
+  await expect(this.page.locator(todaySelector())).toHaveCount(0);
+});
+
+Then('the overflow link on {date} reads {string}', async function (this: World, date: string, text: string) {
+  await expect(this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-more')).toHaveText(text);
+});
+
