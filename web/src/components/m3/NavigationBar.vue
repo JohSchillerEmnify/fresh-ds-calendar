@@ -34,10 +34,11 @@ defineEmits<{ 'update:modelValue': [id: string] }>();
 }
 .pill {
   width: 64px; height: 32px; border-radius: var(--md-sys-shape-corner-full); display: flex; align-items: center; justify-content: center;
-  transition: background var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring);
+  transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring);
 }
 .pill :deep(svg) { width: 24px; height: 24px; }
 .active { color: var(--md-sys-color-on-surface); }
-.active .pill { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+/* Fade only INTO the active state; the previously active tab (e.g. Year) must not animate when another tab is tapped. */
+.active .pill { transition: background var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .dest:active .pill { transform: scale(0.9); }
 </style>
