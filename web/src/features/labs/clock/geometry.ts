@@ -28,3 +28,29 @@ export function assignLanes<T extends { startMin: number; endMin: number }>(span
     return { ...s, lane };
   });
 }
+
+/** Side of the square the dial is drawn in (viewBox units): the outer ring with a hair of margin. */
+export const VIEW = 420;
+
+/**
+ * Label size for a dial drawn `px` screen pixels wide: on screen labels stay between 11 and 16 px however large the
+ * dial is, so a bigger dial fits longer labels.
+ */
+export function labelSizing(px: number): { font: number; maxChars: number } {
+  const scale = px > 0 ? px / VIEW : 1;
+  const font = Math.min(16, Math.max(11, 12 * scale)) / scale;
+  return { font, maxChars: Math.round(Math.min(30, Math.max(14, (18 * 12) / font))) };
+}
+
+/** Cuts text longer than `max` characters with an ellipsis. */
+export const clip = (text: string, max: number): string => (text.length > max ? text.slice(0, max - 1) + '…' : text);
+
+/**
+ * Opacity of each of the first `count` rows that fit into `capacity`: all opaque when everything fits, otherwise the
+ * last (up to two) visible rows fade out to hint at more.
+ */
+export function fadingRows(count: number, capacity: number): number[] {
+  const n = Math.max(0, Math.min(count, capacity));
+  const fade = count > n ? Math.min(2, n) : 0;
+  return Array.from({ length: n }, (_, i) => (i < n - fade ? 1 : (n - i) / (fade + 1)));
+}
