@@ -190,6 +190,8 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   (or one hour before the current time if today is visible and later than 08:00). Overlap layout: Google-like column
   packing — events in a connected overlap cluster are split into equal columns; touching (end == start) is not overlap.
   Timed task lists are 30 min blocks in the grid.
+- **Event blocks** fill their room in this order (owner): title (as many lines as fit), time, location
+  (`event-chip-location`), then description lines; each row only when there is room for it.
 - **Use the space given** (owner principle, 2026-10-12): cells, cards, lists and rows show as much as their measured
   space allows; no hard-coded item or line counts anywhere. What does not fit fades out at the bottom (no `+N`).
 - **Month overflow** (owner 2026-10-12): a cell shows as many entries as fit and fades the rest out with a gradient

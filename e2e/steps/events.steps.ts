@@ -60,6 +60,10 @@ Then('the event {string} shows the time {string}', async function (this: World, 
   await expect(this.eventChip(title).getByTestId('event-chip-time')).toContainText(time);
 });
 
+Then('the event {string} shows the location {string}', async function (this: World, title: string, location: string) {
+  await expect(this.eventChip(title).getByTestId('event-chip-location')).toHaveText(location);
+});
+
 Then('the event {string} is positioned from {time} to {time}', async function (this: World, title: string, from: string, to: string) {
   const chip = this.eventChip(title);
   await expect(chip).toHaveAttribute('data-start-time', from);

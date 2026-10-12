@@ -182,3 +182,10 @@ Feature: Displaying events in the calendar views
     When I open the week view for 2026-10-12
     Then the event "Team sync" has the color "#0b8043"
     And the event "Dentist" has the color "#039be5"
+
+  @day
+  Scenario: A long event shows its location when there is room
+    Given the calendar contains an event "Workshop" on 2026-10-14 from 13:00 to 16:00 at "Room 4, Main St 12"
+    When I open the day view for 2026-10-14
+    Then the event "Workshop" shows the location "Room 4, Main St 12"
+

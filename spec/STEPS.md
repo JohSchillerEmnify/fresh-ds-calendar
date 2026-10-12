@@ -76,6 +76,7 @@ the app runs as an installed app
 
 ```
 the calendar contains an event {string} on {date} from {time} to {time}
+the calendar contains an event {string} on {date} from {time} to {time} at {string}
 the calendar contains an event {string} in the calendar {string} on {date} from {time} to {time}
 the calendar contains an event {string} from {date} {time} to {date} {time}
 the calendar contains an all-day event {string} on {date}
@@ -141,6 +142,7 @@ the event {string} shows the time {string}
 the event {string} is positioned from {time} to {time}
 the event {string} is positioned on {date} from {time} to {time}
 the events {string} and {string} do not overlap
+the event {string} shows the location {string}
 the title of the event {string} is not covered
 the events {string} and {string} are side by side
 the event {string} is stacked on the event {string}
@@ -783,6 +785,8 @@ I allow full animations despite the device setting
 - The hint is `settings-system-reduced-motion` (shown only while `prefers-reduced-motion: reduce`); the switch is
   `settings-ignore-system-motion`. With it on, the app's own animation level applies; off (default) the system caps
   it at Reduced as before. Kept per person.
+- "shows the location": the event chip's `event-chip-location` is visible with that text (it may be ellipsised at the
+  end only when the block is narrower than the text).
 
 ## Labs (`@labs`)
 
