@@ -616,8 +616,9 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 - Approach bar: above every calendar view when on; next 3 hours, "now" at the left, the next event placed by minutes.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
   equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
-- Timeline: one horizontal axis across days, items as long as they last, all-day band on top, fills the viewport
-  height with lanes, `timeline-now`, pinch/wheel zoom.
+- Timeline: one axis across days, items as long as they last, `timeline-now`, pinch/wheel zoom. Desktop: horizontal,
+  all-day band on top, lanes fill the viewport height. Phone (owner): vertical, time runs down through all days with a
+  date divider and an all-day band per day, titles horizontal and readable.
 - Strip: CSS scroll-snap columns, one per day, each a small time grid (height proportional to duration) with an all-day
   band on top, extended in both directions as the user scrolls (virtualised).
 

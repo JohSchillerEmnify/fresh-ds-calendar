@@ -25,3 +25,12 @@ Feature: Labs: the timeline view
     Given the calendar contains an all-day event "Trip" on 2026-10-15
     When I open the timeline view
     Then "Trip" is in the all-day band above the timed entries
+
+  @mobile
+  Scenario: On a phone the timeline runs top to bottom and titles read normally
+    Given I am using a phone
+    And the time is 2026-10-14 08:00
+    When I open the timeline view
+    Then the timeline runs from top to bottom
+    And the title of "Dentist" on the timeline reads left to right in one line
+

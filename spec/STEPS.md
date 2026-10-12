@@ -784,6 +784,8 @@ the now marker is before {string} on the timeline
 on the timeline {string} is farther from {string} than {string} is from the now marker
 on the timeline {string} is about {int} times as long as {string}
 {string} is in the all-day band above the timed entries
+the timeline runs from top to bottom
+the title of {string} on the timeline reads left to right in one line
 I open the strip view for {date}
 I see the event {string} in the strip column of {date}
 I scroll the strip one day to the right
@@ -802,4 +804,6 @@ in the strip {string} is about {int} times as tall as {string}
 - Labs v2 (owner feedback): sizes are always proportional to duration (time blindness), "about N times" allows ±15 %;
   all-day bands are `timeline-allday` / `strip-allday` above the timed area; clock labels are `clock-label`
   (`data-title`) next to or along each arc.
+- Phone timeline (owner): vertical axis (`timeline` has `data-orientation="vertical"`, later items have larger y);
+  "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
