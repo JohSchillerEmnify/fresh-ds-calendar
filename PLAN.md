@@ -45,6 +45,9 @@ while this orchestrator session (tmux `claude`, cwd ~/docker-compose) was waitin
   unmerged branch fix-tasks (9c1d269).
 - 13:35 preview.sh now also routes <name>.cal.mordor.lan (owner: Linux clients cannot resolve .local), commit 1e249a5. Always
   give the owner both URLs.
+- 14:05 tray-lists (2a + 2b folded in by owner) DONE on branch: spec 1e5cc80, arch cbe9274, feat 0f82858. e2e open-tasks green on
+  desktop + mobile except the 4 known carry-over failures (fix-tasks). Preview http://tray-lists.cal.mordor.local | .lan,
+  waiting for owner OK to merge. Note: completedOn is only set by updates (a list created complete gets none).
 
 ---
 
