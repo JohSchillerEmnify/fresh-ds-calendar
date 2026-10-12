@@ -78,7 +78,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
       </button>
     </div>
     <div class="alldays" :style="{ gridTemplateRows: lanes ? `repeat(${lanes}, var(--bar-h)) auto` : undefined }">
-      <div class="gutter"><button v-if="taskTotal" class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="`Tasks: ${SECTION_LABEL[smode]}. Tap to change`" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
+      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="`Tasks: ${SECTION_LABEL[smode]}. Tap to change`" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${lanes + 2}`, paddingTop: lanes * 22 + 'px' }" :data-testid="ids.all" :data-date="c.date">
         <button v-if="smode === 'count' && c.top.some(isList)" class="taskcount" type="button" data-testid="tasks-count-chip" @click="cycleSection(mode, isPhone)">{{ c.top.filter(isList).length }} tasks</button>

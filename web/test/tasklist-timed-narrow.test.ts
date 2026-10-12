@@ -20,12 +20,12 @@ describe('timed task list block in a 47 x 45 px column', () => {
     expect(visible(w).length).toBeGreaterThanOrEqual(1);
     expect(w.get('[data-testid=tasklist-card-more]').text()).toMatch(/^\+\d/);
   });
-  it('a 24 px block falls back to the first item inline with +k', () => {
+  it('a 24 px block shows up to two items inline with +k', () => {
     freshPinia();
     const w = mount(TaskListCard, { props: { segment: itemSegments(list(3))[0], variant: 'block', height: 24 } });
     expect(w.attributes('data-fit')).toBe('inline');
-    expect(visible(w).map((e) => e.text())).toEqual(['Item 0']);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+2');
+    expect(visible(w).map((e) => e.text())).toEqual(['Item 0', 'Item 1']);
+    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+1');
   });
   it('lists with open items get a 44 px minimum height, events 24', () => {
     const seg = itemSegments(list(2, 15))[0];
@@ -53,5 +53,26 @@ describe('rowStep (truncation fade)', () => {
     const vis = visible(many);
     expect(vis[1].attributes('style')).toContain('opacity: 0.85');
     expect(vis[1].classes()).toContain('fade');
+  });
+});
+
+describe('inline mode for blocks of about an hour or less', () => {
+  const mount2 = (n: number, height: number) => mount(TaskListCard, { props: { segment: itemSegments(list(n))[0], variant: 'block', height } });
+  it('44 px block: items inline, max 2 shown, +k, no time footer', () => {
+    freshPinia();
+    const w = mount2(5, 44);
+    expect(w.attributes('data-fit')).toBe('inline');
+    expect(visible(w).map((e) => e.text())).toEqual(['Item 0', 'Item 1']);
+    expect(w.findAll('.sep:not(.nosep)')).toHaveLength(1);
+    expect(w.get('[data-testid=tasklist-card-more]').text()).toMatch(/\+3/);
+    expect(w.find('.foot').exists()).toBe(false);
+  });
+  it('taller blocks keep list rows', () => {
+    freshPinia();
+    expect(mount2(5, 90).attributes('data-fit')).not.toBe('inline');
+  });
+  it('no per-card chevron any more', () => {
+    freshPinia();
+    expect(mount2(3, 90).find('[data-testid=tasklist-card-toggle]').exists()).toBe(false);
   });
 });

@@ -17,10 +17,11 @@ import { vRipple } from '@/lib/ripple';
 import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
-import { isCollapsed, toggleCollapsed } from './collapse';
 import { fitItems, rowStep } from './layout';
 import { sectionKey } from './section';
 
+/** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
+const INLINE_BELOW_PX = 62;
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
 const settings = useSettingsStore();
@@ -44,18 +45,19 @@ const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount
 const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.value.totalCount} done`);
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < 84);
-const hasFoot = computed(() => !!tl.value.time);
+const hasFoot = computed(() => !!tl.value.time && !fit.value.inline);
 /** Overview shows open items only (ticked ones live in the expanded view), at most 2 by default, fewer when short of room. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const section = inject(sectionKey, () => 'full' as const);
 /** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
 const titles = computed(() => section() === 'titles' && props.variant === 'allday');
-const collapsed = computed(() => titles.value || isCollapsed(tl.value.id));
+const collapsed = computed(() => titles.value);
 const fit = computed(() => {
   const block = props.variant === 'block';
   const footVisible = block && !!tl.value.time && !mini.value;
   const open = openItems.value.length;
   if (collapsed.value || !open) return { shown: 0, more: 0, inline: false };
+  const shortBlock = block && !!props.height && props.height < INLINE_BELOW_PX;
   const f = fitItems({
     count: open,
     height: props.height || undefined,
@@ -66,7 +68,7 @@ const fit = computed(() => {
     minLines: block ? 0 : mini.value ? 3 : 2,
     maxLines: 3,
   });
-  if (f.inline) return { ...f, shown: 1, more: open - 1 };
+  if (f.inline || shortBlock) { const shown = Math.min(2, open); return { shown, more: open - shown, inline: true }; }
   const shown = Math.min(f.shown, 2);
   return { shown, more: open - shown, inline: false };
 });
@@ -88,12 +90,12 @@ const rowStyle = (id: string) => {
   return { '--rs': st.scale, opacity: st.opacity, fontSize: `max(8px, calc(var(--fs) * ${st.scale}))` };
 };
 const lastShown = (id: string) => !!fit.value.more && !fit.value.inline && rank.value.get(id) === fit.value.shown - 1;
+const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infinity) < fit.value.shown - 1;
 const moreStyle = computed(() => {
   if (!fit.value.more || fit.value.inline) return undefined;
   const st = rowStep(fit.value.shown, fit.value.more);
   return { opacity: st.opacity, fontSize: `max(8px, calc(var(--fs) * ${st.scale}))` };
 });
-const hasChev = computed(() => tl.value.items.length > 0);
 const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.value.more} more`));
 </script>
 
@@ -115,14 +117,10 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
         <span :key="tl.doneCount" class="count" data-testid="tasklist-card-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
         <ProgressRing class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
       </span>
-      <span
-        v-if="hasChev && !titles" class="chev" role="button" tabindex="0" :aria-expanded="!collapsed" :aria-label="collapsed ? 'Show items' : 'Hide items'" data-testid="tasklist-card-toggle"
-        @click.stop="toggleCollapsed(tl.id)" @pointerdown.stop @keydown.enter.stop.prevent="toggleCollapsed(tl.id)" @keydown.space.stop.prevent="toggleCollapsed(tl.id)"
-      ><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fade: lastShown(i.id) }]" :style="rowStyle(i.id)">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
+      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fade: lastShown(i.id) }]" :style="rowStyle(i.id)">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
       <span v-if="fit.more" class="more" data-testid="tasklist-card-more" aria-hidden="true" :style="moreStyle">{{ moreText }}</span>
     </template>
     <span v-if="hasFoot" class="foot">
@@ -181,18 +179,10 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .from { flex: 0 100 auto; max-width: 45%; background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 16%, transparent); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
 .row .est { flex: none; font-size: 10px; }
 .card .row .est, .card .row .from, .mini .row .est, .mini .row .from, .block[data-fit='inline'] .from { display: none; }
-.chev { flex: none; position: relative; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin: -3px -3px -3px 0; border-radius: 50%; color: inherit; opacity: 0.75; cursor: pointer; }
-.chev::after { content: ''; position: absolute; inset: -11px -8px; }
-.chev svg { width: 12px; height: 12px; transition: transform 160ms; }
-.collapsed .chev svg { transform: rotate(-90deg); }
-.chev:hover, .chev:focus-visible { opacity: 1; background: color-mix(in srgb, currentColor 14%, transparent); }
-.mini.card .chev { display: none; }
 .titles { padding-top: 1px; padding-bottom: 1px; }
 .titles .row { min-height: 20px; }
-.mini .chev { width: 14px; height: 14px; margin: 0; }
-.mini .chev::after { inset: -12px -6px; }
-.mini .chev svg { width: 10px; height: 10px; }
-.block[data-fit='inline'] .chev { display: none; }
+/* Titles only: checkbox glyph + title + x/y, nothing else */
+.titles .emoji, .titles .est, .titles .from, .titles .foot, .titles .ring, .titles .items, .titles .more { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* chip: one line (kept for hosts that ask for it; the calendar views use card / allday) */
@@ -219,6 +209,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .meta { display: none; }
 .block[data-fit='inline'] .items { display: block; flex: 1 1 0; min-width: 0; align-self: center; }
 .block[data-fit='inline'] .it { display: inline; padding: 0; }
+.block[data-fit='inline'] .items { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); }
+.block[data-fit='inline'] .sep { display: inline; }
+.block[data-fit='inline'] .sep.nosep { display: none; }
 .block[data-fit='inline'] .it::before { display: none; }
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
 .block[data-fit='inline'] .more { padding-left: 0; flex: none; }
