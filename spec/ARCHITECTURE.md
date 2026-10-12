@@ -558,16 +558,18 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   verified email from the `id_token`; only addresses in `ALLOWED_EMAILS` get a session, others are sent to the private
   page and their tokens are discarded.
 - **Sessions**: random 256-bit id in cookie `cal_session` (`HttpOnly`, `Secure` when `PUBLIC_URL` is https,
-  `SameSite=Lax`, `Path=/`). Server side in `DATA_DIR/sessions.json` (`id → { sub, email, expiresAt }`), 90 days,
+  `SameSite=Lax`, `Path=/`). Server side in `DATA_DIR/sessions.json` (`id → { sub, email, name, expiresAt }`), 90 days,
   `expiresAt` pushed forward on use (at most once an hour, to limit writes). Sign-out deletes the entry.
 - **Per-person Google access**: the refresh token lives in `DATA_DIR/users/<google sub>/google-token.json` (0600). The
   provider is resolved per request from the session's person (one OAuth client per person, cached); the old single
-  `DATA_DIR/google-token.json` is migrated to the first person who signs in. In mock mode with auth on, each person
+  `DATA_DIR/google-token.json` is used for the first person who signs in only if Google returns no refresh token.
+  `/api/health` no longer pings Google once access is per person (there is no person to probe with). In mock mode with auth on, each person
   has their own mock calendar data. Settings, categories, streak and plant stay shared in this slice (per-person data
   is the next slice).
 - **Client**: a `/signin` route (public) with the "Sign in with Google" button and the private notice
   (`signin-page`, `signin-google`, `signin-private`); a router guard calls `/api/auth/me` once and sends 401 to
-  `/signin`. A 401 `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
+  `/signin` and remembers the page asked for (sessionStorage), which `/` returns to after signing in. A 401
+  `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
   `/api/auth/google/start`. Settings get `settings-signout`.
 
 ## 8. Configuration (env)

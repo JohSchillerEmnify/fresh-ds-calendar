@@ -438,7 +438,7 @@ pre-compressed at build time where possible) when the client accepts it.
 |---|---|---|
 | `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
 | `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid `state`. |
-| `GET` | `/api/auth/me` | `{ email, name }` of the signed-in person; 401 without a session. Public. |
+| `GET` | `/api/auth/me` | `{ email, name }` of the signed-in person; 401 without a session; `{ email: null, name: null }` while auth is off (so the client can tell "off" from "signed out"). Public. |
 | `POST` | `/api/auth/signout` | Ends the session (server side) and clears the cookie; 204. |
 
 While auth is on, every other `/api/*` route except `/api/health` and the two OAuth routes answers **401
