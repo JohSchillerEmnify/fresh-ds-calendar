@@ -29,19 +29,33 @@ Then('the open tasks tray lists {string}', async function (this: World, list: st
   await expectJoined(trayItems(this), list, 'data-title');
 });
 
-When('I open the task list {string} from the open tasks tray', async function (this: World, title: string) {
-  await openTray(this);
-  await trayRow(this, title).getByTestId('task-tray-title').click();
-});
-
+// Open tray rows hold the same task list view as the expanded list (ARCHITECTURE "Task list view").
 const trayRow = (w: World, title: string) => w.byTestId('task-tray-item', attr('data-title', title));
 const trayItem = (w: World, list: string, item: string) =>
-  trayRow(w, list).getByTestId('task-tray-list-item').and(w.page.locator(attr('data-title', item)));
+  trayRow(w, list).getByTestId('tasklist-item').and(w.page.locator(attr('data-title', item)));
+
+When('I add the item {string} to {string} in the open tasks tray', async function (this: World, item: string, list: string) {
+  await openTray(this);
+  if (!(await trayRow(this, list).getByTestId('tasklist-new-item').isVisible())) await trayRow(this, list).getByTestId('tasklist-add').click();
+  const input = trayRow(this, list).getByTestId('tasklist-new-item');
+  await input.fill(item);
+  await input.press('Enter');
+  await expect(trayItem(this, list, item)).toHaveCount(1);
+});
+
+When('I edit the details of {string} in the open tasks tray', async function (this: World, list: string) {
+  await openTray(this);
+  await trayRow(this, list).getByTestId('tasklist-edit').click();
+});
+
+Then('the open tasks tray shows the message {string} for {string}', async function (this: World, text: string, list: string) {
+  await expect(trayRow(this, list).getByTestId('tasklist-complete-message')).toHaveText(exactText(text), { timeout: 1500 });
+});
 
 Then('the open tasks tray shows the task list {string} with items:', async function (this: World, title: string, table: DataTable) {
   await openTray(this);
   const want = table.hashes().map((r) => ({ item: r.item, done: r.done === 'yes' ? 'true' : 'false' }));
-  const rows = trayRow(this, title).getByTestId('task-tray-list-item');
+  const rows = trayRow(this, title).getByTestId('tasklist-item');
   await expect(rows).toHaveCount(want.length);
   await expect.poll(() => rows.evaluateAll((els) => els.map((e) => ({ item: e.getAttribute('data-title'), done: e.getAttribute('data-done') }))))
     .toEqual(want);
@@ -51,7 +65,7 @@ async function setItemInTray(world: World, list: string, item: string, done: boo
   await openTray(world);
   const row = trayItem(world, list, item);
   await expect(row).toHaveAttribute('data-done', done ? 'false' : 'true');
-  await row.getByTestId('task-tray-item-check').click();
+  await row.getByTestId('tasklist-item-checkbox').click();
 }
 When('I tick the item {string} in the open tasks tray', async function (this: World, item: string) {
   await setItemInTray(this, await listOfItem(this, item), item, true);
@@ -62,7 +76,7 @@ When('I untick the item {string} in the open tasks tray', async function (this: 
 /** The tray list holding an item with this title (item titles are unique within a scenario). */
 async function listOfItem(world: World, item: string): Promise<string> {
   await openTray(world);
-  const owner = trayItems(world).filter({ has: world.page.locator(`[data-testid="task-tray-list-item"]${attr('data-title', item)}`) });
+  const owner = trayItems(world).filter({ has: world.page.locator(`[data-testid="tasklist-item"]${attr('data-title', item)}`) });
   await expect(owner).toHaveCount(1);
   return (await owner.getAttribute('data-title'))!;
 }
@@ -71,7 +85,7 @@ Then('the task list {string} in the open tasks tray is struck through and shows 
   await openTray(this);
   const row = trayRow(this, title);
   await expect(row).toHaveAttribute('data-finished', 'true');
-  await expect(row.getByTestId('task-tray-list-item')).toHaveCount(0);
+  await expect(row.getByTestId('tasklist-item')).toHaveCount(0);
   await expect(row.getByTestId('task-tray-title')).toHaveCSS('text-decoration-line', 'line-through');
 });
 
@@ -82,7 +96,7 @@ When('I unfold the task list {string} in the open tasks tray', async function (t
 
 Then('the open tasks tray shows all {int} items of the task list {string}', async function (this: World, count: number, title: string) {
   await openTray(this);
-  const rows = trayRow(this, title).getByTestId('task-tray-list-item');
+  const rows = trayRow(this, title).getByTestId('tasklist-item');
   await expect(rows).toHaveCount(count);
   for (const r of await rows.all()) {
     await r.scrollIntoViewIfNeeded();
@@ -148,5 +162,5 @@ Then('the overdue label of {string} does not use the error color', async functio
 });
 
 When('I move the task list to today', async function (this: World) {
-  await this.page.getByTestId('tasklist-move-today').click();
+  await this.expanded.getByTestId('tasklist-move-today').click();
 });

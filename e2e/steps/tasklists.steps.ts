@@ -196,6 +196,8 @@ Then('the item {string} is not ticked', async function (this: World, title: stri
 });
 
 When('I add the item {string}', async function (this: World, title: string) {
+  // The add field sits behind the "+ Add item" button until opened.
+  if (!(await this.expanded.getByTestId('tasklist-new-item').isVisible())) await this.expanded.getByTestId('tasklist-add').click();
   const input = this.expanded.getByTestId('tasklist-new-item');
   await input.fill(title);
   await input.press('Enter');
