@@ -45,3 +45,10 @@ Feature: Labs: experimental views and the 24-hour clock
   Scenario: The clock uses the space it is given
     When I open the clock view for 2026-10-14
     Then the clock fills the available space
+
+  Scenario: Moving in time stays on the clock, switching to Day leaves it
+    When I open the clock view for 2026-10-14
+    And I go to the next period
+    Then the URL path is "/clock/2026-10-15"
+    When I switch to the day view
+    Then the URL path is "/day/2026-10-15"
