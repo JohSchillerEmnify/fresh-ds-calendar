@@ -381,8 +381,9 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   view switch (shared-axis slide ≤ 250 ms), checkbox state layer. Never block input: effects run after the state change
   is applied, and clicks during an effect are handled normally.
 - **Drag and drop** (pointer events, no library):
-  - Pick-up: touch → long press 450 ms with < 8 px movement, then `navigator.vibrate(10)` if available (Android).
-    iOS Safari has no Vibration API, so iOS gets only the visual lift. Mouse → press and move > 4 px.
+  - Pick-up: touch → long press 350 ms with < 8 px movement, then `navigator.vibrate(10)` if available (Android).
+    iOS Safari has no Vibration API, so iOS gets only the visual lift. Mouse → press and move > 4 px, or press and
+    hold 350 ms without moving (same gesture as touch, so release-without-moving works with a mouse too).
   - While dragging: `data-dragging="true"`, the card lifts (scale 1.05, elevation shadow) and wiggles briefly. A ghost
     follows the pointer with spring lag; tilt is proportional to horizontal velocity (max 6°). A drop indicator snaps
     to 15-minute slots (time grid) or days (month and all-day). Page swipe and scroll are suppressed during a drag;
@@ -392,6 +393,21 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   - Duration is preserved. Timed items stay timed and all-day items stay all-day (no conversion by drag; assumption
     A-55). Multi-day events move by their first day.
   - Accessible alternative: the edit dialogs. Chips keep `role="button"`, and keyboard users use the dialog.
+- **Resize handles** (timed events and timed task lists in the week and day time grid; never month or all-day):
+  - Trigger: a pick-up released without moving (`drag.ts` drop with no target change) sets `ui.resizing =
+    { kind, id, date }` instead of doing nothing. One entry at a time.
+  - The block shows `resize-handle-top` and `resize-handle-bottom`: small pills centred on the top and bottom edge
+    (styled per theme), each with a 44 px touch target. A handle drags at once (no long press); it snaps to 15 minutes
+    on the same slot grid as moves, and the dragged edge never comes closer than 15 minutes to the other one. A task
+    list's duration stops at 720 minutes (the server's `estimateMinutes` range); events end at the day's end at most.
+  - Save: `items.optimisticItem` like a move. Event: `PATCH /api/events/:id` with `start`/`end` (top handle moves only
+    `start`, bottom only `end`) and `If-Match`. Task list: `PATCH /api/tasklists/:id` with `time` and/or
+    `estimateMinutes` (top handle: `time` earlier/later and the estimate grows/shrinks so the end stays). On failure
+    the block springs back to its old length and the sync error banner shows.
+  - Hiding: a pointerdown anywhere outside the block's handles (document capture listener, only while `ui.resizing`
+    is set), Escape, a view change, or picking the block up again. A tap on the block still opens it.
+  - Swipe: `bindSwipe` is disabled while `ui.resizing` is set (`disabled()` is read at touchstart, and handles are
+    already visible then), so dragging a handle on a phone never changes the period.
 - **Streak flame** (`streak-flame`, text = current count) and **plant** (`plant-button`, `data-stage`, `data-mood`) in
   the top app bar, shown per the settings `streakFlame` and `garden`. `streak-message` is a small toast ("Checked in, day 4" /
   "Welcome back!") that auto-hides after 4 s and never blocks input. The plant card (`plant-card`, `plant-card-stage`,
@@ -490,6 +506,7 @@ Rules for implementers:
 | `time-grid` | `data-hour-height` (px) |
 | `time-slot` | `data-date`, `data-hour` (clickable, creates event) |
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
+| `resize-handle-top`, `resize-handle-bottom` | inside the block of the entry being resized (`event-chip` / `tasklist-card`) |
 | `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`) with one `tasklist-card-item` (`data-title`) per item, `tasklist-card-count` (`1/3`), `tasklist-card-time` |
 | `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("+ Add item" button, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
