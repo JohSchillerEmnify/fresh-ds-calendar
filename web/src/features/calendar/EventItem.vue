@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Event renderer (registered for kind 'event'): dot / chip (month) / allday bar / proportional time-grid block.
- * Title first: narrow or short blocks drop the time line, titles wrap to 2 lines before clipping. Past events of
+ * Title first: narrow or short blocks drop the time line, titles wrap to 2 lines before clipping; room left over shows location, then description lines. Past events of
  * today are dimmed, the running one gets a ring. Draggable through `useCalendarDrag` (long press on touch).
  */
 import { computed, ref } from 'vue';
@@ -41,6 +41,10 @@ const budget = computed(() => blockBudget({
   charW: narrow.value ? 5.6 : 6.9, padH: narrow.value ? 6 : 12,
 }));
 const showTime = computed(() => props.variant === 'block' && !!props.segment.startTime && budget.value.time);
+/** Room left under the time row (px): location, then description lines, fill it in that order. */
+const spare = computed(() => (budget.value.time ? Math.max(0, h.value - 4 - budget.value.lines * (narrow.value ? 13 : 16) - 14) : 0));
+const showLocation = computed(() => showTime.value && !!ev.value.location && spare.value >= 14);
+const descLines = computed(() => (showLocation.value && ev.value.description ? Math.floor((spare.value - 14) / 14) : 0));
 const showDuration = computed(() => showTime.value && h.value >= 58);
 const lines = computed(() => budget.value.lines);
 const duration = computed(() => formatDuration(props.segment.endMin - props.segment.startMin));
@@ -65,6 +69,8 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
       <span v-if="showTime" class="meta">
         <span class="time" data-testid="event-chip-time">{{ timeText }}</span><span v-if="showDuration" class="dur"> · {{ duration }}</span>
       </span>
+      <span v-if="showLocation" class="meta" data-testid="event-chip-location">{{ ev.location }}</span>
+      <span v-if="descLines > 0" class="desc" data-testid="event-chip-description" :style="{ '--dlines': descLines }">{{ ev.description }}</span>
       <ResizeHandles v-if="resizing" :segment="segment" />
     </template>
     <template v-else>
@@ -103,6 +109,7 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none;
 }
 .block .meta { font: var(--md-sys-typescale-label-small); font-size: 11px; line-height: 14px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; font-variant-numeric: tabular-nums; }
+.block .desc { font-size: 11px; line-height: 14px; opacity: 0.8; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--dlines); line-clamp: var(--dlines); overflow: hidden; overflow-wrap: break-word; flex: none; }
 .block.nofirst { border-top-left-radius: 0; border-top-right-radius: 0; }
 .block.nolast { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 @container (max-width: 76px) {

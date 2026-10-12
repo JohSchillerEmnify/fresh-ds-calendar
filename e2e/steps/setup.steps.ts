@@ -96,6 +96,13 @@ Given(
 );
 
 Given(
+  'the calendar contains an event {string} on {date} from {time} to {time} at {string}',
+  async function (this: World, title: string, date: string, from: string, to: string, location: string) {
+    await createEvent(this, { title, allDay: false, start: berlinIso(date, from), end: berlinIso(date, to), location });
+  },
+);
+
+Given(
   'the calendar contains an event {string} in the calendar {string} on {date} from {time} to {time}',
   async function (this: World, title: string, calendar: string, date: string, from: string, to: string) {
     const calendarId = await this.api.calendarId(calendar);
