@@ -1,0 +1,32 @@
+<script setup lang="ts">
+import Chip from '@/components/m3/Chip.vue';
+import { useFilters } from '@/composables/useFilters';
+import { useItemsStore } from '@/stores/items';
+import { useSettingsStore } from '@/stores/settings';
+
+/** One horizontally scrolling row of filter chips; state lives in the URL query. */
+const f = useFilters();
+const items = useItemsStore();
+const settings = useSettingsStore();
+</script>
+
+<template>
+  <div class="bar" data-testid="filter-bar" role="toolbar" aria-label="Filters">
+    <Chip
+      v-for="c in settings.categories" :key="c.id" :selected="f.filters.value.categories.includes(c.id)" data-testid="filter-chip-category"
+      :data-name="c.name" :data-category-id="c.id" @click="f.toggle('categories', c.id)"
+    >
+      <template #leading><i class="dot" :style="{ background: c.color }" /><span v-if="c.icon">{{ c.icon }}</span></template>
+      {{ c.name }}
+    </Chip>
+    <Chip :selected="f.filters.value.categories.includes('none')" data-testid="filter-chip-category" data-name="No category" data-category-id="none" @click="f.toggle('categories', 'none')">No category</Chip>
+    <Chip v-for="t in items.tagsInUse" :key="t" :selected="f.filters.value.tags.includes(t)" data-testid="filter-chip-tag" :data-name="t" @click="f.toggle('tags', t)">#{{ t }}</Chip>
+    <Chip v-if="f.active.value" variant="assist" data-testid="filter-clear" @click="f.clear()">Clear</Chip>
+  </div>
+</template>
+
+<style scoped>
+.bar { display: flex; gap: 8px; overflow-x: auto; padding: 6px 12px; scrollbar-width: none; background: var(--md-sys-color-surface); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.bar::-webkit-scrollbar { display: none; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 2px; }
+</style>

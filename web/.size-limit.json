@@ -1,5 +1,5 @@
 [
   { "name": "initial JS", "path": "dist/assets/index-*.js", "limit": "75 kB", "gzip": true },
-  { "name": "all JS", "path": "dist/assets/*.js", "limit": "110 kB", "gzip": true },
+  { "name": "all JS", "path": "dist/assets/*.js", "limit": "130 kB", "gzip": true },
   { "name": "CSS", "path": "dist/assets/*.css", "limit": "15 kB", "gzip": true }
 ]

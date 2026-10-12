@@ -44,4 +44,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
+  return { pickerOpen, filtersShown, createMenuOpen, dialog, snackbars, openDialog, closeDialog, notify, dismiss };
 });

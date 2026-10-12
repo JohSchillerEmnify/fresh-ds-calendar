@@ -10,7 +10,8 @@ export default defineConfig({
     // Material Symbols as inline SVG components: `import IconAdd from '~icons/material-symbols/add'`.
     Icons({ compiler: 'vue3', scale: 1 }),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png'],
       manifest: {
         id: '/',
@@ -32,6 +33,8 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
+        // /api is never cached: no runtime caching rules at all.
+        runtimeCaching: [{ urlPattern: /^\/api\//, handler: 'NetworkOnly' }],
       },
     }),
   ],

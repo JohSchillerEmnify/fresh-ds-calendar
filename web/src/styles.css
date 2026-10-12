@@ -1,44 +1,80 @@
 @import './theme/tokens.css';
 
-/*
- * M3 color roles (--md-sys-color-*) come from theme/tokens.css (default seed, inlined: no flash)
- * and may be overridden at runtime by theme/index.ts (user seed). The short aliases below keep
- * the skeleton views working; new components should use --md-sys-* tokens directly.
- */
+/* ---- M3 (Expressive) design tokens other than color (color: theme/tokens.css) ---- */
 :root {
-  --bg: var(--md-sys-color-surface);
-  --surface: var(--md-sys-color-surface);
-  --surface-2: var(--md-sys-color-surface-container-high);
-  --text: var(--md-sys-color-on-surface);
-  --text-2: var(--md-sys-color-on-surface-variant);
-  --border: var(--md-sys-color-outline-variant);
-  --accent: var(--md-sys-color-primary);
-  --accent-contrast: var(--md-sys-color-on-primary);
-  --accent-soft: var(--md-sys-color-secondary-container);
-  --today-bg: var(--accent);
-  --md-sys-elevation-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
-  --shadow: var(--md-sys-elevation-3);
-  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-small: 6px;
+  --md-sys-shape-corner-small: 10px;
+  --md-sys-shape-corner-medium: 16px;
+  --md-sys-shape-corner-large: 22px;
+  --md-sys-shape-corner-extra-large: 32px;
   --md-sys-shape-corner-full: 9999px;
-  --topbar-h: 56px;
-  --tabbar-h: 60px;
+
+  --md-sys-typescale-display-small: 400 36px/44px var(--font);
+  --md-sys-typescale-headline-small: 400 24px/32px var(--font);
+  --md-sys-typescale-title-large: 500 22px/28px var(--font);
+  --md-sys-typescale-title-medium: 600 16px/24px var(--font);
+  --md-sys-typescale-body-large: 400 16px/24px var(--font);
+  --md-sys-typescale-body-medium: 400 14px/20px var(--font);
+  --md-sys-typescale-label-large: 600 14px/20px var(--font);
+  --md-sys-typescale-label-medium: 600 12px/16px var(--font);
+  --md-sys-typescale-label-small: 600 11px/16px var(--font);
+
+  --md-sys-motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --md-sys-motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-duration-short: 150ms;
+  --md-sys-motion-duration-medium: 250ms;
+
+  --md-sys-elevation-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+  --md-sys-elevation-3: 0 1px 3px rgb(0 0 0 / 0.3), 0 4px 8px 3px rgb(0 0 0 / 0.15);
+
+  --font: 'Roboto Flex', Roboto, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --topbar-h: 64px;
+  --navbar-h: 72px;
+  --rail-w: 80px;
+  --hour-height: 44px;
 }
+@media (min-width: 768px) {
+  :root { --hour-height: 48px; }
+}
+
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
 body {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font: var(--md-sys-typescale-body-medium);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  padding: 0 var(--safe-right) 0 var(--safe-left);
 }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
-.icon-btn {
-  width: 40px; height: 40px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; touch-action: manipulation; }
+input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- State layer (hover 8 %, focus 10 %, pressed 10 %) + ripple; added by the `v-ripple` directive ---- */
+.m3-state { position: relative; overflow: hidden; isolation: isolate; }
+.m3-layer {
+  position: absolute; inset: 0; background: currentColor; opacity: 0; pointer-events: none; border-radius: inherit;
+  transition: opacity var(--md-sys-motion-duration-short); z-index: -1;
 }
-.icon-btn:hover, .icon-btn:focus-visible { background: var(--surface-2); outline: none; }
-.icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+@media (hover: hover) { .m3-state:hover:not(:disabled) > .m3-layer { opacity: 0.08; } }
+.m3-state:focus-visible > .m3-layer { opacity: 0.1; }
+.m3-state:active > .m3-layer, .m3-state[data-pressed='true'] > .m3-layer { opacity: 0.1; }
+.m3-ripple {
+  position: absolute; border-radius: 50%; background: currentColor; opacity: 0.16; pointer-events: none;
+  transform: scale(0); animation: m3-ripple 450ms var(--md-sys-motion-emphasized) forwards; z-index: -1;
+}
+@keyframes m3-ripple { to { transform: scale(1); opacity: 0; } }
+html[data-motion='off'] .m3-ripple, html[data-motion='reduced'] .m3-ripple { display: none; }
+html[data-motion='off'] *, html[data-motion='off'] *::before, html[data-motion='off'] *::after {
+  animation-duration: 0.001ms !important; transition-duration: 0.001ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .m3-ripple { display: none; }
+}

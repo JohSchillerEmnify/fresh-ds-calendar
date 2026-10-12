@@ -137,7 +137,7 @@ export const useSettingsStore = defineStore('settings', () => {
       const r = matchMedia('(prefers-reduced-motion: reduce)');
       systemReduced = r.matches;
       bag.add(listen(r, 'change', (e: Event) => { systemReduced = (e as MediaQueryListEvent).matches; motion(); }));
-      bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => syncMeta()));
+      bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(s.value.themeMode); syncMeta(); }));
     }
     // Motion level mirror (min of setting, calm cap, system preference). web/src/motion/level.ts may take this over.
     function motion() {
