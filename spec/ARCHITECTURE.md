@@ -673,7 +673,9 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
-- Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
+- Clock: SVG 24-hour circle as large as the view allows (owner, 2026-10-13), events as arcs labelled with their
+  titles, timed task lists as arcs too (estimate, else 30 min; thinner or dashed, labelled "title done/total"),
+  untimed task lists listed under the time in the middle (tap opens them), hand at the app clock
   (`clock` store), progress ring.
 - Approach bar (owner v3, 2026-10-13: "the next-event element becomes the timeline", then absolute and configurable):
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
