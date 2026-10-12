@@ -27,10 +27,10 @@ const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scen
 export const PRESETS: Record<Exclude<PresetName, 'Automatic'>, Preset> = {
   Default: { name: 'Default', seed: null, mode: null, attrs: base },
   Neon: { name: 'Neon', seed: '#9d4dff', mode: 'dark', attrs: { ...base, glow: 'neon', entries: 'outline', corners: 'pill' } },
-  Spring: { name: 'Spring', seed: '#4f9d3a', mode: 'light', attrs: { ...base, corners: 'pill', scene: 'spring' } },
-  Summer: { name: 'Summer', seed: '#e09a00', mode: 'light', attrs: { ...base, glow: 'soft', scene: 'summer' } },
+  Spring: { name: 'Spring', seed: '#4f9d3a', mode: null, attrs: { ...base, corners: 'pill', scene: 'spring' } },
+  Summer: { name: 'Summer', seed: '#e09a00', mode: null, attrs: { ...base, glow: 'soft', scene: 'summer' } },
   Fall: { name: 'Fall', seed: '#b8540c', mode: null, attrs: { ...base, entries: 'tinted', scene: 'fall' } },
-  Winter: { name: 'Winter', seed: '#3d79b8', mode: 'dark', attrs: { ...base, glow: 'soft', corners: 'square', scene: 'winter' } },
+  Winter: { name: 'Winter', seed: '#3d79b8', mode: null, attrs: { ...base, glow: 'soft', corners: 'square', scene: 'winter' } },
   Mordor: { name: 'Mordor', seed: '#c43e00', mode: 'dark', attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'mordor' } },
 };
 
