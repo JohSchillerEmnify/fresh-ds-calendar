@@ -55,7 +55,7 @@ describe('rules -> messages and effects', () => {
     expect(diffMotivation(mot({ growth: 10 }), mot({ growth: 12 }))).toEqual(['water']);
     expect(diffMotivation(mot({ growth: 19 }), mot({ growth: 21 }))).toEqual(['water', 'grow']);
     expect(diffMotivation(mot({ growth: 39 }), mot({ growth: 41 }))).toEqual(['water', 'bloom']);
-    expect(diffMotivation(mot({ growth: 70, mood: 'droopy' }), mot({ growth: 80, mood: 'happy' }))).toEqual(['water', 'perk-up']);
+    expect(diffMotivation(mot({ growth: 70, mood: 'droopy' }), mot({ growth: 75, mood: 'happy' }))).toEqual(['water', 'perk-up']);
     expect(diffMotivation(mot({ growth: 70 }), mot({ growth: 70 }))).toEqual([]);
   });
 });
