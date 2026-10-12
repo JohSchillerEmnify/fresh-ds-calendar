@@ -36,6 +36,7 @@ const cols = computed(() => props.dates.map((d) => {
     placed: packColumns(all, (MIN_BLOCK_PX / hourHeight.value) * 60),
   };
 }));
+const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
 const smode = computed(() => sectionMode(props.mode, isPhone.value));
 provide(sectionKey, () => smode.value);
 const isList = (s: { item: { kind: string } }) => s.item.kind === 'tasklist';
@@ -97,7 +98,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * STACK_INDENT_PX}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * indent}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * indent}px)`, '--z': 1 + p.level }"
           >
             <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, hourHeight, segmentMinPx(p.seg)).height" />
           </div>
@@ -110,7 +111,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 
 <style scoped>
 .tg { flex: 1; min-height: 0; display: flex; flex-direction: column; --gw: 44px; }
-.tg.phone { --gw: 34px; }
+.tg.phone { --gw: 30px; }
 .heads, .alldays { display: grid; grid-template-columns: var(--gw) repeat(var(--n), minmax(0, 1fr)); flex: none; }
 .gutter { width: var(--gw); }
 .head { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: var(--md-sys-shape-corner-medium); }
