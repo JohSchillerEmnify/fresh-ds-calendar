@@ -69,7 +69,27 @@ Other hooks:
 
 ## Known gaps
 
-- No view transition (shared-axis slide) between periods; no drag and drop; no now marker / Now card / transition warning / tray (timeline and task list agents).
+- No view transition (shared-axis slide) between periods; no drag and drop; no now marker / Now card / transition warning (timeline agent).
 - Phone month shows chips, not dots (`variant: 'dot'` exists in the renderer contract).
 - The filter bar tag list comes from cached items only (visible range +/- cache).
 - The service worker update prompt needs HTTPS to be observable; `registerType: 'prompt'` replaced autoUpdate.
+
+## Task lists (src/features/tasklists)
+
+Registered by `registerTaskListFeature()` (called from `extensions/builtin.ts`): item renderer + opener for `tasklist`, lazy dialogs
+`tasklist-expanded` (`{ id }`) and `tasklist` (`{ mode: 'create', date }` / `{ mode: 'edit', id }`), the lazy open tasks tray, and the sync task `open-tasks`.
+
+- `TaskListCard.vue` is the collapsed renderer. Layout uses container queries, so it adapts to any width (title always wins; 50 px phone month cells
+  show title + a thin progress bar only). **Drag and drop:** the root `<button data-testid="tasklist-card" data-draggable="tasklist">` is exposed
+  as `defineExpose({ el })` and emitted once as the `el` event after mount; use `useDraggable(el, ...)` on it (or on a wrapper). Clicks right after a drag are swallowed by the motion lib.
+- `ops.ts`: item operations (`patchItem`, `addItem`, `removeItem`, `moveItem`). One serial queue per list; the UI shows `confirmed list + pending ops`,
+  unsent patches of the same item merge (last write wins), a failed op is rolled back alone and a snackbar (`tasklist-rollback`) is shown. Polls never overwrite a list with pending ops.
+- `store.ts` (`useTaskListsStore`): `tray` (open lists of the last 30 days, tray order), `count`, `nextTask` (first unticked item of the oldest open list, for the Now card), `refresh()`.
+- Carry-over: `lib/items.ts#itemSegments(item, today)` puts an open list dated in the 30 days before today onto today (`segment.carriedFrom`); finishing it sends it back to its own date.
+  `items.setCarried()` keeps open lists from outside the visible range in the cache.
+- Timed lists occupy `estimateMinutes` (default 30) in the grid.
+
+Assumptions: the create dialog ignores the suggested time (the spec form defaults to no time); the tray is not filtered by category/tag filters (out of sight is out of mind);
+tags are a comma separated text field with removable chips below it; the repeat field is create-only (the API cannot change recurrence); the desktop tray is a 300 px right-hand panel
+(`App.vue` `.col` becomes a row from 768 px); `--tray-h` is only set on phones; Move to today keeps the time of the list; the `size-limit` budgets for all JS (145 kB) and CSS (18 kB) were raised for this feature.
+`X-Motivation-Changed` refresh is already global in `App.vue` (`api.onMotivationChanged`), nothing extra here.

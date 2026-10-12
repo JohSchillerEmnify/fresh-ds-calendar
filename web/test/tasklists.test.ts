@@ -1,0 +1,400 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { defineComponent, h } from 'vue';
+import { createMemoryHistory, type Router } from 'vue-router';
+import { createAppRouter } from '@/router';
+import type { TaskList } from '@/api/types';
+import { itemSegments } from '@/lib/items';
+import { enableTimerCounting } from '@/lib/timers';
+import { useClockStore } from '@/stores/clock';
+import { useItemsStore } from '@/stores/items';
+import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
+import { useDaySegments } from '@/composables/useDaySegments';
+import ExpandedTaskList from '@/features/tasklists/ExpandedTaskList.vue';
+import TaskListCard from '@/features/tasklists/TaskListCard.vue';
+import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
+import TaskTray from '@/features/tasklists/TaskTray.vue';
+import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
+import { useTaskListsStore } from '@/features/tasklists/store';
+import { parseTags, validateForm } from '@/features/tasklists/validate';
+import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
+
+const celebrate = vi.fn();
+vi.mock('@/motion/useCelebrate', () => ({ useCelebrate: () => ({ celebrate }) }));
+
+function tl(id: string, o: Partial<TaskList> & { done?: boolean[] } = {}): TaskList {
+  const flags = o.done ?? [false, false, false];
+  const items = flags.map((d, i) => ({ id: `${id}-i${i}`, title: ['Milk', 'Eggs', 'Bread', 'Jam'][i] ?? `Item ${i}`, done: d }));
+  const { done: _d, ...rest } = o;
+  return {
+    kind: 'tasklist', id, calendarId: 'primary', title: id, date: '2026-10-12', time: null, items, doneCount: items.filter((i) => i.done).length,
+    totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', etag: `"e-${id}"`, updated: 'x', ...rest,
+  };
+}
+const seg = (item: TaskList, today = '2026-10-12') => itemSegments(item, today)[0];
+const tid = (id: string) => `[data-testid="${id}"]`;
+
+let wrapper: VueWrapper | null = null;
+let router: Router;
+async function setup(routes: Record<string, (r: { body: any; url: URL }) => unknown> = {}, path = '/week/2026-10-12') {
+  const m = mockFetch({
+    'GET /api/config': () => config({ pollIntervalMs: 0 }),
+    'GET /api/settings': () => settingsFixture(),
+    'GET /api/tasklists/open': () => ({ items: [] }),
+    ...routes,
+  });
+  const pinia = freshPinia();
+  await Promise.all([useClockStore().load(), useSettingsStore().load()]);
+  router = createAppRouter(createMemoryHistory());
+  router.push(path);
+  await router.isReady();
+  return { m, pinia };
+}
+const mountIn = (comp: unknown, props: Record<string, unknown>, pinia: unknown) =>
+  (wrapper = mount(comp as never, { props, global: { plugins: [pinia as never, router] }, attachTo: document.body } as never));
+
+beforeEach(() => { document.body.innerHTML = ''; celebrate.mockClear(); });
+afterEach(() => { wrapper?.unmount(); wrapper = null; });
+
+describe('collapsed card', () => {
+  it('shows emoji, title, item titles, count and a progress bar in the compact states', async () => {
+    const { pinia } = await setup();
+    useSettingsStore().settings.categories[0].icon = '🛒';
+    const list = tl('Groceries', { done: [true, false, false], categoryId: useSettingsStore().settings.categories[0].id, estimateMinutes: 90, time: '18:00' });
+    const w = mountIn(TaskListCard, { segment: seg(list), variant: 'block', height: 120 }, pinia);
+    expect(w.get(tid('tasklist-card')).attributes('data-time')).toBe('18:00');
+    expect(w.get(tid('tasklist-card-title')).text()).toBe('Groceries');
+    expect(w.get(tid('tasklist-card-items')).text()).toBe('Milk, Eggs, Bread');
+    expect(w.get(tid('tasklist-card-count')).text()).toBe('1/3');
+    expect(w.get(tid('tasklist-card-icon')).text()).toBe('🛒');
+    expect(w.get(tid('tasklist-card-estimate')).text()).toBe('~1 h 30 min');
+    expect(w.get(tid('tasklist-card-time')).text()).toBe('18:00');
+    expect(w.get(tid('tasklist-progress-ring')).attributes('data-percent')).toBe('33');
+  });
+  it('says "No items" for an empty list and exposes the root element for drag and drop', async () => {
+    const { pinia } = await setup();
+    const w = mountIn(TaskListCard, { segment: seg(tl('Ideas', { done: [] })), variant: 'chip' }, pinia);
+    expect(w.get(tid('tasklist-card-items')).text()).toBe('No items');
+    expect(w.emitted('el')?.[0][0]).toBe(w.get(tid('tasklist-card')).element);
+    expect(w.get(tid('tasklist-card')).attributes('data-draggable')).toBe('tasklist');
+  });
+  it('calm mode hides the item titles', async () => {
+    const { pinia } = await setup();
+    useSettingsStore().settings.calmMode = true;
+    const w = mountIn(TaskListCard, { segment: seg(tl('Groceries')), variant: 'chip' }, pinia);
+    expect(w.find(tid('tasklist-card-items')).exists()).toBe(false);
+    expect(w.get(tid('tasklist-card-count')).text()).toBe('0/3');
+  });
+  it('carried-over lists get the gentle label, not the error color', async () => {
+    const { pinia } = await setup();
+    const list = tl('Laundry', { date: '2026-10-10', done: [true, false] });
+    const s = seg(list);
+    expect(s.date).toBe('2026-10-12');
+    expect(s.carriedFrom).toBe('2026-10-10');
+    const w = mountIn(TaskListCard, { segment: s, variant: 'allday' }, pinia);
+    expect(w.get(tid('tasklist-card-overdue')).text()).toBe('From Sat 10 Oct');
+    expect(w.get(tid('tasklist-card-overdue')).text()).not.toMatch(/overdue|missed|late/i);
+    expect(w.html()).not.toMatch(/error/i);
+    expect(carriedLabel('2026-10-10')).toBe('From Sat 10 Oct');
+  });
+  it('carry-over rules: only open lists of the last 30 days; finished and old ones stay put', () => {
+    expect(seg(tl('a', { date: '2026-10-10', done: [true, true] })).date).toBe('2026-10-10');
+    expect(seg(tl('b', { date: '2026-09-12', done: [false] })).date).toBe('2026-10-12');
+    expect(seg(tl('c', { date: '2026-09-11', done: [false] })).date).toBe('2026-09-11');
+    expect(seg(tl('d', { date: '2026-10-14', done: [false] })).date).toBe('2026-10-14');
+  });
+  it('a timed list is a block sized by its estimate', () => {
+    const s = seg(tl('Tidy', { time: '18:00', estimateMinutes: 45 }));
+    expect([s.startMin, s.endMin]).toEqual([1080, 1125]);
+    expect(seg(tl('Plain', { time: '18:00' })).endMin).toBe(1110);
+  });
+  it('formats estimates', () => {
+    expect([formatEstimate(45), formatEstimate(90), formatEstimate(120)]).toEqual(['~45 min', '~1 h 30 min', '~2 h']);
+  });
+});
+
+describe('expanded list', () => {
+  /** Server double: applies item patches in order, optional failure / latency per call. */
+  function server(list: TaskList, behaviour: { fail?: (n: number) => boolean; delay?: number } = {}) {
+    let state = structuredClone(list);
+    let n = 0;
+    const log: { itemId: string; body: any }[] = [];
+    const handler = async ({ url, body }: { url: URL; body: any }) => {
+      const call = ++n;
+      if (behaviour.delay) await new Promise((r) => setTimeout(r, behaviour.delay));
+      const itemId = url.pathname.split('/').pop()!;
+      log.push({ itemId, body });
+      if (behaviour.fail?.(call)) return { status: 500, body: { error: { code: 'INTERNAL', message: 'boom' } } };
+      state = { ...state, items: state.items.map((i) => (i.id === itemId ? { ...i, ...body } : i)) };
+      state = { ...state, doneCount: state.items.filter((i) => i.done).length };
+      return state;
+    };
+    return { log, handler, get state() { return state; } };
+  }
+  const open = async (list: TaskList, routes: Record<string, any>) => {
+    const { m, pinia } = await setup(routes);
+    useItemsStore().upsert(list);
+    const w = mountIn(ExpandedTaskList, { id: list.id }, pinia);
+    await flushPromises();
+    return { m, w };
+  };
+  const checkbox = (w: VueWrapper, i: number) => w.findAll(tid('tasklist-item'))[i].get('input[type=checkbox]');
+  const done = (w: VueWrapper) => w.findAll(tid('tasklist-item')).map((r) => r.attributes('data-done'));
+
+  it('renders items and ticks optimistically with one PATCH', async () => {
+    const list = tl('G', { done: [true, false, false] });
+    const s = server(list);
+    const { w, m } = await open(list, { 'PATCH /api/tasklists/G/items/G-i1': s.handler });
+    expect(done(w)).toEqual(['true', 'false', 'false']);
+    expect(w.get(tid('tasklist-next-task')).text()).toContain('Eggs');
+    await checkbox(w, 1).setValue(true);
+    expect(done(w)).toEqual(['true', 'true', 'false']); // before the response
+    await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
+    expect(w.get(tid('tasklist-expanded-count')).text()).toBe('2/3');
+  });
+
+  it('rolls back and shows a snackbar when the request fails', async () => {
+    const list = tl('G');
+    const s = server(list, { fail: () => true });
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': s.handler });
+    await checkbox(w, 0).setValue(true);
+    expect(done(w)[0]).toBe('true');
+    await flushPromises();
+    expect(done(w)[0]).toBe('false');
+    expect(useUiStore().snackbars.some((x) => x.testid === 'tasklist-rollback')).toBe(true);
+    expect(useItemsStore().get('G')).toMatchObject({ doneCount: 0 });
+  });
+
+  it('rapid ticks stay correct: one failure rolls back only itself, others survive', async () => {
+    const list = tl('G');
+    const s = server(list, { fail: (n) => n === 2, delay: 5 });
+    const { w } = await open(list, {
+      'PATCH /api/tasklists/G/items/G-i0': s.handler, 'PATCH /api/tasklists/G/items/G-i1': s.handler, 'PATCH /api/tasklists/G/items/G-i2': s.handler,
+    });
+    await checkbox(w, 0).setValue(true);
+    await checkbox(w, 1).setValue(true);
+    await checkbox(w, 2).setValue(true);
+    expect(done(w)).toEqual(['true', 'true', 'true']);
+    await vi.waitFor(() => expect(s.log.length).toBe(3));
+    await new Promise((r) => setTimeout(r, 30));
+    await flushPromises();
+    expect(done(w)).toEqual(['true', 'false', 'true']);
+    expect(s.log.map((l) => l.itemId)).toEqual(['G-i0', 'G-i1', 'G-i2']); // serial, in order
+    expect(s.state.items.map((i) => i.done)).toEqual([true, false, true]);
+  });
+
+  it('merges unsent patches for the same item: last write wins', async () => {
+    const list = tl('G');
+    const s = server(list, { delay: 10 });
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': s.handler, 'PATCH /api/tasklists/G/items/G-i1': s.handler });
+    await checkbox(w, 1).setValue(true); // goes in flight
+    await checkbox(w, 0).setValue(true); // queued
+    await checkbox(w, 0).setValue(false); // merges into the queued op
+    await checkbox(w, 0).setValue(true);
+    await new Promise((r) => setTimeout(r, 60));
+    await flushPromises();
+    expect(s.log).toHaveLength(2);
+    expect(s.log[1]).toEqual({ itemId: 'G-i0', body: { done: true } });
+    expect(done(w)).toEqual(['true', 'true', 'false']);
+  });
+
+  it('celebrates exactly once when the last item is ticked, and shows the message', async () => {
+    const list = tl('G', { done: [true, true, false] });
+    const s = server(list);
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i2': s.handler });
+    expect(w.find(tid('tasklist-complete-message')).exists()).toBe(false);
+    await checkbox(w, 2).setValue(true);
+    await flushPromises();
+    expect(celebrate).toHaveBeenCalledTimes(1);
+    expect(w.get(tid('tasklist-complete-message')).text()).toBe('All done! 🎉');
+    await checkbox(w, 2).setValue(false);
+    await flushPromises();
+    expect(celebrate).toHaveBeenCalledTimes(1);
+    expect(w.find(tid('tasklist-complete-message')).exists()).toBe(false);
+  });
+
+  it('adds items (blank ignored), renames (blank keeps), deletes and reorders', async () => {
+    const list = tl('G');
+    let state = structuredClone(list);
+    const { w, m } = await open(list, {
+      'POST /api/tasklists/G/items': ({ body }: any) => (state = { ...state, items: [...state.items, { id: 'new1', title: body.title, done: false }], totalCount: state.totalCount + 1 }),
+      'PATCH /api/tasklists/G/items/G-i0': ({ body }: any) => (state = { ...state, items: state.items.map((i) => (i.id === 'G-i0' ? { ...i, ...body } : i)) }),
+      'DELETE /api/tasklists/G/items/G-i1': () => (state = { ...state, items: state.items.filter((i) => i.id !== 'G-i1'), totalCount: 2 }),
+      'PUT /api/tasklists/G/items/order': ({ body }: any) => (state = { ...state, items: body.itemIds.map((id: string) => state.items.find((i) => i.id === id)) }),
+    });
+    const input = w.get(tid('tasklist-new-item'));
+    await input.setValue('   ');
+    await input.trigger('keydown.enter');
+    await input.element.closest('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(m.calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+    await input.setValue('Butter');
+    await input.element.closest('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    await flushPromises();
+    expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Milk', 'Eggs', 'Bread', 'Butter']);
+
+    await w.findAll(tid('tasklist-item-title'))[0].trigger('click');
+    const edit = w.get(tid('tasklist-item-title-input'));
+    await edit.setValue('   ');
+    await edit.trigger('keydown.enter');
+    expect(w.findAll(tid('tasklist-item-title'))[0].text()).toBe('Milk');
+    await w.findAll(tid('tasklist-item-title'))[0].trigger('click');
+    await w.get(tid('tasklist-item-title-input')).setValue('Oat milk');
+    await w.get(tid('tasklist-item-title-input')).trigger('keydown.enter');
+    await flushPromises();
+    expect(w.findAll(tid('tasklist-item-title'))[0].text()).toBe('Oat milk');
+
+    await w.findAll(tid('tasklist-item-delete'))[1].trigger('click');
+    await flushPromises();
+    expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Oat milk', 'Bread', 'Butter']);
+    await w.findAll(tid('tasklist-item-up'))[1].trigger('click');
+    expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Bread', 'Oat milk', 'Butter']);
+    await flushPromises();
+    expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', 'new1']);
+  });
+});
+
+describe('open tasks tray', () => {
+  it('lists open lists with carry-over labels and counts', async () => {
+    const laundry = tl('Laundry', { date: '2026-10-10', done: [true, false] });
+    const groceries = tl('Groceries', { done: [false] });
+    const packing = tl('Packing', { time: '18:00', done: [false] });
+    const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [laundry, groceries, packing] }) });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    expect(w.get(tid('task-tray-count')).text()).toBe('3 open');
+    const rows = w.findAll(tid('task-tray-item'));
+    expect(rows.map((r) => r.attributes('data-title'))).toEqual(['Laundry', 'Groceries', 'Packing']);
+    expect(rows[0].text()).toContain('From Sat 10 Oct');
+    expect(rows[1].text()).not.toContain('From');
+    expect(w.findAll(tid('task-tray-move-today'))).toHaveLength(1);
+  });
+  it('count follows ticks and shows "No open tasks" when empty', async () => {
+    const g = tl('Groceries', { done: [false] });
+    const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [g] }) });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    expect(w.get(tid('task-tray-count')).text()).toBe('1 open');
+    useItemsStore().upsert({ ...g, items: [{ ...g.items[0], done: true }], doneCount: 1 });
+    await flushPromises();
+    expect(w.get(tid('task-tray-count')).text()).toBe('No open tasks');
+  });
+  it('sets and clears --tray-h and refreshes through the sync store', async () => {
+    const { pinia, m } = await setup();
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    expect(document.documentElement.style.getPropertyValue('--tray-h')).not.toBe('');
+    w.unmount();
+    wrapper = null;
+    expect(document.documentElement.style.getPropertyValue('--tray-h')).toBe('');
+    expect(m.calls.some((c) => c.path === '/api/tasklists/open')).toBe(true);
+    // carried list: its segment lands on today in the items store view
+    const store = useTaskListsStore();
+    expect(store.count).toBe(0);
+  });
+});
+
+describe('dialog', () => {
+  const fill = async (w: VueWrapper, title: string) => {
+    await w.get(tid('tasklist-title')).setValue(title);
+    await w.get('form').trigger('submit');
+    await flushPromises();
+  };
+  it('rejects blank and whitespace titles with "Title is required" and stays open', async () => {
+    const { pinia, m } = await setup();
+    const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
+    await fill(w, '');
+    expect(w.get(tid('tasklist-error')).text()).toBe('Title is required');
+    await fill(w, '   ');
+    expect(w.get(tid('tasklist-error')).text()).toBe('Title is required');
+    expect(w.emitted('close')).toBeUndefined();
+    expect(m.calls.some((c) => c.method === 'POST')).toBe(false);
+  });
+  it('creates with items, tags, category, estimate and closes', async () => {
+    const created: unknown[] = [];
+    const { pinia } = await setup({ 'POST /api/tasklists': ({ body }) => { created.push(body); return { status: 201, body: tl('new', { title: body.title }) }; } });
+    const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
+    await w.get(tid('tasklist-title')).setValue('  Groceries ');
+    await w.get(tid('tasklist-time')).setValue('18:00');
+    await w.get(tid('tasklist-estimate')).setValue('45');
+    await w.get(tid('tasklist-category')).setValue('shopping');
+    await w.get(tid('tasklist-tags')).setValue('weekend, Urgent, weekend');
+    await w.get(tid('tasklist-items')).setValue('Milk\n\n  Eggs \n');
+    await w.get(tid('tasklist-repeat')).setValue('weekly');
+    await w.get('form').trigger('submit');
+    await flushPromises();
+    expect(created[0]).toEqual({
+      title: 'Groceries', date: '2026-10-14', time: '18:00', estimateMinutes: 45, categoryId: 'shopping', tags: ['weekend', 'Urgent'],
+      items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly',
+    });
+    expect(w.emitted('close')).toHaveLength(1);
+  });
+  it('shows a conflict message on 412 with a reload button', async () => {
+    const list = tl('G');
+    const { pinia } = await setup({
+      'PATCH /api/tasklists/G': () => ({ status: 412, body: { error: { code: 'PRECONDITION_FAILED', message: 'changed' } } }),
+      'GET /api/tasklists/G': () => ({ ...list, title: 'Fresh', etag: '"new"' }),
+    });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    await fill(w, 'Mine');
+    expect(w.get(tid('tasklist-error')).text()).toContain('changed elsewhere');
+    await w.get(tid('tasklist-reload')).trigger('click');
+    await flushPromises();
+    expect((w.get(tid('tasklist-title')).element as HTMLInputElement).value).toBe('Fresh');
+  });
+  it('validateForm and parseTags', () => {
+    const base = { title: 'x', date: '2026-10-14', time: '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' as const };
+    expect(validateForm(base)).toBeNull();
+    expect(validateForm({ ...base, title: ' ' })).toBe('Title is required');
+    expect(validateForm({ ...base, date: '2026-02-30' })).toBe('Pick a date');
+    expect(validateForm({ ...base, estimate: '3' })).toMatch(/Estimate/);
+    expect(validateForm({ ...base, estimate: '45.5' })).toMatch(/Estimate/);
+    expect(validateForm({ ...base, tags: Array.from({ length: 11 }, (_, i) => `t${i}`).join(',') })).toBe('Use at most 10 tags');
+    expect(parseTags(' a, B ,a,, ')).toEqual(['a', 'B']);
+  });
+});
+
+describe('filters', () => {
+  it('apply the category/tag filters to the rendered task lists, events untouched', async () => {
+    const { pinia } = await setup({}, '/week/2026-10-12?categories=work&tags=urgent');
+    const items = useItemsStore();
+    items.upsert(tl('A', { date: '2026-10-14', categoryId: 'work', tags: ['Urgent'] }));
+    items.upsert(tl('B', { date: '2026-10-14', categoryId: 'work', tags: [] }));
+    items.upsert(tl('C', { date: '2026-10-14', categoryId: 'home', tags: ['urgent'] }));
+    items.upsert({ kind: 'event', id: 'E', calendarId: 'p', title: 'E', description: '', location: '', allDay: true, start: '2026-10-14', end: '2026-10-15', colorId: null, color: '#000', etag: 'e', updated: 'x' });
+    let out: string[] = [];
+    wrapper = mount(defineComponent({ setup() { const segs = useDaySegments(); return () => { out = segs('2026-10-14').map((s) => s.item.id); return h('div'); }; } }), { global: { plugins: [pinia, router] } });
+    await flushPromises();
+    expect(out.sort()).toEqual(['A', 'E']);
+    await router.replace({ path: '/week/2026-10-12', query: { categories: 'none' } });
+    await flushPromises();
+    expect(out).toEqual(['E']);
+  });
+});
+
+describe('cleanup', () => {
+  it('leaves no timers or document listeners behind after tick, expand and close', async () => {
+    enableTimerCounting();
+    const add = vi.spyOn(document, 'addEventListener');
+    const rem = vi.spyOn(document, 'removeEventListener');
+    const list = tl('G');
+    const { pinia } = await setup({ 'PATCH /api/tasklists/G/items/G-i0': () => ({ ...list, items: [{ ...list.items[0], done: true }, ...list.items.slice(1)], doneCount: 1 }) });
+    useItemsStore().upsert(list);
+    for (let i = 0; i < 5; i++) {
+      const w = mountIn(ExpandedTaskList, { id: 'G' }, pinia);
+      await flushPromises();
+      await w.findAll('input[type=checkbox]')[0].setValue(true);
+      await flushPromises();
+      w.unmount();
+      wrapper = null;
+    }
+    expect(window.__appTimers ?? 0).toBe(0);
+    const net = (spy: typeof add) => spy.mock.calls.filter((c) => c[0] === 'keydown').length;
+    expect(net(add)).toBe(net(rem));
+    expect(document.querySelectorAll('[data-testid="tasklist-expanded"]').length).toBe(0);
+    enableTimerCounting(false);
+  });
+});
