@@ -12,12 +12,20 @@ export interface ThemeOverrides { glow?: string; entries?: string; corners?: str
 export interface ThemePref { preset: string; overrides: ThemeOverrides }
 export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
 
-/** Window lengths the approach bar offers (ARCHITECTURE "Labs"). */
-export const APPROACH_WINDOWS = [3, 6, 12] as const;
-export type ApproachWindowHours = (typeof APPROACH_WINDOWS)[number];
+/** How far ahead the approach bar reaches, in whole hours (ARCHITECTURE "Labs"): 3, 6, 12 or any custom value. */
+export const APPROACH_WINDOW_MIN = 1;
+export const APPROACH_WINDOW_MAX = 24;
+export type ApproachWindowHours = number;
+
+/** Whether `v` is an allowed approach window length (a whole number of hours, 1–24). */
+export function isApproachWindow(v: unknown): v is ApproachWindowHours {
+  return Number.isInteger(v) && (v as number) >= APPROACH_WINDOW_MIN && (v as number) <= APPROACH_WINDOW_MAX;
+}
 
 interface Prefs {
   hiddenCalendars: string[]; labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
+  /** The Approaching card above the calendar views (ARCHITECTURE "Approaching card"). */
+  approachingCard: boolean;
   /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
   tasksCalendarId: string | null;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
@@ -25,8 +33,8 @@ interface Prefs {
   theme?: ThemePref;
 }
 
-/** The experimental-feature switches returned by `GET /api/prefs`. */
-export interface LabsPrefs { labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours }
+/** The switches returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card). */
+export interface LabsPrefs { labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours; approachingCard: boolean }
 
 /** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, theme, tasks calendar). */
 export class PrefsStore {
@@ -42,8 +50,9 @@ export class PrefsStore {
       ...p,
       hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
       labs: p?.labs === true,
-      approachBar: p?.approachBar === true,
-      approachWindowHours: APPROACH_WINDOWS.find((h) => h === p?.approachWindowHours) ?? 3,
+      approachBar: p?.approachBar !== false,
+      approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
+      approachingCard: p?.approachingCard !== false,
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
     };
@@ -81,15 +90,15 @@ export class PrefsStore {
   }
 
   labsPrefs(sub: string): LabsPrefs {
-    const { labs, approachBar, approachWindowHours } = this.read(sub);
-    return { labs, approachBar, approachWindowHours };
+    const { labs, approachBar, approachWindowHours, approachingCard } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard };
   }
 
   /** Merges the given Labs switches into the person's preferences and returns the result. */
   setLabs(sub: string, patch: Partial<LabsPrefs>): LabsPrefs {
     const p = { ...this.read(sub), ...patch };
     writeJsonAtomic(this.file(sub), p satisfies Prefs);
-    return { labs: p.labs, approachBar: p.approachBar, approachWindowHours: p.approachWindowHours };
+    return { labs: p.labs, approachBar: p.approachBar, approachWindowHours: p.approachWindowHours, approachingCard: p.approachingCard };
   }
 
   tasksCalendarId(sub: string): string | null {

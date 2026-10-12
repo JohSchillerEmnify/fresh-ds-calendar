@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * "Now" card above the time grid: the running event with time left and a shrinking progress bar, what comes next,
- * and (from other features) the next small task. Shown above every calendar view whatever period is shown (it is
- * about now; the calendar store keeps today loaded). Rendered once by the shell above the calendar views, so a
+ * Approaching card (formerly "Now" card) above the time grid: the running event with time left and a shrinking
+ * progress bar, what comes next, and (from other features) the next small task. Always open (collapsing is shelved,
+ * ASSUMPTIONS A-68). Shown above every calendar view whatever period is shown (it is about now; the calendar store
+ * keeps today loaded) unless the person switched it off. Rendered once by the shell above the calendar views, so a
  * view switch keeps it; it animates in only when it really appears. `data-entered` counts those enter animations.
  */
 import { computed, ref } from 'vue';
@@ -18,17 +19,9 @@ const clock = useClockStore();
 const segs = useDaySegments();
 const model = computed(() => nowCardModel(segs(clock.today), clock.minutesNow));
 const prefs = usePrefsStore();
-/** Labs approach bar: replaces the "Next" line while something timed is still ahead today. */
+/** Approach track: replaces the "Next" line while something timed is still ahead today. */
 const approach = computed(() => (prefs.approachBar ? approachEntries(segs(clock.today), clock.minutesNow, prefs.approachWindowHours * 60) : { entries: [], atEnd: false }));
 const track = computed(() => approach.value.entries.length > 0);
-const KEY = 'now-card-collapsed';
-const collapsed = ref(false);
-try { collapsed.value = localStorage.getItem(KEY) === '1'; } catch { /* storage unavailable */ }
-function toggle() {
-  collapsed.value = !collapsed.value;
-  try { localStorage.setItem(KEY, collapsed.value ? '1' : '0'); } catch { /* ignore */ }
-}
-const showNext = computed(() => !collapsed.value || !model.value.current);
 const extra = computed(() => nowCardLines.map((f) => f()).filter((x): x is string => !!x));
 const entered = ref(0);
 </script>
@@ -36,32 +29,28 @@ const entered = ref(0);
 <template>
   <Transition name="now" appear @before-enter="entered++">
   <section
-    class="now-card" :class="{ collapsed, track: showNext && track }" data-testid="now-card" aria-label="Now" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
-    :data-collapsed="collapsed ? 'true' : 'false'" role="button" tabindex="0" :aria-expanded="!collapsed" :style="{ '--c': model.current?.color }"
-    @click="toggle" @keydown.enter.prevent="toggle" @keydown.space.prevent="toggle"
+    class="now-card" data-testid="now-card" aria-label="Approaching" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
+    :style="{ '--c': model.current?.color }"
   >
     <div class="one" :data-testid="model.current ? 'now-card-current' : undefined">
       <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ model.current.line }}</p>
-      <p v-if="showNext && !track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
+      <p v-if="!track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
-    <ApproachBar v-if="showNext && track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" />
-    <div v-if="model.current && !collapsed" class="bar" data-testid="now-progress" role="progressbar" aria-label="Event progress" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
+    <ApproachBar v-if="track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" />
+    <div v-if="model.current" class="bar" data-testid="now-progress" role="progressbar" aria-label="Event progress" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
       <span class="fill" :style="{ transform: `scaleX(${(100 - model.current.elapsedPercent) / 100})` }" />
     </div>
-    <template v-if="!collapsed"><p v-for="l in extra" :key="l" class="line sub" data-testid="now-card-line">{{ l }}</p></template>
+    <p v-for="l in extra" :key="l" class="line sub" data-testid="now-card-line">{{ l }}</p>
   </section>
   </Transition>
 </template>
 
 <style scoped>
 .now-card {
-  flex: none; margin: 4px 8px 4px; padding: 4px 12px 5px; border-radius: var(--md-sys-shape-corner-large); cursor: pointer;
+  flex: none; margin: 4px 8px 4px; padding: 4px 12px 5px; border-radius: var(--md-sys-shape-corner-large);
   background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
 }
-.now-card.collapsed { min-height: 28px; max-height: 28px; justify-content: center; padding-top: 0; padding-bottom: 0; }
-/* the approach track keeps its rows inside the card, collapsed or not */
-.now-card.collapsed.track { max-height: none; padding-top: 2px; padding-bottom: 3px; }
 .one { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .line { margin: 0; font: var(--md-sys-typescale-body-medium); font-size: 12px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .strong { flex: 0 1 auto; font: var(--md-sys-typescale-title-medium); font-size: 14px; line-height: 20px; }

@@ -222,12 +222,13 @@ export interface CheckInResponse {
   motivation: Motivation;
 }
 
-/** Approach bar window lengths in hours (ARCHITECTURE "Labs"). */
-export type ApproachWindowHours = 3 | 6 | 12;
+/** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
+export type ApproachWindowHours = number;
 
-/** Per-person Labs switches (`GET/PATCH /api/prefs`). */
+/** Per-person switches (`GET/PATCH /api/prefs`): Labs, the approach track and window, the Approaching card. */
 export interface LabsPrefs {
   labs: boolean;
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;
+  approachingCard: boolean;
 }

@@ -85,7 +85,21 @@ function commitHex() {
 const scenes = [{ value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] as const;
 const views = [{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }, { value: 'day', label: 'Day' }] as const;
 const colorOptions = [{ value: '', label: 'Calendar color' }, ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, label: c.name }))];
-const approachWindows = [{ value: '3', label: '3 hours' }, { value: '6', label: '6 hours' }, { value: '12', label: '12 hours' }] as const;
+/** 3, 6 and 12 hours, plus the person's own number of hours while one is chosen (so the choice shows it). */
+const approachWindows = computed(() => {
+  const h = labs.approachWindowHours;
+  return [3, 6, 12, ...([3, 6, 12].includes(h) ? [] : [h])].sort((a, b) => a - b).map((v) => ({ value: String(v), label: `${v} hours` }));
+});
+const customHours = ref(String(labs.approachWindowHours));
+const customHoursError = ref('');
+watch(() => labs.approachWindowHours, (h) => { customHours.value = String(h); customHoursError.value = ''; });
+/** Saves a typed window length when it is a whole number of hours from 1 to 24. */
+function commitCustomHours() {
+  const h = Number(customHours.value.trim());
+  if (!Number.isInteger(h) || h < 1 || h > 24) { customHoursError.value = 'Enter a whole number from 1 to 24'; return; }
+  customHoursError.value = '';
+  if (h !== labs.approachWindowHours) void saveLabs({ approachWindowHours: h });
+}
 const levels = [{ value: 'full', label: 'Full' }, { value: 'reduced', label: 'Reduced' }, { value: 'off', label: 'Off' }] as const;
 const warns = [{ value: '0', label: 'Off' }, { value: '5', label: '5 min' }, { value: '10', label: '10 min' }, { value: '15', label: '15 min' }] as const;
 const gardens = [{ value: 'plant', label: 'Single plant' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'off', label: 'Off' }] as const;
@@ -161,14 +175,18 @@ async function resetDemo() {
       <section class="card" aria-labelledby="h-labs">
         <h2 id="h-labs">Labs</h2>
         <div class="row"><div class="grow"><span class="lab">Experimental views</span><span class="sub">Clock, Timeline and Strip in the view switcher</span></div><Switch :model-value="labs.labs" label="Experimental views" data-testid="settings-labs" @update:model-value="saveLabs({ labs: $event })" /></div>
-        <div class="row"><div class="grow"><span class="lab">Approach bar</span><span class="sub">What comes next today as a track in the now card</span></div><Switch :model-value="labs.approachBar" label="Approach bar" data-testid="settings-approach-bar" @update:model-value="saveLabs({ approachBar: $event })" /></div>
-        <div class="row"><Select class="fw" :model-value="String(labs.approachWindowHours)" :options="[...approachWindows]" label="Approach bar reaches ahead" data-testid="settings-approach-window" @update:model-value="saveLabs({ approachWindowHours: Number($event) as ApproachWindowHours })" /></div>
       </section>
 
       <section class="card" aria-labelledby="h-cal">
         <h2 id="h-cal">Calendar</h2>
         <div class="row"><Select class="fw" :model-value="s.defaultView" :options="[...views]" label="Default view" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
         <div class="row"><Select class="fw" :model-value="s.defaultEventColorId ?? ''" :options="colorOptions" label="Default event color" data-testid="settings-default-event-color" @update:model-value="save({ defaultEventColorId: $event || null })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Approaching card</span><span class="sub">What is on now and next, above the calendar</span></div><Switch :model-value="labs.approachingCard" label="Approaching card" data-testid="settings-approaching-card" @update:model-value="saveLabs({ approachingCard: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Approaching track</span><span class="sub">What comes next today as a track in the Approaching card</span></div><Switch :model-value="labs.approachBar" label="Approaching track" data-testid="settings-approach-bar" @update:model-value="saveLabs({ approachBar: $event })" /></div>
+        <div class="row">
+          <Select class="grow" :model-value="String(labs.approachWindowHours)" :options="approachWindows" label="Track reaches ahead" data-testid="settings-approach-window" @update:model-value="saveLabs({ approachWindowHours: Number($event) as ApproachWindowHours })" />
+          <TextField v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" label="Hours" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
+        </div>
         <div class="row"><div class="grow"><span class="lab">Show tasks calendar in Google</span><span class="sub">Task lists stay in the app either way</span></div><Switch :model-value="labs.tasksCalendarVisible" label="Show tasks calendar in Google" data-testid="settings-tasks-calendar-visible" @update:model-value="saveLabs({ tasksCalendarVisible: $event })" /></div>
       </section>
 
@@ -226,6 +244,7 @@ h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-mediu
 .row.col { flex-direction: column; align-items: stretch; gap: 8px; }
 .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .fw { width: 100%; }
+.hours { flex: none; width: 104px; }
 .lab { font: var(--md-sys-typescale-body-large); }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .val { font: var(--md-sys-typescale-title-medium); }

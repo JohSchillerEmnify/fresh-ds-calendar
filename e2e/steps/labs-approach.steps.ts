@@ -1,4 +1,4 @@
-/** Labs approach bar steps (STEPS.md "Labs"): the track that replaces the now card's "Next" line. */
+/** Approaching card and approach bar steps (STEPS.md "Labs"): the track that replaces the card's "Next" line. */
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { World } from './support/world.js';
@@ -19,6 +19,47 @@ const before = new WeakMap<World, number>();
 
 Given('the approach bar is on', async function (this: World) {
   await this.api.patch('/api/prefs', { approachBar: true });
+});
+
+Given('the approaching track is off', async function (this: World) {
+  await this.api.patch('/api/prefs', { approachBar: false });
+});
+
+/** Opens the settings page (from the app's start page when no page is open yet). */
+async function openSettings(w: World) {
+  if (!w.page.url().startsWith('http')) {
+    await w.page.goto('/');
+    await w.calendarShown();
+  }
+  await w.page.getByTestId('settings-button').click();
+  await expect(w.page.getByTestId('settings-view')).toBeVisible();
+}
+
+const prefsSaved = (w: World) =>
+  w.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+
+When('I set the approaching window to {int} hours in the settings', async function (this: World, hours: number) {
+  await openSettings(this);
+  const field = this.page.getByTestId('settings-approach-window-custom');
+  await field.fill(String(hours));
+  const saved = prefsSaved(this);
+  await field.press('Enter');
+  expect((await saved).status(), 'prefs saved').toBe(200);
+  await this.page.getByTestId('settings-back').click();
+});
+
+When('I switch off the Approaching card in the settings', async function (this: World) {
+  await openSettings(this);
+  const control = this.page.getByTestId('settings-approaching-card');
+  await expect(control).toHaveAttribute('aria-checked', 'true');
+  const saved = prefsSaved(this);
+  await control.click();
+  expect((await saved).status(), 'prefs saved').toBe(200);
+  await this.page.getByTestId('settings-back').click();
+});
+
+Then('I do not see the Approaching card', async function (this: World) {
+  await expect(this.page.getByTestId('now-card')).toHaveCount(0);
 });
 
 When('I turn on the approach bar and open the week view for {date}', async function (this: World, date: string) {

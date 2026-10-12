@@ -112,7 +112,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
       <NavigationRail v-if="isCalendar && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
       <div class="col">
         <main ref="swipeArea" class="main" data-testid="calendar-swipe-area">
-          <template v-if="route.meta.view"><component :is="h" v-for="(h, i) in calendarHeaders" :key="i" /></template>
+          <template v-if="route.meta.view"><template v-for="(h, i) in calendarHeaders" :key="i"><component :is="h.component" v-if="h.shown()" /></template></template>
           <RouterView />
         </main>
         <component :is="t" v-for="(t, i) in trayComponents" :key="i" />

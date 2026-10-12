@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { APPROACH_WINDOWS, LOCAL_PERSON, type LabsPrefs } from '../services/prefsStore.js';
+import { isApproachWindow, LOCAL_PERSON, type LabsPrefs } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -105,14 +105,13 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     const patch: Partial<LabsPrefs> = {};
-    for (const k of ['labs', 'approachBar', 'tasksCalendarVisible'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.approachWindowHours !== undefined) {
-      const h = APPROACH_WINDOWS.find((w) => w === b.approachWindowHours);
-      if (h === undefined) throw validation('approachWindowHours must be 3, 6 or 12', 'approachWindowHours');
-      patch.approachWindowHours = h;
+      if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
+      patch.approachWindowHours = b.approachWindowHours;
     }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
