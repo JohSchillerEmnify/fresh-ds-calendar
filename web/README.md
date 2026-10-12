@@ -55,6 +55,7 @@ Other hooks:
 ## Conventions
 
 - Dialogs: `AdaptiveSheet` (`data-presentation="sheet|modal"`), rendered only while open. Pass `:dismiss-on-scrim="!dirty"`.
+- Phone sheets close on a swipe down anywhere (`AdaptiveSheet`). Scrolled content scrolls first; text inputs are exempt. Add `data-no-sheet-drag` to any element whose own drags must not move the sheet (horizontal scrollers, sliders, canvases).
 - Touch targets >= 44 px (`IconButton`, `Button`, `Chip` hit area, `Switch`, swatches). Inputs 16 px.
 - `v-ripple` adds the state layer element `[data-state-layer]` and `data-pressed`.
 - `data-theme` is always `light` or `dark` (system resolves live); the theme cache lives in `localStorage` (`cal.themeMode`, `cal.themeCss`) and is applied by an inline script in `index.html` before paint.
