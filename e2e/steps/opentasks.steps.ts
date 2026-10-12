@@ -116,7 +116,10 @@ Given('the item {string} of the task list {string} was ticked on {date}', async 
 });
 
 Then('the task list {string} is shown as carried over from {string}', async function (this: World, title: string, from: string) {
-  await expect(this.taskCard(title).getByTestId('tasklist-card-overdue')).toHaveText(exactText(`From ${from}`));
+  const label = this.taskCard(title).getByTestId('tasklist-card-overdue');
+  await expect(label).toBeVisible();
+  // Roomy cards show the text, narrow ones a badge named by its aria-label (STEPS.md).
+  await expect.poll(() => label.evaluate((e) => e.getAttribute('aria-label') ?? e.textContent?.trim())).toBe(`From ${from}`);
 });
 
 Then('the task list {string} is not flagged as overdue', async function (this: World, title: string) {

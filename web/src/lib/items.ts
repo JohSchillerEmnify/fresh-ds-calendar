@@ -193,8 +193,11 @@ export function matchesFilters(item: CalendarItem, f: Filters): boolean {
   return true;
 }
 
-/** Minimum rendered block height (px); the block keeps its start position (spec: timeline, short events). */
-export const MIN_BLOCK_PX = 24;
+/**
+ * Minimum rendered block box height (px): 24 px visible plus the block's 1 px bottom gap (A-E4); the block keeps its
+ * start position (spec: timeline, short events).
+ */
+export const MIN_BLOCK_PX = 25;
 /** Rendered top and height (px) of a timed segment: proportional to the duration, never below `MIN_BLOCK_PX`. */
 export function blockGeometry(startMin: number, endMin: number, hourHeight: number, minPx = MIN_BLOCK_PX): { top: number; height: number } {
   return { top: (startMin / 60) * hourHeight, height: Math.max(((endMin - startMin) / 60) * hourHeight, minPx) };

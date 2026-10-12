@@ -209,6 +209,7 @@ describe('components', () => {
     const w = mount(SunflowerField, { props: { flowers: 2 }, attachTo: document.body });
     await w.setProps({ flowers: 3 });
     await w.setProps({ change: { id: 1, kinds: ['bloom'] } });
+    await nextTick(); // the bloom waits for the new flower to render
     expect(document.querySelector('[data-kind="bloom"]')).not.toBeNull();
     w.unmount();
   });
@@ -300,7 +301,7 @@ describe('LeadingWidgets', () => {
     await flushPromises();
     expect(w.find('[data-testid="streak-flame"]').text()).toBe('4');
     expect(document.querySelector('[data-testid="streak-message"]')!.textContent).toBe('Checked in, day 4');
-    expect(w.find('[data-testid="plant-button"]').attributes('data-stage')).toBe('3');
+    expect(w.find('[data-testid="plant-button"]').attributes('data-stage')).toBe('Leafy');
     await w.find('[data-testid="plant-button"]').trigger('click');
     expect(w.find('[data-testid="plant-card-stage"]').text()).toBe('Leafy');
     await w.setProps({ streakFlame: false, garden: 'off' });

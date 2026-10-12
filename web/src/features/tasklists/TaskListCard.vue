@@ -112,7 +112,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span class="title" data-testid="tasklist-card-title">{{ tl.title }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
-      <span v-if="carried" class="from" data-testid="tasklist-card-overdue">{{ carriedLabel(segment.carriedFrom!) }}</span>
+      <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
       <span class="meta">
         <span :key="tl.doneCount" class="count" data-testid="tasklist-card-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
         <ProgressRing class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
@@ -178,11 +178,11 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
 .from { flex: 0 100 auto; max-width: 45%; background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 16%, transparent); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
 .row .est { flex: none; font-size: 10px; }
-.card .row .est, .card .row .from, .mini .row .est, .mini .row .from, .block[data-fit='inline'] .from { display: none; }
+.card .row .est, .card .row .from, .mini .row .est, .block[data-fit='inline'] .from { display: none; }
 .titles { padding-top: 1px; padding-bottom: 1px; }
 .titles .row { min-height: 20px; }
 /* Titles only: checkbox glyph + title + x/y, nothing else */
-.titles .emoji, .titles .est, .titles .from, .titles .foot, .titles .ring, .titles .items, .titles .more { display: none; }
+.titles .emoji, .titles .est, .titles .foot, .titles .ring, .titles .items, .titles .more { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* chip: one line (kept for hosts that ask for it; the calendar views use card / allday) */
@@ -236,6 +236,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini .foot { display: none; }
 .mini.block .foot { display: none; }
 .mini .time, .mini .est, .mini .from { font-size: 9px; line-height: 11px; }
+.mini .from { flex: none; max-width: none; padding: 0 2px; }
 
 /* narrow cards: title keeps priority */
 /* tight: no count text, no ring; a thin progress bar on the bottom edge keeps the whole width for the title */
