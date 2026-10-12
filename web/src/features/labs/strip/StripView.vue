@@ -33,13 +33,12 @@ const today = computed(() => clock.today);
 const segs = (date: string): Segment[] => (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
 /** Pixels per hour: each column is a small time grid, block height proportional to duration. */
 const HH = 48;
-const GUTTER = 30;
 const topOf = (date: string) => segs(date).filter((s) => s.allDay || s.startTime === null);
 const placedOf = (date: string) => packColumns(segs(date), (s) => (segmentMinPx(s) / HH) * 60);
 const weekday = (d: string) => WEEKDAY_LABELS[(parseIsoDate(d)!.getDay() + 6) % 7];
 const dayLabel = (d: string) => `${parseIsoDate(d)!.getDate()} ${MONTH_NAMES[parseIsoDate(d)!.getMonth()].slice(0, 3)}`;
 
-const colWidth = () => scroller.value!.firstElementChild!.getBoundingClientRect().width;
+const colWidth = () => scroller.value!.querySelector('.strip-column')!.getBoundingClientRect().width;
 const loadRange = () => items.setVisible(toIsoDate(start.value), toIsoDate(addDays(start.value, count.value))).catch(() => undefined);
 
 let raf = 0;
@@ -87,7 +86,10 @@ onMounted(async () => {
   void loadRange();
   await nextTick();
   scroller.value!.scrollLeft = CHUNK * colWidth();
-  scroller.value!.scrollTop = (7 * 60 / 60) * HH;
+  // like the week view: now in the upper third when today is the front day, otherwise 07:00
+  const el = scroller.value!;
+  const todayFront = toIsoDate(initial) === clock.today;
+  el.scrollTop = Math.max(0, todayFront ? (clock.minutesNow / 60) * HH - el.clientHeight / 3 : 7 * HH);
 });
 onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
 </script>
@@ -100,23 +102,27 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
       <button type="button" class="btn" data-testid="strip-today" @click="goToday">Today</button>
     </header>
     <div ref="scroller" class="scroller" data-testid="strip" @scroll.passive="onScroll">
-      <article v-for="d in days" :key="d" class="strip-column" :class="{ today: d === today }" data-testid="strip-column" :data-date="d">
-        <div class="top">
+      <div class="top">
+        <div class="gut" />
+        <div v-for="d in days" :key="d" class="tcol" :class="{ today: d === today }" :data-date="d">
           <h3 class="head"><span class="wd">{{ weekday(d) }}</span><span class="dt">{{ dayLabel(d) }}</span></h3>
-          <div class="allday" data-testid="strip-allday">
+          <div class="allday" data-testid="strip-allday" :data-date="d">
             <ItemView v-for="s in topOf(d)" :key="s.item.id + s.date" :segment="s" variant="allday" />
           </div>
         </div>
-        <div class="grid" :style="{ height: 24 * HH + 'px' }">
-          <span v-for="h in HOURS" :key="h" class="hl" :style="{ top: h * HH + 'px', height: HH + 'px' }"><i>{{ h === 0 ? '' : hourLabel(h) }}</i></span>
+      </div>
+      <div class="body" :style="{ height: 24 * HH + 'px' }">
+        <div class="gut hours"><span v-for="h in HOURS" :key="h" class="hlab" :style="{ height: HH + 'px' }">{{ h === 0 ? '' : hourLabel(h) }}</span></div>
+        <article v-for="d in days" :key="d" class="strip-column" :class="{ today: d === today }" data-testid="strip-column" :data-date="d">
+          <span v-for="h in HOURS" :key="h" class="hl" data-testid="strip-hour-line" :data-hour="h" :style="{ top: h * HH + 'px', height: HH + 'px' }" />
           <div
             v-for="p in placedOf(d)" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).height + 'px', left: `calc(${GUTTER}px + (100% - ${GUTTER}px) * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc((100% - ${GUTTER}px) * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).height + 'px', left: `calc(100% * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc(100% * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
           >
             <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).height" />
           </div>
-        </div>
-      </article>
+        </article>
+      </div>
     </div>
   </section>
 </template>
@@ -127,22 +133,25 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
 .title { flex: 1; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-on-surface); }
 .btn { border: 0; border-radius: var(--md-sys-shape-corner-full); padding: 6px 14px; cursor: pointer; font: var(--md-sys-typescale-label-large);
   background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-.scroller { --cols: 1; flex: 1; min-height: 0; display: flex; align-items: flex-start; overflow: auto; scroll-snap-type: x mandatory;
+.scroller { --cols: 1; flex: 1; min-height: 0; overflow: auto; container-type: inline-size; scroll-snap-type: x mandatory; scroll-padding-left: 30px;
   overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; }
-.strip-column { flex: 0 0 calc(100% / var(--cols)); box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; display: flex;
-  flex-direction: column; padding: 0 6px; border-left: 1px solid var(--md-sys-color-outline-variant); }
-.top { position: sticky; top: 0; z-index: 30; background: var(--md-sys-color-surface); padding-bottom: 2px; }
+.top, .body { display: flex; width: max-content; min-width: 100%; }
+.top { position: sticky; top: 0; z-index: 30; background: var(--md-sys-color-surface); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.gut { position: sticky; left: 0; z-index: 40; flex: none; width: 30px; background: var(--md-sys-color-surface); }
+.hours { display: flex; flex-direction: column; }
+.hlab { box-sizing: border-box; flex: none; padding-right: 4px; text-align: right; transform: translateY(-7px); font: var(--md-sys-typescale-label-small); font-size: 10px; color: var(--md-sys-color-on-surface-variant); }
+.tcol, .strip-column { flex: 0 0 calc((100cqw - 30px) / var(--cols)); box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always;
+  border-left: 1px solid var(--md-sys-color-outline-variant); min-width: 0; }
+.tcol { display: flex; flex-direction: column; padding: 0 6px 2px; }
+.strip-column { position: relative; }
 .head { margin: 0; padding: 6px 10px; display: flex; flex-direction: column; border-radius: var(--md-sys-shape-corner-medium);
   background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); }
 .head .wd { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .head .dt { font: var(--md-sys-typescale-title-large); }
 .today .head { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .today .head .wd { color: inherit; }
-.allday { display: flex; flex-direction: column; gap: 2px; min-height: 6px; padding: 2px 0 2px 30px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
-.grid { position: relative; flex: none; }
-.hl { position: absolute; left: 0; right: 0; box-sizing: border-box; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-right: 4px;
-  font: var(--md-sys-typescale-label-small); font-size: 10px; color: var(--md-sys-color-on-surface-variant); }
-.hl i { display: block; width: 26px; text-align: right; font-style: normal; transform: translateY(-7px); }
+.allday { flex: 1; display: flex; flex-direction: column; gap: 2px; min-height: 6px; padding: 2px 0; }
+.hl { position: absolute; left: 0; right: 0; box-sizing: border-box; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .blk { position: absolute; padding: 0 1px 1px; box-sizing: border-box; z-index: var(--z, 1); min-width: 0; display: flex; }
 .blk > * { flex: 1; min-width: 0; }
 @media (min-width: 720px) { .scroller { --cols: 3; } }
