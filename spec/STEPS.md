@@ -810,6 +810,10 @@ the event {string} is an arc from {time} to {time}
 the clock hand points at {time}
 the arc of {string} is labelled {string}
 the approach bar is on
+the approaching track is off
+I set the approaching window to {int} hours in the settings
+I switch off the Approaching card in the settings
+I do not see the Approaching card
 the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
 I turn on the approach bar and open the week view for {date}
@@ -932,3 +936,6 @@ Google shows the calendar {string}
   afterwards (a marker property set on it survives) and no enter animation ran on it (`data-entered` unchanged).
 - "starts at now and shows N minutes": the block's left edge is at `approach-now` (± 2 px) and its width equals N
   minutes on the track scale (± 10 %); `data-running="true"` on the item.
+- Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
+  (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
+  for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.
