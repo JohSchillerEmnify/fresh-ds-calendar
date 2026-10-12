@@ -33,6 +33,9 @@ onMounted(async () => {
   }
 });
 
+// The list vanished (deleted here or elsewhere): close the frame, whatever closed the inner view first.
+watch(tl, (now, before) => { if (before && !now) emit('close'); });
+
 // --- placement ------------------------------------------------------------------------------------------------
 const sheet = ref<{ panel: HTMLElement | null } | null>(null);
 const view = ref<{ busy: boolean } | null>(null);

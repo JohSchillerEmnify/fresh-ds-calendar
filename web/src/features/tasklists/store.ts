@@ -30,9 +30,10 @@ export const useTaskListsStore = defineStore('tasklists', () => {
   async function refresh(): Promise<void> {
     const res = await api.openTaskLists(clock.today, CARRY_OVER_DAYS);
     dropped.clear();
-    fromApi.value = res.items;
-    finishedFromApi.value = res.finishedToday ?? [];
-    items.setCarried(res.items);
+    const alive = (l: TaskList) => !items.isDeleted(l.id); // a response in flight during a delete still lists it
+    fromApi.value = res.items.filter(alive);
+    finishedFromApi.value = (res.finishedToday ?? []).filter(alive);
+    items.setCarried(fromApi.value);
     loaded.value = true;
   }
   /** Called after a tick that leaves no open item in the list. */
