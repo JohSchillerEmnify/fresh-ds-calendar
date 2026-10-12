@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Collapsed task list card (registered for kind 'tasklist'), used in month cells, week/day all-day rows and as timed blocks.
- * A task list is marked as a task: a tiny checkbox (empty / partly filled / checked by done count) before the title, a dashed
- * left edge and a lighter tint; events are plain solid blocks.
+ * A task list is marked as a task: a tiny checkbox (empty / partly filled / checked by done count) before the title, solid
+ * fill in the list colour (like events) with a white or black on-colour.
  * Item names are never dropped when the list has items. The degradation ladder (`fitItems`, budget from the `height` prop or
  * a default) goes: one name per line -> ellipsised names, as many lines as fit -> first N names + "+k" line -> (cards narrower
  * than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row) names inline next
@@ -11,6 +11,7 @@
  */
 import { computed, inject, onMounted, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
+import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
 import { vRipple } from '@/lib/ripple';
@@ -113,7 +114,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
     ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
-    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
+    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
@@ -142,9 +143,8 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
 
 <style scoped>
 .tl {
-  --bg: color-mix(in srgb, var(--c) 13%, var(--md-sys-color-surface-container-high));
   container-type: inline-size; position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; text-align: left;
-  color: var(--md-sys-color-on-surface); background: var(--bg); border-left: 3px dashed var(--c); border-radius: var(--md-sys-shape-corner-extra-small);
+  color: var(--on); background: var(--c); border-radius: var(--md-sys-shape-corner-extra-small);
   padding: 1px 4px 2px; overflow: hidden; cursor: pointer; font: var(--md-sys-typescale-label-medium);
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   transition: background var(--md-sys-motion-duration-medium), transform var(--md-sys-motion-duration-short);
@@ -152,9 +152,6 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
 .tl[data-dragging='true'] { cursor: grabbing; }
 /* the handles stick out of the block */
 .tl.resizing { overflow: visible; }
-.tl.carried { --bg: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); }
-.tl.carried .items, .tl.carried .more, .tl.carried .est, .tl.carried .time { color: var(--md-sys-color-on-tertiary-container); }
-.tl.carried .count { background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 16%, transparent); }
 .tl.complete { opacity: 0.55; }
 .tl.complete .title, .it.done { text-decoration: line-through; }
 .it.done { opacity: 0.7; }
@@ -164,31 +161,31 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
   flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: 500; line-height: 16px; text-overflow: ellipsis;
 }
 .meta { flex: none; display: inline-flex; align-items: center; gap: 4px; }
-.count { font: var(--md-sys-typescale-label-small); font-size: 10px; padding: 0 5px; border-radius: 8px; background: color-mix(in srgb, var(--c) 28%, transparent); line-height: 15px; }
+.count { font: var(--md-sys-typescale-label-small); font-size: 10px; padding: 0 5px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); line-height: 13px; }
 html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion-spring) both; }
 
 /* task marker: tiny checkbox in the category colour, empty / partly filled / checked */
-.cb { position: relative; flex: none; box-sizing: border-box; width: 11px; height: 11px; border: 1.5px solid var(--c); border-radius: 3px; background: transparent; }
-.cb[data-state='partial'] { background: linear-gradient(to top, var(--c) var(--fill), transparent var(--fill)); }
-.cb[data-state='done'] { background: var(--c); }
-.cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--md-sys-color-surface); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.cb { position: relative; flex: none; box-sizing: border-box; width: 11px; height: 11px; border: 1.5px solid var(--on); border-radius: 3px; background: transparent; }
+.cb[data-state='partial'] { background: linear-gradient(to top, var(--on) var(--fill), transparent var(--fill)); }
+.cb[data-state='done'] { background: var(--on); }
+.cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--c); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
 
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over) behind the "+k" line */
-.items, .est, .from, .time { font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--md-sys-color-on-surface-variant); }
+.items, .est, .from, .time { font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }
 .items .sep { display: none; }
 .it { position: relative; display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 12px; }
-.it::before { content: ''; position: absolute; left: 1px; top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--c); border-radius: 2px; }
-.it.done::before { background: var(--c); }
+.it::before { content: ''; position: absolute; left: 1px; top: 3.5px; box-sizing: border-box; width: 7px; height: 7px; border: 1px solid var(--on); border-radius: 2px; }
+.it.done::before { background: var(--on); }
 .it.over { display: none; }
 .tl { --fs: 11px; }
 .tl.mini { --fs: 9px; }
 .it { font-size: var(--fs); }
 .it::before { transform: scale(var(--rs, 1)); transform-origin: left center; }
 .it.fade { -webkit-mask-image: linear-gradient(180deg, #000 45%, rgba(0, 0, 0, 0.45)); mask-image: linear-gradient(180deg, #000 45%, rgba(0, 0, 0, 0.45)); }
-.more { font-size: 10px; line-height: 13px; padding-left: 12px; font-weight: 500; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; }
+.more { font-size: 10px; line-height: 13px; padding-left: 12px; font-weight: 500; white-space: nowrap; }
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
-.from { flex: 0 100 auto; max-width: 45%; background: color-mix(in srgb, var(--md-sys-color-on-tertiary-container) 16%, transparent); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
+.from { flex: 0 100 auto; max-width: 45%; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
 .row .est { flex: none; font-size: 10px; }
 .card .row .est, .card .row .from, .mini .row .est, .block[data-fit='inline'] .from { display: none; }
 .titles { padding-top: 1px; padding-bottom: 1px; }
@@ -208,12 +205,12 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .allday { padding: 3px 6px 4px 6px; }
 .allday .ring { display: none; }
 /* block: timed, sized by estimate */
-.block { height: 100%; padding: 3px 5px; border-radius: var(--md-sys-shape-corner-small); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent); }
+.block { height: 100%; padding: 3px 5px; border-radius: var(--md-sys-shape-corner-small); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28); }
 .block { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-content: start; }
 .block .row { min-width: 0; }
 .block .items { min-height: 0; }
 .block .more { grid-row: auto; }
-.block.tight .more { position: absolute; right: 3px; bottom: 2px; padding: 0 2px; border-radius: 4px; background: var(--bg); }
+.block.tight .more { position: absolute; right: 3px; bottom: 2px; padding: 0 2px; border-radius: 4px; background: var(--c); }
 .block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 /* no spare row: names run next to the title */
 .block[data-fit='inline'] { display: flex; flex-direction: row; align-items: center; gap: 5px; padding-top: 1px; padding-bottom: 1px; }
@@ -237,7 +234,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .card .foot { display: none; }
 
 /* mini tier (cards narrower than 84 px: phone month, phone week columns): 9 px rows */
-.mini { padding: 1px 2px 2px 3px; border-left-width: 2px; }
+.mini { padding: 1px 2px 2px 3px; }
 .mini .row { gap: 2px; min-height: 14px; }
 .mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: 2.5px; }
@@ -254,7 +251,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 
 /* narrow cards: title keeps priority */
 /* tight: no count text, no ring; a thin progress bar on the bottom edge keeps the whole width for the title */
-.pbar { display: none; position: absolute; left: 0; bottom: 0; height: 2.5px; width: var(--p); background: var(--c); border-radius: 0 2px 2px 0; transition: width 480ms cubic-bezier(0.3, 0, 0.2, 1); }
+.pbar { display: none; position: absolute; left: 0; bottom: 0; height: 2.5px; width: var(--p); background: var(--on); border-radius: 0 2px 2px 0; transition: width 480ms cubic-bezier(0.3, 0, 0.2, 1); }
 @container (max-width: 83px) { .count, .ring { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } .pbar { display: block; } .meta { gap: 0; } }
 @container (max-width: 55px) { .emoji { display: none; } .row { gap: 2px; } .allday .foot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } }
 @container (min-width: 150px) {
