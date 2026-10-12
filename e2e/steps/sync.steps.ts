@@ -4,6 +4,9 @@ import { Then, When } from './fixtures.js';
 import { setVisibility } from './support/visibility.js';
 import type { World } from './support/world.js';
 
+/** The app's focus debounce (ARCHITECTURE.md "Background sync"). */
+const FOCUS_DEBOUNCE_MS = 500;
+
 When('the network connection is lost', async function (this: World) {
   await this.context.setOffline(true);
 });
@@ -14,6 +17,9 @@ When('the network connection is restored', async function (this: World) {
 
 When('the app regains focus', async function (this: World) {
   await setVisibility(this.page, 'visible');
+  // The app also syncs 500 ms after `focus` (debounced). Let that sync finish so it cannot land in a later step.
+  await this.page.waitForTimeout(FOCUS_DEBOUNCE_MS + 250);
+  await expect(this.page.getByTestId('sync-status').first()).not.toHaveAttribute('data-state', 'syncing');
 });
 
 When('the app is hidden', async function (this: World) {
