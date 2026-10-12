@@ -633,7 +633,7 @@ all overlays; no per-component history code.
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
   the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end
   `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
-  person in prefs, default 3). Time labels (`approach-tick`, HH:MM) at the largest step of 15 min / 30 min / 1 h /
+  person in prefs, default 3). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
   2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
   that start within the window (events and task lists with a time, by start, excluding the current event) as chips
   at their start position; when none is within the window, the next timed entry of today sits at the right end
