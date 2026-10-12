@@ -117,7 +117,6 @@ Feature: Open tasks stay in sight
       | Wash | yes  |
       | Fold | yes  |
 
-  @mobile
   Scenario: The create button does not cover the open tasks tray
     When I open the week view for 2026-10-12
     And I open the open tasks tray

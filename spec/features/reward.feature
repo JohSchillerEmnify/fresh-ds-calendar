@@ -50,8 +50,8 @@ Feature: Rewarding feedback and delightful motion
     And I open the open tasks tray
     And I tick the item "Milk" in the open tasks tray
     And I tick the item "Eggs" in the open tasks tray
-    Then a "list-complete" effect appears and is removed within 1500 ms
-    And the open tasks tray shows the message "All done! 🎉" for "Groceries"
+    Then the open tasks tray shows the message "All done! 🎉" for "Groceries"
+    And a "list-complete" effect appears and is removed within 1500 ms
 
   Scenario: Effects never block input
     When I open the day view for 2026-10-12
