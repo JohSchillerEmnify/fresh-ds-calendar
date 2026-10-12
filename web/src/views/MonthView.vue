@@ -58,6 +58,12 @@ function visible(date: string, lanes: number, hidden: number) {
   return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length + hidden };
 }
 
+/** Empty space in a cell opens the day; on desktop a click on an entry opens the entry instead. */
+function onCellClick(e: MouseEvent, day: Date): void {
+  if (!isPhone.value && (e.target as Element | null)?.closest('.chips > *')) return;
+  void nav.openDay(day);
+}
+
 function onChipsClick(e: MouseEvent, day: Date): void {
   if (!isPhone.value) return;
   e.stopPropagation();
@@ -79,7 +85,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
         <div
           v-for="(day, ci) in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, cal.anchor) ? 'true' : undefined"
-          :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="isPhone && nav.openDay(day)"
+          :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div v-if="row.lanes" class="lanes" />
