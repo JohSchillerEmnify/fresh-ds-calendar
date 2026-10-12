@@ -73,7 +73,7 @@ When('I click the week header of {date}', async function (this: World, date: str
 When('I tap the day {date} in the month view', async function (this: World, date: string) {
   const cell = this.byTestId('month-cell', attr('data-date', date));
   if (this.testInfo.project.use.hasTouch) await cell.tap();
-  else await cell.click();
+  else await cell.getByTestId('month-cell-day-number').click(); // desktop: a cell body does not open the day (A-E2)
 });
 
 When('I click the overflow link on {date}', async function (this: World, date: string) {

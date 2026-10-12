@@ -22,6 +22,8 @@ const weeks = computed(() => monthGrid(cal.anchor));
 const limit = computed(() => (isPhone.value || settings.settings.calmMode ? 2 : 3));
 function visible(date: string) {
   const all = segs(date);
+  // Desktop: a lone hidden entry would only be replaced by a "+1 more" link of the same height, so show it (A-E1).
+  if (!isPhone.value && !settings.settings.calmMode && all.length === limit.value + 1) return { shown: all, more: 0 };
   return { shown: all.slice(0, limit.value), more: Math.max(0, all.length - limit.value) };
 }
 
