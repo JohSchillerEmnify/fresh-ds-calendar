@@ -335,6 +335,9 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
 - **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week), and
   above the grid in the month view (current month) and the year view (current year) (owner, 2026-10-13: keep it in
   view).
+  It is one instance above the calendar views, not part of each view: switching between day, week, month and year
+  keeps it in place without leaving or entering again (owner, 2026-10-13: "keep it there persistently"); it only
+  animates when it first appears or when it really appears/disappears (e.g. navigating to another week).
   - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
     `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is

@@ -98,6 +98,12 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
       | month | 2026-10 |
       | year  | 2026    |
 
+  Scenario: Switching views keeps the Now card in place
+    Given the time is 2026-10-12 09:20
+    When I open the week view for 2026-10-12
+    And I switch to the month view
+    Then the now card stayed in place
+
   Scenario: The Now card is shown in the week view only for the current week
     Given the time is 2026-10-12 09:20
     When I open the week view for 2026-10-19

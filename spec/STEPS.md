@@ -523,6 +523,7 @@ the now card shows the line {string}
 the now card does not show a current event
 the current event progress is {int} percent
 I do not see the now card
+the now card stayed in place
 I see the transition warning {string}
 I do not see a transition warning
 I dismiss the transition warning
@@ -927,3 +928,5 @@ Google shows the calendar {string}
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
 - "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.
   "shown next to its block": `data-title-outside="true"` and the title's left edge ≥ the block's right edge.
+- "the now card stayed in place": the `now-card` element present before the previous step is the same DOM node
+  afterwards (a marker property set on it survives) and no enter animation ran on it (`data-entered` unchanged).
