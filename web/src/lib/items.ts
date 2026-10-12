@@ -130,7 +130,12 @@ export interface PlacedSegment {
  * a later group that overlaps cascades one level deeper (up to MAX_STACK_DEPTH, then it joins the last group's columns).
  * Touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration.
  */
-export function packColumns(segs: Segment[], minMinutes = 0): PlacedSegment[] {
+/**
+ * `minMinutes` is the drawn minimum per block, in minutes: a number for all, or per segment (A-E5: a block drawn
+ * taller than its duration, e.g. a task list with open items, occupies its drawn height for the layout).
+ */
+export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0): PlacedSegment[] {
+  const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const out: PlacedSegment[] = [];
   interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[] }
@@ -155,7 +160,8 @@ export function packColumns(segs: Segment[], minMinutes = 0): PlacedSegment[] {
   };
   for (const s of timed) {
     if (groups.length && s.startMin >= clusterEnd) flush();
-    const visualEnd = Math.max(s.endMin, s.startMin + minMinutes);
+    const min = minOf(s);
+    const visualEnd = Math.max(s.endMin, s.startMin + min);
     let g = groups[groups.length - 1];
     if (!g || s.startMin - g.start >= OVERLAP_STACK_MIN_START_GAP_MIN) {
       const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
@@ -168,7 +174,7 @@ export function packColumns(segs: Segment[], minMinutes = 0): PlacedSegment[] {
     if (col < 0) col = g.colEnds.length;
     g.colEnds[col] = visualEnd;
     g.end = Math.max(g.end, visualEnd);
-    g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: Math.max(s.endMin - s.startMin, minMinutes) });
+    g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: Math.max(s.endMin - s.startMin, min) });
     clusterEnd = Math.max(clusterEnd, visualEnd);
   }
   flush();
@@ -193,8 +199,11 @@ export function matchesFilters(item: CalendarItem, f: Filters): boolean {
   return true;
 }
 
-/** Minimum rendered block height (px); the block keeps its start position (spec: timeline, short events). */
-export const MIN_BLOCK_PX = 24;
+/**
+ * Minimum rendered block box height (px): 24 px visible plus the block's 1 px bottom gap (A-E4); the block keeps its
+ * start position (spec: timeline, short events).
+ */
+export const MIN_BLOCK_PX = 25;
 /** Rendered top and height (px) of a timed segment: proportional to the duration, never below `MIN_BLOCK_PX`. */
 export function blockGeometry(startMin: number, endMin: number, hourHeight: number, minPx = MIN_BLOCK_PX): { top: number; height: number } {
   return { top: (startMin / 60) * hourHeight, height: Math.max(((endMin - startMin) / 60) * hourHeight, minPx) };

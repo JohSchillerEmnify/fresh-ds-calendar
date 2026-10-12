@@ -8,7 +8,10 @@ import { attr, tid, type World } from './world.js';
 export async function expandTaskList(world: World, title: string) {
   const expanded = world.byTestId('tasklist-expanded', attr('data-title', title));
   const monthView = await world.page.getByTestId('month-view').isVisible();
-  await world.taskCard(title).click();
+  // Phone month chips are pointer-events:none by design (the cell takes the tap), so Playwright's hit-target check
+  // would never pass: tap the card's position instead.
+  const phoneMonth = monthView && world.isPhoneProject;
+  await world.taskCard(title).click({ force: phoneMonth });
   if (monthView && world.isPhoneProject) {
     await expect(expanded.or(world.page.getByTestId('day-view')).first()).toBeVisible();
     if (!(await expanded.isVisible())) await world.taskCard(title).click();

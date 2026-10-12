@@ -2,11 +2,14 @@
 Feature: Open tasks stay in sight
   Out of sight is out of mind. An "open tasks" tray is visible in every view and lists today's
   and overdue task lists that still have unticked items. Open task lists from the past 30 days are
-  carried forward to today with a gentle "From <day>" label instead of disappearing in the past.
+  carried forward to today with a gentle "From <day>" label instead of disappearing in the past; in narrow
+  columns (phone week) the label shrinks to a small "carried over" badge that still names the day.
   Overdue is never shown in the error color.
   Every list in the tray shows all of its items (ticked ones struck through), on phones once the tray
   is opened; long lists make the tray scroll rather than hide items. Lists finished today follow the
   open ones until the end of the day.
+  A list in the tray is the same list view as the expanded list: everything that can be done there
+  (tick, add, rename, reorder and delete items, rename the list, edit its details) works the same in the tray.
 
   Background:
     Given the calendar is empty
@@ -89,10 +92,19 @@ Feature: Open tasks stay in sight
     And I open the open tasks tray
     Then the open tasks tray shows all 12 items of the task list "Move"
 
-  Scenario: Tapping a task list in the tray opens it for editing
+  Scenario: A task list in the open tasks tray can be edited like the expanded list
+    When I open the day view for 2026-10-12
+    And I open the open tasks tray
+    And I add the item "Butter" to "Groceries" in the open tasks tray
+    Then the open tasks tray shows the task list "Groceries" with items:
+      | item   | done |
+      | Milk   | no   |
+      | Butter | no   |
+
+  Scenario: The details of a task list in the tray are edited as in the expanded list
     When I open the month view for 2026-12
     And I open the open tasks tray
-    And I open the task list "Groceries" from the open tasks tray
+    And I edit the details of "Groceries" in the open tasks tray
     Then the task list dialog is open
 
   Scenario: A finished task list in the tray unfolds to its items
@@ -105,7 +117,6 @@ Feature: Open tasks stay in sight
       | Wash | yes  |
       | Fold | yes  |
 
-  @mobile
   Scenario: The create button does not cover the open tasks tray
     When I open the week view for 2026-10-12
     And I open the open tasks tray

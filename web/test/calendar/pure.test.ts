@@ -66,12 +66,12 @@ describe('form <-> API', () => {
 
 describe('packing and proportions', () => {
   const hh = 48;
-  it('block height is proportional to duration, min 24px, top is the start', () => {
+  it('block height is proportional to duration, min 25px box (24 visible + 1 gap), top is the start', () => {
     const a = blockGeometry(10 * 60 + 40, 11 * 60 + 30, hh), b = blockGeometry(14 * 60, 15 * 60 + 40, hh);
     expect(b.height / a.height).toBeCloseTo(2, 5);
     expect(a.top).toBeCloseTo((640 / 60) * hh);
     const pill = blockGeometry(8 * 60, 8 * 60 + 5, hh);
-    expect(pill.height).toBe(24);
+    expect(pill.height).toBe(25);
     expect(pill.top).toBe(8 * hh);
   });
   it('events starting close together share columns, back-to-back ones do not', () => {
@@ -80,6 +80,12 @@ describe('packing and proportions', () => {
     expect(placed.map((p) => [p.col, p.cols, p.level])).toEqual([[0, 2, 0], [1, 2, 0]]);
     const back = packColumns(segsOf([a, c], D));
     expect(back.map((p) => [p.col, p.cols, p.span])).toEqual([[0, 1, 1], [0, 1, 1]]);
+  });
+  it('a block drawn taller than its duration counts with its drawn height (A-E5)', () => {
+    // "a" lasts 15 min but is drawn an hour tall (like a task list with open items on a phone), "c" starts after it.
+    const a = ev('a', t(D, '20:00'), t(D, '20:15')), c = ev('c', t(D, '20:15'), t(D, '21:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, c], D), (s) => (s.item.id === 'a' ? 60 : 0)).map((x) => [x.seg.item.id, x]));
+    expect(p.c.level > p.a.level || p.c.col !== p.a.col).toBe(true);
   });
   it('a block widens into free columns to its right', () => {
     const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:00'), t(D, '09:10')), c = ev('c', t(D, '09:10'), t(D, '12:00'));

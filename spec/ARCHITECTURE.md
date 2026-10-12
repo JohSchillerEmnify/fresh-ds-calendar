@@ -321,19 +321,31 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
 - **Transition warning** (`transition-warning`): a non-modal M3 snackbar `"<title> starts in <N> min"` shown once per
   event when now reaches start − N (N from settings, default 10), dismissible, auto-hides at event start. System
   notifications are a later option (they need HTTPS, permission and, on iOS, an installed PWA; not in scope).
-- **Open tasks tray** (`task-tray`, `task-tray-count` text `"3 open"` / `"No open tasks"`, items `task-tray-item`
+- **Task list view** (`features/tasklists/TaskListView.vue`, root `tasklist-view` with `data-tasklist-id`,
+  `data-title`): the one component that shows a task list with everything that can be done to it. Head (progress ring,
+  title that renames on tap, done count `x/y` that bumps on change, "From <day>"), tags, "All done! 🎉" or "Next task",
+  item rows (reward checkbox, title that edits on tap with the animated strike-through, up/down/delete), add field,
+  footer (Move to today, Edit, Delete with confirmation). It owns the tick logic once for every host: optimistic
+  `ops.patchItem`, row flash, `useCelebrate` on the tick that completes the list, `lists.markFinished` for that list.
+  Hosts only frame it: the **expanded list** (`ExpandedTaskList.vue`) wraps it in `AdaptiveSheet` (placement, Escape,
+  focus, `tasklist-close`, which the view renders only when its host listens to `close`); the **tray** renders one
+  view per open list. Owner decision (2026-10-12): no tray variant; the tray shows the popup view as it is.
+- **Open tasks tray** (`task-tray`, `task-tray-count` text `"3 open"` / `"No open tasks"`, rows `task-tray-item`
   with `data-title`): fed by `GET /api/tasklists/open` (`items` + `finishedToday`), refreshed with every sync. Visible
-  in all views and on all pages except Settings. Each open list shows all of its items (`task-tray-list-item` with
-  `data-title`, `data-done`; ticked ones struck through), each with a checkbox (`task-tray-item-check`) that ticks and
-  unticks through the same optimistic item queue as the calendar (`features/tasklists/ops.ts`); the tray list scrolls
-  instead of hiding items. Tapping a list title opens the task list edit dialog. Lists from `finishedToday` follow the
-  open ones, struck through and collapsed to their title (`task-tray-item` with `data-finished="true"`); `task-tray-unfold`
-  shows their items in place (unfold state is UI-only, not persisted). The count counts open lists only. On phones the tray's expanded state lives in the
-  `ui` store (`trayExpanded`), and the FAB slides out of view while it is true. A list ticked
-  complete in the tray moves to the finished rows at once, with a move animation (the store moves it from open to
-  finished locally, the next refresh confirms it).
+  in all views and on all pages except Settings. Each open list's row is a task list view (above), so items, ticking,
+  rewards and editing are the expanded list's own (`tasklist-item`, `tasklist-item-checkbox`, ... inside the row);
+  the tray list scrolls instead of hiding items. Lists from `finishedToday` follow the open ones, collapsed to their
+  struck-through title (`task-tray-title`, row `data-finished="true"`); `task-tray-unfold` shows their task list view
+  in place (UI-only state). A list ticked complete in the tray keeps its view open for 2 s (celebration and
+  "All done! 🎉" visible), then moves to the finished rows with a move animation (the store moves it from open to
+  finished locally, the next refresh confirms it). The count counts open lists only. On phones the tray's expanded
+  state lives in the `ui` store (`trayExpanded`), the opened tray is as tall as the expanded list's bottom sheet
+  (desktop: the side panel is 380 px wide, like the expanded list's panel, and the FAB sits left of it via
+  `--tray-w`), and
+  the FAB slides out of view while it is open.
 - **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
-  text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording). Their expanded
+  text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording); mini cards
+  show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". Their expanded
   view offers `tasklist-move-today` ("Move to today"), which PATCHes the date. Completed lists stay on their own date.
 - **Duration estimate**: task list form field (minutes), card badge `tasklist-card-estimate` `"~45 min"` /
   `"~1 h 30 min"`.
@@ -453,7 +465,7 @@ Rules for implementers:
 | `month-picker`, `month-picker-title`, `month-picker-prev`, `month-picker-next`, `picker-day` | month picker (§5b) |
 | `now-marker`, `now-card`, `now-card-line`, `now-card-current`, `now-progress` | timeline (§5b) |
 | `transition-warning`, `transition-warning-dismiss` | snackbar |
-| `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-list-item`, `task-tray-item-check`, `task-tray-unfold` | open tasks tray |
+| `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title` (finished rows), `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
 | `tasklist-card-overdue`, `tasklist-move-today`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
 | `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
 | `reward-effect` (`data-kind`) | effect overlay elements |
@@ -479,7 +491,7 @@ Rules for implementers:
 | `time-slot` | `data-date`, `data-hour` (clickable, creates event) |
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
 | `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`) with one `tasklist-card-item` (`data-title`) per item, `tasklist-card-count` (`1/3`), `tasklist-card-time` |
-| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-new-item` (Enter adds), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
+| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("+ Add item" button, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |

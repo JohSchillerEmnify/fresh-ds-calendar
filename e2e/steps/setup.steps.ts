@@ -70,12 +70,22 @@ Given('the app runs as an installed app', async function (this: World) {
 
 // --- data fixtures (public API) ---------------------------------------------------------------------------------
 
+/**
+ * Fixtures go through the public API, which awards plant points for creates (API.md). A fixture is not user activity,
+ * so the plant state is restored afterwards: scenarios then count only the points they earn themselves.
+ */
+async function createFixture(world: World, path: string, body: Record<string, unknown>) {
+  const before = (await world.api.get<{ plant: { growth: number; lastWatered: string | null; todayPoints: number } }>('/api/motivation')).plant;
+  await world.api.post(path, body);
+  await world.api.setMotivation({ plant: { growth: before.growth, lastWatered: before.lastWatered, todayPoints: before.todayPoints } });
+}
+
 async function createEvent(world: World, body: Record<string, unknown>) {
-  await world.api.post('/api/events', body);
+  await createFixture(world, '/api/events', body);
 }
 
 async function createTaskList(world: World, body: Record<string, unknown>) {
-  await world.api.post('/api/tasklists', body);
+  await createFixture(world, '/api/tasklists', body);
 }
 
 Given(

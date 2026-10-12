@@ -1,40 +1,49 @@
 <script setup lang="ts">
 /**
- * Open tasks tray. Phone: slim bar above the navigation bar (count chip, tap to expand, list slides up).
- * Desktop: right-hand panel. Sets `--tray-h` on :root so the FAB floats above it. Hidden outside calendar views.
+ * Open tasks tray. Phone: slim bar above the navigation bar (count chip, tap to expand, list slides up as tall as the
+ * expanded list's sheet). Desktop: right-hand panel. Every open list is a `TaskListView`, the same component as the
+ * expanded list; lists finished today fold to their struck-through title. Sets `--tray-h` on :root so the FAB floats
+ * above it. Hidden outside calendar views.
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import IconExpand from '~icons/material-symbols/keyboard-arrow-up';
-import IconToday from '~icons/material-symbols/today-outline';
-import { ApiError } from '@/api/client';
-import type { TaskItem, TaskList } from '@/api/types';
 import { isPhone } from '@/composables/useViewport';
+import { appTimeout, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';
-import { ProgressRing, RewardCheckbox } from '@/motion';
-import { useClockStore } from '@/stores/clock';
-import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel } from './format';
-import { patchItem, stableKey } from './ops';
 import { useTaskListsStore } from './store';
+import TaskListView from './TaskListView.vue';
 
 const route = useRoute();
 const lists = useTaskListsStore();
-const clock = useClockStore();
-const items = useItemsStore();
 const ui = useUiStore();
 const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
 const root = ref<HTMLElement | null>(null);
 const countText = computed(() => (lists.count ? `${lists.count} open` : 'No open tasks'));
-/** Open lists, then lists finished today (struck through, collapsed unless unfolded). */
-const rows = computed(() => [...lists.tray.map((l) => ({ ...l, fin: false })), ...lists.finished.map((l) => ({ ...l, fin: true }))]);
+/** Lists just finished here stay open (celebration and "All done!" visible) for this long before folding. */
+const LINGER_MS = 2000;
+const lingering = reactive(new Set<string>());
+const lingerStops = new Map<string, Disposer>();
+function linger(id: string) {
+  lingerStops.get(id)?.();
+  lingering.add(id);
+  lingerStops.set(id, appTimeout(() => { lingering.delete(id); lingerStops.delete(id); }, LINGER_MS));
+}
+/** Open lists (plus lingering just-finished ones), then lists finished today (folded unless unfolded). */
+const rows = computed(() => {
+  const fin = lists.finished.filter((l) => !lingering.has(l.id));
+  const linger = lists.finished.filter((l) => lingering.has(l.id));
+  return [...lists.tray, ...linger].map((l) => ({ list: l, fin: false })).concat(fin.map((l) => ({ list: l, fin: true })));
+});
 
 let ro: ResizeObserver | null = null;
+/** Publishes the tray's footprint: `--tray-h` (phone bar) and `--tray-w` (desktop side panel) keep the FAB clear of it. */
 function setHeight() {
-  const h = shown.value && isPhone.value && root.value ? Math.round(root.value.getBoundingClientRect().height) : 0;
-  document.documentElement.style.setProperty('--tray-h', `${h}px`);
+  const box = shown.value && root.value ? root.value.getBoundingClientRect() : null;
+  document.documentElement.style.setProperty('--tray-h', `${box && isPhone.value ? Math.round(box.height) : 0}px`);
+  document.documentElement.style.setProperty('--tray-w', `${box && !isPhone.value ? Math.round(box.width) : 0}px`);
 }
 watch([shown, isPhone, expanded, () => lists.count], () => nextTick(setHeight));
 watch(root, (el) => {
@@ -47,36 +56,19 @@ watch(root, (el) => {
 });
 onMounted(() => { void lists.refresh().catch(() => undefined); });
 onBeforeUnmount(() => {
+  lingerStops.forEach((stop) => stop());
   ro?.disconnect();
   ro = null;
   ui.trayExpanded = false;
   document.documentElement.style.removeProperty('--tray-h');
+  document.documentElement.style.removeProperty('--tray-w');
 });
 
-const label = (date: string) => (date < clock.today ? carriedLabel(date) : '');
-/** Title tap: the task list edit dialog (items are ticked in place). */
-function edit(id: string) {
-  ui.openDialog('tasklist', { mode: 'edit', id });
-  if (isPhone.value) expanded.value = false;
-}
-function tick(l: TaskList, item: TaskItem, done: boolean) {
-  const finishes = done && l.items.every((i) => i.id === item.id || i.done);
-  patchItem(l.id, item.id, { done });
-  if (finishes) lists.markFinished(l.id);
-}
 /** Finished lists unfolded in this tray (UI state only). */
 const unfolded = reactive(new Set<string>());
 function toggleFold(id: string) {
   if (unfolded.has(id)) unfolded.delete(id);
   else unfolded.add(id);
-}
-async function today(id: string) {
-  try {
-    await items.updateTaskList(id, { date: clock.today });
-    void lists.refresh();
-  } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : "Couldn't move the task list.");
-  }
 }
 </script>
 
@@ -92,33 +84,18 @@ async function today(id: string) {
     </button>
     <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
-        v-for="l in rows" :key="l.id" class="row" :class="{ fin: l.fin }" data-testid="task-tray-item" :data-title="l.title" :data-date="l.date"
-        :data-finished="l.fin ? 'true' : undefined" :style="{ '--c': l.color }"
+        v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="r.list.title"
+        :data-date="r.list.date" :data-finished="r.fin ? 'true' : undefined" :style="{ '--c': r.list.color }"
       >
-        <div class="head">
-          <button v-ripple class="main" type="button" :aria-label="`Edit ${l.title}`" @click="edit(l.id)">
-            <ProgressRing v-if="!l.fin" :done="l.doneCount" :total="l.totalCount" :size="30" :stroke="3.5" />
-            <span class="txt">
-              <span class="t" data-testid="task-tray-title">{{ l.title }}</span>
-              <span v-if="!l.fin && (label(l.date) || l.time)" class="s">
-                <span v-if="label(l.date)" class="from">{{ label(l.date) }}</span>
-                <span v-else>{{ l.time }}</span>
-              </span>
-            </span>
-            <span class="c">{{ l.doneCount }}/{{ l.totalCount }}</span>
-          </button>
+        <div v-if="r.fin" class="head">
+          <span class="t" data-testid="task-tray-title">{{ r.list.title }}</span>
+          <span class="c">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
           <button
-            v-if="l.fin" v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(l.id)"
-            :aria-label="unfolded.has(l.id) ? `Fold ${l.title}` : `Show items of ${l.title}`" @click="toggleFold(l.id)"
-          ><IconExpand class="fold" :class="{ up: unfolded.has(l.id) }" /></button>
-          <button v-else-if="l.date < clock.today" v-ripple class="mv" type="button" aria-label="Move to today" title="Move to today" data-testid="task-tray-move-today" @click="today(l.id)"><IconToday /></button>
+            v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
+            :aria-label="unfolded.has(r.list.id) ? `Fold ${r.list.title}` : `Show items of ${r.list.title}`" @click="toggleFold(r.list.id)"
+          ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></button>
         </div>
-        <ul v-if="!l.fin || unfolded.has(l.id)" class="items">
-          <li v-for="it in l.items" :key="stableKey(it.id)" class="it" :class="{ done: it.done }" data-testid="task-tray-list-item" :data-title="it.title" :data-done="String(it.done)">
-            <RewardCheckbox :model-value="it.done" data-testid="task-tray-item-check" :aria-label="`Done: ${it.title}`" @update:model-value="tick(l, it, $event)" />
-            <span class="itt">{{ it.title }}</span>
-          </li>
-        </ul>
+        <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="linger(r.list.id)" />
       </li>
       <li v-if="!lists.count" key="empty" class="empty">Nothing waiting. Nice.</li>
     </TransitionGroup>
@@ -133,32 +110,33 @@ async function today(id: string) {
 .peek { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-small); }
 .chev { margin-left: auto; width: 24px; height: 24px; transition: transform 240ms var(--md-sys-motion-spring); }
 .open .chev { transform: rotate(180deg); }
-.list { list-style: none; margin: 0; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 2px; }
-.phone .list { max-height: 42dvh; }
-.row { display: flex; flex-direction: column; flex: none; border-radius: 14px; border-left: 4px dashed var(--c); background: color-mix(in srgb, var(--c) 12%, var(--md-sys-color-surface-container-high)); }
-.head { display: flex; align-items: center; }
-.main { flex: 1; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 4px 8px; text-align: left; border-radius: 14px; }
-.fin { opacity: 0.6; border-left-style: solid; }
+.list { list-style: none; margin: 0; padding: 0 8px 8px; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+/* Phone, opened: as tall as the expanded list's sheet at most, but never more than the space above the navigation bar
+   (the tray shrinks and scrolls; a fixed dvh height pushed the last rows under the navigation bar). */
+.phone.open { flex: 0 1 auto; min-height: 0; }
+.phone .list { max-height: calc(90dvh - var(--navbar-h, 80px) - 44px); }
+/* Cards stand off the tray background: own surface tint, outline and a light shadow. */
+.row {
+  display: flex; flex-direction: column; flex: none; border-radius: 14px; border-top: 4px solid var(--c);
+  border-inline: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  background: color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-highest));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.view { padding: 0 12px 12px; }
+.head { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 0 0 12px; }
+.fin { opacity: 0.6; }
 .fin .t { text-decoration-line: line-through; }
-.fin .main { min-height: 44px; }
 .fold { width: 22px; height: 22px; transform: rotate(180deg); transition: transform 200ms var(--md-sys-motion-spring); }
 .fold.up { transform: none; }
-.items { list-style: none; margin: 0; padding: 0 8px 6px 8px; display: flex; flex-direction: column; }
-.it { display: flex; align-items: center; gap: 6px; min-height: 36px; font: var(--md-sys-typescale-body-medium); }
-.it .itt { min-width: 0; overflow-wrap: anywhere; }
-.it.done .itt { text-decoration-line: line-through; color: var(--md-sys-color-on-surface-variant); }
 .tl-move { transition: transform 260ms var(--md-sys-motion-spring); }
-.txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.t { font: var(--md-sys-typescale-title-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.s { display: flex; gap: 6px; font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); min-width: 0; }
-.from { flex: none; background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 6px; padding: 0 6px; }
+.t { flex: 1; min-width: 0; font: var(--md-sys-typescale-title-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .mv { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; color: var(--md-sys-color-on-surface-variant); }
 .mv :deep(svg) { width: 22px; height: 22px; }
 .empty { padding: 12px 16px; color: var(--md-sys-color-on-surface-variant); }
 .phone { border-top: 1px solid var(--md-sys-color-outline-variant); }
 @media (min-width: 768px) {
-  .tray { width: 300px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; }
+  .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; }
   .bar { cursor: default; padding-right: 12px; }
   .chev { display: none; }
   .list { flex: 1; min-height: 0; max-height: none; }

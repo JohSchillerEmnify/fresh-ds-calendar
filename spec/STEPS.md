@@ -141,6 +141,7 @@ the event {string} shows the time {string}
 the event {string} is positioned from {time} to {time}
 the event {string} is positioned on {date} from {time} to {time}
 the events {string} and {string} do not overlap
+the title of the event {string} is not covered
 the events {string} and {string} are side by side
 the event {string} is stacked on the event {string}
 the event {string} spans the full width of its day column
@@ -195,9 +196,9 @@ I do not see the task list {string}
 the task list {string} shows the done count {string}
 the task list {string} shows the item {string} below its title
 the task list {string} shows the item {string} next to its title
+the task list {string} does not show the item {string}
 the collapsed task list {string} lists the items {string}
 the collapsed task list {string} shows {string}
-the task list {string} shows the time {string}
 the task list {string} is positioned at {time}
 the task list {string} is shown in the all-day area on {date}
 I expand the task list {string}
@@ -225,7 +226,8 @@ I delete the task list
 "the task list X shows the done count" checks the expanded header if X is expanded, else the collapsed card.
 "the task list X shows the item Y below / next to its title": the `tasklist-card-item` with `data-title` Y in X's
 collapsed card is visible and its box lies inside the card (an ellipsised name counts); "below" = its top
-is at or under the bottom of `tasklist-card-title`, "next to" = it shares the title's line.
+is at or under the bottom of `tasklist-card-title`, "next to" = it shares the title's line. "does not show the item Y": the
+`tasklist-card-item` Y of X is not visible (it stays in the DOM for screen readers).
 "for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
 
@@ -535,15 +537,21 @@ the open tasks tray shows all {int} items of the task list {string}
 I unfold the task list {string} in the open tasks tray
 the create button does not cover any control of the open tasks tray
 the task list {string} in the open tasks tray is struck through and shows only its title
-I open the task list {string} from the open tasks tray
+I add the item {string} to {string} in the open tasks tray
+I edit the details of {string} in the open tasks tray
+the open tasks tray shows the message {string} for {string}
 the task list {string} is shown as carried over from {string}
 the task list {string} is not flagged as overdue
 the overdue label of {string} does not use the error color
 I move the task list to today
 ```
 
+- "shown as carried over from D": `tasklist-card-overdue` of the card is visible and its accessible name is
+  "From D" (the text itself in roomy cards, the `aria-label` of the badge in narrow ones).
 - "does not use the error color": the computed `color` and `background-color` of `tasklist-card-overdue` differ from
   `--md-sys-color-error` and `--md-sys-color-error-container`.
+- "the open tasks tray shows the message M for L": within 1 500 ms of the previous step, the tray row of L shows M
+  (it may fold away afterwards, as finished lists do).
 
 ## Year view and month picker (`@year`, `@picker`)
 

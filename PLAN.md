@@ -48,6 +48,24 @@ while this orchestrator session (tmux `claude`, cwd ~/docker-compose) was waitin
 - 14:05 tray-lists (2a + 2b folded in by owner) DONE on branch: spec 1e5cc80, arch cbe9274, feat 0f82858. e2e open-tasks green on
   desktop + mobile except the 4 known carry-over failures (fix-tasks). Preview http://tray-lists.cal.mordor.local | .lan,
   waiting for owner OK to merge. Note: completedOn is only set by updates (a list created complete gets none).
+- 14:10 tray-lists MERGED (a9d66ce, owner OK).
+- ~14:37 **sauron OOM-hung** during an e2e run (8 GB box: immich ~4.5 GB + e2e build + Chromium); owner hard-reset it.
+  **The tmux session `claude` died with the reboot.** Since then e2e runs on the owner's laptop (Node 24 + pnpm in
+  ~/.local/opt, same scripts), never on sauron. 97e811f: lowprio.sh = user systemd scope MemoryMax 2G, no swap,
+  CPUQuota where delegated (not on sauron), refuses above 2x nproc load or below 4 GiB available (on sauron it refuses
+  almost always: idle load ~8, ~1.4 GiB free); e2e browser container 1.5 GiB no swap; preview data under ~/.local/share.
+  immich capped (owner OK): server 2.5 GiB / 2 CPUs, ML 2.5 GiB / 1.5 CPUs (backup docker-compose.yaml.bak-2026-10-12-limits).
+- 17:39 MERGED narrow-blocks (e6fae3a) and fix-tasks (f253a28), owner OK after previews; master == locally tested tree.
+  narrow-blocks: mini cards put item names below the title (AC-22; the 44 px task list minimum from 4564ba4 is now spec).
+  fix-tasks (finished): carry-over data-date, :global motion selectors, plant/streak/sunflower, gzip, 25 px minimum block
+  box (A-E4), carried-over badge on narrow/titles-only cards, short timed lists need not show their time (owner),
+  touchDrag keeps to the wall clock (CPU-capped runs made 150 ms swipes take 650 ms, over the app's 600 ms window).
+  Still red on master (pre-existing, own fix later): events-display "Trip" multi-day bars (month + week), dnd "Trip"
+  all-day drag, dnd phone "Packing" to 08:15.
+- Open slices: `resize-handles` (spec 896c64e, AC-88, committed; next: architecture), `tray-reward` (spec drafted, not
+  committed: the tray uses the SAME list component as the expanded popup, full editing, same rewards; owner wants one
+  component, change it as needed), 2d section modes, 2c "This day" / taskListPlacement (WIP in timed-tl).
+- Owner wants terminal QR codes of the preview URLs with every preview offered for approval.
 
 ---
 

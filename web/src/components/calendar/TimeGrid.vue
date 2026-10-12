@@ -14,7 +14,7 @@ import { isPhone } from '@/composables/useViewport';
 import { openCreate } from '@/extensions/create';
 import { gridLayers, viewHeaders } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
-import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, segmentMinPx } from '@/lib/items';
+import { blockGeometry, packColumns, STACK_INDENT_PX, segmentMinPx } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';
 import { useClockStore } from '@/stores/clock';
@@ -33,7 +33,7 @@ const cols = computed(() => props.dates.map((d) => {
     date, d,
     today: date === clock.today,
     top: all.filter((s) => s.allDay || s.startTime === null),
-    placed: packColumns(all, (MIN_BLOCK_PX / hourHeight.value) * 60),
+    placed: packColumns(all, (s) => (segmentMinPx(s) / hourHeight.value) * 60),
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));

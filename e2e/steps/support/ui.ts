@@ -105,13 +105,19 @@ export async function touchDrag(
     const point = (p: { x: number; y: number }) => [{ x: Math.round(p.x), y: Math.round(p.y), id: 1 }];
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from) });
     if (holdMs) await page.waitForTimeout(holdMs);
+    // Keep to the wall clock: each CDP round trip is slow on a loaded or CPU-capped machine, and gestures such as a
+    // swipe (< 600 ms) must take the requested time, so once it is used up the last move goes straight to the target.
+    const start = Date.now();
     for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
+      const late = Date.now() - start >= durationMs;
+      const t = late ? 1 : i / steps;
       await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchMove',
         touchPoints: point({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }),
       });
-      await page.waitForTimeout(durationMs / steps);
+      if (late) break;
+      const wait = start + (durationMs * i) / steps - Date.now();
+      if (wait > 0) await page.waitForTimeout(wait);
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   } finally {

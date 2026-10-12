@@ -121,6 +121,12 @@ When('I drag the task list {string} to {date} at {time}', async function (this: 
 
 When('I drag the event {string} back and forth {int} times', async function (this: World, title: string, times: number) {
   this.extendTimeout(times * 3_000);
+  // A single-column day view (phone) has no neighbouring day to drop on: switch to the week view client-side
+  // (no reload, so recorded memory baselines stay valid). See ASSUMPTIONS A-T1.
+  if (await this.page.getByTestId('day-view').isVisible()) {
+    await this.page.getByTestId('view-switch-week').click();
+    await expect(this.page.getByTestId('week-view')).toBeVisible();
+  }
   for (let i = 0; i < times; i++) {
     const chip = this.eventChip(title);
     const current = (await chip.getAttribute('data-date'))!;
