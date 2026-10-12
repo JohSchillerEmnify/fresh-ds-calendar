@@ -1,0 +1,205 @@
+/** Event display and event dialog steps (STEPS.md "Events: display", "Events: dialog", "Event colors"). */
+import { expect, type Locator } from '@playwright/test';
+import type { DataTable } from 'playwright-bdd';
+import { Then, When } from './fixtures.js';
+import { field, fillField, readField } from './support/forms.js';
+import { expectPositioned } from './support/grid.js';
+import { addDays, datesBetween, weekdayOffset, type Weekday } from './support/dates.js';
+import { cellValue, formRows } from './support/tables.js';
+import { box, expectBottomSheet, expectInViewport, expectJoined, optionLabels } from './support/ui.js';
+import { attr, tid, type World } from './support/world.js';
+
+async function weekdayDate(world: World, name: Weekday): Promise<string> {
+  return addDays(await world.weekStart(), weekdayOffset(name));
+}
+
+// --- display ---------------------------------------------------------------------------------------------------
+
+Then('I see the event {string} on {date}', async function (this: World, title: string, date: string) {
+  await expect(this.eventChip(title, date)).toBeVisible();
+});
+
+Then('I see the event {string} on {weekday}', async function (this: World, title: string, day: Weekday) {
+  await expect(this.eventChip(title, await weekdayDate(this, day))).toBeVisible();
+});
+
+Then(
+  'I see the event {string} on each day from {date} to {date}',
+  async function (this: World, title: string, from: string, to: string) {
+    for (const d of datesBetween(from, to)) await expect(this.eventChip(title, d)).toBeVisible();
+  },
+);
+
+Then('I see the all-day event {string} on {date}', async function (this: World, title: string, date: string) {
+  await expect(this.eventChips(title, date).and(this.page.locator('[data-all-day="true"]')).first()).toBeVisible();
+});
+
+Then('I do not see the event {string}', async function (this: World, title: string) {
+  await this.settled();
+  await expect(this.eventChips(title).locator('visible=true')).toHaveCount(0);
+});
+
+Then('I do not see the event {string} on {date}', async function (this: World, title: string, date: string) {
+  await this.settled();
+  await expect(this.eventChips(title, date).locator('visible=true')).toHaveCount(0);
+});
+
+Then('the event {string} shows the time {string}', async function (this: World, title: string, time: string) {
+  await expect(this.eventChip(title).getByTestId('event-chip-time')).toContainText(time);
+});
+
+Then('the event {string} is positioned from {time} to {time}', async function (this: World, title: string, from: string, to: string) {
+  const chip = this.eventChip(title);
+  await expect(chip).toHaveAttribute('data-start-time', from);
+  await expect(chip).toHaveAttribute('data-end-time', to);
+  await expectPositioned(this, chip, from, to);
+});
+
+Then(
+  'the event {string} is positioned on {date} from {time} to {time}',
+  async function (this: World, title: string, date: string, from: string, to: string) {
+    const chip = this.eventChip(title, date);
+    await expect(chip).toHaveAttribute('data-start-time', from);
+    await expect(chip).toHaveAttribute('data-end-time', to);
+    await expectPositioned(this, chip, from, to);
+  },
+);
+
+Then('the events {string} and {string} do not overlap', async function (this: World, a: string, b: string) {
+  const [ba, bb] = [await box(this.eventChip(a)), await box(this.eventChip(b))];
+  const tol = 0.5;
+  const intersect =
+    ba.x + tol < bb.x + bb.width && bb.x + tol < ba.x + ba.width && ba.y + tol < bb.y + bb.height && bb.y + tol < ba.y + ba.height;
+  expect(intersect, `boxes ${JSON.stringify(ba)} and ${JSON.stringify(bb)} intersect`).toBe(false);
+});
+
+Then('the events {string} and {string} are side by side', async function (this: World, a: string, b: string) {
+  const [ba, bb] = [await box(this.eventChip(a)), await box(this.eventChip(b))];
+  const within = (y: number, r: typeof ba) => y >= r.y && y <= r.y + r.height;
+  expect(within(ba.y, bb) || within(bb.y, ba), 'vertical spans overlap').toBe(true);
+  expect(Math.abs(ba.x - bb.x), 'different left edges').toBeGreaterThan(1);
+});
+
+Then('the event {string} spans the full width of its day column', async function (this: World, title: string) {
+  const chip = this.eventChip(title);
+  const date = (await chip.getAttribute('data-date'))!;
+  await expect
+    .poll(async () => {
+      const [c, col] = [await chip.boundingBox(), await this.dayColumn(date).boundingBox()];
+      return c && col ? c.width / col.width : 0;
+    })
+    .toBeGreaterThanOrEqual(0.9);
+});
+
+Then('the event {string} has the color {string}', async function (this: World, title: string, color: string) {
+  await expect(this.eventChip(title)).toHaveAttribute('data-color', new RegExp(`^${color}$`, 'i'));
+});
+
+Then('the items on {date} are shown in the order {string}', async function (this: World, date: string, list: string) {
+  const cell = this.byTestId('month-cell', attr('data-date', date));
+  await expectJoined(cell.locator(`${tid('event-chip')}, ${tid('tasklist-card')}`), list, 'data-title');
+});
+
+// --- dialog ----------------------------------------------------------------------------------------------------
+
+const dialog = (w: World) => w.page.getByTestId('event-dialog');
+
+When('I start creating an event', async function (this: World) {
+  await this.page.getByTestId('create-button').click();
+  await this.page.getByTestId('create-menu-event').click();
+  await expect(dialog(this)).toBeVisible();
+});
+
+When('I click the time slot {time} on {date}', async function (this: World, time: string, date: string) {
+  const hour = String(Number(time.slice(0, 2)));
+  const slot = this.page
+    .locator(`${tid('time-slot')}${attr('data-date', date)}:is(${attr('data-hour', hour)}, ${attr('data-hour', hour.padStart(2, '0'))})`)
+    .first();
+  await slot.scrollIntoViewIfNeeded();
+  await slot.click();
+});
+
+/** testid of each event form field (STEPS.md conventions). */
+const EVENT_FIELDS: Record<string, string> = {
+  title: 'event-title',
+  'all day': 'event-all-day',
+  'start date': 'event-start-date',
+  'start time': 'event-start-time',
+  'end date': 'event-end-date',
+  'end time': 'event-end-time',
+  description: 'event-description',
+  location: 'event-location',
+  calendar: 'event-calendar',
+  color: 'event-color',
+};
+
+const eventKind = (name: string) =>
+  name === 'all day' ? 'checkbox' : name === 'calendar' || name === 'color' ? 'choice' : 'text';
+
+When('I fill in the event form with:', async function (this: World, table: DataTable) {
+  for (const [name, cell] of formRows(table)) {
+    await fillField(field(dialog(this), EVENT_FIELDS, name), eventKind(name), cellValue(cell));
+  }
+});
+
+Then('the event form shows:', async function (this: World, table: DataTable) {
+  for (const [name, cell] of formRows(table)) {
+    const control = field(dialog(this), EVENT_FIELDS, name);
+    await expect.poll(() => readField(control, eventKind(name)), { message: `event field "${name}"` }).toBe(cellValue(cell));
+  }
+});
+
+When('I save the event', async function (this: World) {
+  await dialog(this).getByTestId('event-save').click();
+});
+
+When('I cancel the event dialog', async function (this: World) {
+  await dialog(this).getByTestId('event-cancel').click();
+});
+
+When('I press Escape', async function (this: World) {
+  await this.page.keyboard.press('Escape');
+});
+
+When('I open the event {string}', async function (this: World, title: string) {
+  await this.eventChip(title).click();
+  await expect(dialog(this)).toBeVisible();
+});
+
+When('I delete the event', async function (this: World) {
+  await dialog(this).getByTestId('event-delete').click();
+});
+
+When('I confirm the deletion', async function (this: World) {
+  await this.page.getByTestId('confirm-ok').click();
+  await expect(this.page.getByTestId('confirm-dialog')).toBeHidden();
+});
+
+When('I cancel the deletion', async function (this: World) {
+  await this.page.getByTestId('confirm-cancel').click();
+  await expect(this.page.getByTestId('confirm-dialog')).toBeHidden();
+});
+
+Then('the event dialog is open', async function (this: World) {
+  await expect(dialog(this)).toBeVisible();
+});
+
+Then('the event dialog is closed', async function (this: World) {
+  await expect(dialog(this)).toBeHidden();
+});
+
+Then('the event dialog shows the error {string}', async function (this: World, message: string) {
+  await expect(dialog(this).getByTestId('event-error')).toHaveText(message);
+});
+
+Then('the event dialog is shown as a bottom sheet', async function (this: World) {
+  await expectBottomSheet(this.page, dialog(this));
+});
+
+Then('the event dialog fits within the viewport', async function (this: World) {
+  await expectInViewport(this.page, dialog(this));
+});
+
+Then('the event color options are {string}', async function (this: World, list: string) {
+  await expect.poll(async () => (await optionLabels(dialog(this).getByTestId('event-color'))).join(', ')).toBe(list);
+});
