@@ -7,6 +7,7 @@ import { useClockStore } from './stores/clock';
 import { useSettingsStore } from './stores/settings';
 import { registerServiceWorker } from './pwa/register';
 import { registerBuiltinExtensions } from './extensions/builtin';
+import { installMotion } from './motion';
 import './styles.css';
 
 async function bootstrap() {
@@ -20,6 +21,7 @@ async function bootstrap() {
   const budget = AbortSignal.timeout(4000);
   await Promise.allSettled([clock.load(budget), settings.load(budget)]);
   if (clock.config.testMode) enableTimerCounting();
+  installMotion();
   settings.installAppearance();
   registerBuiltinExtensions();
 

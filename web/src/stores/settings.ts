@@ -132,18 +132,8 @@ export const useSettingsStore = defineStore('settings', () => {
   function installAppearance(): () => void {
     stopAppearance();
     const root = document.documentElement;
-    let systemReduced = false;
     if (typeof matchMedia === 'function') {
-      const r = matchMedia('(prefers-reduced-motion: reduce)');
-      systemReduced = r.matches;
-      bag.add(listen(r, 'change', (e: Event) => { systemReduced = (e as MediaQueryListEvent).matches; motion(); }));
       bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(s.value.themeMode); syncMeta(); }));
-    }
-    // Motion level mirror (min of setting, calm cap, system preference). web/src/motion/level.ts may take this over.
-    function motion() {
-      let l = s.value.animationLevel;
-      if ((s.value.calmMode || systemReduced) && l === 'full') l = 'reduced';
-      root.dataset.motion = l;
     }
     stopWatch = watch(
       () => [s.value.themeMode, s.value.seedColor] as const,
@@ -154,8 +144,8 @@ export const useSettingsStore = defineStore('settings', () => {
       },
       { immediate: true },
     );
-    const stop2 = watch(() => [s.value.animationLevel, s.value.calmMode], () => {
-      motion();
+    // html[data-motion] is owned by src/motion/level.ts (useAnimationLevel in App.vue); calm styling flag here.
+    const stop2 = watch(() => s.value.calmMode, () => {
       if (s.value.calmMode) root.dataset.calm = 'true';
       else delete root.dataset.calm;
     }, { immediate: true });

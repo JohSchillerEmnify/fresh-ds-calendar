@@ -114,13 +114,12 @@ describe('shell navigation', () => {
     await w.get(tid('sync-retry')).trigger('click');
     await wait(() => expect(w.find(tid('sync-error-banner')).exists()).toBe(false));
   });
-  it('mounts the placeholder scene in the top bar background slot with the effective scene', async () => {
+  it('mounts the real TopBarScene in the background slot with the effective scene', async () => {
     const { w } = await mountAt('/month/2026-10');
-    expect(w.find(`${tid('top-bar-background')} [data-scene]`).exists()).toBe(false); // sunflowers scene needs garden = sunflowers
     const s = useSettingsStore();
     await s.applyMordor();
     await flushPromises();
-    expect(w.find(`${tid('top-bar-background')} [data-scene="mordor"]`).exists()).toBe(true);
+    await wait(() => expect(w.find(`${tid('top-bar-background')} [data-testid="scene-mordor"]`).exists()).toBe(true));
   });
 });
 

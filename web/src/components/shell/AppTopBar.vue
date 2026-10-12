@@ -18,17 +18,15 @@ import { useUiStore } from '@/stores/ui';
 import InstallPrompts from './InstallPrompts.vue';
 import MonthPicker from './MonthPicker.vue';
 import SyncStatus from './SyncStatus.vue';
-import ScenePlaceholder from './TopBarScenePlaceholder.vue';
+import { LeadingWidgets, TopBarScene } from '@/features/motivation';
+import { useClockStore } from '@/stores/clock';
 
-// Use features/motivation/TopBarScene.vue when it exists (glob is resolved at build time), else the placeholder.
-const sceneModules = import.meta.glob('/src/features/motivation/TopBarScene.vue');
-const loader = sceneModules['/src/features/motivation/TopBarScene.vue'];
-const Scene = loader ? defineAsyncComponent(loader as () => Promise<{ default: object }>) : ScenePlaceholder;
 
 const cal = useCalendarStore();
 const ui = useUiStore();
 const settings = useSettingsStore();
 const nav = useNav();
+const clock = useClockStore();
 const router = useRouter();
 const filters = useFilters();
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
@@ -41,7 +39,7 @@ function toggleFilters() {
 
 <template>
   <TopAppBar>
-    <template #background><component :is="Scene" :scene="settings.effectiveScene" /></template>
+    <template #background><TopBarScene :scene="settings.effectiveScene" /></template>
     <div class="grid">
       <button class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
@@ -52,7 +50,10 @@ function toggleFilters() {
         <IconButton label="Next period" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
-        <slot name="leading-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" /></slot>
+        <slot name="leading-widgets">
+          <LeadingWidgets :streak-flame="settings.settings.streakFlame" :garden="settings.settings.garden" :today="() => clock.today" />
+          <component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" />
+        </slot>
         <slot name="trailing-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.trailing" :key="'t' + i" /></slot>
         <SyncStatus />
         <InstallPrompts part="button" />

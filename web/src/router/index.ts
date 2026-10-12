@@ -42,6 +42,7 @@ export const routes: RouteRecordRaw[] = [
   },
   ...CAL_VIEWS.map(viewRoute),
   { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { settings: true } },
+  { path: '/lab', name: 'lab', component: () => import('@/features/motivation/MotionLab.vue'), meta: { settings: true } },
   { path: '/:pathMatch(.*)*', redirect: (to) => ({ path: routePath('month', useClockStore().todayDate), query: to.query }) },
 ];
 
