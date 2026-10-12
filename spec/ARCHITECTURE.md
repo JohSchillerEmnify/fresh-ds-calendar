@@ -683,10 +683,10 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
   person in prefs, default 3; any whole number 1–24 via `settings-approach-window-custom` next to the 3/6/12 choices,
   owner 2026-10-13). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
-  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
-  that start within the window (events and task lists with a time, by start); entries already running stay on the
+  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). All timed entries of today
+  that start within the window (owner, 2026-10-13: all, not only the next three) (events and task lists with a time, by start); entries already running stay on the
   track (owner, 2026-10-13): their block starts at "now" and shows only the time left, so they slide out to the left
-  as time passes and leave when they end (they count towards the three) as chips
+  as time passes and leave when they end as chips
   at their start position; when none is within the window, the next timed entry of today sits at the right end
   (`data-at-end="true"`, label "in 5 h" on the card colour so the track line does not strike it through). Each entry is a block as long as its duration on the track's scale (owner, 2026-10-13: entries take up only the
   time they take); the title sits inside when it fits, else right after the block (`data-title-outside="true"`) on the card colour, so the track line has a gap there and the title never looks struck through (owner), so

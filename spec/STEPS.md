@@ -821,6 +821,7 @@ the approach bar shows {string}, {string} and {string} in this order
 the approach bar shows {string} at its end
 the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
+the approach bar shows {int} entries
 on the approach bar {string} is {int} times as long as {string}
 the title of {string} is shown next to its block
 on the approach bar {string} starts at now and shows {int} minutes
