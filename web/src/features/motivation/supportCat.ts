@@ -1,10 +1,10 @@
 /**
  * The emotional support cat's roll (ARCHITECTURE "Season scenes and the support cat"): about one in ten finished task
- * lists, never at animation level Off or when switched off in the theme menu. Pure apart from `takeForcedCat`, which
+ * lists (every one with the setting "Every time"), never at animation level Off or with the setting Off. Pure apart from `takeForcedCat`, which
  * reads the test hook `window.__catNext` (test mode only, STEPS.md "Scenes and the support cat").
  */
 import type { MotionLevel } from '@/motion';
-import type { CatSetting } from '@/theme/presets';
+import type { SupportCatSetting } from '@/api/types';
 
 declare global {
   interface Window {
@@ -19,7 +19,8 @@ export const CAT_DURATION_MS = { full: 3000, reduced: 2000 } as const;
 
 export interface CatRoll {
   level: MotionLevel;
-  setting: CatSetting;
+  /** The person's "Support cat" setting (prefs `supportCat`). */
+  setting: SupportCatSetting;
   /** The test hook asked for the cat. */
   forced: boolean;
   /** A uniform random number in [0, 1). */
@@ -29,7 +30,7 @@ export interface CatRoll {
 /** Whether the cat comes by for this finished list. */
 export function catComes(r: CatRoll): boolean {
   if (r.level === 'off' || r.setting === 'off') return false;
-  return r.forced || r.random < CAT_CHANCE;
+  return r.setting === 'always' || r.forced || r.random < CAT_CHANCE;
 }
 
 /** Reads and clears the test hook; always false outside test mode. */

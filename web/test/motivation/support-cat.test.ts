@@ -6,18 +6,24 @@ import { CAT_CHANCE, CAT_DURATION_MS, catComes, catDuration, takeForcedCat } fro
 describe('support cat roll', () => {
   it('comes by on about one in ten finished lists', () => {
     expect(CAT_CHANCE).toBe(0.1);
-    expect(catComes({ level: 'full', setting: 'on', forced: false, random: 0.05 })).toBe(true);
-    expect(catComes({ level: 'full', setting: 'on', forced: false, random: 0.1 })).toBe(false);
-    expect(catComes({ level: 'reduced', setting: 'on', forced: false, random: 0.099 })).toBe(true);
-    expect(catComes({ level: 'full', setting: 'on', forced: false, random: 0.9 })).toBe(false);
+    expect(catComes({ level: 'full', setting: 'sometimes', forced: false, random: 0.05 })).toBe(true);
+    expect(catComes({ level: 'full', setting: 'sometimes', forced: false, random: 0.1 })).toBe(false);
+    expect(catComes({ level: 'reduced', setting: 'sometimes', forced: false, random: 0.099 })).toBe(true);
+    expect(catComes({ level: 'full', setting: 'sometimes', forced: false, random: 0.9 })).toBe(false);
   });
 
   it('the test hook forces the roll', () => {
-    expect(catComes({ level: 'full', setting: 'on', forced: true, random: 0.99 })).toBe(true);
+    expect(catComes({ level: 'full', setting: 'sometimes', forced: true, random: 0.99 })).toBe(true);
   });
 
-  it('never comes at animation level Off or when switched off, even when forced', () => {
-    expect(catComes({ level: 'off', setting: 'on', forced: true, random: 0 })).toBe(false);
+  it('"Every time" skips the roll', () => {
+    expect(catComes({ level: 'full', setting: 'always', forced: false, random: 0.99 })).toBe(true);
+    expect(catComes({ level: 'reduced', setting: 'always', forced: false, random: 0.5 })).toBe(true);
+  });
+
+  it('never comes at animation level Off or when set to Off, even when forced', () => {
+    expect(catComes({ level: 'off', setting: 'sometimes', forced: true, random: 0 })).toBe(false);
+    expect(catComes({ level: 'off', setting: 'always', forced: false, random: 0 })).toBe(false);
     expect(catComes({ level: 'full', setting: 'off', forced: true, random: 0 })).toBe(false);
   });
 

@@ -21,4 +21,7 @@ describe('theme presets', () => {
   it('drops unknown stored presets', () => {
     expect(sanitizePref({ preset: 'Nope' }).preset).toBe('Default');
   });
+  it('drops retired overrides such as the old support cat switch, so a theme save is not refused', () => {
+    expect(sanitizePref({ preset: 'Neon', overrides: { cat: 'off', glow: 'soft' } })).toEqual({ preset: 'Neon', overrides: { glow: 'soft' } });
+  });
 });

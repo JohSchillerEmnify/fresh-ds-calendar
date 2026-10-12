@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { LOCAL_PERSON } from '../services/prefsStore.js';
+import { LOCAL_PERSON, SUPPORT_CAT_VALUES, type SupportCat } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -104,11 +104,15 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
-    const patch: { labs?: boolean; approachBar?: boolean } = {};
+    const patch: { labs?: boolean; approachBar?: boolean; supportCat?: SupportCat } = {};
     for (const k of ['labs', 'approachBar'] as const) {
       if (b[k] === undefined) continue;
       if (typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
       patch[k] = b[k] as boolean;
+    }
+    if (b.supportCat !== undefined) {
+      if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
+      patch.supportCat = b.supportCat as SupportCat;
     }
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });

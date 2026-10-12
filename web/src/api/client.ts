@@ -11,6 +11,7 @@ import type {
   AppConfig, Calendar, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
+  Prefs,
 } from './types';
 import type { ThemePref } from '@/theme/presets';
 
@@ -146,10 +147,10 @@ export class ApiClient {
   }
 
   prefs(o?: RequestOptions) {
-    return this.request<{ labs: boolean; approachBar: boolean }>('GET', '/api/prefs', undefined, o);
+    return this.request<Prefs>('GET', '/api/prefs', undefined, o);
   }
-  patchPrefs(p: { labs?: boolean; approachBar?: boolean }, o?: RequestOptions) {
-    return this.request<{ labs: boolean; approachBar: boolean }>('PATCH', '/api/prefs', p, o);
+  patchPrefs(p: Partial<Prefs>, o?: RequestOptions) {
+    return this.request<Prefs>('PATCH', '/api/prefs', p, o);
   }
 
   themePref(o?: RequestOptions) {
