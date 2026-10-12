@@ -28,6 +28,11 @@ When('I open the day view for {date}', async function (this: World, date: string
 /** Click a period navigation button and wait until the route changed. */
 async function navigate(world: World, testId: string) {
   const before = world.page.url();
+  // An open bottom sheet (e.g. an expanded task list) covers the toolbar; a user dismisses it first.
+  if (await world.page.getByTestId('sheet-scrim').isVisible()) {
+    await world.page.keyboard.press('Escape');
+    await expect(world.page.getByTestId('sheet-scrim')).toHaveCount(0);
+  }
   await world.page.getByTestId(testId).click();
   if (testId !== 'nav-today') await expect.poll(() => world.page.url()).not.toBe(before);
 }

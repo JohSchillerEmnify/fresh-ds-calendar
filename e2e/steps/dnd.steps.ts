@@ -73,7 +73,23 @@ async function drag(
   target: (card: Locator, from: Point) => Promise<Point>,
   expectPersist = true,
 ) {
-  await card.scrollIntoViewIfNeeded();
+  // Both the card and the target must be on screen: scroll the grid so their midpoint is centred.
+  const guess = centre(await box(card));
+  const toFirst = await target(card, guess);
+  const cardBox = await box(card);
+  const vh = w.page.viewportSize()?.height ?? 800;
+  if (cardBox.y < 0 || cardBox.y + cardBox.height > vh) {
+    const mid = (cardBox.y + cardBox.height / 2 + toFirst.y) / 2;
+    await card.evaluate((el, midY) => {
+      for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
+        if (n.scrollHeight > n.clientHeight && getComputedStyle(n).overflowY !== 'visible') {
+          const r = n.getBoundingClientRect();
+          n.scrollTop += midY - (r.top + r.height / 2);
+          return;
+        }
+      }
+    }, mid);
+  }
   const from = await grabPoint(w, card);
   const to = await target(card, from);
   const saved = expectPersist ? w.page.waitForResponse((r) => isPersist(r.url(), r.request().method())) : null;
