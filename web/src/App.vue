@@ -104,5 +104,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = f
 .shell { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .body { flex: 1; min-height: 0; display: flex; }
 .col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.main { flex: 1; min-height: 0; display: flex; flex-direction: column; touch-action: pan-y; overflow: hidden; }
+.main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; touch-action: pan-y; overflow: hidden; }
+/* Desktop: the open tasks tray is a right-hand side panel. */
+@media (min-width: 768px) { .col { flex-direction: row; } }
 </style>

@@ -21,13 +21,30 @@ export interface Segment {
   /** True for the first / last day of a multi-day item. */
   first: boolean;
   last: boolean;
+  /** Task lists only: the list's own date when this open list is carried over to today. */
+  carriedFrom?: LocalDate;
 }
 
-export function itemSegments(item: CalendarItem): Segment[] {
+export const CARRY_OVER_DAYS = 30;
+
+/** True for an open list dated within the last 30 days before `today` (shown on today, ARCHITECTURE 5b). */
+export function isCarriedOver(item: CalendarItem, today: LocalDate | undefined): boolean {
+  if (item.kind !== 'tasklist' || !today || item.date >= today || item.doneCount >= item.totalCount) return false;
+  const a = parseIsoDate(item.date), b = parseIsoDate(today);
+  return !!a && !!b && differenceInCalendarDays(b, a) <= CARRY_OVER_DAYS;
+}
+
+export function itemSegments(item: CalendarItem, today?: LocalDate): Segment[] {
   if (item.kind === 'tasklist') {
+    if (isCarriedOver(item, today)) {
+      return [{
+        item, date: today!, allDay: false, startTime: null, endTime: null, startMin: 0, endMin: 0, first: true, last: true,
+        carriedFrom: item.date,
+      }];
+    }
     const timed = item.time !== null;
     const s = timed ? timeToMinutes(item.time!) : 0;
-    const e = timed ? Math.min(24 * 60, s + TASKLIST_BLOCK_MINUTES) : 0;
+    const e = timed ? Math.min(24 * 60, s + (item.estimateMinutes ?? TASKLIST_BLOCK_MINUTES)) : 0;
     return [{
       item, date: item.date, allDay: false, startTime: item.time, endTime: timed ? hhmm(e) : null,
       startMin: s, endMin: e, first: true, last: true,
@@ -74,10 +91,10 @@ export function compareSegments(a: Segment, b: Segment): number {
   return ra - rb || ma - mb || (ta < tb ? -1 : ta > tb ? 1 : 0);
 }
 
-export function segmentsByDate(items: Iterable<CalendarItem>): Map<LocalDate, Segment[]> {
+export function segmentsByDate(items: Iterable<CalendarItem>, today?: LocalDate): Map<LocalDate, Segment[]> {
   const map = new Map<LocalDate, Segment[]>();
   for (const it of items) {
-    for (const s of itemSegments(it)) {
+    for (const s of itemSegments(it, today)) {
       const l = map.get(s.date);
       if (l) l.push(s);
       else map.set(s.date, [s]);

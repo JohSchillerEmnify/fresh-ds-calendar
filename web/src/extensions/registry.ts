@@ -99,5 +99,5 @@ export function registerViewHeader(where: 'time' | 'month', c: Component): void 
 /** Rendered between the view and the navigation bar (open tasks tray). */
 export const trayComponents = shallowReactive<Component[]>([]);
 export function registerTray(c: Component): void {
-  trayComponents.push(markRaw(c));
+  if (!trayComponents.includes(c)) trayComponents.push(markRaw(c));
 }
