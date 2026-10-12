@@ -15,6 +15,7 @@ import ExpandedTaskList from '@/features/tasklists/ExpandedTaskList.vue';
 import TaskListCard from '@/features/tasklists/TaskListCard.vue';
 import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
 import TaskTray from '@/features/tasklists/TaskTray.vue';
+import { setAnimationSetting } from '@/motion/level';
 import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
 import { useTaskListsStore } from '@/features/tasklists/store';
 import { parseTags, validateForm } from '@/features/tasklists/validate';
@@ -396,5 +397,36 @@ describe('cleanup', () => {
     expect(net(add)).toBe(net(rem));
     expect(document.querySelectorAll('[data-testid="tasklist-expanded"]').length).toBe(0);
     enableTimerCounting(false);
+  });
+});
+
+describe('swipe down closes the real task sheets (phone)', () => {
+  const touch = (el: Element, type: string, y: number, t: number) => {
+    const e = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : [{ clientX: 100, clientY: y }] });
+    Object.defineProperty(e, 'timeStamp', { value: t });
+    el.dispatchEvent(e);
+  };
+  const swipe = (el: Element) => { touch(el, 'touchstart', 100, 0); touch(el, 'touchmove', 160, 30); touch(el, 'touchmove', 300, 60); touch(el, 'touchend', 300, 60); };
+  afterEach(() => setAnimationSetting('full'));
+  it('expanded task list: from the header and from a checkbox row', async () => {
+    setAnimationSetting('off');
+    const { pinia } = await setup();
+    useItemsStore().upsert(tl('G'));
+    const w = mountIn(ExpandedTaskList, { id: 'G' }, pinia);
+    await flushPromises();
+    expect(w.get(tid('tasklist-expanded')).attributes('data-tasklist-id')).toBe('G');
+    swipe(w.get(tid('tasklist-expanded-title')).element);
+    expect(w.emitted('close')).toHaveLength(1);
+    swipe(w.get(tid('tasklist-item-checkbox')).element);
+    expect(w.emitted('close')).toHaveLength(2);
+  });
+  it('task list dialog', async () => {
+    setAnimationSetting('off');
+    const { pinia } = await setup();
+    const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
+    await flushPromises();
+    swipe(w.get(tid('tasklist-dialog')).element);
+    expect(w.emitted('close')).toHaveLength(1);
   });
 });

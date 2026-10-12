@@ -14,6 +14,7 @@ import { api, ApiError } from '@/api/client';
 import type { TaskItem } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
+import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { isPhone } from '@/composables/useViewport';
@@ -56,7 +57,8 @@ onMounted(async () => {
 });
 
 // --- placement ------------------------------------------------------------------------------------
-const panel = ref<HTMLElement | null>(null);
+const sheet = ref<{ panel: HTMLElement | null } | null>(null);
+const panel = computed(() => sheet.value?.panel ?? null);
 const pos = ref<{ left: number; top: number; maxH: number } | null>(null);
 function place() {
   if (isPhone.value) { pos.value = null; return; }
@@ -69,7 +71,6 @@ function place() {
   left = Math.max(8, left);
   pos.value = { left, top, maxH: vh - top - 8 };
 }
-const presentation = computed(() => (isPhone.value ? 'sheet' : 'popover'));
 watch(isPhone, place);
 
 let stops: Disposer[] = [];
@@ -174,27 +175,16 @@ async function remove() {
   }
 }
 
-let startY = 0;
-const dragY = ref(0);
-function down(e: PointerEvent) { startY = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }
-function move(e: PointerEvent) { if (startY) dragY.value = Math.max(0, e.clientY - startY); }
-function up() { if (dragY.value > 90) emit('close'); dragY.value = 0; startY = 0; }
-const panelStyle = computed(() => {
-  if (dragY.value) return { transform: `translateY(${dragY.value}px)`, transition: 'none' };
-  const p = pos.value;
-  return p ? { left: p.left + 'px', top: p.top + 'px', maxHeight: p.maxH + 'px' } : undefined;
-});
 </script>
 
 <template>
-  <div class="layer" :class="isPhone ? 'phone' : 'popover'">
-    <div class="scrim" data-testid="sheet-scrim" @click="emit('close')" />
-    <section
-      v-if="tl" ref="panel" class="panel" :class="{ anchored: !!pos, done: complete }" role="dialog" aria-modal="true" :aria-label="tl.title" tabindex="-1"
-      data-testid="tasklist-expanded" :data-tasklist-id="tl.id" :data-title="tl.title" :data-presentation="presentation"
-      :style="{ '--c': tl.color, ...panelStyle }"
-    >
-      <div v-if="isPhone" class="handle" aria-hidden="true" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up"><span /></div>
+  <AdaptiveSheet
+    ref="sheet" :open="!!tl" :label="tl?.title ?? 'Task list'" testid="tasklist-expanded" :anchor="pos" :escape="false"
+    :panel-attrs="{ 'data-tasklist-id': tl?.id ?? '', 'data-title': tl?.title ?? '' }"
+    :panel-style="{ '--c': tl?.color ?? 'transparent', borderTop: '4px solid var(--c)', background: 'color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low))' }"
+    @close="emit('close')"
+  >
+    <template v-if="tl">
       <header class="head">
         <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
         <div class="titles">
@@ -251,34 +241,12 @@ const panelStyle = computed(() => {
         <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>Edit</Button>
         <Button variant="text" class="danger" data-testid="tasklist-delete" @click="confirming = true"><template #icon><IconDelete /></template>Delete</Button>
       </footer>
-    </section>
-    <ConfirmDialog :open="confirming" :title="`Delete “${tl?.title ?? ''}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
-  </div>
+    </template>
+  </AdaptiveSheet>
+  <ConfirmDialog :open="confirming" :title="`Delete “${tl?.title ?? ''}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
 </template>
 
 <style scoped>
-.layer { position: fixed; inset: 0; z-index: 45; display: flex; }
-.scrim { position: absolute; inset: 0; animation: fade var(--md-sys-motion-duration-medium) both; }
-.phone .scrim { background: var(--md-sys-color-scrim, rgb(0 0 0 / 0.4)); }
-.popover .scrim { background: rgb(0 0 0 / 0.12); }
-.panel {
-  position: relative; display: flex; flex-direction: column; max-height: 90dvh; outline: 0; overflow-y: auto; overscroll-behavior: contain;
-  background: color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low)); color: var(--md-sys-color-on-surface);
-  border-top: 4px solid var(--c);
-}
-.phone { align-items: flex-end; }
-.phone .panel {
-  width: 100%; border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0; padding: 0 16px calc(12px + var(--safe-bottom));
-  animation: up 320ms var(--md-sys-motion-spring) both; transition: transform 200ms;
-}
-.popover { align-items: center; justify-content: center; }
-.popover .panel {
-  width: min(380px, calc(100vw - 16px)); padding: 12px 16px 12px; border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3);
-  animation: zoom 240ms var(--md-sys-motion-spring) both; transform-origin: left top;
-}
-.popover .panel.anchored { position: fixed; }
-.handle { display: flex; justify-content: center; padding: 10px 0 2px; touch-action: none; cursor: grab; flex: none; }
-.handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.4; }
 .head { display: flex; align-items: center; gap: 12px; padding: 8px 0 4px; }
 .titles { flex: 1; min-width: 0; }
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
@@ -313,9 +281,6 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .foot { display: flex; align-items: center; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
 .grow { flex: 1; }
 .danger { color: var(--md-sys-color-error); }
-@keyframes fade { from { opacity: 0; } }
-@keyframes up { from { transform: translateY(100%); } }
-@keyframes zoom { from { transform: scale(0.92); opacity: 0; } }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes bump { 0% { transform: scale(0.7); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 @keyframes tickflash { 0% { background: color-mix(in srgb, var(--c) 38%, transparent); } 100% { background: transparent; } }

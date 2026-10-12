@@ -10,11 +10,16 @@ import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { createVelocityTracker } from '@/motion/spring';
 import { getMotionLevel } from '@/motion/level';
 
-const props = withDefaults(defineProps<{ open: boolean; label: string; dismissOnScrim?: boolean; testid?: string }>(), { dismissOnScrim: true });
+const props = withDefaults(defineProps<{
+  open: boolean; label: string; dismissOnScrim?: boolean; testid?: string;
+  /** Extra attributes for the panel (data-*), inline style, desktop popover anchor, and opt-out of the built-in Escape handler. */
+  panelAttrs?: Record<string, string>; panelStyle?: Record<string, string>; anchor?: { left: number; top: number; maxH: number } | null; escape?: boolean;
+}>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
 const release = acquireViewport();
+defineExpose({ panel });
 let stops: Disposer[] = [];
 let opener: HTMLElement | null = null;
 
@@ -29,7 +34,7 @@ watch(() => props.open, async (o) => {
   opener = document.activeElement as HTMLElement | null;
   await nextTick();
   panel.value?.focus({ preventScroll: true });
-  stops.push(listen(document, 'keydown', (e) => { if (e.key === 'Escape') emit('close'); }));
+  stops.push(listen(document, 'keydown', (e) => { if (e.key === 'Escape' && props.escape) emit('close'); }));
 }, { immediate: true });
 
 onBeforeUnmount(() => { stops.forEach((s) => s()); release(); });
@@ -38,7 +43,8 @@ onBeforeUnmount(() => { stops.forEach((s) => s()); release(); });
 const SLOP = 8;
 const CLOSE_FRAC = 0.25;
 const CLOSE_VELOCITY = 700; // px/s
-const NO_DRAG = 'input,textarea,select,[contenteditable="true"],[data-no-sheet-drag]';
+const NO_DRAG = 'input:not([type=checkbox]):not([type=radio]):not([type=button]),textarea,select,[contenteditable="true"],[data-no-sheet-drag]';
+const TOP_ZONE = 56; // a touch this close to the sheet's top edge always drags (header/title), even if content is scrolled
 const vt = createVelocityTracker(100);
 let phase: 'idle' | 'pending' | 'drag' | 'ignore' = 'idle';
 let sx = 0;
@@ -55,7 +61,8 @@ function startsAtTop(t: HTMLElement): boolean {
 function ts(e: TouchEvent) {
   if (!isPhone.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
   const t = e.target as HTMLElement;
-  if (t.closest?.(NO_DRAG) || !startsAtTop(t)) { phase = 'ignore'; return; }
+  const inTop = e.touches[0].clientY - panel.value.getBoundingClientRect().top < TOP_ZONE;
+  if (t.closest?.(NO_DRAG) || !(inTop || startsAtTop(t))) { phase = 'ignore'; return; }
   phase = 'pending';
   sx = e.touches[0].clientX;
   sy = e.touches[0].clientY;
@@ -95,10 +102,10 @@ function tc() { phase = 'idle'; drag.value = 0; }
 watch(panel, (el, _o, onCleanup) => {
   if (!el) return;
   const off = [
-    listen(el, 'touchstart', ts as EventListener, { passive: true }),
-    listen(el, 'touchmove', tm as EventListener, { passive: false }),
-    listen(el, 'touchend', te),
-    listen(el, 'touchcancel', tc),
+    listen(el, 'touchstart', ts as EventListener, { passive: true, capture: true }),
+    listen(el, 'touchmove', tm as EventListener, { passive: false, capture: true }),
+    listen(el, 'touchend', te, { capture: true }),
+    listen(el, 'touchcancel', tc, { capture: true }),
   ];
   onCleanup(() => off.forEach((o) => o()));
 });
@@ -106,11 +113,12 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="isPhone ? 'phone' : 'desk'">
+  <div v-if="open" class="layer" :class="[isPhone ? 'phone' : 'desk', { anchored: !isPhone && !!anchor }]">
     <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="isPhone ? 'sheet' : 'modal'" :style="drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : undefined"
+      :data-presentation="isPhone ? 'sheet' : anchor ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !isPhone && !!anchor }"
+      :style="[panelStyle, !isPhone && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
       <div v-if="isPhone" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>
@@ -130,6 +138,8 @@ onBeforeUnmount(() => stopTimer?.());
   width: 100%; border-radius: var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0 0;
   padding-bottom: var(--safe-bottom); animation: up 320ms var(--md-sys-motion-spring) both; transition: transform 200ms;
 }
+.desk.anchored .scrim { background: rgb(0 0 0 / 0.12); }
+.desk .panel.anchored { position: fixed; width: min(380px, calc(100vw - 16px)); transform-origin: left top; }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
 .handle { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: -12px 0; touch-action: none; cursor: grab; flex: none; }
