@@ -225,6 +225,7 @@ describe('expanded list', () => {
       'DELETE /api/tasklists/G/items/G-i1': () => (state = { ...state, items: state.items.filter((i) => i.id !== 'G-i1'), totalCount: 2 }),
       'PUT /api/tasklists/G/items/order': ({ body }: any) => (state = { ...state, items: body.itemIds.map((id: string) => state.items.find((i) => i.id === id)) }),
     });
+    await w.get(tid('tasklist-add')).trigger('click');
     const input = w.get(tid('tasklist-new-item'));
     await input.setValue('   ');
     await input.trigger('keydown.enter');
@@ -269,7 +270,7 @@ describe('open tasks tray', () => {
     expect(rows.map((r) => r.attributes('data-title'))).toEqual(['Laundry', 'Groceries', 'Packing']);
     expect(rows[0].text()).toContain('From Sat 10 Oct');
     expect(rows[1].text()).not.toContain('From');
-    expect(w.findAll(tid('task-tray-move-today'))).toHaveLength(1);
+    expect(w.findAll(tid('tasklist-move-today'))).toHaveLength(1); // the shared task list view's button
   });
   it('count follows ticks and shows "No open tasks" when empty', async () => {
     const g = tl('Groceries', { done: [false] });

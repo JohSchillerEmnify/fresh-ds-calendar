@@ -33,6 +33,6 @@ function select(id: string) {
 .fab-wrap { transition: transform 220ms var(--md-sys-motion-spring), opacity 160ms linear; }
 /* Phone: slides out to the right while the open tasks tray is expanded (it would cover the tray's controls). */
 .fab-wrap.away { transform: translateX(calc(100% + 24px)); opacity: 0; pointer-events: none; }
-@media (min-width: 768px) { .fab-wrap { bottom: 24px; right: 24px; } }
+@media (min-width: 768px) { .fab-wrap { bottom: 24px; right: calc(var(--tray-w, 0px) + 24px); } } /* left of the tray panel */
 .scrim { position: fixed; inset: 0; z-index: -1; background: rgb(0 0 0 / 0.2); }
 </style>
