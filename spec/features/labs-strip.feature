@@ -13,3 +13,10 @@ Feature: Labs: the strip view
     When I scroll the strip one day to the right
     Then the strip column of 2026-10-15 is in front
     And the page did not reload
+
+  Scenario: Strip columns show time to scale
+    Given the calendar contains an event "Workshop" on 2026-10-14 from 13:00 to 16:00
+    And the calendar contains an all-day event "Trip" on 2026-10-14
+    When I open the strip view for 2026-10-14
+    Then in the strip "Workshop" is about 3 times as tall as "Dentist"
+    And "Trip" is in the strip's all-day band

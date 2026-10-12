@@ -19,3 +19,7 @@ Feature: Labs: experimental views and the 24-hour clock
     When I open the clock view for 2026-10-14
     Then the event "Dentist" is an arc from 09:00 to 10:00
     And the clock hand points at 09:30
+
+  Scenario: The clock names each event
+    When I open the clock view for 2026-10-14
+    Then the arc of "Dentist" is labelled "Dentist"

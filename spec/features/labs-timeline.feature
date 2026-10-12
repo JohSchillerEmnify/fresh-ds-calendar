@@ -15,3 +15,13 @@ Feature: Labs: the timeline view
     Then "Dentist" comes before "Gym" on the timeline
     And the now marker is before "Dentist" on the timeline
     And on the timeline "Gym" is farther from "Dentist" than "Dentist" is from the now marker
+
+  Scenario: Longer events take more room on the timeline
+    Given the calendar contains an event "Workshop" on 2026-10-14 from 13:00 to 16:00
+    When I open the timeline view
+    Then on the timeline "Workshop" is about 3 times as long as "Dentist"
+
+  Scenario: All-day entries sit in their own band above the timeline
+    Given the calendar contains an all-day event "Trip" on 2026-10-15
+    When I open the timeline view
+    Then "Trip" is in the all-day band above the timed entries

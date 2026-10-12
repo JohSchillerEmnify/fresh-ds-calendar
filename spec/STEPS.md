@@ -774,6 +774,7 @@ the view switcher offers {string}, {string} and {string} marked as experimental
 I open the clock view for {date}
 the event {string} is an arc from {time} to {time}
 the clock hand points at {time}
+the arc of {string} is labelled {string}
 the approach bar is on
 the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
@@ -781,11 +782,15 @@ I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
 on the timeline {string} is farther from {string} than {string} is from the now marker
+on the timeline {string} is about {int} times as long as {string}
+{string} is in the all-day band above the timed entries
 I open the strip view for {date}
 I see the event {string} in the strip column of {date}
 I scroll the strip one day to the right
 the strip column of {date} is in front
 the page did not reload
+in the strip {string} is about {int} times as tall as {string}
+{string} is in the strip's all-day band
 ```
 
 - Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
@@ -794,4 +799,7 @@ the page did not reload
 - Timeline: `timeline-item` (`data-title`) and `timeline-now`, positions compared along the timeline's axis.
 - Strip: `strip-column` (`data-date`); "in front" = the leftmost fully visible column; "did not reload" = a marker set
   on `window` before the step is still there.
+- Labs v2 (owner feedback): sizes are always proportional to duration (time blindness), "about N times" allows ±15 %;
+  all-day bands are `timeline-allday` / `strip-allday` above the timed area; clock labels are `clock-label`
+  (`data-title`) next to or along each arc.
 

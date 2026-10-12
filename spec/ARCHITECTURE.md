@@ -611,10 +611,15 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
-- Clock: SVG 24-hour circle, events as arcs, task lists as dots, hand at the app clock (`clock` store), progress ring.
+- Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
+  (`clock` store), progress ring.
 - Approach bar: above every calendar view when on; next 3 hours, "now" at the left, the next event placed by minutes.
-- Timeline: one horizontal axis across days, items spaced by time, `timeline-now`, pinch/wheel zoom.
-- Strip: CSS scroll-snap columns, one per day, extended in both directions as the user scrolls (virtualised).
+- Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
+  equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
+- Timeline: one horizontal axis across days, items as long as they last, all-day band on top, fills the viewport
+  height with lanes, `timeline-now`, pinch/wheel zoom.
+- Strip: CSS scroll-snap columns, one per day, each a small time grid (height proportional to duration) with an all-day
+  band on top, extended in both directions as the user scrolls (virtualised).
 
 ## 8. Configuration (env)
 
