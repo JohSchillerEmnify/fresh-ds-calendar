@@ -10,7 +10,8 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     And today is 2026-10-12
 
   Scenario Outline: A season theme keeps my mode
-    When I open the settings
+    When I open the week view for 2026-10-12
+    And I open the settings
     And I choose the theme mode "<mode>"
     And I choose the theme "<theme>"
     Then the app uses the <scheme> theme
