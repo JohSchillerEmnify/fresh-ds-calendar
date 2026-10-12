@@ -99,6 +99,7 @@ const themeOverrides = so({
   entries: v.optional(v.picklist(['solid', 'tinted', 'outline'], 'Invalid entries style')),
   corners: v.optional(v.picklist(['square', 'round', 'pill'], 'Invalid corners')),
   scene: v.optional(v.picklist(['none', 'mordor', 'spring', 'summer', 'fall', 'winter'], 'Invalid scene')),
+  cat: v.optional(v.picklist(['on', 'off'], 'Invalid support cat setting')),
 });
 export const themePatchSchema = so({
   preset: v.optional(v.picklist(['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Winter', 'Mordor', 'Automatic'], 'Invalid theme')),
