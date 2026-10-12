@@ -123,6 +123,7 @@ interface Settings {
   defaultView: ViewName;             // default 'month'
   defaultEventColorId: string | null; // Google colorId '1'..'11' or null (= calendar color), default null
   animationLevel: 'full' | 'reduced' | 'off';    // default 'full'; the system "reduce motion" caps it at 'reduced'
+  ignoreSystemMotion: boolean;                  // default false; true lets animationLevel apply although the device asks for less motion
   sounds: boolean;                    // default false
   calmMode: boolean;                  // default false
   transitionWarningMinutes: 0 | 5 | 10 | 15;     // default 10; 0 = off
