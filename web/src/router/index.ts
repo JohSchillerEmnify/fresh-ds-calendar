@@ -1,3 +1,4 @@
+import { bindRouterToOverlays } from '@/lib/overlayHistory';
 import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router';
 import { parseParam, routePath, toIsoDate, type ViewKind } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
@@ -78,6 +79,7 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
     const d = parseParam(view, to.params.param as string);
     if (d) useCalendarStore().setFromRoute(view, d);
   });
+  bindRouterToOverlays(router);
   return router;
 }
 

@@ -32,6 +32,7 @@ import { useFilters } from '@/composables/useFilters';
 import { useSyncStore } from '@/stores/sync';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
+import { useOverlayHistory } from '@/lib/overlayHistory';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -81,6 +82,11 @@ onBeforeUnmount(() => {
   sync.stop();
   clock.stopTicker();
 });
+// System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
+useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });
+useOverlayHistory(() => ui.filtersShown, () => { ui.filtersShown = false; });
+useOverlayHistory(() => ui.pickerOpen, () => { ui.pickerOpen = false; });
+useOverlayHistory(() => ui.createMenuOpen, () => { ui.createMenuOpen = false; });
 // Close transient UI on navigation.
 watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = false; ui.resizing = null; });
 </script>
