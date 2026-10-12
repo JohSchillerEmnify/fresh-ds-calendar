@@ -956,7 +956,6 @@ Google shows the calendar {string}
 ```
 the top bar scene shows {string}, {string}, {string} and {string}
 the support cat comes by on the next finished list
-the support cat is switched off in the theme menu
 the support cat appears and is gone within {int} ms
 the support cat does not appear
 ```
