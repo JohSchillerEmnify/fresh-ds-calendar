@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import { configResponse } from './routes.js';
 import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
+import { mockSub, parseEmails } from '../auth/people.js';
 import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
@@ -23,6 +24,8 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.overrides = {};
     ctx.health = null;
     ctx.calendar.invalidate();
+    ctx.auth.reset();
+    ctx.resetPeople();
     const settings = ctx.settings.reset();
     ctx.motivation.reset();
     if (input.seed) await ctx.seed();
@@ -66,18 +69,21 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json({ down: b.down });
   });
 
+  // `owner` (a Google address) selects that person's mock calendar; without it the shared one is used.
+  const store = (owner: string | undefined) => (owner ? ctx.mockFor(mockSub(owner)) : mock);
+
   t.get('/remote/events', (c) => {
     const q = c.req.query('q');
-    let items = mock.remote.list(c.req.query('calendarId'), c.req.query('includeCancelled') === 'true');
+    let items = store(c.req.query('owner')).remote.list(c.req.query('calendarId'), c.req.query('includeCancelled') === 'true');
     if (q !== undefined) items = items.filter((e) => e.summary === q);
     return c.json({ items });
   });
 
   t.post('/remote/events', async (c) => {
-    const b = (await body(c)) as (GoogleEventInput & { calendarId?: string }) | undefined;
+    const b = (await body(c)) as (GoogleEventInput & { calendarId?: string; owner?: string }) | undefined;
     if (!b || typeof b !== 'object' || !b.start || !b.end) throw validation('start and end are required');
-    const { calendarId, ...ev } = b;
-    return c.json(mock.remote.insert(calendarId ?? 'primary', ev), 201);
+    const { calendarId, owner, ...ev } = b;
+    return c.json(store(owner).remote.insert(calendarId ?? 'primary', ev), 201);
   });
 
   t.patch('/remote/events/:id', async (c) => {
@@ -91,6 +97,38 @@ export function testRoutes(ctx: Ctx): Hono {
     if (!found) throw new ApiException('NOT_FOUND', 404, 'Not found');
     mock.remote.delete(found.calendarId, found.id);
     return c.body(null, 204);
+  });
+
+  // ---- sign-in test double ----
+  t.post('/auth', async (c) => {
+    const b = (await body(c)) as { allowedEmails?: unknown } | undefined;
+    if (!Array.isArray(b?.allowedEmails)) throw validation('allowedEmails must be an array', 'allowedEmails');
+    ctx.auth.on = true;
+    ctx.auth.allowedEmails = parseEmails(b.allowedEmails.join(','));
+    return c.json({ on: true, allowedEmails: ctx.auth.allowedEmails });
+  });
+
+  // The Google account the fake consent screen signs in next.
+  t.post('/oauth/account', async (c) => {
+    const b = (await body(c)) as { email?: unknown } | undefined;
+    if (typeof b?.email !== 'string' || !b.email) throw validation('email is required', 'email');
+    ctx.auth.fake!.account = b.email;
+    return c.json({ email: b.email });
+  });
+
+  t.get('/oauth/consent', (c) => {
+    const fake = ctx.auth.fake!;
+    const state = c.req.query('state');
+    if (!fake.account || !state) throw validation('No Google account chosen');
+    return c.redirect(`/api/auth/google/callback?code=${encodeURIComponent(fake.codeFor(fake.account))}&state=${encodeURIComponent(state)}`, 302);
+  });
+
+  // Google answers this person's token refresh with invalid_grant from now on.
+  t.post('/oauth/revoke', async (c) => {
+    const b = (await body(c)) as { email?: unknown } | undefined;
+    if (typeof b?.email !== 'string' || !b.email) throw validation('email is required', 'email');
+    ctx.mockFor(mockSub(b.email)).setRevoked(true);
+    return c.json({ revoked: b.email });
   });
 
   t.get('/memory', (c) => {

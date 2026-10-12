@@ -9,6 +9,8 @@ export type DateTime = string; // RFC 3339 with offset
 export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
+  | 'UNAUTHENTICATED'
+  | 'GOOGLE_REAUTH'
   | 'PRECONDITION_FAILED'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'
@@ -16,6 +18,12 @@ export type ErrorCode =
 
 export interface ApiErrorBody {
   error: { code: ErrorCode; message: string; details?: { field?: string; issue?: string }[] };
+}
+
+/** `/api/auth/me`: both null while sign-in is off. */
+export interface Me {
+  email: string | null;
+  name: string | null;
 }
 
 export interface Calendar {

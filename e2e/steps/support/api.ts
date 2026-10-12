@@ -60,6 +60,12 @@ export class Api {
     return this.setup('/api/__test/motivation', body);
   }
   setConfig(cfg: { pollIntervalMs?: number }) { return this.setup('/api/__test/config', cfg); }
+  /** Turns sign-in on with this allow-list (it is off with the mock provider otherwise; reset turns it off). */
+  setAuth(allowedEmails: string[]) { return this.setup('/api/__test/auth', { allowedEmails }); }
+  /** The Google account the OAuth test double's consent screen signs in next. */
+  chooseGoogleAccount(email: string) { return this.setup('/api/__test/oauth/account', { email }); }
+  /** Google answers this person's token refresh with invalid_grant from now on. */
+  revokeGoogleAccess(email: string) { return this.setup('/api/__test/oauth/revoke', { email }); }
   setOutage(down: boolean) { return this.setup('/api/__test/outage', down ? { down, status: 503 } : { down }); }
 
   /**
@@ -79,7 +85,8 @@ export class Api {
     const qs = q === undefined ? '' : `?q=${encodeURIComponent(q)}`;
     return (await this.get<{ items: GoogleEvent[] }>(`/api/__test/remote/events${qs}`)).items;
   }
-  remoteInsert(ev: Partial<GoogleEvent> & { calendarId?: string }) {
+  /** `owner`: the Google address whose (mock) calendar receives the event; omitted = the shared calendar. */
+  remoteInsert(ev: Partial<GoogleEvent> & { calendarId?: string; owner?: string }) {
     return this.post<GoogleEvent>('/api/__test/remote/events', ev);
   }
   remotePatch(id: string, patch: Partial<GoogleEvent>) {

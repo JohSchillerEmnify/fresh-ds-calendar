@@ -53,7 +53,9 @@ export function configResponse(ctx: Ctx) {
 
 export function apiRoutes(ctx: Ctx): Hono {
   const r = new Hono();
-  const { calendar, settings, motivation, config } = ctx;
+  const { settings, motivation, config } = ctx;
+  // the signed-in person's calendar (the shared one while auth is off)
+  const cal = (c: Context) => ctx.calendarFor((c.get('person') as { sub: string } | undefined)?.sub);
   const tz = config.tz;
 
   // Mutations that awarded plant points are flagged so the client refetches /api/motivation.
@@ -69,7 +71,8 @@ export function apiRoutes(ctx: Ctx): Hono {
     let status = ctx.health && now - ctx.health.at < HEALTH_TTL_MS && !ctx.mock?.isDown ? ctx.health.status : null;
     if (!status) {
       try {
-        await ctx.provider.ping();
+        // per-person Google access cannot be probed without a person
+        if (!ctx.personProvider) await ctx.provider.ping();
         status = 'ok';
       } catch {
         status = 'unavailable';
@@ -81,26 +84,26 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   r.get('/config', (c) => c.json(configResponse(ctx)));
 
-  r.get('/calendars', async (c) => c.json({ calendars: await calendar.calendars() }));
+  r.get('/calendars', async (c) => c.json({ calendars: await cal(c).calendars() }));
 
   // ---- items ----
   r.get('/items', async (c) => {
     const { from, to } = range(c, 100);
     const ids = c.req.query('calendarIds')?.split(',').map((s) => s.trim()).filter(Boolean);
-    return c.json(await calendar.items(from, to, ids));
+    return c.json(await cal(c).items(from, to, ids));
   });
 
   r.get('/summary', async (c) => {
     const { from, to } = range(c, 400);
-    return c.json({ days: await calendar.summary(from, to) });
+    return c.json({ days: await cal(c).summary(from, to) });
   });
 
   // ---- events ----
-  r.post('/events', async (c) => c.json(await calendar.createEvent(parse(createEventSchema, await body(c))), 201));
-  r.get('/events/:id', async (c) => c.json(await calendar.getEvent(c.req.param('id'))));
-  r.patch('/events/:id', async (c) => c.json(await calendar.updateEvent(c.req.param('id'), parse(updateEventSchema, await body(c)), c.req.header('If-Match'))));
+  r.post('/events', async (c) => c.json(await cal(c).createEvent(parse(createEventSchema, await body(c))), 201));
+  r.get('/events/:id', async (c) => c.json(await cal(c).getEvent(c.req.param('id'))));
+  r.patch('/events/:id', async (c) => c.json(await cal(c).updateEvent(c.req.param('id'), parse(updateEventSchema, await body(c)), c.req.header('If-Match'))));
   r.delete('/events/:id', async (c) => {
-    await calendar.deleteEvent(c.req.param('id'), c.req.header('If-Match'));
+    await cal(c).deleteEvent(c.req.param('id'), c.req.header('If-Match'));
     return c.body(null, 204);
   });
 
@@ -111,19 +114,19 @@ export function apiRoutes(ctx: Ctx): Hono {
     const daysRaw = c.req.query('days');
     const days = daysRaw === undefined ? 30 : Number(daysRaw);
     if (!Number.isInteger(days) || days < 0 || days > 90) throw validation('days must be 0-90', 'days');
-    return c.json(await calendar.openTaskLists(today, days));
+    return c.json(await cal(c).openTaskLists(today, days));
   });
-  r.post('/tasklists', async (c) => c.json(await calendar.createTaskList(parse(createTaskListSchema, await body(c))), 201));
-  r.get('/tasklists/:id', async (c) => c.json(await calendar.getTaskList(c.req.param('id'))));
-  r.patch('/tasklists/:id', async (c) => c.json(await calendar.updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'))));
+  r.post('/tasklists', async (c) => c.json(await cal(c).createTaskList(parse(createTaskListSchema, await body(c))), 201));
+  r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
+  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'))));
   r.delete('/tasklists/:id', async (c) => {
-    await calendar.deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
+    await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
     return c.body(null, 204);
   });
-  r.post('/tasklists/:id/items', async (c) => c.json(await calendar.addItem(c.req.param('id'), parse(addItemSchema, await body(c))), 201));
-  r.put('/tasklists/:id/items/order', async (c) => c.json(await calendar.reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
-  r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await calendar.patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)))));
-  r.delete('/tasklists/:id/items/:itemId', async (c) => c.json(await calendar.deleteItem(c.req.param('id'), c.req.param('itemId'))));
+  r.post('/tasklists/:id/items', async (c) => c.json(await cal(c).addItem(c.req.param('id'), parse(addItemSchema, await body(c))), 201));
+  r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
+  r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)))));
+  r.delete('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).deleteItem(c.req.param('id'), c.req.param('itemId'))));
 
   // ---- settings / categories ----
   r.get('/settings', (c) => c.json(settings.get()));

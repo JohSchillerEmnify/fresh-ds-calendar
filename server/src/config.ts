@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseEmails } from './auth/people.js';
 import { isValidTimeZone } from './lib/time.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,8 @@ export interface AppConfig {
   tasklistCalendarId: string;
   publicUrl: string | null;
   allowedOrigins: string[];
+  /** Google addresses that may sign in (auth is on with PROVIDER=google). */
+  allowedEmails: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   google: {
     clientId: string | null;
@@ -51,6 +54,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     tasklistCalendarId: env.TASKLIST_CALENDAR_ID || 'primary',
     publicUrl,
     allowedOrigins: [...new Set([...(publicUrl ? [publicUrl] : []), ...list(env.ALLOWED_ORIGINS)])],
+    allowedEmails: parseEmails(env.ALLOWED_EMAILS),
     logLevel: (['debug', 'info', 'warn', 'error'] as const).find((l) => l === env.LOG_LEVEL) ?? 'info',
     google: {
       clientId: env.GOOGLE_CLIENT_ID || null,
