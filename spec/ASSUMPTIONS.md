@@ -179,5 +179,5 @@ spec files are named.
 - **A-67 Public instance** (owner): the real instance runs on a small netcup VPS under a domain at INWX/Namecheap/
   Porkbun, reachable from the internet; sauron keeps the mock instance and previews. Supersedes A-24/A-25 (LAN-only
   HTTPS via Cloudflare) for the real instance.
-- **A-68 Approaching card collapse shelved** (owner, 2026-10-13): the card is always open; collapsing may come back
-  as a later feature.
+- **A-68 Approaching card always compact** (owner, 2026-10-13): the card always has its slim (formerly collapsed)
+  form; an expanded form may come back as a later feature.

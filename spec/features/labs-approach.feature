@@ -1,6 +1,6 @@
 @approach @id:labs-approach-bar
 Feature: The Approaching card and its track
-  The card above every calendar view is called Approaching (owner, 2026-10-13). It is always open and can be
+  The card above every calendar view is called Approaching (owner, 2026-10-13). It is always compact (a slim card) and can be
   switched off entirely in the settings. Its track is on by default (it can be turned off, then the card shows the
   "Next:" line instead): "now" at its start and a fixed time window ahead (3, 6 or 12 hours or any whole number of hours from 1
   to 24, chosen in the settings, 3 by default), marked with times that thin out as the window grows. Every entry with a time today (events and task lists

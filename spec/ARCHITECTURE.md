@@ -334,13 +334,15 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   week views. It updates every minute. Today's day view scrolls so now sits in the upper third (other days: 07:00).
 - **Approaching card** (formerly "Now card"; owner 2026-10-13; testid `now-card` kept): above every calendar view (day, week, month, year) whatever period is shown — it is
   about now, not about the shown period (owner, 2026-10-13: hiding it on other days/weeks "diminishes the
-  usefulness"). Always open: collapsing is shelved for now (owner). Setting "Approaching card" on/off
+  usefulness"). Always compact (owner, 2026-10-13: "always collapsed instead of always open"): what used to be the
+  collapsed form is the only form — a slim card with the running event line and the track; no toggle, expanding is
+  shelved. Setting "Approaching card" on/off
   (`settings-approaching-card`, pref `approachingCard`, default on) in the Calendar section switches it off entirely. Today's entries are always loaded for it (the calendar store keeps today in its fetched range in
   addition to the shown period).
   It is one instance above the calendar views, not part of each view: switching between day, week, month and year
   keeps it in place without leaving or entering again (owner, 2026-10-13: "keep it there persistently"); it only
   animates when it first appears.
-  - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
+  - Lines (`now-card-line`), compact: current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
     `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things; each list's own "Next task"
     stays in its expanded view).
