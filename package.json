@@ -5,6 +5,7 @@
   "packageManager": "pnpm@12.11.2",
   "scripts": {
     "build": "pnpm -F @calendar/web build && pnpm -F @calendar/server build",
+    "build:e2e": "pnpm -F @calendar/web build:e2e && pnpm -F @calendar/server build:e2e",
     "test": "pnpm -F @calendar/server test && pnpm -F @calendar/web test",
     "size": "pnpm -F @calendar/web size",
     "dev:server": "pnpm -F @calendar/server dev",
