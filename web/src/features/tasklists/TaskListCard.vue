@@ -38,7 +38,7 @@ const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.v
 <template>
   <button
     ref="el" v-ripple class="tl" :class="[variant, { carried, complete }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
-    :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="tl.date" :data-time="tl.time ?? ''" :data-color="tl.color"
+    :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
     :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--lines': lines }" @click.stop="emit('open')"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
