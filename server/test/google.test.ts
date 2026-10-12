@@ -1,0 +1,210 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { OAuth2Client } from 'google-auth-library';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { buildApp } from '../src/app.js';
+import { loadConfig } from '../src/config.js';
+import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError } from '../src/providers/CalendarProvider.js';
+import { createGoogleProvider, GoogleProvider, makeApi, mapGoogleError } from '../src/providers/google/GoogleProvider.js';
+import * as gauth from '../src/providers/google/auth.js';
+
+interface Call { url: URL; method: string; headers: Headers; body: any }
+function setup(handler: (c: Call) => { status?: number; json?: unknown } | Promise<{ status?: number; json?: unknown }>) {
+  const calls: Call[] = [];
+  const fetchImpl = (async (input: any, init?: any) => {
+    const req = input instanceof Request ? input : null;
+    const url = new URL(req ? req.url : String(input?.url ?? input));
+    const method = req ? req.method : init?.method ?? 'GET';
+    const headers = new Headers(req ? req.headers : init?.headers);
+    const raw = req ? await req.text() : init?.body;
+    const call: Call = { url, method, headers, body: raw ? JSON.parse(typeof raw === 'string' ? raw : String(raw)) : undefined };
+    calls.push(call);
+    const r = await handler(call);
+    return new Response(r.json === undefined ? null : JSON.stringify(r.json), { status: r.status ?? 200, headers: { 'content-type': 'application/json' } });
+  }) as typeof fetch;
+  const auth = new OAuth2Client({ clientId: 'id', clientSecret: 'secret' });
+  auth.setCredentials({ access_token: 'tok', expiry_date: Date.now() + 3_600_000 });
+  const provider = new GoogleProvider({ api: makeApi(auth, fetchImpl), calendarIds: ['primary', 'team@group.calendar.google.com'] });
+  return { provider, calls };
+}
+
+const gev = (o: object = {}) => ({ id: 'abc12', etag: '"e1"', status: 'confirmed', summary: 'S', start: { date: '2026-10-12' }, end: { date: '2026-10-13' }, created: '2026-10-01T00:00:00Z', updated: '2026-10-01T00:00:00Z', ...o });
+
+describe('GoogleProvider (mocked HTTP)', () => {
+  it('lists events with singleEvents, filters and pagination; maps fields', async () => {
+    const { provider, calls } = setup((c) =>
+      c.url.searchParams.get('pageToken')
+        ? { json: { items: [gev({ id: 'p2' })], nextSyncToken: 'sync1' } }
+        : { json: { items: [gev({ extendedProperties: { private: { kind: 'tasklist' } }, colorId: '3', recurrence: ['RRULE:FREQ=DAILY'] })], nextPageToken: 'n2' } },
+    );
+    const r = await provider.listEvents({ calendarId: 'primary', timeMin: '2026-10-12T00:00:00+02:00', timeMax: '2026-10-13T00:00:00+02:00', privateExtendedProperty: ['kind=tasklist'] });
+    expect(r.items.map((e) => e.id)).toEqual(['abc12', 'p2']);
+    expect(r.items[0]).toMatchObject({ calendarId: 'primary', etag: '"e1"', colorId: '3', extendedProperties: { private: { kind: 'tasklist' } }, recurrence: ['RRULE:FREQ=DAILY'] });
+    expect(r.nextSyncToken).toBe('sync1');
+    const q = calls[0]!.url;
+    expect(q.pathname).toBe('/calendar/v3/calendars/primary/events');
+    expect(q.searchParams.get('singleEvents')).toBe('true');
+    expect(q.searchParams.get('privateExtendedProperty')).toBe('kind=tasklist');
+    expect(q.searchParams.get('timeMin')).toBe('2026-10-12T00:00:00+02:00');
+    expect(calls[0]!.headers.get('authorization')).toBe('Bearer tok');
+    expect(calls).toHaveLength(2);
+  });
+
+  it('inserts, gets, patches with If-Match and nulls the other date field', async () => {
+    const { provider, calls } = setup((c) => ({ json: gev({ summary: JSON.stringify(c.body?.summary ?? null) }) }));
+    const ins = await provider.insertEvent('primary', { summary: 'A', start: { date: '2026-10-12' }, end: { date: '2026-10-13' }, extendedProperties: { private: { kind: 'tasklist' } } });
+    expect(calls[0]).toMatchObject({ method: 'POST', body: { summary: 'A', extendedProperties: { private: { kind: 'tasklist' } } } });
+    expect(ins.id).toBe('abc12');
+    await provider.getEvent('primary', 'abc12');
+    expect(calls[1]!.url.pathname).toBe('/calendar/v3/calendars/primary/events/abc12');
+    await provider.patchEvent('primary', 'abc12', { start: { dateTime: '2026-10-12T09:00:00+02:00' }, end: { dateTime: '2026-10-12T10:00:00+02:00' }, colorId: null, extendedProperties: { private: { items_1: null } } }, { ifMatch: '"e1"' });
+    const p = calls[2]!;
+    expect(p.method).toBe('PATCH');
+    expect(p.headers.get('if-match')).toBe('"e1"');
+    expect(p.body.start).toEqual({ dateTime: '2026-10-12T09:00:00+02:00', date: null });
+    expect(p.body.colorId).toBeNull();
+    expect(p.body.extendedProperties.private.items_1).toBeNull();
+    await provider.patchEvent('primary', 'abc12', { start: { date: '2026-10-13' }, end: { date: '2026-10-14' } });
+    expect(calls[3]!.body.start).toEqual({ date: '2026-10-13', dateTime: null });
+    expect(calls[3]!.headers.get('if-match')).toBeNull();
+  });
+
+  it('deletes (with If-Match) and moves', async () => {
+    const { provider, calls } = setup(() => ({ json: gev() }));
+    await provider.deleteEvent('primary', 'abc12', { ifMatch: '"e1"' });
+    expect(calls[0]).toMatchObject({ method: 'DELETE' });
+    expect(calls[0]!.headers.get('if-match')).toBe('"e1"');
+    const m = await provider.moveEvent('primary', 'abc12', 'work');
+    expect(calls[1]!.url.pathname).toBe('/calendar/v3/calendars/primary/events/abc12/move');
+    expect(calls[1]!.url.searchParams.get('destination')).toBe('work');
+    expect(m.calendarId).toBe('work');
+  });
+
+  it('lists only configured calendars and aliases the primary one', async () => {
+    const { provider } = setup(() => ({ json: { items: [
+      { id: 'me@gmail.com', summary: 'me', primary: true, backgroundColor: '#9FE1E7', accessRole: 'owner' },
+      { id: 'team@group.calendar.google.com', summary: 'Team', summaryOverride: 'Team (mine)', backgroundColor: '#000000', accessRole: 'reader' },
+      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', accessRole: 'owner' },
+    ] } }));
+    expect(await provider.listCalendars()).toEqual([
+      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner' },
+      { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader' },
+    ]);
+  });
+
+  it('pings with a cheap call', async () => {
+    const { provider, calls } = setup(() => ({ json: { items: [] } }));
+    await provider.ping();
+    expect(calls[0]!.url.pathname).toBe('/calendar/v3/users/me/calendarList');
+  });
+
+  it.each([
+    [401, ProviderUnavailableError], [403, ProviderUnavailableError], [404, NotFoundError], [410, NotFoundError],
+    [412, PreconditionFailedError], [500, ProviderUnavailableError], [503, ProviderUnavailableError], [400, ProviderError],
+  ])('maps HTTP %i', async (status, cls) => {
+    const { provider } = setup(() => ({ status, json: { error: { code: status, message: 'boom' } } }));
+    await expect(provider.getEvent('primary', 'x')).rejects.toBeInstanceOf(cls);
+  });
+
+  it('maps network failures to unavailable', async () => {
+    const auth = new OAuth2Client();
+    auth.setCredentials({ access_token: 't', expiry_date: Date.now() + 3_600_000 });
+    const provider = new GoogleProvider({ api: makeApi(auth, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), calendarIds: ['primary'] });
+    await expect(provider.ping()).rejects.toBeInstanceOf(ProviderUnavailableError);
+    expect(mapGoogleError(new Error('invalid_grant'))).toBeInstanceOf(ProviderUnavailableError);
+  });
+
+  it('drives the whole REST API through GoogleProvider (task list item op against a fake Google)', async () => {
+    const store = new Map<string, any>();
+    const { provider } = setup((c) => {
+      const m = /\/calendars\/([^/]+)\/events(?:\/([^/]+))?$/.exec(c.url.pathname);
+      if (c.url.pathname.endsWith('/calendarList')) return { json: { items: [{ id: 'me', primary: true, summary: 'Me', backgroundColor: '#039be5', accessRole: 'owner' }] } };
+      if (!m) return { status: 404, json: {} };
+      if (c.method === 'GET' && !m[2]) return { json: { items: [...store.values()] } };
+      if (c.method === 'GET') return store.has(m[2]!) ? { json: store.get(m[2]!) } : { status: 404, json: {} };
+      if (c.method === 'POST') { const e = { ...c.body, id: 'g1', etag: '"1"', status: 'confirmed', created: 'x', updated: 'y' }; store.set('g1', e); return { json: e }; }
+      if (c.method === 'PATCH') {
+        const cur = store.get(m[2]!);
+        if (c.headers.get('if-match') && c.headers.get('if-match') !== cur.etag) return { status: 412, json: {} };
+        const e = { ...cur, ...c.body, etag: '"2"', extendedProperties: { private: Object.fromEntries(Object.entries({ ...cur.extendedProperties.private, ...c.body.extendedProperties.private }).filter(([, v]) => v !== null)) } };
+        store.set(m[2]!, e); return { json: e };
+      }
+      return { status: 204 };
+    });
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-g-'));
+    const app = buildApp({ ...loadConfig({ DATA_DIR: dir, PROVIDER: 'google' }), webDist: null }, { provider });
+    try {
+      const create = await app.request('/api/tasklists', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'L', date: '2026-10-12', items: [{ title: 'a' }] }) });
+      expect(create.status).toBe(201);
+      const list = await create.json();
+      expect(list.calendarId).toBe('primary');
+      const tick = await app.request(`/api/tasklists/g1/items/${list.items[0].id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ done: true }) });
+      expect((await tick.json()).doneCount).toBe(1);
+      expect(store.get('g1').description).toBe('☑ a');
+      expect((await (await app.request('/api/health')).json()).provider).toBe('google');
+    } finally { app.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it('createGoogleProvider fails fast without client credentials', () => {
+    expect(() => createGoogleProvider(loadConfig({ PROVIDER: 'google' }))).toThrow(/GOOGLE_CLIENT_ID/);
+  });
+
+  it('without any token every call is unavailable with a hint', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-g-'));
+    try {
+      const p = createGoogleProvider(loadConfig({ PROVIDER: 'google', GOOGLE_CLIENT_ID: 'a', GOOGLE_CLIENT_SECRET: 'b', DATA_DIR: dir }));
+      await expect(p.ping()).rejects.toThrow(/auth\/google\/start/);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+});
+
+describe('Google OAuth routes', () => {
+  const dirs: string[] = [];
+  afterEach(() => { vi.restoreAllMocks(); for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true }); });
+  const mkApp = (env: Record<string, string>) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-auth-'));
+    dirs.push(dir);
+    const config = { ...loadConfig({ DATA_DIR: dir, ...env }), webDist: null };
+    return { dir, config, app: buildApp(config, env.PROVIDER === 'google' ? { provider: new GoogleProvider({ api: makeApi(new OAuth2Client()), calendarIds: ['primary'] }) } : {}) };
+  };
+  const g = { PROVIDER: 'google', GOOGLE_CLIENT_ID: 'cid', GOOGLE_CLIENT_SECRET: 'sec', PUBLIC_URL: 'https://cal.example.org' };
+
+  it('are 404 with PROVIDER=mock', async () => {
+    const { app } = mkApp({});
+    expect((await app.request('/api/auth/google/start')).status).toBe(404);
+    expect((await app.request('/api/auth/google/callback?code=a&state=b')).status).toBe(404);
+  });
+
+  it('start redirects to Google consent with offline access, prompt=consent and state', async () => {
+    const { app } = mkApp({ ...g, GOOGLE_CLIENT_ID: 'cid-start' });
+    const res = await app.request('/api/auth/google/start');
+    expect(res.status).toBe(302);
+    const loc = new URL(res.headers.get('location')!);
+    expect(loc.host).toBe('accounts.google.com');
+    expect(loc.searchParams.get('access_type')).toBe('offline');
+    expect(loc.searchParams.get('prompt')).toBe('consent');
+    expect(loc.searchParams.get('redirect_uri')).toBe('https://cal.example.org/api/auth/google/callback');
+    expect(loc.searchParams.get('client_id')).toBe('cid-start');
+    expect(loc.searchParams.get('state')).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it('callback rejects an invalid state, then stores the token (mode 600) and redirects', async () => {
+    const { app, dir, config } = mkApp({ ...g, GOOGLE_CLIENT_ID: 'cid-cb' });
+    expect((await app.request('/api/auth/google/callback?code=c&state=nope')).status).toBe(400);
+    expect((await app.request('/api/auth/google/callback')).status).toBe(400);
+    const state = new URL((await app.request('/api/auth/google/start')).headers.get('location')!).searchParams.get('state')!;
+    vi.spyOn(gauth.getClient(config), 'getToken').mockResolvedValue({ tokens: { refresh_token: 'rt-1', access_token: 'at' }, res: null } as never);
+    const res = await app.request(`/api/auth/google/callback?code=c&state=${state}`);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/');
+    const file = path.join(dir, 'google-token.json');
+    expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual({ refresh_token: 'rt-1' });
+    expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    // state is single use
+    expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`)).status).toBe(400);
+    // start is hidden once a token exists, unless forced
+    expect((await app.request('/api/auth/google/start')).status).toBe(404);
+    expect((await app.request('/api/auth/google/start?force=true')).status).toBe(302);
+  });
+});

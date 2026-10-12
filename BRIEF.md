@@ -106,3 +106,8 @@ with embeddable, expandable task lists inside the calendar views. Spec-driven de
 - E2E: `@playwright/test` 1.64.0 + playwright-bdd 9.2.1 in `mcr.microsoft.com/playwright:v1.64.0-noble` (versions must match).
 - Gates: size-limit budgets (`pnpm size`), heap/DOM growth and soak tests. Container: `mem_limit: 192m`,
   `NODE_OPTIONS=--max-old-space-size=96 --heapsnapshot-signal=SIGUSR2`.
+
+## Update: Mordor theme (owner, 2026-10-12)
+- Secondary theme "Mordor": ember-on-black palette preset + top-bar scene with original SVG Barad-dûr and
+  flickering Eye of Sauron (eye opens on app open). Settings "Scene": Sunflower field / Mordor / None.
+  Settings field `scene`, preset id `mordor` (seed #c43e00).
