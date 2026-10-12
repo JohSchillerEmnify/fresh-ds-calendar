@@ -27,7 +27,8 @@ spec files are named.
 - **A-64 Overlapping timed blocks** (week / day): overlapping events whose starts differ by 15 min or more cascade (later
   one on top, indented 10 px per level, max 3 levels) so titles stay readable; starts closer than 15 min share equal
   columns; beyond depth 3 blocks fall back to columns. Constants in `lib/items.ts`.
-- **A-10 Month overflow**: desktop max 3 entries per cell + `+N more`; phone max 2 compact chips + `+N`.
+- **A-10 Month overflow** (owner 2026-10-12): no `+N`; a cell shows as many entries as fit and fades the rest out at
+  the bottom. Tapping the cell opens the day.
 - **A-11 Timed task lists** are 30-minute Google events; untimed ones are all-day events. They live in one calendar
   (`TASKLIST_CALENDAR_ID`, default primary); the task list form has no calendar picker.
 - **A-12 No offline writes**: changes made while Google/network is unavailable fail visibly (dialog error or rollback)
@@ -157,9 +158,7 @@ spec files are named.
 - **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
   navigation bar, and the FAB floats above the tray bar. While the tray is expanded the FAB slides away (owner
   2026-10-12), so it never covers the tray's controls; it returns when the tray is collapsed.
-- **A-E1 Month overflow, one hidden item**: on desktop a day with exactly one item more than the limit (4 items) shows all
-  of them instead of 3 plus "+1 more" (the link would take the same room). 5 or more items show 3 plus "+N more".
-  Needed by events-display "Items of a day are ordered all-day first, then by time" together with the "+2 more" scenario.
+- **A-E1** withdrawn (overflow is a fade now, A-10).
 - **A-E2 "I tap the day D in the month view" on desktop** (timeline "phone month view" scenario also runs on desktop):
   without touch the step clicks the day number. Since 2026-10-12 (owner request) empty space in a desktop cell also opens
   the day, but the cell centre may hold an entry, whose click opens the entry instead.

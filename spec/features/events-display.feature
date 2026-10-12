@@ -161,16 +161,21 @@ Feature: Displaying events in the calendar views
     Then the items on 2026-10-14 are shown in the order "Holiday, Gym, Errands, Dentist"
 
   @month @desktop
-  Scenario: A crowded day in the month view shows an overflow link
+  Scenario: A crowded day in the month view fades out what does not fit
     Given the calendar contains an event "A" on 2026-10-14 from 11:00 to 12:00
     And the calendar contains an event "B" on 2026-10-14 from 12:00 to 13:00
     And the calendar contains an event "C" on 2026-10-14 from 13:00 to 14:00
     And the calendar contains an event "D" on 2026-10-14 from 14:00 to 15:00
+    And the calendar contains an event "E" on 2026-10-14 from 15:00 to 16:00
+    And the calendar contains an event "F" on 2026-10-14 from 16:00 to 17:00
+    And the calendar contains an event "G" on 2026-10-14 from 17:00 to 18:00
+    And the calendar contains an event "H" on 2026-10-14 from 18:00 to 19:00
     When I open the month view for 2026-10
-    Then the overflow link on 2026-10-14 reads "+2 more"
-    When I click the overflow link on 2026-10-14
+    Then the entries on 2026-10-14 fade out towards the bottom of the month cell
+    And the month cell of 2026-10-14 shows no overflow count
+    When I click empty space in the month cell of 2026-10-14
     Then the URL path is "/day/2026-10-14"
-    And I see the event "D" on 2026-10-14
+    And I see the event "H" on 2026-10-14
 
   Scenario: Events take the color of their calendar
     Given the calendar contains an event "Team sync" in the calendar "Work" on 2026-10-13 from 10:00 to 11:00

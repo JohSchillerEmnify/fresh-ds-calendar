@@ -170,3 +170,20 @@ Feature: Task lists in the calendar views
     When I open the day view for 2026-10-14
     Then the collapsed task list "Legacy" lists the items "Call bank, Pay rent"
     And the task list "Legacy" shows the done count "1/2"
+
+  @desktop @day
+  Scenario: A task list with more items than fit fades out at the bottom
+    Given the calendar contains a task list "Packing" on 2026-10-14 at 09:00 for 45 minutes with items:
+      | item      | done |
+      | Passport  | no   |
+      | Charger   | no   |
+      | Tickets   | no   |
+      | Sunscreen | no   |
+      | Book      | no   |
+      | Snacks    | no   |
+      | Headphones| no   |
+      | Socks     | no   |
+    When I open the day view for 2026-10-14
+    Then the items of the task list "Packing" fade out towards the bottom
+    And the task list "Packing" shows no overflow count
+

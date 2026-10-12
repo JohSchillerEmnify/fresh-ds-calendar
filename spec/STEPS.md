@@ -109,9 +109,10 @@ I go back in the browser
 I reload the page
 I click the day number of {date}
 I click empty space in the month cell of {date}
+the entries on {date} fade out towards the bottom of the month cell
+the month cell of {date} shows no overflow count
 I click the week header of {date}
 I tap the day {date} in the month view
-I click the overflow link on {date}
 the {view} view is shown
 the URL path is {string}
 the period title is {string}
@@ -123,7 +124,6 @@ the week columns are {string}
 {date} is highlighted as today
 exactly one day is highlighted as today
 no day is highlighted as today
-the overflow link on {date} reads {string}
 ```
 
 ## Events: display
@@ -197,6 +197,8 @@ the task list {string} shows the done count {string}
 the task list {string} shows the item {string} below its title
 the task list {string} shows the item {string} next to its title
 the task list {string} does not show the item {string}
+the items of the task list {string} fade out towards the bottom
+the task list {string} shows no overflow count
 the collapsed task list {string} lists the items {string}
 the collapsed task list {string} shows {string}
 the task list {string} is positioned at {time}
@@ -765,4 +767,8 @@ they hide the calendar {string} in the filter bar
   (not their primary). "has the color of the calendar": the event chip's `data-color` equals that calendar's colour.
 - "hid the calendar" signs the person in and hides it through the app. "on another device" is a fresh browser context
   signed in as the same person.
+- "fade out towards the bottom" (month cell / task list card): the entries' container is clipped with a gradient mask
+  (`mask-image`/`-webkit-mask-image` not `none`) that ends transparent at the bottom, and at least one entry reaches
+  into the faded band. "shows no overflow count": no `+N` / `+k more` text and no `month-cell-more` /
+  `tasklist-card-more` element.
 

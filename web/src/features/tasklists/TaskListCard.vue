@@ -4,9 +4,9 @@
  * A task list is marked as a task: a tiny checkbox (empty / partly filled / checked by done count) before the title, solid
  * fill in the list colour (like events) with a white or black on-colour.
  * Item names are never dropped when the list has items. The degradation ladder (`fitItems`, budget from the `height` prop or
- * a default) goes: one name per line -> ellipsised names, as many lines as fit -> first N names + "+k" line -> (cards narrower
- * than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row) names inline next
- * to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
+ * a default) goes: one name per line -> ellipsised names, as many lines as fit, the rest fading out at the bottom (no count)
+ * -> (cards narrower than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row)
+ * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
  */
 import { computed, inject, onMounted, ref } from 'vue';
@@ -20,7 +20,7 @@ import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
-import { fitItems, rowStep } from './layout';
+import { fitItems } from './layout';
 import { sectionKey } from './section';
 
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
@@ -71,7 +71,7 @@ const fit = computed(() => {
     rowH: mini.value ? 11 : 14,
     pad: block ? 6 : 5,
     footH: footVisible ? 14 : 0,
-    minLines: block ? 0 : mini.value ? 3 : 2,
+    minLines: block ? 0 : 1,
   });
   // Mini cards are too narrow for inline names: rows below the title (TASKLIST_MIN_BLOCK_PX leaves room for one).
   if (mini.value && (f.inline || shortBlock)) {
@@ -82,9 +82,6 @@ const fit = computed(() => {
   if (f.inline || shortBlock) return { shown: open, more: 0, inline: true };
   return { shown: f.shown, more: f.more, inline: false };
 });
-/** One-row block: the "+k" badge sits on the item row (right edge) instead of a row of its own. */
-const tight = computed(() => props.variant === 'block' && fit.value.more > 0 && !fit.value.inline && !!props.height
-  && (props.height - (mini.value ? 15 : 17) - 6 - (hasFoot.value && !mini.value ? 14 : 0)) / (mini.value ? 11 : 14) < 2);
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */
 const rank = computed(() => {
   const m = new Map<string, number>();
@@ -92,26 +89,12 @@ const rank = computed(() => {
   return m;
 });
 const hideItem = (id: string) => (rank.value.get(id) ?? Infinity) >= fit.value.shown || !rank.value.has(id);
-/** Truncated lists: rows shrink and fade the further down they are, the last visible row also fades out at its bottom edge. */
-const rowStyle = (id: string) => {
-  const r = rank.value.get(id);
-  if (r === undefined || !fit.value.more || fit.value.inline) return undefined;
-  const st = rowStep(r, fit.value.more);
-  return { '--rs': st.scale, opacity: st.opacity, fontSize: `max(8px, calc(var(--fs) * ${st.scale}))` };
-};
-const lastShown = (id: string) => !!fit.value.more && !fit.value.inline && rank.value.get(id) === fit.value.shown - 1;
 const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infinity) < fit.value.shown - 1;
-const moreStyle = computed(() => {
-  if (!fit.value.more || fit.value.inline) return undefined;
-  const st = rowStep(fit.value.shown, fit.value.more);
-  return { opacity: st.opacity, fontSize: `max(8px, calc(var(--fs) * ${st.scale}))` };
-});
-const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.value.more} more`));
 </script>
 
 <template>
   <button
-    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, tight, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
+    ref="el" v-ripple class="tl" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
     :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
@@ -130,8 +113,7 @@ const moreText = computed(() => (mini.value ? `+${fit.value.more}` : `+${fit.val
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id), fade: lastShown(i.id) }]" :style="rowStyle(i.id)" data-testid="tasklist-card-item" :data-title="i.title">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
-      <span v-if="fit.more" class="more" data-testid="tasklist-card-more" aria-hidden="true" :style="moreStyle">{{ moreText }}</span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
     </template>
     <span v-if="hasFoot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -170,7 +152,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .cb[data-state='done'] { background: var(--on); }
 .cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--c); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
 
-/* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over) behind the "+k" line */
+/* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
 .items, .est, .from, .time { font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }
 .items .sep { display: none; }
@@ -181,9 +163,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .tl { --fs: 11px; }
 .tl.mini { --fs: 9px; }
 .it { font-size: var(--fs); }
-.it::before { transform: scale(var(--rs, 1)); transform-origin: left center; }
-.it.fade { -webkit-mask-image: linear-gradient(180deg, #000 45%, rgba(0, 0, 0, 0.45)); mask-image: linear-gradient(180deg, #000 45%, rgba(0, 0, 0, 0.45)); }
-.more { font-size: 10px; line-height: 13px; padding-left: 12px; font-weight: 500; white-space: nowrap; }
+/* truncated list: the rows that do not fit are cut, the last visible row fades out at the bottom (no count) */
+.items[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent); }
 .foot { display: flex; gap: 6px; min-width: 0; flex-wrap: wrap; }
 .from { flex: 0 100 auto; max-width: 45%; border: 1px solid color-mix(in srgb, var(--on) 45%, transparent); border-radius: 6px; padding: 0 5px; font-weight: 500; font-size: 10px; line-height: 14px; }
 .row .est { flex: none; font-size: 10px; }
@@ -191,14 +172,14 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .titles { padding-top: 1px; padding-bottom: 1px; }
 .titles .row { min-height: 20px; }
 /* Titles only: checkbox glyph + title + x/y, nothing else */
-.titles .emoji, .titles .est, .titles .foot, .titles .ring, .titles .items, .titles .more { display: none; }
+.titles .emoji, .titles .est, .titles .foot, .titles .ring, .titles .items { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* chip: one line (kept for hosts that ask for it; the calendar views use card / allday) */
 .chip { min-height: 18px; flex-direction: row; align-items: center; gap: 3px; }
 .chip .row { display: contents; }
 .chip .meta { order: 3; margin-left: auto; }
-.chip .items, .chip .more, .chip .foot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.chip .items, .chip .foot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .chip .ring { display: none; }
 .dot { display: none; }
 /* allday: roomier card (day all-day area, week all-day row) */
@@ -209,8 +190,6 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-content: start; }
 .block .row { min-width: 0; }
 .block .items { min-height: 0; }
-.block .more { grid-row: auto; }
-.block.tight .more { position: absolute; right: 3px; bottom: 2px; padding: 0 2px; border-radius: 4px; background: var(--c); }
 .block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 /* no spare row: names run next to the title */
 .block[data-fit='inline'] { display: flex; flex-direction: row; align-items: center; gap: 5px; padding-top: 1px; padding-bottom: 1px; }
@@ -225,7 +204,6 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .sep.nosep { display: none; }
 .block[data-fit='inline'] .it::before { display: none; }
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
-.block[data-fit='inline'] .more { padding-left: 0; flex: none; }
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
 
@@ -242,7 +220,6 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini .items, .mini .it { line-height: 11px; }
 .mini .it { padding-left: 8px; }
 .mini .it::before { left: 0.5px; top: 2px; width: 5px; height: 5px; border-radius: 1.5px; }
-.mini .more { font-size: 9px; line-height: 11px; padding-left: 8px; }
 .mini.allday, .mini.block { padding: 1px 2px 2px 3px; }
 .mini .foot { display: none; }
 .mini.block .foot { display: none; }

@@ -14,19 +14,20 @@ const list = (n: number, est = 45): TaskList => ({ kind: 'tasklist', id: 'p', ca
 const visible = (w: ReturnType<typeof mount>) => w.findAll('.it').filter((e) => !e.classes().includes('over'));
 
 describe('timed task list block in a 47 x 45 px column', () => {
-  it('shows open item rows and a +k badge', () => {
+  it('shows open item rows and fades the rest out, no count', () => {
     freshPinia();
     const w = mount(TaskListCard, { props: { segment: itemSegments(list(6))[0], variant: 'block', height: 45 } });
     expect(w.attributes('data-tier')).toBe('mini');
     expect(visible(w).length).toBeGreaterThanOrEqual(1);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toMatch(/^\+\d/);
+    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
+    expect(w.get('[data-testid=tasklist-card-items]').attributes('data-fade')).toBe('true');
   });
   it('a short block puts items in rows below the title, never inline', () => {
     freshPinia();
     const w = mount(TaskListCard, { props: { segment: itemSegments(list(3))[0], variant: 'block', height: 33 } });
     expect(w.attributes('data-fit')).not.toBe('inline');
     expect(visible(w).map((e) => e.text())).toEqual(['Item 0']);
-    expect(w.get('[data-testid=tasklist-card-more]').text()).toBe('+2');
+    expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
   });
   it('lists with open items get a 44 px minimum height, events 24', () => {
     const seg = itemSegments(list(2, 15))[0];
@@ -35,35 +36,11 @@ describe('timed task list block in a 47 x 45 px column', () => {
   });
 });
 
-import { rowStep } from '@/features/tasklists/layout';
-describe('rowStep (truncation fade)', () => {
-  it('steps down with the row index and respects the floors', () => {
-    expect(rowStep(0, 3)).toEqual({ scale: 1, opacity: 1 });
-    expect(rowStep(1, 3).opacity).toBeCloseTo(0.85);
-    expect(rowStep(2, 3).scale).toBeCloseTo(0.7);
-    expect(rowStep(9, 3)).toEqual({ scale: 0.7, opacity: 0.5 });
-  });
-  it('does nothing when nothing is truncated', () => {
-    expect(rowStep(2, 0)).toEqual({ scale: 1, opacity: 1 });
-  });
-  it('card applies the style only when truncated', () => {
-    freshPinia();
-    const few = mount(TaskListCard, { props: { segment: itemSegments(list(2))[0], variant: 'card', height: 200 } });
-    expect(few.findAll('.it').every((e) => !e.attributes('style'))).toBe(true);
-    // Too little room for all six names, so the list is truncated: rows step down, the last shown one fades out.
-    const many = mount(TaskListCard, { props: { segment: itemSegments(list(6))[0], variant: 'card', height: 17 + 5 + 14 * 3 } });
-    const vis = visible(many);
-    expect(vis.length).toBeLessThan(6);
-    expect(vis[1].attributes('style')).toContain('opacity: 0.85');
-    expect(vis[vis.length - 1].classes()).toContain('fade');
-  });
-});
-
 describe('inline mode for blocks of about an hour or less in a wide column', () => {
   beforeEach(() => { cardWidth.px = 200; });
   afterEach(() => { cardWidth.px = 47; });
   const mount2 = (n: number, height: number) => mount(TaskListCard, { props: { segment: itemSegments(list(n))[0], variant: 'block', height } });
-  it('44 px block: every open item inline (the line fades out), no +k, no time footer', () => {
+  it('44 px block: every open item inline (the line fades out), no fade, no time footer', () => {
     freshPinia();
     const w = mount2(5, 44);
     expect(w.attributes('data-fit')).toBe('inline');

@@ -13,49 +13,50 @@ import { viewHeaders } from '@/extensions/registry';
 import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
-import { useSettingsStore } from '@/stores/settings';
 
 const cal = useCalendarStore();
 const clock = useClockStore();
-const settings = useSettingsStore();
 const nav = useNav();
 const segs = useDaySegments();
 const barsOf = useBars();
 
 const weeks = computed(() => monthGrid(cal.anchor));
-/** Entries per cell: phone 2, desktop 3, calm mode 2. */
-const limit = computed(() => (isPhone.value || settings.settings.calmMode ? 2 : 3));
-/** Bars per week row: lanes beyond the limit are hidden and count in the cell's "+n". */
+/** Bars per week row: every lane is drawn, what does not fit the cell is clipped and fades out. */
 const rows = computed(() => weeks.value.map((week) => {
   const dates = week.map(toIsoDate);
   const all = barsOf(dates);
-  const lanes = Math.min(laneCount(all), limit.value);
-  const hidden = dates.map((_, c) => all.filter((b) => b.lane >= lanes && b.startCol <= c && c <= b.endCol).length);
-  return { dates, lanes, hidden, bars: all.filter((b) => b.lane < lanes) };
+  return { dates, lanes: laneCount(all), bars: all };
 }));
 const gridEl = ref<HTMLElement | null>(null);
 const { height: gridH } = useElementSize(gridEl);
-/** Pixels one entry may take: the cell minus day number, paddings, gaps and the "+n" line, shared by need (task lists get what their items need). */
-function visible(date: string, lanes: number, hidden: number) {
+/** Marks the entries container `data-fade` while its content is taller than the space the cell gives it (re-measured on every update and resize). */
+const fadeObservers = new WeakMap<HTMLElement, ResizeObserver>();
+const measureFade = (el: HTMLElement) => { el.dataset.fade = el.scrollHeight > el.clientHeight + 1 ? 'true' : 'false'; };
+const vFade = {
+  mounted(el: HTMLElement) {
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => measureFade(el));
+      ro.observe(el);
+      fadeObservers.set(el, ro);
+    }
+    measureFade(el);
+  },
+  updated: measureFade,
+  unmounted(el: HTMLElement) { fadeObservers.get(el)?.disconnect(); },
+};
+/** Every entry of the day; task lists share the pixels the cell has (by need), whatever does not fit is clipped and faded by the cell. */
+function entries(date: string, lanes: number) {
   const all = segs(date);
-  // Desktop: a lone hidden entry would only be replaced by a "+1 more" link of the same height, so show it (A-E1).
-  const cap = Math.max(0, limit.value - lanes);
-  let shown = !isPhone.value && !settings.settings.calmMode && all.length === cap + 1 ? all : all.slice(0, cap);
   const cellH = gridH.value / weeks.value.length;
   let heights: number[] = [];
-  if (cellH > 0 && shown.length) {
+  if (cellH > 0 && all.length) {
     const phone = isPhone.value;
     const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
-    const sized = (n: number) => titleH + n * rowH + extra;
-    const needOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? sized(Math.min(2, s.item.items.filter((i) => !i.done).length) + (s.item.items.filter((i) => !i.done).length > 2 ? 1 : 0)) : evH);
-    /** Smallest useful size: events one line, task lists the title plus up to 3 rows (item rows and the "+k" line). */
-    const minOf = (s: (typeof shown)[number]) => (s.item.kind === 'tasklist' ? Math.min(needOf(s), sized(phone ? 3 : 2)) : evH);
-    const room = (n: number, withMore: boolean) => cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - lanes * (phone ? 18 : 22) - (n - 1) * gap - (withMore || hidden > 0 ? 14 : 0) - 2;
-    // drop trailing entries (they join "+n") until the rest fit at their minimum size
-    while (shown.length > 1 && shown.reduce((a, s) => a + minOf(s), 0) > room(shown.length, shown.length < all.length)) shown = shown.slice(0, -1);
-    heights = allotHeights(shown.map(needOf), room(shown.length, shown.length < all.length), evH);
+    const needOf = (s: (typeof all)[number]) => (s.item.kind === 'tasklist' ? titleH + s.item.items.filter((i) => !i.done).length * rowH + extra : evH);
+    const room = cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - lanes * (phone ? 18 : 22) - (all.length - 1) * gap - 2;
+    heights = allotHeights(all.map(needOf), room, evH);
   }
-  return { shown: shown.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined })), more: all.length - shown.length + hidden };
+  return all.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined }));
 }
 
 /** Empty space in a cell opens the day; on desktop a click on an entry opens the entry instead. */
@@ -83,18 +84,15 @@ function onChipsClick(e: MouseEvent, day: Date): void {
           <EventBar v-for="b in row.bars" :key="b.item.id" :bar="b" :dates="row.dates" />
         </div>
         <div
-          v-for="(day, ci) in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
+          v-for="day in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, cal.anchor) ? 'true' : undefined"
           :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div v-if="row.lanes" class="lanes" />
-          <div class="chips" @click.capture="onChipsClick($event, day)">
-            <ItemView v-for="{ s, h } in visible(toIsoDate(day), row.lanes, row.hidden[ci]).shown" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
+          <div v-fade class="chips" data-testid="month-cell-entries" @click.capture="onChipsClick($event, day)">
+            <ItemView v-for="{ s, h } in entries(toIsoDate(day), row.lanes)" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
           </div>
-          <button v-if="visible(toIsoDate(day), row.lanes, row.hidden[ci]).more" class="more" type="button" data-testid="month-cell-more" @click.stop="nav.openDay(day)">
-            +{{ visible(toIsoDate(day), row.lanes, row.hidden[ci]).more }}{{ isPhone ? '' : ' more' }}
-          </button>
         </div>
       </div>
     </div>
@@ -121,10 +119,11 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 .num { align-self: center; width: 28px; height: 28px; flex: none; border-radius: 50%; font: var(--md-sys-typescale-label-large); display: flex; align-items: center; justify-content: center; }
 .outside .num { color: var(--md-sys-color-on-surface-variant); opacity: 0.55; }
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
-.chips { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
-.more { font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); text-align: left; padding: 0 4px; }
+.chips { flex: 1 1 0; display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: hidden; }
+.chips > :deep(*) { flex: none; }
+/* what does not fit fades out at the bottom (no "+N"); the cell still opens the day */
+.chips[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
 /* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */
-.phone .more { pointer-events: none; text-align: center; }
 .phone .cell { cursor: pointer; padding: 2px 1px 0; }
 .phone .num { width: 26px; height: 26px; }
 @media (min-width: 768px) { .cell { padding: 4px; gap: 3px; } .chips :deep(.ev) { font-size: 12px; } }

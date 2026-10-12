@@ -190,7 +190,10 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   (or one hour before the current time if today is visible and later than 08:00). Overlap layout: Google-like column
   packing — events in a connected overlap cluster are split into equal columns; touching (end == start) is not overlap.
   Timed task lists are 30 min blocks in the grid.
-- **Month overflow**: desktop shows max 3 entries per cell then `+N more`; phone shows max 2 compact chips then `+N`.
+- **Use the space given** (owner principle, 2026-10-12): cells, cards, lists and rows show as much as their measured
+  space allows; no hard-coded item or line counts anywhere. What does not fit fades out at the bottom (no `+N`).
+- **Month overflow** (owner 2026-10-12): a cell shows as many entries as fit and fades the rest out with a gradient
+  mask at the bottom; no `+N`. Task list cards do the same with their items (no `+k more`).
 - **Defaults for new event**: date = focus date; if that is today, the next full hour after now (capped at 23:00),
   else 09:00; duration 1 h; calendar primary. Changing the start keeps the duration.
 - **Clock**: `useClock()` (see API.md `/api/config`).
@@ -208,8 +211,8 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
 - **Touch targets** ≥ 44 × 44 px for all buttons, checkboxes (hit area), chips that open things.
 - **Swipe**: horizontal swipe on `calendar-swipe-area` (touch events; ≥ 60 px horizontal, |dx| > 1.5·|dy|, < 600 ms)
   changes period: left = next, right = previous. Vertical movement scrolls normally (`touch-action: pan-y`).
-- **Month view on phone**: cells show the day number and up to 2 compact chips (colored, title only, truncated) then
-  `+N`. Tapping anywhere in a cell opens `/day/<date>` (the day agenda). Desktop: day number → day view, chip → opens
+- **Month view on phone**: cells show the day number and compact chips (colored, title only, truncated) as many as fit,
+  the rest fading out at the bottom. Tapping anywhere in a cell opens `/day/<date>` (the day agenda). Desktop: day number → day view, chip → opens
   the event / expands the task list.
 - **Week view on phone**: 7 narrow columns, all fit (no horizontal scroll); chips show truncated title; tap opens.
 - **Dialogs**: phone = bottom sheet (full width, anchored to the bottom, rounded top, max-height 90dvh, internal scroll,
@@ -500,7 +503,7 @@ Rules for implementers:
 | `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
 | `month-weekday-header` | 7 elements, text `Mon`..`Sun` |
 | `month-cell` | `data-date`, `data-today="true"` on today, `data-outside-month="true"` |
-| `month-cell-day-number`, `month-cell-more` | inside a cell; `month-cell-more` text `+N more` (phone `+N`) |
+| `month-cell-day-number` | inside a cell (no overflow element: entries fade out) |
 | `week-header` | `data-date`, `data-today`, text `Mon 12` |
 | `week-allday-cell` | `data-date` (all-day area per day) |
 | `week-day-column`, `day-column` | `data-date` (timed area) |
