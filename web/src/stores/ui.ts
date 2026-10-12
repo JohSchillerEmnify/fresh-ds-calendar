@@ -29,7 +29,6 @@ let seq = 0;
 export const useUiStore = defineStore('ui', () => {
   const pickerOpen = ref(false);
   const filtersShown = ref(false);
-  const createMenuOpen = ref(false);
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
   const dialog = ref<OpenDialog | null>(null);
@@ -38,7 +37,6 @@ export const useUiStore = defineStore('ui', () => {
 
   /** Opens a dialog registered with `registerDialog(kind, component)`. */
   function openDialog(kind: string, props: Record<string, unknown> = {}): void {
-    createMenuOpen.value = false;
     dialog.value = { kind, props };
   }
   function closeDialog(): void {
@@ -54,5 +52,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, createMenuOpen, trayExpanded, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
 });

@@ -184,6 +184,7 @@ the event dialog fits within the viewport
 
 ```
 I start creating a task list
+I switch the new dialog to {string}
 I fill in the task list form with:
 I save the task list
 I cancel the task list dialog
@@ -785,6 +786,10 @@ I allow full animations despite the device setting
 - The hint is `settings-system-reduced-motion` (shown only while `prefers-reduced-motion: reduce`); the switch is
   `settings-ignore-system-motion`. With it on, the app's own animation level applies; off (default) the system caps
   it at Reduced as before. Kept per person.
+- New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
+  `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
+  (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
+  "Task list".
 
 ## Labs (`@labs`)
 

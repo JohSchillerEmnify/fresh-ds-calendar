@@ -83,14 +83,45 @@ describe('shell navigation', () => {
     expect(w.find(tid('view-switch-year')).exists()).toBe(true);
     expect(w.get(tid('view-switch-day')).attributes('aria-selected')).toBe('true');
   });
-  it('FAB opens the create menu whose entries call the registered actions', async () => {
+  it('FAB opens the one new dialog with the kind switch (no menu)', async () => {
     const { w } = await mountAt('/day/2026-10-14');
     await w.get(tid('create-button')).trigger('click');
-    expect(w.find(tid('create-menu-event')).exists()).toBe(true);
-    expect(w.find(tid('create-menu-tasklist')).exists()).toBe(true);
-    await w.get(tid('create-menu-event')).trigger('click');
-    // the calendar feature registers the lazy event dialog
     await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    expect(w.find(tid('create-menu')).exists()).toBe(false);
+    expect(w.find(tid('new-kind-event')).exists() && w.find(tid('new-kind-tasklist')).exists()).toBe(true);
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+  });
+  it('a tapped time slot keeps its date and time in both kinds; the FAB task list form has no time', async () => {
+    localStorage.removeItem('calendar.newKind');
+    const { w } = await mountAt('/day/2026-10-14');
+    const val = (id: string) => (w.get(tid(id)).element as HTMLInputElement).value;
+    await w.get('[data-testid="time-slot"][data-date="2026-10-14"][data-hour="15"]').trigger('click');
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect([val('tasklist-date'), val('tasklist-time')]).toEqual(['2026-10-14', '15:00']);
+    await w.get(tid('tasklist-cancel')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(false));
+    // the remembered kind is now "task list": a slot opens it directly with the slot's time
+    await w.get('[data-testid="time-slot"][data-date="2026-10-14"][data-hour="9"]').trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect(val('tasklist-time')).toBe('09:00');
+    await w.get(tid('new-kind-event')).trigger('click');
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect(val('tasklist-time')).toBe('09:00');
+    await w.get(tid('tasklist-cancel')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(false));
+    await w.get(tid('create-button')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect([val('tasklist-date'), val('tasklist-time')]).toEqual(['2026-10-14', '']);
+    await w.get(tid('new-kind-event')).trigger('click');
+    await wait(() => expect(w.find(tid('event-dialog')).exists()).toBe(true));
+    await w.get(tid('new-kind-tasklist')).trigger('click');
+    await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
+    expect(val('tasklist-time')).toBe('');
   });
   it('swiping left goes to the next period, a vertical swipe does nothing', async () => {
     const { w, router } = await mountAt('/day/2026-10-12');

@@ -20,6 +20,7 @@ import Chip from '@/components/m3/Chip.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
+import { displayTitle } from '@/lib/items';
 import { ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -180,7 +181,7 @@ defineExpose({ root, busy });
 
 <template>
   <section
-    v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="tl.title"
+    v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
     :style="{ '--c': tl.color }"
   >
     <header class="head">
@@ -191,7 +192,7 @@ defineExpose({ root, busy });
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
         <button v-else class="name" type="button" data-testid="tasklist-expanded-title" @click="startRename">
-          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span>{{ tl.title }}
+          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span>{{ displayTitle(tl) }}
         </button>
         <p class="sub">
           <span :key="tl.doneCount" class="cnt" data-testid="tasklist-expanded-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
@@ -240,7 +241,7 @@ defineExpose({ root, busy });
       <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>Edit</Button>
       <Button variant="text" class="danger" data-testid="tasklist-delete" @click="confirming = true"><template #icon><IconDelete /></template>Delete</Button>
     </footer>
-    <ConfirmDialog :open="confirming" :title="`Delete “${tl.title}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
+    <ConfirmDialog :open="confirming" :title="`Delete “${displayTitle(tl)}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
   </section>
 </template>
 
@@ -250,8 +251,9 @@ defineExpose({ root, busy });
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
 .name-in, .item-in, .new {
   width: 100%; min-height: 44px; font-size: 16px; color: inherit; background: var(--md-sys-color-surface-container-highest); border: 0;
-  border-bottom: 2px solid var(--md-sys-color-primary); border-radius: 8px 8px 0 0; padding: 0 10px; outline: 0; min-width: 0;
+  border-radius: var(--md-sys-shape-corner-small); padding: 0 14px; outline: 0; min-width: 0;
 }
+.name-in:focus, .item-in:focus, .new:focus { outline: 2px solid var(--md-sys-color-primary); }
 .emoji { margin-right: 6px; }
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }

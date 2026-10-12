@@ -41,7 +41,7 @@ type ErrorCode =
   | 'INTERNAL';             // 500
 ```
 
-Validation messages are the exact UI strings where one exists: `Title is required`,
+Validation messages are the exact UI strings where one exists: `Title is required`, `Add a title or an item`,
 `Title must be at most 200 characters`, `End must be after start`.
 The web app maps `PROVIDER_UNAVAILABLE` / network failure to `Could not save: Google Calendar is unavailable` and
 `PRECONDITION_FAILED` to `This event was changed elsewhere. Reload it and try again.`
@@ -252,7 +252,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 ```ts
 interface CreateTaskListInput {
   calendarId?: string;     // default: TASKLIST_CALENDAR_ID env, else primary
-  title: string;
+  title: string;          // may be empty/blank (stored as "") when at least one non-blank item is given
   date: LocalDate;
   time?: LocalTime | null;
   items?: { title: string; done?: boolean }[];   // blank titles are dropped
@@ -272,7 +272,7 @@ interface UpdateTaskListInput {
 }
 ```
 Item ops return the whole updated `TaskList`. `index` inserts at a position (default: append). `itemIds` must be a
-permutation of the current ids, else 400. Blank item titles → 400 (the UI ignores blank input without calling the API).
+permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
 

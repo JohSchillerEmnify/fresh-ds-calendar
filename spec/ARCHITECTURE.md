@@ -197,7 +197,11 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 - **Defaults for new event**: date = focus date; if that is today, the next full hour after now (capped at 23:00),
   else 09:00; duration 1 h; calendar primary. Changing the start keeps the duration.
 - **Clock**: `useClock()` (see API.md `/api/config`).
-- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere.
+- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere. German comes later (owner, 2026-10-13), so
+  every user-visible string (labels, buttons, placeholders such as "List", validation messages, snackbars) lives in one
+  message catalogue (`web/src/i18n/en.ts`, keyed, read via `t('key')`); server validation messages are returned as
+  keys plus the English text. New and touched code uses the catalogue; no new hard-coded UI strings. Dates and times
+  are formatted with `Intl` from one locale setting. Moving the remaining existing strings is its own slice.
 
 ### Mobile-first UX (primary target 375–430 px portrait)
 
@@ -498,7 +502,7 @@ Rules for implementers:
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
 | `view-switch-month`, `view-switch-week`, `view-switch-day` | tabs (`aria-selected`) |
 | `view-switcher` | container of the three tabs |
-| `create-button`, `create-menu-event`, `create-menu-tasklist` | FAB and menu |
+| `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | FAB and the one "new" dialog (no create menu) |
 | `calendar-swipe-area` | swipe target wrapping the active view |
 | `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
 | `month-weekday-header` | 7 elements, text `Mon`..`Sun` |
@@ -646,6 +650,25 @@ The server reports its build version (`APP_VERSION`, else the git sha at build t
 back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
 "Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
 It never reloads by itself and never interrupts an open dialog.
+
+### Untitled task lists (owner, 2026-10-12)
+
+A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
+such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list)` in one place, the stored title stays
+empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
+`extendedProperties.private.untitled = "1"` keeps the app title empty.
+
+### One "new" dialog (owner, 2026-10-12)
+
+The FAB and a tap on an empty time slot (or all-day cell) open the same dialog with a segmented switch "Event | Task
+list" at the top (last choice remembered per device); the event form and the task list form are the existing dialog
+bodies, sharing the prefilled date/time so switching keeps them. No create menu.
+
+### Rounded fields and shapes (owner, 2026-10-12)
+
+Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
+softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
+the same corner scale so shapes look consistent.
 
 ## 8. Configuration (env)
 

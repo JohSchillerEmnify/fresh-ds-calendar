@@ -7,32 +7,12 @@ import type { CalendarItem } from '@/api/types';
 import type { Segment } from '@/lib/items';
 import { useUiStore } from '@/stores/ui';
 
-// --- 1. create actions (FAB menu, month/week "create here") -------------------------------
+// --- 1. create context (the one "new" dialog: FAB, empty slot) --------------------------------
 export interface CreateContext {
   /** 'YYYY-MM-DD' (focus date unless a time slot / day was tapped). */
   date: string;
   /** 'HH:mm' start suggestion, or null for all-day / untimed. */
   time: string | null;
-}
-export interface CreateAction {
-  id: string;
-  label: string;
-  icon?: Component;
-  /** data-testid of the menu entry (`create-menu-event`, `create-menu-tasklist`). */
-  testid: string;
-  order?: number;
-  run(ctx: CreateContext): void;
-}
-export const createActions = shallowReactive<CreateAction[]>([]);
-export function registerCreateAction(a: CreateAction): () => void {
-  const i = createActions.findIndex((x) => x.id === a.id);
-  if (i >= 0) createActions.splice(i, 1, markRaw(a));
-  else createActions.push(markRaw(a));
-  createActions.sort((x, y) => (x.order ?? 50) - (y.order ?? 50));
-  return () => {
-    const j = createActions.findIndex((x) => x === a);
-    if (j >= 0) createActions.splice(j, 1);
-  };
 }
 
 // --- 2. dialogs / sheets ----------------------------------------------------------------------

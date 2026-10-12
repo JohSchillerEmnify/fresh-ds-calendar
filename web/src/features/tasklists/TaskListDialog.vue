@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date }` or `{ mode: 'edit', id }`). */
+/** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date, time? }` or `{ mode: 'edit', id }`). */
 import { computed, onMounted, reactive, ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { TaskList } from '@/api/types';
@@ -7,12 +7,14 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
-import { parseItems, parseTags, validateForm, type TaskListForm } from './validate';
+import { displayTitle } from '@/lib/items';
+import { newTaskListForm, parseItems, parseTags, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string; time?: string | null }>();
@@ -26,7 +28,7 @@ const editing = computed(() => props.mode === 'edit');
 const loading = ref(false);
 let etag = '';
 let original = '';
-const form = reactive<TaskListForm>({ title: '', date: props.date ?? '', time: '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' });
+const form = reactive<TaskListForm>(newTaskListForm(props.date ?? '', props.time));
 const error = ref('');
 const conflict = ref(false);
 const saving = ref(false);
@@ -58,7 +60,8 @@ const repeatOptions = [{ value: '', label: 'Does not repeat' }, { value: 'daily'
 function removeTag(t: string) { form.tags = tagList.value.filter((x) => x !== t).join(', '); }
 
 async function save() {
-  error.value = validateForm(form) ?? '';
+  const current = editing.value ? items.get(props.id!) : undefined;
+  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form)) ?? '';
   conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
@@ -98,6 +101,7 @@ async function remove() {
 <template>
   <AdaptiveSheet open :label="editing ? 'Edit task list' : 'New task list'" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save">
+      <NewKindSwitch v-if="!editing" kind="tasklist" :date="form.date" :time="form.time || undefined" />
       <h2 class="h">{{ editing ? 'Edit task list' : 'New task list' }}</h2>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
       <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">Load latest version</Button></div>
@@ -124,7 +128,7 @@ async function remove() {
         <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">Save</Button>
       </div>
     </form>
-    <ConfirmDialog :open="confirming" :title="`Delete “${form.title}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
+    <ConfirmDialog :open="confirming" :title="`Delete “${displayTitle({ kind: 'tasklist', title: form.title })}”?`" message="This removes the task list from your calendar." @ok="remove" @cancel="confirming = false" />
   </AdaptiveSheet>
 </template>
 

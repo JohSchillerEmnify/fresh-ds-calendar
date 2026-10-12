@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { parseIsoDate } from '@/lib/dates';
 
 export interface TaskListForm {
@@ -29,9 +30,17 @@ export function parseItems(text: string): string[] {
   return text.split('\n').map((l) => l.trim()).filter(Boolean);
 }
 
-/** First problem as a user-facing sentence, or null when the form can be saved. */
-export function validateForm(f: TaskListForm): string | null {
-  if (!f.title.trim()) return 'Title is required';
+/** Empty create form: the slot's (or focused) date, and the slot's time when one was tapped, else no time. */
+export function newTaskListForm(date: string, time?: string | null): TaskListForm {
+  return { title: '', date, time: time ?? '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' };
+}
+
+/**
+ * First problem as a user-facing sentence, or null when the form can be saved. `itemCount` is the number of items
+ * the list will have (default: the lines of `f.items`; the edit form passes the list's current items).
+ */
+export function validateForm(f: TaskListForm, itemCount = parseItems(f.items).length): string | null {
+  if (!f.title.trim() && itemCount === 0) return t('tasklist.titleOrItem');
   if (f.title.trim().length > 200) return 'Title is too long (200 characters at most)';
   if (!parseIsoDate(f.date)) return 'Pick a date';
   if (f.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time)) return 'Enter a time like 18:00';

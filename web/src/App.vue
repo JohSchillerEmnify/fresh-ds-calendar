@@ -96,9 +96,8 @@ onBeforeUnmount(() => {
 useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });
 useOverlayHistory(() => ui.filtersShown, () => { ui.filtersShown = false; });
 useOverlayHistory(() => ui.pickerOpen, () => { ui.pickerOpen = false; });
-useOverlayHistory(() => ui.createMenuOpen, () => { ui.createMenuOpen = false; });
 // Close transient UI on navigation.
-watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = false; ui.resizing = null; });
+watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; });
 </script>
 
 <template>
