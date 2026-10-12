@@ -15,6 +15,7 @@ import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
 import { vRipple } from '@/lib/ripple';
+import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
@@ -48,7 +49,7 @@ const carried = computed(() => !!props.segment.carriedFrom);
 const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
-const label = computed(() => `${tl.value.title}, ${tl.value.doneCount} of ${tl.value.totalCount} done`);
+const label = computed(() => `${displayTitle(tl.value)}, ${tl.value.doneCount} of ${tl.value.totalCount} done`);
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < 84);
 const hasFoot = computed(() => !!tl.value.time && !fit.value.inline);
@@ -96,14 +97,14 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
   <button
     ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
-    :data-tasklist-id="tl.id" :data-title="tl.title" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
+    :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
     :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on-solid': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-      <span class="title" data-testid="tasklist-card-title">{{ tl.title }}</span>
+      <span class="title" data-testid="tasklist-card-title">{{ displayTitle(tl) }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
       <span class="meta">

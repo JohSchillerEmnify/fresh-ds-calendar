@@ -226,6 +226,7 @@ export class CalendarService {
 
   // ---------- task lists ----------
   private checkTaskData(d: TaskListData, keepCategory?: string | null): void {
+    if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title');
     if (d.items.length > 200) throw validation('A task list can have at most 200 items', 'items');
     if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags');
     if (!isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');

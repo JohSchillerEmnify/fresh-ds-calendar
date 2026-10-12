@@ -4,7 +4,8 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import { rememberNewKind, type NewKind } from '@/extensions/create';
 import { useUiStore } from '@/stores/ui';
 
-const props = defineProps<{ kind: NewKind; date: string; time: string | null }>();
+/** `time`: undefined = none chosen (each form uses its own default), null = all-day / untimed. */
+const props = defineProps<{ kind: NewKind; date: string; time?: string | null }>();
 const ui = useUiStore();
 const options = [
   { value: 'event' as const, label: 'Event', testid: 'new-kind-event' },
@@ -14,7 +15,7 @@ const options = [
 function change(k: NewKind) {
   if (k === props.kind) return;
   rememberNewKind(k);
-  ui.openDialog(k, { mode: 'create', date: props.date, time: props.time });
+  ui.openDialog(k, { mode: 'create', date: props.date, ...(props.time !== undefined ? { time: props.time } : {}) });
 }
 </script>
 

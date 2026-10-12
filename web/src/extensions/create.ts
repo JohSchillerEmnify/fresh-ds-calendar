@@ -28,10 +28,13 @@ export function rememberNewKind(k: NewKind): void {
   try { localStorage.setItem(KIND_KEY, k); } catch { /* storage unavailable: the choice just is not remembered */ }
 }
 
-/** Opens the one "new" dialog (FAB, empty slot) as the remembered kind, prefilled with the slot's date/time. */
+/**
+ * Opens the one "new" dialog (FAB, empty slot) as the remembered kind, prefilled with the slot's date/time.
+ * `time` is passed only when a slot gave one: the event form fills its own default, the task list form stays untimed.
+ */
 export function openNew(date?: string, time?: string | null): void {
   const ui = useUiStore();
   const kind = lastNewKind();
-  if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', ...createContext(date, time) });
+  if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', date: createContext(date).date, ...(time !== undefined ? { time } : {}) });
   else ui.notify('The editor is not available yet');
 }
