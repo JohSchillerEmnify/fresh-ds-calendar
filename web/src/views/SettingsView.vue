@@ -20,6 +20,7 @@ import { StreakFlame } from '@/features/motivation';
 import { useMotivationStore } from '@/features/motivation/store';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
@@ -33,6 +34,12 @@ const sync = useSyncStore();
 const ui = useUiStore();
 const items = useItemsStore();
 const s = computed(() => settings.settings);
+const labs = usePrefsStore();
+
+/** Persist a Labs switch; a refusal rolls back in the store and shows a snackbar. */
+async function saveLabs(p: { labs?: boolean; approachBar?: boolean }) {
+  try { await labs.set(p); } catch (e) { ui.notify(e instanceof ApiError ? e.userMessage : 'Could not save settings'); }
+}
 
 /** Persist a patch; failures roll back in the store and surface as the banner or a snackbar. */
 async function save(p: Parameters<typeof settings.patch>[0]) {
@@ -143,6 +150,12 @@ async function resetDemo() {
           <span class="lab">Top bar scene</span>
           <SegmentedButton :model-value="settings.scene" :options="[...scenes]" label="Top bar scene" data-testid="settings-scene" @update:model-value="save({ scene: $event as SceneName })" />
         </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-labs">
+        <h2 id="h-labs">Labs</h2>
+        <div class="row"><div class="grow"><span class="lab">Experimental views</span><span class="sub">Clock, Timeline and Strip in the view switcher</span></div><Switch :model-value="labs.labs" label="Experimental views" data-testid="settings-labs" @update:model-value="saveLabs({ labs: $event })" /></div>
+        <div class="row"><div class="grow"><span class="lab">Approach bar</span><span class="sub">The next three hours above every calendar view</span></div><Switch :model-value="labs.approachBar" label="Approach bar" data-testid="settings-approach-bar" @update:model-value="saveLabs({ approachBar: $event })" /></div>
       </section>
 
       <section class="card" aria-labelledby="h-cal">

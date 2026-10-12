@@ -144,6 +144,13 @@ export class ApiClient {
     return this.request<{ calendars: Calendar[] }>('GET', '/api/calendars', undefined, o);
   }
 
+  prefs(o?: RequestOptions) {
+    return this.request<{ labs: boolean; approachBar: boolean }>('GET', '/api/prefs', undefined, o);
+  }
+  patchPrefs(p: { labs?: boolean; approachBar?: boolean }, o?: RequestOptions) {
+    return this.request<{ labs: boolean; approachBar: boolean }>('PATCH', '/api/prefs', p, o);
+  }
+
   setCalendarHidden(id: string, hidden: boolean, o?: RequestOptions) {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { hidden }, o);
   }

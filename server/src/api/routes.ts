@@ -101,6 +101,18 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json({ ...k, hidden: b.hidden });
   });
 
+  r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
+  r.patch('/prefs', async (c) => {
+    const b = ((await body(c)) ?? {}) as Record<string, unknown>;
+    const patch: { labs?: boolean; approachBar?: boolean } = {};
+    for (const k of ['labs', 'approachBar'] as const) {
+      if (b[k] === undefined) continue;
+      if (typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
+      patch[k] = b[k] as boolean;
+    }
+    return c.json(ctx.prefs.setLabs(person(c), patch));
+  });
+
   // ---- items ----
   r.get('/items', async (c) => {
     const { from, to } = range(c, 100);

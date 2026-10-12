@@ -5,6 +5,7 @@ import IconYear from '~icons/material-symbols/calendar-month';
 import IconMonth from '~icons/material-symbols/calendar-view-month';
 import IconWeek from '~icons/material-symbols/calendar-view-week';
 import IconDay from '~icons/material-symbols/calendar-view-day';
+import IconLab from '~icons/material-symbols/science';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
@@ -21,6 +22,8 @@ import { bindSwipe } from '@/composables/useSwipe';
 import { dialogs, trayComponents } from '@/extensions/registry';
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
+import { usePrefsStore } from '@/stores/prefs';
+import ApproachBar from '@/features/labs/approach/ApproachBar.vue';
 import { useMotivationStore } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
@@ -44,16 +47,22 @@ const filters = useFilters();
 const calendars = useCalendarsStore();
 const settings = useSettingsStore();
 const motivation = useMotivationStore();
+const labs = usePrefsStore();
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode);
 watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });
 
-const isCalendar = computed(() => !!route.meta.view);
-const items: NavItem[] = [
+const isCalendar = computed(() => !!route.meta.view || !!route.meta.lab);
+const activeView = computed(() => (route.meta.lab as string | undefined) ?? cal.view);
+const baseItems: NavItem[] = [
   { id: 'year', label: 'Year', icon: IconYear, testid: 'view-switch-year' },
   { id: 'month', label: 'Month', icon: IconMonth, testid: 'view-switch-month' },
   { id: 'week', label: 'Week', icon: IconWeek, testid: 'view-switch-week' },
   { id: 'day', label: 'Day', icon: IconDay, testid: 'view-switch-day' },
 ];
+// Labs views are offered only with the Labs switch on, marked as experimental.
+const items = computed<NavItem[]>(() => labs.labs
+  ? [...baseItems, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: id[0].toUpperCase() + id.slice(1), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
+  : baseItems);
 const filterShown = computed(() => isCalendar.value && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
@@ -66,6 +75,7 @@ onMounted(() => {
   if (!route.meta.public) {
     sync.start();
     void calendars.load().catch((e) => sync.reportError(e));
+    void labs.load();
   }
   if (swipeArea.value) {
     undo.push(bindSwipe(swipeArea.value, {
@@ -94,8 +104,9 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = f
     <ReauthBanner />
     <SyncErrorBanner />
     <FilterBar v-if="filterShown" />
+    <ApproachBar v-if="isCalendar && labs.approachBar" />
     <div class="body">
-      <NavigationRail v-if="isCalendar && !isPhone" :items="items" :model-value="cal.view" @update:model-value="nav.switchView($event as ViewKind)" />
+      <NavigationRail v-if="isCalendar && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
       <div class="col">
         <main ref="swipeArea" class="main" data-testid="calendar-swipe-area">
           <RouterView />
@@ -104,7 +115,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.createMenuOpen = f
       </div>
     </div>
     <CreateFab v-if="isCalendar" />
-    <NavigationBar v-if="isCalendar && isPhone" :items="items" :model-value="cal.view" @update:model-value="nav.switchView($event as ViewKind)" />
+    <NavigationBar v-if="isCalendar && isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
     <component :is="dialogComp" v-if="dialogComp && ui.dialog" v-bind="ui.dialog.props" @close="ui.closeDialog()" />
     <Snackbar />
   </div>

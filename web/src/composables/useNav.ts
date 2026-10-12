@@ -1,4 +1,5 @@
 import { useRoute, useRouter } from 'vue-router';
+import { labPath } from '@/features/labs/labs';
 import { routePath, shiftPeriod, type ViewKind } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -14,7 +15,10 @@ export function useNav() {
 
   const go = (view: ViewKind, d: Date) => {
     const q = { ...route.query };
-    return router.push({ path: routePath(view, d), query: q });
+    // On a Labs view, moving through time stays on that view.
+    const lab = route.meta.lab as string | undefined;
+    const path = lab && view === 'day' ? labPath(lab, d) : routePath(view, d);
+    return router.push({ path, query: q });
   };
   return {
     go,
@@ -24,7 +28,8 @@ export function useNav() {
       cal.setFocus(clock.todayDate);
       return go(cal.view, clock.todayDate);
     },
-    switchView: (v: ViewKind) => go(v, cal.focusDate),
+    switchView: (v: ViewKind | 'clock' | 'timeline' | 'strip') =>
+      v === 'clock' || v === 'timeline' || v === 'strip' ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v, cal.focusDate),
     /** Pick a date (month picker): focus it and jump the current view (the year view opens that month). */
     pickDay: (d: Date) => {
       cal.setFocus(d);

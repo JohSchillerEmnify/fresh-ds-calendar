@@ -1,3 +1,4 @@
+import type { Component } from 'vue';
 import { createRouter, createWebHistory, type RouteRecordRaw, type Router, type RouterHistory } from 'vue-router';
 import { parseParam, routePath, toIsoDate, type ViewKind } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
@@ -33,6 +34,15 @@ function viewRoute(view: ViewKind): RouteRecordRaw {
   };
 }
 
+/** Experimental Labs views (always routable; the view switcher offers them only with Labs on). */
+const labDated = (name: 'clock' | 'strip', component: () => Promise<unknown>): RouteRecordRaw => ({
+  path: `/${name}/:param`,
+  name,
+  component: component as () => Promise<Component>,
+  meta: { lab: name },
+  beforeEnter: (to) => (parseParam('day', to.params.param as string) ? true : { path: `/${name}/${toIsoDate(useClockStore().todayDate)}`, replace: true }),
+});
+
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -45,6 +55,9 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   ...CAL_VIEWS.map(viewRoute),
+  labDated('clock', () => import('@/features/labs/clock/ClockView.vue')),
+  { path: '/timeline', name: 'timeline', component: () => import('@/features/labs/timeline/TimelineView.vue'), meta: { lab: 'timeline' } },
+  labDated('strip', () => import('@/features/labs/strip/StripView.vue')),
   { path: '/signin', name: 'signin', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
   { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { settings: true } },
   { path: '/lab', name: 'lab', component: () => import('@/features/motivation/MotionLab.vue'), meta: { settings: true } },
@@ -74,6 +87,9 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
   });
   router.afterEach((to) => {
     const view = to.meta.view as ViewKind | undefined;
+    // A dated Labs view loads the items of its day like the day view does.
+    const d0 = to.meta.lab && to.params.param ? parseParam('day', to.params.param as string) : null;
+    if (d0) useCalendarStore().setFromRoute('day', d0);
     if (!view) return;
     const d = parseParam(view, to.params.param as string);
     if (d) useCalendarStore().setFromRoute(view, d);

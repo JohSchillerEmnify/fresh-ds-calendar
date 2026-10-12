@@ -12,7 +12,7 @@ defineEmits<{ 'update:modelValue': [id: string] }>();
     <div class="tabs" role="tablist" data-testid="view-switcher">
       <button
         v-for="it in items" :key="it.id" v-ripple class="dest" role="tab" type="button"
-        :aria-selected="it.id === modelValue" :class="{ active: it.id === modelValue }" :data-testid="it.testid"
+        :aria-selected="it.id === modelValue" :class="{ active: it.id === modelValue }" :data-testid="it.testid" :data-experimental="it.experimental ? 'true' : undefined"
         @click="$emit('update:modelValue', it.id)"
       >
         <span class="pill"><component :is="it.icon" /></span>
