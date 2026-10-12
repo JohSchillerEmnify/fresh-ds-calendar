@@ -592,6 +592,16 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
   `/api/auth/google/start`. Settings get `settings-signout`.
 
+### All calendars and hiding them
+
+- `listCalendars` returns every calendar in the person's Google calendar list (own and shared), not only
+  `GOOGLE_CALENDAR_IDS`; events of all of them are listed. Each keeps its Google colour.
+- Hidden calendars are kept per person in `DATA_DIR/users/<sub>/prefs.json` (`{ hiddenCalendars: string[] }`); with
+  auth off a single person `local` is used. `GET /api/calendars` adds `hidden: boolean`; `PATCH /api/calendars/:id
+  { hidden }` stores it.
+- The client filters instantly (hidden calendars' entries are not drawn) and saves in the background; the filter bar
+  gets one chip per calendar (`filter-chip-calendar`, `data-name`, `data-calendar-id`, `aria-pressed` = shown).
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |

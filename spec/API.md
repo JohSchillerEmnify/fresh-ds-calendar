@@ -190,7 +190,12 @@ one `useClock()` composable; nothing else calls `new Date()` for "now".
 
 ### `GET /api/calendars` → 200
 
-`{ calendars: Calendar[] }`. Errors: 503.
+`{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), each with
+`hidden: boolean` (the person's choice). Errors: 503.
+
+### `PATCH /api/calendars/:id` → 200
+
+Body `{ hidden: boolean }`; stores the person's choice and returns the updated `Calendar`. 404 for an unknown id.
 
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 

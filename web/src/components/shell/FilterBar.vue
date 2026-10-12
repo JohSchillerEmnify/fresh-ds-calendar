@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import Chip from '@/components/m3/Chip.vue';
 import { useFilters } from '@/composables/useFilters';
+import { useCalendarsStore } from '@/stores/calendars';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
 
 /** One horizontally scrolling row of filter chips; state lives in the URL query. */
 const f = useFilters();
 const items = useItemsStore();
+const calendars = useCalendarsStore();
 const settings = useSettingsStore();
 </script>
 
@@ -21,6 +23,13 @@ const settings = useSettingsStore();
     </Chip>
     <Chip :selected="f.filters.value.categories.includes('none')" data-testid="filter-chip-category" data-name="No category" data-category-id="none" @click="f.toggle('categories', 'none')">No category</Chip>
     <Chip v-for="t in items.tagsInUse" :key="t" :selected="f.filters.value.tags.includes(t)" data-testid="filter-chip-tag" :data-name="t" @click="f.toggle('tags', t)">#{{ t }}</Chip>
+    <Chip
+      v-for="k in calendars.list" :key="k.id" :selected="!k.hidden" data-testid="filter-chip-calendar" :data-name="k.name" :data-calendar-id="k.id"
+      @click="calendars.toggle(k.id)"
+    >
+      <template #leading><i class="dot" :style="{ background: k.color }" /></template>
+      {{ k.name }}
+    </Chip>
     <Chip v-if="f.active.value" variant="assist" data-testid="filter-clear" @click="f.clear()">Clear</Chip>
   </div>
 </template>

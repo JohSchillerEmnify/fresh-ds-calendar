@@ -26,6 +26,7 @@ import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion'
 import { initInstall } from '@/pwa/install';
 import { useAuthStore } from '@/stores/auth';
 import { useCalendarStore } from '@/stores/calendar';
+import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useFilters } from '@/composables/useFilters';
 import { useSyncStore } from '@/stores/sync';
@@ -40,6 +41,7 @@ const nav = useNav();
 const sync = useSyncStore();
 const clock = useClockStore();
 const filters = useFilters();
+const calendars = useCalendarsStore();
 const settings = useSettingsStore();
 const motivation = useMotivationStore();
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode);
@@ -61,7 +63,10 @@ onMounted(() => {
   undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }), auth.listen());
   clock.startTicker();
   // the sign-in page has no data to sync (and every call would be refused)
-  if (!route.meta.public) sync.start();
+  if (!route.meta.public) {
+    sync.start();
+    void calendars.load().catch((e) => sync.reportError(e));
+  }
   if (swipeArea.value) {
     undo.push(bindSwipe(swipeArea.value, {
       onLeft: () => void nav.next(),

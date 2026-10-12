@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { ApiError } from '@/api/client';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
+import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
 import { useItemsStore } from './items';
 import { useSettingsStore } from './settings';
@@ -56,6 +57,7 @@ export const useSyncStore = defineStore('sync', () => {
       ['items', () => items.refreshVisible()],
       ['summary', () => items.refreshSummaries()],
       ['settings', () => settings.load()],
+      ['calendars', () => useCalendarsStore().load()],
     ];
   }
 

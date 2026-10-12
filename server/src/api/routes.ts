@@ -11,6 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
+import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -57,6 +58,8 @@ export function apiRoutes(ctx: Ctx): Hono {
   // the signed-in person's calendar (the shared one while auth is off)
   const cal = (c: Context) => ctx.calendarFor((c.get('person') as { sub: string } | undefined)?.sub);
   const tz = config.tz;
+  // whose preferences apply: the signed-in person, `local` while auth is off
+  const person = (c: Context) => (ctx.auth.on ? (c.get('person') as { sub: string } | undefined)?.sub : undefined) ?? LOCAL_PERSON;
 
   // Mutations that awarded plant points are flagged so the client refetches /api/motivation.
   r.use('*', async (c, next) => {
@@ -84,7 +87,19 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   r.get('/config', (c) => c.json(configResponse(ctx)));
 
-  r.get('/calendars', async (c) => c.json({ calendars: await cal(c).calendars() }));
+  r.get('/calendars', async (c) => {
+    const hidden = ctx.prefs.hiddenCalendars(person(c));
+    return c.json({ calendars: (await cal(c).calendars()).map((k) => ({ ...k, hidden: hidden.includes(k.id) })) });
+  });
+  r.patch('/calendars/:id', async (c) => {
+    const id = c.req.param('id');
+    const b = (await body(c)) as { hidden?: unknown } | undefined;
+    if (typeof b?.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
+    const k = (await cal(c).calendars()).find((x) => x.id === id);
+    if (!k) throw notFound('Calendar not found');
+    ctx.prefs.setHidden(person(c), id, b.hidden);
+    return c.json({ ...k, hidden: b.hidden });
+  });
 
   // ---- items ----
   r.get('/items', async (c) => {

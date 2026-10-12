@@ -32,6 +32,8 @@ export interface Calendar {
   color: string;
   primary: boolean;
   writable: boolean;
+  /** The person's choice (GET /api/calendars). */
+  hidden?: boolean;
 }
 
 export interface CalendarEvent {

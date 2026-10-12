@@ -749,3 +749,20 @@ they are asked to sign in with Google again
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
 - "is filled with its color": the chip's computed background colour equals its `data-color` (the item colour as given, in
   both themes); its text is white or black, whichever contrasts more.
+
+## All calendars (`@calendars`)
+
+```
+{string} has the calendar {string} and the shared calendar {string}
+the calendar {string} has an event {string} on {date} from {time} to {time}
+the event {string} has the color of the calendar {string}
+they hide the calendar {string} in the filter bar
+{string} hid the calendar {string}
+{string} opens the week view for {date} on another device
+```
+
+- Calendars live in the person's mock Google account (TEST_MODE); "the shared calendar" is shared with them
+  (not their primary). "has the color of the calendar": the event chip's `data-color` equals that calendar's colour.
+- "hid the calendar" signs the person in and hides it through the app. "on another device" is a fresh browser context
+  signed in as the same person.
+

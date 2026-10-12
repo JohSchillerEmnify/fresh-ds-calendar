@@ -17,6 +17,7 @@ async function mountAt(path: string, extra: Record<string, () => unknown> = {}, 
   const m = mockFetch({
     'GET /api/config': () => config({ pollIntervalMs: 0 }),
     'GET /api/settings': () => server,
+    'GET /api/calendars': () => ({ calendars: [] }),
     'PATCH /api/settings': ({ body }) => (server = settingsFixture({ ...server, ...body, version: server.version + 1 })),
     'POST /api/categories': ({ body }) => (server = settingsFixture({ ...server, categories: [...server.categories, { id: 'new1', icon: null, googleColorId: '7', ...body }], version: server.version + 1 })),
     'GET /api/items': () => ({ items, from: 'a', to: 'b', syncedAt: 's' }),

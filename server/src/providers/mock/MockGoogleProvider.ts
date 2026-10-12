@@ -30,6 +30,7 @@ export class MockGoogleProvider implements CalendarProvider {
   private seq = 0;
   private outage: { status: 500 | 503 } | null = null;
   private revoked = false;
+  private calendars: ProviderCalendar[] = MOCK_CALENDARS.map((c) => ({ ...c }));
   private timer: NodeJS.Timeout | null = null;
   private readonly file: string | null;
   private readonly tz: string;
@@ -65,11 +66,16 @@ export class MockGoogleProvider implements CalendarProvider {
   setRevoked(revoked: boolean): void {
     this.revoked = revoked;
   }
+  /** Replaces this account's calendar list (TEST_MODE: own and shared calendars of one person). */
+  setCalendars(cals: ProviderCalendar[]): void {
+    this.calendars = cals.map((c) => ({ ...c }));
+  }
   get isDown(): boolean {
     return this.outage !== null;
   }
   reset(): void {
     this.events.clear();
+    this.calendars = MOCK_CALENDARS.map((c) => ({ ...c }));
     this.outage = null;
     this.scheduleFlush();
   }
@@ -102,7 +108,7 @@ export class MockGoogleProvider implements CalendarProvider {
 
   async listCalendars(): Promise<ProviderCalendar[]> {
     this.check();
-    return MOCK_CALENDARS.map((c) => ({ ...c }));
+    return this.calendars.map((c) => ({ ...c }));
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
@@ -173,7 +179,7 @@ export class MockGoogleProvider implements CalendarProvider {
 
   // ---- internals ----
   private requireCalendar(id: string): void {
-    if (!MOCK_CALENDARS.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
+    if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
   }
 
   private getStored(calendarId: string, id: string): GoogleEvent {

@@ -144,6 +144,10 @@ export class ApiClient {
     return this.request<{ calendars: Calendar[] }>('GET', '/api/calendars', undefined, o);
   }
 
+  setCalendarHidden(id: string, hidden: boolean, o?: RequestOptions) {
+    return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { hidden }, o);
+  }
+
   // --- items ----------------------------------------------------------------
   items(from: LocalDate, to: LocalDate, calendarIds?: string[], o?: RequestOptions) {
     const q = new URLSearchParams({ from, to });
