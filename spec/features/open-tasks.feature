@@ -5,7 +5,8 @@ Feature: Open tasks stay in sight
   carried forward to today with a gentle "From <day>" label instead of disappearing in the past.
   Overdue is never shown in the error color.
   Every list in the tray shows all of its items (ticked ones struck through), on phones once the tray
-  is opened; long lists make the tray scroll rather than hide items.
+  is opened; long lists make the tray scroll rather than hide items. Lists finished today follow the
+  open ones until the end of the day.
 
   Background:
     Given the calendar is empty
