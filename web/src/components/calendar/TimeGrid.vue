@@ -6,20 +6,23 @@
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { format } from 'date-fns';
+import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
-import { useDaySegments } from '@/composables/useDaySegments';
+import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
 import { openCreate } from '@/extensions/create';
 import { gridLayers, viewHeaders } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
-import { blockGeometry, MIN_BLOCK_PX, packColumns } from '@/lib/items';
+import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX } from '@/lib/items';
+import { laneCount } from '@/lib/spans';
 import { useClockStore } from '@/stores/clock';
 
 const props = defineProps<{ mode: 'week' | 'day'; dates: Date[] }>();
 const clock = useClockStore();
 const nav = useNav();
 const segs = useDaySegments();
+const barsOf = useBars();
 
 const hourHeight = computed(() => (isPhone.value ? 44 : 48));
 const cols = computed(() => props.dates.map((d) => {
@@ -32,6 +35,9 @@ const cols = computed(() => props.dates.map((d) => {
     placed: packColumns(all, (MIN_BLOCK_PX / hourHeight.value) * 60),
   };
 }));
+const dateStrs = computed(() => props.dates.map(toIsoDate));
+const bars = computed(() => barsOf(dateStrs.value));
+const lanes = computed(() => laneCount(bars.value));
 const px = (min: number) => (min / 60) * hourHeight.value;
 
 const scroller = ref<HTMLElement | null>(null);
@@ -65,9 +71,10 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         <span class="dow">{{ format(c.d, 'EEE') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
       </button>
     </div>
-    <div class="alldays">
+    <div class="alldays" :style="{ gridTemplateRows: lanes ? `repeat(${lanes}, var(--bar-h)) auto` : undefined }">
       <div class="gutter" />
-      <div v-for="c in cols" :key="c.date" class="adcol" :data-testid="ids.all" :data-date="c.date">
+      <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
+      <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${lanes + 2}`, paddingTop: lanes * 22 + 'px' }" :data-testid="ids.all" :data-date="c.date">
         <ItemView v-for="s in c.top" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" />
       </div>
     </div>
@@ -83,7 +90,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight).height + 'px', left: (p.col / p.cols) * 100 + '%', width: (p.span / p.cols) * 100 + '%' }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, hourHeight).top + 'px', height: blockGeometry(p.top, p.top + p.height, hourHeight).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * STACK_INDENT_PX}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
           >
             <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, hourHeight).height" />
           </div>
@@ -109,6 +116,9 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .head.today .dow { color: var(--md-sys-color-primary); }
 .alldays { border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .tg:has([data-dragging='true']) .adcol { min-height: 30px; }
+.alldays { --bar-h: 20px; row-gap: 2px; }
+.alldays .abar { z-index: 2; }
+.alldays .gutter { grid-row: 1 / -1; grid-column: 1; }
 .adcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 1px 4px; min-height: 6px; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .grid { position: relative; display: grid; grid-template-columns: var(--gw) repeat(var(--n), minmax(0, 1fr)); height: calc(24 * var(--hh)); }
@@ -118,7 +128,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .col.today { background: color-mix(in srgb, var(--md-sys-color-primary) 5%, transparent); }
 .slot { display: block; width: 100%; height: var(--hh); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .slot:hover { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
-.blk { position: absolute; padding: 0 1px 1px; min-height: 25px; box-sizing: border-box; z-index: 1; min-width: 0; }
+.blk { position: absolute; padding: 0 1px 1px; min-height: 25px; box-sizing: border-box; z-index: var(--z, 1); min-width: 0; }
 .blk:has([data-dragging='true']) { z-index: 20; }
 .phone .head { min-height: 44px; }
 .phone.week .dow { font-size: 11px; }
