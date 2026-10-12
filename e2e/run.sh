@@ -11,6 +11,8 @@
 # The HTML report lands in e2e/playwright-report, JSON results in e2e/results.json,
 # the server log in e2e/server.log.
 set -euo pipefail
+# Heavy: wait for the machine-wide heavy lock and run at the lowest priority (pihole/immich share this box).
+if [ -z "${CI_LOWPRIO:-}" ]; then exec "$(dirname "$0")/../scripts/lowprio.sh" "$0" "$@"; fi
 
 E2E_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$E2E_DIR/.." && pwd)"
@@ -79,7 +81,7 @@ start_server() {
 }
 
 install_deps
-DOCKER_ARGS=(--rm --init --ipc=host --network host -u "$(id -u):$(id -g)" -e HOME=/tmp
+DOCKER_ARGS=(--rm --init --cpus=1.5 --memory=2g --ipc=host --network host -u "$(id -u):$(id -g)" -e HOME=/tmp
   -v "$ROOT:/work" -w /work/e2e)
 PW_ARGS=("$@")
 
