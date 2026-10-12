@@ -666,7 +666,10 @@ all overlays; no per-component history code.
   `web/src/features/motivation/`, built from small reusable parts with `data-part`: spring = sprouting trees (buds
   that leaf out over the day), lily of the valley and first flowers in the grass; summer = the existing sunflowers
   (`SunflowerScene`) plus a small sun; fall and winter keep their scenes. Every scene gets butterflies (reusing
-  `Butterfly.vue`) and a small cat that sits, stretches or naps in the scene (one shared `SceneCat` part). Motion
+  `Butterfly.vue`) — but only now and then (owner, 2026-10-13: always-on butterflies distract): one butterfly at a
+  time visits roughly every 3–5 min, flutters through for about 10 s, sometimes rests briefly on a flower, then
+  leaves; the first visit comes 20–60 s after the scene appears. Reduced: the visit only rests in place, no flight.
+  Off: none. Test hook `window.__butterflyNow` starts a visit at once — and a small cat that sits, stretches or naps in the scene (one shared `SceneCat` part). Motion
   follows the animation level (Off: still picture).
 - The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
   with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
