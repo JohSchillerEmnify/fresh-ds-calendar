@@ -6,7 +6,9 @@
  */
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { isPhone, acquireViewport } from '@/composables/useViewport';
-import { listen, type Disposer } from '@/lib/timers';
+import { appTimeout, listen, type Disposer } from '@/lib/timers';
+import { createVelocityTracker } from '@/motion/spring';
+import { getMotionLevel } from '@/motion/level';
 
 const props = withDefaults(defineProps<{ open: boolean; label: string; dismissOnScrim?: boolean; testid?: string }>(), { dismissOnScrim: true });
 const emit = defineEmits<{ close: [] }>();
@@ -32,30 +34,85 @@ watch(() => props.open, async (o) => {
 
 onBeforeUnmount(() => { stops.forEach((s) => s()); release(); });
 
-let startY = 0;
-function down(e: PointerEvent) {
-  if (!isPhone.value) return;
-  startY = e.clientY;
-  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+// Swipe-down-to-close anywhere on the sheet (phone only). Touch events so we can preventDefault once the drag is ours.
+const SLOP = 8;
+const CLOSE_FRAC = 0.25;
+const CLOSE_VELOCITY = 700; // px/s
+const NO_DRAG = 'input,textarea,select,[contenteditable="true"],[data-no-sheet-drag]';
+const vt = createVelocityTracker(100);
+let phase: 'idle' | 'pending' | 'drag' | 'ignore' = 'idle';
+let sx = 0;
+let sy = 0;
+let height = 1;
+let stopTimer: Disposer | undefined;
+const closing = ref(false);
+
+/** True when the touch started on the handle or on content that can still scroll up. */
+function startsAtTop(t: HTMLElement): boolean {
+  for (let n: HTMLElement | null = t; n && n !== panel.value; n = n.parentElement) if (n.scrollTop > 0) return false;
+  return true;
 }
-function move(e: PointerEvent) {
-  if (startY) drag.value = Math.max(0, e.clientY - startY);
+function ts(e: TouchEvent) {
+  if (!isPhone.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
+  const t = e.target as HTMLElement;
+  if (t.closest?.(NO_DRAG) || !startsAtTop(t)) { phase = 'ignore'; return; }
+  phase = 'pending';
+  sx = e.touches[0].clientX;
+  sy = e.touches[0].clientY;
+  height = panel.value.offsetHeight || 1;
+  vt.reset();
+  vt.add(sx, sy, e.timeStamp);
 }
-function up() {
-  if (drag.value > 90) emit('close');
-  drag.value = 0;
-  startY = 0;
+function tm(e: TouchEvent) {
+  if (phase !== 'pending' && phase !== 'drag') return;
+  const x = e.touches[0].clientX;
+  const y = e.touches[0].clientY;
+  const dx = x - sx;
+  const dy = y - sy;
+  if (phase === 'pending') {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < SLOP) return;
+    if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) { phase = 'ignore'; return; }
+    phase = 'drag';
+  }
+  if (e.cancelable) e.preventDefault();
+  vt.add(x, y, e.timeStamp);
+  drag.value = Math.max(0, dy - SLOP);
 }
+function te() {
+  const was = phase;
+  phase = 'idle';
+  if (was !== 'drag') return;
+  const shouldClose = drag.value > height * CLOSE_FRAC || (vt.velocity().vy > CLOSE_VELOCITY && drag.value > 0);
+  if (!shouldClose) { drag.value = 0; return; }
+  // Dirty guard (dismissOnScrim=false): ask the parent, spring back, let it show its confirm.
+  if (!props.dismissOnScrim || getMotionLevel() === 'off') { emit('close'); drag.value = 0; return; }
+  closing.value = true;
+  drag.value = height;
+  stopTimer = appTimeout(() => { emit('close'); closing.value = false; drag.value = 0; }, 180);
+}
+function tc() { phase = 'idle'; drag.value = 0; }
+
+watch(panel, (el, _o, onCleanup) => {
+  if (!el) return;
+  const off = [
+    listen(el, 'touchstart', ts as EventListener, { passive: true }),
+    listen(el, 'touchmove', tm as EventListener, { passive: false }),
+    listen(el, 'touchend', te),
+    listen(el, 'touchcancel', tc),
+  ];
+  onCleanup(() => off.forEach((o) => o()));
+});
+onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
   <div v-if="open" class="layer" :class="isPhone ? 'phone' : 'desk'">
-    <div class="scrim" data-testid="sheet-scrim" @click="dismissOnScrim && emit('close')" />
+    <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="isPhone ? 'sheet' : 'modal'" :style="drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : undefined"
+      :data-presentation="isPhone ? 'sheet' : 'modal'" :style="drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : undefined"
     >
-      <div v-if="isPhone" class="handle" aria-hidden="true" @pointerdown="down" @pointermove="move" @pointerup="up" @pointercancel="up"><span /></div>
+      <div v-if="isPhone" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>
     </section>
   </div>
@@ -75,7 +132,7 @@ function up() {
 }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
-.handle { display: flex; justify-content: center; padding: 12px 0 4px; touch-action: none; cursor: grab; flex: none; }
+.handle { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: -12px 0; touch-action: none; cursor: grab; flex: none; }
 .handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.4; }
 .body { overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; min-height: 0; }
 @keyframes fade { from { opacity: 0; } }

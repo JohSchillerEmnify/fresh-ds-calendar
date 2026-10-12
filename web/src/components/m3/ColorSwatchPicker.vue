@@ -8,7 +8,7 @@ defineEmits<{ 'update:modelValue': [v: string] }>();
 </script>
 
 <template>
-  <div class="swatches" role="group" :aria-label="label">
+  <div class="swatches" data-no-sheet-drag role="group" :aria-label="label">
     <button
       v-for="s in swatches" :key="s.value" type="button" class="sw" :aria-pressed="s.value === modelValue" :aria-label="s.name" :title="s.name"
       :data-name="s.name" :data-color="s.color" :data-testid="s.testid" @click="$emit('update:modelValue', s.value)"
