@@ -251,7 +251,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 
 ```ts
 interface CreateTaskListInput {
-  calendarId?: string;     // default: TASKLIST_CALENDAR_ID env, else primary
+  // no calendarId: task lists always go to the person's tasks calendar (ARCHITECTURE §3)
   title: string;
   date: LocalDate;
   time?: LocalTime | null;

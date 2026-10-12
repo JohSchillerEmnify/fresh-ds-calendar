@@ -844,3 +844,18 @@ the app runs the new version
 - "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
   `document.documentElement.dataset.appVersion` equals the deployed version.
 
+## Tasks calendar (`@tasks-calendar`)
+
+```
+I create the task list {string} on {date} with the item {string}
+Google has a hidden calendar {string}
+Google has a hidden calendar {string} with the event {string}
+the main calendar has no event {string}
+Google has exactly one calendar {string}
+the filter bar does not offer the calendar {string}
+```
+
+- "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
+- "hidden" = the mock account's calendar list entry has `hidden: true` (switched off in Google's list). "the main
+  calendar" = the person's primary calendar. "exactly one" counts calendars with that summary in the calendar list.
+- "does not offer": no filter chip with that calendar's name after "I show the filters".
