@@ -7,7 +7,7 @@ import { userDir } from '../auth/people.js';
 export const LOCAL_PERSON = 'local';
 
 /** Fine-tuning choices that replace the preset's own attributes. */
-export interface ThemeOverrides { glow?: string; entries?: string; corners?: string; scene?: string }
+export interface ThemeOverrides { glow?: string; entries?: string; corners?: string; scene?: string; cat?: string }
 /** A person's chosen theme: a preset name plus fine-tuning overrides. */
 export interface ThemePref { preset: string; overrides: ThemeOverrides }
 export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };

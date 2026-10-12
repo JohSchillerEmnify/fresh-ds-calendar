@@ -1,6 +1,6 @@
 /** Reward effect and micro-interaction steps (STEPS.md "Reward effects"). */
 import { expect } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { itemById } from './support/tasklist.js';
 import { splitList } from './support/tables.js';
 import type { ProbeWindow, RewardLogEntry } from './support/world.js';
@@ -13,17 +13,22 @@ const QUIET_MS = 1_500;
 const rewardLog = (w: World): Promise<RewardLogEntry[]> =>
   w.page.evaluate(() => (window as unknown as ProbeWindow).__rewardLog ?? []);
 
+/** The latest effect of a kind is inserted (default timeout) and removed at most `ms` after its insertion. */
+async function expectEffectLifetime(world: World, kind: string, ms: number) {
+  world.extendTimeout(ms);
+  const latest = async () => (await rewardLog(world)).filter((e) => e.kind === kind).at(-1);
+  await expect.poll(latest, { message: `a "${kind}" reward effect is inserted` }).toBeDefined();
+  await expect
+    .poll(async () => (await latest())?.removedAt, { message: `the "${kind}" effect is removed`, timeout: ms + 2_000 })
+    .toBeDefined();
+  const entry = (await latest())!;
+  expect(entry.removedAt! - entry.insertedAt, `"${kind}" effect lifetime in ms`).toBeLessThanOrEqual(ms);
+}
+
 Then(
   'a {string} effect appears and is removed within {int} ms',
   async function (this: World, kind: string, ms: number) {
-    this.extendTimeout(ms);
-    const latest = async () => (await rewardLog(this)).filter((e) => e.kind === kind).at(-1);
-    await expect.poll(latest, { message: `a "${kind}" reward effect is inserted` }).toBeDefined();
-    await expect
-      .poll(async () => (await latest())?.removedAt, { message: `the "${kind}" effect is removed`, timeout: ms + 2_000 })
-      .toBeDefined();
-    const entry = (await latest())!;
-    expect(entry.removedAt! - entry.insertedAt, `"${kind}" effect lifetime in ms`).toBeLessThanOrEqual(ms);
+    await expectEffectLifetime(this, kind, ms);
   },
 );
 
@@ -113,4 +118,36 @@ Then('the page does not contain the words {string}', async function (this: World
   const text = await this.page.evaluate(() => document.body.innerText);
   const found = splitList(list).filter((w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
   expect(found, 'forbidden words present in the page text').toEqual([]);
+});
+
+// ---- The emotional support cat (STEPS.md "Scenes and the support cat") ----
+
+/** Kind under which the reward-effect observer logs `[data-testid="support-cat"]` (support/world.ts). */
+const CAT = 'support-cat';
+/** STEPS.md: "does not appear" = no cat inserted within 4 000 ms after the tick. */
+const CAT_QUIET_MS = 4_000;
+
+Given('the support cat comes by on the next finished list', async function (this: World) {
+  // Forces the next roll on every page load from now on (the app honours it in test mode only).
+  await this.context.addInitScript(() => { (window as unknown as { __catNext?: boolean }).__catNext = true; });
+});
+
+Given('the support cat is switched off in the theme menu', async function (this: World) {
+  await this.page.goto('/settings/theme');
+  const off = this.page.locator('[data-testid="theme-option"][data-setting="cat"][data-value="off"]');
+  const saved = this.page.waitForResponse((r) => r.request().method() === 'PATCH' && r.url().includes('/api/prefs/theme'));
+  await off.click();
+  await expect(off).toHaveAttribute('aria-pressed', 'true');
+  await saved;
+});
+
+Then('the support cat appears and is gone within {int} ms', async function (this: World, ms: number) {
+  await expectEffectLifetime(this, CAT, ms);
+});
+
+Then('the support cat does not appear', async function (this: World) {
+  this.extendTimeout(CAT_QUIET_MS);
+  await this.page.waitForTimeout(CAT_QUIET_MS);
+  const seen = (await rewardLog(this)).filter((e) => e.kind === CAT);
+  expect(seen, 'support cat visits').toEqual([]);
 });

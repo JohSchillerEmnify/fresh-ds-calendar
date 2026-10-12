@@ -9,6 +9,7 @@ import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
 import IconButton from '@/components/m3/IconButton.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
+import CatFigure from '@/features/motivation/CatFigure.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
@@ -40,6 +41,7 @@ const groups: { setting: keyof ThemeAttrs; label: string; options: { value: stri
   { setting: 'entries', label: 'Entries', options: [{ value: 'solid', label: 'Solid' }, { value: 'tinted', label: 'Tinted' }, { value: 'outline', label: 'Outline' }] },
   { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
   { setting: 'scene', label: 'Scene', options: [{ value: 'none', label: 'None' }, { value: 'mordor', label: 'Mordor' }, { value: 'season', label: 'Season' }] },
+  { setting: 'cat', label: 'Support cat', options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }] },
 ];
 const SEASONS = ['spring', 'summer', 'fall', 'winter'];
 const isSeason = (s: string) => SEASONS.includes(s);
@@ -55,7 +57,7 @@ function pickOption(setting: keyof ThemeAttrs, value: string) {
 /** Attributes for an option's sample: the current look with this one option swapped in. */
 function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, string> {
   const a: Record<string, string> = { 'data-glow': attrs.value.glow, 'data-entries': attrs.value.entries, 'data-corners': attrs.value.corners };
-  if (setting !== 'scene') a[`data-${setting}`] = value;
+  if (setting !== 'scene' && setting !== 'cat') a[`data-${setting}`] = value;
   return a;
 }
 const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
@@ -116,7 +118,11 @@ function back() {
               v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
               :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
             >
-              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
+              <span v-if="g.setting === 'cat'" class="sample catbox" v-bind="sampleAttrs(g.setting, o.value)">
+                <ThemeSample kind="tasklist" color="var(--md-sys-color-tertiary)" on="var(--md-sys-color-on-tertiary)" title="To-do" />
+                <CatFigure v-if="o.value === 'on'" class="cat" grin />
+              </span>
+              <span v-else-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
               <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
                 <span class="back" :class="[`b-${sceneOf(o.value)}`]"><SeasonScene v-if="isSeason(sceneOf(o.value))" :season="sceneOf(o.value) as 'spring'" /></span>
                 <ThemeSample kind="event" title="Dentist" />
@@ -168,5 +174,8 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .back { position: absolute; inset: 0; overflow: hidden; }
 .b-mordor { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); }
 .scenebox :deep(.s-ev) { position: relative; }
+.catbox { position: relative; justify-content: flex-start; padding-right: 44px; }
+.catbox :deep(.s-tl) { flex: 1; }
+.catbox .cat { position: absolute; right: 2px; bottom: 0; width: 44px; height: 44px; }
 .ol { font: var(--md-sys-typescale-label-large); }
 </style>

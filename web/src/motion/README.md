@@ -76,6 +76,9 @@ Settings page: best streak = `store.motivation.streak.best`.
 (emits `close`), `SunflowerField {flowers, mood, change}` (12 max < 600 px, label always the full count),
 `Butterfly {container}` (emits `done`), `MordorScene {intro}`, `SunflowerScene`, `TopBarScene`, `LeadingWidgets`,
 scene registry `scenes`, `useMotivationStore`, `onceFlag(key)` (sessionStorage once-per-session).
+`SupportCat {card, level}` (emits `done`; ≈3 s at Full, 2 s at Reduced, never mounted at Off) is mounted by
+`TaskListView` when a tick finishes the list and `catComes()` (`supportCat.ts`: chance 0.1, theme attr `cat` on,
+test hook `window.__catNext` in test mode) says so; `CatFigure` is the shared drawing (also the theme menu sample).
 Test ids: `streak-flame`, `streak-message`, `plant-button` (`data-stage`, `data-mood`), `plant-card`,
 `plant-card-stage`, `plant-card-line`, `sunflower-field` (`data-mood`, `data-sway`), `sunflower`, `scene-mordor`,
-`sauron-eye`, `top-bar-scene`, `reward-effect[data-kind]`.
+`sauron-eye`, `top-bar-scene`, `reward-effect[data-kind]`, `support-cat`.

@@ -30,11 +30,14 @@ function installProbes() {
   const open = new Map<Element, RewardLogEntry>();
   const scan = (node: Node, added: boolean) => {
     if (!(node instanceof Element)) return;
-    const effects = node.matches('[data-testid="reward-effect"]') ? [node] : [];
-    node.querySelectorAll('[data-testid="reward-effect"]').forEach((e) => effects.push(e));
+    // The support cat is logged too (kind `support-cat`): it is a one-off overlay like the reward effects.
+    const sel = '[data-testid="reward-effect"], [data-testid="support-cat"]';
+    const effects = node.matches(sel) ? [node] : [];
+    node.querySelectorAll(sel).forEach((e) => effects.push(e));
     for (const el of effects) {
       if (added) {
-        const entry: RewardLogEntry = { kind: el.getAttribute('data-kind') ?? '', insertedAt: nativeNow() };
+        const kind = el.getAttribute('data-kind') ?? el.getAttribute('data-testid') ?? '';
+        const entry: RewardLogEntry = { kind, insertedAt: nativeNow() };
         open.set(el, entry);
         w.__rewardLog!.push(entry);
       } else if (open.has(el)) {

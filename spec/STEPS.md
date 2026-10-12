@@ -935,3 +935,20 @@ Google shows the calendar {string}
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
+## Scenes and the support cat (`@scenes`, `@cat`)
+
+```
+the top bar scene shows {string}, {string}, {string} and {string}
+the support cat comes by on the next finished list
+the support cat is switched off in the theme menu
+the support cat appears and is gone within {int} ms
+the support cat does not appear
+```
+
+- Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
+  `sunflower`, `sun`, `butterfly`, `cat`); the step lowercases and hyphenates the names. "I choose the theme" without
+  a prior "I open the theme menu" opens it from the week view for today first.
+- "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
+  `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
+  reward-effect observer (inserted, then removed ≤ N ms). "switched off" flips `theme-option` `data-setting="cat"`
+  `data-value="off"`. "does not appear": no `support-cat` inserted within 4 000 ms after the tick.

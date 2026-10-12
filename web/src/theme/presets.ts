@@ -8,10 +8,12 @@ export type Glow = 'off' | 'soft' | 'neon';
 export type Entries = 'solid' | 'tinted' | 'outline';
 export type Corners = 'square' | 'round' | 'pill';
 export type ThemeScene = 'none' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter';
+/** The emotional support cat (ARCHITECTURE "Season scenes and the support cat"): on in every preset. */
+export type CatSetting = 'on' | 'off';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type PresetName = 'Default' | 'Neon' | 'Spring' | 'Summer' | 'Fall' | 'Winter' | 'Mordor' | 'Automatic';
 
-export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene }
+export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene; cat: CatSetting }
 /** `seed`/`mode` null = keep the person's own seed colour / mode setting. */
 export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
 export interface ThemePref { preset: PresetName; overrides: Partial<ThemeAttrs> }
@@ -20,7 +22,7 @@ export interface ResolvedTheme { name: Exclude<PresetName, 'Automatic'>; seed: s
 export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Winter', 'Mordor', 'Automatic'];
 export const DEFAULT_PREF: ThemePref = { preset: 'Default', overrides: {} };
 
-const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none' };
+const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none', cat: 'on' };
 
 export const PRESETS: Record<Exclude<PresetName, 'Automatic'>, Preset> = {
   Default: { name: 'Default', seed: null, mode: null, attrs: base },

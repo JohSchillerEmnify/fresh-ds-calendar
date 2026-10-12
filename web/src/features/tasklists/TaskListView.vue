@@ -3,7 +3,7 @@
  * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head, tags, "All done" /
  * next task, item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
  * open tasks tray (one per list). All item changes go through `ops.ts` (optimistic, queued, rolled back with a
- * snackbar on failure); the tick logic (flash, celebration, markFinished) lives only here.
+ * snackbar on failure); the tick logic (flash, celebration, support cat, markFinished) lives only here.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import IconClose from '~icons/material-symbols/close';
@@ -19,12 +19,15 @@ import Button from '@/components/m3/Button.vue';
 import Chip from '@/components/m3/Chip.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
+import SupportCat from '@/features/motivation/SupportCat.vue';
+import { catComes, takeForcedCat } from '@/features/motivation/supportCat';
 import { displayTitle } from '@/lib/items';
-import { ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
+import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
+import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, firstOpenItem } from './format';
 import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
@@ -50,6 +53,7 @@ const ui = useUiStore();
 const clock = useClockStore();
 const settings = useSettingsStore();
 const lists = useTaskListsStore();
+const theme = useThemeStore();
 
 const root = ref<HTMLElement | null>(null);
 const tl = computed(() => {
@@ -93,8 +97,18 @@ function tick(item: TaskItem, done: boolean) {
   patchItem(props.id, item.id, { done });
   if (!willComplete) return;
   celebrate();
+  maybeCat();
   lists.markFinished(props.id);
   emit('completed');
+}
+
+/** The emotional support cat: rolled once per finished list (about one in ten), never at level Off or switched off. */
+const cat = ref<{ card: DOMRect; level: 'full' | 'reduced' } | null>(null);
+function maybeCat() {
+  const level = getMotionLevel();
+  const forced = takeForcedCat(clock.config.testMode);
+  if (!root.value || level === 'off' || !catComes({ level, setting: theme.resolved.attrs.cat, forced, random: Math.random() })) return;
+  cat.value = { card: root.value.getBoundingClientRect(), level };
 }
 
 // --- inline editing ---------------------------------------------------------------------------------------------
@@ -246,6 +260,7 @@ defineExpose({ root, busy });
       <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>Edit</Button>
       <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>Delete</Button>
     </footer>
+    <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :level="cat.level" @done="cat = null" /></Teleport>
   </section>
 </template>
 
