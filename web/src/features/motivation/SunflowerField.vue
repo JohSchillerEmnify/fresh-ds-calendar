@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useMediaQuery } from '@vueuse/core';
 import { animate } from '@/motion/animate';
 import { spawnSparkle } from '@/motion/effects';
@@ -62,15 +62,25 @@ watch(
 );
 watch(
   () => props.change?.id,
-  () => {
-    if (!props.change?.kinds.includes('bloom') || !root.value) return;
+  async () => {
+    const kinds = props.change?.kinds ?? [];
+    if (!root.value || !(kinds.includes('bloom') || kinds.includes('perk-up'))) return;
+    await nextTick(); // the new flower must be in the DOM
+    if (!root.value) return;
     const els = root.value.querySelectorAll<SVGElement>('.sf-svg');
-    const el = els[Math.min(props.flowers, MAX.value) - 1];
-    if (!el) return;
-    const a = animate(el, [{ transform: `scale(0) rotate(${DROOP[props.mood]}deg)` }, { transform: `scale(1) rotate(${DROOP[props.mood]}deg)` }], { spring: springs.gentle, reduced: 'skip' });
-    if (a) anims.push(a);
-    const r = el.getBoundingClientRect();
-    spawnSparkle({ x: r.left + r.width / 2, y: r.top + r.height * 0.3 }, { kind: 'bloom', count: 8, spread: 26, colors: ['#ffc83d', '#ffe08a', '#ffffff'] });
+    if (kinds.includes('bloom')) {
+      const el = els[Math.min(props.flowers, MAX.value) - 1];
+      if (el) {
+        const a = animate(el, [{ transform: `scale(0) rotate(${DROOP[props.mood]}deg)` }, { transform: `scale(1) rotate(${DROOP[props.mood]}deg)` }], { spring: springs.gentle, reduced: 'skip' });
+        if (a) anims.push(a);
+        const r = el.getBoundingClientRect();
+        spawnSparkle({ x: r.left + r.width / 2, y: r.top + r.height * 0.3 }, { kind: 'bloom', count: 8, spread: 26, colors: ['#ffc83d', '#ffe08a', '#ffffff'] });
+      }
+    }
+    if (kinds.includes('perk-up') && els.length) {
+      const r = root.value.getBoundingClientRect();
+      spawnSparkle({ x: r.left + r.width / 2, y: r.top + r.height * 0.3 }, { kind: 'perk-up', count: 6, spread: 26, colors: ['#9be37a', '#ffe08a', '#ffffff'] });
+    }
   },
 );
 const petals = [0, 36, 72, 108, 144, 180, 216, 252, 288, 324];
@@ -122,5 +132,5 @@ defineExpose({ root });
 .sf-svg { width: 100%; height: 100%; display: block; transform-origin: 50% 100%; overflow: visible; transition: transform 700ms cubic-bezier(0.34, 1.3, 0.64, 1); }
 .sff[data-sway='on'] .sf { animation: sff-sway var(--dur, 5s) ease-in-out var(--delay, 0s) infinite alternate; }
 @keyframes sff-sway { from { rotate: -2.2deg; } to { rotate: 2.2deg; } }
-:global(html[data-motion='off']) .sf-svg, :global(html[data-motion='reduced']) .sf-svg { transition: none; }
+:global(html[data-motion='off'] .sf-svg, html[data-motion='reduced'] .sf-svg) { transition: none; }
 </style>

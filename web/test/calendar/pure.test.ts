@@ -66,12 +66,12 @@ describe('form <-> API', () => {
 
 describe('packing and proportions', () => {
   const hh = 48;
-  it('block height is proportional to duration, min 24px, top is the start', () => {
+  it('block height is proportional to duration, min 25px box (24 visible + 1 gap), top is the start', () => {
     const a = blockGeometry(10 * 60 + 40, 11 * 60 + 30, hh), b = blockGeometry(14 * 60, 15 * 60 + 40, hh);
     expect(b.height / a.height).toBeCloseTo(2, 5);
     expect(a.top).toBeCloseTo((640 / 60) * hh);
     const pill = blockGeometry(8 * 60, 8 * 60 + 5, hh);
-    expect(pill.height).toBe(24);
+    expect(pill.height).toBe(25);
     expect(pill.top).toBe(8 * hh);
   });
   it('events starting close together share columns, back-to-back ones do not', () => {

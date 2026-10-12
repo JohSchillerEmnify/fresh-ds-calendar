@@ -333,7 +333,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   complete in the tray moves to the finished rows at once, with a move animation (the store moves it from open to
   finished locally, the next refresh confirms it).
 - **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
-  text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording). Their expanded
+  text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording); mini cards
+  show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". Their expanded
   view offers `tasklist-move-today` ("Move to today"), which PATCHes the date. Completed lists stay on their own date.
 - **Duration estimate**: task list form field (minutes), card badge `tasklist-card-estimate` `"~45 min"` /
   `"~1 h 30 min"`.

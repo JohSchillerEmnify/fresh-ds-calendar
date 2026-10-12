@@ -167,3 +167,7 @@ spec files are named.
   chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
 - **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
   step "positioned from/to" allows the clamped height for such events.
+- **A-T1 Drag back and forth on a phone** (performance.feature): the day view on a phone has a single column, so the
+  step switches client-side to the week view (no reload) before moving the event +1/-1 day.
+- **A-T2 Fixtures award no plant points**: setup steps that create events/task lists through the API restore the plant
+  state afterwards, so scenarios count only points earned by their own actions.

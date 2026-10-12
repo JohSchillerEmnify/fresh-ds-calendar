@@ -2,7 +2,8 @@
 Feature: Open tasks stay in sight
   Out of sight is out of mind. An "open tasks" tray is visible in every view and lists today's
   and overdue task lists that still have unticked items. Open task lists from the past 30 days are
-  carried forward to today with a gentle "From <day>" label instead of disappearing in the past.
+  carried forward to today with a gentle "From <day>" label instead of disappearing in the past; in narrow
+  columns (phone week) the label shrinks to a small "carried over" badge that still names the day.
   Overdue is never shown in the error color.
   Every list in the tray shows all of its items (ticked ones struck through), on phones once the tray
   is opened; long lists make the tray scroll rather than hide items. Lists finished today follow the

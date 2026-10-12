@@ -119,10 +119,6 @@ Then('the collapsed task list {string} shows {string}', async function (this: Wo
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(text));
 });
 
-Then('the task list {string} shows the time {string}', async function (this: World, title: string, time: string) {
-  await expect(this.taskCard(title).getByTestId('tasklist-card-time')).toContainText(time);
-});
-
 Then('the task list {string} is positioned at {time}', async function (this: World, title: string, time: string) {
   const card = this.taskCard(title);
   await expect(card).toHaveAttribute('data-time', time);

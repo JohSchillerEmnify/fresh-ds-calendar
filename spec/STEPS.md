@@ -197,7 +197,6 @@ the task list {string} shows the item {string} below its title
 the task list {string} shows the item {string} next to its title
 the collapsed task list {string} lists the items {string}
 the collapsed task list {string} shows {string}
-the task list {string} shows the time {string}
 the task list {string} is positioned at {time}
 the task list {string} is shown in the all-day area on {date}
 I expand the task list {string}
@@ -542,6 +541,8 @@ the overdue label of {string} does not use the error color
 I move the task list to today
 ```
 
+- "shown as carried over from D": `tasklist-card-overdue` of the card is visible and its accessible name is
+  "From D" (the text itself in roomy cards, the `aria-label` of the badge in narrow ones).
 - "does not use the error color": the computed `color` and `background-color` of `tasklist-card-overdue` differ from
   `--md-sys-color-error` and `--md-sys-color-error-container`.
 
