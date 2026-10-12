@@ -31,9 +31,9 @@ function onClick(e: MouseEvent) {
 
 <template>
   <button
-    ref="root" v-ripple class="bar" :class="{ from: bar.continuedFromPrev, next: bar.continuesToNext }" type="button" data-testid="event-bar"
+    ref="root" v-ripple class="bar skin" :class="{ from: bar.continuedFromPrev, next: bar.continuesToNext }" type="button" data-testid="event-bar"
     :data-event-id="ev.id" :data-title="ev.title" :data-start="bar.startDate" :data-end="bar.endDate" :data-lane="bar.lane" :data-all-day="ev.allDay"
-    :data-color="ev.color" :style="{ '--c': ev.color, '--on': onColor(ev.color), gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`, gridRow: bar.lane + 1 }"
+    :data-color="ev.color" :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`, gridRow: bar.lane + 1 }"
     :aria-label="`${ev.title}, ${bar.startDate} to ${bar.endDate}`" @pointerdown.capture="onDown" @click="onClick"
   >
     <span v-if="bar.continuedFromPrev" class="arr" aria-hidden="true">◂</span>
@@ -45,7 +45,7 @@ function onClick(e: MouseEvent) {
 <style scoped>
 .bar {
   display: flex; align-items: center; gap: 3px; min-width: 0; height: var(--bar-h, 20px); margin: 0 1px; padding: 0 6px; overflow: hidden;
-  background: var(--c); color: var(--on); border-radius: 6px; font: var(--md-sys-typescale-label-medium); text-align: left; cursor: pointer;
+  font: var(--md-sys-typescale-label-medium); text-align: left; cursor: pointer;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; pointer-events: auto; z-index: 2;
 }
 .bar.from { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
@@ -54,5 +54,5 @@ function onClick(e: MouseEvent) {
 .title { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .arr { flex: none; font-size: 9px; opacity: 0.85; }
 html[data-calm='true'] .bar { filter: saturate(0.6); }
-@media (max-width: 767.98px) { .bar { font-size: 10px; padding: 0 3px; border-radius: 4px; } }
+@media (max-width: 767.98px) { .bar { font-size: 10px; padding: 0 3px; } }
 </style>

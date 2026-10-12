@@ -5,6 +5,8 @@ import type { Category, SceneName, Settings, SettingsPatch } from '@/api/types';
 import { MORDOR_SEED } from '@/api/colors';
 import { applySeed, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
+import type { SceneName as ShownScene } from '@/features/motivation/types';
+import { useThemeStore } from './theme';
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'shopping', name: 'Shopping', color: '#0b8043', icon: '🛒', googleColorId: '10' },
@@ -45,8 +47,12 @@ export const useSettingsStore = defineStore('settings', () => {
    * Scene the top bar actually shows (API.md "Scenes"): sunflowers only with garden 'sunflowers',
    * mordor regardless of garden, none = nothing.
    */
-  const effectiveScene = computed<SceneName>(() =>
-    scene.value === 'mordor' ? 'mordor' : scene.value === 'sunflowers' && s.value.garden === 'sunflowers' ? 'sunflowers' : 'none');
+  const effectiveScene = computed<ShownScene>(() => {
+    // the theme's scene wins; `none` leaves the top bar to the scene/garden settings
+    const themed = useThemeStore().resolved.attrs.scene;
+    if (themed !== 'none') return themed;
+    return scene.value === 'mordor' ? 'mordor' : scene.value === 'sunflowers' && s.value.garden === 'sunflowers' ? 'sunflowers' : 'none';
+  });
 
   async function load(signal?: AbortSignal): Promise<void> {
     const next = await api.settings({ signal });
@@ -132,11 +138,14 @@ export const useSettingsStore = defineStore('settings', () => {
   function installAppearance(): () => void {
     stopAppearance();
     const root = document.documentElement;
+    const theme = useThemeStore();
+    const stopTheme = theme.install();
     if (typeof matchMedia === 'function') {
-      bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(s.value.themeMode); syncMeta(); }));
+      bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(theme.resolved.mode ?? s.value.themeMode); syncMeta(); }));
     }
     stopWatch = watch(
-      () => [s.value.themeMode, s.value.seedColor] as const,
+      // a theme preset's seed/mode replace the person's own while it is chosen
+      () => [theme.resolved.mode ?? s.value.themeMode, theme.resolved.seed ?? s.value.seedColor] as const,
       async ([mode, seed]) => {
         applyThemeMode(mode);
         await applySeed(seed);
@@ -149,7 +158,7 @@ export const useSettingsStore = defineStore('settings', () => {
       if (s.value.calmMode) root.dataset.calm = 'true';
       else delete root.dataset.calm;
     }, { immediate: true });
-    return () => { stop2(); stopAppearance(); };
+    return () => { stop2(); stopTheme(); stopAppearance(); };
   }
   function stopAppearance() {
     stopWatch?.();

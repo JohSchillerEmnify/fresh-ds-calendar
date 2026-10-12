@@ -5,10 +5,12 @@ import { createAppRouter } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useClockStore } from './stores/clock';
 import { useSettingsStore } from './stores/settings';
+import { useThemeStore } from './stores/theme';
 import { registerServiceWorker } from './pwa/register';
 import { registerBuiltinExtensions } from './extensions/builtin';
 import { installMotion } from './motion';
 import './styles.css';
+import './theme/theme.css';
 
 async function bootstrap() {
   const pinia = createPinia();
@@ -19,7 +21,7 @@ async function bootstrap() {
   const clock = useClockStore();
   const settings = useSettingsStore();
   const budget = AbortSignal.timeout(4000);
-  await Promise.allSettled([clock.load(budget), settings.load(budget)]);
+  await Promise.allSettled([clock.load(budget), settings.load(budget), useThemeStore().load(budget)]);
   if (clock.config.testMode) enableTimerCounting();
   installMotion();
   settings.installAppearance();

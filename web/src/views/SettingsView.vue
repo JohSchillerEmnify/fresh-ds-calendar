@@ -124,6 +124,10 @@ async function resetDemo() {
     <div class="content">
       <section class="card" aria-labelledby="h-appearance">
         <h2 id="h-appearance">Appearance</h2>
+        <div class="row">
+          <div class="grow"><span class="lab">Theme</span><span class="sub">Ready themes, glow, entries, corners and scene</span></div>
+          <Button variant="tonal" data-testid="settings-theme" @click="router.push('/settings/theme')">Open</Button>
+        </div>
         <div class="row col">
           <span class="lab">Theme mode</span>
           <SegmentedButton :model-value="s.themeMode" :options="[...modes]" label="Theme mode" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />

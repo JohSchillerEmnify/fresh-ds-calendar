@@ -12,6 +12,7 @@ import type {
   ItemsResponse, LocalDate, Me, Motivation, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
+import type { ThemePref } from '@/theme/presets';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
 
@@ -142,6 +143,14 @@ export class ApiClient {
   }
   calendars(o?: RequestOptions) {
     return this.request<{ calendars: Calendar[] }>('GET', '/api/calendars', undefined, o);
+  }
+
+  themePref(o?: RequestOptions) {
+    return this.request<ThemePref>('GET', '/api/prefs/theme', undefined, o);
+  }
+
+  patchThemePref(p: Partial<ThemePref>, o?: RequestOptions) {
+    return this.request<ThemePref>('PATCH', '/api/prefs/theme', p, o);
   }
 
   setCalendarHidden(id: string, hidden: boolean, o?: RequestOptions) {
