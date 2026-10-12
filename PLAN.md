@@ -1,3 +1,37 @@
+# >>> HANDOFF: READ FIRST (another Claude session worked here while you were rate-limited) <<<
+
+Written by a separate Claude Code session (driven by the owner from the owner's laptop over ssh), 2026-10-12 from 12:30,
+while this orchestrator session (tmux `claude`, cwd ~/docker-compose) was waiting for its limit reset at 14:50.
+**Your in-context picture of the repo is stale. Re-read this section and `git -C <worktree> status/log` before acting.**
+
+## What changed while you were away
+- **timed-tl merged + deployed.** The owner approved ("Yes, deploy it"; that text may still sit unsent in your input box,
+  it is already done). Master: `82b3382` all-JS size budget 148 -> 152 kB, `5d5ecad` merge of timed-tl at `7f22038`
+  (exactly the preview the owner saw). Auto-deploy finished 12:39, live sha `5d5ecad`.
+- **Do NOT resume the dead agents** a61a21bbecd1d6bf2 (timed-tl) and a6e24e2c93635f109 (fix-tasks) via SendMessage:
+  their context no longer matches the worktrees.
+- **timed-tl worktree** still holds the killed agent's uncommitted WIP (setting `taskListPlacement` top/drawer/both in
+  server, spec/API.md, settings UI). The other session continues this slice (tray: FAB overlap, more items, "This day" section).
+- **New worktree `calendar-wt/month-cell`** (branch `month-cell`, from master): owner request "clicking empty space in a
+  month day cell opens the day (desktop too)". Spec first: navigation.feature (2 scenarios), STEPS.md (1 step),
+  ACCEPTANCE AC-09, ASSUMPTIONS A-E2; then MonthView.vue + unit test in web/test/app.test.ts, e2e step in navigation.steps.ts.
+  node_modules there are symlinks to timed-tl's.
+- **fix-tasks**: untouched so far.
+
+## New owner rules (2026-10-12, given to the other session)
+- **Spec-driven:** spec changes first (features, STEPS.md, ACCEPTANCE.md, ASSUMPTIONS.md, API.md), then code.
+- **NoVibe workflow per slice:** branch per slice -> requirements-engineer -> architect -> developer; the owner signs off each step.
+- Commits and merges by Claude are allowed for this app (merge to master = live deploy, so only with owner OK).
+
+## Coordination
+- The other session appends to "Handoff log" below. Until the owner says otherwise, assume it may still be working:
+  do not edit worktrees `month-cell` / `timed-tl` without checking the log and `git status` first.
+
+### Handoff log
+- 12:45 handoff written; next: NoVibe slice 1 (month-cell) sign-off, then slice 2 (tray) in timed-tl.
+
+---
+
 # Build plan / status (orchestrator notes)
 
 - Wave A (running 2026-10-12 ~01:50): worktrees in ../calendar-wt/{server,web-foundation,web-motion,e2e}, branches feat/*.
