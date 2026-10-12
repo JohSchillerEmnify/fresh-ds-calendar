@@ -913,7 +913,8 @@ the support cat does not appear
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
   "butterfly" part is present for the check.
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
-  `sunflower`, `sun`, `butterfly`, `cat`); the step lowercases and hyphenates the names. "I choose the theme" without
+  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`); the step lowercases and
+  hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the

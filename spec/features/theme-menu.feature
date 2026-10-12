@@ -4,8 +4,9 @@ Feature: Choosing and fine-tuning a theme
   fine-tuning section where every option shows itself as a small sample before it is picked: glow (off, soft, neon),
   entries (solid, tinted, outline), corners (square, round, pill) and the background scene. A live preview with a
   real event, task list and checkbox follows every change, and so does the calendar, without a save button. Ready
-  themes: Default, Neon, Spring, Summer, Fall, Winter, Mordor and Automatic, which follows the season (spring from
-  1 March, summer from 1 June, fall from 1 September, winter from 1 December). The choice is kept per person and
+  themes: Default, Neon, Spring, Summer, Fall, Halloween, Winter, Mordor and Automatic, which follows the season
+  (spring from 1 March, summer from 1 June, fall from 1 September, Halloween for all of October, fall again in
+  November, winter from 1 December). The choice is kept per person and
   holds on every device.
 
   Background:
@@ -44,5 +45,6 @@ Feature: Choosing and fine-tuning a theme
       | date       | season |
       | 2026-04-10 | Spring |
       | 2026-07-10 | Summer |
-      | 2026-10-12 | Fall   |
+      | 2026-10-12 | Halloween |
+      | 2026-11-10 | Fall   |
       | 2026-12-10 | Winter |
