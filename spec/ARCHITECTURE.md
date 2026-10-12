@@ -641,7 +641,8 @@ all overlays; no per-component history code.
 
 ### Themes
 
-- A theme is a preset of: seed colour (existing scheme generation), mode (light/dark/system), `glow` (off|soft|neon),
+- A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
+  presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
   Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
   Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
@@ -657,6 +658,21 @@ all overlays; no per-component history code.
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
+
+### Season scenes and the support cat (owner, 2026-10-13)
+
+- Every scene works in light and dark (its colours come from the theme tokens, not fixed hex), so a season theme never
+  needs a mode. Scenes are SVG compositions in the existing `TopBarScene`/`SeasonScene` family under
+  `web/src/features/motivation/`, built from small reusable parts with `data-part`: spring = sprouting trees (buds
+  that leaf out over the day), lily of the valley and first flowers in the grass; summer = the existing sunflowers
+  (`SunflowerScene`) plus a small sun; fall and winter keep their scenes. Every scene gets butterflies (reusing
+  `Butterfly.vue`) and a small cat that sits, stretches or naps in the scene (one shared `SceneCat` part). Motion
+  follows the animation level (Off: still picture).
+- The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
+  with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
+  card, paw on the card (the tick already happened, the paw is decoration), looks at the viewer, grins, fades out. It
+  never captures pointer events and is skipped at animation level Off. Switch in the theme menu fine-tuning:
+  `theme-option` `data-setting="cat"` on/off (per person in the theme overrides, default on), shown in every theme.
 
 ## 8. Configuration (env)
 
