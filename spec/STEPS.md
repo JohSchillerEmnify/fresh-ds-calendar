@@ -766,3 +766,32 @@ they hide the calendar {string} in the filter bar
 - "hid the calendar" signs the person in and hides it through the app. "on another device" is a fresh browser context
   signed in as the same person.
 
+## Labs (`@labs`)
+
+```
+I turn on experimental views in the settings
+the view switcher offers {string}, {string} and {string} marked as experimental
+I open the clock view for {date}
+the event {string} is an arc from {time} to {time}
+the clock hand points at {time}
+the approach bar is on
+the approach bar shows {string} in {int} minutes
+{string} is closer to now on the approach bar
+I open the timeline view
+{string} comes before {string} on the timeline
+the now marker is before {string} on the timeline
+on the timeline {string} is farther from {string} than {string} is from the now marker
+I open the strip view for {date}
+I see the event {string} in the strip column of {date}
+I scroll the strip one day to the right
+the strip column of {date} is in front
+the page did not reload
+```
+
+- Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
+- Approach bar: `approach-bar` with `approach-item` (`data-title`, `data-minutes` = minutes until start); "closer"
+  compares the item's distance from `approach-now` before and after the clock step.
+- Timeline: `timeline-item` (`data-title`) and `timeline-now`, positions compared along the timeline's axis.
+- Strip: `strip-column` (`data-date`); "in front" = the leftmost fully visible column; "did not reload" = a marker set
+  on `window` before the step is still there.
+

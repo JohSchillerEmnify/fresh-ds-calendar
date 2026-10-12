@@ -1,0 +1,17 @@
+@labs @timeline-view @id:labs-timeline
+Feature: Labs: the timeline view
+  The timeline view puts every event and task list on one continuous line across days, spaced by time, with a marker
+  for now. It can be zoomed in and out.
+
+  Background:
+    Given the calendar is empty
+    And today is 2026-10-14
+    And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+
+  Scenario: The timeline puts everything on one line
+    Given the time is 2026-10-14 08:00
+    And the calendar contains an event "Gym" on 2026-10-15 from 18:00 to 19:00
+    When I open the timeline view
+    Then "Dentist" comes before "Gym" on the timeline
+    And the now marker is before "Dentist" on the timeline
+    And on the timeline "Gym" is farther from "Dentist" than "Dentist" is from the now marker
