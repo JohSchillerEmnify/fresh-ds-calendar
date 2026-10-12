@@ -141,6 +141,7 @@ the event {string} shows the time {string}
 the event {string} is positioned from {time} to {time}
 the event {string} is positioned on {date} from {time} to {time}
 the events {string} and {string} do not overlap
+the title of the event {string} is not covered
 the events {string} and {string} are side by side
 the event {string} is stacked on the event {string}
 the event {string} spans the full width of its day column
