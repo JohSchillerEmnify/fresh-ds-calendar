@@ -666,6 +666,24 @@ The server reports its build version (`APP_VERSION`, else the git sha at build t
 back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
 "Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
 It never reloads by itself and never interrupts an open dialog.
+### Themes
+
+- A theme is a preset of: seed colour (existing scheme generation), mode (light/dark/system), `glow` (off|soft|neon),
+  `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
+  Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
+  Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
+  1 September, winter from 1 December).
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
+  `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
+  Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows
+  but stop animated ones.
+- Stored per person in `DATA_DIR/users/<sub>/prefs.json` (`theme: { preset, overrides }`, same store as hidden
+  calendars); `GET/PATCH /api/prefs/theme`. Cached in `localStorage` and applied before mount to avoid a flash.
+- Theme menu (`/settings/theme`, entry `settings-theme`): gallery `theme-card` (`data-name`, `aria-pressed`), each
+  card renders a real mini week (event chip + task list card) under that preset's attributes in a scoped container;
+  fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
+  in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
+  checkbox. Picking applies at once and saves in the background.
 
 ## 8. Configuration (env)
 
