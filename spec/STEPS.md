@@ -793,6 +793,8 @@ the strip column of {date} is in front
 the page did not reload
 in the strip {string} is about {int} times as tall as {string}
 {string} is in the strip's all-day band
+the hour lines of the strip columns of {date} and {date} are at the same height
+the all-day bands of the strip columns of {date} and {date} are equally tall
 ```
 
 - Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).

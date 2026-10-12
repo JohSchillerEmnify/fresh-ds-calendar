@@ -619,8 +619,9 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 - Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all
   days with a date divider and an all-day band per day that takes its own room, items as long as they last with
   horizontal readable titles, overlaps side by side (wider on desktop), `timeline-now` as a line, zoom on desktop.
-- Strip: CSS scroll-snap columns, one per day, each a small time grid (height proportional to duration) with an all-day
-  band on top, extended in both directions as the user scrolls (virtualised).
+- Strip: CSS scroll-snap columns, one per day, sharing ONE time scale (owner: aligned, like the week view): one hour
+  gutter, one vertical scroll for all columns, all-day bands equally tall across columns; heights proportional to
+  duration; extended in both directions as the user scrolls (virtualised).
 
 ## 8. Configuration (env)
 

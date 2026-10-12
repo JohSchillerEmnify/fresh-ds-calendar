@@ -20,3 +20,10 @@ Feature: Labs: the strip view
     When I open the strip view for 2026-10-14
     Then in the strip "Workshop" is about 3 times as tall as "Dentist"
     And "Trip" is in the strip's all-day band
+
+  Scenario: Strip columns line up on one time scale
+    Given the calendar contains an all-day event "Trip" on 2026-10-14
+    When I open the strip view for 2026-10-14
+    Then the hour lines of the strip columns of 2026-10-14 and 2026-10-15 are at the same height
+    And the all-day bands of the strip columns of 2026-10-14 and 2026-10-15 are equally tall
+
