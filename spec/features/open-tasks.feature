@@ -8,6 +8,8 @@ Feature: Open tasks stay in sight
   Every list in the tray shows all of its items (ticked ones struck through), on phones once the tray
   is opened; long lists make the tray scroll rather than hide items. Lists finished today follow the
   open ones until the end of the day.
+  A list in the tray is the same list view as the expanded list: everything that can be done there
+  (tick, add, rename, reorder and delete items, rename the list, edit its details) works the same in the tray.
 
   Background:
     Given the calendar is empty
@@ -90,10 +92,19 @@ Feature: Open tasks stay in sight
     And I open the open tasks tray
     Then the open tasks tray shows all 12 items of the task list "Move"
 
-  Scenario: Tapping a task list in the tray opens it for editing
+  Scenario: A task list in the open tasks tray can be edited like the expanded list
+    When I open the day view for 2026-10-12
+    And I open the open tasks tray
+    And I add the item "Butter" to "Groceries" in the open tasks tray
+    Then the open tasks tray shows the task list "Groceries" with items:
+      | item   | done |
+      | Milk   | no   |
+      | Butter | no   |
+
+  Scenario: The details of a task list in the tray are edited as in the expanded list
     When I open the month view for 2026-12
     And I open the open tasks tray
-    And I open the task list "Groceries" from the open tasks tray
+    And I edit the details of "Groceries" in the open tasks tray
     Then the task list dialog is open
 
   Scenario: A finished task list in the tray unfolds to its items

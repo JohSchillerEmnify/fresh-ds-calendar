@@ -534,7 +534,9 @@ the open tasks tray shows all {int} items of the task list {string}
 I unfold the task list {string} in the open tasks tray
 the create button does not cover any control of the open tasks tray
 the task list {string} in the open tasks tray is struck through and shows only its title
-I open the task list {string} from the open tasks tray
+I add the item {string} to {string} in the open tasks tray
+I edit the details of {string} in the open tasks tray
+the open tasks tray shows the message {string} for {string}
 the task list {string} is shown as carried over from {string}
 the task list {string} is not flagged as overdue
 the overdue label of {string} does not use the error color
@@ -545,6 +547,8 @@ I move the task list to today
   "From D" (the text itself in roomy cards, the `aria-label` of the badge in narrow ones).
 - "does not use the error color": the computed `color` and `background-color` of `tasklist-card-overdue` differ from
   `--md-sys-color-error` and `--md-sys-color-error-container`.
+- "the open tasks tray shows the message M for L": within 1 500 ms of the previous step, the tray row of L shows M
+  (it may fold away afterwards, as finished lists do).
 
 ## Year view and month picker (`@year`, `@picker`)
 

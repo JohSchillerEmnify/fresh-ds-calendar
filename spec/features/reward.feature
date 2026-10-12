@@ -5,6 +5,8 @@ Feature: Rewarding feedback and delightful motion
   card bounce, progress ring filled, "All done! 🎉". Effects are short (≤ ~700 ms), never block input
   and are removed from the page afterwards. The animation level (Full / Reduced / Off) and the
   system "reduce motion" preference are honoured; reduce motion caps the level at Reduced.
+  Ticking in the open tasks tray rewards exactly like ticking in the expanded list: the same checkbox,
+  strike-through speed, sparkle, bouncing done count and, for the last item, the same celebration.
 
   Background:
     Given the calendar is empty
@@ -36,6 +38,20 @@ Feature: Rewarding feedback and delightful motion
     Then a "list-complete" effect appears and is removed within 1500 ms
     And the progress ring of the task list "Groceries" shows 100 percent
     And the expanded task list shows the message "All done! 🎉"
+
+  Scenario: Ticking an item in the open tasks tray plays the same sparkle
+    When I open the day view for 2026-10-12
+    And I open the open tasks tray
+    And I tick the item "Milk" in the open tasks tray
+    Then a "tick" effect appears and is removed within 1000 ms
+
+  Scenario: Finishing a list in the open tasks tray earns the same celebration
+    When I open the day view for 2026-10-12
+    And I open the open tasks tray
+    And I tick the item "Milk" in the open tasks tray
+    And I tick the item "Eggs" in the open tasks tray
+    Then a "list-complete" effect appears and is removed within 1500 ms
+    And the open tasks tray shows the message "All done! 🎉" for "Groceries"
 
   Scenario: Effects never block input
     When I open the day view for 2026-10-12
