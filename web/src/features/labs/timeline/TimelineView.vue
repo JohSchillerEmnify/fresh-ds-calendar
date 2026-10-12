@@ -39,7 +39,8 @@ const dayCount = ref(DAYS_BEFORE + DAYS_AFTER);
 const pxPerHour = ref(90);
 const viewH = ref(600);
 const scroller = ref<HTMLElement | null>(null);
-const vertical = computed(() => isPhone.value);
+// Owner: vertical on every device (a horizontal axis cannot show titles at scale).
+const vertical = computed(() => true);
 
 const pxPerMin = computed(() => pxPerHour.value / 60);
 const width = computed(() => dayCount.value * 1440 * pxPerMin.value);
