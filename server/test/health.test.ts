@@ -45,6 +45,11 @@ describe('static web + SPA fallback', () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toContain('<title>Calendar</title>');
   });
+  it('gzips large static assets when asked', async () => {
+    fs.writeFileSync(path.join(dir, 'assets', 'big.js'), 'const a = 1;\n'.repeat(2000));
+    const res = await app.request('/assets/big.js', { headers: { 'accept-encoding': 'gzip' } });
+    expect(res.headers.get('content-encoding')).toBe('gzip');
+  });
   it('serves static assets', async () => {
     const res = await app.request('/assets/app.js');
     expect(res.headers.get('content-type')).toContain('javascript');
