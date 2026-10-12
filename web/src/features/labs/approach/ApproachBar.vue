@@ -84,7 +84,9 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
 /* title outside: the block is just the entry's colour */
 .block.bare > :deep(*) { padding: 0; }
 .block.bare > :deep(*) > * { visibility: hidden; }
-.title { flex: none; min-width: 0; font-size: 11px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.title { flex: none; min-width: 0; font-size: 11px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  /* The card colour behind the title cuts a gap into the track line, so the title never reads as struck through. */
+  position: relative; z-index: 1; padding: 0 4px; border-radius: 4px; background: var(--approach-bg, var(--md-sys-color-secondary-container)); }
 .item.faded { -webkit-mask-image: linear-gradient(90deg, transparent, #000 12px); mask-image: linear-gradient(90deg, transparent, #000 12px); }
 html[data-motion='off'] .item, html[data-motion='reduced'] .item, html[data-motion='off'] .block, html[data-motion='reduced'] .block { transition: none; }
 </style>
