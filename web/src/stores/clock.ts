@@ -70,9 +70,11 @@ export const useClockStore = defineStore('clock', () => {
   function scheduleTick() {
     stopTimer?.();
     const ms = nowMs();
-    const wait = 60000 - (ms % 60000) + 20;
+    // exactly on the minute boundary (a timer that fires a hair early is rounded up below)
+    const wait = 60000 - (ms % 60000);
     stopTimer = appTimeout(() => {
-      nowTick.value = nowMs();
+      const t = nowMs();
+      nowTick.value = t % 60000 > 59500 ? t + 500 : t;
       scheduleTick();
     }, wait);
   }

@@ -19,7 +19,7 @@ const style = computed(() => (p.value
 
 <style scoped>
 .drop {
-  position: absolute; left: 1px; right: 1px; z-index: 0; pointer-events: none; border-radius: var(--md-sys-shape-corner-small);
+  position: absolute; left: 1px; right: 1px; z-index: 3; pointer-events: none; border-radius: var(--md-sys-shape-corner-small);
   background: color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent); border: 2px dashed var(--md-sys-color-primary);
 }
 span { position: absolute; top: 1px; left: 4px; font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-primary); font-variant-numeric: tabular-nums; }

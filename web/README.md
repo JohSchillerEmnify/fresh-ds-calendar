@@ -69,7 +69,41 @@ Other hooks:
 
 ## Known gaps
 
-- No view transition (shared-axis slide) between periods; no drag and drop; no now marker / Now card / transition warning / tray (timeline and task list agents).
+- No view transition (shared-axis slide) between periods; no tray (task list agent).
 - Phone month shows chips, not dots (`variant: 'dot'` exists in the renderer contract).
 - The filter bar tag list comes from cached items only (visible range +/- cache).
 - The service worker update prompt needs HTTPS to be observable; `registerType: 'prompt'` replaced autoUpdate.
+
+## Calendar feature (src/features/calendar, branch feat/calendar-ui)
+
+Registered by `registerCalendarFeature()` (called from `extensions/builtin.ts`): lazy `'event'` dialog, `EventItem` renderer
+(dot/chip/allday/block), grid layers `NowMarker` and `DropIndicator`, view header `NowCard`, and the transition warning
+service (`transitionWarning.ts`, a Pinia-bound effect scope driven by `clock.nowTick`).
+
+| File | What |
+|---|---|
+| `EventDialog.vue`, `eventForm.ts`, `zone.ts` | Dialog, pure form model (defaults, duration-keeping start change, validation messages from the spec, API conversion with a DST-correct offset) |
+| `EventItem.vue` | Title-first blocks (2 lines, time and duration only when there is room, container queries for the 7-column week), phone month chips with 2 px start border + clip fade instead of ellipsis, past events dimmed, running event ringed, calm mode desaturates |
+| `timeline.ts` | `formatDuration`, `nowCardModel`, `dueWarnings`, `nowMarkerTop`; `blockGeometry`/`MIN_BLOCK_PX` live in `lib/items.ts` (TimeGrid uses them); `packColumns` now also returns `span` (blocks widen into free columns) |
+| `NowMarker.vue`, `NowCard.vue`, `nowLines.ts` | Live line (`data-time`), card with progress. `registerNowCardLine(() => string \| null)` lets the task list/tray agent add `Next task: Fold (Laundry)` |
+| `dnd.ts` | Shared drag and drop (see below) |
+
+**Shared drag hook for task list cards**: `useCalendarDrag(rootRef, () => segment, () => variant)` from `@/features/calendar/dnd`
+(also exported from `@/features/calendar`). Put it in the task list renderer's setup with the card root element ref. It picks slots /
+all-day cells / month cells from where the card lives, shows the drop preview, and `applyMove` does the optimistic PATCH
+(`updateTaskList`/`updateEvent` with If-Match), rollback + `move-failed` snackbar, and rejects so the card springs back.
+`planMove(segment, {date, minutes|null}, tz)` is the pure part. Cards need no `touch-action` override: the long press (350 ms)
+decides, scrolling before it works, and `.main` keeps `touch-action: pan-y`.
+`items.optimisticItem(id, next|null, call)` (new in the items store) is the generic optimistic create/update/delete.
+
+### Assumptions (owner was asleep)
+
+- The event dialog stays open while saving and shows the error on failure (AC-32, sync.feature) after rolling the optimistic item back; a snackbar `event-rollback` also says it was not saved. It closes only after Google confirmed.
+- Drag: timed stays timed, all-day stays all-day (A-55); a multi-day event moves by the delta of the dragged day; moves in the time grid are in wall-clock minutes (a DST day still has 24 rows). Month cells on phones are not draggable (a tap there opens the day).
+- Time inputs are native `type=time/date`, so the 12/24 h display follows the browser locale; values are always `HH:mm`.
+- "Calendar color" swatch uses the selected calendar's color; the default event color comes from settings.
+- Day scroll: today scrolls so now is in the upper third, other days 07:00 at the top.
+- The minute ticker fires exactly on the minute (was +20 ms) so "N minutes pass" in a fake-clock test always lands the tick.
+- Transition warnings only see the loaded range, so they work while a calendar view showing today is cached (not in settings/year); updated text counts down ("starts in 7 min"), auto-hides at the start. Dismissal is per event.
+- Size budgets: initial JS 75 kB unchanged (44 kB); "all JS" raised 130 -> 145 kB and CSS 15 -> 20 kB (spec: initial 150 kB, CSS 30 kB) because the feature adds ~8 kB gzipped, the event dialog chunk is lazy.
+- Real-browser checks (Playwright, 375 px touch with CDP long press, 1280 px mouse): drag persists, the long press requests `vibrate(10)`, no swipe navigation fires, vertical scroll still works before the press.

@@ -121,4 +121,6 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .blk:has([data-dragging='true']) { z-index: 20; }
 .phone .head { min-height: 44px; }
 .phone.week .dow { font-size: 11px; }
+.day .head { flex-direction: row; min-height: 36px; gap: 8px; }
+.day.phone .head { min-height: 36px; }
 </style>
