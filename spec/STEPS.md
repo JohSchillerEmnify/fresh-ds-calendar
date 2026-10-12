@@ -911,3 +911,22 @@ the app runs the new version
 - Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
   container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
   vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
+## Tasks calendar (`@tasks-calendar`)
+
+```
+I create the task list {string} on {date} with the item {string}
+Google has a hidden calendar {string}
+Google has a hidden calendar {string} with the event {string}
+the main calendar has no event {string}
+Google has exactly one calendar {string}
+the filter bar does not offer the calendar {string}
+I turn on {string} in the settings
+Google shows the calendar {string}
+```
+
+- "I create the task list …" goes through the new dialog (FAB → Task list, title, date, one item, save).
+- "hidden" = the mock account's calendar list entry has `hidden: true` (switched off in Google's list). "the main
+  calendar" = the person's primary calendar. "exactly one" counts calendars with that summary in the calendar list.
+- "does not offer": no filter chip with that calendar's name after "I show the filters".
+- "I turn on {string} in the settings" flips the switch with that label (settings page). "Google shows" = the mock
+  calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.

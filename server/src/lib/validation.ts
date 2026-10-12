@@ -59,7 +59,6 @@ export const updateEventSchema = so({
 });
 
 export const createTaskListSchema = so({
-  calendarId: v.optional(v.string()),
   title: listTitle,
   date: localDate,
   time: v.optional(v.nullable(localTime)),

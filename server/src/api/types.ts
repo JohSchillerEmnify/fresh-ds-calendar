@@ -108,7 +108,6 @@ export interface CreateEventInput {
 export type UpdateEventInput = Partial<CreateEventInput>;
 
 export interface CreateTaskListInput {
-  calendarId?: string;
   title: string;
   date: LocalDate;
   time?: LocalTime | null;

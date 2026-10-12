@@ -51,7 +51,8 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async listCalendars(): Promise<ProviderCalendar[]> {
-    const res = await this.call(() => this.o.api.calendarList.list({ maxResults: 250 }));
+    // hidden entries too: the person's tasks calendar is hidden in Google's list (ARCHITECTURE §3)
+    const res = await this.call(() => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
     const out: ProviderCalendar[] = [];
     for (const c of res.data.items ?? []) {
       out.push({
@@ -60,9 +61,19 @@ export class GoogleProvider implements CalendarProvider {
         backgroundColor: (c.backgroundColor ?? '#039be5').toLowerCase(),
         primary: !!c.primary,
         accessRole: (c.accessRole as ProviderCalendar['accessRole']) ?? 'reader',
+        hidden: !!c.hidden,
       });
     }
     return out;
+  }
+
+  async insertCalendar(summary: string): Promise<ProviderCalendar> {
+    const res = await this.call(() => this.o.api.calendars.insert({ requestBody: { summary } }));
+    return { id: res.data.id!, summary: res.data.summary ?? summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden: false };
+  }
+
+  async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
+    await this.call(() => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }));
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {

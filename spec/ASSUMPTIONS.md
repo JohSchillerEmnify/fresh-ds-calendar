@@ -30,7 +30,7 @@ spec files are named.
 - **A-10 Month overflow** (owner 2026-10-12): no `+N`; a cell shows as many entries as fit and fades the rest out at
   the bottom. Tapping the cell opens the day.
 - **A-11 Timed task lists** are 30-minute Google events; untimed ones are all-day events. They live in one calendar
-  (`TASKLIST_CALENDAR_ID`, default primary); the task list form has no calendar picker.
+  (the person's hidden "Calendar app: tasks" calendar, ARCHITECTURE §3); the task list form has no calendar picker.
 - **A-12 No offline writes**: changes made while Google/network is unavailable fail visibly (dialog error or rollback)
   instead of being queued. Read-only offline (last known data + app shell).
 - **A-13 Conflicts**: event and task list detail edits use etags (`If-Match`) and are rejected when stale. Item-level

@@ -14,7 +14,7 @@ export const MOCK_CALENDARS: ProviderCalendar[] = [
   { id: 'work', summary: 'Work', backgroundColor: '#0b8043', primary: false, accessRole: 'owner' },
 ];
 
-interface Persisted { seq: number; events: GoogleEvent[] }
+interface Persisted { seq: number; events: GoogleEvent[]; calendars?: ProviderCalendar[] }
 
 export interface MockOptions {
   dataDir: string | null;      // null = memory only
@@ -50,6 +50,7 @@ export class MockGoogleProvider implements CalendarProvider {
         const p = JSON.parse(fs.readFileSync(this.file, 'utf8')) as Persisted;
         this.seq = p.seq ?? 0;
         for (const e of p.events ?? []) this.events.set(key(e.calendarId, e.id), e);
+        if (Array.isArray(p.calendars) && p.calendars.length) this.calendars = p.calendars;
         loaded = this.events.size > 0;
       } catch {
         // corrupt store: start empty (the file is rewritten on the next flush)
@@ -69,6 +70,7 @@ export class MockGoogleProvider implements CalendarProvider {
   /** Replaces this account's calendar list (TEST_MODE: own and shared calendars of one person). */
   setCalendars(cals: ProviderCalendar[]): void {
     this.calendars = cals.map((c) => ({ ...c }));
+    this.scheduleFlush();
   }
   get isDown(): boolean {
     return this.outage !== null;
@@ -92,6 +94,9 @@ export class MockGoogleProvider implements CalendarProvider {
       this.doPatch(calendarId, id, { status: 'cancelled' });
     },
     find: (id: string): GoogleEvent | undefined => [...this.events.values()].find((e) => e.id === id),
+    /** The calendar list including hidden entries. */
+    calendars: (): ProviderCalendar[] => this.calendars.map((c) => ({ ...c })),
+    insertCalendar: (summary: string, hidden = false): ProviderCalendar => this.doInsertCalendar(summary, hidden),
   };
 
   private check(): void {
@@ -109,6 +114,18 @@ export class MockGoogleProvider implements CalendarProvider {
   async listCalendars(): Promise<ProviderCalendar[]> {
     this.check();
     return this.calendars.map((c) => ({ ...c }));
+  }
+
+  async insertCalendar(summary: string): Promise<ProviderCalendar> {
+    this.check();
+    return this.doInsertCalendar(summary, false);
+  }
+
+  async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
+    this.check();
+    this.requireCalendar(calendarId);
+    this.calendars.find((c) => c.id === calendarId)!.hidden = hidden;
+    this.scheduleFlush();
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
@@ -180,6 +197,15 @@ export class MockGoogleProvider implements CalendarProvider {
   // ---- internals ----
   private requireCalendar(id: string): void {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
+  }
+
+  private doInsertCalendar(summary: string, hidden: boolean): ProviderCalendar {
+    const cal: ProviderCalendar = {
+      id: `${googleEventId()}@group.calendar.google.com`, summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden,
+    };
+    this.calendars.push(cal);
+    this.scheduleFlush();
+    return { ...cal };
   }
 
   private getStored(calendarId: string, id: string): GoogleEvent {
@@ -312,7 +338,7 @@ export class MockGoogleProvider implements CalendarProvider {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    const data: Persisted = { seq: this.seq, events: [...this.events.values()] };
+    const data: Persisted = { seq: this.seq, events: [...this.events.values()], calendars: this.calendars };
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
     const tmp = `${this.file}.${process.pid}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(data));

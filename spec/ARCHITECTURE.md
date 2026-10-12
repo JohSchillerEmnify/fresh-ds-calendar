@@ -114,7 +114,19 @@ recurring events is out of scope.
 
 ## 3. Task lists in Google Calendar
 
-One task list = one Google event in `TASKLIST_CALENDAR_ID` (default primary):
+One task list = one Google event in the person's **tasks calendar** (owner, 2026-10-13: keep the main calendar clean;
+option A of two — B, server storage with Drive backup, may follow in the VPS track and would replace this):
+
+- The tasks calendar is a secondary calendar "Calendar app: tasks" in the person's own Google account. Its id is kept
+  per person in `DATA_DIR/users/<sub>/prefs.json` (`tasksCalendarId`). When it is first needed (first read or create of
+  task lists) the server looks it up (stored id, else the calendar list by that summary), else creates it
+  (`calendars.insert`) and switches it off in Google's list (`calendarList.patch` `hidden: true`). One in-flight
+  creation per person (a promise per `sub`), so parallel requests never make two.
+- Task lists are read and written only there. The calendar never appears as an event calendar or filter chip
+  (`GET /api/calendars` leaves it out), and events in it that are not task lists are ignored.
+- Setting "Show tasks calendar in Google" (Calendar section, per person `tasksCalendarVisible` in prefs, default
+  off) sets the calendar list entry `hidden` accordingly; it changes nothing in the app.
+- Mock mode does the same against the mock account. No migration: there were no real Google accounts yet (owner).
 
 | Task list | Google event |
 |---|---|
@@ -739,7 +751,6 @@ It never reloads by itself and never interrupts an open dialog.
 | `SEED` | `true` | seed demo data into an empty mock store |
 | `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
 | `POLL_INTERVAL_MS` | `30000` | web polling interval |
-| `TASKLIST_CALENDAR_ID` | `primary` | calendar for new task lists |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
 | `GOOGLE_REFRESH_TOKEN` | – | long-lived refresh token (or `DATA_DIR/google-token.json` from the auth flow) |
 | `GOOGLE_CALENDAR_IDS` | `primary` | comma-separated calendars to show |

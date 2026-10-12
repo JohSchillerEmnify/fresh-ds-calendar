@@ -4,7 +4,7 @@ import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
-import { PrefsStore } from './services/prefsStore.js';
+import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
 import { SettingsStore } from './services/settingsStore.js';
 import type { CalendarProvider } from './providers/CalendarProvider.js';
 import { MockGoogleProvider } from './providers/mock/MockGoogleProvider.js';
@@ -44,7 +44,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const settings = new SettingsStore(config.dataDir, clock, config.tz);
   const prefs = new PrefsStore(config.dataDir);
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
-  const calendar = new CalendarService(prov, settings, motivation, clock, config);
+  const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON);
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>();
   const people = new Map<string, CalendarService>();
@@ -63,7 +63,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
         // google: one provider per person; mock: one calendar per person; tests with an injected provider share it
         const p = personProvider ? personProvider(sub) : mock ? ctx.mockFor(sub) : null;
         if (!p) return calendar;
-        people.set(sub, (c = new CalendarService(p, settings, motivation, clock, config)));
+        people.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub)));
       }
       return c;
     },
