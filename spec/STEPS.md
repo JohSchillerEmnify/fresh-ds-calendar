@@ -633,11 +633,18 @@ I pick {date} in the month picker
 {date} is selected in the month picker
 {date} is marked as having items in the month picker
 {date} is not marked as having items in the month picker
+I drag up and down inside the month picker
+the page is not scrolled
+the bottom bar ends at the bottom of the viewport
 ```
 
 - `I open the month picker` clicks `period-title` (it toggles the picker).
 - Density = `data-density` of `year-day[data-date]`. "selected" = `aria-selected="true"` on `picker-day`; "marked" =
   `data-has-items="true"`.
+- "I drag up and down inside the month picker": touch drag of 150 px up, then 150 px down, over the picker's grid
+  (CDP touch events; falls back to a mouse wheel on non-touch projects).
+- "the page is not scrolled": `document.scrollingElement.scrollTop === 0` and `scrollHeight <= innerHeight`.
+- "the bottom bar ends at the bottom of the viewport": `bottom-bar` bottom edge equals `innerHeight` (±1 px).
 
 ## ADHD support, settings additions
 
