@@ -372,7 +372,7 @@ describe('settings', () => {
     const sections = w.findAll(tid('theme-section'));
     expect(sections.map((x) => [x.attributes('data-section'), x.get('h2').text()])).toEqual([['presets', 'Presets'], ['scene', 'Scene'], ['fine-tuning', 'Fine-tuning']]);
     const values = (el: typeof w) => el.findAll(tid('theme-option')).map((o) => `${o.attributes('data-setting')}:${o.attributes('data-value')}`);
-    expect(values(sections[1] as never)).toEqual(['season', 'spring', 'summer', 'fall', 'halloween', 'winter', 'sunflowers', 'mordor', 'none'].map((v) => `scene:${v}`));
+    expect(values(sections[1] as never)).toEqual(['season', 'spring', 'easter', 'summer', 'summerholidays', 'fall', 'halloween', 'christmas', 'newyearseve', 'newyear', 'winter', 'sunflowers', 'mordor', 'none'].map((v) => `scene:${v}`));
     // an explicit season scene is pressed on its own; Season is the automatic choice
     const pressedScene = () => sections[1]!.findAll('[aria-pressed="true"]').map((o) => o.attributes('data-value'));
     await sections[1]!.get('[data-value="halloween"]').trigger('click');
@@ -387,11 +387,34 @@ describe('settings', () => {
     await w.get('[data-testid="theme-card"][data-name="Mordor"]').trigger('click');
     await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ preset: 'Mordor' }));
   });
+  it('theme menu: "Automatic follows" shows with Automatic only; the base select only for "Scene only"; both are saved', async () => {
+    const { w, m } = await mountAt('/settings/theme');
+    await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
+    const theme = useThemeStore();
+    expect(w.find(tid('theme-automatic-follows')).exists()).toBe(false);
+    theme.pref = { preset: 'Automatic', overrides: {} };
+    await wait(() => expect(w.find(tid('theme-automatic-follows')).exists()).toBe(true));
+    expect(w.findAll(`${tid('theme-automatic-follows')} button`).map((b) => b.text())).toEqual(['Colours and scene', 'Scene only', 'Colours only']);
+    expect(w.find(tid('theme-automatic-base')).exists()).toBe(false);
+    await w.get(`${tid('theme-automatic-follows')} [data-value="scene"]`).trigger('click');
+    await wait(() => expect(w.find(tid('theme-automatic-base')).exists()).toBe(true));
+    const options = w.findAll(`${tid('theme-automatic-base')} option`).map((o) => o.text());
+    expect(options.slice(0, 3)).toEqual(['Default', 'Neon', 'Mordor']);
+    await w.get(tid('theme-automatic-base')).setValue('Neon');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ preset: 'Automatic', automatic: 'scene', automaticBase: 'Neon' }));
+    // with "Colours only" the scene card starts at None
+    await w.get(`${tid('theme-automatic-follows')} [data-value="colors"]`).trigger('click');
+    await wait(() => expect(w.get('[data-section="scene"] [aria-pressed="true"]').attributes('data-value')).toBe('none'));
+  });
   it('the Theme row shows the seasonal theme in use for Automatic and the preset name otherwise', async () => {
     const { w } = await mountAt('/settings');
     const theme = useThemeStore();
     theme.pref = { preset: 'Automatic', overrides: {} };
-    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic · (Spring|Summer|Fall|Halloween|Winter)$/)); // depends on today's season
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic · (Spring|Summer|Fall|Halloween|Winter|Easter|Christmas|New Year's Eve|New Year)$/)); // depends on today's date
+    theme.pref = { preset: 'Automatic', overrides: {}, automatic: 'scene' };
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic \(scene\) · /));
+    theme.pref = { preset: 'Automatic', overrides: {}, automatic: 'colors' };
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic \(colours\) · /));
     theme.pref = { preset: 'Neon', overrides: {} };
     await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Neon'));
   });

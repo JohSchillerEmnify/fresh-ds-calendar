@@ -330,6 +330,40 @@ Then('the settings show the theme {string}', async function (this: World, text: 
   await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
 });
 
+When('I let Automatic change {string}', async function (this: World, label: string) {
+  await ensureMenu(this);
+  const saved = this.page.waitForResponse(isSaved);
+  const o = this.page.getByTestId('theme-automatic-follows').getByRole('button', { name: label });
+  await o.click();
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
+  await saved;
+});
+
+When('I use {string} as the base for Automatic', async function (this: World, label: string) {
+  await ensureMenu(this);
+  const saved = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId('theme-automatic-base').selectOption({ label });
+  await saved;
+});
+
+Then('the advent wreath shows {int} lit candle(s)', async function (this: World, n: number) {
+  await backToCalendar(this);
+  const scene = this.page.getByTestId('top-bar-scene');
+  await expect(scene.getByTestId('advent-candle')).toHaveCount(4);
+  await expect(scene.locator('[data-testid="advent-candle"][data-lit="true"]')).toHaveCount(n);
+});
+
+async function treeLights(world: World, state: 'on' | 'off') {
+  await backToCalendar(world);
+  const tree = world.page.getByTestId('top-bar-scene').getByTestId('xmas-tree');
+  await expect(tree).toHaveAttribute('data-lights', state);
+  // the tree stands in the left third of the top bar
+  const [t, bar] = await Promise.all([tree.boundingBox(), world.page.getByTestId('top-bar-scene').boundingBox()]);
+  expect(t!.x + t!.width / 2).toBeLessThan(bar!.x + bar!.width / 3);
+}
+Then('the Christmas tree lights are on', async function (this: World) { await treeLights(this, 'on'); });
+Then('the Christmas tree lights are off', async function (this: World) { await treeLights(this, 'off'); });
+
 // ---- Theme import (STEPS.md "Theme import (`@theme-import`)") ----
 
 const themeFile = (name: string) => path.join(import.meta.dirname, '../fixtures/themes', name);

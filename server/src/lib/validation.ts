@@ -99,16 +99,19 @@ const themeOverrides = so({
   glow: v.optional(v.picklist(['off', 'soft', 'neon'], 'Invalid glow')),
   entries: v.optional(v.picklist(['solid', 'tinted', 'outline'], 'Invalid entries style')),
   corners: v.optional(v.picklist(['square', 'round', 'pill'], 'Invalid corners')),
-  scene: v.optional(v.picklist(['season', 'none', 'sunflowers', 'mordor', 'spring', 'summer', 'fall', 'winter', 'halloween'], 'Invalid scene')),
+  scene: v.optional(v.picklist(['season', 'none', 'sunflowers', 'mordor', 'spring', 'easter', 'summer', 'summerholidays', 'fall', 'halloween', 'christmas', 'newyearseve', 'newyear', 'winter'], 'Invalid scene')),
   seed: v.optional(hex),
 });
+const presetName = v.picklist([
+  'Default', 'Neon', 'Spring', 'Easter', 'Summer', 'Summer holidays', 'Fall', 'Halloween', 'Christmas', 'New Year\'s Eve', 'New Year', 'Winter', 'Mordor', 'Automatic',
+]);
+// an imported theme: `theme:<id>` (GET /api/themes)
+const importedTheme = v.pipe(v.string(), v.regex(/^theme:[A-Za-z0-9_-]{1,32}$/));
 export const themePatchSchema = so({
-  preset: v.optional(v.union([
-    v.picklist(['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic']),
-    // an imported theme: `theme:<id>` (GET /api/themes)
-    v.pipe(v.string(), v.regex(/^theme:[A-Za-z0-9_-]{1,32}$/)),
-  ], 'Invalid theme')),
+  preset: v.optional(v.union([presetName, importedTheme], 'Invalid theme')),
   overrides: v.optional(themeOverrides),
+  automatic: v.optional(v.picklist(['both', 'scene', 'colors'], 'Invalid automatic setting')),
+  automaticBase: v.optional(v.union([presetName, importedTheme], 'Invalid base theme')),
 });
 const catName = v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(40, 'Name must be at most 40 characters'));
 const icon = v.nullable(v.pipe(v.string(), v.maxLength(8, 'Icon must be a single emoji')));
