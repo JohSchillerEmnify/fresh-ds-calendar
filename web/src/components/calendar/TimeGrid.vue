@@ -4,18 +4,19 @@
  * Extension points: `gridLayers` (rendered in every day column),
  * `itemRenderers` (block content), `time-slot` clicks (create), and the exposed `scrollToMinutes`.
  */
-import { computed, nextTick, provide, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, provide, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { format } from 'date-fns';
 import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
+import { bindGridZoom, gridYUnder, hourHeight, previewShift, setHourHeight } from '@/composables/useHourHeight';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
 import { gridLayers } from '@/extensions/registry';
 import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
-import { blockGeometry, packColumns, STACK_INDENT_PX, segmentMinPx } from '@/lib/items';
+import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';
 import { useClockStore } from '@/stores/clock';
@@ -26,7 +27,6 @@ const nav = useNav();
 const segs = useDaySegments();
 const barsOf = useBars();
 
-const hourHeight = computed(() => (isPhone.value ? 44 : 48));
 const cols = computed(() => props.dates.map((d) => {
   const date = toIsoDate(d);
   const all = segs(date);
@@ -34,7 +34,7 @@ const cols = computed(() => props.dates.map((d) => {
     date, d,
     today: date === clock.today,
     top: all.filter((s) => s.allDay || s.startTime === null),
-    placed: packColumns(all, (s) => (segmentMinPx(s) / hourHeight.value) * 60),
+    placed: packColumns(all, (MIN_BLOCK_PX / hourHeight.value) * 60),
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
@@ -59,17 +59,51 @@ function initialScroll() {
   const todayVisible = props.dates.some((d) => toIsoDate(d) === clock.today);
   el.scrollTop = Math.max(0, todayVisible ? px(clock.minutesNow) - el.clientHeight / 3 : px(7 * 60));
 }
-onMounted(() => nextTick(initialScroll));
+interface ZoomPreview { base: number; k: number; t: number; off: number }
+let zoom: ZoomPreview | null = null;
+const gridEl = ref<HTMLElement | null>(null);
+/** Live zoom: only a CSS transform on the grid (blocks keep their layout), keeping the time under `clientY` in place. */
+function previewZoom(next: number, clientY: number) {
+  const el = scroller.value;
+  const grid = gridEl.value;
+  if (!el || !grid) return;
+  const z = zoom ?? (zoom = { base: hourHeight.value, k: 1, t: 0, off: 0 });
+  const off = clientY - el.getBoundingClientRect().top;
+  const k = next / z.base;
+  z.t = previewShift(el.scrollTop, off, gridYUnder(el.scrollTop, off, z.k, z.t), k);
+  z.k = k;
+  z.off = off;
+  grid.style.transformOrigin = '0 0';
+  grid.style.transform = `translateY(${z.t}px) scaleY(${k})`;
+}
+/** Gesture settled: drop the transform, lay the blocks out once at `next`, keep the anchored time where it was. */
+function commitZoom(next: number) {
+  const el = scroller.value;
+  const z = zoom;
+  zoom = null;
+  if (gridEl.value) { gridEl.value.style.transform = ''; gridEl.value.style.transformOrigin = ''; }
+  const old = hourHeight.value;
+  const v = setHourHeight(next);
+  if (!el || !z) return;
+  const want = gridYUnder(el.scrollTop, z.off, z.k, z.t) * (v / old) - z.off;
+  nextTick(() => { el.scrollTop = Math.max(0, want); });
+}
+let unbindZoom = () => {};
+onMounted(() => {
+  nextTick(initialScroll);
+  if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hourHeight.value, preview: previewZoom, commit: commitZoom });
+});
+onBeforeUnmount(() => unbindZoom());
 watch(() => props.mode, () => nextTick(initialScroll));
 watch(() => toIsoDate(props.dates[0]), () => nextTick(initialScroll));
 defineExpose({ scrollToMinutes });
 
 /** Block box: the stored one, or the live one while its resize handle is dragged. */
-function geo(p: { seg: { item: { id: string }; date: string }; top: number; height: number }, minPx: number) {
+function geo(p: { seg: { item: { id: string }; date: string }; top: number; height: number }) {
   const rp = resizePreview.value;
   const live = !!rp && rp.id === p.seg.item.id && rp.date === p.seg.date;
   const top = live ? rp.startMin : p.top;
-  return blockGeometry(top, live ? rp.endMin : top + p.height, hourHeight.value, minPx);
+  return blockGeometry(top, live ? rp.endMin : top + p.height, hourHeight.value);
 }
 const settling = (id: string, date: string) => resizePreview.value?.settle && resizePreview.value.id === id && resizePreview.value.date === date;
 
@@ -96,7 +130,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
-      <div class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
+      <div ref="gridEl" class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
         <div class="gutter hours">
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>
         </div>
@@ -107,9 +141,9 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk" :class="{ settle: settling(p.seg.item.id, p.seg.date) }"
-            :style="{ top: geo(p, segmentMinPx(p.seg)).top + 'px', height: geo(p, segmentMinPx(p.seg)).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * indent}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * indent}px)`, '--z': 1 + p.level }"
+            :style="{ top: geo(p).top + 'px', height: geo(p).height + 'px', left: `calc(${(p.col / p.cols) * 100}% + ${p.level * indent}px)`, width: `calc(${(p.span / p.cols) * 100}% - ${p.level * indent}px)`, '--z': 1 + p.level }"
           >
-            <ItemView :segment="p.seg" variant="block" :height="geo(p, segmentMinPx(p.seg)).height" />
+            <ItemView :segment="p.seg" variant="block" :height="geo(p).height" />
           </div>
           <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hourHeight" />
         </div>

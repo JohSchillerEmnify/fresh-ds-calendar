@@ -198,7 +198,14 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   4 only for Feb starting Monday in a non-leap year).
 - **Ordering in a day**: all-day events, then untimed task lists, then timed items by start time (events and timed
   task lists interleaved), ties by title.
-- **Time grid** (week/day): 24 rows, `--hour-height` 48 px (desktop) / 44 px (phone), initial scroll to 07:00
+- **Zoom** (owner, 2026-10-13): the time grid of the day and week views zooms — two-finger pinch on touch, Ctrl+wheel
+  / trackpad pinch on desktop — between 24 px and 160 px per hour, around the pinch/pointer position (the time under
+  the fingers stays put). The hour height is remembered per device (`localStorage`, not synced: phones and desktops
+  want different values). A pinch never starts a swipe or a drag; only `transform`/the `--hour-height` variable
+  change, blocks re-lay out after the gesture settles.
+- **Blocks to scale** (owner, 2026-10-13, replaces the earlier 44 px task list minimum): task lists are as tall as their
+  duration like events, with the same small minimum (title only when short; content fades out); zoom in for room.
+- **Time grid** (week/day): 24 rows, `--hour-height` 48 px (desktop) / 44 px (phone) by default (zoomable, see above), initial scroll to 07:00
   (or one hour before the current time if today is visible and later than 08:00). Overlap layout: Google-like column
   packing — events in a connected overlap cluster are split into equal columns; touching (end == start) is not overlap.
   Timed task lists are 30 min blocks in the grid.
@@ -229,6 +236,14 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
 - **Touch targets** ≥ 44 × 44 px for all buttons, checkboxes (hit area), chips that open things.
 - **Swipe**: horizontal swipe on `calendar-swipe-area` (touch events; ≥ 60 px horizontal, |dx| > 1.5·|dy|, < 600 ms)
   changes period: left = next, right = previous. Vertical movement scrolls normally (`touch-action: pan-y`).
+  Owner, 2026-10-13: the swipe is a live carousel. Once the gesture is horizontal, the current period follows the
+  finger and the neighbouring period (next when pulling left, previous when pulling right) slides in beside it,
+  already rendered. On release past a third of the width or with a quick flick (> 0.5 px/ms) it settles onto the
+  neighbour with a short spring and the route changes; otherwise both spring back. The neighbour is mounted only
+  when a horizontal swipe starts (no permanent pre-rendering), as a light copy of the same view component (no
+  entry animations, no drag/resize handlers, `aria-hidden`), and it uses already cached items, fetching its range in
+  the background if needed. Only `transform` is animated; Reduced/Off motion: no follow, the period changes at once
+  on a completed swipe as before. Desktop (mouse) is unchanged.
 - **Month view on phone**: cells show the day number and compact chips (colored, title only, truncated) as many as fit,
   the rest fading out at the bottom. Tapping anywhere in a cell opens `/day/<date>` (the day agenda). Desktop: day number → day view, chip → opens
   the event / expands the task list.

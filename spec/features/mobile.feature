@@ -34,6 +34,19 @@ Feature: Mobile-first layout
     When I open the week view for 2026-10-12
     Then the navigation, view switcher and create buttons are at least 44 by 44 pixels
 
+  Scenario: While swiping, the next period comes along with the finger
+    When I open the week view for 2026-10-12
+    And I start swiping left on the calendar by a quarter of the width
+    Then the week of 2026-10-19 is shown beside the current one
+    When I let go
+    Then the URL path is "/week/2026-10-12"
+
+  Scenario: A swipe past a third settles on the next period
+    When I open the week view for 2026-10-12
+    And I start swiping left on the calendar by half the width
+    And I let go
+    Then the URL path is "/week/2026-10-19"
+
   Scenario Outline: Swiping left shows the next period, swiping right the previous one
     When I open the <view> view for <start>
     And I swipe left on the calendar
@@ -101,3 +114,10 @@ Feature: Mobile-first layout
     When I open the app
     Then the viewport meta tag contains "viewport-fit=cover"
     And the bottom bar reserves the safe-area inset at the bottom
+
+  Scenario: Pinching the week zooms the time grid and is remembered
+    When I open the week view for 2026-10-12
+    And I pinch out on the time grid to twice the size
+    Then one hour of the time grid is about twice as tall as before
+    When I reload the page
+    Then one hour of the time grid is still about twice as tall as at the start

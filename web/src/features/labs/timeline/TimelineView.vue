@@ -9,7 +9,7 @@ import { addDays, format } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { parseIsoDate, toIsoDate } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
-import { packColumns, segmentMinPx, blockGeometry, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
+import { packColumns, blockGeometry, MIN_BLOCK_PX, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -103,18 +103,18 @@ const vdays = computed(() => days.value.map((d) => {
   return {
     d, iso,
     allday: segs.filter(isAllDay),
-    blocks: packColumns(segs, (s) => (segmentMinPx(s) / HH) * 60),
+    blocks: packColumns(segs, (MIN_BLOCK_PX / HH) * 60),
   };
 }));
 const blockStyle = (p: PlacedSegment) => {
-  const g = blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg));
+  const g = blockGeometry(p.top, p.top + p.height, HH);
   return {
     top: g.top + 'px', height: g.height + 'px', '--z': 1 + p.level,
     left: `calc(${GUTTER}px + (100% - ${GUTTER}px) * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`,
     width: `calc((100% - ${GUTTER}px) * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`,
   };
 };
-const blockH = (p: PlacedSegment) => blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).height;
+const blockH = (p: PlacedSegment) => blockGeometry(p.top, p.top + p.height, HH).height;
 
 const nowX = computed(() => (dayX(clock.today) + clock.minutesNow) * pxPerMin.value);
 const nowInRange = computed(() => nowX.value >= 0 && nowX.value <= width.value);

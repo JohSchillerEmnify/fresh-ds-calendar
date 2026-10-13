@@ -166,8 +166,8 @@ spec files are named.
   chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
 - **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
   step "positioned from/to" allows the clamped height for such events.
-- **A-E5 Drawn height counts for overlap**: a block drawn taller than its duration (event 24 px minimum, task list with
-  open items 44 px minimum) occupies its drawn height when entries are laid out; an entry starting inside it is placed
+- **A-E5 Drawn height counts for overlap**: a block drawn taller than its duration (events and task lists alike: 24 px minimum;
+  the former 44 px task list minimum was dropped on 2026-10-13, owner) occupies its drawn height when entries are laid out; an entry starting inside it is placed
   as overlapping (side by side or stacked), so nothing hides another entry's title (owner, 2026-10-12).
 - **A-T1 Drag back and forth on a phone** (performance.feature): the day view on a phone has a single column, so the
   step switches client-side to the week view (no reload) before moving the event +1/-1 day.

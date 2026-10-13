@@ -228,3 +228,10 @@ Feature: Creating, editing and deleting task lists
     And I save the task list
     Then the task list "Errands" is positioned at 15:00
 
+  Scenario: A short task list is drawn as short as it takes
+    Given the calendar contains a task list "Quick call prep" on 2026-10-14 at 09:00 for 15 minutes with items:
+      | item  | done |
+      | Notes | no   |
+    And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When I open the day view for 2026-10-14
+    Then the task list "Quick call prep" is drawn a quarter as tall as the event "Dentist"

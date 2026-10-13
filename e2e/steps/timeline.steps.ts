@@ -18,6 +18,29 @@ Then(
   },
 );
 
+/**
+ * Ratio of the task list card's height to the event chip's, 0.25 +- 0.05. Short lists sit on the 25 px minimum, so
+ * the step first zooms in (Ctrl+wheel on the grid) until the card is clearly above it.
+ */
+Then(
+  'the task list {string} is drawn a quarter as tall as the event {string}',
+  async function (this: World, list: string, event: string) {
+    for (let i = 0; i < 6 && (await box(this.taskCard(list))).height <= 30; i++) {
+      const before = await hourHeight(this);
+      await this.page.getByTestId('time-grid').first().locator('xpath=..').evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        el.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true }));
+      });
+      await expect.poll(() => hourHeight(this)).not.toBe(before);
+    }
+    await expect
+      .poll(async () => (await heightOf(this, event)) > 0 ? (await box(this.taskCard(list))).height / (await heightOf(this, event)) : 0)
+      .toBeGreaterThanOrEqual(0.2);
+    const ratio = (await box(this.taskCard(list))).height / (await heightOf(this, event));
+    expect(ratio, `height ratio ${list}/${event}`).toBeLessThanOrEqual(0.3);
+  },
+);
+
 Then('the event {string} is at least {int} pixels tall', async function (this: World, title: string, px: number) {
   expect(await heightOf(this, title)).toBeGreaterThanOrEqual(px - 0.5);
 });

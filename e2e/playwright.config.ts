@@ -42,7 +42,7 @@ export default defineConfig({
   projects: [
     {
       name: 'mobile',
-      grepInvert: /@desktop/,
+      grepInvert: /@desktop|@backlog/,
       use: {
         browserName: 'chromium',
         viewport: { width: 375, height: 812 },
@@ -54,7 +54,7 @@ export default defineConfig({
     },
     {
       name: 'desktop',
-      grepInvert: /@mobile|@perf/,
+      grepInvert: /@mobile|@perf|@backlog/,
       use: {
         browserName: 'chromium',
         viewport: { width: 1280, height: 800 },
