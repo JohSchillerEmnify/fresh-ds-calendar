@@ -3,8 +3,10 @@
  * Moderate spellings only (des, ned, bassd, etz, amal, gud), readable for non-Franconians.
  */
 import type { PartialMessages } from '../schema';
+import calendarMainfr from './de-x-mainfr/calendar.ts';
 
 export default {
+  calendar: calendarMainfr,
   views: {
     year: 'Jahr',
     month: 'Monad',

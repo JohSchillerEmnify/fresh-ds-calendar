@@ -9,6 +9,7 @@
     "types": ["vite/client", "vite-plugin-pwa/client", "unplugin-icons/types/vue", "node"],
     "skipLibCheck": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
     "useDefineForClassFields": true,

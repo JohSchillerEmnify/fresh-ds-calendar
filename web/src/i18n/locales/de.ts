@@ -1,7 +1,9 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
 import type { Messages } from '../schema';
+import calendarDe from './de/calendar.ts';
 
 export default {
+  calendar: calendarDe,
   views: {
     year: 'Jahr',
     month: 'Monat',

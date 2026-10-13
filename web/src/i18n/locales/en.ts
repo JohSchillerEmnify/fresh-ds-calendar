@@ -7,7 +7,10 @@
  * object, so a key missing in `de.ts` is a type error and `t()` only accepts keys that exist here. Message syntax is
  * vue-i18n's: `{name}` interpolates, `a | b` pluralises, and the characters `@`, `|`, `{` and `}` must be escaped.
  */
+import calendarEn from './en/calendar.ts';
+
 export default {
+  calendar: calendarEn,
   views: {
     year: 'Year',
     month: 'Month',
