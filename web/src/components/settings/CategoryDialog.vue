@@ -72,4 +72,6 @@ function save() {
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .sp { flex: 1; }
 .del { color: var(--md-sys-color-error); }
+/* Left-handed mode (phone): the primary action is at the bottom left. */
+@media (max-width: 767.98px) { html[data-hand='left'] .actions { flex-direction: row-reverse; } }
 </style>

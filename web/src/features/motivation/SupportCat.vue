@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * One visit of the emotional support cat (ARCHITECTURE "Season scenes and the support cat"): walks in from the right
+ * One visit of the emotional support cat (ARCHITECTURE "Season scenes and the support cat"): walks in from the right (the left in
+ * left-handed mode, drawn mirrored, standing at the start of the title)
  * (a stepping walk cycle with a little bob), stops at the end of the finished list's title, looks down at it and
  * swipes its paw across it — the host draws the title's strike line in the same window (`CAT_SWIPE`) — then twitches
  * an ear, tilts its head, looks at the viewer with a slow blink, grins with its eyes squinted into happy arcs and fades
@@ -10,6 +11,7 @@
  */
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
+import { useLeftHand } from '@/composables/useLeftHand';
 import CatFigure from './CatFigure.vue';
 import { catDuration } from './supportCat';
 
@@ -23,6 +25,7 @@ const props = defineProps<{
 const emit = defineEmits<{ done: [] }>();
 
 const SIZE = 72;
+const leftHand = useLeftHand();
 const duration = catDuration(props.level);
 /** The point of the cat box (px from its top left) that goes over the title end: the paw sweeps through it. */
 const PAW_REACH = { x: 20, y: 54 };
@@ -35,9 +38,12 @@ const style = computed(() => {
   const vh = typeof window !== 'undefined' ? window.innerHeight : 667;
   const maxX = Math.min(props.card.right, vw) - SIZE - 6;
   const t = props.title;
-  const x = Math.max(4, t ? Math.min(t.right - PAW_REACH.x, maxX) : maxX);
+  // mirrored: the paw point sits SIZE - PAW_REACH.x from the box's left edge, over the title's start
+  const x = leftHand.value
+    ? Math.min(Math.max(4, t ? t.left - (SIZE - PAW_REACH.x) : props.card.left + 6), maxX)
+    : Math.max(4, t ? Math.min(t.right - PAW_REACH.x, maxX) : maxX);
   const y = Math.max(4, Math.min(t ? (t.top + t.bottom) / 2 - PAW_REACH.y : props.card.top + 6, vh - SIZE - 4));
-  return { left: `${Math.round(x)}px`, top: `${Math.round(y)}px`, '--cat-dur': `${duration}ms` };
+  return { left: `${Math.round(x)}px`, top: `${Math.round(y)}px`, '--cat-dur': `${duration}ms`, '--dir': leftHand.value ? -1 : 1 };
 });
 
 let stop: Disposer | null = null;
@@ -46,8 +52,8 @@ onBeforeUnmount(() => stop?.());
 </script>
 
 <template>
-  <div class="support-cat" data-testid="support-cat" :data-level="level" :style="style" aria-hidden="true">
-    <CatFigure />
+  <div class="support-cat" data-testid="support-cat" :data-level="level" :style="style" aria-hidden="true" :data-from="leftHand ? 'left' : 'right'">
+    <CatFigure class="figure" />
   </div>
 </template>
 
@@ -58,6 +64,7 @@ onBeforeUnmount(() => stop?.());
   animation: cat-visit var(--cat-dur) linear both;
 }
 .support-cat * { pointer-events: none; }
+.support-cat .figure { transform: scaleX(var(--dir, 1)); }
 .support-cat :deep(.torso) { animation: cat-body var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.paw) { animation: cat-paw var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.leg-b) { animation: cat-leg-b var(--cat-dur) ease-in-out both; }
@@ -73,11 +80,11 @@ onBeforeUnmount(() => stop?.());
 
 /* Full (3 s): walk in from the right with a bob per step (0-30 %), stop at the title, fade out at the end. */
 @keyframes cat-visit {
-  0% { opacity: 0; transform: translate(70px, 0); }
+  0% { opacity: 0; transform: translate(calc(var(--dir, 1) * 70px), 0); }
   5% { opacity: 1; }
-  7.500% { transform: translate(56px, -2px); }
-  15% { transform: translate(38px, 0); }
-  22.500% { transform: translate(18px, -2px); }
+  7.500% { transform: translate(calc(var(--dir, 1) * 56px), -2px); }
+  15% { transform: translate(calc(var(--dir, 1) * 38px), 0); }
+  22.500% { transform: translate(calc(var(--dir, 1) * 18px), -2px); }
   30% { transform: translate(0, 0); }
   88% { opacity: 1; transform: translate(0, 0); }
   100% { opacity: 0; transform: translate(0, 3px); }

@@ -6,6 +6,7 @@ import { MORDOR_SEED } from '@/api/colors';
 import { applySeed, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
+import { usePrefsStore } from './prefs';
 import { useThemeStore } from './theme';
 
 export const DEFAULT_CATEGORIES: Category[] = [
@@ -140,7 +141,13 @@ export const useSettingsStore = defineStore('settings', () => {
       if (s.value.calmMode) root.dataset.calm = 'true';
       else delete root.dataset.calm;
     }, { immediate: true });
-    return () => { stop2(); stopTheme(); stopAppearance(); };
+    // html[data-hand="left"] mirrors the phone layout (left-handed mode, a person pref; CSS scopes it to the phone)
+    const prefs = usePrefsStore();
+    const stop3 = watch(() => prefs.leftHanded, (on) => {
+      if (on) root.dataset.hand = 'left';
+      else delete root.dataset.hand;
+    }, { immediate: true });
+    return () => { stop2(); stop3(); stopTheme(); stopAppearance(); };
   }
   function stopAppearance() {
     stopWatch?.();

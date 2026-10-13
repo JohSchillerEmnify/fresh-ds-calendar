@@ -48,7 +48,11 @@ export function dragCatPose(i: DragCatInput, prev: DragCatPose): DragCatPose {
   return i.dy < 0 ? 'pull-up' : 'push-down';
 }
 
-/** Which side of the card the cat stands on when beside it: behind the movement (pushing), else the right. */
-export function dragCatSide(dx: number, pose: DragCatPose): 'left' | 'right' {
-  return pose === 'push-side' && dx > 0 ? 'left' : 'right';
+/**
+ * Which side of the card the cat stands on when beside it: behind the movement (pushing sideways), else its default
+ * side, the right, or the left in left-handed mode (the mirrored layout).
+ */
+export function dragCatSide(dx: number, pose: DragCatPose, leftHanded = false): 'left' | 'right' {
+  if (pose === 'push-side' && dx !== 0) return dx > 0 ? 'left' : 'right';
+  return leftHanded ? 'left' : 'right';
 }

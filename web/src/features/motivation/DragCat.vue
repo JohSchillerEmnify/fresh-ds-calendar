@@ -11,6 +11,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { getMotionLevel, watchDrags, type DragFrame, type MotionLevel } from '@/motion';
+import { useLeftHand } from '@/composables/useLeftHand';
 import { usePrefsStore } from '@/stores/prefs';
 import { useClockStore } from '@/stores/clock';
 import CatFigure from './CatFigure.vue';
@@ -19,6 +20,7 @@ import { DRAG_CAT_CHANCE, DRAG_CAT_HOP_MS, dragCatPose, dragCatSide, type DragCa
 
 const prefs = usePrefsStore();
 const clock = useClockStore();
+const leftHand = useLeftHand();
 
 /** Cat box size in px. */
 const SIZE = 56;
@@ -62,7 +64,7 @@ function begin() {
   level.value = lvl;
   leaving.value = false;
   pose.value = lvl === 'full' ? 'push-down' : 'push-side';
-  side.value = 'right';
+  side.value = dragCatSide(0, pose.value, leftHand.value);
   pos = null;
   walking = false;
   active.value = true;
@@ -73,7 +75,7 @@ function follow(f: DragFrame) {
   const p = dragCatPose({ dx: f.dx, dy: f.dy, vy: f.vy, width: f.rect.width, stillMs: f.stillMs, level: level.value }, pose.value);
   if (p !== pose.value) pose.value = p;
   // keep the side while waiting, so the cat sits down where it was pushing
-  if (p !== 'wait') side.value = dragCatSide(f.dx, p);
+  if (p !== 'wait') side.value = dragCatSide(f.dx, p, leftHand.value);
   const to = place(f.rect, p, side.value);
   pos = !pos || level.value !== 'full' ? to : { x: pos.x + (to.x - pos.x) * FOLLOW, y: pos.y + (to.y - pos.y) * FOLLOW };
   const el = root.value;
@@ -118,7 +120,7 @@ onBeforeUnmount(() => { unwatch?.(); hop?.(); });
       :data-leaving="leaving"
       aria-hidden="true"
     >
-      <div class="hop" :style="{ '--hop-ms': `${DRAG_CAT_HOP_MS[level]}ms` }">
+      <div class="hop" :style="{ '--hop-ms': `${DRAG_CAT_HOP_MS[level]}ms`, '--dir': leftHand ? -1 : 1 }">
         <CatFigure />
         <span class="ask">?</span>
       </div>
@@ -189,8 +191,8 @@ onBeforeUnmount(() => { unwatch?.(); hop?.(); });
 @keyframes drag-cat-hop {
   0% { opacity: 1; transform: none; }
   18% { opacity: 1; transform: translateY(3px) scaleY(0.88); }
-  55% { opacity: 1; transform: translate(26px, -34px) rotate(10deg); }
-  100% { opacity: 0; transform: translate(56px, -12px) rotate(16deg) scale(0.85); }
+  55% { opacity: 1; transform: translate(calc(var(--dir, 1) * 26px), -34px) rotate(calc(var(--dir, 1) * 10deg)); }
+  100% { opacity: 0; transform: translate(calc(var(--dir, 1) * 56px), -12px) rotate(calc(var(--dir, 1) * 16deg)) scale(0.85); }
 }
 
 /* Reduced: no stepping, flicks or hop — it appears sitting beside the card and fades out */

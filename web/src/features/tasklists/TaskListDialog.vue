@@ -137,4 +137,6 @@ function remove() {
 .grow { flex: 1; min-width: 0; }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }
+/* Left-handed mode (phone): the primary action is at the bottom left. */
+@media (max-width: 767.98px) { html[data-hand='left'] .actions { flex-direction: row-reverse; } }
 </style>

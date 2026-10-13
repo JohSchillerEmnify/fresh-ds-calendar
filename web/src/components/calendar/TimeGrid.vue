@@ -131,7 +131,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
       <div ref="gridEl" class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
-        <div class="gutter hours">
+        <div class="gutter hours" data-testid="time-axis">
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>
         </div>
         <div v-for="c in cols" :key="c.date" class="col" :class="{ today: c.today }" :data-testid="ids.col" :data-date="c.date">

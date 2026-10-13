@@ -235,4 +235,6 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .mordor { display: flex; align-items: center; gap: 12px; }
 .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); padding: 0 4px; }
+/* Left-handed mode (phone): the trailing button at the left start of the row. */
+@media (max-width: 767.98px) { html[data-hand='left'] .mordor { flex-direction: row-reverse; } }
 </style>
