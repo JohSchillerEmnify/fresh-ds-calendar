@@ -179,6 +179,13 @@ Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `appr
 "i18n"). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
 for an unknown value; it returns the full preferences.
 
+**Bedtime** (`prefs.bedtime`, per person, ARCHITECTURE "Bedtime mode"): an object
+`{ enabled: boolean; mode: 'fixed' | 'dynamic'; bedtime: 'HH:MM'; wake: 'HH:MM'; weekendDifferent: boolean;
+weekendBedtime: 'HH:MM'; weekendWake: 'HH:MM'; sleepMinutes: 1..960; leadMinutes: 0..480; reminderMinutes: 0..240 }`,
+default `{ enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime:
+'00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 }`. `PATCH` takes any subset of
+its fields (merged into the stored object); a wrong type, time or range is a 400 `VALIDATION_ERROR` (field `bedtime`).
+
 ### `GET /api/health` → 200
 
 ```ts

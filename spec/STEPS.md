@@ -1138,6 +1138,32 @@ Google shows the calendar {string}
   reloads; `settings-version` text starts with "Version 0.4.2"; `app-version` text equals "0.4.2". The corner switch
   goes through the generic `I turn on {string} in the settings` step.
 
+## Bedtime (`@bedtime`)
+
+```
+bedtime mode is on with fixed times {time} and {time}
+bedtime mode is on based on my first appointment with {int} hours of sleep and {int} minutes of lead time
+the night bands of {date} are {string}
+the night band runs from {date} {time} to {date} {time}
+no night band is shown
+the approach bar shows a night band
+I see the bedtime reminder {string}
+I do not see a bedtime reminder
+```
+
+- Setup steps `PATCH /api/prefs { bedtime: { enabled: true, mode, ... } }` as that person (the other fields keep
+  their defaults: fixed 23:00 and 07:00, reminder 30 minutes). The first one sets `mode: "fixed"`, `bedtime`, `wake`;
+  the second `mode: "dynamic"`, `sleepMinutes` = hours x 60 and `leadMinutes`. No setup step means bedtime is off.
+- Night band: every drawn piece has `data-testid="bedtime-band"` with `data-date` (the day it is drawn on),
+  `data-start` / `data-end` (`HH:MM` within that day, `24:00` at its end) and `data-from` / `data-to` (the whole
+  night as `YYYY-MM-DD HH:MM`). "the night bands of D are S" joins `data-start-data-end` of the pieces with
+  `data-date` D (in the view that is open, in document order) with `", "`, e.g. `"00:00-07:00, 23:00-24:00"`.
+  "the night band runs from A to B" looks for a piece with that `data-from` and `data-to`. "no night band is shown":
+  no `bedtime-band` and no `bedtime-track-band` exists. Day and week show `bedtime-band` pieces in the day columns,
+  the Timeline in its day sections, the Strip in its columns and the Clock as arcs.
+- Approach bar: "shows a night band" = a `bedtime-track-band` inside `approach-bar`.
+- Reminder: a snackbar with `data-testid="bedtime-reminder"`; "I see" compares its text exactly.
+
 ## Left-handed mode (`@left-hand`)
 
 ```
