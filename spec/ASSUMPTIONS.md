@@ -536,3 +536,46 @@ spec files are named.
 - **A-146 Sort label** (owner example "Category · Date ↓"; my reading): the label is "Group · Sort"; the direction is shown only
   when the order is reversed (" ↕"), because the default direction differs per sort key (date earliest first, last changed newest
   first), so a fixed arrow would be wrong for some keys.
+
+## Backup to Google Drive (owner, 2026-10-13; all numbers and names mine)
+
+- **A-180 Bundle and names** (owner: "backup-<sub>.json" with versions as separate files): each version is the file
+  `backup-<sub>-<UTC timestamp, 20261012T080000123Z>.json`; the content is `{ schema: 1, created, appVersion, sub, files }`
+  with `files` = path relative to `DATA_DIR` -> UTF-8 text. A reader refuses a `schema` it does not know.
+- **A-181 Retention and empty data**: the last 7 versions are kept (owner's example, now a constant `BACKUP_KEEP`, logged
+  at start). A person with no data files is not backed up, so an empty state can never evict good versions.
+- **A-182 Throttle** (owner: ~2 min, 5 min): debounce 2 min after the last change, at least 5 min after the previous
+  backup. "Change" = any successful non-GET API call of a signed-in person except backup, auth and test routes (not only
+  server-data routes: one middleware instead of a call in every store; unchanged data is skipped by content hash).
+- **A-183 Daily timer**: hourly check, first one a minute after start; due when the last backup is 24 h or older, or the
+  last attempt failed (this is the "retry on the next trigger"). Daily backups are forced, so a quiet day still gives a
+  new version, as the owner insisted (the 7 versions then span 7 days).
+- **A-184 Scope on the token** (owner: "detect that the scope is missing on the token"): the granted `scope` string is
+  stored next to the refresh token. Tokens from before this feature have none, so everybody re-consents once. The
+  re-consent is the ordinary consent (`prompt=consent` already asks again); no separate incremental-auth endpoint.
+- **A-185 Never in a backup**: `google-token.json` (secret) and `backup-state.json`. A restore never touches them either.
+- **A-186 Shared lists** (owner left it to me): included for **every member**, restored by overwriting. Reasoning: a list
+  must survive no matter whose backup is used; the cost is duplicates in a few bundles, which are small. The hook is
+  `registerSource({ prefix, collect(sub) })`.
+- **A-187 Global stores** (OPEN, for the owner): `settings.json` (categories) and `motivation.json` (streak, plant) are
+  server-wide, not per person, so a per-person bundle cannot own them and a restore of one person could overwrite what
+  another sees. They are **not** backed up in this slice. Options: include them in every bundle and restore them only on
+  a server that has none (a "new server" case), or make them per person first (the "next slice" ARCHITECTURE "Sign-in"
+  mentions).
+- **A-188 Manual restore**: newest readable version (a corrupt one is skipped); the safety backup is taken after that
+  version is chosen, so pressing the button again undoes the restore. The person's files under `users/<sub>/` are replaced
+  (files not in the backup are deleted), then the page reloads.
+- **A-189 Auto restore**: only at sign-in, only when the server has no data of the person, the permission is granted and a
+  backup exists. When it fails, `restorePending` stops backups until a retry succeeds or finds nothing.
+- **A-190 Upload size**: multipart upload only (limit 5 MB). A bigger bundle fails with an error; resumable upload would be
+  the next step and is not needed for text bundles of a few kilobytes.
+- **A-191 Sign-in off**: backups need a Google account, so they are unavailable (`available: false`, no Settings block)
+  while sign-in is off (sauron, previews).
+- **A-192 Status wording**: "Last backup: 12 Oct 2026, 08:00", "No backup yet", "Last backup failed: <reason> (retrying)",
+  "Backups to Google Drive are off". `GET /api/backup` never calls Drive, so Settings opens fast and works when Drive is down.
+- **A-193 Error codes**: `403 DRIVE_PERMISSION_REQUIRED`, `404 NO_BACKUP`, `502 BACKUP_FAILED` (new codes, not the
+  `GOOGLE_REAUTH` banner: a Drive problem must not look like lost calendar access).
+- **A-194 Mock Drive**: `MockDrive` over `DATA_DIR/mock-drive.json` with one folder per person; created time from the test
+  clock, ids in insertion order; the reset clears it.
+- **A-195 Backups run in-process**: timers live in the server process and `unref` so they never keep it alive; a restart
+  loses a pending debounce (the next change or the hourly check catches up, the first check being a minute after start).

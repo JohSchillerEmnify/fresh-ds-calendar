@@ -1471,3 +1471,46 @@ the note {string} is not dimmed
 - "the Tasks view shows the active filters L": the texts of all `tasks-filter-active` chips (categories first, then When) joined
   `", "`. "I remove the active filter F": clicks that chip and waits for the `PATCH /api/prefs` response.
 - "the note N is dimmed / not dimmed": `canvas-note` `data-dimmed` is `"true"` / `"false"`.
+
+## Backup to Google Drive (`@backup`)
+
+```
+the quiet period of the backup has passed
+a day passes on the server
+the Drive holds {int} backup(s) of {string}
+I back up now
+the last backup is from {date} at {time}
+the server loses all data of {string}
+I restore from the backup
+the restore asks for confirmation
+I confirm the restore
+the Drive is unavailable
+the backup status says it failed
+the saved support cat setting is {string}
+{string} signs in without the Drive permission
+I am asked to allow backups to Google Drive
+there is no button to back up now
+```
+
+- Google Drive is `MockDrive` (`TEST_MODE`, ARCHITECTURE "Backups"): the hidden app folder in `DATA_DIR/mock-drive.json`,
+  one folder per person. "is signed in" and "signs in with Google" grant the Drive permission (the test double's
+  consent returns the `drive.appdata` scope); "signs in without the Drive permission" signs in with a consent that
+  leaves it out (`POST /api/__test/oauth/account { email, driveScope: false }`, then the usual consent).
+- "the quiet period of the backup has passed": `POST /api/__test/backup/flush` (the debounce timer fires now, as if two
+  quiet minutes had passed) and waits for it to finish. "a day passes on the server": sets the test clock 24 hours later
+  (frozen) and calls `POST /api/__test/backup/tick` (the daily check, once).
+- "the Drive holds N backups of P": `GET /api/__test/backup/drive?owner=P` has N entries (`backup(s)` is optional text).
+- "I back up now": opens the settings when they are not open, clicks `settings-backup-now` and waits until the
+  `POST /api/backup` response has arrived. "the last backup is from D at T": `settings-backup-status` has
+  `data-last-backup` whose instant is D T in Europe/Berlin.
+- "the server loses all data of P": `POST /api/__test/backup/wipe { owner }` deletes everything under `users/<sub>/` (as
+  a new server with an empty DATA_DIR would) and signs the person out; the Drive stays as it is.
+- "I restore from the backup": opens the settings when needed and clicks `settings-backup-restore`;
+  "the restore asks for confirmation": `confirm-dialog` is visible; "I confirm the restore": clicks `confirm-ok` and waits
+  for the page to reload after `POST /api/backup/restore`.
+- "the Drive is unavailable": `POST /api/__test/backup/drive-down { down: true }` (every Drive call fails; cleared by
+  reset). "the backup status says it failed": `settings-backup-status` has `data-state="failed"` and its text contains
+  the reason.
+- "the saved support cat setting is S": `GET /api/prefs` has the `supportCat` value of S (`Off`, `Sometimes`, `Every time`).
+- "I am asked to allow backups to Google Drive": `settings-backup-allow` is visible and `settings-backup-status` has
+  `data-state="off"`. "there is no button to back up now": no `settings-backup-now` and no `settings-backup-restore`.

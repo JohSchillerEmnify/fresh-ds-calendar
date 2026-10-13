@@ -717,7 +717,7 @@ offline support. Full installability therefore needs HTTPS — an owner action (
 - **Auth switch**: on when `PROVIDER=google` (the real VPS instance), off with `PROVIDER=mock` (sauron, previews):
   owner decision, previews stay one tap away on the LAN. In `TEST_MODE` a test endpoint turns it on with an allow-list
   (`POST /api/__test/auth { allowedEmails }`), so the e2e suite tests sign-in against the mock provider.
-- **One OAuth round trip** signs in and connects the calendar: scopes `openid email` + calendar. The callback reads the
+- **One OAuth round trip** signs in and connects the calendar: scopes `openid email` + calendar + `drive.appdata` (backups, ARCHITECTURE "Backups"). The callback reads the
   verified email from the `id_token`; only addresses in `ALLOWED_EMAILS` get a session, others are sent to the private
   page and their tokens are discarded.
 - **Sessions**: random 256-bit id in cookie `cal_session` (`HttpOnly`, `Secure` when `PUBLIC_URL` is https,
@@ -1420,6 +1420,90 @@ the same corner scale so shapes look consistent.
   asks for a name (`theme-save-name`, default "My theme", at most 40 characters, not empty; a name already in use gets
   a number: "My theme 2"); `theme-save-confirm` saves, and the new theme becomes the chosen one (its fine-tuning is
   now part of it, so the overrides are cleared).
+
+### Backups (owner, 2026-10-13)
+
+All server-side data of one person is backed up to **the hidden app folder of that person's Google Drive** and can be
+restored from there. Owner decisions are final; the numbers and names are mine (A-180 .. A-195).
+
+- **Where (owner).** Drive's `appDataFolder` with the scope `https://www.googleapis.com/auth/drive.appdata`. Reasoning:
+  the scope is non-sensitive (no Google verification beyond the calendar one), the app sees only its own invisible
+  folder and never the person's files, and a backup the person cannot see cannot be deleted or edited by accident.
+  Alternatives weighed: the full `drive.file` scope (a visible folder, more access than needed) and a backup on the same
+  server (no use when the server is lost). The scope is added to `SCOPES` of the OAuth request, so every new sign-in asks
+  for it together with the calendar.
+- **Permission and re-consent (owner).** The token file `users/<sub>/google-token.json` also keeps the `scope` string
+  Google returned (`{ refresh_token, scope }`). Backups are on only when that string contains the appdata scope. A
+  token without a `scope` (everyone signed in before this feature) counts as "missing". Google lets a person untick
+  single permissions on the consent screen, so the returned `scope` is the only reliable answer; a token that lacks it
+  gets no backup attempt at all. Settings then shows "Allow backups to Google Drive" (`settings-backup-allow`), which
+  re-runs the normal consent (`/api/auth/google/start`, remembering `/settings` as the page to return to). The callback
+  stores the new token and scope; backups start without a further step.
+- **What is backed up.** One JSON document per backup: `{ schema: 1, created, appVersion, sub, files }` where `files`
+  maps a path relative to `DATA_DIR` to the file's UTF-8 content. It is everything under `DATA_DIR/users/<sub>/` (prefs,
+  theme, own themes and pictures, canvas, any future per-person file, found by walking the folder, so a new store needs
+  no change) plus the files of the **registered sources** (below). Never included: `google-token.json` (a secret that
+  must not leave the server) and `backup-state.json` (the bookkeeping of the backup itself); temp files are skipped.
+  Pictures are inline SVG text, so the document stays small (limit 5 MB, see below). Global stores (`settings.json`
+  categories, `motivation.json` streak and plant) belong to no person in this version, so they are **not** in the
+  backup (A-187).
+- **Registry hook for other stores.** `ctx.backup.registerSource({ prefix, collect(sub) })` adds files to every person's
+  bundle. `prefix` is the top-level folder under `DATA_DIR` the source owns (e.g. `shared`); `collect` returns
+  `{ 'shared/lists/<id>.json': content }` for the person. Restore writes back only paths under `users/<sub>/` or under a
+  registered prefix, so the bundle can never write elsewhere. **The shared-lists branch adds one line where it builds
+  its store** (in `createContext`): `backup.registerSource({ prefix: 'shared', collect: (sub) => sharedLists.filesOf(sub) })`.
+  Decision (A-186): a shared list is included in the bundle of **every member** (not only the owner), so it survives
+  whichever member's backup is restored, at the price of the same file in several bundles. A restore overwrites those
+  shared files with the backed-up state. Changes made by a member trigger only that member's backup; the daily backup
+  catches the others.
+- **Versions (owner).** Each backup is a new Drive file `backup-<sub>-<UTC timestamp>.json`; the last **7** versions
+  (`BACKUP_KEEP`) are kept, older ones are deleted after a successful upload (a failed delete is logged, never fatal).
+  The server logs the number at start (`backup: keeping the last 7 versions`). A person without data is not backed up
+  at all (A-181), so an empty bundle can never push good versions out.
+- **When (owner).**
+  - *After changes:* every successful non-GET API call of a signed-in person (except `/api/backup*`, `/api/auth/*`,
+    `/api/__test/*`) marks that person dirty (one middleware in `app.ts`, so no store has to call anything). The backup
+    runs **2 minutes after the last change** (`debounce`) and **at least 5 minutes after the previous backup**
+    (`minInterval`): `delay = max(lastChange + 2 min, lastRun + 5 min) - now`. A run whose files are identical to the last
+    backup (SHA-256 of the sorted files) is skipped, so calendar writes that change no server data cost nothing.
+  - *Daily, regularly (owner):* a server timer checks hourly (first check one minute after start) and runs a **forced**
+    backup for every person whose last backup is 24 h or more old, or whose last attempt failed, even when nothing
+    changed. People are found by their token file, so a person who never opens the app is still backed up.
+  - *Manual:* "Back up now" (forced, no throttle). The timers are in-process only; nothing is persisted but
+    `backup-state.json`.
+- **Restore (owner).**
+  - *At sign-in:* after the callback stored the token, when the person has the permission, the server has **no data**
+    for them (no file under `users/<sub>/` besides the two excluded ones) and a backup exists, the newest readable
+    version is restored before the session is created, then sign-in goes on. A failure only logs (sign-in never
+    fails because of a backup) and sets `restorePending`, which stops backups until a later try (the next backup run or
+    daily check retries the restore first), so a failed restore cannot be overwritten by an almost empty backup.
+  - *Manual:* "Restore from backup" asks for confirmation (it overwrites the person's server data), takes a **safety
+    backup** of the current data first (if that fails, nothing is restored), picks the newest readable version as it was
+    **before** the safety backup, deletes the person's files under `users/<sub>/` (except the two excluded ones) and writes
+    the bundle's files. The page then reloads so every store reads the restored data. Pressing it again undoes the
+    restore, because the safety backup is then the newest version.
+- **Failures (owner).** A backup runs outside the request that triggered it; any error is caught, logged
+  (`backup failed for <sub>: …`) and stored in `backup-state.json` (`error`, `errorAt`). Settings shows "Last backup
+  failed: <reason> (retrying)"; "retrying" is true to the letter: the person stays dirty, the next change or the next
+  hourly check tries again (no extra timer). Normal use is never blocked: a failed Drive call never reaches the request
+  that changed data, and `GET /api/backup` itself never calls Drive.
+- **Drive client.** `server/src/providers/DriveClient.ts` is the interface `{ list(prefix), create(name, content),
+  get(id), delete(id) }` over one person's appDataFolder. `providers/google/GoogleDrive.ts` implements it with `fetch`
+  and the person's OAuth client (Drive API v3: `files.list` with `spaces=appDataFolder`, `files.create` with
+  `parents: ['appDataFolder']` and `uploadType=multipart`, `files.get?alt=media`, `files.delete`). Multipart upload
+  carries up to 5 MB, far more than a bundle of text; a bigger bundle fails with a clear error instead of a resumable
+  upload (A-190). `providers/mock/MockDrive.ts` implements the same interface for `TEST_MODE` over
+  `DATA_DIR/mock-drive.json` (one folder per sub), with a switch that makes every call fail. One contract test runs
+  against the mock; the Google client is covered by a request-shape test with a stubbed `fetch`.
+- **Pure helpers** (`server/src/services/backup.ts`): `bundle`, `unbundle` (validates schema, paths and contents),
+  `selectExpired` (retention), `backupName`, `debounceDelay`, `contentHash`. The orchestration (`BackupService`:
+  timers, state file, serialising runs per person, restore) is in `services/backupService.ts`.
+- **API.** `GET /api/backup`, `POST /api/backup`, `POST /api/backup/restore` (API.md "Backups"). Test hooks:
+  API.md "Test-only endpoints".
+- **Client.** Settings, Account & data: `settings-backup-status` (`data-state` = `off | never | ok | failed`,
+  `data-last-backup` = ISO instant), `settings-backup-now`, `settings-backup-restore` with a `ConfirmDialog`, and
+  `settings-backup-allow` while the permission is missing. All texts via `t()` in `locales/*/backup.ts`. The block is
+  hidden while sign-in is off (`available: false`), because backups need a Google account.
 
 ## 8. Configuration (env)
 
