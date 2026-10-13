@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { Category, Settings, SettingsPatch } from '@/api/types';
 import { MORDOR_SEED } from '@/api/colors';
-import { applySeed, applyThemeMode, DEFAULT_SEED } from '@/theme';
+import { applyTheme, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
 import { useThemeStore } from './theme';
@@ -121,16 +121,14 @@ export const useSettingsStore = defineStore('settings', () => {
     stopAppearance();
     const root = document.documentElement;
     const theme = useThemeStore();
-    const stopTheme = theme.install();
     if (typeof matchMedia === 'function') {
       bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(theme.resolved.mode ?? s.value.themeMode); syncMeta(); }));
     }
     stopWatch = watch(
-      // a theme preset's seed/mode replace the person's own while it is chosen
-      () => [theme.resolved.mode ?? s.value.themeMode, theme.resolved.seed ?? s.value.seedColor] as const,
-      async ([mode, seed]) => {
-        applyThemeMode(mode);
-        await applySeed(seed);
+      // a theme's seed/mode replace the person's own while it is chosen
+      () => [theme.resolved, s.value.themeMode, s.value.seedColor] as const,
+      async ([resolved, mode, seed]) => {
+        await applyTheme(resolved, { mode, seed });
         syncMeta();
       },
       { immediate: true },
@@ -140,7 +138,7 @@ export const useSettingsStore = defineStore('settings', () => {
       if (s.value.calmMode) root.dataset.calm = 'true';
       else delete root.dataset.calm;
     }, { immediate: true });
-    return () => { stop2(); stopTheme(); stopAppearance(); };
+    return () => { stop2(); stopAppearance(); };
   }
   function stopAppearance() {
     stopWatch?.();

@@ -5,10 +5,12 @@
  * saved in the background by the theme store; there is no save button. The one Scene choice is a theme attribute. Theme
  * mode, seed colour and the Mordor shortcut are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
  */
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
-import { ApiError } from '@/api/client';
+import IconDelete from '~icons/material-symbols/delete-outline';
+import IconExport from '~icons/material-symbols/download';
+import { ApiError, type StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
@@ -16,33 +18,34 @@ import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
+import ThemeCard from '@/components/settings/ThemeCard.vue';
+import ThemeImport from '@/components/settings/ThemeImport.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { useClockStore } from '@/stores/clock';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
-import { resolveTheme as resolveMode } from '@/theme';
-import { PRESET_NAMES, presetFor, type PresetName, type ThemeAttrs } from '@/theme/presets';
+import { docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
 const theme = useThemeStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
+const pending = usePendingDeletesStore();
 const attrs = computed(() => theme.resolved.attrs);
-const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-/** The color library loads lazily; until then the cards show the current palette. */
-const scheme = shallowRef<typeof import('@/theme/scheme') | null>(null);
-onMounted(async () => { scheme.value = await import('@/theme/scheme'); });
+/** Every preset as the gallery shows it today (Automatic = the season's). */
+const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {} }, clock.today)])) as Record<PresetName, ResolvedTheme>);
 
-/** Color roles of a preset, applied to its gallery card only. */
-function cardStyle(name: PresetName): Record<string, string> {
-  const p = presetFor(name, clock.today);
-  const dark = resolveMode(p.mode ?? settings.settings.themeMode) === 'dark';
-  if (!scheme.value) return {};
-  return { ...scheme.value.schemeVars(p.seed ?? settings.settings.seedColor, dark), colorScheme: dark ? 'dark' : 'light' };
+/** Downloads a theme's document as a `.json` file. */
+function exportTheme(t: StoredTheme) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(t.doc, null, 2)], { type: 'application/json' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `${t.doc.name.replace(/[^\w-]+/g, '-')}.theme.json` });
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 const groups: { setting: keyof ThemeAttrs; label: string; options: { value: string; label: string }[] }[] = [
@@ -132,27 +135,20 @@ function back() {
       <section class="card" aria-labelledby="h-gal">
         <h2 id="h-gal">Themes</h2>
         <div class="gallery">
-          <button
-            v-for="n in PRESET_NAMES" :key="n" type="button" class="tcard" data-testid="theme-card" :data-name="n" :aria-pressed="theme.pref.preset === n"
-            @click="theme.choose(n)"
-          >
-            <span
-              class="scope" :style="cardStyle(n)" :data-glow="presetFor(n, clock.today).attrs.glow" :data-entries="presetFor(n, clock.today).attrs.entries"
-              :data-corners="presetFor(n, clock.today).attrs.corners" :data-scene="presetFor(n, clock.today).attrs.scene" aria-hidden="true"
-            >
-              <span class="hdr" :class="{ ember: presetFor(n, clock.today).attrs.scene === 'mordor' }">
-                <SeasonScene v-if="isSeason(presetFor(n, clock.today).attrs.scene)" :season="presetFor(n, clock.today).attrs.scene as 'spring'" />
-                <span v-for="(d, i) in DAYS" :key="i" class="day">{{ d }}</span>
-              </span>
-              <span class="mini">
-                <ThemeSample kind="event" color="var(--md-sys-color-primary)" on="var(--md-sys-color-on-primary)" title="Meet" class="m1" />
-                <ThemeSample kind="tasklist" color="var(--md-sys-color-tertiary)" on="var(--md-sys-color-on-tertiary)" title="To-do" class="m2" />
-              </span>
-            </span>
-            <span class="nm">{{ n }}<small v-if="n === 'Automatic'"> · {{ presetFor(n, clock.today).name }}</small></span>
-          </button>
+          <ThemeCard
+            v-for="n in PRESET_NAMES" :key="n" :name="n" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
+            :sub="n === 'Automatic' ? presetThemes[n].name : undefined" @choose="theme.choose(n)"
+          />
+          <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
+            <template #actions>
+              <IconButton label="Export theme" data-testid="theme-export" @click="exportTheme(t)"><IconExport /></IconButton>
+              <IconButton label="Delete theme" data-testid="theme-delete" @click="pending.deleteTheme(t.id, t.doc.name)"><IconDelete /></IconButton>
+            </template>
+          </ThemeCard>
         </div>
       </section>
+
+      <ThemeImport />
 
       <section class="card" aria-labelledby="h-fine">
         <h2 id="h-fine">Fine-tuning</h2>
@@ -205,19 +201,6 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 
 .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 @media (min-width: 560px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
-.tcard { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 6px; border-radius: var(--md-sys-shape-corner-large); border: 2px solid transparent; background: var(--md-sys-color-surface-container); transition: border-color 150ms, transform 150ms var(--md-sys-motion-spring), box-shadow 150ms; }
-.tcard:hover { transform: translateY(-1px); }
-.tcard[aria-pressed='true'] { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent); }
-.scope { display: flex; flex-direction: column; border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); height: 104px; }
-.hdr { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px 4px 3px; font-size: 9px; text-align: center; background: var(--md-sys-color-surface-container-high); overflow: hidden; }
-.hdr.ember { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); color: #ffd7b0; }
-.day { position: relative; }
-.mini { position: relative; flex: 1; display: flex; flex-direction: column; gap: 5px; padding: 7px 6px; min-height: 0; }
-.mini .m1 { width: 62%; margin-left: 14%; font-size: 10px; }
-.mini .m2 { width: 66%; margin-left: 30%; }
-.mini .m2 :deep(.it:nth-of-type(n + 3)) { display: none; }
-.nm { font: var(--md-sys-typescale-label-large); padding: 0 4px 2px; }
-.nm small { font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
 
 .group { padding: 4px 0 8px; }
 .lab { display: block; font: var(--md-sys-typescale-body-large); padding: 4px 4px 6px; }

@@ -4,6 +4,7 @@ import type { CalendarEvent, TaskItem, TaskList } from '@/api/types';
 import { removeItem } from '@/features/tasklists/ops';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
+import { useThemeStore } from './theme';
 import { useUiStore } from './ui';
 
 /** How long a delete can be undone before its request is sent (ARCHITECTURE "Delete with undo"). */
@@ -121,6 +122,15 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => items.hide(tl.id));
   }
 
+  function deleteTheme(id: string, name: string): void {
+    const theme = useThemeStore();
+    start({
+      title: name,
+      restore: () => theme.unhide(id),
+      send: (keepalive) => theme.removeCustom(id, keepalive),
+    }, () => theme.hide(id));
+  }
+
   /** `index`: the item's position in the list, where an undo puts it back. */
   function deleteTaskItem(listId: string, item: TaskItem, index: number): void {
     const items = useItemsStore();
@@ -134,5 +144,5 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => items.hideTaskItem(listId, item.id));
   }
 
-  return { deleteEvent, deleteTaskList, deleteTaskItem, undo, flush, flushList };
+  return { deleteEvent, deleteTaskList, deleteTaskItem, deleteTheme, undo, flush, flushList };
 });
