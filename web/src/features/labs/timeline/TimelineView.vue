@@ -8,7 +8,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { addDays } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import BedtimeColumn from '@/features/bedtime/BedtimeColumn.vue';
-import { format, parseIsoDate, toIsoDate } from '@/lib/dates';
+import { formatDate, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { packColumns, blockGeometry, MIN_BLOCK_PX, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
@@ -222,7 +222,7 @@ watch(() => clock.today, () => nextTick(scrollToNow), { once: true });
           v-for="v in vdays" :key="v.iso" class="vday" :class="{ today: v.iso === clock.today }"
           data-testid="timeline-day" :data-date="v.iso"
         >
-          <h3 class="vhead">{{ format(v.d, 'EEE d MMM') }}</h3>
+          <h3 class="vhead">{{ formatDate(v.d, 'weekdayDayMonth') }}</h3>
           <div v-if="v.allday.length" class="vallday" data-testid="timeline-allday">
             <div
               v-for="s in v.allday" :key="s.item.id + s.date" class="vitem" :style="{ height: ALLDAY_H - 4 + 'px' }"
@@ -251,7 +251,7 @@ watch(() => clock.today, () => nextTick(scrollToNow), { once: true });
           v-for="(d, i) in days" :key="i" class="day" :class="{ today: toIsoDate(d) === clock.today }"
           :style="{ left: i * 1440 * pxPerMin + 'px', width: 1440 * pxPerMin + 'px' }" data-testid="timeline-day" :data-date="toIsoDate(d)"
         >
-          <span class="dl">{{ format(d, 'EEE d MMM') }}</span>
+          <span class="dl">{{ formatDate(d, 'weekdayDayMonth') }}</span>
         </div>
         <div v-if="alldays.length" class="allday" data-testid="timeline-allday" :style="{ top: HEAD_H + 'px', height: bandH + 'px' }">
           <div

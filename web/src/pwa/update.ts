@@ -23,8 +23,14 @@ function reload(): void {
   waiting.postMessage({ type: 'SKIP_WAITING' });
 }
 
-/** Show the persistent "new version" snackbar once; it never reloads by itself. */
+/** Preview builds (`…-preview+<sha>`) are for looking at the newest state, so they reload by themselves (owner). */
+export function isPreviewBuild(version = runningVersion()): boolean {
+  return version.includes('-preview');
+}
+
+/** Show the persistent "new version" snackbar once; it never reloads by itself, except on a preview build. */
 export function offerUpdate(): void {
+  if (isPreviewBuild()) { reload(); return; }
   const ui = useUiStore();
   if (offered !== null && ui.snackbars.some((s) => s.id === offered)) return;
   offered = ui.notify(t('calendar.update.available'), {

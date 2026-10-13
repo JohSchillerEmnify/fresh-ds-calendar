@@ -248,6 +248,15 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   - **Formats**: 24 h and Monday as the first day stay in every language. Dates follow the language: English keeps its
     en-GB forms (`lib/dates.ts`, date-fns), all other languages use `Intl` with `de-DE` ("Dienstag, 13. Oktober 2026",
     weekday headers "Mo".."So", month names). `weekdayLabels()` / `monthNames()` replace the former constants.
+    Every displayed date goes through `formatDate(d, kind)` in `lib/dates.ts` (date-fns pattern for English, as A-85
+    decided, `Intl` otherwise); no view calls date-fns `format` or `toLocaleDateString` for display. Hour labels stay
+    `HH:00`, the same in both locales.
+  - **Theme validator messages**: `@calendar/shared` keeps `validateTheme` / `validatePicture` / `sanitizePicture`
+    returning the English `errors` (the AI repair prompt stays English, the server API is unchanged) and adds
+    `validateThemeIssues` / `validatePictureIssues` / `sanitizePictureIssues` returning `{ code, params, message }`
+    per problem. The UI shows `issueText(issue)` (`theme/issueText.ts`, keys `theme.import.issue.<code>`; an unknown
+    code falls back to the English message) and feeds the English `message`s to the repair prompt. Alternative
+    weighed: changing `errors` to objects (rejected: breaks the server and its tests for no gain).
   - **Server messages** stay English; user-facing validation errors also carry `error.key` (API.md "Error format"),
     equal to a catalogue key. `ApiError.userMessage` translates a known key and otherwise shows the server's English.
   - **Rules for new code**: all new UI text goes through `t()`; no hard-coded strings in templates or scripts, new
@@ -869,7 +878,7 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
 `version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
 back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
-"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
+"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load. A preview build (version `…-preview+<sha>`) skips the snackbar and reloads by itself, so the owner always sees the newest preview (owner, 2026-10-13); production keeps the snackbar.
 It never reloads by itself and never interrupts an open dialog.
 
 ### Version numbers (owner, 2026-10-13)
@@ -1123,7 +1132,7 @@ app at once and is a **theme override** (reset by choosing a preset, captured by
 - Drag helper (owner, 2026-10-13): when the person picks up an event or task list, the cat may come to "help" — same
   setting as the support cat (Off / Sometimes ≈ every 5th drag / Every time). It follows the dragged card: moving
   later/down → it pushes from above, earlier/up → it pulls from below, to another day → it pushes from the side;
-  when the pointer rests > 0.5 s it sits beside the card with a paw on it and looks at the person questioningly; on
+  when the pointer rests > 0.5 s it sits beside the card (on the left, away from the dragging thumb; on the right in left-handed mode — owner 2026-10-13) with a paw on it and looks at the person questioningly; on
   drop or cancel it hops away (≤ 1.5 s). It reads the drag state from `motion/drag.ts` (no second drag logic),
   never takes pointer events and must not slow the drag (transform-only, one rAF loop shared with the drag).
 - Cat look (owner, 2026-10-13, two reference pictures; the second one wins where they differ): a black cat in a
@@ -1319,11 +1328,25 @@ not offered on `/tasks` (the calendar views keep them).
   unique strings of 1-64 characters; anything else is `400`. Why a pref and not the URL (the old chips): the choice follows
   the person to other devices, like grouping and sorting. An id of a deleted category matches nothing and can be removed
   with "Clear filters".
-- **UI.** One compact row: the **When chip** (`tasks-filter-when`, `data-value`; it shows "When" or the chosen value, selected
-  while not `all`) opens a small menu (`tasks-filter-when-option`, `data-value`), then, while any filter is on, **Clear
-  filters** (`tasks-filter-clear`), then the category chips in a horizontally scrolling strip. The When chip and Clear sit
-  outside the scrolling strip so the menu is not clipped by its overflow. Why a menu for When and not seven chips: seven
-  chips plus the categories would not fit one phone row, and only one value can be on at a time anyway. Texts: `tasks.filter.*`.
+- **UI** (owner layout, 2026-10-13: four rows of controls looked messy). Under the tabs `[ Open | Canvas | Archive ]` sits ONE
+  toolbar row of compact buttons, the same on all three tabs, then the active-filter chips:
+  `[Filter (n)] [Group · Sort] [unfold]`, and below it, only while a filter is on, one removable chip per active filter.
+  - **Filter button** (`tasks-filter-open`, count badge `tasks-filter-count` while any filter is on) opens a bottom sheet
+    (`tasks-filter-sheet`, an `AdaptiveSheet`) with the category chips (`tasks-filter-category`, multi-select, plus "No category"),
+    When as a group of chips (`tasks-filter-when`, `data-value`; options `tasks-filter-when-option`), `tasks-filter-clear` while a
+    filter is on, and Done (`tasks-sheet-done`). Choices save at once and stay open (multi-select), Done closes.
+  - **Group/Sort button** (`tasks-sort-open`) shows the state as its label, "Category · Date", with " ↕" while the order is reversed;
+    it opens `tasks-sort-sheet` with Group by (`tasks-group-by`), Sort by (`tasks-sort-by`) and the direction (`tasks-sort-dir`).
+  - **Collapse/expand all** (`tasks-collapse-all`, from the compact task list cards) is an icon button with an `aria-label`
+    ("Collapse all" / "Expand all"), `aria-pressed` while all are collapsed.
+  - **Active-filter chips** (`tasks-filter-active`, `data-key` = `category:<id>` or `when`): tapping one removes that filter.
+  - **Disabled where it does not apply** (A-144): grouping/sorting and collapse-all only exist in Open, so on Canvas and Archive
+    the Group/Sort and collapse buttons are disabled (the Canvas has no groups; the Archive's order is fixed, newest finished first);
+    the filter applies on all three.
+  - The phone's create button slides away (`ui.panelOpen`, one set of names so several panels can be open) while either sheet or
+    the Canvas's area editor is open, so it never covers a sheet's buttons.
+  Texts: `tasks.filter.*`, `tasks.view.sortTitle`. Why sheets and not inline controls: four stacked rows (tabs, filter chips,
+  group/sort/direction, collapse) left little room for the lists on a phone; the sheets cost one tap and keep every control.
 
 ### Untitled task lists (owner, 2026-10-12)
 
@@ -1483,6 +1506,6 @@ Mock data is not migrated to Google.
 Terse output on purpose (one line on success, only failures otherwise); every command finishes in about a minute.
 
 - `pnpm verify`: the gate before any merge or deploy; runs web/server/e2e tsc, server and web unit tests, `i18n:check` and `spec/scripts/check-steps.py` in parallel (`scripts/verify.mjs`).
-- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`.
+- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`. The dev-only `MotionLab.vue` is skipped (`IGNORED`) and three developer-error strings are allow-listed with a reason (`ALLOWED`), both at the top of `web/scripts/i18n-scan.ts`.
 - `pnpm e2e:affected [base]`: the Playwright `--grep` for features touched since `base` (default `origin/master`), mapped via feature tags/titles, step definitions and `data-testid` literals (`scripts/e2e-affected.mjs`); `none` if nothing is affected.
 - `scripts/deploy-status.sh`: last auto-deploy result and the `calendar` container's age, read from sauron over ssh (`DEPLOY_HOST=user@host` overrides the host).

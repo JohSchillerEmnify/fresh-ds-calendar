@@ -14,7 +14,7 @@ import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
 import { gridLayers } from '@/extensions/registry';
-import { HOURS, format, hourLabel, toIsoDate } from '@/lib/dates';
+import { HOURS, formatDate, hourLabel, toIsoDate } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';
@@ -118,7 +118,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         v-for="c in cols" :key="c.date" class="head" :class="{ today: c.today }" type="button" :data-testid="ids.header" :data-date="c.date"
         :data-today="c.today ? 'true' : undefined" @click="mode === 'week' && nav.openDay(c.d)"
       >
-        <span class="dow">{{ format(c.d, 'EEE') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
+        <span class="dow">{{ formatDate(c.d, 'weekday') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
       </button>
     </div>
     <div class="alldays" :style="{ gridTemplateRows: lanes ? `repeat(${lanes}, var(--bar-h)) auto` : undefined }">

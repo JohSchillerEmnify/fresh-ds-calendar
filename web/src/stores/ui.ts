@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 export interface SnackbarMessage {
   id: number;
@@ -31,8 +31,14 @@ export const useUiStore = defineStore('ui', () => {
   const filtersShown = ref(false);
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
-  /** A bottom panel of a view (the Canvas's area editor) is open: the phone's create button slides away like for the tray. */
-  const panelOpen = ref(false);
+  /** Names of the bottom panels and sheets of a view that are open (the Canvas's area editor, the Tasks view's filter and sort sheets). */
+  const panels = reactive(new Set<string>());
+  /** Any of them is open: the phone's create button slides away like for the tray. */
+  const panelOpen = computed(() => panels.size > 0);
+  function setPanel(name: string, open: boolean): void {
+    if (open) panels.add(name);
+    else panels.delete(name);
+  }
   const dialog = ref<OpenDialog | null>(null);
   const resizing = ref<ResizingEntry | null>(null);
   const snackbars = ref<SnackbarMessage[]>([]);
@@ -54,5 +60,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, panelOpen, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, panelOpen, setPanel, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
 });

@@ -144,7 +144,7 @@ const nameDraft = ref('');
 const nameInput = ref<HTMLInputElement | null>(null);
 
 // the phone's create button must not cover the editor's buttons
-watch(editArea, (a) => { ui.panelOpen = !!a; });
+watch(editArea, (a) => ui.setPanel('canvas-area-editor', !!a));
 function openEditor(id: string): void {
   editing.value = id;
 }
@@ -200,7 +200,7 @@ onMounted(() => {
   stopSync = sync.registerTask('tasks-canvas', () => canvas.loadAreas());
 });
 onBeforeUnmount(() => {
-  ui.panelOpen = false;
+  ui.setPanel('canvas-area-editor', false);
   stopPointer?.();
   stopHide?.();
   stopEsc?.();

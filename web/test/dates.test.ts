@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { format as dateFnsFormat } from 'date-fns';
+import { applyLanguage } from '@/i18n';
 import {
-  fetchRange, format, parseIsoDate, parseIsoMonth, monthGrid, nextFocus, parseParam, periodTitle, routePath, shiftPeriod, toIsoDate, weekDays,
+  fetchRange, format, formatDate, parseIsoDate, parseIsoMonth, monthGrid, nextFocus, parseParam, periodTitle, routePath, shiftPeriod, toIsoDate, weekDays,
 } from '@/lib/dates';
 
 const d = (s: string) => parseParam('day', s)!;
@@ -81,5 +82,24 @@ describe('own format and ISO parsers (kept small instead of date-fns format/pars
     expect(parseIsoMonth('2026-13')).toBeNull();
     expect(parseIsoMonth('2026-00')).toBeNull();
     expect(parseIsoDate('0050-03-04')!.getFullYear()).toBe(50);
+  });
+});
+
+describe('formatDate follows the language', () => {
+  afterEach(async () => { await applyLanguage('en'); });
+  const day = d('2026-10-10'); // a Saturday
+  it('keeps the date-fns English forms', () => {
+    expect(formatDate(day, 'weekday')).toBe('Sat');
+    expect(formatDate(day, 'weekdayDayMonth')).toBe('Sat 10 Oct');
+    expect(formatDate(day, 'weekdayDayMonthLong')).toBe('Saturday 10 October');
+    expect(formatDate(day, 'monthYear')).toBe('October 2026');
+    expect(formatDate(day, 'full')).toBe('Saturday 10 October 2026');
+  });
+  it.each(['de', 'de-x-mainfr', 'de-x-coldmirror'] as const)('speaks German in %s', async (lang) => {
+    await applyLanguage(lang);
+    expect(formatDate(day, 'weekday')).toMatch(/^Sa/);
+    expect(formatDate(day, 'weekdayDayMonth')).toMatch(/^Sa\.?,? 10\. Okt/);
+    expect(formatDate(day, 'monthYear')).toBe('Oktober 2026');
+    expect(formatDate(day, 'full')).toBe('Samstag, 10. Oktober 2026');
   });
 });

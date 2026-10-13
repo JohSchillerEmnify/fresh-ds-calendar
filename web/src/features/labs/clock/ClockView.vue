@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
-import { toIsoDate, minutesToTime } from '@/lib/dates';
+import { formatDate, toIsoDate, minutesToTime } from '@/lib/dates';
 import { displayTitle } from '@/lib/items';
 import { openItem } from '@/extensions/registry';
 import BedtimeDial from '@/features/bedtime/BedtimeDial.vue';
@@ -19,7 +19,7 @@ const items = useItemsStore();
 const cals = useCalendarsStore();
 
 const date = computed(() => toIsoDate(cal.anchor));
-const dateLabel = computed(() => new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(cal.anchor));
+const dateLabel = computed(() => formatDate(cal.anchor, 'weekdayDayMonthLong'));
 
 const segments = computed(() => (items.byDate.get(date.value) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)));
 const split = computed(() => clockSegments(segments.value));

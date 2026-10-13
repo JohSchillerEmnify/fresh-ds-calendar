@@ -2,7 +2,8 @@
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { berlinIso } from './support/dates.js';
-import { pathname } from './support/ui.js';
+import { expectJoined, pathname } from './support/ui.js';
+import { inSheet } from './support/tasks-sheets.js';
 import { attr, exactText, type World } from './support/world.js';
 
 /** The date of the Background (`today is …`) that fixtures return the test clock to. */
@@ -22,6 +23,9 @@ async function openTasksView(world: World) {
   else await world.page.goto('/tasks');
   await expect(world.page.getByTestId('tasks-view')).toBeVisible();
 }
+
+/** A chip's text is the category's icon (when it has one) and its name, so the name is matched at the end. */
+const endsWith = (name: string): RegExp => new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
 
 /** Runs `act` (a click) and waits for the `PATCH /api/prefs` it sends. */
 async function savedPrefs(world: World, act: () => Promise<void>) {
@@ -45,29 +49,63 @@ Given(
 
 When('I filter the Tasks view by the category {string}', async function (this: World, name: string) {
   await openTasksView(this);
-  const chip = this.page.getByTestId('tasks-filter-category').filter({ hasText: exactText(name) });
-  await savedPrefs(this, () => chip.click());
+  await inSheet(this, 'filter', async () => {
+    const chip = this.page.getByTestId('tasks-filter-category').filter({ hasText: endsWith(name) });
+    await savedPrefs(this, () => chip.click());
+  });
 });
 
 When('I choose {string} as the Tasks view When filter', async function (this: World, label: string) {
   await openTasksView(this);
-  await this.page.getByTestId('tasks-filter-when').click();
-  const option = this.page.getByTestId('tasks-filter-when-option').filter({ hasText: exactText(label) });
-  await savedPrefs(this, () => option.click());
+  await inSheet(this, 'filter', async () => {
+    const option = this.page.getByTestId('tasks-filter-when-option').filter({ hasText: exactText(label) });
+    await savedPrefs(this, () => option.click());
+  });
 });
 
 When('I clear the Tasks view filters', async function (this: World) {
-  await savedPrefs(this, () => this.page.getByTestId('tasks-filter-clear').click());
-  await expect(this.page.getByTestId('tasks-filter-clear')).toHaveCount(0);
+  await inSheet(this, 'filter', async () => {
+    await savedPrefs(this, () => this.page.getByTestId('tasks-filter-clear').click());
+    await expect(this.page.getByTestId('tasks-filter-clear')).toHaveCount(0);
+  });
 });
 
 Then('the Tasks view category filter {string} is on', async function (this: World, name: string) {
-  const chip = this.page.getByTestId('tasks-filter-category').filter({ hasText: exactText(name) });
-  await expect(chip).toHaveAttribute('aria-pressed', 'true');
+  await inSheet(this, 'filter', async () => {
+    const chip = this.page.getByTestId('tasks-filter-category').filter({ hasText: endsWith(name) });
+    await expect(chip).toHaveAttribute('aria-pressed', 'true');
+  });
 });
 
 Then('the Tasks view When filter is {string}', async function (this: World, label: string) {
-  await expect(this.page.getByTestId('tasks-filter-when')).toHaveAttribute('data-value', WHEN_VALUES[label]!);
+  await inSheet(this, 'filter', () => expect(this.page.getByTestId('tasks-filter-when')).toHaveAttribute('data-value', WHEN_VALUES[label]!));
+});
+
+async function openSheet(world: World, kind: 'filter' | 'sort') {
+  await openTasksView(world);
+  await world.page.getByTestId(`tasks-${kind}-open`).click();
+  await expect(world.page.getByTestId(`tasks-${kind}-sheet`)).toBeVisible();
+}
+
+When('I open the Tasks view filter sheet', async function (this: World) {
+  await openSheet(this, 'filter');
+});
+
+When('I open the Tasks view sort sheet', async function (this: World) {
+  await openSheet(this, 'sort');
+});
+
+When('I close the Tasks view sheet', async function (this: World) {
+  await this.page.getByTestId('tasks-sheet-done').click();
+  await expect(this.page.getByTestId('tasks-sheet-done')).toHaveCount(0);
+});
+
+Then('the Tasks view shows the active filters {string}', async function (this: World, labels: string) {
+  await expectJoined(this.page.getByTestId('tasks-filter-active'), labels);
+});
+
+When('I remove the active filter {string}', async function (this: World, label: string) {
+  await savedPrefs(this, () => this.page.getByTestId('tasks-filter-active').filter({ hasText: exactText(label) }).click());
 });
 
 Then('the note {string} is dimmed', async function (this: World, title: string) {

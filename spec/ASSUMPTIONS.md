@@ -478,6 +478,30 @@ spec files are named.
   hover (hover does not exist on a phone, so one rule for both): a click on an area's header, or any drag of it, shows
   the handles. A mouse drag moves an area by its header only, because the body must stay available for panning with the
   mouse (areas can be large); touch has no such conflict, as a long press tells a move from a pan.
+- **A-136 Tasks filter replaces the calendar chips in the Tasks view** (owner: one filter bar for all tabs, stored per person):
+  the top bar's filter button and the global filter row are not shown on `/tasks`; supersedes A-77 and A-122.
+- **A-137 "This week"** (owner: "today through Sunday, matching the existing time groups"): date from today through the coming
+  Sunday inclusive (on a Sunday: only today). Undated lists never match Overdue, Today, Tomorrow or This week.
+- **A-138 Overdue in the Archive** (my reading): the rule is on the date only, so a finished list dated before today matches
+  "Overdue" in the Archive; the filter does not look at whether the list is finished.
+- **A-139 Filter UI** (owner: compact on the phone; my choice): the When chip with its menu and Clear filters sit left of a
+  horizontally scrolling strip of category chips, all in one row. A chip for a category that no longer exists is not shown;
+  such a stale id matches nothing and is dropped by "Clear filters".
+- **A-140 Dimmed notes** (owner: "e.g. opacity 0.25, not interactive"): opacity 0.25, `pointer-events: none` on the note, so a
+  dimmed note cannot be ticked, opened or moved (a long press on it pans nothing either: it acts as background).
+- **A-141 Saving** (my reading): each choice is one `PATCH /api/prefs { tasksFilter }` with the whole filter, optimistic
+  (the chips change at once, a refusal puts them back with a snackbar), like grouping and sorting.
+- **A-142 Create button and the area editor** (owner bug report): on the phone the "+" button slides away (`.away`, as for the
+  expanded tray) while the Canvas's area editor is open, through the ui flag `panelOpen`; any later bottom panel of a view
+  sets the same flag. Labs views in the navigation bar have icons of their own (clock, timeline, view column).
+- **A-143 Long press on item rows** (owner bug report, phone): not reproducible in Chromium's touch emulation, with or without a
+  scrollable page (a CDP long press on an item title and on a checkbox picks the note up). Falsified there: a row handler
+  that stops or prevents the pointer stream (none exists in `TaskListView`, `RewardCheckbox`, `Chip`), the global
+  `button { touch-action: manipulation }` (the same run passes with and without a `touch-action: none` override, and the
+  event stream shows no `pointercancel`). What a phone adds and the emulation lacks is the browser's own long-press
+  reaction (context menu, text selection, native drag, callout). So the canvas defends against it: every element inside a
+  note is `touch-action: none; user-select: none; -webkit-touch-callout: none`, and `contextmenu`, `selectstart` and
+  `dragstart` are prevented on notes and areas. The scenarios stay as regression tests.
 
 ## Compact, collapsible task list cards (owner 2026-10-13)
 
@@ -504,27 +528,11 @@ spec files are named.
   the body in and out (opacity), Reduced and Off do not.
 - **A-158 Translations** (owner): `tasks.list.collapse`, `tasks.list.expand`, `tasks.view.collapseAll`,
   `tasks.view.expandAll` in `locales/<lang>/tasks.ts` for `en`, `de`, `de-x-mainfr` and `de-x-coldmirror`.
-- **A-136 Tasks filter replaces the calendar chips in the Tasks view** (owner: one filter bar for all tabs, stored per person):
-  the top bar's filter button and the global filter row are not shown on `/tasks`; supersedes A-77 and A-122.
-- **A-137 "This week"** (owner: "today through Sunday, matching the existing time groups"): date from today through the coming
-  Sunday inclusive (on a Sunday: only today). Undated lists never match Overdue, Today, Tomorrow or This week.
-- **A-138 Overdue in the Archive** (my reading): the rule is on the date only, so a finished list dated before today matches
-  "Overdue" in the Archive; the filter does not look at whether the list is finished.
-- **A-139 Filter UI** (owner: compact on the phone; my choice): the When chip with its menu and Clear filters sit left of a
-  horizontally scrolling strip of category chips, all in one row. A chip for a category that no longer exists is not shown;
-  such a stale id matches nothing and is dropped by "Clear filters".
-- **A-140 Dimmed notes** (owner: "e.g. opacity 0.25, not interactive"): opacity 0.25, `pointer-events: none` on the note, so a
-  dimmed note cannot be ticked, opened or moved (a long press on it pans nothing either: it acts as background).
-- **A-141 Saving** (my reading): each choice is one `PATCH /api/prefs { tasksFilter }` with the whole filter, optimistic
-  (the chips change at once, a refusal puts them back with a snackbar), like grouping and sorting.
-- **A-142 Create button and the area editor** (owner bug report): on the phone the "+" button slides away (`.away`, as for the
-  expanded tray) while the Canvas's area editor is open, through the ui flag `panelOpen`; any later bottom panel of a view
-  sets the same flag. Labs views in the navigation bar have icons of their own (clock, timeline, view column).
-- **A-143 Long press on item rows** (owner bug report, phone): not reproducible in Chromium's touch emulation, with or without a
-  scrollable page (a CDP long press on an item title and on a checkbox picks the note up). Falsified there: a row handler
-  that stops or prevents the pointer stream (none exists in `TaskListView`, `RewardCheckbox`, `Chip`), the global
-  `button { touch-action: manipulation }` (the same run passes with and without a `touch-action: none` override, and the
-  event stream shows no `pointercancel`). What a phone adds and the emulation lacks is the browser's own long-press
-  reaction (context menu, text selection, native drag, callout). So the canvas defends against it: every element inside a
-  note is `touch-action: none; user-select: none; -webkit-touch-callout: none`, and `contextmenu`, `selectstart` and
-  `dragstart` are prevented on notes and areas. The scenarios stay as regression tests.
+- **A-144 Toolbar buttons per tab** (owner: "decide and log it"): Group/Sort and collapse-all are disabled on Canvas and
+  Archive: the Canvas is a free layout without groups, and the Archive's order is fixed (newest finished first) and never
+  grouped, so the buttons would do nothing there. The filter button works on all three.
+- **A-145 Sheets stay open while choosing** (my choice): the filter sheet is multi-select, so a chip click saves and leaves
+  the sheet open; "Done" (or the scrim, Escape, back) closes it. The sort sheet does the same.
+- **A-146 Sort label** (owner example "Category · Date ↓"; my reading): the label is "Group · Sort"; the direction is shown only
+  when the order is reversed (" ↕"), because the default direction differs per sort key (date earliest first, last changed newest
+  first), so a fixed arrow would be wrong for some keys.

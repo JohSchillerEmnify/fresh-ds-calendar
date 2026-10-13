@@ -6,7 +6,7 @@
  * sanitised here again (the server does it once more), a preview shows how it looks, and saving stores it per person.
  */
 import { computed, ref } from 'vue';
-import { MAX_PICTURE_BYTES, MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemeDoc, type ThemePicture } from '@calendar/shared';
+import { MAX_PICTURE_BYTES, MAX_THEME_BYTES, sanitizePictureIssues, validatePictureIssues, validateThemeIssues, type ThemeDoc, type ThemePicture } from '@calendar/shared';
 import { ApiError } from '@/api/client';
 import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
@@ -17,6 +17,7 @@ import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { themePrompt } from '@/theme/aiPrompt';
 import { cleanAiText, repairPrompt } from '@/theme/importText';
+import { issueText } from '@/theme/issueText';
 import { docToResolved } from '@/theme/presets';
 import { loadSvgSanitizer } from '@/theme/svg';
 
@@ -39,7 +40,9 @@ const pictureDark = ref('');
 const docErrors = ref<string[]>([]);
 const pictureErrors = ref<string[]>([]);
 const errors = computed(() => [...docErrors.value, ...pictureErrors.value]);
-const repair = computed(() => repairPrompt(text.value, docErrors.value));
+/** The validator's English messages for the repair prompt (the AI reads English); null when the problem did not come from the validator. */
+const repairLines = ref<string[] | null>(null);
+const repair = computed(() => repairPrompt(text.value, repairLines.value ?? docErrors.value));
 /** The checked document and sanitised picture waiting to be saved; `removed`: unsafe parts were taken out of the picture. */
 const checked = ref<{ doc: ThemeDoc; picture?: ThemePicture; removed: boolean } | null>(null);
 const saving = ref(false);
@@ -52,6 +55,7 @@ async function check() {
   checked.value = null;
   docErrors.value = [];
   pictureErrors.value = [];
+  repairLines.value = null;
   let json: unknown;
   try {
     json = JSON.parse(cleanAiText(text.value));
@@ -59,15 +63,15 @@ async function check() {
     docErrors.value = [t('theme.import.notJson'), `(${(e as Error).message})`];
     return;
   }
-  const valid = validateTheme(json);
-  if (!valid.ok) { docErrors.value = valid.errors; return; }
+  const valid = validateThemeIssues(json);
+  if (!valid.ok) { docErrors.value = valid.issues.map(issueText); repairLines.value = valid.issues.map((i) => i.message); return; }
   let picture: ThemePicture | undefined;
   let removed = false;
   if (pictureLight.value.trim() || pictureDark.value.trim()) {
     const raw: ThemePicture = { ...(pictureLight.value.trim() ? { light: pictureLight.value } : {}), ...(pictureDark.value.trim() ? { dark: pictureDark.value } : {}) };
-    const ok = validatePicture(raw);
-    const safe = ok.ok ? sanitizePicture(await loadSvgSanitizer(), ok.picture) : ok;
-    if (!safe.ok) { pictureErrors.value = safe.errors; return; }
+    const ok = validatePictureIssues(raw);
+    const safe = ok.ok ? sanitizePictureIssues(await loadSvgSanitizer(), ok.picture) : ok;
+    if (!safe.ok) { pictureErrors.value = safe.issues.map(issueText); return; }
     picture = safe.picture;
     removed = safe.removed;
   }
@@ -83,6 +87,7 @@ async function onFile(e: Event, into: 'theme' | 'light' | 'dark') {
   checked.value = null;
   docErrors.value = [];
   pictureErrors.value = [];
+  repairLines.value = null;
   const max = into === 'theme' ? MAX_THEME_BYTES : MAX_PICTURE_BYTES;
   if (file.size > max) {
     const msg = t(into === 'theme' ? 'theme.import.fileTooLarge' : 'theme.import.pictureTooLarge', { kb: max / 1024 });

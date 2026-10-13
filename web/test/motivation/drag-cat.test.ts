@@ -65,15 +65,15 @@ describe('drag helper cat pose', () => {
     expect(dragCatPose(at({ stillMs: 800, level: 'reduced' }), 'push-side')).toBe('wait');
   });
 
-  it('stands behind the movement when pushing sideways, else on the right', () => {
+  it('stands behind the movement when pushing sideways, else on the left, away from the dragging thumb', () => {
     expect(dragCatSide(120, 'push-side')).toBe('left');
     expect(dragCatSide(-120, 'push-side')).toBe('right');
-    expect(dragCatSide(120, 'push-down')).toBe('right');
+    expect(dragCatSide(120, 'push-down')).toBe('left');
   });
 
-  it('left-handed: the default side is the left, pushing sideways still stands behind the movement', () => {
-    expect(dragCatSide(0, 'push-down', true)).toBe('left');
-    expect(dragCatSide(0, 'push-side', true)).toBe('left');
+  it('left-handed: the default side is the right, pushing sideways still stands behind the movement', () => {
+    expect(dragCatSide(0, 'push-down', true)).toBe('right');
+    expect(dragCatSide(0, 'push-side', true)).toBe('right');
     expect(dragCatSide(120, 'push-side', true)).toBe('left');
     expect(dragCatSide(-120, 'push-side', true)).toBe('right');
   });

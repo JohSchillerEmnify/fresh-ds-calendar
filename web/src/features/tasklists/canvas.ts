@@ -4,8 +4,7 @@
  * are unit-tested with plain numbers. One canvas unit is one CSS pixel at zoom 1.
  */
 import type { CanvasArea, CanvasPlace } from '@/api/types';
-import { dateLocale, language } from '@/i18n/language';
-import { format, parseIsoDate } from '@/lib/dates';
+import { formatDate, parseIsoDate } from '@/lib/dates';
 
 /** Size of the board in canvas units. */
 export const WORLD_W = 4000;
@@ -172,5 +171,5 @@ export const areaColor = (n: number): string => AREA_COLORS[((n % AREA_COLORS.le
 export function noteDateLabel(date: string): string {
   const d = parseIsoDate(date);
   if (!d) return date;
-  return language.value === 'en' ? format(d, 'EEE d MMM') : new Intl.DateTimeFormat(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+  return formatDate(d, 'weekdayDayMonth');
 }
