@@ -1068,7 +1068,7 @@ A task list may have no date. It is stored in the same place as every other list
   desktop rail: Year, Month, Week, Day, Tasks (`view-switch-tasks`; Labs views follow when on). It is not a calendar
   view: no period, no swipe, no open tasks tray (it is the tray's bigger sibling). The top bar shows "Tasks", sync
   status, filter button and settings button (A-78). The create button ("+") opens the task list dialog without a date.
-- **Content**: all open lists (A-70), dated and undated, from `GET /api/tasklists/all-open?today=` (API.md). Each list is
+- **Content**: all open lists (A-94), dated and undated, from `GET /api/tasklists/all-open?today=` (API.md). Each list is
   a `tasks-item` containing the tray's own item component, the **task list view**, so ticking, adding, reordering and
   deleting items work as in the tray; the one difference is that tapping the title opens the task list dialog
   instead of renaming in place. Each `tasks-item` also has the quick actions `tasks-today` and `tasks-tomorrow`.

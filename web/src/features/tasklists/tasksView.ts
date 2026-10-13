@@ -23,7 +23,7 @@ export interface TaskGroup {
   lists: TaskList[];
 }
 
-/** A list is open until every item is ticked; a list without items yet still counts (A-70). */
+/** A list is open until every item is ticked; a list without items yet still counts (A-94). */
 export const isOpen = (l: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => !isComplete(l);
 
 /** The Sunday that ends the week of `today` (weeks start on Monday); `today` itself on a Sunday. */

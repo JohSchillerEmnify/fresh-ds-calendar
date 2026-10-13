@@ -60,7 +60,7 @@ export const PRESETS: Record<PresetName, Preset> = {
   Fall: { name: 'Fall', seed: '#b8540c', mode: null, attrs: { ...base, entries: 'tinted', scene: 'fall' } },
   /** Pumpkin orange; keeps the person's mode: light = dusk, dark = night (owner 2026-10-13). */
   Halloween: { name: 'Halloween', seed: '#e8650c', mode: null, attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'halloween' } },
-  /** Holiday presets keep the person's mode like the season ones (A-74). */
+  /** Holiday presets keep the person's mode like the season ones (A-99). */
   Easter: { name: 'Easter', seed: '#8e6bbf', mode: null, attrs: { ...base, entries: 'tinted', corners: 'pill', scene: 'easter' } },
   'Summer holidays': { name: 'Summer holidays', seed: '#0097a7', mode: null, attrs: { ...base, glow: 'soft', scene: 'summerholidays' } },
   Christmas: { name: 'Christmas', seed: '#c62828', mode: null, attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'christmas' } },

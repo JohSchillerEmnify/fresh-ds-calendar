@@ -1112,13 +1112,6 @@ Google shows the calendar {string}
 - Version: "the server reports the build version V" uses the existing `POST /api/__test/version { version }` and
   reloads; `settings-version` text starts with "Version 0.4.2"; `app-version` text equals "0.4.2". The corner switch
   goes through the generic `I turn on {string} in the settings` step.
-- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
-  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
-  element over it).
-- Drag helper cat: `[data-testid="support-cat"][data-role="drag"]` with `data-pose` = `push-down` (above the card),
-  `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
-  "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
-  … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
 
 ## Left-handed mode (`@left-hand`)
 

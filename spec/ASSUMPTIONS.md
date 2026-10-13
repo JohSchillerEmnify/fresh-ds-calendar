@@ -205,7 +205,7 @@ spec files are named.
   person), and is shown even when the scene is not the Sunflower field.
   visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
   style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
-- **A-70 Left-handed mode** (owner, 2026-10-13; the details below are assumptions, flagged for confirmation):
+- **A-93 Left-handed mode** (owner, 2026-10-13; the details below are assumptions, flagged for confirmation):
   a person pref `leftHanded` (like `versionInCorner`), phone layout only. (a) The setting sits in Settings → Calendar,
   label "Left-handed mode". (b) The filter button moves with the settings button (the whole actions group, gear
   leftmost). (c) The version label's text "bottom left" becomes "A small label in a bottom corner" (neutral). (d) The
@@ -219,11 +219,11 @@ spec files are named.
   element centre with the viewport centre.
 
   person), shown but inactive with a hint when the scene is not the Sunflower field (owner, confirmed).
-- **A-70 Open in the Tasks view** (assumption, slice 1 of the task management feature): a list is open when it is not
+- **A-94 Open in the Tasks view** (assumption, slice 1 of the task management feature): a list is open when it is not
   complete, so a list with no items yet also shows (the tray, by contrast, lists only lists with an unticked item).
   A finished list leaves the Tasks view on its next refresh; until then it stays, struck through, so the celebration
   can play.
-- **A-71 Which dated lists the Tasks view fetches** (assumption): open lists dated from one year before today to one
+- **A-95 Which dated lists the Tasks view fetches** (assumption): open lists dated from one year before today to one
   year after, plus all undated lists. Lists further out are not shown there (they stay in the calendar).
 - **A-72 Sort directions** (assumption): Date earliest first (undated last); Name A to Z (case-insensitive); Category by
   the order of the categories in the settings (no category last); Last changed newest first; Progress most done first
@@ -256,21 +256,21 @@ spec files are named.
   server never lets them into a date range read (it drops anchor-date events of undated lists), so a range that
   reaches 2099 does not show them.
 
-- **A-71 Drawn scene building blocks** (owner decided the format, 2026-10-13; the exact lists are my proposal, flagged
+- **A-96 Drawn scene building blocks** (owner decided the format, 2026-10-13; the exact lists are my proposal, flagged
   for confirmation): decor = `stars`, `sparkles`, `waves`, `hills`, `hearts`, `clouds`, `confetti`, `bubbles`; density =
   `low` 8 / `medium` 16 / `high` 28 shapes (waves and hills: 1 / 2 / 3 layers); `density` defaults to medium and
   `decor` to none; a gradient has 2 or 3 colours; in dark mode the gradient is dimmed (darkened by about 40 %); decor
   animates only at the Full animation level. The role overrides allowed in a document are the eight in ARCHITECTURE
   "Theme engine and AI themes".
-- **A-72 What the Labs switch hides** (owner 2026-10-13): only "Create with AI" and the import. Saved own themes
+- **A-97 What the Labs switch hides** (owner 2026-10-13): only "Create with AI" and the import. Saved own themes
   always show in the gallery and a chosen one always applies, so switching off never looks like data loss.
-- **A-73 Save as my theme** (owner asked for the button; the details are my choices, flagged for confirmation): the
+- **A-98 Save as my theme** (owner asked for the button; the details are my choices, flagged for confirmation): the
   button is the last control of Fine-tuning (the look being saved is right above it); the name defaults to "My theme"
   and a taken name gets a number ("My theme 2") instead of being refused, so saving never fails on a duplicate; it
   becomes the chosen theme at once; mode `system` is saved as `follow`, while seed colour and the other settings are
   saved as set, so the theme no longer follows later changes of the person's seed; an own picture is saved as the
   theme's picture, and a scene override on top of an own scene saves the overriding built-in scene instead.
-- **A-74 Holiday scenes and "Seasons & holidays"** (owner decisions 2026-10-13 are final; the readings below are mine,
+- **A-99 Holiday scenes and "Seasons & holidays"** (owner decisions 2026-10-13 are final; the readings below are mine,
   flagged for confirmation): (a) **New Year** is 1 January only, then the calendar is Winter again; (b) the Easter window
   "two weeks around Easter" is Easter Sunday minus 7 days to plus 6 days (14 days); (c) the Christmas window is the
   1st Advent Sunday (the 4th Sunday before 25 December) to 30 December; the 4th Advent Sunday is the last Sunday on or
@@ -295,7 +295,7 @@ spec files are named.
   and the candle flicker run only at Full motion (at Reduced and Off the fireworks stand still, the flames are steady);
   (l) holiday presets' colours: Easter #8e6bbf, Summer holidays #0097a7, Christmas #c62828, New Year's Eve #d4af37,
   New Year #00897b.
-- **A-75 Fine-tuning sliders, density and icon choices** (owner decisions 2026-10-13 are final; the readings below are mine,
+- **A-100 Fine-tuning sliders, density and icon choices** (owner decisions 2026-10-13 are final; the readings below are mine,
   flagged for confirmation): (a) **between steps no step is pressed**; a pressed step means exactly its value (glow Off 0 /
   Soft 40 / Neon 100, radius Square 2 / Round 6 / Pill 28 px); (b) glow strength runs 0..150, "beyond Neon" being up to a
   blur of 20 px at 150; the neon pulse starts at 100; (c) the corner slider runs 0..28 px, 28 = pill (chips 999 px); timed
@@ -307,9 +307,9 @@ spec files are named.
   tick, cross, dot); they apply to the task item checkbox and the preview; the tiny box in the task list card takes the shape only (its mark stays a tick); (g) steps store their
   value too (`glow` + `glowStrength`), so a step pick over a theme that carries its own number wins; (h) an own theme's
   `glowStrength`/`radius` win over its `glow`/`corners` step for the look, but the step fields are always written; (i) the
-  **app icon set** was first left out and then built (see A-76); (j) the new document fields are top-level and flat (`glowStrength`, `radius`, `tint`,
+  **app icon set** was first left out and then built (see A-101); (j) the new document fields are top-level and flat (`glowStrength`, `radius`, `tint`,
   `density`, `checkbox`, `checkFill`, `check`); `density` is not the scene's `scene.density` (decor amount).
-- **A-76 App icon set** (owner confirmed A-75 and asked for option (a), 2026-10-13; the readings are mine): (a) the field is
+- **A-101 App icon set** (owner confirmed A-100 and asked for option (a), 2026-10-13; the readings are mine): (a) the field is
   `icons` (`outlined` default = today's icons, `rounded`, `sharp`), an override like the others, reset by a preset pick,
   saved in "Save as my theme"; (b) the set is a module-level reactive value plus `<html data-icons>`, not a store; (c) the
   24 icons in use are mapped to their Material Symbols variants; a few have identical sharp or rounded drawings in the
