@@ -152,6 +152,9 @@ ARCHITECTURE "Themes"). The server only stores the values, and the user can chan
 `GET /api/settings` no longer returns one. The sunflower field still shows only when `garden === 'sunflowers'`, as
 before; Mordor shows whatever `garden` is, the eye-open effect replaces the butterfly, and the single plant and the
 flame still show as widgets.
+**Prefs** (`GET/PATCH /api/prefs`): besides the Labs switches, `approachingCard`, `approachBar`, `approachWindowHours`,
+`tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `leftHanded` (boolean, default `false`; a
+non-boolean is a 400) turns on the mirrored phone layout (ARCHITECTURE "Left-handed mode").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 

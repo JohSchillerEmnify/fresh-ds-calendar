@@ -185,3 +185,15 @@ spec files are named.
   "Top bar scene" setting and the theme's "Scene" attribute become one theme attribute. On migration the scene that was
   visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
   style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
+- **A-70 Left-handed mode** (owner, 2026-10-13; the details below are assumptions, flagged for confirmation):
+  a person pref `leftHanded` (like `versionInCorner`), phone layout only. (a) The setting sits in Settings → Calendar,
+  label "Left-handed mode". (b) The filter button moves with the settings button (the whole actions group, gear
+  leftmost). (c) The version label's text "bottom left" becomes "A small label in a bottom corner" (neutral). (d) The
+  settings link row to the theme menu (chevron) and the category rows stay as they are except that the category move
+  buttons follow the row mirror; only rows with a switch or trailing control mirror. (e) The support cat stands at the
+  start of the finished list's title instead of its end, facing right. (f) The drag helper cat mirrors only its default
+  side, the hop away and the ask mark; sideways pushing stays "behind the movement", as that is physics, not
+  handedness; it is covered by unit tests, not by a scenario (the drag step needs a mouse). (g) The tray's chevron
+  sits to the right of the FAB's clearance at the left, followed by the count chip. (h) The e2e side check compares the
+  element centre with the viewport centre.
+
