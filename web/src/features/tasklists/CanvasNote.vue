@@ -46,7 +46,7 @@ const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}
   position: absolute; left: 0; top: 0; box-sizing: border-box; border-radius: 14px; border-top: 6px solid var(--c);
   border-inline: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
   background: color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-highest)); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
-  cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 /* the lift of a picked-up note and the way back after a failed save: transitions only with motion on */
 html:not([data-motion='off']) .note { transition: transform 200ms var(--md-sys-motion-spring, ease-out), box-shadow 150ms; }

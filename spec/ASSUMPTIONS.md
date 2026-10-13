@@ -410,9 +410,7 @@ spec files are named.
 - **A-122 Which lists** (my reading of "ALL open task lists"): the same set as the Open tab (all-open: undated plus dated within
   a year either side of today), without the category filter chips (a filtered-out note vanishing from a board you arranged
   by hand would look like data loss).
-- **A-123 Dragging** (my reading of "as the calendar does"): mouse = plain drag after 4 px; touch = long press 350 ms (the
-  calendar's delay) with a haptic tick, then drag; a touch that moves earlier pans the canvas. A drag starts anywhere on a
-  note except on buttons, checkboxes and fields, so the title (a button) opens the dialog and never drags.
+- **A-123 Dragging** (superseded by owner feedback 2026-10-13, see A-132): a long press (350 ms) anywhere on a note picks it up.
 - **A-124 Unsorted order** (my reading): by title, then id, 14 units diagonal offset per note, the last offset shared after
   10 notes; stable so a stack does not reshuffle while ticking. "Top left" is (24, 24) on the board; the default view
   (pan 0, 0, zoom 1) shows it.
@@ -464,3 +462,19 @@ spec files are named.
 - **A-139 Track without entries** (my reading): the Approaching track is also shown when nothing timed is ahead but a
   night lies inside its window (otherwise the band would never show on a quiet day); it then replaces the "Nothing else
   today" line, like entries do. With the track switched off there is no band on the card.
+- **A-132 Long press anywhere** (owner feedback 2026-10-13, the first version was unusable on a phone): a touch long press
+  anywhere on a note, including the title, items and checkboxes, picks it up; a short tap still ticks or opens the dialog;
+  a touch that moves before the long press does nothing on a note. After a drag the click is swallowed so nothing ticks
+  under the finger. `canvas-note-grip` stays only as the top strip with the date, where the e2e mouse grabs a note.
+- **A-133 Areas by long press** (owner): a touch long press anywhere on an area (header or body, where no note is on top)
+  moves it; a touch that moves before it pans the canvas, because the body is background.
+- **A-134 Resize handles** (owner: "same interaction as the calendar's events"): handles show on a long press released
+  without moving, and also after a move or a click on the header or when an area is created (my reading: any way of
+  touching the area "selects" it); four corner handles of 44 px (the calendar has top and bottom only because its entries
+  are one-dimensional); a handle drags at once with no long press; any pointer-down elsewhere or Escape hides them. I did
+  not swallow the click of the dismissing tap as the calendar does (a tap on a note's checkbox that hides the handles also
+  ticks it): hiding costs no extra tap, and the dismissing tap is mostly on the empty board.
+- **A-135 Mouse** (my choice for "show handles on hover or after a click, whichever is simpler"): after a click, not on
+  hover (hover does not exist on a phone, so one rule for both): a click on an area's header, or any drag of it, shows
+  the handles. A mouse drag moves an area by its header only, because the body must stay available for panning with the
+  mouse (areas can be large); touch has no such conflict, as a long press tells a move from a pan.

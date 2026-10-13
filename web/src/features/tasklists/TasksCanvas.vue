@@ -13,7 +13,7 @@ import Button from '@/components/m3/Button.vue';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
-import { AREA_COLORS, areaOf, centeredArea, clampArea, clampNote, clampView, placeNotes, type Point, type Rect, WORLD_H, WORLD_W } from './canvas';
+import { AREA_COLORS, areaOf, centeredArea, clampArea, clampNote, clampView, placeNotes, resizeRect, type Corner, type Point, type Rect, WORLD_H, WORLD_W } from './canvas';
 import { useCanvasStore } from './canvasStore';
 import CanvasArea from './CanvasArea.vue';
 import CanvasNote from './CanvasNote.vue';
@@ -72,6 +72,9 @@ function onCompleted(id: string, catMs: number): void {
 
 // --- pointer gestures --------------------------------------------------------------------------------------------------
 let origin: Rect = { x: 0, y: 0, w: 0, h: 0 };
+let corner: Corner = 'se';
+/** The area whose resize handles are shown (after a long press without moving, or a click). */
+const selected = ref<string | null>(null);
 const rectOf = (kind: DragKind, id: string): Rect | null => {
   if (kind === 'note') {
     const n = notes.value.find((x) => x.id === id);
@@ -83,8 +86,8 @@ const rectOf = (kind: DragKind, id: string): Rect | null => {
 /** Where a picked-up thing lies after the pointer moved by (dx, dy) board units. */
 function moved(kind: DragKind, dx: number, dy: number): Rect {
   if (kind === 'note') return { ...origin, ...clampNote({ x: origin.x + dx, y: origin.y + dy }) };
-  if (kind === 'area-head') return clampArea({ ...origin, x: origin.x + dx, y: origin.y + dy });
-  return clampArea({ ...origin, w: origin.w + dx, h: origin.h + dy });
+  if (kind === 'area-resize') return resizeRect(origin, corner, dx, dy);
+  return clampArea({ ...origin, x: origin.x + dx, y: origin.y + dy });
 }
 const hooks: CanvasPointerHooks = {
   getView: () => canvas.view,
@@ -93,10 +96,11 @@ const hooks: CanvasPointerHooks = {
     const r = viewport.value?.getBoundingClientRect();
     return { x: r?.left ?? 0, y: r?.top ?? 0 };
   },
-  dragStart(kind, id) {
+  dragStart(kind, id, c) {
     const r = rectOf(kind, id);
     if (!r) return;
     origin = r;
+    if (c) corner = c as Corner;
     live.value = { kind, id, ...r };
     if (kind === 'note') raised[id] = ++zTop;
   },
@@ -107,16 +111,22 @@ const hooks: CanvasPointerHooks = {
     if (live.value?.id !== id) return;
     const to = moved(kind, dx, dy);
     live.value = null;
-    // picked up and put down in the same place: nothing to save
+    if (kind !== 'note') selected.value = id;
+    // picked up and put down in the same place: nothing to save (an area shows its handles)
     if (to.x === origin.x && to.y === origin.y && to.w === origin.w && to.h === origin.h) return;
     if (kind === 'note') void canvas.moveNote(id, to);
-    else canvas.updateArea(id, kind === 'area-head' ? { x: to.x, y: to.y } : { w: to.w, h: to.h });
+    else canvas.updateArea(id, { x: to.x, y: to.y, w: to.w, h: to.h });
   },
   dragCancel() {
     live.value = null;
   },
   tap(kind, id) {
-    if (kind === 'area-head') openEditor(id);
+    if (kind !== 'area-head') return;
+    selected.value = id;
+    openEditor(id);
+  },
+  deselect() {
+    selected.value = null;
   },
 };
 
@@ -139,7 +149,9 @@ watch(editing, async (id) => {
   nameInput.value?.select();
 });
 function addArea(): void {
-  openEditor(canvas.addArea(centeredArea(canvas.view, size.w, size.h)).id);
+  const a = canvas.addArea(centeredArea(canvas.view, size.w, size.h));
+  selected.value = a.id;
+  openEditor(a.id);
 }
 /** Saves the typed name when it is not empty and changed. */
 function commitName(): void {
@@ -160,6 +172,7 @@ function removeEditing(): void {
 let stopPointer: Disposer | null = null;
 let stopSync: (() => void) | null = null;
 let stopHide: Disposer | null = null;
+let stopEsc: Disposer | null = null;
 let observer: ResizeObserver | null = null;
 onMounted(() => {
   const el = viewport.value!;
@@ -173,12 +186,14 @@ onMounted(() => {
   stopPointer = bindCanvasPointer(el, hooks);
   // a reload or closed tab must not lose the last pan or zoom (the view is saved a moment after the last change)
   stopHide = listen(window, 'pagehide', () => canvas.flushView());
+  stopEsc = listen(window, 'keydown', (e) => { if (e.key === 'Escape') selected.value = null; });
   void canvas.loadAreas();
   stopSync = sync.registerTask('tasks-canvas', () => canvas.loadAreas());
 });
 onBeforeUnmount(() => {
   stopPointer?.();
   stopHide?.();
+  stopEsc?.();
   stopSync?.();
   observer?.disconnect();
   timers.forEach((s) => s());
@@ -195,7 +210,7 @@ onBeforeUnmount(() => {
       <div class="world" :style="worldStyle">
         <CanvasArea
           v-for="(r, i) in rects" :key="r.area.id" :area="r.area" :x="r.x" :y="r.y" :w="r.w" :h="r.h" :z="1 + i"
-          :editing="editing === r.area.id" :dragging="live?.id === r.area.id" @edit="openEditor(r.area.id)"
+          :editing="editing === r.area.id" :dragging="live?.id === r.area.id" :selected="selected === r.area.id" @edit="openEditor(r.area.id)"
         />
         <span v-if="stacked" class="unsorted" data-testid="canvas-unsorted">{{ t('canvas.unsorted') }}</span>
         <CanvasNote

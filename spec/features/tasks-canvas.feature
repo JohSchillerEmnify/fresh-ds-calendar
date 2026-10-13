@@ -3,7 +3,9 @@ Feature: The Canvas places task lists as sticky notes
   The Tasks view has three tabs, Open, Canvas and Archive. The Canvas shows every open task list, dated or not, as a
   sticky note on a large board you can pan and zoom. A note shows the title, the category colour, the date (when it has
   one) and its items with checkboxes; ticking works right on the note, and a finished list leaves the canvas for the
-  Archive. A note is dragged anywhere and its place is saved on the task list itself, so it is the same on every device.
+  Archive. A note is picked up by a long press anywhere on it (a plain drag with a mouse) and its place is saved on the
+  task list itself, so it is the same on every device. A long press on an area moves it too; releasing it without moving
+  shows big resize handles on its corners, as for the calendar's events.
   Lists that have no place yet sit in an "Unsorted" stack at the top left. Areas are named, coloured rectangles you
   create, move, resize and delete; a note belongs to an area purely by where it lies. Areas are kept per person.
 
@@ -72,6 +74,38 @@ Feature: The Canvas places task lists as sticky notes
     And I switch to another device
     And I open the Canvas
     Then the Canvas shows the area "Haus"
+
+  @mobile
+  Scenario: A long press anywhere on a note picks it up
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item | done |
+      | Form | no   |
+    When I open the Canvas
+    And I long-press the note "Taxes" on its first item and drag it to 100, 260
+    Then the note "Taxes" is at 100, 260 on the Canvas
+    And the item "Form" of the note "Taxes" is not ticked
+
+  @mobile
+  Scenario: A drag on a note without a long press does nothing
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item | done |
+      | Form | no   |
+    When I open the Canvas
+    And I swipe across the note "Taxes" on the Canvas
+    Then the note "Taxes" is in the Unsorted stack
+    And the Canvas is panned to 0, 0
+
+  Scenario: Releasing a long-pressed area without moving shows resize handles
+    When I open the Canvas
+    And I create the area "Haus" on the Canvas
+    And I tap the empty Canvas
+    Then the area "Haus" shows no resize handles
+    When I long-press the area "Haus" and release without moving
+    Then the area "Haus" shows resize handles
+    When I drag the bottom right handle of the area "Haus" by 20, 40 pixels
+    Then the area "Haus" is 340 wide and 280 high
+    When I tap the empty Canvas
+    Then the area "Haus" shows no resize handles
 
   @desktop
   Scenario: Zoom with Ctrl+wheel, pan the background and keep the view

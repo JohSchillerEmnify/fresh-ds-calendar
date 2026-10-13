@@ -62,6 +62,22 @@ export function clampArea(r: Rect): Rect {
   return { x: Math.round(clamp(r.x, 0, WORLD_W - w)), y: Math.round(clamp(r.y, 0, WORLD_H - h)), w, h };
 }
 
+/** A corner of an area (the resize handles sit on all four). */
+export type Corner = 'nw' | 'ne' | 'sw' | 'se';
+
+/**
+ * The area after its `corner` handle moved by (dx, dy): the opposite corner stays where it is, the minimum and maximum size
+ * and the board limit the moved edges.
+ */
+export function resizeRect(r: Rect, corner: Corner, dx: number, dy: number): Rect {
+  const west = corner.endsWith('w'), north = corner.startsWith('n');
+  const maxW = Math.min(AREA_MAX, WORLD_W), maxH = Math.min(AREA_MAX, WORLD_H);
+  const right = r.x + r.w, bottom = r.y + r.h;
+  const w = Math.round(clamp(west ? r.w - dx : r.w + dx, AREA_MIN_W, Math.min(maxW, west ? right : WORLD_W - r.x)));
+  const h = Math.round(clamp(north ? r.h - dy : r.h + dy, AREA_MIN_H, Math.min(maxH, north ? bottom : WORLD_H - r.y)));
+  return { x: west ? right - w : r.x, y: north ? bottom - h : r.y, w, h };
+}
+
 /** Where the n-th note (from 0) of the Unsorted stack lies. */
 export function stackPosition(n: number): Point {
   const o = STACK_ORIGIN + STACK_STEP * Math.min(Math.max(n, 0), STACK_MAX);

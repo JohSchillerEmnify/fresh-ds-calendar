@@ -1344,6 +1344,15 @@ I create the area {string} on the Canvas
 I move the note {string} into the area {string} on the Canvas
 the note {string} is in the area {string}
 the Canvas shows the area {string}
+I long-press the note {string} on its first item and drag it to {int}, {int}
+the item {string} of the note {string} is not ticked
+I swipe across the note {string} on the Canvas
+I tap the empty Canvas
+I long-press the area {string} and release without moving
+the area {string} shows resize handles
+the area {string} shows no resize handles
+I drag the bottom right handle of the area {string} by {int}, {int} pixels
+the area {string} is {int} wide and {int} high
 I pan the Canvas by {int}, {int} pixels
 the Canvas is panned to {int}, {int}
 I zoom the Canvas in with Ctrl+wheel
@@ -1358,9 +1367,25 @@ the Canvas zoom is above {float}
   equals the text (A-130). "does not show the note T": none has that title.
 - "the note T shows the date D": `canvas-note` T has `data-date` D and a `canvas-note-date`. "shows the items": the
   `tasklist-item` titles of the note joined `", "` in order.
-- "I move the note T to X, Y": plain mouse drag from the middle of `canvas-note-grip`; the pointer travels
-  `(X - data-x, Y - data-y) * data-zoom` pixels in steps and is released while the step waits for the
-  `PATCH /api/tasklists/:id` response (status 200). "the note T is at X, Y": `data-x`, `data-y` and `data-placed="true"`.
+- "I move the note T to X, Y": on a phone (`hasTouch`) a finger through CDP (`touchStart` in the middle of the note, a
+  500 ms long press, `touchMove` in 10 steps, `touchEnd`, as the Drag and drop steps); otherwise a plain mouse drag from
+  the middle of `canvas-note-grip` (a mouse must not start on a button). Either way the pointer travels
+  `(X - data-x, Y - data-y) * data-zoom` pixels; the step waits for the `PATCH /api/tasklists/:id` response (status 200).
+  "the note T is at X, Y": `data-x`, `data-y` and `data-placed="true"`.
+- "I long-press the note T on its first item and drag it to X, Y": like the move, but the finger goes down on the first
+  `tasklist-item-title` (a button), to show that a long press picks the note up anywhere. "the item I of the note T is
+  not ticked": `data-done="false"`.
+- "I swipe across the note T": the same finger (or mouse) drag by (60, 80) px from the middle of the note with no long
+  press; the scenario then expects an unmoved note in the stack and the view still at 0, 0.
+- "I tap the empty Canvas": a click in the bottom right corner of `canvas-viewport` (outside notes and areas); it hides
+  the resize handles.
+- "I long-press the area A and release without moving": finger down on the body of `canvas-area` (a spot away from the
+  header), held 500 ms, up. A mouse has no long press, so there it is a click on `canvas-area-header` (which also opens
+  the editor; the step closes it with `canvas-area-editor-close`).
+- "the area A shows / shows no resize handles": the area has 4 / 0 `canvas-area-handle` elements.
+- "I drag the bottom right handle of the area A by DX, DY pixels": drags `canvas-area-handle` with `data-corner="se"`
+  (a handle drags at once, no long press). "the area A is W wide and H high": `data-w`, `data-h` and the saved area
+  (`GET /api/canvas`) agree.
 - "in / not in the Unsorted stack": `data-placed` is `"false"` / `"true"`.
 - "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
