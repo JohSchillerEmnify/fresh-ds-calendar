@@ -9,7 +9,7 @@ The specs (`spec/ARCHITECTURE.md` §8 Configuration, §9 Owner actions) hold the
 |---|---|---|
 | Production | `http://cal.mordor.lan` (alias `cal.mordor.local`) | automatically after every merge into `main` on sauron |
 | Preview | `http://preview.cal.mordor.lan` | automatically after every merge into the `preview` branch on sauron |
-| Android app | `http://cal.mordor.lan/app.apk` (also Settings → Account & data → Android app) | `scripts/android-build.sh` on a machine with the Android SDK |
+| Android app | `http://cal.mordor.lan/app.apk` (also Settings → Account & data → Android app) | `scripts/android-build.sh` on sauron (Gradle in Docker) |
 | Source mirror | `github.com/JohSchillerEmnify/fresh-ds-calendar` (private), branch `main` | push from a clone (see below) |
 
 Everything is LAN-only: the `*.mordor.lan` names resolve through Pi-hole to `192.168.1.38`; Traefik routes them to the
@@ -114,14 +114,16 @@ automatically at sign-in; Settings → Account & data has **Back up now** and **
 
 ## Android app
 
-Build and publish (on a machine with JDK 17 and the Android SDK in `~/Android/Sdk`):
+Build and publish on sauron (Gradle runs in the `calendar-android-build` image from `android/build.Dockerfile`, capped at
+3 CPUs / 4 GB with low CPU shares; about 1 min with a warm cache in `~/.cache/calendar-gradle`):
 
 ```bash
-scripts/android-build.sh            # builds a release-signed APK and copies it to sauron (DATA_DIR/downloads/app.apk)
+scripts/android-build.sh            # builds a release-signed APK and copies it to DATA_DIR/downloads/app.apk
 scripts/android-build.sh --no-publish
 ```
 
-- The signing key is `~/.config/calendar-android/release.jks` (password in `keystore.properties` next to it), **outside
+- The signing key is `~/calendar-android-key/release.jks` (new key since 2026-10-13: the laptop's key is gone, so the app
+  had to be reinstalled once; not in a dot directory because the build container cannot mount those here) (password in `keystore.properties` next to it), **outside
   git — back it up**: updates of an installed app must be signed with the same key.
 - The app is a Capacitor shell that loads `http://cal.mordor.lan`; web changes reach it on the next start, no new APK
   needed. Only native changes (widget, shell) need a rebuild.

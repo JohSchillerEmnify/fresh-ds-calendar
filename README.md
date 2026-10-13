@@ -35,11 +35,11 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 ## Android app
 
 A Capacitor shell around `http://cal.mordor.lan` plus a weekly home-screen widget (`android/`, spec: ARCHITECTURE
-"Android app and widget"). Build and publish: `scripts/android-build.sh` (`--no-publish` to only build). It needs JDK 17
-and the Android SDK in `~/Android/Sdk` (`ANDROID_HOME`), builds `android/app/build/outputs/apk/release/app-release.apk`
-and copies it to sauron's `DATA_DIR/downloads/app.apk` (served at `http://cal.mordor.lan/app.apk`).
+"Android app and widget"). Build and publish: `scripts/android-build.sh` (`--no-publish` to only build). It runs on sauron:
+Gradle runs in the `calendar-android-build` Docker image (`android/build.Dockerfile`: JDK 21 + Android SDK 36), builds `android/app/build/outputs/apk/release/app-release.apk`
+and copies it to `DATA_DIR/downloads/app.apk` (served at `http://cal.mordor.lan/app.apk`).
 
-- **Release key**: generated once by the script in `~/.config/calendar-android/` (`release.jks` + `keystore.properties`),
+- **Release key**: generated once by the script in `~/calendar-android-key/` (`release.jks` + `keystore.properties`),
   outside git and gitignored. Back it up: an installed app can only be updated by an APK signed with the same key.
 - **Install on the phone**: open `http://cal.mordor.lan/app.apk` in Chrome, allow "Install unknown apps" for Chrome when
   asked, open the downloaded file and install; then long-press the home screen, Widgets, Calendar, add the weekly
