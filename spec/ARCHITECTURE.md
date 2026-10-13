@@ -218,11 +218,44 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 - **Defaults for new event**: date = focus date; if that is today, the next full hour after now (capped at 23:00),
   else 09:00; duration 1 h; calendar primary. Changing the start keeps the duration.
 - **Clock**: `useClock()` (see API.md `/api/config`).
-- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere. German comes later (owner, 2026-10-13), so
-  every user-visible string (labels, buttons, placeholders such as "List", validation messages, snackbars) lives in one
-  message catalogue (`web/src/i18n/en.ts`, keyed, read via `t('key')`); server validation messages are returned as
-  keys plus the English text. New and touched code uses the catalogue; no new hard-coded UI strings. Dates and times
-  are formatted with `Intl` from one locale setting. Moving the remaining existing strings is its own slice.
+- **i18n** (owner, 2026-10-13): translated through a token system, `web/src/i18n/`.
+  - **Library**: vue-i18n 11 in Composition API mode (`legacy: false`), behind our own typed `t()`; UI code imports
+    `t` from `@/i18n`, never from vue-i18n. Templates and scripts call `t('settings.language.label')`; with
+    values `t('settings.tasklists.moveUp', { name })`, with a count `t(key, { count }, count)` for `a | b` plurals.
+  - **Languages**: `en` (default and last fallback), `de`, and two fun languages, `de-x-mainfr` ("Fränggisch", light
+    Mainfränkisch, readable) and `de-x-coldmirror` ("Coldmirror" slang). The fun ones may be partial and fall back to
+    `de`, then `en`. The ids are internal; `<html lang>` gets a valid BCP 47 tag (`de-x-coldmir` for Coldmirror, since
+    private-use subtags have at most eight characters) and `Intl` always gets `en-GB` or `de-DE`.
+  - **Catalogues**: `web/src/i18n/locales/{en,de,de-x-mainfr,de-x-coldmirror}.ts`, keyed, nested, named by meaning
+    (`tasks.empty`, `settings.language.label`), never by text. `en.ts` is the source of truth: `type Messages` is its
+    shape, `MessageKey` the union of its dotted paths, so a missing or misspelt key is a type error. `de.ts` is typed
+    `Messages` (complete: a new `en` key without a German one fails the type check, `pnpm i18n:check` and a unit
+    test); the fun languages are `PartialMessages`, and `pnpm i18n:check` reports their gaps as info. `en` is bundled;
+    the others are lazy chunks, loaded when the language is applied (`de` first for the fun ones).
+  - **Choice**: the person pref `language` (`auto` | `en` | `de` | `de-x-mainfr` | `de-x-coldmirror`, default `auto`,
+    in `Prefs`, `GET/PATCH /api/prefs`, validated by a whitelist). `auto` follows the device: the first entry of
+    `navigator.languages` being `de` or `de-*` gives `de`, anything else `en`. Settings → Appearance has the select
+    "Language" (`settings-language`) with the options Automatic (translated), English, Deutsch, Fränggisch, Coldmirror
+    (each in its own name). Changing it applies at once, without a reload (`applyLanguage`, run from the shell when
+    `prefs.language` changes, also when it arrives from another device). The last pref is cached in `localStorage`
+    (`language`) so the first paint of the next visit already uses it; the server value wins once loaded.
+  - **Formats**: 24 h and Monday as the first day stay in every language. Dates follow the language: English keeps its
+    en-GB forms (`lib/dates.ts`, date-fns), all other languages use `Intl` with `de-DE` ("Dienstag, 13. Oktober 2026",
+    weekday headers "Mo".."So", month names). `weekdayLabels()` / `monthNames()` replace the former constants.
+  - **Server messages** stay English; user-facing validation errors also carry `error.key` (API.md "Error format"),
+    equal to a catalogue key. `ApiError.userMessage` translates a known key and otherwise shows the server's English.
+  - **Rules for new code**: all new UI text goes through `t()`; no hard-coded strings in templates or scripts, new
+    keys go into `en.ts` and `de.ts` together (the fun languages when there is a good joke). A unit test
+    (`i18n-raw-text`) rejects hard-coded text and static `label`/`aria-label`/`title`/`placeholder` attributes in
+    the templates of the components listed in it; a component is added to the list when its area is migrated. No
+    eslint dependency for this (owner: only if lightweight).
+  - **Migrated in this slice**: the former `en.ts` keys, the Settings page and the view switcher labels (navigation
+    bar and rail). **Moving the remaining strings: per area** — calendar views, task lists/tray, Tasks view, dialogs,
+    theme menu, motivation, labs — one area per slice, after the open feature branches are merged (many are in flight
+    and would conflict); each slice moves its strings and adds its components to the raw-text test.
+  - **Alternatives weighed**: own typed `t()` wrapper over vue-i18n's `DefineLocaleMessage` typing (chosen: key
+    errors are real compile errors and the surface stays small); `<i18n>` blocks / JSON catalogues (rejected: TypeScript
+    catalogues give the schema type for free); a Settings-only language (rejected: owner wants a device default).
 
 ### Mobile-first UX (primary target 375–430 px portrait)
 

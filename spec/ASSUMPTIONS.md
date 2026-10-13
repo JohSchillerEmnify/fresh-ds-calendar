@@ -185,3 +185,42 @@ spec files are named.
   "Top bar scene" setting and the theme's "Scene" attribute become one theme attribute. On migration the scene that was
   visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
   style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
+- **A-81 Library and version** (owner decision 1, 2026-10-13): vue-i18n 11.4.12 (exact pin, released 2026-09-16, the
+  newest release at least two weeks old; 11.4.13/14 and 12.0.0-alpha are newer), Composition API (`legacy: false`),
+  with the build flags `__VUE_I18N_LEGACY_API__`, `__VUE_I18N_FULL_INSTALL__` and `__INTLIFY_PROD_DEVTOOLS__` off
+  (vue-i18n's own optimisation advice). The plugin is not installed on the Vue app: UI code uses our typed `t()`.
+- **A-82 Locale codes** (picked, logged as asked): `en`, `de`, `de-x-mainfr`, `de-x-coldmirror`. The owner named the
+  last one, but BCP 47 private-use subtags have at most eight characters, so it is not a valid tag: it stays the
+  internal id (pref value, catalogue file) and is never passed to `Intl`; `<html lang>` gets `de-x-coldmir`.
+  `Intl` always receives `en-GB` or `de-DE`.
+- **A-83 `auto` resolution** (inferred): only the first entry of `navigator.languages` decides (`de`, `de-AT`, … give
+  German, anything else English). Weighed: "any German entry anywhere in the list" (rejected: an English-first browser
+  with German as a second language is more likely to want English).
+- **A-84 First paint** (inferred): the last language pref is cached in `localStorage` (`language`, per device, wrapped
+  in try/catch) and applied before the app mounts, so a person who chose English on a German browser does not see German
+  flash up while the prefs load. The server value wins as soon as it arrives.
+- **A-85 Date formats** (checked against `Intl`): English keeps today's date-fns forms ("28 Sep – 4 Oct 2026"; `Intl`
+  en-GB would say "Sept"). German, Fränggisch and Coldmirror use `Intl` de-DE: the day view header reads "Dienstag,
+  13. Oktober 2026" (the form "Di., 13. Okt." is what `Intl` gives for a short weekday with day and month; no view header
+  uses it), the week "12. – 18. Okt. 2026", weekday headers "Mo".."So". vue-i18n's `d`/`n` formats are not configured:
+  nothing uses them yet and `lib/dates.ts` already centralises dates. Month and weekday names in the month, year and
+  strip views and the month picker follow the language (a one-line change in each, not a string migration).
+- **A-86 Typed keys** (inferred): a thin `t()` wrapper whose key type is the union of the dotted paths of `en.ts`, and
+  `de.ts` typed as the full schema. vue-i18n's `DefineLocaleMessage` augmentation was weighed; it does not make a
+  misspelt key a compile error in every call form.
+- **A-87 Server message keys**: the optional `error.key` equals a catalogue path. Only the user-facing validation
+  errors that exist in the web catalogue got keys (end after start, event length, task list title/items/tags, category
+  name exists); every other message stays English-only until its area is migrated. The server never translates.
+- **A-88 Raw-text check** (owner decision 7: only if lightweight): a unit test over the templates of an explicit list of
+  migrated components, no eslint plugin (the repo has no eslint). The list grows per migrated area.
+- **A-89 Fun-language wording** is written by the agent and needs the owner's eye. Fränggisch is light ("des", "ned",
+  "bassd", "etz", "amal", "gud", "Eisdellunga"); Coldmirror uses "Schinken!", "BÄMbus!", "Was ist das für 1 …", "du
+  Oberpflaume", "Eulen. Eulen everywhere." and never "Ich bin voll geil". Both are partial on purpose.
+- **A-90 Settings row**: "Language" sits at the end of Appearance (below Theme). The Automatic option is translated;
+  the language names are not (each in its own name). Choosing saves through `PATCH /api/prefs` like the other prefs.
+- **A-91 First-load size**: vue-i18n adds about 18 kB gzip to a shared chunk that the first load preloads. The
+  size-limit "initial JS" check measures only `index-*.js` and stays at 64 kB of 75; "all JS" was already above its
+  152 kB limit before this slice. Possible later saving: pre-compile messages and use the runtime-only build.
+- **A-92 Test step "the browser language is"**: an init script on the current context overrides `navigator.language`
+  and `navigator.languages` (a Playwright context cannot change its `locale` after creation). New "another device"
+  contexts keep the project locale `en-GB`, which is what the "follows the person" scenario needs.
