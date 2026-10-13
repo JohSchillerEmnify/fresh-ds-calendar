@@ -25,8 +25,9 @@ public class WeekWidgetProvider extends AppWidgetProvider {
     static final String ACTION_REFRESH = "lan.mordor.calendar.widget.REFRESH";
     private static final String PERIODIC = "calendar-widget-periodic";
     private static final String NOW = "calendar-widget-now";
-    /** The app pushes a snapshot with every sync (every 30 s while open); fetch at most this often because of it. */
-    private static final long MIN_FETCH_GAP_MS = 2 * 60_000;
+    /** The app pushes a snapshot with every sync (every 30 s while open); the widget fetches at most this often because of it,
+     * so a change made in the app shows on the widget within about a minute (the fetch is the widget's data, see pickData). */
+    private static final long MIN_FETCH_GAP_MS = 30_000;
 
     @Override
     public void onEnabled(Context context) {
