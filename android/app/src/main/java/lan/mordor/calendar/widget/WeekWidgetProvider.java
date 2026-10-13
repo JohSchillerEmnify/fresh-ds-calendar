@@ -30,13 +30,22 @@ public class WeekWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onEnabled(Context context) {
+        schedulePeriodicFetch(context);
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        if (ClockWidgetProvider.ids(context).length == 0) cancelPeriodicFetch(context);
+    }
+
+    /** The 30-minute fetch shared by the week and the clock widget (kept when it already runs). */
+    static void schedulePeriodicFetch(Context context) {
         Constraints online = new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC, ExistingPeriodicWorkPolicy.KEEP,
                 new PeriodicWorkRequest.Builder(RefreshWorker.class, 30, TimeUnit.MINUTES).setConstraints(online).build());
     }
 
-    @Override
-    public void onDisabled(Context context) {
+    static void cancelPeriodicFetch(Context context) {
         WorkManager.getInstance(context).cancelUniqueWork(PERIODIC);
     }
 
@@ -62,15 +71,17 @@ public class WeekWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    /** Redraws every widget instance from the stored data. */
+    /** Redraws every widget instance (week and clock) from the stored data. */
     static void renderAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         for (int id : manager.getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class))) WidgetRenderer.render(context, manager, id);
+        ClockWidgetProvider.renderAll(context);
     }
 
-    /** Whether at least one widget is on a home screen. */
+    /** Whether at least one widget (week or clock) is on a home screen. */
     static boolean hasWidgets(Context context) {
-        return AppWidgetManager.getInstance(context).getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class)).length > 0;
+        return AppWidgetManager.getInstance(context).getAppWidgetIds(new ComponentName(context, WeekWidgetProvider.class)).length > 0
+                || ClockWidgetProvider.ids(context).length > 0;
     }
 
     /** Asks for a fetch as soon as there is a network; a fetch already waiting is kept. */

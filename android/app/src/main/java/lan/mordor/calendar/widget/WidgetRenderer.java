@@ -82,7 +82,7 @@ final class WidgetRenderer {
     }
 
     /** The newer of the app's snapshot and the fetched week, whichever is for the current week. */
-    private static WeekData pickData(WidgetStore store, JSONObject snapshot, LocalDate today, LocalDate monday) {
+    static WeekData pickData(WidgetStore store, JSONObject snapshot, LocalDate today, LocalDate monday) {
         WeekData best = null;
         try {
             if (snapshot != null && monday.equals(WidgetStore.weekOf(snapshot))) best = WeekData.fromSnapshot(snapshot, today, store.snapshotAtMillis());

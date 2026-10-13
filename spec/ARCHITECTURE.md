@@ -1536,6 +1536,20 @@ browser does not change.
   any use (app or widget), or after signing out, the widget shows the sign-in hint until the app is opened. The cookie
   is `HttpOnly; SameSite=Lax` and `Secure` only when `PUBLIC_URL` is https, so a native client over plain HTTP is not
   blocked and no server security was loosened. The WebView's cookie jar is only readable by this app.
+- **Clock widget** (owner, 2026-10-13: the clock "has a lot of potential for a widget"): a second, square widget
+  (`ClockWidgetProvider`, `clock_widget_info.xml`, default 2x2, resizable) that draws today as the app's 24-hour clock
+  (`ClockCanvas`, one bitmap): day ring with the elapsed part, plate and hour ticks (00/06/12/18 in the outer ring), arcs on
+  lanes (`ClockLayout.arcs`, the web's `assignLanes`; lanes too far in are left out), the focus wedge (`ClockLayout.wedge`,
+  the web's `focusWedge`), the hand (starting at 36 % of the plate so the middle stays free), the first all-day event above
+  the middle, and under it the Approaching card's line (`ClockLayout.nowLine`: "Dentist · 40 min left", "Next: Gym in 2 h",
+  same wording and German forms as the web) and the untimed task lists. The digital time is a live `TextClock` over the
+  bitmap (ticked by the system every minute, no app work); the bitmap is redrawn by an inexact, non-waking 5-minute alarm
+  (`ACTION_TICK`), so it moves while the phone is in use and costs nothing with the screen off, plus on every data change.
+  It shares the week widget's data (`WidgetRenderer.pickData`: the newer of fetch and snapshot), theme, language and the
+  30-minute WorkManager fetch (kept while either widget exists). A tap opens `/clock/<today>` (the deep-link pattern now
+  accepts `clock`). Alternatives weighed: `AnalogClock` in RemoteViews (12-hour hands only, no arcs); a per-minute alarm
+  for the whole picture (battery for a 0.25° step of the hand). Pictures for review without a device:
+  `ClockCanvasRenderTest` draws it with Robolectric's native graphics into `android/app/build/widget-pictures/`.
 - **System back** (owner bug, 2026-10-13): without a handler the Android back gesture finished the activity whatever was
   open. `MainActivity` registers an `OnBackPressedCallback` (works with predictive back, target SDK 36): when the WebView
   `canGoBack()` it calls `goBack()`, which fires `popstate`, so the overlay back-stack ("Back closes overlays") closes
