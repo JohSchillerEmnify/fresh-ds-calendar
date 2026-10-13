@@ -2,7 +2,7 @@
  * Zoom of the day/week time grid (ARCHITECTURE "Zoom"): one shared reactive hour height (px per hour), clamped to
  * `MIN_HOUR_PX`..`MAX_HOUR_PX` and remembered per device in `localStorage` (not a server pref). Until the person zooms
  * it follows the viewport default (44 px on a phone, 48 px otherwise). Also the gesture binding: two-finger pinch and
- * Ctrl+wheel. Listeners are bound by `bindGridZoom`; the touch pinch never reaches the swipe carousel, which drops a
+ * Ctrl+wheel (live preview during the gesture, one commit when it settles). Listeners are bound by `bindGridZoom`; the touch pinch never reaches the swipe carousel, which drops a
  * gesture as soon as a second finger lands (`bindSwipeCarousel`).
  */
 import { computed, ref } from 'vue';
@@ -30,6 +30,16 @@ export function wheelZoomFactor(deltaY: number): number {
   return Math.exp(-deltaY * WHEEL_ZOOM_RATE);
 }
 
+/** Grid y (px at the committed hour height) shown `off` px below the scroller top, under `translateY(t) scaleY(k)` at `scrollTop`. */
+export function gridYUnder(scrollTop: number, off: number, k: number, t: number): number {
+  return (scrollTop + off - t) / k;
+}
+
+/** The `translateY` that keeps grid y `g` at `off` px below the scroller top under `scaleY(k)` at `scrollTop`. */
+export function previewShift(scrollTop: number, off: number, g: number, k: number): number {
+  return scrollTop + off - g * k;
+}
+
 /** The remembered hour height, or null when none is stored or it is unusable (storage blocked, garbage). */
 export function readStoredHourHeight(): number | null {
   try {
@@ -53,40 +63,63 @@ export function setHourHeight(px: number): number {
   return v;
 }
 
+/** Idle time after the last Ctrl+wheel event before the zoom counts as settled. */
+export const WHEEL_SETTLE_MS = 150;
+
 export interface GridZoomHooks {
-  /** Current hour height. */
+  /** Committed hour height (what the blocks are laid out with). */
   get: () => number;
-  /** Apply a new hour height; `clientY` is the pinch centre / pointer, which should keep its time under it. */
-  set: (px: number, clientY: number) => void;
+  /** Cheap live preview of a new hour height (CSS transform only); `clientY` is the pinch centre / pointer, which keeps its time under it. */
+  preview: (px: number, clientY: number) => void;
+  /** The gesture settled: commit `px` (re-lay out, remember) and drop the preview. */
+  commit: (px: number) => void;
 }
 
 const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 const midY = (t: TouchList) => (t[0].clientY + t[1].clientY) / 2;
 
-/** Binds pinch (touch) and Ctrl+wheel zoom to `el`. Returns a disposer. */
+/**
+ * Binds pinch (touch) and Ctrl+wheel zoom to `el`. During a gesture only `hooks.preview` runs; `hooks.commit` runs once
+ * on touchend (pinch) or after `WHEEL_SETTLE_MS` without wheel events. Returns a disposer.
+ */
 export function bindGridZoom(el: HTMLElement, h: GridZoomHooks): () => void {
   let pinch: { startHeight: number; startDist: number } | null = null;
+  /** Previewed, not yet committed hour height. */
+  let live: number | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const settle = () => {
+    clearTimeout(timer);
+    timer = undefined;
+    if (live === null) return;
+    const v = live;
+    live = null;
+    h.commit(v);
+  };
   const stops = [
     listen(el, 'touchstart', (e) => {
       const t = (e as TouchEvent).touches;
-      pinch = t.length === 2 ? { startHeight: h.get(), startDist: dist(t) } : null;
+      pinch = t.length === 2 ? { startHeight: live ?? h.get(), startDist: dist(t) } : null;
     }, { passive: true }),
     // non-passive: a pinch must not also scroll the grid
     listen(el, 'touchmove', (e) => {
       const te = e as TouchEvent;
       if (!pinch || te.touches.length !== 2) return;
       if (te.cancelable) te.preventDefault();
-      h.set(pinchHourHeight(pinch.startHeight, pinch.startDist, dist(te.touches)), midY(te.touches));
+      live = pinchHourHeight(pinch.startHeight, pinch.startDist, dist(te.touches));
+      h.preview(live, midY(te.touches));
     }, { passive: false }),
-    listen(el, 'touchend', (e) => { if ((e as TouchEvent).touches.length < 2) pinch = null; }, { passive: true }),
-    listen(el, 'touchcancel', () => { pinch = null; }, { passive: true }),
+    listen(el, 'touchend', (e) => { if ((e as TouchEvent).touches.length < 2) { pinch = null; settle(); } }, { passive: true }),
+    listen(el, 'touchcancel', () => { pinch = null; settle(); }, { passive: true }),
     // non-passive: preventDefault keeps the browser's page zoom (Ctrl+wheel, trackpad pinch) from firing
     listen(el, 'wheel', (e) => {
       const we = e as WheelEvent;
       if (!we.ctrlKey) return;
       we.preventDefault();
-      h.set(h.get() * wheelZoomFactor(we.deltaY), we.clientY);
+      live = clampHourHeight((live ?? h.get()) * wheelZoomFactor(we.deltaY));
+      h.preview(live, we.clientY);
+      clearTimeout(timer);
+      timer = setTimeout(settle, WHEEL_SETTLE_MS);
     }, { passive: false }),
   ];
-  return () => stops.forEach((s) => s());
+  return () => { clearTimeout(timer); stops.forEach((s) => s()); };
 }

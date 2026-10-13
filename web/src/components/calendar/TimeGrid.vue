@@ -10,7 +10,7 @@ import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
-import { bindGridZoom, hourHeight, setHourHeight } from '@/composables/useHourHeight';
+import { bindGridZoom, gridYUnder, hourHeight, previewShift, setHourHeight } from '@/composables/useHourHeight';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
@@ -59,20 +59,39 @@ function initialScroll() {
   const todayVisible = props.dates.some((d) => toIsoDate(d) === clock.today);
   el.scrollTop = Math.max(0, todayVisible ? px(clock.minutesNow) - el.clientHeight / 3 : px(7 * 60));
 }
-/** Zoom keeping the time under `clientY` (pinch centre / pointer) where it is. */
-function zoomTo(next: number, clientY: number) {
+interface ZoomPreview { base: number; k: number; t: number; off: number }
+let zoom: ZoomPreview | null = null;
+const gridEl = ref<HTMLElement | null>(null);
+/** Live zoom: only a CSS transform on the grid (blocks keep their layout), keeping the time under `clientY` in place. */
+function previewZoom(next: number, clientY: number) {
   const el = scroller.value;
+  const grid = gridEl.value;
+  if (!el || !grid) return;
+  const z = zoom ?? (zoom = { base: hourHeight.value, k: 1, t: 0, off: 0 });
+  const off = clientY - el.getBoundingClientRect().top;
+  const k = next / z.base;
+  z.t = previewShift(el.scrollTop, off, gridYUnder(el.scrollTop, off, z.k, z.t), k);
+  z.k = k;
+  z.off = off;
+  grid.style.transformOrigin = '0 0';
+  grid.style.transform = `translateY(${z.t}px) scaleY(${k})`;
+}
+/** Gesture settled: drop the transform, lay the blocks out once at `next`, keep the anchored time where it was. */
+function commitZoom(next: number) {
+  const el = scroller.value;
+  const z = zoom;
+  zoom = null;
+  if (gridEl.value) { gridEl.value.style.transform = ''; gridEl.value.style.transformOrigin = ''; }
   const old = hourHeight.value;
   const v = setHourHeight(next);
-  if (!el || v === old) return;
-  const off = clientY - el.getBoundingClientRect().top;
-  const want = ((el.scrollTop + off) * v) / old - off;
+  if (!el || !z) return;
+  const want = gridYUnder(el.scrollTop, z.off, z.k, z.t) * (v / old) - z.off;
   nextTick(() => { el.scrollTop = Math.max(0, want); });
 }
 let unbindZoom = () => {};
 onMounted(() => {
   nextTick(initialScroll);
-  if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hourHeight.value, set: zoomTo });
+  if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hourHeight.value, preview: previewZoom, commit: commitZoom });
 });
 onBeforeUnmount(() => unbindZoom());
 watch(() => props.mode, () => nextTick(initialScroll));
@@ -111,7 +130,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
-      <div class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
+      <div ref="gridEl" class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
         <div class="gutter hours">
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>
         </div>
