@@ -14,6 +14,13 @@ export default {
     templateCreated: 'Created an open copy of {title}',
     templateFailed: "Couldn't create the copy.",
   },
+  filter: {
+    label: 'Filter',
+    when: 'When',
+    clear: 'Clear filters',
+    saveFailed: "Couldn't save the filter.",
+    whenOption: { all: 'All', nodate: 'No date', dated: 'Dated', overdue: 'Overdue', today: 'Today', tomorrow: 'Tomorrow', week: 'This week' },
+  },
   view: {
     groupBy: 'Group by',
     sortBy: 'Sort by',

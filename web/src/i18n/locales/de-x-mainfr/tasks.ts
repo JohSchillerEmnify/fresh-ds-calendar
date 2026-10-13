@@ -12,6 +12,13 @@ export default {
     templateCreated: 'Offene Kopie von {title} gmachd',
     templateFailed: 'Die Kopie konnd ned gmachd wern.',
   },
+  filter: {
+    label: 'Filder',
+    when: 'Wann',
+    clear: 'Filder wegmachn',
+    saveFailed: 'Der Filder hat sich ned speichern lassn.',
+    whenOption: { all: 'Alle', nodate: 'Ohne Datum', dated: 'Mid Datum', overdue: 'Überfällich', today: 'Heid', tomorrow: 'Morng', week: 'Diese Woche' },
+  },
   view: {
     groupBy: 'Gruppiern nach',
     sortBy: 'Sortiern nach',

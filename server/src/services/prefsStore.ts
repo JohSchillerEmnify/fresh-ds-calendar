@@ -30,6 +30,22 @@ export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category
 export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export const TASKS_SORT_BY_VALUES: readonly TasksSortBy[] = ['date', 'name', 'category', 'changed', 'progress'];
 
+/** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
+export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
+export const TASKS_WHEN_VALUES: readonly TasksWhen[] = ['all', 'nodate', 'dated', 'overdue', 'today', 'tomorrow', 'week'];
+/** The Tasks view's filter: category ids (or `none`) combined with "or", and one When choice, combined with "and". */
+export interface TasksFilter { categories: string[]; when: TasksWhen }
+export const DEFAULT_TASKS_FILTER: TasksFilter = { categories: [], when: 'all' };
+
+/** The filter as stored, or a default for anything that is not a valid one (also the shape check of `PATCH /api/prefs`). */
+export function toTasksFilter(v: unknown): TasksFilter | null {
+  if (!v || typeof v !== 'object') return null;
+  const { categories, when, ...rest } = v as Record<string, unknown>;
+  if (Object.keys(rest).length || !TASKS_WHEN_VALUES.includes(when as TasksWhen) || !Array.isArray(categories) || categories.length > 50) return null;
+  if (!categories.every((c) => typeof c === 'string' && c.length >= 1 && c.length <= 64) || new Set(categories).size !== categories.length) return null;
+  return { categories: [...categories] as string[], when: when as TasksWhen };
+}
+
 /** What finishing an undated task list does: show it in the calendar on that day, or keep it in the Archive only. */
 export type UndatedDone = 'calendar' | 'archive';
 export const UNDATED_DONE_VALUES: readonly UndatedDone[] = ['calendar', 'archive'];
@@ -78,6 +94,8 @@ export interface Prefs {
   tasksSortDir: TasksSortDir;
   /** "Finished list without a date" (ARCHITECTURE "Archive"). */
   undatedDone: UndatedDone;
+  /** The Tasks view's filter, shared by Open, Canvas and Archive (ARCHITECTURE "Tasks filter"). */
+  tasksFilter: TasksFilter;
   /** The UI language: `auto` (device language) or a fixed one (ARCHITECTURE "i18n"). */
   language: LanguagePref;
 }
@@ -117,6 +135,7 @@ export class PrefsStore {
       labsOwnThemes: p?.labsOwnThemes === true,
       tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
       undatedDone: UNDATED_DONE_VALUES.includes(p?.undatedDone as UndatedDone) ? (p!.undatedDone as UndatedDone) : 'calendar',
+      tasksFilter: toTasksFilter(p?.tasksFilter) ?? { ...DEFAULT_TASKS_FILTER, categories: [] },
       language: isLanguagePref(p?.language) ? p.language : 'auto',
     };
   }
@@ -201,8 +220,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language };
   }
 
   /**

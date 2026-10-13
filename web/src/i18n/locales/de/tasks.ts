@@ -12,6 +12,13 @@ export default {
     templateCreated: 'Offene Kopie von {title} angelegt',
     templateFailed: 'Die Kopie konnte nicht angelegt werden.',
   },
+  filter: {
+    label: 'Filter',
+    when: 'Wann',
+    clear: 'Filter zurücksetzen',
+    saveFailed: 'Der Filter konnte nicht gespeichert werden.',
+    whenOption: { all: 'Alle', nodate: 'Ohne Datum', dated: 'Mit Datum', overdue: 'Überfällig', today: 'Heute', tomorrow: 'Morgen', week: 'Diese Woche' },
+  },
   view: {
     groupBy: 'Gruppieren nach',
     sortBy: 'Sortieren nach',

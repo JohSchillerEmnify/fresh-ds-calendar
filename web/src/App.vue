@@ -67,7 +67,7 @@ const baseItems = computed<NavItem[]>(() => [
 const items = computed<NavItem[]>(() => labs.labs
   ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
   : baseItems.value);
-const filterShown = computed(() => hasShell.value && (ui.filtersShown || filters.active.value));
+const filterShown = computed(() => hasShell.value && !route.meta.tasks && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
 /** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, and outside the calendar. */

@@ -15,6 +15,13 @@ export default {
     templateCreated: 'Post für mich, Post für mich! Offene Kopie von {title} ist da.',
     templateFailed: 'Die Kopie hat nicht geklappt, Digga.',
   },
+  filter: {
+    label: 'Filter, yo',
+    when: 'Wann, yo',
+    clear: 'Filter wegzaubern',
+    saveFailed: 'Der Filter ist nicht gespeichert. Schinken!',
+    whenOption: { all: 'Alle, yo', nodate: 'Ohne Datum, wie Harrys Eltern', dated: 'Mit Datum, yo', overdue: 'Überfällig, wie Snapes Hausaufgaben-Frist', today: 'Heute, Digga', tomorrow: 'Morgen, fresh', week: 'Diese Woche, yo' },
+  },
   view: {
     groupBy: 'Gruppieren nach, fresh',
     sortBy: 'Sortieren nach, yo',
