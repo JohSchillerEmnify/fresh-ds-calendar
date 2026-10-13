@@ -504,7 +504,7 @@ Budgets (verified by `@perf` scenarios and build checks, ACCEPTANCE AC-55 … AC
 | Frontend heap growth after 50× view cycles + 50× dialog open/close + 50× task list expand/collapse (after GC) | < 10 % |
 | DOM nodes and JS event listeners growth, same workload | < 10 % |
 | Detached DOM from closed dialogs/sheets | none retained |
-| Server RSS idle (after start + GC) | ≤ 80 MB |
+| Server RSS idle (after start + GC) | ≤ 100 MB (owner 2026-10-13: bare node alone idles at ~46 MB on the host) |
 | Server RSS growth over 5 000 reads + 500 item writes (after GC) | < 20 MB |
 | Container image size | ≤ 200 MB (target, not a test gate) |
 

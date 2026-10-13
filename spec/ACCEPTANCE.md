@@ -108,7 +108,7 @@ Feature files are under `spec/features/`; scenario names are quoted exactly.
 |---|---|---|
 | AC-59 | No frontend leaks: after 50× view cycles, 50× dialog open/close and 50× task list expand/collapse, JS heap, DOM node and event listener counts grow < 10 % (after forced GC) and closed dialogs leave no detached DOM. | performance: "Switching views and opening dialogs repeatedly does not leak memory" |
 | AC-60 | Timers and listeners are released: one polling timer app-wide regardless of navigation; polling pauses while hidden and resumes on return; components clean up on unmount. | performance: "Navigating many periods does not accumulate polling timers", "Polling stops while the app is hidden", "Returning to the calendar after a hidden period syncs once and resumes polling"; web unit tests mounting/unmounting views with fake timers and listener spies |
-| AC-61 | Server memory: idle RSS ≤ 80 MB; RSS growth < 20 MB after 5 000 reads + 500 task item writes (after GC). | performance: "The server stays small when idle", "The server does not leak memory under load" |
+| AC-61 | Server memory: idle RSS ≤ 100 MB; RSS growth < 20 MB after 5 000 reads + 500 task item writes (after GC). | performance: "The server stays small when idle", "The server does not leak memory under load" |
 | AC-62 | Lighthouse mobile performance score ≥ 90 for the production build on localhost. | performance: "The app scores well in a phone performance audit" |
 
 ## Settings, categories and colors

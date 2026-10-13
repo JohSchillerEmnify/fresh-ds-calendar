@@ -1,6 +1,7 @@
 @perf
 Feature: Resource efficiency and no memory leaks
-  Hard requirements. Browser memory is measured after a forced garbage collection;
+  Hard requirements. Browser memory is measured after a forced garbage collection, and only after every workload
+  of the scenario ran a few times as warm-up, so first-use code and caches are not counted as growth (owner);
   server memory through the test-only memory endpoint. These scenarios run only at the
   phone viewport, serially.
 
@@ -16,6 +17,8 @@ Feature: Resource efficiency and no memory leaks
   Scenario: Switching views and opening dialogs repeatedly does not leak memory
     When I open the month view for 2026-10
     And I cycle through the month, week and day views 5 times
+    And I open and close the event dialog 5 times
+    And I expand and collapse the task list "Groceries" 5 times
     And I record the browser memory after garbage collection
     And I cycle through the month, week and day views 50 times
     And I open and close the event dialog 50 times
@@ -59,7 +62,7 @@ Feature: Resource efficiency and no memory leaks
 
   Scenario: The server stays small when idle
     When I request "GET /api/__test/memory?gc=true"
-    Then the server resident memory is below 80 MB
+    Then the server resident memory is below 100 MB
 
   Scenario: The server does not leak memory under load
     When I send 500 warm-up requests to "GET /api/items?from=2026-09-28&to=2026-11-02"
@@ -73,6 +76,7 @@ Feature: Resource efficiency and no memory leaks
     And I expand the task list "Groceries"
     And I tick and untick the item "Milk" 5 times
     And I collapse the task list
+    And I drag the event "Dentist" back and forth 3 times
     And I record the browser memory after garbage collection
     And I expand the task list "Groceries"
     And I tick and untick the item "Milk" 50 times
