@@ -377,6 +377,19 @@ describe('settings', () => {
     expect(w.find(tid('settings-reset-demo')).exists()).toBe(true);
     stop();
   });
+  it('saves left-handed mode as a person pref and mirrors the layout with html[data-hand]', async () => {
+    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': () => ({}) });
+    const stop = useSettingsStore().installAppearance();
+    expect(document.documentElement.dataset.hand).toBeUndefined();
+    await w.get(tid('settings-left-handed')).trigger('click');
+    await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').map((c) => c.body)).toContainEqual({ leftHanded: true });
+    expect(document.documentElement.dataset.hand).toBe('left');
+    await w.get(tid('settings-left-handed')).trigger('click');
+    await flushPromises();
+    expect(document.documentElement.dataset.hand).toBeUndefined();
+    stop();
+  });
   it('adds a category through the dialog and validates it', async () => {
     const { w } = await mountAt('/settings');
     await w.get(tid('settings-category-add')).trigger('click');

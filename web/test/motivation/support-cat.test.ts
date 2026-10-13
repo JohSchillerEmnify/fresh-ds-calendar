@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { usePrefsStore } from '@/stores/prefs';
+import { freshPinia } from '../helpers';
 import SupportCat from '@/features/motivation/SupportCat.vue';
 import { CAT_CHANCE, CAT_DURATION_MS, CAT_SWIPE, catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
 
@@ -63,6 +65,7 @@ describe('paw swipe timing', () => {
 });
 
 describe('SupportCat', () => {
+  beforeEach(() => { freshPinia(); });
   afterEach(() => vi.useRealTimers());
   const card = { left: 0, top: 100, right: 375, bottom: 400 };
 
@@ -90,6 +93,21 @@ describe('SupportCat', () => {
     const far = mount(SupportCat, { props: { card, title: { left: 60, top: 120, right: 900, bottom: 148 }, level: 'full' } });
     expect(far.get('[data-testid="support-cat"]').attributes('style')).toContain('left: 297px');
     far.unmount();
+  });
+
+  it('walks in from the right, and from the left in left-handed mode (standing at the start of the title)', () => {
+    vi.useFakeTimers();
+    const title = { left: 60, top: 120, right: 180, bottom: 148 };
+    const rh = mount(SupportCat, { props: { card, title, level: 'full' } });
+    expect(rh.get('[data-testid="support-cat"]').attributes('data-from')).toBe('right');
+    rh.unmount();
+    usePrefsStore().leftHanded = true;
+    const lh = mount(SupportCat, { props: { card, title, level: 'full' } });
+    const el = lh.get('[data-testid="support-cat"]');
+    expect(el.attributes('data-from')).toBe('left');
+    expect(el.attributes('style')).toContain('left: 8px'); // 60 - (72 - 20)
+    expect(el.attributes('style')).toContain('--dir: -1');
+    lh.unmount();
   });
 
   it('is shorter at Reduced', () => {
