@@ -326,6 +326,12 @@ describe('settings', () => {
     const { w, m } = await mountAt('/settings');
     await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
     expect(w.find(tid('settings-garden')).exists()).toBe(false);
+    // without the Sunflower field scene the setting is shown but inactive, with a hint
+    expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeDefined();
+    expect(w.get(tid('settings-sunflowers-hint')).text()).toBe('Applies to the Sunflower field scene');
+    await useThemeStore().pick('scene', 'sunflowers');
+    await wait(() => expect(w.find(tid('settings-sunflowers-hint')).exists()).toBe(false));
+    expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeUndefined();
     expect(w.get(tid('settings-plant')).attributes('aria-checked')).toBe('true');
     expect(w.get('[data-testid="settings-sunflowers"] [aria-pressed="true"]').attributes('data-value')).toBe('grow');
     expect(w.findAll('[data-testid="settings-sunflowers"] button').map((b) => b.text())).toEqual(['Grow with points', 'Full field']);

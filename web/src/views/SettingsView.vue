@@ -111,6 +111,8 @@ function commitCustomHours() {
 }
 const levels = [{ value: 'full', label: 'Full' }, { value: 'reduced', label: 'Reduced' }, { value: 'off', label: 'Off' }] as const;
 const warns = [{ value: '0', label: 'Off' }, { value: '5', label: '5 min' }, { value: '10', label: '10 min' }, { value: '15', label: '15 min' }] as const;
+/** The sunflowers setting only has an effect on the Sunflower field scene; otherwise it is shown but inactive. */
+const fieldActive = computed(() => settings.effectiveScene === 'sunflowers');
 const sunflowerModes = [{ value: 'grow', label: 'Grow with points' }, { value: 'full', label: 'Full field' }] as const;
 const supportCats = [{ value: 'off', label: 'Off' }, { value: 'sometimes', label: 'Sometimes' }, { value: 'always', label: 'Every time' }] as const;
 
@@ -202,7 +204,7 @@ async function resetDemo() {
           <div class="row"><div class="grow"><span class="lab">Calm mode</span><span class="sub">Fewer details, quieter colors, reduced motion</span></div><Switch :model-value="s.calmMode" label="Calm mode" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
           <div class="row"><span class="lab grow">Streak flame</span><Switch :model-value="s.streakFlame" label="Streak flame" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
           <div class="row"><span class="lab grow">Plant</span><Switch :model-value="s.plant" label="Plant" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
-          <div class="row col"><span class="lab">Sunflowers</span><SegmentedButton :model-value="s.sunflowers" :options="[...sunflowerModes]" label="Sunflowers" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
+          <div class="row col"><span class="lab">Sunflowers</span><span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">Applies to the Sunflower field scene</span><SegmentedButton :model-value="s.sunflowers" :options="[...sunflowerModes]" label="Sunflowers" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
           <div v-if="currentStreak !== null" class="row"><span class="lab grow">Current streak</span><StreakFlame :count="currentStreak" /></div>
           <div class="row"><span class="lab grow">Best streak</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>
           <div class="row col"><span class="lab">Support cat</span><SegmentedButton :model-value="labs.supportCat" :options="[...supportCats]" label="Support cat" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" /></div>
