@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { addMonths, format, isSameDay, isSameMonth } from 'date-fns';
-import IconPrev from '~icons/material-symbols/chevron-left';
-import IconNext from '~icons/material-symbols/chevron-right';
+import { IconChevronLeft as IconPrev, IconChevronRight as IconNext } from '@/components/icons';
 import IconButton from '@/components/m3/IconButton.vue';
 import { useNav } from '@/composables/useNav';
 import { bindSwipe } from '@/composables/useSwipe';

@@ -535,7 +535,7 @@ Then('my own theme {string} has {string} set to {string}', async function (this:
 
 // --- Fine-tuning: sliders, density, checkbox choices (STEPS.md "Fine-tuning sliders") ---------------------------------
 const SLIDERS: Record<string, string> = { 'Glow strength': 'theme-slider-glow', 'Corner radius': 'theme-slider-radius', 'Entry tint': 'theme-slider-tint' };
-const CHOICES: Record<string, string> = { Density: 'theme-density', 'Checkbox shape': 'theme-checkbox-shape', 'Checkbox fill': 'theme-check-fill', 'Check mark': 'theme-check-glyph' };
+const CHOICES: Record<string, string> = { Density: 'theme-density', 'Checkbox shape': 'theme-checkbox-shape', 'Checkbox fill': 'theme-check-fill', 'Check mark': 'theme-check-glyph', 'Icon set': 'theme-icon-set' };
 
 When('I set the {string} slider to {int}', async function (this: World, label: string, value: number) {
   await ensureMenu(this);
@@ -616,4 +616,17 @@ Then('the task item checkboxes are drawn as {string} with a {string} mark', asyn
   // only the chosen glyph is drawn; the other three are display: none
   const shown = await boxes.first().locator('.rcb-check').evaluateAll((els) => els.filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.getAttribute('data-glyph')));
   expect(shown).toEqual([glyph]);
+});
+
+Then('the app uses the {string} icon set', async function (this: World, set: string) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-icons', set);
+  // the icons of the menu itself are drawn in that set too
+  await expect(this.page.getByTestId('theme-back').locator('svg').first()).toHaveAttribute('data-icon-set', set);
+});
+
+Then('every option of the {string} setting shows a sample icon', async function (this: World, label: string) {
+  const options = this.page.getByTestId(CHOICES[label]!).getByRole('button');
+  const n = await options.count();
+  expect(n).toBeGreaterThan(1);
+  for (let i = 0; i < n; i++) await expect(options.nth(i).locator('.isamp svg').first()).toBeVisible();
 });

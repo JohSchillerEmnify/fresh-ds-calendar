@@ -3,16 +3,17 @@
  * glow, corner and tint sliders, density and the checkbox choices. Pure data and functions, no DOM: step <-> value
  * mapping, the CSS custom properties a value stands for, and sanitising of stored or imported values.
  */
-import type { ThemeCheck, ThemeCheckbox, ThemeCheckFill, ThemeUiDensity } from '@calendar/shared';
+import type { ThemeCheck, ThemeCheckbox, ThemeCheckFill, ThemeIcons, ThemeUiDensity } from '@calendar/shared';
 
 export type Density = ThemeUiDensity;
 export type CheckboxShape = ThemeCheckbox;
 export type CheckFill = ThemeCheckFill;
 export type CheckGlyph = ThemeCheck;
+export type IconSetName = ThemeIcons;
 
 /** The fine-tuning part of a theme; every field is optional (a missing one means the theme's step / default). */
 export interface ThemeFine {
-  glowStrength?: number; radius?: number; tint?: number; density?: Density; checkbox?: CheckboxShape; checkFill?: CheckFill; check?: CheckGlyph;
+  glowStrength?: number; radius?: number; tint?: number; density?: Density; checkbox?: CheckboxShape; checkFill?: CheckFill; check?: CheckGlyph; icons?: IconSetName;
 }
 
 /** Inclusive integer ranges of the sliders. */
@@ -28,6 +29,7 @@ export const DENSITIES: Density[] = ['compact', 'comfortable', 'airy'];
 export const CHECKBOXES: CheckboxShape[] = ['round', 'square', 'rounded'];
 export const CHECK_FILLS: CheckFill[] = ['filled', 'outline'];
 export const CHECK_GLYPHS: CheckGlyph[] = ['tick', 'bold', 'cross', 'dot'];
+export const ICON_SETS: IconSetName[] = ['outlined', 'rounded', 'sharp'];
 
 /** The step whose value is exactly `value`, or null between steps. */
 export function stepOf<K extends string>(steps: Record<K, number>, value: number): K | null {
@@ -82,13 +84,13 @@ export function sanitizeFine(raw: unknown): ThemeFine {
   const pick = <T extends string>(v: unknown, list: readonly T[]) => (list.includes(v as T) ? (v as T) : undefined);
   const out: ThemeFine = {
     glowStrength: intIn(r.glowStrength, RANGES.glowStrength), radius: intIn(r.radius, RANGES.radius), tint: intIn(r.tint, RANGES.tint),
-    density: pick(r.density, DENSITIES), checkbox: pick(r.checkbox, CHECKBOXES), checkFill: pick(r.checkFill, CHECK_FILLS), check: pick(r.check, CHECK_GLYPHS),
+    density: pick(r.density, DENSITIES), checkbox: pick(r.checkbox, CHECKBOXES), checkFill: pick(r.checkFill, CHECK_FILLS), check: pick(r.check, CHECK_GLYPHS), icons: pick(r.icons, ICON_SETS),
   };
   return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined)) as ThemeFine;
 }
 
 /** The names of all fine-tuning fields (what `sanitizePref` lets through for overrides). */
-export const FINE_KEYS = ['glowStrength', 'radius', 'tint', 'density', 'checkbox', 'checkFill', 'check'] as const satisfies readonly (keyof ThemeFine)[];
+export const FINE_KEYS = ['glowStrength', 'radius', 'tint', 'density', 'checkbox', 'checkFill', 'check', 'icons'] as const satisfies readonly (keyof ThemeFine)[];
 
 /** Text shown next to a slider: `4 px`, `30 %`, glow strength without a unit. */
 export function sliderText(kind: 'glowStrength' | 'radius' | 'tint', value: number): string {

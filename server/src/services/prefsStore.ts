@@ -9,7 +9,7 @@ export const LOCAL_PERSON = 'local';
 /** Fine-tuning choices that replace the preset's own attributes. */
 export interface ThemeOverrides {
   glow?: string; entries?: string; corners?: string; scene?: string; seed?: string;
-  glowStrength?: number; radius?: number; tint?: number; density?: string; checkbox?: string; checkFill?: string; check?: string;
+  glowStrength?: number; radius?: number; tint?: number; density?: string; checkbox?: string; checkFill?: string; check?: string; icons?: string;
 }
 /** A person's chosen theme: a preset name plus fine-tuning overrides. */
 export interface ThemePref { preset: string; overrides: ThemeOverrides }

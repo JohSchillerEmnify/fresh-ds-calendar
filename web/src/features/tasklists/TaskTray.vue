@@ -7,7 +7,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import IconExpand from '~icons/material-symbols/keyboard-arrow-up';
+import { IconKeyboardArrowUp as IconExpand } from '@/components/icons';
 import { isPhone } from '@/composables/useViewport';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';

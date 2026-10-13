@@ -12,6 +12,7 @@ export type ThemeDensity = 'low' | 'medium' | 'high';
 export type ThemeUiDensity = 'compact' | 'comfortable' | 'airy';
 export type ThemeCheckbox = 'round' | 'square' | 'rounded';
 export type ThemeCheckFill = 'filled' | 'outline';
+export type ThemeIcons = 'outlined' | 'rounded' | 'sharp';
 export type ThemeCheck = 'tick' | 'bold' | 'cross' | 'dot';
 /** The own top bar picture: SVG text, light and optional dark. */
 export interface ThemePicture { light?: string; dark?: string }
@@ -35,6 +36,7 @@ export interface ThemeDoc {
   checkbox?: ThemeCheckbox;
   checkFill?: ThemeCheckFill;
   check?: ThemeCheck;
+  icons?: ThemeIcons;
   font?: ThemeFont;
   scene?: { builtin?: ThemeBuiltinScene; gradient?: string[]; decor?: ThemeDecor; density?: ThemeDensity };
 }

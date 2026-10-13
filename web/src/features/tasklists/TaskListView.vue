@@ -7,13 +7,7 @@
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import IconClose from '~icons/material-symbols/close';
-import IconUp from '~icons/material-symbols/keyboard-arrow-up';
-import IconDown from '~icons/material-symbols/keyboard-arrow-down';
-import IconDelete from '~icons/material-symbols/delete-outline';
-import IconEdit from '~icons/material-symbols/edit-outline';
-import IconToday from '~icons/material-symbols/today-outline';
-import IconAdd from '~icons/material-symbols/add';
+import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconTodayOutline as IconToday, IconAdd } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';

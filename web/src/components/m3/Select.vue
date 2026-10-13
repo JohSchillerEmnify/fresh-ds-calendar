@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends string">
 import { computed, useAttrs, useId } from 'vue';
-import IconExpand from '~icons/material-symbols/expand-more';
+import { IconExpandMore as IconExpand } from '@/components/icons';
 import type { Option } from './types';
 
 defineOptions({ inheritAttrs: false });

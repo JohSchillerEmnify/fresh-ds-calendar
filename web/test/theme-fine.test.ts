@@ -56,7 +56,7 @@ describe('sanitising', () => {
   });
 
   it('lets only valid fine-tuning through a stored preference', () => {
-    expect(sanitizePref({ preset: 'Neon', overrides: { glow: 'soft', radius: 4, tint: 99, density: 'compact', icons: 'sharp' } }).overrides)
+    expect(sanitizePref({ preset: 'Neon', overrides: { glow: 'soft', radius: 4, tint: 99, density: 'compact', icons: 'filled' } }).overrides)
       .toEqual({ glow: 'soft', radius: 4, density: 'compact' });
   });
 });
@@ -116,5 +116,35 @@ describe('store', () => {
     await t.choose('Neon');
     expect(t.pref).toEqual({ preset: 'Neon', overrides: {} });
     expect(t.resolved.fine).toEqual({});
+  });
+});
+
+describe('icon set', () => {
+  beforeEach(() => { localStorage.clear(); document.documentElement.removeAttribute('style'); });
+
+  it('is an override that is validated, applied to <html> and the reactive value, and reset by a preset', async () => {
+    const { iconSet } = await import('@/theme/iconSet');
+    expect(sanitizeFine({ icons: 'sharp' })).toEqual({ icons: 'sharp' });
+    expect(sanitizeFine({ icons: 'filled' })).toEqual({});
+    const root = document.documentElement;
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: { icons: 'sharp' } }, TODAY), root);
+    expect([root.dataset.icons, iconSet.value]).toEqual(['sharp', 'sharp']);
+    expect(JSON.parse(localStorage.getItem('cal.themeAttrs')!).icons).toBe('sharp');
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: {} }, TODAY), root);
+    expect([root.dataset.icons, iconSet.value]).toEqual(['outlined', 'outlined']);
+  });
+
+  it('draws the variant of the current set in every app icon', async () => {
+    const { mount } = await import('@vue/test-utils');
+    const { IconClose } = await import('@/components/icons');
+    const { iconSet } = await import('@/theme/iconSet');
+    iconSet.value = 'outlined';
+    const w = mount(IconClose);
+    const outlined = w.html();
+    iconSet.value = 'sharp';
+    await w.vm.$nextTick();
+    expect(w.html()).not.toBe(outlined);
+    expect(w.get('svg').attributes('data-icon-set')).toBe('sharp');
+    iconSet.value = 'outlined';
   });
 });

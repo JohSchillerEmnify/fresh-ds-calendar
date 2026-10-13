@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import IconYear from '~icons/material-symbols/calendar-month';
-import IconMonth from '~icons/material-symbols/calendar-view-month';
-import IconWeek from '~icons/material-symbols/calendar-view-week';
-import IconDay from '~icons/material-symbols/calendar-view-day';
-import IconLab from '~icons/material-symbols/science';
+import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconScience as IconLab } from '@/components/icons';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';

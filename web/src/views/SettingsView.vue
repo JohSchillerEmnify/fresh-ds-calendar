@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import IconBack from '~icons/material-symbols/arrow-back';
-import IconUp from '~icons/material-symbols/keyboard-arrow-up';
-import IconDown from '~icons/material-symbols/keyboard-arrow-down';
-import IconAdd from '~icons/material-symbols/add';
-import IconNext from '~icons/material-symbols/chevron-right';
+import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, ViewName } from '@/api/types';

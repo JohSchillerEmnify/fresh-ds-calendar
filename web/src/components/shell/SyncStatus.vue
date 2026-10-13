@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import IconSync from '~icons/material-symbols/sync';
-import IconProblem from '~icons/material-symbols/sync-problem';
+import { IconSync, IconSyncProblem as IconProblem } from '@/components/icons';
 import { useSyncStore } from '@/stores/sync';
 
 const sync = useSyncStore();

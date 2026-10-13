@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import IconOff from '~icons/material-symbols/cloud-off';
+import { IconCloudOff as IconOff } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import { useAuthStore } from '@/stores/auth';
 

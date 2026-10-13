@@ -249,6 +249,15 @@
           "description": "How much decor."
         }
       }
+    },
+    "icons": {
+      "enum": [
+        "outlined",
+        "rounded",
+        "sharp"
+      ],
+      "default": "outlined",
+      "description": "Style of the app's icons."
     }
   },
   "$defs": {

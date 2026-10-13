@@ -10,9 +10,7 @@
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import IconBack from '~icons/material-symbols/arrow-back';
-import IconDelete from '~icons/material-symbols/delete-outline';
-import IconExport from '~icons/material-symbols/download';
+import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
 import { ApiError, type StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
@@ -38,7 +36,7 @@ import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import {
-  CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, RADIUS_STEPS, RANGES, sliderText,
+  CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES, sliderText,
 } from '@/theme/fine';
 import { docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type ThemeAttrs } from '@/theme/presets';
 
@@ -121,12 +119,15 @@ const live = (key: SliderKey, v: number) => theme.preview({ [key]: v });
 const commit = (key: SliderKey, v: number) => theme.pickMany({ [key]: v });
 /** The tint is only used by tinted entries, so the other styles disable its slider. */
 const tintOff = computed(() => attrs.value.entries !== 'tinted');
-const choices: { key: 'density' | 'checkbox' | 'checkFill' | 'check'; label: string; testid: string; options: { value: string; label: string }[]; fallback: string }[] = [
+const choices: { key: 'density' | 'checkbox' | 'checkFill' | 'check' | 'icons'; label: string; testid: string; options: { value: string; label: string }[]; fallback: string }[] = [
   { key: 'density', label: 'Density', testid: 'theme-density', fallback: 'comfortable', options: DENSITIES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
   { key: 'checkbox', label: 'Checkbox shape', testid: 'theme-checkbox-shape', fallback: 'rounded', options: CHECKBOXES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
   { key: 'checkFill', label: 'Checkbox fill', testid: 'theme-check-fill', fallback: 'filled', options: CHECK_FILLS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
   { key: 'check', label: 'Check mark', testid: 'theme-check-glyph', fallback: 'tick', options: CHECK_GLYPHS.map((v) => ({ value: v, label: v === 'bold' ? 'Bold tick' : v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'icons', label: 'Icon set', testid: 'theme-icon-set', fallback: 'outlined', options: ICON_SETS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
 ];
+/** The sample icons shown in each option of the icon set control, drawn in that option's own set. */
+const SAMPLE_ICONS = [IconSettingsOutline, IconEditOutline, IconClose];
 const choiceValue = (c: (typeof choices)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
 /** The preview's two checkboxes are real ones that can be played with. */
 const tickedA = ref(true);
@@ -266,7 +267,11 @@ function back() {
         </template>
         <div v-for="c in choices" :key="c.key" class="group">
           <span class="lab">{{ c.label }}</span>
-          <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)" />
+          <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
+            <template v-if="c.key === 'icons'" #option="{ option }">
+              <span class="isamp" aria-hidden="true"><component :is="ic.variants[option.value as 'sharp']" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
+            </template>
+          </SegmentedButton>
         </div>
         <div class="group">
           <Button variant="tonal" data-testid="theme-save-own" @click="savingOwn = true">Save as my theme</Button>
@@ -305,6 +310,8 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .scenebox :deep(.s-ev) { position: relative; }
 .ol { font: var(--md-sys-typescale-label-large); }
 .hex { margin-top: 10px; }
+.isamp { display: inline-flex; gap: 2px; }
+.isamp :deep(svg) { width: 16px; height: 16px; }
 .follow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }
 .ftxt { display: flex; flex-direction: column; min-width: 0; }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }

@@ -5,6 +5,7 @@
  */
 import type { ThemeFont } from '@calendar/shared';
 import { fineVars } from './fine';
+import { iconSet } from './iconSet';
 import type { ResolvedTheme } from './presets';
 
 export const DEFAULT_SEED = '#1a73e8';
@@ -14,7 +15,7 @@ const STYLE_ID = 'm3-dynamic-theme';
 const ATTR_KEY = 'cal.themeAttrs';
 /** The inline custom properties of the fine-tuning, cached as CSS text for the first paint. */
 const FINE_KEY = 'cal.themeFine';
-const FINE_ATTRS = ['checkbox', 'checkFill', 'check'] as const;
+const FINE_ATTRS = ['checkbox', 'checkFill', 'check', 'icons'] as const;
 
 /** Curated font stacks of a theme document's `font` (system = the app's own). */
 const FONT_STACKS: Record<Exclude<ThemeFont, 'system'>, string> = {
@@ -56,7 +57,7 @@ export async function applySeed(seedHex: string, doc: Document = document, look:
   try { localStorage.setItem('cal.themeCss', style.textContent); } catch { /* storage unavailable */ }
 }
 
-const DEFAULT_FINE_ATTR = { checkbox: 'rounded', checkFill: 'filled', check: 'tick' } as const;
+const DEFAULT_FINE_ATTR = { checkbox: 'rounded', checkFill: 'filled', check: 'tick', icons: 'outlined' } as const;
 /** Every custom property `fineVars` can set, so a value that is gone is removed again. */
 const FINE_VARS = ['--glow-r', '--glow-s', '--glow-a', '--glow-anim', '--r-chip', '--r-block', '--e-fill', '--dz'];
 
@@ -70,6 +71,7 @@ export function applyAttrs(t: ResolvedTheme, root: HTMLElement = document.docume
   // checkbox choices are attributes (the glyph is picked by CSS), the numbers are inline custom properties
   const fine = t.fine;
   for (const k of FINE_ATTRS) root.setAttribute(`data-${k.toLowerCase()}`, fine[k] ?? DEFAULT_FINE_ATTR[k]);
+  iconSet.value = fine.icons ?? DEFAULT_FINE_ATTR.icons;
   const vars = fineVars(fine, t.attrs.entries);
   for (const p of FINE_VARS) root.style.removeProperty(p);
   for (const [p, v] of Object.entries(vars)) root.style.setProperty(p, v);

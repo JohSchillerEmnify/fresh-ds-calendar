@@ -37,10 +37,10 @@ describe('per-person theme', () => {
   });
 
   it('stores the fine-tuning overrides and rejects out-of-range ones', async () => {
-    const fine = { glowStrength: 70, radius: 4, tint: 30, density: 'compact', checkbox: 'square', checkFill: 'outline', check: 'cross' };
+    const fine = { glowStrength: 70, radius: 4, tint: 30, density: 'compact', checkbox: 'square', checkFill: 'outline', check: 'cross', icons: 'sharp' };
     expect((await t.json('PATCH', '/api/prefs/theme', { overrides: fine })).status).toBe(200);
     expect((await t.json('GET', '/api/prefs/theme')).body.overrides).toEqual(fine);
-    for (const bad of [{ glowStrength: 151 }, { glowStrength: -1 }, { radius: 29 }, { radius: 1.5 }, { tint: 4 }, { tint: '30' }, { density: 'tiny' }, { checkbox: 'star' }, { check: 'x' }]) {
+    for (const bad of [{ glowStrength: 151 }, { glowStrength: -1 }, { radius: 29 }, { radius: 1.5 }, { tint: 4 }, { tint: '30' }, { density: 'tiny' }, { checkbox: 'star' }, { check: 'x' }, { icons: 'filled' }]) {
       expect((await t.json('PATCH', '/api/prefs/theme', { overrides: bad })).status, JSON.stringify(bad)).toBe(400);
     }
   });

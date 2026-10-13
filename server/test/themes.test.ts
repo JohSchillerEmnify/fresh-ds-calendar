@@ -16,7 +16,8 @@ describe('theme document validation', () => {
   });
 
   it('accepts the fine-tuning fields within range and refuses the rest', () => {
-    expect(validateTheme(minimal({ glowStrength: 70, radius: 4, tint: 30, density: 'airy', checkbox: 'square', checkFill: 'outline', check: 'dot' })).ok).toBe(true);
+    expect(validateTheme(minimal({ glowStrength: 70, radius: 4, tint: 30, density: 'airy', checkbox: 'square', checkFill: 'outline', check: 'dot', icons: 'rounded' })).ok).toBe(true);
+    expect(validateTheme(minimal({ icons: 'filled' })).ok).toBe(false);
     expect(validateTheme(minimal({ radius: 29 }))).toEqual({ ok: false, errors: ['radius must be between 0 and 28'] });
     expect(validateTheme(minimal({ tint: 2.5 }))).toEqual({ ok: false, errors: ['tint must be a whole number'] });
     expect(validateTheme(minimal({ glowStrength: '70' }))).toEqual({ ok: false, errors: ['glowStrength must be a whole number'] });
