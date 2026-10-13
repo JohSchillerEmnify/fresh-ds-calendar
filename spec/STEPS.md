@@ -458,8 +458,6 @@ the category dialog shows the error {string}
 the task list {string} has the color {string}
 the task list {string} shows the icon {string}
 the task list {string} shows no icon
-the expanded task list shows the tags {string}
-the Google event for the task list {string} stores the tags {string}
 the Google event for the task list {string} has the color ID {string}
 the Google event for the task list {string} has no color ID
 I show the filters

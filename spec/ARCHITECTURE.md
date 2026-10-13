@@ -306,6 +306,9 @@ otherwise; bundle budget §5a applies).
      from the Google palette + custom hex, emoji icon field, delete); "Add category" button.
   Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
   rolled back with the error banner on failure).
+- **Tags shelved** (owner, 2026-10-13: purpose and flow unclear): no tag field in the forms, no tag chips in the
+  expanded view or cards, no tag filter. Stored tags (`extendedProperties.private.tags`) are kept untouched and still
+  round-trip, so nothing is lost if tags return. The rest of this section describes them for later.
 - **Task list form**: adds `category` (select: categories + "No category"; default "No category") and `tags`
   (comma-separated text field; shown as input chips).
 - **Collapsed task list card**: background/accent from the category color, category emoji before the title, done
