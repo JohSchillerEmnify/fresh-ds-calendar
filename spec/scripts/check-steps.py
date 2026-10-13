@@ -5,7 +5,7 @@ import glob, os, re, sys
 
 SPEC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARAMS = {
-    'string': r'"[^"]*"', 'int': r'-?\d+', 'date': r'\d{4}-\d{2}-\d{2}', 'month': r'\d{4}-\d{2}',
+    'string': r'(?:"[^"]*"|\'[^\']*\')', 'int': r'-?\d+', 'date': r'\d{4}-\d{2}-\d{2}', 'month': r'\d{4}-\d{2}',
     'time': r'\d{2}:\d{2}', 'view': r'(?:year|month|week|day)',
     'datelist': r'\d{4}-\d{2}-\d{2}(?:(?:, | and )\d{4}-\d{2}-\d{2})*',
     'scheme': r'(?:light|dark)', 'float': r'-?\d+(?:\.\d+)?',

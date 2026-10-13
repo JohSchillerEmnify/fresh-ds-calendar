@@ -316,18 +316,25 @@ AND-ed. Events are never filtered.
 ### Imported themes (`/api/themes`)
 
 Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE
-"Theme engine and AI themes"). The body of a theme is a `calendar-theme/1` document (`shared/theme.schema.json`).
+"Theme engine and AI themes"). A theme is a `calendar-theme/2` document (`shared/theme.schema.json`, no SVG in it) plus
+an optional own top bar picture kept next to it.
 
-- `GET /api/themes` → `200` `{ themes: { id: string; doc: ThemeDoc }[] }`, oldest first.
-- `POST /api/themes` with a `ThemeDoc` → `201` `{ id: string; doc: ThemeDoc; sanitized: boolean }`. The server validates
-  the document and sanitises the scene SVGs again (what is stored is the sanitised document); `sanitized` is true when
-  something unsafe was removed. `400 VALIDATION_ERROR` with the first problem as `message` and every problem in
-  `details[].issue`, in plain words (`glow must be one of off, soft, neon`). Also `400` when the person already has 20
-  themes (`You can keep at most 20 themes. Delete one first.`).
+```ts
+type Picture = { light?: string; dark?: string };   // SVG text, each ≤ 100 KB, at least one
+```
+- `GET /api/themes` → `200` `{ themes: { id: string; doc: ThemeDoc; picture?: Picture }[] }`, oldest first.
+- `POST /api/themes` with `{ theme: ThemeDoc; picture?: Picture }` → `201` `{ id; doc; picture?; sanitized: boolean }`.
+  The server validates the document and the picture and sanitises the picture's SVG again (what is stored is the
+  sanitised picture); `sanitized` is true when something unsafe was removed. `400 VALIDATION_ERROR` with the first
+  problem as `message` and every problem in `details[].issue`, in plain words (`glow must be one of off, soft, neon`;
+  `picture.light must be an SVG picture (starting with <svg)`). Also `400` when the person already has 20 themes
+  (`You can keep at most 20 themes. Delete one first.`).
 - `DELETE /api/themes/:id` → `204`; `404` for an unknown id.
 
 A person chooses an imported theme with `PATCH /api/prefs/theme` `{ preset: "theme:<id>" }` (a preset name or `theme:<id>`).
-`POST /api/__test/reset` forgets every person's imported themes.
+`GET/PATCH /api/prefs` has the Labs switch `labsOwnThemes: boolean` (default `false`) for showing the own-theme part
+of the theme menu; the server stores themes and applies the chosen one regardless. `POST /api/__test/reset` forgets
+every person's imported themes.
 
 ### Summary (year view, month picker dots)
 

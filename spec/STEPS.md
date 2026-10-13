@@ -1036,31 +1036,51 @@ Google shows the calendar {string}
 ## Theme import (`@theme-import`)
 
 ```
+own themes are turned on in Labs
+I turn on own themes in the settings
+the theme menu has no block for own themes
+the theme menu has a block for own themes
 I choose "Create with AI"
 I see a prompt that describes the theme file {string}
 I can copy the prompt
 I import the theme file {string}
 I paste the theme text {string}
+I paste the AI answer {string}
+I upload the picture file {string}
 the import preview shows the theme {string}
 I save the imported theme
 the gallery offers the theme {string}
 the gallery does not offer the theme {string}
 the import says {string}
+I can copy the repair prompt
 I cannot save the imported theme
 the import notes that unsafe content was removed
 no script from the theme runs
+the top bar draws the decor {string}
+the top bar shows the picture of the theme
 {string} imported the theme file {string}
+{string} uses the imported theme {string}
 I delete the theme {string}
 ```
 
-- Fixture theme files live in `e2e/fixtures/themes/` (`ocean.json`: valid, scene SVG with light/dark; `sneaky.json`:
-  valid apart from a `<script>`, an `onload` attribute and an external `href` in its SVG, which sets
-  `window.__pwned = true` if it ever runs).
+- Fixture files live in `e2e/fixtures/themes/`: `ocean.json` (valid `calendar-theme/2`, drawn scene: gradient with the
+  decor `waves`), `gemini-answer.txt` (an AI chat answer as pasted: text around a ```` ```json ```` fence, the theme
+  "Lagoon", and a URL in its description written as a Markdown link `[http://…](http://…)`), `sneaky.svg` (a picture
+  with a `<script>`, an `onload` attribute and an external `href`, which sets `window.__pwned = true` if it ever runs).
+- "own themes are turned on in Labs" sets `labsOwnThemes` through `PATCH /api/prefs` for the person who is using the
+  app at that moment (before sign-in: the signed-out person); "I turn on own themes in the settings" opens the
+  settings and flips `settings-labs-own-themes` (waits for the save), as the Labs steps do. The block is `theme-own`.
 - "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
-  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text.
-- "import the theme file" uploads through `theme-import-file`; "paste" fills `theme-import-text` and submits.
-  Preview = `theme-import-preview` (`data-name`); errors = `theme-import-error` items (exact text of one of them);
-  "cannot save" = `theme-import-save` disabled; "unsafe content was removed" = `theme-import-sanitized` visible;
-  "no script runs" = `window.__pwned` is undefined after 1 s and no `<script>` inside the scene.
-- "imported the theme file" = `POST /api/themes` with the fixture as that person. "delete" = the theme card's
-  `theme-delete` (with undo snackbar like other deletes; the step waits until it is gone).
+  `theme-ai-copy` and checks the clipboard equals the prompt text. "copy the repair prompt" clicks `theme-repair-copy`
+  and checks the clipboard equals `theme-repair-prompt`.
+- "import the theme file" uploads through `theme-import-file`; "paste the theme text" fills `theme-import-text` and
+  submits (`theme-import-submit`); "paste the AI answer" does the same with the text of the fixture file; "upload the
+  picture file" uploads through `theme-picture-file` (and checks again). Preview = `theme-import-preview`
+  (`data-name`); errors = `theme-import-error` items (exact text of one of them); "cannot save" = `theme-import-save`
+  disabled; "unsafe content was removed" = `theme-import-sanitized` visible; "no script runs" = `window.__pwned` is
+  undefined after 1 s and no `<script>` inside the preview or the top bar scene.
+- "the top bar draws the decor" = `top-bar-scene` contains `drawn-scene` with that `data-decor`; "shows the picture of
+  the theme" = it contains `scene-image` and no `drawn-scene`. Both go back to the calendar first.
+- "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
+  theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
+  snackbar like other deletes; the step waits until it is gone).

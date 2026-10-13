@@ -198,3 +198,14 @@ spec files are named.
   (before, the field was hidden by the default garden `plant`); (e) in "Full field" the mood still follows the plant,
   only the count and the bloom are fixed; (f) the "Sunflowers" setting is global like the plant switch (not per
   person), shown but inactive with a hint when the scene is not the Sunflower field (owner, confirmed).
+- **A-71 Drawn scene building blocks** (owner decided the format, 2026-10-13; the exact lists are my proposal, flagged
+  for confirmation): decor = `stars`, `sparkles`, `waves`, `hills`, `hearts`, `clouds`, `confetti`, `bubbles`; density =
+  `low` 8 / `medium` 16 / `high` 28 shapes (waves and hills: 1 / 2 / 3 layers); `density` defaults to medium and
+  `decor` to none; a gradient has 2 or 3 colours; in dark mode the gradient is dimmed (darkened by about 40 %); decor
+  animates only at the Full animation level. The role overrides allowed in a document are the eight in ARCHITECTURE
+  "Theme engine and AI themes".
+- **A-72 Own themes behind a Labs switch** (owner 2026-10-13: experimental; the choice for an already chosen theme is
+  my assumption, recommended by the coordinator): with `labsOwnThemes` off, only the UI is hidden. A chosen imported
+  theme keeps applying (the person did choose it, and a silent fall-back to Default would look like data loss);
+  imported themes stay stored and come back when the switch is turned on.
+
