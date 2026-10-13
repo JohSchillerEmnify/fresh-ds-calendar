@@ -45,7 +45,7 @@ export default defineConfig({
       workbox: {
         clientsClaim: true, // first visit: the worker controls the page right after install (offline shell)
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/app\.apk$/], // the Android app download is a file, not a client route
         // /api is never cached: no runtime caching rules at all.
         runtimeCaching: [{ urlPattern: /^\/api\//, handler: 'NetworkOnly' }],
       },
