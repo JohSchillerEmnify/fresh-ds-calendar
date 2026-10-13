@@ -46,7 +46,7 @@ const checks = {
   ...(existsSync(resolve(root, 'e2e/tsconfig.json')) ? { 'tsc e2e': tsc('e2e', 'tsc') } : {}),
   'unit server': tests('server'),
   'unit web': tests('web'),
-  i18n: { cmd: ['pnpm', ['i18n:check'], root], errors: (o) => o.split('\n').filter((x) => /ERROR|missing/.test(x)) },
+  i18n: { cmd: ['pnpm', ['i18n:check'], root], errors: (o) => o.split('\n').filter((x) => /ERROR|^\s+missing/.test(x)) },
   steps: { cmd: ['python3', ['spec/scripts/check-steps.py'], root], errors: (o) => o.split('\n').filter((x) => x.trim()) },
 };
 
@@ -65,7 +65,7 @@ if (failed.length === 0) {
     let lines = r.c.errors(r.out);
     if (!lines.length) lines = r.out.split('\n').filter((x) => x.trim()).slice(-MAX_LINES);
     console.log(`FAIL ${r.name}`);
-    for (const l of lines.slice(0, MAX_LINES)) console.log('  ' + l);
+    for (const l of lines.slice(0, MAX_LINES)) console.log('  ' + (l.length > 200 ? l.slice(0, 197) + '...' : l));
     if (lines.length > MAX_LINES) console.log(`  ... ${lines.length - MAX_LINES} more`);
   }
   process.exit(1);
