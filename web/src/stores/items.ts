@@ -111,6 +111,15 @@ export const useItemsStore = defineStore('items', () => {
     applyResponse(from, to, inMain, res.syncedAt);
   }
 
+  const prefetching = new Set<string>();
+  /** Load `[from, to)` into the cache in the background unless it is cached or already loading (swipe neighbour). Errors are ignored: the route change reports its own. */
+  function prefetch(from: LocalDate, to: LocalDate): void {
+    const key = rangeKey(from, to);
+    if (ranges.value[key] || prefetching.has(key)) return;
+    prefetching.add(key);
+    fetchRange(from, to).catch(() => {}).finally(() => prefetching.delete(key));
+  }
+
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
   async function setVisible(from: LocalDate, to: LocalDate, withToday = false): Promise<void> {
     visible.value = { from, to, withToday };
@@ -353,7 +362,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, tagsInUse, get, summary,
-    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
+    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, upsert, remove, beginPending, endPending, setCarried,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };

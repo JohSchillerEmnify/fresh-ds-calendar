@@ -291,6 +291,14 @@ the navigation, view switcher and create buttons are at least {int} by {int} pix
 I swipe left on the calendar
 I swipe right on the calendar
 I swipe up on the calendar
+I start swiping left on the calendar by a quarter of the width
+I start swiping left on the calendar by half the width
+the week of {date} is shown beside the current one
+I let go
+I pinch out on the time grid to twice the size
+one hour of the time grid is about twice as tall as before
+one hour of the time grid is still about twice as tall as at the start
+the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
 ```
@@ -299,6 +307,9 @@ the bottom bar reserves the safe-area inset at the bottom
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
+- "start swiping … by a quarter/half of the width": touchstart + slow touchmoves (≥ 400 ms, so no flick) to that
+  fraction of `calendar-swipe-area`'s width, finger kept down; "I let go" sends touchend. "shown beside": a
+  `swipe-neighbour` element with `data-period-start` = that date is visible and sits right of the current view.
 - Safe area: the computed style of `bottom-bar` uses `env(safe-area-inset-bottom)`; the step checks the inline/
   stylesheet rule via `data-safe-area="true"` on `bottom-bar` (set by the component that applies the padding).
 
@@ -979,3 +990,7 @@ Google shows the calendar {string}
   `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
   "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
   … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
+- Pinch: two CDP touch points on `time-grid` moving apart until their distance doubles (≥ 300 ms). "one hour … tall"
+  reads `data-hour-height` of `time-grid` (± 10 %) compared with the value captured before the pinch / at page open.
+- "drawn a quarter as tall": block heights of the task list card and the event chip, ratio 0.25 ± 0.05 (both at the
+  current hour height; the step zooms in first if the list would hit the minimum).

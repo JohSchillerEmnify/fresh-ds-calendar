@@ -2,6 +2,7 @@
 import { computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useNav } from '@/composables/useNav';
+import { providePreview } from '@/composables/usePreview';
 import { monthGrid, MONTH_NAMES, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -9,20 +10,26 @@ import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
 
 /** 12 mini months; day marks show density 0-3 from /api/summary. Tapping a month opens it. */
+/** `anchor`/`preview`: a light copy for another period (swipe neighbour), see `usePreview`. */
+const props = defineProps<{ anchor?: Date; preview?: boolean }>();
+providePreview(props.preview);
 const cal = useCalendarStore();
 const clock = useClockStore();
 const items = useItemsStore();
 const sync = useSyncStore();
 const nav = useNav();
 
-const year = computed(() => cal.anchor.getFullYear());
+const year = computed(() => (props.anchor ?? cal.anchor).getFullYear());
 const months = computed(() => Array.from({ length: 12 }, (_, m) => {
   const first = new Date(year.value, m, 1);
   return { first, key: format(first, 'yyyy-MM'), name: MONTH_NAMES[m], weeks: monthGrid(first) };
 }));
 
 watch(year, (y) => {
-  items.loadSummary(`${y}-01-01`, `${y + 1}-01-01`).then(() => { if (sync.error) sync.clearError(); sync.markSynced(); }, (e) => sync.reportError(e));
+  const load = items.loadSummary(`${y}-01-01`, `${y + 1}-01-01`);
+  // a preview loads in the background; the route change reports sync state
+  if (props.preview) { load.catch(() => {}); return; }
+  load.then(() => { if (sync.error) sync.clearError(); sync.markSynced(); }, (e) => sync.reportError(e));
 }, { immediate: true });
 
 const density = (date: string) => items.summary[date]?.density ?? 0;
