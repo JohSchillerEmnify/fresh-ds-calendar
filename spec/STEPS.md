@@ -1314,6 +1314,8 @@ the note {string} is at {int}, {int} on the Canvas
 the note {string} is in the Unsorted stack
 the note {string} is not in the Unsorted stack
 I tick the item {string} of the note {string} on the Canvas
+I add an area on the Canvas
+the add button covers no control of the area editor
 I create the area {string} on the Canvas
 I move the note {string} into the area {string} on the Canvas
 the note {string} is in the area {string}
@@ -1365,6 +1367,10 @@ the Canvas zoom is above {float}
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
   `GET /api/canvas` (through the test API) lists an area named N.
+- "I add an area on the Canvas": clicks `canvas-area-add` and waits for `canvas-area-editor`.
+- "the add button covers no control of the area editor": waits until the bounding box of `create-button` (when it has one)
+  intersects none of the boxes of the visible buttons of `canvas-area-editor`. On a phone the button slides away while the
+  editor is open (`ui.panelOpen`, the same `.away` as for the expanded tray).
 - "I move the note T into the area A": like "I move the note T to X, Y" with X, Y = the area's `data-x` + 20 and
   `data-y` + 56. "the note T is in the area A": `data-area` of the note equals A.
 - "the Canvas shows the area N": a `canvas-area` with `data-name` N is visible.

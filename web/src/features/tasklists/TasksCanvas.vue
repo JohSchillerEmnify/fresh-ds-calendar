@@ -15,6 +15,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSyncStore } from '@/stores/sync';
+import { useUiStore } from '@/stores/ui';
 import { AREA_COLORS, areaOf, centeredArea, clampArea, clampNote, clampView, placeNotes, resizeRect, type Corner, type Point, type Rect, WORLD_H, WORLD_W } from './canvas';
 import { useCanvasStore } from './canvasStore';
 import { matchesTasksFilter } from './tasksFilter';
@@ -31,6 +32,7 @@ const tasks = useTasksViewStore();
 const canvas = useCanvasStore();
 const items = useItemsStore();
 const sync = useSyncStore();
+const ui = useUiStore();
 const prefs = usePrefsStore();
 const clock = useClockStore();
 
@@ -141,6 +143,8 @@ const editArea = computed<Area | null>(() => canvas.areas.find((a) => a.id === e
 const nameDraft = ref('');
 const nameInput = ref<HTMLInputElement | null>(null);
 
+// the phone's create button must not cover the editor's buttons
+watch(editArea, (a) => { ui.panelOpen = !!a; });
 function openEditor(id: string): void {
   editing.value = id;
 }
@@ -196,6 +200,7 @@ onMounted(() => {
   stopSync = sync.registerTask('tasks-canvas', () => canvas.loadAreas());
 });
 onBeforeUnmount(() => {
+  ui.panelOpen = false;
   stopPointer?.();
   stopHide?.();
   stopEsc?.();

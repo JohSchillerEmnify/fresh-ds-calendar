@@ -233,3 +233,25 @@ Then('the area {string} is {int} wide and {int} high', async function (this: Wor
   // and saved
   await expect.poll(async () => (await this.api.get<{ areas: { name: string; w: number; h: number }[] }>('/api/canvas')).areas.find((a) => a.name === name)).toMatchObject({ w, h });
 });
+
+When('I add an area on the Canvas', async function (this: World) {
+  await this.page.getByTestId('canvas-area-add').click();
+  await expect(this.page.getByTestId('canvas-area-editor')).toBeVisible();
+});
+
+Then('the add button covers no control of the area editor', async function (this: World) {
+  const fab = this.page.getByTestId('create-button');
+  const buttons = this.page.getByTestId('canvas-area-editor').locator('button');
+  const covered = async () => {
+    const f = (await fab.isVisible()) ? await fab.boundingBox() : null;
+    if (!f) return [];
+    const hits: string[] = [];
+    for (const b of await buttons.all()) {
+      const r = await b.boundingBox();
+      if (r && r.x < f.x + f.width && f.x < r.x + r.width && r.y < f.y + f.height && f.y < r.y + r.height) hits.push((await b.getAttribute('data-testid')) ?? 'button');
+    }
+    return hits;
+  };
+  // the button slides out over a fraction of a second
+  await expect.poll(covered).toEqual([]);
+});

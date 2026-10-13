@@ -107,6 +107,12 @@ Feature: The Canvas places task lists as sticky notes
     When I tap the empty Canvas
     Then the area "Haus" shows no resize handles
 
+  @mobile
+  Scenario: The add button never covers the area editor
+    When I open the Canvas
+    And I add an area on the Canvas
+    Then the add button covers no control of the area editor
+
   @desktop
   Scenario: Zoom with Ctrl+wheel, pan the background and keep the view
     Given the calendar contains an undated task list "Taxes" with items:

@@ -460,3 +460,6 @@ spec files are named.
   dimmed note cannot be ticked, opened or moved (a long press on it pans nothing either: it acts as background).
 - **A-141 Saving** (my reading): each choice is one `PATCH /api/prefs { tasksFilter }` with the whole filter, optimistic
   (the chips change at once, a refusal puts them back with a snackbar), like grouping and sorting.
+- **A-142 Create button and the area editor** (owner bug report): on the phone the "+" button slides away (`.away`, as for the
+  expanded tray) while the Canvas's area editor is open, through the ui flag `panelOpen`; any later bottom panel of a view
+  sets the same flag. Labs views in the navigation bar have icons of their own (clock, timeline, view column).
