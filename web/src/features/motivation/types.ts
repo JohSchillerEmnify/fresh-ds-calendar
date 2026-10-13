@@ -31,4 +31,9 @@ export type ChangeKind = 'water' | 'grow' | 'bloom' | 'perk-up';
 export const SUNFLOWER_MAX = 30;
 export const SUNFLOWER_MAX_PHONE = 15;
 /** `custom` = the theme's own SVG picture. */
-export type SceneName = 'sunflowers' | 'mordor' | 'none' | 'spring' | 'summer' | 'fall' | 'winter' | 'halloween' | 'custom';
+export type SceneName =
+  | 'sunflowers' | 'mordor' | 'none' | 'spring' | 'summer' | 'fall' | 'winter' | 'halloween'
+  | 'easter' | 'summerholidays' | 'christmas' | 'newyearseve' | 'newyear' | 'custom';
+/** The scenes whose backdrop is a `SeasonScene` (the season, Halloween and the holiday scenes). */
+export const BACKDROP_SCENES = ['spring', 'summer', 'fall', 'winter', 'halloween', 'easter', 'summerholidays', 'christmas', 'newyearseve', 'newyear'] as const;
+export type BackdropScene = (typeof BACKDROP_SCENES)[number];

@@ -28,6 +28,7 @@ import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { shownVersion } from '@/pwa/version';
+import { automaticLabel, automaticPreset } from '@/theme/presets';
 
 const router = useRouter();
 const settings = useSettingsStore();
@@ -39,8 +40,8 @@ const items = useItemsStore();
 const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 const theme = useThemeStore();
-/** The Theme row's value: the preset name, for Automatic with the seasonal theme in use ("Automatic · Fall"). */
-const themeLabel = computed(() => (theme.pref.preset === 'Automatic' ? `Automatic · ${theme.resolved.name}` : theme.pref.preset));
+/** The Theme row's value: the preset name, for Automatic with the calendar's theme in use ("Automatic · Fall", "Automatic (scene) · Christmas"). */
+const themeLabel = computed(() => (theme.pref.preset === 'Automatic' ? `${automaticLabel(theme.pref.automatic)} · ${automaticPreset(clock.today)}` : theme.pref.preset));
 const build = shownVersion();
 
 /** Persist a per-person preference (Labs switch, support cat, tasks calendar); a refusal rolls back in the store and shows a snackbar. */

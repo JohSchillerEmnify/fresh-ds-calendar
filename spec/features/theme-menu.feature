@@ -62,7 +62,7 @@ Feature: Choosing and fine-tuning a theme
 
     Examples:
       | date       | season |
-      | 2026-04-10 | Spring |
+      | 2026-04-20 | Spring |
       | 2026-07-10 | Summer |
       | 2026-10-12 | Halloween |
       | 2026-11-10 | Fall   |

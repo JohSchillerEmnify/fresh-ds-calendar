@@ -152,10 +152,15 @@
             "sunflowers",
             "mordor",
             "spring",
+            "easter",
             "summer",
+            "summerholidays",
             "fall",
-            "winter",
-            "halloween"
+            "halloween",
+            "christmas",
+            "newyearseve",
+            "newyear",
+            "winter"
           ]
         },
         "gradient": {

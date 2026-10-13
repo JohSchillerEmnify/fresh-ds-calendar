@@ -1,6 +1,6 @@
 /** Types of the shared theme document module (see index.js). */
 export type ThemeMode = 'follow' | 'light' | 'dark';
-export type ThemeBuiltinScene = 'none' | 'sunflowers' | 'mordor' | 'spring' | 'summer' | 'fall' | 'winter' | 'halloween';
+export type ThemeBuiltinScene = 'none' | 'sunflowers' | 'mordor' | 'spring' | 'easter' | 'summer' | 'summerholidays' | 'fall' | 'halloween' | 'christmas' | 'newyearseve' | 'newyear' | 'winter';
 export type ThemeFont = 'system' | 'serif' | 'rounded' | 'mono';
 /** Role name (`primary`, `on-surface`, ...) to `#rrggbb`. */
 export type ThemeRoles = Record<string, string>;

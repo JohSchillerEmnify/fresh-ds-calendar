@@ -9,6 +9,7 @@ import ThemeSample from '@/components/settings/ThemeSample.vue';
 import DrawnScene from '@/features/motivation/DrawnScene.vue';
 import SceneImage from '@/features/motivation/SceneImage.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
+import { BACKDROP_SCENES } from '@/features/motivation/types';
 import { useSettingsStore } from '@/stores/settings';
 import { resolveTheme as resolveMode } from '@/theme';
 import type { ResolvedTheme } from '@/theme/presets';
@@ -18,7 +19,6 @@ defineEmits<{ choose: [] }>();
 
 const settings = useSettingsStore();
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const SEASONS = ['spring', 'summer', 'fall', 'winter', 'halloween'];
 const scene = computed(() => props.theme.attrs.scene);
 
 /** The color library loads lazily; until then the card shows the current palette. */
@@ -42,7 +42,7 @@ const style = computed<Record<string, string>>(() => {
         :data-corners="theme.attrs.corners" :data-scene="scene" aria-hidden="true"
       >
         <span class="hdr" :class="{ ember: scene === 'mordor' }">
-          <SeasonScene v-if="SEASONS.includes(scene)" :season="scene as 'spring'" />
+          <SeasonScene v-if="(BACKDROP_SCENES as readonly string[]).includes(scene)" :season="scene as 'spring'" />
           <template v-else-if="scene === 'custom'">
             <SceneImage v-if="theme.sceneSvg" :svg="theme.sceneSvg" :dark="dark" />
             <DrawnScene v-else-if="theme.sceneDraw" v-bind="theme.sceneDraw" :dark="dark" />
