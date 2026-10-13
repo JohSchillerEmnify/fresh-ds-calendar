@@ -246,3 +246,17 @@ spec files are named.
   server never lets them into a date range read (it drops anchor-date events of undated lists), so a range that
   reaches 2099 does not show them.
 
+- **A-71 Drawn scene building blocks** (owner decided the format, 2026-10-13; the exact lists are my proposal, flagged
+  for confirmation): decor = `stars`, `sparkles`, `waves`, `hills`, `hearts`, `clouds`, `confetti`, `bubbles`; density =
+  `low` 8 / `medium` 16 / `high` 28 shapes (waves and hills: 1 / 2 / 3 layers); `density` defaults to medium and
+  `decor` to none; a gradient has 2 or 3 colours; in dark mode the gradient is dimmed (darkened by about 40 %); decor
+  animates only at the Full animation level. The role overrides allowed in a document are the eight in ARCHITECTURE
+  "Theme engine and AI themes".
+- **A-72 What the Labs switch hides** (owner 2026-10-13): only "Create with AI" and the import. Saved own themes
+  always show in the gallery and a chosen one always applies, so switching off never looks like data loss.
+- **A-73 Save as my theme** (owner asked for the button; the details are my choices, flagged for confirmation): the
+  button is the last control of Fine-tuning (the look being saved is right above it); the name defaults to "My theme"
+  and a taken name gets a number ("My theme 2") instead of being refused, so saving never fails on a duplicate; it
+  becomes the chosen theme at once; mode `system` is saved as `follow`, while seed colour and the other settings are
+  saved as set, so the theme no longer follows later changes of the person's seed; an own picture is saved as the
+  theme's picture, and a scene override on top of an own scene saves the overriding built-in scene instead.

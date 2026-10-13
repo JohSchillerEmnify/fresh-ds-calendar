@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import type { ThemeDoc } from '@calendar/shared';
+import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import { api, type StoredTheme } from '@/api/client';
 import {
   DEFAULT_PREF, resolveTheme, sanitizePref, seasonScene,
@@ -29,7 +29,7 @@ export const useThemeStore = defineStore('theme', () => {
   /** The person's imported themes as the gallery shows them. */
   const themes = computed(() => custom.value.filter((t) => !hidden.value.includes(t.id)));
   /** The chosen theme (Automatic resolved by today's date) with the overrides applied. */
-  const resolved = computed(() => resolveTheme(pref.value, clock.today, Object.fromEntries(themes.value.map((t) => [t.id, t.doc]))));
+  const resolved = computed(() => resolveTheme(pref.value, clock.today, Object.fromEntries(themes.value.map((t) => [t.id, t]))));
   /** The scene that stands for "the season" today. */
   const todaysSeasonScene = computed(() => seasonScene(clock.today));
 
@@ -62,10 +62,10 @@ export const useThemeStore = defineStore('theme', () => {
   const pick = <K extends keyof ThemeAttrs>(setting: K, value: ThemeAttrs[K]) =>
     save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, [setting]: value } });
 
-  /** Saves a validated, sanitised document as one of the person's themes and chooses it. */
-  async function importTheme(doc: ThemeDoc): Promise<void> {
-    const saved = await api.saveTheme(doc);
-    custom.value = [...custom.value, { id: saved.id, doc: saved.doc }];
+  /** Saves a validated document (and its own picture) as one of the person's themes and chooses it. */
+  async function importTheme(doc: ThemeDoc, picture?: ThemePicture): Promise<void> {
+    const saved = await api.saveTheme(doc, picture);
+    custom.value = [...custom.value, { id: saved.id, doc: saved.doc, picture: saved.picture }];
     await choose(`theme:${saved.id}` as CustomThemeKey);
   }
   const hide = (id: string) => { hidden.value = [...hidden.value, id]; };

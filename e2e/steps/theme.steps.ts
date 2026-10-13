@@ -5,6 +5,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
+import { turnOnLabsSwitch } from './support/ui.js';
 import { exactText, tid, type World } from './support/world.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
@@ -362,6 +363,23 @@ When('I paste the theme text {string}', async function (this: World, text: strin
   await this.page.getByTestId('theme-import-submit').click();
 });
 
+When('I paste the AI answer {string}', async function (this: World, name: string) {
+  await this.page.getByTestId('theme-import-text').fill(fs.readFileSync(themeFile(name), 'utf8'));
+  await this.page.getByTestId('theme-import-submit').click();
+});
+
+When('I upload the picture file {string}', async function (this: World, name: string) {
+  await this.page.getByTestId('theme-picture-file').setInputFiles(themeFile(name));
+});
+
+Then('I can copy the repair prompt', async function (this: World) {
+  await this.context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await this.page.evaluate(() => Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true }));
+  await this.page.getByTestId('theme-repair-copy').click();
+  const shown = await this.page.getByTestId('theme-repair-prompt').inputValue();
+  await expect.poll(() => this.page.evaluate(() => navigator.clipboard.readText())).toBe(shown);
+});
+
 Then('the import preview shows the theme {string}', async function (this: World, name: string) {
   await expect(preview(this)).toHaveAttribute('data-name', name);
 });
@@ -407,7 +425,7 @@ Then('no script from the theme runs', async function (this: World) {
 
 Given('{string} imported the theme file {string}', async function (this: World, email: string, name: string) {
   await signInAs(this, email);
-  const res = await this.page.request.post('/api/themes', { data: JSON.parse(fs.readFileSync(themeFile(name), 'utf8')) });
+  const res = await this.page.request.post('/api/themes', { data: { theme: JSON.parse(fs.readFileSync(themeFile(name), 'utf8')) } });
   expect(res.status(), await res.text()).toBe(201);
 });
 
@@ -415,4 +433,64 @@ When('I delete the theme {string}', async function (this: World, name: string) {
   await ensureMenu(this);
   await this.page.locator(`[data-testid="theme-item"][data-name="${name}"]`).getByTestId('theme-delete').click();
   await expect(card(this, name)).toHaveCount(0);
+});
+
+// ---- Labs switch for the AI part, drawn scene, own picture, Save as my theme ----
+
+Given('own themes are turned on in Labs', async function (this: World) {
+  await this.api.patch('/api/prefs', { labsOwnThemes: true });
+});
+
+When('I turn on own themes in the settings', async function (this: World) {
+  await turnOnLabsSwitch(this.page, 'settings-labs-own-themes');
+});
+
+Then('the theme menu has no block for creating own themes', async function (this: World) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-own')).toHaveCount(0);
+});
+
+Then('the theme menu has a block for creating own themes', async function (this: World) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-own')).toBeVisible();
+});
+
+Then('the top bar draws the decor {string}', async function (this: World, decor: string) {
+  await backToCalendar(this);
+  await expect(this.page.getByTestId('top-bar-scene').getByTestId('drawn-scene')).toHaveAttribute('data-decor', decor);
+});
+
+Then('the top bar shows the picture of the theme', async function (this: World) {
+  await backToCalendar(this);
+  const scene = this.page.getByTestId('top-bar-scene');
+  await expect(scene.getByTestId('scene-image')).toBeVisible();
+  await expect(scene.getByTestId('drawn-scene')).toHaveCount(0);
+});
+
+Given('{string} uses the imported theme {string}', async function (this: World, _email: string, name: string) {
+  const { themes } = (await (await this.page.request.get('/api/themes')).json()) as { themes: { id: string; doc: { name: string } }[] };
+  const found = themes.find((t) => t.doc.name === name);
+  expect(found, `imported theme ${name}`).toBeTruthy();
+  const res = await this.page.request.patch('/api/prefs/theme', { data: { preset: `theme:${found!.id}` } });
+  expect(res.ok()).toBe(true);
+});
+
+When('I save my look as my own theme named {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await this.page.getByTestId('theme-save-own').click();
+  await this.page.getByTestId('theme-save-name').fill(name);
+  // saving stores the theme, then chooses it: wait for both requests
+  const stored = this.page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/themes'));
+  const chosen = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId('theme-save-confirm').click();
+  expect((await stored).status()).toBe(201);
+  await chosen;
+  await expect(this.page.getByTestId('theme-save-dialog')).toHaveCount(0);
+});
+
+Then('my own theme {string} has {string} set to {string}', async function (this: World, name: string, key: string, value: string) {
+  const { themes } = (await (await this.page.request.get('/api/themes')).json()) as { themes: { doc: Record<string, unknown> }[] };
+  const found = themes.find((t) => t.doc.name === name);
+  expect(found, `own theme ${name}`).toBeTruthy();
+  expect(found!.doc[key]).toBe(value);
 });

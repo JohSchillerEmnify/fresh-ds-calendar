@@ -6,8 +6,14 @@ export type ThemeFont = 'system' | 'serif' | 'rounded' | 'mono';
 export type ThemeRoles = Record<string, string>;
 
 /** A `calendar-theme/1` document. */
+export type ThemeDecor = 'stars' | 'sparkles' | 'waves' | 'hills' | 'hearts' | 'clouds' | 'confetti' | 'bubbles';
+export type ThemeDensity = 'low' | 'medium' | 'high';
+/** The own top bar picture: SVG text, light and optional dark. */
+export interface ThemePicture { light?: string; dark?: string }
+
+/** A `calendar-theme/2` document (no SVG in it). */
 export interface ThemeDoc {
-  schema: 'calendar-theme/1';
+  schema: 'calendar-theme/2';
   name: string;
   author?: string;
   description?: string;
@@ -17,13 +23,14 @@ export interface ThemeDoc {
   entries?: 'solid' | 'tinted' | 'outline';
   corners?: 'square' | 'round' | 'pill';
   font?: ThemeFont;
-  scene?: { builtin?: ThemeBuiltinScene; svg?: { light?: string; dark?: string } };
+  scene?: { builtin?: ThemeBuiltinScene; gradient?: string[]; decor?: ThemeDecor; density?: ThemeDensity };
 }
 
-export const THEME_SCHEMA_ID: 'calendar-theme/1';
+export const THEME_SCHEMA_ID: 'calendar-theme/2';
 export const themeSchema: Record<string, unknown>;
 export const MAX_THEMES: number;
 export const MAX_THEME_BYTES: number;
+export const MAX_PICTURE_BYTES: number;
 
 export function validateTheme(input: unknown): { ok: true; doc: ThemeDoc } | { ok: false; errors: string[] };
 
@@ -35,4 +42,5 @@ export interface Purifier {
 }
 export type SvgSanitizer = (svg: string) => { svg: string; removed: boolean };
 export function createSvgSanitizer(purify: Purifier): SvgSanitizer;
-export function sanitizeTheme(sanitize: SvgSanitizer, doc: ThemeDoc): { ok: true; doc: ThemeDoc; removed: boolean } | { ok: false; errors: string[] };
+export function validatePicture(input: unknown): { ok: true; picture: ThemePicture } | { ok: false; errors: string[] };
+export function sanitizePicture(sanitize: SvgSanitizer, picture: ThemePicture): { ok: true; picture: ThemePicture; removed: boolean } | { ok: false; errors: string[] };

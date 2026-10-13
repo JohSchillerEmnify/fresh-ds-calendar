@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date' };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date' };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -29,6 +29,10 @@ describe('prefs (Labs switches)', () => {
     expect((await t.json('GET', '/api/prefs')).body.versionInCorner).toBe(false);
     expect((await t.json('PATCH', '/api/prefs', { versionInCorner: true })).body.versionInCorner).toBe(true);
     expect((await t.json('PATCH', '/api/prefs', { versionInCorner: 'yes' })).status).toBe(400);
+    expect((await t.json('GET', '/api/prefs')).body.labsOwnThemes).toBe(false);
+    expect((await t.json('PATCH', '/api/prefs', { labsOwnThemes: true })).body.labsOwnThemes).toBe(true);
+    expect((await t.json('PATCH', '/api/prefs', { labsOwnThemes: 1 })).status).toBe(400);
+    await t.json('PATCH', '/api/prefs', { labsOwnThemes: false });
     await t.req('POST', '/api/__test/reset');
     expect((await t.json('GET', '/api/prefs')).body.versionInCorner).toBe(false);
   });
@@ -76,7 +80,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date' });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date' });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
   });
 

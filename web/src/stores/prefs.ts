@@ -6,7 +6,7 @@ import type { ApproachWindowHours, Prefs, SupportCatSetting, TasksGroupBy, Tasks
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
- * support cat, the version label in the corner (off by default), left-handed mode (off by default), and how the Tasks view groups and sorts (time, date).
+ * support cat, the version label in the corner (off by default), left-handed mode (off by default), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
  */
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
@@ -19,6 +19,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   const leftHanded = ref(false);
   const tasksGroupBy = ref<TasksGroupBy>('time');
   const tasksSortBy = ref<TasksSortBy>('date');
+  const labsOwnThemes = ref(false);
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -31,6 +32,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     leftHanded.value = p.leftHanded ?? leftHanded.value;
     tasksGroupBy.value = p.tasksGroupBy ?? tasksGroupBy.value;
     tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
+    labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
   }
 
   async function load(): Promise<void> {
@@ -44,7 +46,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value,
     };
     apply(p);
     try {
@@ -55,5 +57,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, leftHanded, tasksGroupBy, tasksSortBy, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, load, set };
 });

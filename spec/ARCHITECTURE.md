@@ -720,7 +720,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 - Settings get a Labs section: `labs` (experimental views on/off); `approachBar` (on/off, default on since
   2026-10-13, now in the Calendar section next to the window, no longer Labs), stored per person in
   `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
-  `settings-approach-bar`.
+  `settings-approach-bar`. `labsOwnThemes` (default off) shows the own-theme part of the theme menu (see "Theme engine
+  and AI themes").
 - Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
   flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
@@ -956,27 +957,57 @@ the same corner scale so shapes look consistent.
 
 ### Theme engine and AI themes (owner, 2026-10-13)
 
-- **One theme document format**, `calendar-theme/1` (JSON, schema in `shared/theme.schema.json`, used by server and
-  web): `{ schema, name, author?, description?, mode: "follow"|"light"|"dark", colors: { seed } | { light: {role:
-  hex}, dark: {role: hex} } (roles override the generated scheme), glow, entries, corners, font? (curated list),
-  scene?: { builtin: name } | { svg: { light?, dark? } } }`. The built-in presets are expressed as such documents too,
-  so there is a single apply path (`applyTheme(doc)` → html attributes + CSS custom properties) — the "proper
-  theming engine" (owner). Fine-tuning overrides stay on top of a document as before.
-- **Create with AI**: the theme menu's `theme-ai` shows a generated prompt (`theme-ai-prompt`): what the app is,
-  the full JSON Schema, the rules (contrast for light and dark, SVG limits below), one complete example, and a slot
-  for my wishes; `theme-ai-copy` copies it. No AI is called by the app (owner: use your preferred agent).
-- **Import**: paste (`theme-import-text`) or file (`theme-import-file`, `.json`, ≤ 200 KB). Validation against the
-  schema with readable messages (field + rule, e.g. "glow must be one of off, soft, neon"); valid → live preview
-  (gallery card + the existing live preview) → save. Saved per person on the server: `DATA_DIR/users/<sub>/themes/`,
-  `GET/POST/DELETE /api/themes` (max 20 themes; the server validates and sanitises again). Imported themes appear in
-  the gallery with export (download the document) and delete (undo snackbar).
-- **Scene SVG (owner chose to allow it) — safety**: sanitised on the server and again in the browser with an SVG
-  allow-list (DOMPurify SVG profile): no `script`, `foreignObject`, event-handler attributes, external `href`/`url()`
-  (only `#fragment` refs), no `<image>`; ≤ 100 KB per variant. Rendered only as an image (`<img src="data:image/
-  svg+xml;…">`), never inlined into the page, so even a sanitiser gap cannot run code; therefore a scene SVG carries its
-  own colours (separate light/dark variants; missing dark → light is used). Whatever was removed is reported
-  (`theme-import-sanitized`). Alternative weighed: inlining (could use theme tokens and the cat parts) — rejected for
-  safety; builtin scenes keep their live parts.
+- **One theme document format**, `calendar-theme/2` (JSON, schema in `shared/theme.schema.json`, used by server and
+  web): only simple fields, so an AI cannot easily break it: `{ schema, name, author?, description?, mode: "follow"|
+  "light"|"dark", colors?: { seed?: hex, light?: {role: hex}, dark?: {role: hex} }, glow, entries, corners, font?,
+  scene? }`. `seed` generates the whole colour scheme; the optional role overrides are few (`primary`, `on-primary`,
+  `secondary`, `tertiary`, `background`, `on-background`, `surface`, `on-surface`) and replace single roles of it.
+  `font` is a curated list (`system`, `serif`, `rounded`, `mono`). `scene` is `{ builtin: name }` or `{ gradient: [2–3
+  hex colours], decor?: stars|sparkles|waves|hills|hearts|clouds|confetti|bubbles, density?: low|medium|high }`
+  (density defaults to medium; no decor = the plain gradient). **The document never contains SVG** (owner, after real
+  AIs broke raw SVG inside JSON: unescaped quotes, chat UIs turning URLs into markdown links, missing closing tags);
+  this replaces the earlier `calendar-theme/1` with an SVG scene (never released). The built-in presets are expressed
+  as such documents too, so there is a single apply path (`applyTheme(resolved)` → html attributes + CSS custom
+  properties); fine-tuning overrides stay on top of a document as before.
+- **The app draws the gradient scene** (`DrawnScene`): a vertical gradient of the given colours with the decor drawn
+  by the app (own SVG shapes, not user markup) in a fixed pseudo-random layout per decor; `density` = number of shapes
+  (low 8, medium 16, high 28; for `waves` and `hills` the number of layers 1, 2, 3). In dark mode the gradient is
+  dimmed. The decor moves subtly (twinkle, drift, sway) only at the Full animation level. Testids: `top-bar-scene`
+  `data-scene="custom"` containing `drawn-scene` with `data-decor`.
+- **Own top bar picture (SVG), separate from the document** (optional): a light SVG and an optional dark one, pasted
+  (`theme-picture-text`, `theme-picture-dark-text`) or uploaded (`theme-picture-file`, `theme-picture-dark-file`,
+  `.svg`, ≤ 100 KB). It overrides whatever scene the document has. The server stores it next to the document
+  (`POST /api/themes { theme, picture }`). Safety: sanitised on the server and again in the browser with an SVG
+  allow-list (DOMPurify SVG profile): no `script`, `foreignObject`, `style`, `use`, animation or event-handler
+  attributes, external `href`/`url()` (only `#fragment` refs), no `<image>`; ≤ 100 KB per variant. Rendered only as an
+  image (`<img src="data:image/svg+xml;…">`), never inlined, so even a sanitiser gap cannot run code; it carries its own
+  colours (missing dark → light). Whatever was removed is reported (`theme-import-sanitized`). Alternative weighed:
+  inlining (could use theme tokens) — rejected for safety.
+- **Create with AI**: `theme-ai` shows a short generated prompt (`theme-ai-prompt`, read-only, copied with
+  `theme-ai-copy`): what the app is, "answer with only the JSON in one code block, no SVG", the full JSON Schema, the
+  decor options, the contrast rule (light and dark), one complete example, and a slot for my wishes. No AI is called.
+- **Import** is forgiving: paste (`theme-import-text`) or file (`theme-import-file`, `.json`/`.txt`, ≤ 200 KB). Before
+  parsing, a Markdown code fence (```` ```json … ``` ````) is stripped, text outside the outermost `{ … }` is dropped
+  and Markdown links `[x](y)` are turned back into the URL (`y`). Invalid JSON shows the hint "This is not valid JSON.
+  Ask the AI to answer with only the JSON in one code block." (plus the parser's message); a schema problem shows
+  readable messages (field + rule, e.g. "glow must be one of off, soft, neon"). With any error, `Copy repair prompt`
+  (`theme-repair-copy`, text in `theme-repair-prompt`) copies a prompt with the error list and my text that asks the AI
+  to fix its JSON. Valid → preview (gallery card) → save. Copying works over plain http (`copyText`).
+- **Stored** per person on the server: `DATA_DIR/users/<sub>/themes/`, `GET/POST/DELETE /api/themes` (max 20 themes;
+  the server validates and sanitises again). Imported themes appear in the gallery with export (download the
+  document) and delete (undo snackbar).
+- **Behind a Labs switch for now** (owner): only the AI part, "Create with AI" and the import (paste, file, own
+  picture; testid `theme-own`), shows with the person's pref `labsOwnThemes` (default off, settings switch
+  `settings-labs-own-themes`, "Own themes (AI and import)", subtitle says it is experimental). Saved own themes (imported
+  or saved from the menu) always show in the gallery with export and delete, and a chosen one always applies, whatever
+  the switch says; the switch hides no data.
+- **Save as my theme** (not under Labs): `theme-save-own`, the last control of Fine-tuning, turns the look in use
+  into an own theme: the chosen preset or theme plus every fine-tuning choice (mode, seed colour, glow, entries,
+  corners, font, role colours) and the scene in use (built-in, drawn blocks, or the own picture, which is saved as the
+  picture) become a `calendar-theme/2` document, saved with `POST /api/themes`. A small dialog (`theme-save-dialog`)
+  asks for a name (`theme-save-name`, default "My theme", at most 40 characters, not empty; a name already in use gets
+  a number: "My theme 2"); `theme-save-confirm` saves, and the new theme becomes the chosen one (its fine-tuning is
+  now part of it, so the overrides are cleared).
 
 ## 8. Configuration (env)
 

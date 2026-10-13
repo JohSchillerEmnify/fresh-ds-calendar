@@ -12,7 +12,7 @@ import type {
   ItemsResponse, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
-import type { ThemeDoc } from '@calendar/shared';
+import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { ThemePref } from '@/theme/presets';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
@@ -53,7 +53,7 @@ export class ApiError extends Error {
 }
 
 /** One of the person's imported themes (API.md "Imported themes"). */
-export interface StoredTheme { id: string; doc: ThemeDoc }
+export interface StoredTheme { id: string; doc: ThemeDoc; picture?: ThemePicture }
 
 export interface RequestOptions {
   signal?: AbortSignal;
@@ -171,8 +171,8 @@ export class ApiClient {
     return this.request<{ themes: StoredTheme[] }>('GET', '/api/themes', undefined, o);
   }
 
-  saveTheme(doc: ThemeDoc, o?: RequestOptions) {
-    return this.request<StoredTheme & { sanitized: boolean }>('POST', '/api/themes', doc, o);
+  saveTheme(theme: ThemeDoc, picture?: ThemePicture, o?: RequestOptions) {
+    return this.request<StoredTheme & { sanitized: boolean }>('POST', '/api/themes', { theme, ...(picture ? { picture } : {}) }, o);
   }
 
   deleteTheme(id: string, o?: RequestOptions) {

@@ -127,6 +127,8 @@ export interface Prefs {
   /** Tasks view grouping and sorting. */
   tasksGroupBy: TasksGroupBy;
   tasksSortBy: TasksSortBy;
+  /** Labs: the AI prompt and the import in the theme menu (off by default). */
+  labsOwnThemes: boolean;
 }
 
 export interface Settings {

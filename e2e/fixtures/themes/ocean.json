@@ -1,8 +1,8 @@
 {
-  "schema": "calendar-theme/1",
+  "schema": "calendar-theme/2",
   "name": "Ocean",
   "author": "Fixture",
-  "description": "Deep blue with waves in the top bar.",
+  "description": "Deep blue sea with waves in the top bar.",
   "mode": "follow",
   "colors": {
     "seed": "#0b6e99"
@@ -12,9 +12,12 @@
   "corners": "round",
   "font": "rounded",
   "scene": {
-    "svg": {
-      "light": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1200 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"sky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#cfeefc\"/><stop offset=\"1\" stop-color=\"#8fd3f0\"/></linearGradient></defs><rect width=\"1200\" height=\"120\" fill=\"url(#sky)\"/><path d=\"M0 80 Q150 50 300 80 T600 80 T900 80 T1200 80 V120 H0Z\" fill=\"#2b8fb8\"/><path d=\"M0 98 Q200 74 400 98 T800 98 T1200 98 V120 H0Z\" fill=\"#0b6e99\"/></svg>",
-      "dark": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1200 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"sky\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#06222e\"/><stop offset=\"1\" stop-color=\"#0b3a4f\"/></linearGradient></defs><rect width=\"1200\" height=\"120\" fill=\"url(#sky)\"/><path d=\"M0 80 Q150 50 300 80 T600 80 T900 80 T1200 80 V120 H0Z\" fill=\"#0f5878\"/><path d=\"M0 98 Q200 74 400 98 T800 98 T1200 98 V120 H0Z\" fill=\"#0a3d56\"/></svg>"
-    }
+    "gradient": [
+      "#8fd3f0",
+      "#2b8fb8",
+      "#0b6e99"
+    ],
+    "decor": "waves",
+    "density": "medium"
   }
 }

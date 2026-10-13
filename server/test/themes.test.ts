@@ -1,23 +1,24 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateTheme } from '@calendar/shared';
+import { validatePicture, validateTheme } from '@calendar/shared';
 import { makeApp, type TestApp } from './helpers.js';
 
-const fixture = (name: string) => JSON.parse(fs.readFileSync(path.join(import.meta.dirname, '../../e2e/fixtures/themes', name), 'utf8'));
-const minimal = (extra: object = {}) => ({ schema: 'calendar-theme/1', name: 'X', ...extra });
+const fixtures = path.join(import.meta.dirname, '../../e2e/fixtures/themes');
+const ocean = () => JSON.parse(fs.readFileSync(path.join(fixtures, 'ocean.json'), 'utf8'));
+const sneaky = () => fs.readFileSync(path.join(fixtures, 'sneaky.svg'), 'utf8');
+const minimal = (extra: object = {}) => ({ schema: 'calendar-theme/2', name: 'X', ...extra });
 
 describe('theme document validation', () => {
-  it('accepts the minimal document and both fixtures', () => {
+  it('accepts the minimal document and the ocean fixture', () => {
     expect(validateTheme(minimal()).ok).toBe(true);
-    expect(validateTheme(fixture('ocean.json')).ok).toBe(true);
-    expect(validateTheme(fixture('sneaky.json')).ok).toBe(true);
+    expect(validateTheme(ocean()).ok).toBe(true);
   });
 
   it.each([
     [minimal({ glow: 'ultra' }), 'glow must be one of off, soft, neon'],
     [{ name: 'X' }, 'schema is required'],
-    [minimal({ schema: 'calendar-theme/2' }), 'schema must be "calendar-theme/1"'],
+    [minimal({ schema: 'calendar-theme/1' }), 'schema must be "calendar-theme/2"'],
     [minimal({ name: '' }), 'name must not be empty'],
     [minimal({ name: 'x'.repeat(41) }), 'name must be at most 40 characters'],
     [minimal({ colors: { seed: 'blue' } }), 'colors.seed must be a 6-digit hex colour like #1a73e8'],
@@ -25,15 +26,29 @@ describe('theme document validation', () => {
     [minimal({ colors: { light: { sparkle: '#ffffff' } } }), 'colors.light.sparkle is not a known field'],
     [minimal({ sparkle: 1 }), 'sparkle is not a known field'],
     [minimal({ font: 'comic' }), 'font must be one of system, serif, rounded, mono'],
-    [minimal({ scene: {} }), 'scene needs either builtin or svg'],
-    [minimal({ scene: { builtin: 'none', svg: { light: '<svg/>' } } }), 'scene can have builtin or svg, not both'],
-    [minimal({ scene: { svg: { light: 'hello' } } }), 'scene.svg.light must be an SVG picture (starting with <svg)'],
-    [minimal({ scene: { svg: {} } }), 'scene.svg needs light or dark'],
+    [minimal({ scene: {} }), 'scene needs either builtin or gradient'],
+    [minimal({ scene: { builtin: 'none', gradient: ['#ffffff', '#000000'] } }), 'scene can have builtin or gradient, not both'],
+    [minimal({ scene: { gradient: ['#ffffff'] } }), 'scene.gradient must have at least 2 entries'],
+    [minimal({ scene: { gradient: ['#111111', '#222222', '#333333', '#444444'] } }), 'scene.gradient must have at most 3 entries'],
+    [minimal({ scene: { gradient: ['#111111', 'red'] } }), 'scene.gradient[1] must be a 6-digit hex colour like #1a73e8'],
+    [minimal({ scene: { gradient: 'blue' } }), 'scene.gradient must be a list'],
+    [minimal({ scene: { gradient: ['#111111', '#222222'], decor: 'fireworks' } }), 'scene.decor must be one of stars, sparkles, waves, hills, hearts, clouds, confetti, bubbles'],
+    [minimal({ scene: { gradient: ['#111111', '#222222'], density: 'lots' } }), 'scene.density must be one of low, medium, high'],
+    [minimal({ scene: { builtin: 'none', decor: 'stars' } }), 'scene.decor and scene.density go with gradient, not with builtin'],
+    [minimal({ scene: { svg: { light: '<svg/>' } } }), 'scene.svg is not a known field'],
     [[], 'The theme must be an object'],
   ])('refuses %j with a readable reason', (doc, message) => {
     const r = validateTheme(doc);
     expect(r.ok).toBe(false);
     expect(r.ok ? [] : r.errors).toContain(message);
+  });
+
+  it('checks the own picture', () => {
+    expect(validatePicture({ light: '<svg xmlns="http://www.w3.org/2000/svg"/>' }).ok).toBe(true);
+    expect(validatePicture({}).ok).toBe(false);
+    expect(validatePicture({ light: 'hello' })).toEqual({ ok: false, errors: ['picture.light must be an SVG picture (starting with <svg)'] });
+    expect(validatePicture({ light: '<svg>' + 'x'.repeat(101 * 1024) })).toEqual({ ok: false, errors: ['picture.light must be at most 100 KB'] });
+    expect(validatePicture({ light: '<svg/>', big: 1 })).toEqual({ ok: false, errors: ['picture.big is not a known field'] });
   });
 });
 
@@ -45,54 +60,56 @@ describe('/api/themes', () => {
 
   it('starts empty, stores a theme, lists it and deletes it', async () => {
     expect((await t.json('GET', '/api/themes')).body).toEqual({ themes: [] });
-    const created = await t.json('POST', '/api/themes', fixture('ocean.json'));
+    const created = await t.json('POST', '/api/themes', { theme: ocean() });
     expect(created.status).toBe(201);
-    expect(created.body).toMatchObject({ doc: { name: 'Ocean' }, sanitized: false });
+    expect(created.body).toEqual({ id: expect.any(String), doc: ocean(), sanitized: false });
     const listed = (await t.json('GET', '/api/themes')).body.themes;
-    expect(listed.map((x: { id: string }) => x.id)).toEqual([created.body.id]);
+    expect(listed).toEqual([{ id: created.body.id, doc: ocean() }]);
     expect((await t.req('DELETE', `/api/themes/${created.body.id}`)).status).toBe(204);
     expect((await t.json('GET', '/api/themes')).body).toEqual({ themes: [] });
     expect((await t.json('DELETE', `/api/themes/${created.body.id}`)).status).toBe(404);
   });
 
   it('keeps the themes under the person\'s data directory', async () => {
-    const { body } = await t.json('POST', '/api/themes', fixture('ocean.json'));
+    const { body } = await t.json('POST', '/api/themes', { theme: ocean() });
     expect(fs.existsSync(path.join(t.dir, 'users', 'local', 'themes', `${body.id}.json`))).toBe(true);
   });
 
   it('refuses a broken theme with the readable reason', async () => {
-    const r = await t.json('POST', '/api/themes', minimal({ glow: 'ultra' }));
+    const r = await t.json('POST', '/api/themes', { theme: minimal({ glow: 'ultra' }) });
     expect(r.status).toBe(400);
     expect(r.body.error).toMatchObject({ code: 'VALIDATION_ERROR', message: 'glow must be one of off, soft, neon' });
     expect((await t.json('POST', '/api/themes', undefined)).status).toBe(400);
+    expect((await t.json('POST', '/api/themes', { theme: ocean(), extra: 1 })).body.error.message).toBe('extra is not a known field');
+    expect((await t.json('POST', '/api/themes', ocean())).status).toBe(400);
   });
 
-  it('removes unsafe parts of the scene picture before storing and says so', async () => {
-    const r = await t.json('POST', '/api/themes', fixture('sneaky.json'));
+  it('stores the own picture next to the document, sanitised, and says what was removed', async () => {
+    const r = await t.json('POST', '/api/themes', { theme: ocean(), picture: { light: sneaky() } });
     expect(r.status).toBe(201);
     expect(r.body.sanitized).toBe(true);
-    const svg: string = r.body.doc.scene.svg.light;
+    const svg: string = r.body.picture.light;
     expect(svg).toMatch(/^<svg /);
     expect(svg).not.toMatch(/script|foreignObject|<image|onload|onmouseover|example\.com|__pwned/i);
     expect(svg).toContain('<rect');
+    expect((await t.json('GET', '/api/themes')).body.themes[0].picture.light).toBe(svg);
   });
 
-  it('keeps the picture without its script when that was all that was unsafe', async () => {
-    const r = await t.json('POST', '/api/themes', minimal({ scene: { svg: { light: '<svg><script>alert(1)</script></svg>' } } }));
-    expect(r.status).toBe(201);
-    expect(r.body.sanitized).toBe(true);
-    expect(r.body.doc.scene.svg.light).not.toMatch(/script/);
+  it('refuses a broken picture', async () => {
+    const r = await t.json('POST', '/api/themes', { theme: ocean(), picture: { light: 'nope' } });
+    expect(r.status).toBe(400);
+    expect(r.body.error.message).toBe('picture.light must be an SVG picture (starting with <svg)');
   });
 
   it('allows at most 20 themes', async () => {
-    for (let i = 0; i < 20; i++) expect((await t.json('POST', '/api/themes', minimal({ name: `T${i}` }))).status).toBe(201);
-    const r = await t.json('POST', '/api/themes', minimal({ name: 'Too many' }));
+    for (let i = 0; i < 20; i++) expect((await t.json('POST', '/api/themes', { theme: minimal({ name: `T${i}` }) })).status).toBe(201);
+    const r = await t.json('POST', '/api/themes', { theme: minimal({ name: 'Too many' }) });
     expect(r.status).toBe(400);
     expect(r.body.error.message).toMatch(/at most 20 themes/);
   });
 
-  it('lets a person choose an imported theme as their theme', async () => {
-    const { body } = await t.json('POST', '/api/themes', fixture('ocean.json'));
+  it('lets a person choose an own theme as their theme', async () => {
+    const { body } = await t.json('POST', '/api/themes', { theme: ocean() });
     expect((await t.json('PATCH', '/api/prefs/theme', { preset: `theme:${body.id}` })).status).toBe(200);
     expect((await t.json('GET', '/api/prefs/theme')).body.preset).toBe(`theme:${body.id}`);
     expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'theme:../x' })).status).toBe(400);
