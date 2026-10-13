@@ -1,11 +1,11 @@
 import type {
-  Calendar, CalendarEvent, CalendarItem, Category, CreateEventInput, CreateTaskListInput, SummaryDay, TaskItem, TaskList,
+  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateEventInput, CreateTaskListInput, SummaryDay, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
 import type { Clock } from '../lib/clock.js';
 import { GOOGLE_COLORS } from '../lib/colors.js';
-import { ApiException, notFound, preconditionFailed, validation } from '../lib/errors.js';
+import { ApiException, forbidden, notFound, preconditionFailed, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import {
@@ -21,6 +21,7 @@ import {
   type TaskListData,
 } from './taskCodec.js';
 import { TasksCalendar } from './tasksCalendar.js';
+import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
 const DAY = 86_400_000;
 const CAL_TTL_MS = 30_000;
@@ -40,6 +41,8 @@ export class CalendarService {
     private readonly config: Pick<AppConfig, 'tz'>,
     private readonly prefs: PrefsStore,
     private readonly sub: string,
+    /** Shared lists (ARCHITECTURE "Shared lists"); null where sharing is not wired (some unit tests). */
+    private readonly shared: SharedListService | null = null,
   ) {
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.calCache = null; });
   }
@@ -81,6 +84,11 @@ export class CalendarService {
     return (await this.providerCalendars()).find((c) => c.id === id)?.backgroundColor ?? '#039be5';
   }
 
+  /** The colour of a calendar from the cached list (the lookup that precedes it filled the cache). */
+  private calendarColorSync(id: string): string {
+    return this.calCache?.cals.find((c) => c.id === id)?.backgroundColor ?? '#039be5';
+  }
+
   private async requireCalendar(id: string): Promise<void> {
     if (!(await this.eventCalendars()).some((c) => c.id === id)) throw validation('Unknown calendar', 'calendarId');
   }
@@ -108,6 +116,25 @@ export class CalendarService {
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
       tags: d.tags, color: cat ? cat.color : calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
     };
+  }
+
+  /** A shared list as the API shows it to this person: the owner's category look comes from the list. */
+  private toSharedTaskList(doc: SharedListDoc, fallbackColor: string): TaskList {
+    const d = doc.data;
+    const live = doc.owner === this.sub ? this.settings.categories().find((c) => c.id === d.categoryId) : undefined;
+    const info: CategoryInfo | null = live ? { name: live.name, color: live.color, icon: live.icon } : doc.category;
+    const done = d.items.filter((i) => i.done).length;
+    return {
+      kind: 'tasklist', id: SHARED_PREFIX + doc.id, calendarId: SHARED_CALENDAR, title: d.title, date: d.date, time: d.time, items: d.items,
+      doneCount: done, totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: null, categoryId: d.categoryId, tags: d.tags,
+      color: info?.color ?? fallbackColor, completedOn: d.completedOn, canvas: d.canvas, etag: `"${doc.rev}"`, updated: doc.updated,
+      shared: this.shared!.info(doc, this.sub), categoryInfo: info,
+    };
+  }
+
+  /** Every shared list this person owns or is a member of. */
+  private sharedTaskLists(fallbackColor: string): TaskList[] {
+    return this.shared ? this.shared.visibleTo(this.sub).map((d) => this.toSharedTaskList(d, fallbackColor)) : [];
   }
 
   /** Today on the app clock (honours the test clock), for `completedOn`. */
@@ -161,7 +188,12 @@ export class CalendarService {
       // undated lists sit on the anchor date: a range that reaches it must not show them
       return r.items.filter((e) => e.status !== 'cancelled' && isTaskListEvent(e) && !isUndatedEvent(e)).map((e): CalendarItem => this.toTaskList(e, color, cats));
     })();
-    return (await Promise.all([...eventLists, taskLists])).flat();
+    const sharedLists = (): CalendarItem[] => {
+      if (calendarIds && !calendarIds.includes(tasksId)) return [];
+      const color = this.calendarColorSync(tasksId);
+      return this.sharedTaskLists(color).filter((l) => l.date !== null && l.date >= from && l.date < to);
+    };
+    return [...(await Promise.all([...eventLists, taskLists])).flat(), ...sharedLists()];
   }
 
   private sortKey(i: CalendarItem): [string, number, number, string] {
@@ -282,6 +314,13 @@ export class CalendarService {
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
     };
     this.checkTaskData(d);
+    // a list created in a shared category is created shared (a repeating one cannot be: A-166/A-167)
+    const member = d.categoryId && !d.recurrence && this.shared ? this.shared.ruleFor(this.sub, d.categoryId) : null;
+    if (member) {
+      const doc = this.shared!.create(this.sub, [member], d, this.categoryInfo(d.categoryId));
+      this.motivation.award('create');
+      return this.toSharedTaskList(doc, '#039be5');
+    }
     const g = encodeTaskList(d, this.tz, this.colorFor(d));
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
     this.motivation.award('create');
@@ -289,21 +328,48 @@ export class CalendarService {
   }
 
   async getTaskList(id: string): Promise<TaskList> {
+    if (isSharedId(id)) return this.toSharedTaskList(this.shared!.access(this.sub, id), '#039be5');
     return (await this.mapOne(await this.locateKind(id, true))) as TaskList;
+  }
+
+  /** The rules every write of a list ends with: `completedOn`, the date of a finished undated list, validation. */
+  private finalize(before: TaskListData, d: TaskListData): void {
+    d.completedOn = nextCompletedOn(before, d, this.today());
+    // an undated list finished by this write is dated to today, so it shows where it was finished
+    const finishedOn = dateOnCompletion(before, d, this.today(), this.prefs.labsPrefs(this.sub).undatedDone);
+    if (finishedOn) { d.date = finishedOn; d.time = null; }
+    this.checkTaskData(d, before.categoryId);
+  }
+
+  /** Read-modify-write of a shared list: synchronous, so no other write can slip in; a pinned stale `If-Match` is a 412. */
+  private modifyShared(id: string, fn: (d: TaskListData) => TaskListData, ifMatch?: string): TaskList {
+    const doc = this.shared!.access(this.sub, id);
+    if (ifMatch && !etagEq(ifMatch, `"${doc.rev}"`)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
+    const before = doc.data;
+    const d = { ...fn(before) };
+    this.finalize(before, d);
+    const moved = d.categoryId !== before.categoryId;
+    // only the owner's categories are meaningful on the list (A-164)
+    if (moved && doc.owner !== this.sub) throw validation('Only the owner can change the category of a shared list', 'categoryId', 'sharing.categoryOwnerOnly');
+    this.shared!.save(doc, d, moved ? this.categoryInfo(d.categoryId) : undefined);
+    return this.toSharedTaskList(doc, '#039be5');
+  }
+
+  /** The look of one of this person's categories, as carried on a shared list. */
+  private categoryInfo(categoryId: string | null): CategoryInfo | null {
+    const c = this.settings.categories().find((x) => x.id === categoryId);
+    return c ? { name: c.name, color: c.color, icon: c.icon } : null;
   }
 
   /** Read-modify-write; on a provider-side 412 re-reads and retries (up to 3 attempts) unless `ifMatch` is pinned. */
   private async modify(id: string, fn: (d: TaskListData) => TaskListData, ifMatch?: string): Promise<TaskList> {
+    if (isSharedId(id)) return this.modifyShared(id, fn, ifMatch);
     for (let attempt = 1; ; attempt++) {
       const cur = await this.locateKind(id, true);
       if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
       const before = decodeTaskList(cur, this.tz);
       const d = { ...fn(before) };
-      d.completedOn = nextCompletedOn(before, d, this.today());
-      // an undated list finished by this write is dated to today, so it shows where it was finished
-      const finishedOn = dateOnCompletion(before, d, this.today(), this.prefs.labsPrefs(this.sub).undatedDone);
-      if (finishedOn) { d.date = finishedOn; d.time = null; }
-      this.checkTaskData(d, before.categoryId);
+      this.finalize(before, d);
       try {
         const ev = await this.provider.patchEvent(cur.calendarId, id, encodeTaskListPatch(d, this.tz, this.colorFor(d), cur), { ifMatch: cur.etag });
         return this.toTaskList(ev, await this.calendarColor(ev.calendarId), this.settings.categories());
@@ -336,6 +402,13 @@ export class CalendarService {
   }
 
   async deleteTaskList(id: string, ifMatch?: string): Promise<void> {
+    if (isSharedId(id)) {
+      // only the owner deletes a shared list for everyone; a member leaves it instead
+      const doc = this.shared!.accessOwned(this.sub, id);
+      if (ifMatch && !etagEq(ifMatch, `"${doc.rev}"`)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
+      this.shared!.remove(doc);
+      return;
+    }
     const cur = await this.locateKind(id, true);
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
@@ -385,6 +458,92 @@ export class CalendarService {
     });
   }
 
+  // ---------- sharing ----------
+  /**
+   * Shares a list with a person. A list of the tasks calendar MOVES into the shared store (same items and state, the
+   * Google event is deleted once the shared copy is written); on a list this person already shares, the person is added.
+   */
+  async shareTaskList(id: string, personSub: string): Promise<TaskList> {
+    const shared = this.shared!;
+    // access first: a stranger learns nothing about the list, not even that the person was refused
+    const doc = isSharedId(id) ? shared.accessOwned(this.sub, id) : null;
+    shared.requireMember(this.sub, personSub);
+    if (doc) {
+      shared.setMembers(doc, [...doc.members, personSub]);
+      return this.toSharedTaskList(doc, '#039be5');
+    }
+    const moved = await this.moveIn(await this.locateKind(id, true), [personSub]);
+    return this.toSharedTaskList(moved, '#039be5');
+  }
+
+  /** Moves one task list event into the shared store; the event is deleted only after the shared copy exists. */
+  private async moveIn(ev: GoogleEvent, members: string[]): Promise<SharedListDoc> {
+    const d = decodeTaskList(ev, this.tz);
+    if (d.recurrence || ev.recurringEventId) throw validation('A repeating task list cannot be shared', 'recurrence', 'sharing.repeating');
+    const doc = this.shared!.create(this.sub, members, d, this.categoryInfo(d.categoryId));
+    try {
+      await this.provider.deleteEvent(ev.calendarId, ev.id);
+    } catch (e) {
+      this.shared!.remove(doc);
+      throw e;
+    }
+    return doc;
+  }
+
+  /** "Stop sharing" (owner): the list moves back into the owner's tasks calendar; everybody else loses it. */
+  async unshareTaskList(id: string): Promise<TaskList> {
+    return this.moveOut(this.shared!.accessOwned(this.sub, id));
+  }
+
+  /** Creates the Google event first, then removes the shared copy, so a failure never loses the list. */
+  private async moveOut(doc: SharedListDoc): Promise<TaskList> {
+    const d: TaskListData = { ...doc.data, recurrence: null };
+    // a category this person no longer has cannot be kept
+    if (d.categoryId !== null && !this.settings.categories().some((c) => c.id === d.categoryId)) d.categoryId = null;
+    const calendarId = await this.tasks.id();
+    const ev = await this.provider.insertEvent(calendarId, encodeTaskList(d, this.tz, this.colorFor(d)));
+    this.shared!.remove(doc);
+    return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories());
+  }
+
+  /** "Leave" (member): the list disappears for this person only. */
+  leaveTaskList(id: string): void {
+    const doc = this.shared!.access(this.sub, id);
+    if (doc.owner === this.sub) throw forbidden('The owner deletes the list or stops sharing it', 'sharing.ownerCannotLeave');
+    this.shared!.setMembers(doc, doc.members.filter((m) => m !== this.sub));
+  }
+
+  /**
+   * Shares a category with a person (or, with `null`, stops): every list of the category moves into (out of) the shared
+   * store, and lists created in it later are created shared (A-167). Returns the person's category rules.
+   */
+  async shareCategory(categoryId: string, personSub: string | null): Promise<Record<string, Person>> {
+    const shared = this.shared!;
+    if (!this.settings.categories().some((c) => c.id === categoryId)) throw notFound('Category not found');
+    const previous = shared.ruleFor(this.sub, categoryId);
+    if (personSub !== null) shared.requireMember(this.sub, personSub);
+    shared.setRule(this.sub, categoryId, personSub);
+    if (personSub === null) {
+      // members of lists that were shared through this rule lose them; a list left without anybody moves back
+      for (const doc of shared.ownedInCategory(this.sub, categoryId)) {
+        if (!previous || !doc.members.includes(previous)) continue;
+        const rest = doc.members.filter((m) => m !== previous);
+        if (rest.length) shared.setMembers(doc, rest);
+        else await this.moveOut(doc);
+      }
+    } else {
+      for (const doc of shared.ownedInCategory(this.sub, categoryId)) shared.setMembers(doc, [...doc.members.filter((m) => m !== previous), personSub]);
+      const calendarId = await this.tasks.id();
+      const found = await this.provider.listEvents({ calendarId, privateExtendedProperty: ['kind=tasklist', `categoryId=${categoryId}`] });
+      for (const ev of found.items) {
+        // repeating lists stay where they are: their rule cannot move into the shared store
+        if (ev.status === 'cancelled' || !isTaskListEvent(ev) || ev.recurrence?.length || ev.recurringEventId) continue;
+        await this.moveIn(ev, [personSub]);
+      }
+    }
+    return shared.rulesOf(this.sub);
+  }
+
   // ---------- open lists and summary ----------
   /** Open lists and lists finished today, both dated in `[today - days, today]`, in tray order (API.md). */
   async openTaskLists(today: string, days: number): Promise<{ items: TaskList[]; finishedToday: TaskList[] }> {
@@ -407,10 +566,12 @@ export class CalendarService {
     ]);
     const color = await this.calendarColor(tasksId);
     const cats = this.settings.categories();
-    const lists = [
+    // keyed by id: a dated shared list is in the range read and in the full list of shared lists
+    const lists = [...new Map([
       ...dated.filter((i): i is TaskList => i.kind === 'tasklist'),
       ...undated.items.filter((e) => e.status !== 'cancelled').map((e) => this.toTaskList(e, color, cats)),
-    ];
+      ...this.sharedTaskLists(color),
+    ].map((l) => [l.id, l])).values()];
     // a list is open until all of its items are ticked (a list without items is still open)
     return { items: lists.filter((l) => l.totalCount === 0 || l.doneCount < l.totalCount) };
   }
@@ -431,6 +592,7 @@ export class CalendarService {
     const byId = new Map<string, TaskList>();
     for (const i of dated) if (i.kind === 'tasklist') byId.set(i.id, i);
     for (const e of marked.items) if (e.status !== 'cancelled') byId.set(e.id, this.toTaskList(e, color, cats));
+    for (const l of this.sharedTaskLists(color)) byId.set(l.id, l);
     return { items: [...byId.values()].filter((l) => l.totalCount > 0 && l.doneCount >= l.totalCount) };
   }
 

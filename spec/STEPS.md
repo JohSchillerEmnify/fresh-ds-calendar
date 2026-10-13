@@ -1498,12 +1498,12 @@ I edit the task list {string} in the Tasks view
   (as if they had signed in once), so they can be picked as members (ARCHITECTURE "Shared lists").
 - "P has an undated task list T with the items I [in the category C]": setup through `POST /api/__test/tasklists` for
   person P (API.md); items are `, `-separated; the category is found by name in the settings. Not user activity: the
-  plant state is restored afterwards.
+  endpoint restores the plant state.
 - "I share the task list T with P": the signed-in person opens the Tasks view, opens T's dialog (`tasklist-expanded-title`),
-  picks P's email in `tasklist-share-person`, presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
+  picks P in `tasklist-share-person` (by the name the option shows: the part of the address before the `@`), presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
   (200), then closes the dialog. "I stop sharing the task list T": the same dialog, `tasklist-unshare`.
 - "I share the category C with P in the settings": opens the settings, edits the category C (`settings-category`),
-  picks P in `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
+  picks P (by name, as above) in `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
 - "P creates the undated task list T in the category C": `POST /api/tasklists` as P (a session of its own, see below).
 - "P opens the Tasks view on another device": a fresh browser context signed in as P (like "opens the week view ... on
   another device"), then the Tasks view.

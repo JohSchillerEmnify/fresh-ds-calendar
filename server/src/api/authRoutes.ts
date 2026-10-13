@@ -42,6 +42,7 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const who = await oauth.exchange(code);
     // not on the list (or unverified): keep nothing, not even the token
     if (!who.emailVerified || !ctx.auth.allows(who.email)) return c.redirect('/signin?error=private', 302);
+    ctx.people.record(who.sub, who.email, who.name ?? undefined);
     const claimed = claimLegacyToken(ctx.config.dataDir, who.sub);
     const refresh = who.refreshToken ?? claimed;
     if (!refresh) throw validation('Google did not return a refresh token (revoke access and retry)');

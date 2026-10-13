@@ -251,6 +251,11 @@ export class World {
     this.page = await context.newPage();
   }
 
+  /** Closes this context when the scenario ends (e.g. a second person's API session). */
+  track(context: BrowserContext) {
+    this.ownContexts.push(context);
+  }
+
   async dispose() {
     await this.held?.().catch(() => {});
     for (const c of this.ownContexts) await c.close().catch(() => {});

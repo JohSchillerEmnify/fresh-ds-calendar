@@ -29,6 +29,8 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.prefs.reset();
     ctx.themes.reset();
     ctx.canvas.reset();
+    ctx.people.reset();
+    ctx.shared.reset();
     const settings = ctx.settings.reset();
     ctx.motivation.reset();
     if (input.seed) await ctx.seed();
@@ -110,6 +112,20 @@ export function testRoutes(ctx: Ctx): Hono {
   // The person's tasks calendar id, found or created like the app does on first use.
   t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
 
+  // Creates an undated task list in one person's mock calendar; `category` is a category name.
+  t.post('/tasklists', async (c) => {
+    const b = (await body(c)) as { owner?: unknown; title?: unknown; items?: unknown; category?: unknown } | undefined;
+    if (typeof b?.owner !== 'string' || typeof b.title !== 'string') throw validation('owner and title are required');
+    const category = typeof b.category === 'string' ? ctx.settings.categories().find((k) => k.name === b.category) : undefined;
+    if (typeof b.category === 'string' && !category) throw validation('Unknown category', 'category');
+    const items = Array.isArray(b.items) ? b.items.map((title) => ({ title: String(title) })) : [];
+    // a fixture is not user activity: the plant state stays as it was
+    const { plant } = ctx.motivation.get();
+    const list = await calendarOf(b.owner).createTaskList({ title: b.title, date: null, items, categoryId: category?.id ?? null });
+    ctx.motivation.setState({ plant: { growth: plant.growth, lastWatered: plant.lastWatered, todayPoints: plant.todayPoints } });
+    return c.json(list, 201);
+  });
+
   t.get('/remote/events', (c) => {
     const q = c.req.query('q');
     let items = store(c.req.query('owner')).remote.list(c.req.query('calendarId'), c.req.query('includeCancelled') === 'true');
@@ -143,6 +159,8 @@ export function testRoutes(ctx: Ctx): Hono {
     if (!Array.isArray(b?.allowedEmails)) throw validation('allowedEmails must be an array', 'allowedEmails');
     ctx.auth.on = true;
     ctx.auth.allowedEmails = parseEmails(b.allowedEmails.join(','));
+    // the allowed addresses count as people who signed in once, so they can be picked as members
+    for (const e of ctx.auth.allowedEmails) ctx.people.recordMock(e);
     return c.json({ on: true, allowedEmails: ctx.auth.allowedEmails });
   });
 
