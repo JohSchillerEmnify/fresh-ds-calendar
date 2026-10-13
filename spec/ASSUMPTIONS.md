@@ -189,8 +189,9 @@ spec files are named.
   a person pref `leftHanded` (like `versionInCorner`), phone layout only. (a) The setting sits in Settings → Calendar,
   label "Left-handed mode". (b) The filter button moves with the settings button (the whole actions group, gear
   leftmost). (c) The version label's text "bottom left" becomes "A small label in a bottom corner" (neutral). (d) The
-  settings link row to the theme menu (chevron) and the category rows stay as they are except that the category move
-  buttons follow the row mirror; only rows with a switch or trailing control mirror. (e) The support cat stands at the
+  settings row that links to the theme menu (chevron) does not mirror; the category rows do (move buttons at the left,
+  in reversed order); the "Add category" row and full-width fields stay; every row with a switch or trailing control
+  mirrors. The unused `Menu` component is mirrored too, for when it is used again. (e) The support cat stands at the
   start of the finished list's title instead of its end, facing right. (f) The drag helper cat mirrors only its default
   side, the hop away and the ask mark; sideways pushing stays "behind the movement", as that is physics, not
   handedness; it is covered by unit tests, not by a scenario (the drag step needs a mouse). (g) The tray's chevron

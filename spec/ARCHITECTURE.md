@@ -754,7 +754,7 @@ It never reloads by itself and never interrupts an open dialog.
 - The update notice keeps comparing the full build version, so every deploy is noticed.
 - Settings → Account & data shows "Version X.Y.Z" with the sha in small print (`settings-version`). A switch "Show
   version in the corner" (`settings-version-corner`, a person pref `versionInCorner` in `Prefs`, default off) shows a small label
-  `app-version` ("0.4.2") in the bottom-left corner of the main UI (above the safe area, below dialogs, never covering
+  `app-version` ("0.4.2") in the bottom-left corner of the main UI (bottom right in left-handed mode on the phone; above the safe area, below dialogs, never covering
   the bottom bar or the FAB).
 
 ### Left-handed mode (owner, 2026-10-13)
