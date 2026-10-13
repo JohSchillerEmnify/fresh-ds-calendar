@@ -1,5 +1,6 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
 import type { Messages } from '../schema';
+import themeDe from './de/theme.ts';
 
 export default {
   views: {
@@ -109,5 +110,10 @@ export default {
       version: 'Version {version}',
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },
+    leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegelt das Handy-Layout, sodass die wichtigsten Bedienelemente unter dem linken Daumen liegen' },
+    plant: 'Pflanze',
+    sunflowers: { label: 'Sonnenblumen', hint: 'Gilt für die Szene Sonnenblumenfeld', grow: 'Wachsen mit Punkten', full: 'Volles Feld' },
+    ownThemes: { label: 'Eigene Designs (KI und Import)', hint: 'Experimentell: ein Prompt für eine KI und der Import ihrer Design-Datei im Design-Menü' },
   },
+  theme: themeDe,
 } satisfies Messages;

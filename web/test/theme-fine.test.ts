@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyAttrs } from '@/theme';
 import {
-  DENSITY_SCALE, fineVars, glowVars, GLOW_STEPS, radiusVars, RADIUS_STEPS, sanitizeFine, sliderText, stepOf,
+  DENSITY_SCALE, fineVars, glowVars, GLOW_STEPS, radiusVars, RADIUS_STEPS, sanitizeFine, stepOf,
 } from '@/theme/fine';
 import { docToResolved, presetDoc, PRESETS, resolveTheme, sanitizePref } from '@/theme/presets';
 import { lookToDoc } from '@/theme/saveLook';
@@ -39,10 +39,6 @@ describe('step and slider value', () => {
     expect(fineVars({ density: 'compact' }, 'solid')).toEqual({ '--dz': '0.9' });
     expect(fineVars({}, 'tinted')).toEqual({});
     expect(DENSITY_SCALE).toEqual({ compact: 0.9, comfortable: 1, airy: 1.12 });
-  });
-
-  it('shows the value with its unit', () => {
-    expect([sliderText('radius', 4), sliderText('tint', 30), sliderText('glowStrength', 70)]).toEqual(['4 px', '30 %', '70']);
   });
 });
 

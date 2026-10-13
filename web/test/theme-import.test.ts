@@ -16,7 +16,8 @@ import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { applyTheme } from '@/theme';
 import { EXAMPLE_THEME, themePrompt } from '@/theme/aiPrompt';
-import { cleanAiText, NOT_JSON_HINT, repairPrompt } from '@/theme/importText';
+import { t } from '@/i18n';
+import { cleanAiText, repairPrompt } from '@/theme/importText';
 import { docToResolved, PRESET_NAMES, presetDoc, PRESETS, resolveTheme, sanitizePref } from '@/theme/presets';
 import { DEFAULT_THEME_NAME, lookToDoc, uniqueName } from '@/theme/saveLook';
 import { loadSvgSanitizer } from '@/theme/svg';
@@ -264,7 +265,7 @@ describe('ThemeImport', () => {
   it('gives a hint and a repair prompt for text that is not JSON', async () => {
     const w = open();
     await paste(w, 'Sure! {"name": "X", }');
-    expect(errors(w)[0]).toBe(NOT_JSON_HINT);
+    expect(errors(w)[0]).toBe(t('theme.import.notJson'));
     expect(w.find(tid('theme-repair-copy')).exists()).toBe(true);
   });
 

@@ -3,6 +3,7 @@
  * Moderate spellings only (des, ned, bassd, etz, amal, gud), readable for non-Franconians.
  */
 import type { PartialMessages } from '../schema';
+import themeMainfr from './de-x-mainfr/theme.ts';
 
 export default {
   views: {
@@ -68,5 +69,10 @@ export default {
       signOut: 'Abmelden',
       resetDemo: { done: 'Demodaden sin widda da' },
     },
+    leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
+    plant: 'Pflanze',
+    sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
+    ownThemes: { label: 'Eigene Designs (KI un Import)', hint: 'Experimentell: a Prompt für a KI un der Import vo ihrer Design-Datei im Design-Menü' },
   },
+  theme: themeMainfr,
 } satisfies PartialMessages;

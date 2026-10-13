@@ -3,19 +3,23 @@
  * A sample entry for the theme menu: an event chip or a task list card, drawn with the shared `.skin`
  * of the calendar, so it follows whatever theme attributes sit on an ancestor (`<html>` or a scoped container).
  */
-withDefaults(defineProps<{ kind: 'event' | 'tasklist'; color?: string; on?: string; title?: string }>(), {
-  color: '#1a73e8', on: '#ffffff', title: 'Dentist',
+import { computed } from 'vue';
+import { t } from '@/i18n';
+const props = withDefaults(defineProps<{ kind: 'event' | 'tasklist'; color?: string; on?: string; title?: string }>(), {
+  color: '#1a73e8', on: '#ffffff', title: undefined,
 });
+/** The given title, else the sample event's name in the active language. */
+const label = computed(() => props.title ?? t('theme.sample.dentist'));
 </script>
 
 <template>
   <span v-if="kind === 'event'" class="skin s-ev" data-testid="theme-sample-event" :style="{ '--c': color, '--on-solid': on }">
-    <span class="t">{{ title }}</span><span class="m">09:00</span>
+    <span class="t">{{ label }}</span><span class="m">09:00</span>
   </span>
   <span v-else-if="kind === 'tasklist'" class="skin s-tl" :style="{ '--c': color, '--on-solid': on }">
-    <span class="r"><i class="cb done" /><span class="t">{{ title }}</span><span class="m">1/3</span></span>
-    <span class="it"><i class="cb done" />Milk</span>
-    <span class="it"><i class="cb" />Bread</span>
+    <span class="r"><i class="cb done" /><span class="t">{{ label }}</span><span class="m">1/3</span></span>
+    <span class="it"><i class="cb done" />{{ t('theme.sample.milk') }}</span>
+    <span class="it"><i class="cb" />{{ t('theme.sample.bread') }}</span>
   </span>
 </template>
 

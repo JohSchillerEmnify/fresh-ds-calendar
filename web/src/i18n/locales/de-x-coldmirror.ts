@@ -3,6 +3,7 @@
  * rapper. Complete: it covers every key of `de`. Never "Ich bin voll geil" (owner).
  */
 import type { Messages } from '../schema';
+import themeColdmirror from './de-x-coldmirror/theme.ts';
 
 export default {
   views: {
@@ -115,5 +116,10 @@ export default {
       version: 'Version {version}, yo',
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },
+    leftHanded: { label: 'Linkshänder-Modus, yo', hint: 'Spiegelt das Handy-Layout, damit die wichtigen Knöpfe unter dem linken Daumen liegen. Fresh D. ist Linkshänder, Digga.' },
+    plant: 'Pflanze, yo',
+    sunflowers: { label: 'Sonnenblumen, fresh', hint: 'Gilt nur für die Szene Sonnenblumenfeld, Digga', grow: 'Wachsen mit Punkten, yo', full: 'Volles Feld, fresh' },
+    ownThemes: { label: 'Eigene Bling-Blings (KI und Import)', hint: 'Experimentell, Digga: ein Prompt für eine KI und der Import ihrer Theme-Datei im Bling-Bling-Menü' },
   },
+  theme: themeColdmirror,
 } satisfies Messages;

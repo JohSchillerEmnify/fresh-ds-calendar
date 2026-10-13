@@ -11,11 +11,12 @@ import { ApiError } from '@/api/client';
 import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
+import { t } from '@/i18n';
 import { copyText } from '@/lib/copyText';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { themePrompt } from '@/theme/aiPrompt';
-import { cleanAiText, NOT_JSON_HINT, repairPrompt } from '@/theme/importText';
+import { cleanAiText, repairPrompt } from '@/theme/importText';
 import { docToResolved } from '@/theme/presets';
 import { loadSvgSanitizer } from '@/theme/svg';
 
@@ -28,7 +29,7 @@ const promptField = ref<HTMLTextAreaElement | null>(null);
 const repairField = ref<HTMLTextAreaElement | null>(null);
 async function copy(text: string, field: HTMLTextAreaElement | null, done: string) {
   if (await copyText(text, field)) ui.notify(done);
-  else ui.notify('Could not copy: select the text and copy it by hand');
+  else ui.notify(t('theme.import.copyFailed'));
 }
 
 const text = ref('');
@@ -55,7 +56,7 @@ async function check() {
   try {
     json = JSON.parse(cleanAiText(text.value));
   } catch (e) {
-    docErrors.value = [NOT_JSON_HINT, `(${(e as Error).message})`];
+    docErrors.value = [t('theme.import.notJson'), `(${(e as Error).message})`];
     return;
   }
   const valid = validateTheme(json);
@@ -84,7 +85,7 @@ async function onFile(e: Event, into: 'theme' | 'light' | 'dark') {
   pictureErrors.value = [];
   const max = into === 'theme' ? MAX_THEME_BYTES : MAX_PICTURE_BYTES;
   if (file.size > max) {
-    const msg = `The ${into === 'theme' ? 'file' : 'picture'} is larger than ${max / 1024} KB`;
+    const msg = t(into === 'theme' ? 'theme.import.fileTooLarge' : 'theme.import.pictureTooLarge', { kb: max / 1024 });
     if (into === 'theme') docErrors.value = [msg]; else pictureErrors.value = [msg];
     return;
   }
@@ -101,11 +102,11 @@ async function save() {
   saving.value = true;
   try {
     await theme.importTheme(checked.value.doc, checked.value.picture);
-    ui.notify(`Saved theme: ${checked.value.doc.name}`);
+    ui.notify(t('theme.import.saved', { name: checked.value.doc.name }));
     text.value = pictureLight.value = pictureDark.value = '';
     checked.value = null;
   } catch (e) {
-    pictureErrors.value = [e instanceof ApiError ? e.userMessage : 'Could not save the theme'];
+    pictureErrors.value = [e instanceof ApiError ? e.userMessage : t('theme.import.failed')];
   } finally {
     saving.value = false;
   }
@@ -114,32 +115,32 @@ async function save() {
 
 <template>
   <div class="own" aria-labelledby="h-own" role="group" data-testid="theme-own">
-    <h3 id="h-own">Your own theme (experimental)</h3>
+    <h3 id="h-own">{{ t('theme.import.title') }}</h3>
     <div class="row">
-      <Button variant="tonal" data-testid="theme-ai" :aria-expanded="aiOpen" @click="aiOpen = !aiOpen">Create with AI</Button>
+      <Button variant="tonal" data-testid="theme-ai" :aria-expanded="aiOpen" @click="aiOpen = !aiOpen">{{ t('theme.import.createWithAi') }}</Button>
     </div>
     <div v-if="aiOpen" class="ai">
-      <p class="hint">Copy this prompt into the AI you like, add your wishes at the end, and paste its answer below.</p>
+      <p class="hint">{{ t('theme.import.aiHint') }}</p>
       <!-- a read-only field, not <pre>: Ctrl+A then selects the prompt only, and the http copy fallback can select it -->
-      <textarea ref="promptField" class="prompt" data-testid="theme-ai-prompt" readonly rows="10" aria-label="AI prompt" :value="prompt" />
-      <Button variant="outlined" data-testid="theme-ai-copy" @click="copy(prompt, promptField, 'Prompt copied')">Copy prompt</Button>
+      <textarea ref="promptField" class="prompt" data-testid="theme-ai-prompt" readonly rows="10" :aria-label="t('theme.import.promptLabel')" :value="prompt" />
+      <Button variant="outlined" data-testid="theme-ai-copy" @click="copy(prompt, promptField, t('theme.import.promptCopied'))">{{ t('theme.import.copyPrompt') }}</Button>
     </div>
 
-    <TextField v-model="text" class="paste" label="Paste the theme file or the AI's answer" multiline :rows="5" data-testid="theme-import-text" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <TextField v-model="text" class="paste" :label="t('theme.import.pasteLabel')" multiline :rows="5" data-testid="theme-import-text" autocomplete="off" autocapitalize="off" spellcheck="false" />
     <div class="row">
-      <Button variant="tonal" data-testid="theme-import-submit" :disabled="!text.trim()" @click="check">Check theme</Button>
-      <Button variant="outlined" @click="fileInput?.click()">Choose file</Button>
+      <Button variant="tonal" data-testid="theme-import-submit" :disabled="!text.trim()" @click="check">{{ t('theme.import.check') }}</Button>
+      <Button variant="outlined" @click="fileInput?.click()">{{ t('theme.import.chooseFile') }}</Button>
       <input ref="fileInput" type="file" accept=".json,.txt,application/json,text/plain" hidden data-testid="theme-import-file" @change="onFile($event, 'theme')" />
     </div>
 
-    <h3>Your own top bar picture (SVG), optional</h3>
-    <p class="hint">Replaces the scene the theme draws. Unsafe parts are removed.</p>
-    <TextField v-model="pictureLight" class="paste" label="Picture, light (SVG text)" multiline :rows="2" data-testid="theme-picture-text" autocomplete="off" autocapitalize="off" spellcheck="false" />
-    <TextField v-model="pictureDark" class="paste" label="Picture for dark mode (optional)" multiline :rows="2" data-testid="theme-picture-dark-text" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <h3>{{ t('theme.import.pictureTitle') }}</h3>
+    <p class="hint">{{ t('theme.import.pictureHint') }}</p>
+    <TextField v-model="pictureLight" class="paste" :label="t('theme.import.pictureLight')" multiline :rows="2" data-testid="theme-picture-text" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <TextField v-model="pictureDark" class="paste" :label="t('theme.import.pictureDark')" multiline :rows="2" data-testid="theme-picture-dark-text" autocomplete="off" autocapitalize="off" spellcheck="false" />
     <div class="row">
-      <Button variant="outlined" @click="lightInput?.click()">Choose SVG file</Button>
+      <Button variant="outlined" @click="lightInput?.click()">{{ t('theme.import.chooseSvg') }}</Button>
       <input ref="lightInput" type="file" accept=".svg,image/svg+xml" hidden data-testid="theme-picture-file" @change="onFile($event, 'light')" />
-      <Button variant="outlined" @click="darkInput?.click()">Choose SVG file for dark mode</Button>
+      <Button variant="outlined" @click="darkInput?.click()">{{ t('theme.import.chooseSvgDark') }}</Button>
       <input ref="darkInput" type="file" accept=".svg,image/svg+xml" hidden data-testid="theme-picture-dark-file" @change="onFile($event, 'dark')" />
     </div>
 
@@ -147,16 +148,16 @@ async function save() {
       <li v-for="e in errors" :key="e" data-testid="theme-import-error">{{ e }}</li>
     </ul>
     <div v-if="docErrors.length" class="repair">
-      <textarea ref="repairField" class="prompt" data-testid="theme-repair-prompt" readonly rows="4" aria-label="Repair prompt" :value="repair" />
-      <Button variant="outlined" data-testid="theme-repair-copy" @click="copy(repair, repairField, 'Repair prompt copied')">Copy repair prompt</Button>
+      <textarea ref="repairField" class="prompt" data-testid="theme-repair-prompt" readonly rows="4" :aria-label="t('theme.import.repairLabel')" :value="repair" />
+      <Button variant="outlined" data-testid="theme-repair-copy" @click="copy(repair, repairField, t('theme.import.repairCopied'))">{{ t('theme.import.copyRepair') }}</Button>
     </div>
 
     <div v-if="preview && checked" class="preview" data-testid="theme-import-preview" :data-name="checked.doc.name">
       <ThemeCard :name="checked.doc.name" :theme="preview" class="pcard" />
-      <p v-if="checked.removed" class="hint" data-testid="theme-import-sanitized">Unsafe content was removed from the theme picture.</p>
+      <p v-if="checked.removed" class="hint" data-testid="theme-import-sanitized">{{ t('theme.import.sanitized') }}</p>
     </div>
     <div class="row">
-      <Button data-testid="theme-import-save" :disabled="!checked || saving" @click="save">Save theme</Button>
+      <Button data-testid="theme-import-save" :disabled="!checked || saving" @click="save">{{ t('theme.import.save') }}</Button>
     </div>
   </div>
 </template>
