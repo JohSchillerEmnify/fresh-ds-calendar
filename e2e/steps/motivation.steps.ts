@@ -109,6 +109,23 @@ When('I turn the streak flame {string}', async function (this: World, state: str
   await setSwitch(this, this.page.getByTestId('settings-streak-flame'), state === 'on');
 });
 
+Then('the sunflowers setting is active', async function (this: World) {
+  const buttons = this.page.getByTestId('settings-sunflowers').locator('button');
+  await expect(buttons.first()).toBeEnabled();
+  await expect(this.page.getByTestId('settings-sunflowers-hint')).toHaveCount(0);
+});
+
+Then('the sunflowers setting is inactive', async function (this: World) {
+  const buttons = this.page.getByTestId('settings-sunflowers').locator('button');
+  await expect(buttons.first()).toBeVisible();
+  await expect(buttons.first()).toBeDisabled();
+  await expect(buttons.last()).toBeDisabled();
+});
+
+Then('the sunflowers hint says {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('settings-sunflowers-hint')).toHaveText(exactText(text));
+});
+
 When('I turn the plant {string}', async function (this: World, state: string) {
   if (state !== 'on' && state !== 'off') throw new Error(`Expected "on" or "off", got "${state}"`);
   await setSwitch(this, this.page.getByTestId('settings-plant'), state === 'on');

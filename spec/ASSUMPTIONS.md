@@ -213,3 +213,4 @@ spec files are named.
   sits to the right of the FAB's clearance at the left, followed by the count chip. (h) The e2e side check compares the
   element centre with the viewport centre.
 
+  person), shown but inactive with a hint when the scene is not the Sunflower field (owner, confirmed).

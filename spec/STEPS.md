@@ -736,6 +736,9 @@ I turn the plant {string}
 I choose {string} for the sunflowers
 the scene is {string}
 the sunflowers are set to {string}
+the sunflowers setting is active
+the sunflowers setting is inactive
+the sunflowers hint says {string}
 I see the sunflower field
 I do not see the sunflower field
 the sunflower field shows {int} flower(s)
@@ -750,6 +753,9 @@ the sunflowers look {string}
   label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
   `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`.
+- `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
+  `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
+  global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
 - `sunflower-field` (in the top app bar background) has `aria-label` = the label and contains one `sunflower` element
   per **visible** flower ("shows N flowers" counts them). Swaying = computed `animation-name` of `sunflower` is not
   `none` and `animation-play-state` is `running`. "look X" = `data-mood` on `sunflower-field`.

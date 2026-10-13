@@ -479,7 +479,10 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   It is the front of the Sunflower field *scene* (below) and shows whenever that scene is chosen:
   - Count: `Settings.sunflowers` = `grow` (default) shows `plant.flowers` (one per 40 points, at most 30, with the
     `bloom` effect); `full` shows a fixed full field (30, no growth, no bloom). Phones (< 600 px) show at most 15 of
-    either; the label states the mode's count (the full count, not the visible one).
+    either; the label states the mode's count (the full count, not the visible one). The setting is global but
+    inactive (shown, options disabled) with the hint "Applies to the Sunflower field scene" (`settings-sunflowers-hint`)
+    while the person's scene is another one. Wording and code stay open for a later general flower field with
+    several flower styles; nothing is built for that now.
   - Drawn in the background layer of the top app bar, behind the title and buttons. Low contrast: the flowers use
     `--md-sys-color-surface-container-highest` and tertiary tones at ≤ 35 % opacity in both themes. Text contrast
     stays ≥ 4.5:1.
