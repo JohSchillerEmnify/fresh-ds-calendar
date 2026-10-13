@@ -4,13 +4,15 @@
  * person chose (prefs `tasksGroupBy`, `tasksSortBy`). Each list is the tray's own `TaskListView`, so ticking and editing
  * items work as there; the title opens the task list dialog, and "Today" / "Tomorrow" give the list a date.
  */
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ApiError } from '@/api/client';
 import type { TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
 import { IconSwapVert as IconSwap } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
+import TextField from '@/components/m3/TextField.vue';
 import Select from '@/components/m3/Select.vue';
 import { useFilters } from '@/composables/useFilters';
 import { addDays, toIsoDate } from '@/lib/dates';
@@ -21,10 +23,12 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
-import { useTasksViewStore } from './tasksStore';
+import { matchesSearch, sortArchive, templateOf } from './archive';
+import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
 
+const { t } = useI18n();
 const tasks = useTasksViewStore();
 const items = useItemsStore();
 const prefs = usePrefsStore();
@@ -44,6 +48,26 @@ const sortOptions: { value: TasksSortBy; label: string }[] = [
 
 const shown = computed(() => filters.apply(tasks.lists) as TaskList[]);
 const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories, prefs.tasksSortDir));
+
+const tabOptions = computed(() => [
+  { value: 'open' as TasksTab, label: t('tasks.tabs.open'), testid: 'tasks-tab-open' },
+  { value: 'archive' as TasksTab, label: t('tasks.tabs.archive'), testid: 'tasks-tab-archive' },
+]);
+const search = ref('');
+const archive = computed(() => sortArchive((filters.apply(tasks.archived) as TaskList[]).filter((l) => matchesSearch(l, search.value))));
+
+function chooseTab(next: TasksTab): void {
+  tasks.setTab(next).catch((e) => sync.reportError(e));
+}
+/** "Use as template": an open, undated copy appears in Open; the archived original stays. */
+async function useAsTemplate(l: TaskList): Promise<void> {
+  try {
+    await items.createTaskList(templateOf(l));
+    ui.notify(t('tasks.archive.templateCreated', { title: displayTitle(l) }));
+  } catch (e) {
+    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.templateFailed'));
+  }
+}
 
 let stop: (() => void) | null = null;
 onMounted(() => {
@@ -69,6 +93,28 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
 <template>
   <section class="tv" data-testid="tasks-view" :data-group-by="prefs.tasksGroupBy" :data-sort-by="prefs.tasksSortBy" :data-sort-dir="prefs.tasksSortDir">
     <div class="controls">
+      <SegmentedButton :model-value="tasks.tab" :options="tabOptions" :label="t('tasks.tabs.label')" class="tabs" @update:model-value="chooseTab" />
+    </div>
+    <div v-if="tasks.tab === 'archive'" class="archive" data-testid="tasks-archive">
+      <div class="controls">
+        <TextField v-model="search" :label="t('tasks.archive.search')" type="search" class="search" data-testid="tasks-archive-search" />
+      </div>
+      <div class="scroll">
+        <p v-if="!archive.length" class="empty" data-testid="tasks-archive-empty">{{ search.trim() ? t('tasks.archive.noMatch') : t('tasks.archive.empty') }}</p>
+        <ul class="list group">
+          <li
+            v-for="l in archive" :key="l.id" class="item" data-testid="tasks-archive-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
+            :data-completed-on="l.completedOn ?? ''" :style="{ '--c': l.color }"
+          >
+            <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" />
+            <div class="quick">
+              <Button variant="tonal" data-testid="tasks-archive-duplicate" @click="useAsTemplate(l)">{{ t('tasks.archive.useAsTemplate') }}</Button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div v-if="tasks.tab === 'open'" class="controls">
       <SegmentedButton
         :model-value="prefs.tasksGroupBy" :options="groupOptions" label="Group by" class="gby" data-testid="tasks-group-by"
         @update:model-value="choose({ tasksGroupBy: $event })"
@@ -82,7 +128,7 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
         :data-dir="prefs.tasksSortDir" data-testid="tasks-sort-dir" @click="choose({ tasksSortDir: prefs.tasksSortDir === 'reversed' ? 'default' : 'reversed' })"
       ><IconSwap /></IconButton>
     </div>
-    <div class="scroll">
+    <div v-if="tasks.tab === 'open'" class="scroll">
       <p v-if="!groups.length" class="empty" data-testid="tasks-empty">No open task lists. Tap + to add one.</p>
       <section v-for="g in groups" :key="g.key" class="group" data-testid="tasks-group" :data-group="g.key">
         <h2 v-if="g.title" class="gt" data-testid="tasks-group-title">{{ g.title }}</h2>
@@ -106,6 +152,10 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
 <style scoped>
 .tv { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 12px; }
+.tabs { flex: 1 1 220px; max-width: 360px; }
+.search { flex: 1 1 240px; max-width: 480px; }
+.archive { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.archive .list { max-width: 760px; margin: 0 auto; }
 .gby { flex: 1 1 220px; max-width: 360px; }
 .sby { flex: 1 1 160px; max-width: 240px; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 12px calc(96px + var(--safe-bottom)); }

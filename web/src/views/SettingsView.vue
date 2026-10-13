@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -112,6 +112,10 @@ const warns = computed(() => [{ value: '0', label: t('common.off') }, ...[5, 10,
 /** The sunflowers setting only has an effect on the Sunflower field scene; otherwise it is shown but inactive. */
 const fieldActive = computed(() => settings.effectiveScene === 'sunflowers');
 const sunflowerModes = [{ value: 'grow', label: 'Grow with points' }, { value: 'full', label: 'Full field' }] as const;
+const undatedDoneOptions = computed(() => [
+  { value: 'calendar', label: t('settings.tasklists.undatedDone.calendar'), testid: 'settings-undated-done-calendar' },
+  { value: 'archive', label: t('settings.tasklists.undatedDone.archive'), testid: 'settings-undated-done-archive' },
+]);
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
 // --- categories ---------------------------------------------------------------------------
@@ -195,6 +199,7 @@ async function resetDemo() {
               <IconButton :label="t('settings.tasklists.moveDown', { name: c.name })" :disabled="i === settings.categories.length - 1" data-testid="settings-category-down" @click="move(c.id, 1)"><IconDown /></IconButton>
             </li>
           </ul>
+          <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
           <div class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>
 

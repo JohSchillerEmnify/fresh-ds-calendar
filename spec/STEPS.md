@@ -1273,7 +1273,7 @@ the open task list {string} has no date and {int} open item(s)
 - "the setting S is V": S = `Finished list without a date`, V = `Show on the day it was finished` | `Archive only`;
   `PATCH /api/prefs { undatedDone: 'calendar' | 'archive' }` as that person.
 - "I open the Archive": opens the Tasks view (as the Tasks view steps do) and clicks `tasks-tab-archive`
-  (`aria-selected="true"`). "the Open tab lists / does not list T" clicks `tasks-tab-open` and checks the `tasks-item`
+  (`aria-pressed="true"`). "the Open tab lists / does not list T" clicks `tasks-tab-open` and checks the `tasks-item`
   titles (`data-title`); "the Archive lists A, B" opens the Archive and compares all `tasks-archive-item` titles in DOM
   order joined `", "` ("does not list T": none has that title).
 - "I search the Archive for X": opens the Archive and fills `tasks-archive-search` (the field's own debounce is

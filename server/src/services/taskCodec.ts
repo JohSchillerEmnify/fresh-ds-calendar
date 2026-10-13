@@ -34,9 +34,13 @@ export function nextCompletedOn(before: Pick<TaskListData, 'items' | 'completedO
 
 /**
  * The date a write gives an undated list that it finishes: today, or null when the list stays as it is. Only a write
- * that ticks the last open item of an undated list re-dates it (a list that was already complete is left alone).
+ * that ticks the last open item of an undated list re-dates it (a list that was already complete is left alone), and
+ * not at all with the setting "Archive only" (`undatedDone = 'archive'`: the list stays undated, ARCHITECTURE "Archive").
  */
-export function dateOnCompletion(before: Pick<TaskListData, 'items' | 'date'>, after: Pick<TaskListData, 'items' | 'date'>, today: string): string | null {
+export function dateOnCompletion(
+  before: Pick<TaskListData, 'items' | 'date'>, after: Pick<TaskListData, 'items' | 'date'>, today: string, undatedDone: 'calendar' | 'archive' = 'calendar',
+): string | null {
+  if (undatedDone === 'archive') return null;
   return before.date === null && after.date === null && !isFinished(before.items) && isFinished(after.items) ? today : null;
 }
 
@@ -88,6 +92,8 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
     estimate: d.estimateMinutes === null ? null : String(d.estimateMinutes),
     recurrence: d.recurrence,
     completedOn: d.completedOn,
+    // the marker the Archive reads with `privateExtendedProperty=done=1`; derived from the items so it cannot disagree
+    done: isFinished(d.items) ? '1' : null,
   };
   Object.assign(p, staleChunkKeys(existing, p));
   return p;

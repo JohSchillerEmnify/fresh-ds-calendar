@@ -15,6 +15,10 @@ export default {
   nav: {
     views: 'Ansichdn',
   },
+  tasks: {
+    tabs: { open: 'Offn', archive: 'Archiv' },
+    archive: { useAsTemplate: 'Als Vorlach nemma' },
+  },
   common: {
     off: 'Aus',
   },
