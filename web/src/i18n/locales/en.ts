@@ -1,7 +1,7 @@
 /**
  * English message catalogue: the source of truth for the message schema (ARCHITECTURE "i18n").
  *
- * Default export so `@intlify/unplugin-vue-i18n` can precompile it at build time (no message compiler ships).
+ * Default export, like the other catalogues; the schema types live in `../schema.ts`.
  *
  * Keys are nested and named by meaning, not by text. Every other catalogue is checked against the shape of this
  * object, so a key missing in `de.ts` is a type error and `t()` only accepts keys that exist here. Message syntax is

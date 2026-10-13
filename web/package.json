@@ -25,7 +25,6 @@
   },
   "devDependencies": {
     "@iconify-json/material-symbols": "1.2.95",
-    "@intlify/unplugin-vue-i18n": "11.2.5",
     "@size-limit/file": "14.2.0",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "6.0.10",

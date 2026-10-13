@@ -232,13 +232,10 @@ Web (`stores/sync.ts`, `stores/items.ts`):
     `Messages` (complete: a new `en` key without a German one fails the type check, `pnpm i18n:check` and a unit
     test); the fun languages are `PartialMessages`, and `pnpm i18n:check` reports their gaps as info. `en` is bundled;
     the others are lazy chunks, loaded when the language is applied (`de` first for the fun ones). Each catalogue is a
-    default-exported object literal (`satisfies` the schema, which lives in `i18n/schema.ts`) so the build can
-    precompile it.
-  - **Precompiled, runtime-only** (owner, 2026-10-13): `@intlify/unplugin-vue-i18n` compiles all catalogues at build
-    time and vue-i18n is built runtime-only by the plugin, so the message parser does not ship (the code generator
-    that turns the precompiled messages into functions does, vue-i18n 11.4 needs it). Every message must be a
-    catalogue entry (no runtime strings are compiled; server text is shown as plain text). We do not patch vue-i18n.
-    Details, measured sizes and the rejected compiler-removal hook: A-91.
+    default-exported object literal (`satisfies` the schema, which lives in `i18n/schema.ts`).
+  - **Runtime compiling** (owner, 2026-10-13): vue-i18n compiles the message strings in the browser. Precompiling
+    (`@intlify/unplugin-vue-i18n`, runtime-only) was tried and made the first load 1.7 kB bigger, and removing the
+    compiler by patching vue-i18n broke the app, so neither is used. Numbers and reasons: A-91.
   - **Choice**: the person pref `language` (`auto` | `en` | `de` | `de-x-mainfr` | `de-x-coldmirror`, default `auto`,
     in `Prefs`, `GET/PATCH /api/prefs`, validated by a whitelist). `auto` follows the device: the first entry of
     `navigator.languages` being `de` or `de-*` gives `de`, anything else `en`. Settings → Appearance has the select
