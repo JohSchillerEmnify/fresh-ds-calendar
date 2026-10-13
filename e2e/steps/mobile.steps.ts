@@ -1,6 +1,7 @@
 /** Mobile layout and gesture steps (STEPS.md "Mobile"). */
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
+import { gridHourHeight } from './support/grid.js';
 import { box, touchDrag, viewport } from './support/ui.js';
 import { attr, tid, type World } from './support/world.js';
 
@@ -118,6 +119,51 @@ Then('the week of {date} is shown beside the current one', async function (this:
       return n.x < area.x + area.width - 10 ? 'beside, in view' : `neighbour still off screen at ${n.x}`;
     })
     .toBe('beside, in view');
+});
+
+/**
+ * Pinch: two CDP touch points on the visible part of the time grid, moving apart (vertically, around the centre) over
+ * 400 ms until their distance has doubled.
+ */
+When('I pinch out on the time grid to twice the size', async function (this: World) {
+  this.hourHeightBefore = await gridHourHeight(this);
+  const area = await box(this.page.getByTestId('time-grid').first().locator('xpath=..'));
+  const cx = Math.round(area.x + area.width / 2);
+  const cy = area.y + area.height / 2;
+  const startGap = 80;
+  const cdp = await this.page.context().newCDPSession(this.page);
+  try {
+    const at = (gap: number) => [
+      { x: cx, y: Math.round(cy - gap / 2), id: 1 },
+      { x: cx, y: Math.round(cy + gap / 2), id: 2 },
+    ];
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(startGap) });
+    const steps = 10;
+    for (let i = 1; i <= steps; i++) {
+      await this.page.waitForTimeout(40);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(startGap * (1 + i / steps)) });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await cdp.detach().catch(() => {});
+  }
+});
+
+async function expectTwiceAsTall(world: World) {
+  const before = world.hourHeightBefore;
+  if (before === undefined) throw new Error('no hour height was captured before the pinch');
+  await expect
+    .poll(async () => (await gridHourHeight(world)) / before, { message: 'hour height relative to before the pinch' })
+    .toBeGreaterThanOrEqual(1.8);
+  expect((await gridHourHeight(world)) / before).toBeLessThanOrEqual(2.2);
+}
+
+Then('one hour of the time grid is about twice as tall as before', async function (this: World) {
+  await expectTwiceAsTall(this);
+});
+
+Then('one hour of the time grid is still about twice as tall as at the start', async function (this: World) {
+  await expectTwiceAsTall(this);
 });
 
 Then('the viewport meta tag contains {string}', async function (this: World, text: string) {

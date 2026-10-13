@@ -76,7 +76,7 @@ const fit = computed(() => {
     footH: footVisible ? 14 : 0,
     minLines: block ? 0 : 1,
   });
-  // Mini cards are too narrow for inline names: rows below the title (TASKLIST_MIN_BLOCK_PX leaves room for one).
+  // Mini cards are too narrow for inline names: rows below the title.
   if (mini.value && (f.inline || shortBlock)) {
     const shown = f.inline ? 0 : f.shown;
     return { shown, more: open - shown, inline: false };

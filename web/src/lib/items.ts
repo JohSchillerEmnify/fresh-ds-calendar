@@ -218,9 +218,3 @@ export const MIN_BLOCK_PX = 25;
 export function blockGeometry(startMin: number, endMin: number, hourHeight: number, minPx = MIN_BLOCK_PX): { top: number; height: number } {
   return { top: (startMin / 60) * hourHeight, height: Math.max(((endMin - startMin) / 60) * hourHeight, minPx) };
 }
-/** Task lists with open items never render shorter than title row + 2 mini item rows (keeps the start, may overlap the next block like the 24 px event minimum). */
-export const TASKLIST_MIN_BLOCK_PX = 44;
-export function segmentMinPx(seg: Segment): number {
-  const i = seg.item;
-  return i.kind === 'tasklist' && i.items.some((x) => !x.done) ? TASKLIST_MIN_BLOCK_PX : MIN_BLOCK_PX;
-}

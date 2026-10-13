@@ -95,6 +95,8 @@ export class World {
   person?: string;
   /** The week the last "without signing in" step opened. */
   weekOpened?: string;
+  /** Hour height of the time grid captured before the last pinch ("as before" / "at the start"). */
+  hourHeightBefore?: number;
   lastResponse?: { status: number; json: unknown; url: string };
   browserMemory?: BrowserMemory;
   serverRss?: number;
