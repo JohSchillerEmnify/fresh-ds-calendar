@@ -635,9 +635,9 @@ Rules for implementers:
 | `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
 | `tasks-tab-canvas` | the Canvas tab (`aria-pressed`); the tab's content is `tasks-canvas` |
 | `tasks-canvas`, `canvas-viewport` | Canvas root and its viewport; `canvas-viewport` has `data-zoom`, `data-pan-x`, `data-pan-y` |
-| `canvas-note` | one sticky note: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated), `data-x`, `data-y` (top-left corner in canvas units, rounded), `data-placed` (`"true"` once it has a place), `data-area` (name of the area it lies in, `""` = none); contains a `tasklist-view`, `canvas-note-grip` (the drag strip, with `canvas-note-date` when dated) |
+| `canvas-note` | one sticky note (picked up by a long press anywhere on it): `data-tasklist-id`, `data-title`, `data-date` (`""` when undated), `data-x`, `data-y` (top-left corner in canvas units, rounded), `data-placed` (`"true"` once it has a place), `data-area` (name of the area it lies in, `""` = none); contains a `tasklist-view`, `canvas-note-grip` (the top strip, where a mouse can grab it, with `canvas-note-date` when dated) |
 | `canvas-unsorted` | the "Unsorted" label above the stack of notes without a place |
-| `canvas-area` | one area: `data-area-id`, `data-name`, `data-color`, `data-x`, `data-y`, `data-w`, `data-h`; contains `canvas-area-header` (drag, tap opens the editor) and `canvas-area-resize` |
+| `canvas-area` | one area: `data-area-id`, `data-name`, `data-color`, `data-x`, `data-y`, `data-w`, `data-h`; `data-selected` while its handles show; contains `canvas-area-header` (tap opens the editor) and, while selected, four `canvas-area-handle` (`data-corner`) |
 | `canvas-area-add` | creates an area in the middle of the view and opens its editor |
 | `canvas-area-editor` | the editor panel: `canvas-area-name-input`, `canvas-area-color` (one per swatch, `data-color`, `aria-pressed`), `canvas-area-delete`, `canvas-area-editor-close` |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
@@ -1177,15 +1177,17 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
   budget), readable in Google's raw event, and `privateExtendedProperty=cx=100` stays queryable. *Why the server limit
   (10000) is larger than the board*: the board can grow later without a data migration. *Why integers*: a position needs
   no sub-unit precision and strings of digits cannot carry stray text.
-- **Moving.** With a mouse a plain drag on the note's body or grip (not on a button, checkbox or field) moves it after a
-  4 px slop; on a touch screen a long press (350 ms, the calendar's delay, with a haptic tick) lifts it and the finger
-  then drags; a touch that moves before that scrolls (pans) the canvas instead. Escape cancels a drag. During the
+- **Moving** (owner feedback 2026-10-13: the first version was unusable on a phone). On a touch screen a **long press
+  anywhere on a note** (350 ms, the calendar's delay; title, items, padding, all of it) lifts it with a haptic tick and the
+  finger then drags; a short tap keeps its meaning (a checkbox ticks, the title opens the dialog), and a touch that moves
+  before the long press does **nothing** on a note (no accidental moves, no pan). The click that ends a drag is swallowed.
+  With a mouse a plain drag after a 4 px slop moves a note (not from a button, box or field). Escape cancels. During the
   drag the note follows through `transform` only (no layout work); on release the place is saved with
   `PATCH /api/tasklists/:id { canvas }` **without** `If-Match` (a move never conflicts with item edits: the server
   re-reads and retries) and shown at once; on a failure the note springs back (the old place) with a snackbar.
   The existing drag controller (`motion/drag.ts`) is built around slot grids and ghost cards; the canvas reuses its
-  *conventions* (long-press delay, slop, haptic, claim of the gesture) with a small pointer-event module of its own
-  (`useCanvasPointer.ts`), because a free 2-D board with pan and pinch needs none of the slot hit-testing.
+  *conventions* (long-press delay, slop, haptic) with a small pointer-event module of its own (`useCanvasPointer.ts`),
+  because a free 2-D board with pan and pinch needs none of the slot hit-testing.
 - **Unsorted stack.** Open lists without a place sit at the top left, offset diagonally on top of each other: the
   n-th note (ordered by title, then id) at `(24 + 14 n, 24 + 14 n)` for n up to 10, further notes share the last offset.
   The label "Unsorted" (`canvas-unsorted`) sits above the stack while it is not empty. A note leaves the stack by being
@@ -1199,14 +1201,21 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
   (`cal.canvasView`, written 250 ms after the last change and on `pagehide`, every access in try/catch; unusable values give the default zoom 1, pan 0, 0); it is never sent to
   the server.
 - **Areas** (`canvas-area`). A labelled rectangle (name, colour, position, size) that collects notes. It is created with
-  `canvas-area-add` (centred in the view, `320 x 240`, named "Area", colour from a palette), moved by dragging its header,
-  resized by `canvas-area-resize` (bottom right; minimum `160 x 120`, maximum `4000`), and edited by tapping its header:
-  the editor panel (`canvas-area-editor`) has the name field (`canvas-area-name-input`, Enter or blur saves and closes),
-  colour swatches (`canvas-area-color`, `data-color`), `canvas-area-delete` and `canvas-area-editor-close`. Deleting an
-  area deletes only the rectangle: **membership is stored nowhere**; a note belongs to the topmost area that contains the
-  note's *anchor* (the middle of its top edge: `x + 120`, `y + 24`); `data-area` on the note holds that area's name
-  (`""` = none). Why by position only (owner): notes keep their meaning when areas are deleted, resized or restored, and
-  there is nothing to keep in sync. The anchor, not the whole note, because a note's height varies with its items.
+  `canvas-area-add` (centred in the view, `320 x 240`, named "Area", colour from a palette). **Moving**: a touch long press
+  anywhere on it (header or body, where no note sits on top) lifts it like a note; a touch that moves earlier pans the
+  canvas (the body is background); with a mouse the header drags it and the body pans. **Resizing, the calendar's
+  pattern** (`features/calendar/ResizeHandles.vue`: release a picked-up entry without moving and handles appear): after a
+  long press released without moving (or a click on the header, or a move), the area is *selected* and shows four round
+  handles on its corners (`canvas-area-handle`, `data-corner` nw, ne, sw, se), each a **44 px** touch target. A handle
+  drags at once, no long press; the opposite corner stays, minimum `160 x 120`, maximum `4000`, kept on the board. A pointer
+  going down anywhere but on a handle, or Escape, hides them. (The calendar's component is vertical, tied to time segments
+  and `ui.resizing`, so it is not reused as a component, only its interaction and sizes.) A tap on the header also opens
+  the editor panel (`canvas-area-editor`: name field `canvas-area-name-input`, Enter or blur saves and closes; colour swatches
+  `canvas-area-color`, `data-color`; `canvas-area-delete`; `canvas-area-editor-close`). Deleting an area deletes only the
+  rectangle: **membership is stored nowhere**; a note belongs to the topmost area that contains the note's *anchor* (the
+  middle of its top edge: `x + 120`, `y + 24`); `data-area` on the note holds that area's name (`""` = none). Why by
+  position only (owner): notes keep their meaning when areas are deleted, resized or restored, and there is nothing to
+  keep in sync. The anchor, not the whole note, because a note's height varies with its items.
 - **Where areas live (owner: per person on the server, not in Google).** `DATA_DIR/users/<sub>/canvas.json`, one JSON
   document `{ "version": 1, "areas": [ { id, name, color, x, y, w, h } ] }` per person, read and written whole by
   `GET /api/canvas` and `PUT /api/canvas` (API.md "Canvas"), written atomically like `prefs.json`. A later slice backs

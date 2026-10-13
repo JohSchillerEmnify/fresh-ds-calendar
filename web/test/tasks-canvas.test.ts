@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   areaColor, areaOf, centeredArea, clampArea, clampNote, clampView, clampZoom, noteAnchor, noteDateLabel, parseView, pinchView, placeNotes,
-  stackPosition, toWorld, zoomAt, MAX_ZOOM, MIN_ZOOM, NOTE_W, WORLD_H, WORLD_W, type View,
+  resizeRect, stackPosition, toWorld, zoomAt, MAX_ZOOM, MIN_ZOOM, NOTE_W, WORLD_H, WORLD_W, type View,
 } from '@/features/tasklists/canvas';
 
 const V: View = { x: 0, y: 0, zoom: 1 };
@@ -44,6 +44,24 @@ describe('the Unsorted stack', () => {
   it('breaks a title tie by id so the order is stable', () => {
     const out = placeNotes([{ id: 'z', title: 'Same' }, { id: 'y', title: 'Same' }]);
     expect(out.map((n) => n.id)).toEqual(['y', 'z']);
+  });
+});
+
+describe('resizing an area by a corner', () => {
+  const r = { x: 100, y: 100, w: 320, h: 240 };
+  it('keeps the opposite corner fixed', () => {
+    expect(resizeRect(r, 'se', 20, 40)).toEqual({ x: 100, y: 100, w: 340, h: 280 });
+    expect(resizeRect(r, 'nw', -30, -10)).toEqual({ x: 70, y: 90, w: 350, h: 250 });
+    expect(resizeRect(r, 'ne', 10, -20)).toEqual({ x: 100, y: 80, w: 330, h: 260 });
+    expect(resizeRect(r, 'sw', -10, 20)).toEqual({ x: 90, y: 100, w: 330, h: 260 });
+  });
+  it('stops at the minimum size without moving the fixed corner', () => {
+    expect(resizeRect(r, 'se', -999, -999)).toEqual({ x: 100, y: 100, w: 160, h: 120 });
+    expect(resizeRect(r, 'nw', 999, 999)).toEqual({ x: 260, y: 220, w: 160, h: 120 });
+  });
+  it('stays on the board', () => {
+    expect(resizeRect(r, 'nw', -999, -999)).toEqual({ x: 0, y: 0, w: 420, h: 340 });
+    expect(resizeRect(r, 'se', 99999, 99999)).toEqual({ x: 100, y: 100, w: 3900, h: 2900 });
   });
 });
 
