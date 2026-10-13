@@ -40,6 +40,8 @@ const prefsSaved = (w: World) =>
 
 When('I set the approaching window to {int} hours in the settings', async function (this: World, hours: number) {
   await openSettings(this);
+  // The hours field only shows once "Custom…" is chosen (or a custom value is already stored).
+  await this.page.getByTestId('settings-approach-window').selectOption({ label: 'Custom…' });
   const field = this.page.getByTestId('settings-approach-window-custom');
   await field.fill(String(hours));
   const saved = prefsSaved(this);
