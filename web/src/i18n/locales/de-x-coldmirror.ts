@@ -4,12 +4,16 @@
  */
 import type { Messages } from '../schema';
 
+import tasksColdmirror from './de-x-coldmirror/tasks.ts';
+
 export default {
+  tasks: tasksColdmirror,
   views: {
     year: 'Jahr, yo',
     month: 'Monat, yo',
     week: 'Woche, fresh',
     day: 'Tag, Digga',
+    tasks: 'Aufgaben, yo',
     clock: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',

@@ -1,7 +1,10 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
 import type { Messages } from '../schema';
 
+import tasksDe from './de/tasks.ts';
+
 export default {
+  tasks: tasksDe,
   views: {
     year: 'Jahr',
     month: 'Monat',

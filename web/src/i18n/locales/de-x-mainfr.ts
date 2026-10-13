@@ -4,7 +4,10 @@
  */
 import type { PartialMessages } from '../schema';
 
+import tasksMainfr from './de-x-mainfr/tasks.ts';
+
 export default {
+  tasks: tasksMainfr,
   views: {
     year: 'Jahr',
     month: 'Monad',
