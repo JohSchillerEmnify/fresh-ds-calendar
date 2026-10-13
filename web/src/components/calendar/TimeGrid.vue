@@ -5,7 +5,6 @@
  * `itemRenderers` (block content), `time-slot` clicks (create), and the exposed `scrollToMinutes`.
  */
 import { computed, nextTick, provide, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { format } from 'date-fns';
 import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
@@ -15,7 +14,7 @@ import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
 import { gridLayers } from '@/extensions/registry';
-import { HOURS, hourLabel, toIsoDate } from '@/lib/dates';
+import { HOURS, format, hourLabel, toIsoDate } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';

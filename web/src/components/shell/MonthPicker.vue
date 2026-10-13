@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { addMonths, format, isSameDay, isSameMonth } from 'date-fns';
+import { addMonths, isSameDay, isSameMonth } from 'date-fns';
 import { IconChevronLeft as IconPrev, IconChevronRight as IconNext } from '@/components/icons';
 import IconButton from '@/components/m3/IconButton.vue';
 import { useNav } from '@/composables/useNav';
 import { bindSwipe } from '@/composables/useSwipe';
-import { monthGrid, toIsoDate, weekdayLabels } from '@/lib/dates';
+import { format, monthGrid, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { listen, type Disposer } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';

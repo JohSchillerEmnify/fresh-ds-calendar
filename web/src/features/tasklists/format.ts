@@ -1,8 +1,7 @@
-import { format } from 'date-fns';
 import type { TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import { dateLocale, language } from '@/i18n/language';
-import { parseIsoDate } from '@/lib/dates';
+import { format, parseIsoDate } from '@/lib/dates';
 
 /** 45 -> "~45 min", 90 -> "~1 h 30 min", 120 -> "~2 h". */
 export function formatEstimate(min: number): string {

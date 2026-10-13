@@ -5,10 +5,10 @@
  * loads a range around today (extendable at both edges), marks now with the app clock, zooms with wheel/pinch.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { addDays, format } from 'date-fns';
+import { addDays } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import BedtimeColumn from '@/features/bedtime/BedtimeColumn.vue';
-import { parseIsoDate, toIsoDate } from '@/lib/dates';
+import { format, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { packColumns, blockGeometry, MIN_BLOCK_PX, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';

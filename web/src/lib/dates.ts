@@ -1,6 +1,6 @@
 import {
   addDays, addMonths, addWeeks, addYears, differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek,
-  format, startOfMonth, startOfWeek,
+  startOfMonth, startOfWeek,
 } from 'date-fns';
 import { dateLocale, language } from '@/i18n/language';
 
@@ -12,7 +12,30 @@ export const VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
 export const VIEW_LABEL: Record<ViewKind, string> = { year: 'Year', month: 'Month', week: 'Week', day: 'Day' };
 
 const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const EN_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/**
+ * English date formatting for the date-fns tokens the app uses (yyyy, MM, MMM, MMMM, dd, d, EEE, EEEE); output equals
+ * date-fns `format` with its default en-US locale. Written out because `format` + locale cost ~9 KB gzipped on the first load.
+ *
+ * @throws RangeError For an invalid date, like date-fns.
+ */
+export function format(d: Date, pattern: string): string {
+  if (Number.isNaN(d.getTime())) throw new RangeError('Invalid time value');
+  return pattern.replace(/yyyy|MMMM|MMM|MM|EEEE|EEE|dd|d/g, (token) => {
+    switch (token) {
+      case 'yyyy': return String(d.getFullYear()).padStart(4, '0');
+      case 'MM': return String(d.getMonth() + 1).padStart(2, '0');
+      case 'MMM': return EN_MONTHS[d.getMonth()].slice(0, 3);
+      case 'MMMM': return EN_MONTHS[d.getMonth()];
+      case 'dd': return String(d.getDate()).padStart(2, '0');
+      case 'd': return String(d.getDate());
+      case 'EEE': return EN_DAYS[d.getDay()].slice(0, 3);
+      default: return EN_DAYS[d.getDay()];
+    }
+  });
+}
 
 /** An `Intl` formatter for the active language's date locale (de-DE for German and the fun languages). */
 const intl = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(dateLocale(), o);

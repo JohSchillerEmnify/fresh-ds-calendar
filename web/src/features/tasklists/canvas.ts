@@ -3,10 +3,9 @@
  * which area a note lies in, zoom and pan maths and the remembered view. No store, DOM or network access, so the rules
  * are unit-tested with plain numbers. One canvas unit is one CSS pixel at zoom 1.
  */
-import { format } from 'date-fns';
 import type { CanvasArea, CanvasPlace } from '@/api/types';
 import { dateLocale, language } from '@/i18n/language';
-import { parseIsoDate } from '@/lib/dates';
+import { format, parseIsoDate } from '@/lib/dates';
 
 /** Size of the board in canvas units. */
 export const WORLD_W = 4000;
