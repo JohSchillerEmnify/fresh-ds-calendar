@@ -6,6 +6,7 @@ import { minutesToTime } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { nowMarkerTop } from './timeline';
+import { t } from '@/i18n';
 
 const props = defineProps<GridLayerProps>();
 const clock = useClockStore();
@@ -16,7 +17,7 @@ const top = computed(() => nowMarkerTop(clock.minutesNow, props.hourHeight));
 </script>
 
 <template>
-  <div v-if="isToday" class="now" data-testid="now-marker" :data-time="time" :data-date="date" :style="{ top: top + 'px' }" role="img" :aria-label="`Now, ${time}`">
+  <div v-if="isToday" class="now" data-testid="now-marker" :data-time="time" :data-date="date" :style="{ top: top + 'px' }" role="img" :aria-label="t('calendar.now.marker', { time })">
     <span class="dot" />
     <span v-if="cal.view === 'day'" class="lbl">{{ time }}</span>
   </div>

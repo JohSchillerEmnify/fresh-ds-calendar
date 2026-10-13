@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router';
 import { openNew, openNewUndated } from '@/extensions/create';
 import { isPhone } from '@/composables/useViewport';
 import { useUiStore } from '@/stores/ui';
+import { t } from '@/i18n';
 
 /** FAB: opens the one "new" dialog (event or task list, switchable there); in the Tasks view a new list without a date. */
 const ui = useUiStore();
@@ -13,7 +14,7 @@ const route = useRoute();
 
 <template>
   <div class="fab-wrap" :class="{ away: isPhone && ui.trayExpanded }" data-testid="create-fab-area" :inert="isPhone && ui.trayExpanded">
-    <Fab label="Create" data-testid="create-button" @click="route.meta.tasks ? openNewUndated() : openNew()"><IconAdd /></Fab>
+    <Fab :label="t('calendar.create.label')" data-testid="create-button" @click="route.meta.tasks ? openNewUndated() : openNew()"><IconAdd /></Fab>
   </div>
 </template>
 

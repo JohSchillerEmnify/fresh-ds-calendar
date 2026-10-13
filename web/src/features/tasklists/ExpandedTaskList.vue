@@ -5,6 +5,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
+import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import { isPhone } from '@/composables/useViewport';
 import { listen, type Disposer } from '@/lib/timers';
@@ -29,7 +30,7 @@ onMounted(async () => {
   try {
     items.upsert(await api.getTaskList(props.id));
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) ui.notify('This task list no longer exists.');
+    if (e instanceof ApiError && e.status === 404) ui.notify(t('tasks.list.gone'));
     emit('close');
   }
 });
@@ -73,7 +74,7 @@ onBeforeUnmount(() => {
 
 <template>
   <AdaptiveSheet
-    ref="sheet" :open="!!tl" :label="tl ? displayTitle(tl) : 'Task list'" testid="tasklist-expanded" :anchor="pos" :escape="false"
+    ref="sheet" :open="!!tl" :label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')" testid="tasklist-expanded" :anchor="pos" :escape="false"
     :panel-attrs="{ 'data-tasklist-id': tl?.id ?? '', 'data-title': tl ? displayTitle(tl) : '' }"
     :panel-style="{ '--c': tl?.color ?? 'transparent', borderTop: '4px solid var(--c)', background: 'color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low))' }"
     @close="emit('close')"

@@ -10,15 +10,20 @@ import DrawnScene from '@/features/motivation/DrawnScene.vue';
 import SceneImage from '@/features/motivation/SceneImage.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { BACKDROP_SCENES } from '@/features/motivation/types';
+import { dateLocale, language, t } from '@/i18n';
 import { useSettingsStore } from '@/stores/settings';
 import { resolveTheme as resolveMode } from '@/theme';
 import type { ResolvedTheme } from '@/theme/presets';
 
-const props = defineProps<{ name: string; theme: ResolvedTheme; pressed?: boolean; sub?: string }>();
+const props = defineProps<{ name: string; label?: string; theme: ResolvedTheme; pressed?: boolean; sub?: string }>();
 defineEmits<{ choose: [] }>();
 
 const settings = useSettingsStore();
-const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+/** The initials of Monday to Sunday in the active language (the sample's mini week). */
+const DAYS = computed(() => {
+  const f = new Intl.DateTimeFormat(dateLocale(language.value), { weekday: 'narrow', timeZone: 'UTC' });
+  return Array.from({ length: 7 }, (_, i) => f.format(new Date(Date.UTC(2024, 0, 1 + i))));
+});
 const scene = computed(() => props.theme.attrs.scene);
 
 /** The color library loads lazily; until then the card shows the current palette. */
@@ -50,11 +55,11 @@ const style = computed<Record<string, string>>(() => {
           <span v-for="(d, i) in DAYS" :key="i" class="day">{{ d }}</span>
         </span>
         <span class="mini">
-          <ThemeSample kind="event" color="var(--md-sys-color-primary)" on="var(--md-sys-color-on-primary)" title="Meet" class="m1" />
-          <ThemeSample kind="tasklist" color="var(--md-sys-color-tertiary)" on="var(--md-sys-color-on-tertiary)" title="To-do" class="m2" />
+          <ThemeSample kind="event" color="var(--md-sys-color-primary)" on="var(--md-sys-color-on-primary)" :title="t('theme.sample.meet')" class="m1" />
+          <ThemeSample kind="tasklist" color="var(--md-sys-color-tertiary)" on="var(--md-sys-color-on-tertiary)" :title="t('theme.sample.todo')" class="m2" />
         </span>
       </span>
-      <span class="nm">{{ name }}<small v-if="sub"> · {{ sub }}</small></span>
+      <span class="nm">{{ label ?? name }}<small v-if="sub"> · {{ sub }}</small></span>
     </button>
     <div v-if="$slots.actions" class="acts"><slot name="actions" /></div>
   </div>

@@ -902,8 +902,38 @@ It never reloads by itself and never interrupts an open dialog.
   Mordor scene) does the same, and Mordor stays a scene choice. Gallery `theme-card` (`data-name`, `aria-pressed`), each
   card renders a real mini week (event chip + task list card) under that preset's attributes in a scoped container;
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
-  in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
-  checkbox. Picking applies at once and saves in the background.
+  in that style; the live preview (`theme-live-preview`, next section). Picking applies at once and saves in the
+  background.
+
+### Theme menu live preview (owner, 2026-10-13)
+
+The old "Preview" card scrolled away, which made the menu unusable. It is replaced by `ThemeLivePreview.vue`
+(`web/src/components/settings/`), a sticky mini calendar, so a person always sees what a choice does.
+
+- **Real components, sample data.** It renders `TopAppBar` with `TopBarScene` (the effective scene: seasons, holidays,
+  the drawn scene and an own SVG all show) with the app's `IconButton`s, a three-day week slice whose events are drawn by
+  `ItemView` (so by the registered `EventItem`, as a time-grid block), a task list drawn with `RewardCheckbox` rows (some
+  ticked), the `Fab` ("+") and the app icons. Nothing is a look-alike, so glow, entries style, tint, corner radius,
+  checkbox shape/fill/glyph, icon set, density and scene all follow without per-feature code. The data is a static
+  module (`themeLivePreviewSample.ts`): fixed far-future dates (never "today", so no dimming or ring), fixed colours, no
+  API call, no store write; nothing touches the person's real calendar.
+- **Live.** The preview sits under the same `<html>` theme attributes and custom properties as the app, and those
+  come from the theme store's `resolved`, which includes the slider path `theme.preview(...)` while a slider is
+  dragged. Nothing new is wired.
+- **Scaling.** The content is laid out at a fixed design width (420 px) and scaled with `transform: scale(k)`,
+  `k = container width / 420` (measured with `useElementSize`, capped at 1); the wrapper's height is the natural
+  height times `k`, capped at `34vh` on the phone. `pointer-events: none` and `inert` on the scaled content, and
+  `providePreview(true)` so the event renderer skips its drag handlers. Aria: the content is `aria-hidden`; the
+  region is labelled by the toggle.
+- **Placement.** Phone: first child of the menu content, `position: sticky` right under the menu header (header is
+  `safe-top + 64 px` tall). Desktop (>= 900 px): the menu content is a two-column grid, settings left, the preview
+  sticky on the right (A-110).
+- **Collapse.** The toggle (`theme-live-preview-toggle`) folds it to the top bar scene strip. The state (`data-collapsed`)
+  is kept per device in `localStorage` (`cal.themePreviewCollapsed`, every access in try/catch; unavailable storage
+  means expanded and no memory).
+- **Motion.** Scaled scene animations run only at the Full animation level; Reduced and Off pause every animation
+  and transition inside the preview (a static pose).
+- **Strings.** All new text goes through `t()` (`themePreview.*`, English and German; the fun languages fall back).
 
 ### Fine-tuning sliders, density and icon choices (owner, 2026-10-13)
 
@@ -1053,8 +1083,8 @@ A task list may have no date. It is stored in the same place as every other list
   `undated`. **Undating** = `PATCH { date: null }`: the event moves to the anchor date, `undated = "1"` is set and the
   time is dropped.
 - **Completion**: a write that ticks the last open item of an undated list dates it to the app-clock day (all-day) and
-  sets `completedOn` to the same day, so it shows in the calendar where it was finished (assumption A-75). The Archive
-  slice will add a setting to switch this; it is not built yet.
+  sets `completedOn` to the same day, so it shows in the calendar where it was finished (assumption A-75). The setting
+  `undatedDone` (see "Archive") switches this.
 - **Why this way** (owner decision). Alternatives weighed: (a) a separate store (server file or a second calendar)
   for undated lists; (b) a flag with a real but ordinary date. Chosen: one store, so the same sync, backup, etag and
   conflict handling cover undated lists too, and "giving a date" is just moving the event instead of moving data
@@ -1083,6 +1113,32 @@ A task list may have no date. It is stored in the same place as every other list
 - **Filters**: the category chips of the calendar filter the lists (A-77).
 - **Dating**: the task list dialog has a "No date" toggle (`tasklist-no-date`, A-73); the quick actions set today
   or tomorrow (A-74).
+
+### Archive (owner, 2026-10-13, slice 2 of the task management feature)
+
+- **Archived = complete.** A list with at least one item and every item ticked is archived automatically; unticking an
+  item (or adding an open one) makes it open again, and the existing server logic clears `completedOn`. No archive
+  button, no stored "archived" flag. Dated finished lists stay in the calendar on their day: the Archive is only a view.
+- **Tabs**: the Tasks view has two tabs `tasks-tab-open` (the existing view) and `tasks-tab-archive`. The Archive lists
+  finished lists in `tasks-archive-item` cards (the tray's `TaskListView`, so un-ticking works as everywhere), **newest
+  first by `completedOn`**; lists without `completedOn` (finished outside the app, e.g. edited in Google) come at the end,
+  ordered by their event date (newest first), then title (A-103). Pure functions in `features/tasklists/archive.ts`.
+- **Search** (`tasks-archive-search`): case-insensitive substring match on the list title and on every item title.
+- **Use as template** (`tasks-archive-duplicate`): `POST /api/tasklists` with the same title, category and tags, no date,
+  every item open (new ids), no recurrence or estimate. The copy appears in Open; the original stays archived.
+- **Setting** `undatedDone` ("Finished list without a date", Settings → Task lists, person pref): `calendar` (default) =
+  today's behaviour (A-75: the list is dated to the finish day); `archive` = the list stays undated, gets `completedOn`,
+  shows in no calendar view and no tray, only in the Archive. The server reads the pref on every completing write
+  (`CalendarService.modify`), so a changed setting applies to the next finish.
+- **Fetching finished lists across time** (owner: pick an efficient way). Options weighed: (a) a bounded date range only
+  (as `all-open`, +-365 days): cheap and needs no data change, but old lists vanish and undated "archive only" lists sit
+  on 2099-12-31 outside any range; (b) a private marker `done=1` written with every write that leaves the list finished
+  and read with Google's `privateExtendedProperty=done=1` (no time range): finds finished lists of any age and the
+  undated ones with one query, and Google filters server side so the response only holds archived lists. Chosen: **(b)
+  plus the (a) range as lazy backfill**: lists finished before this feature have no marker, so the archive also reads the
+  +-365-day range and keeps the complete lists (deduplicated by id); every later write of such a list adds the marker.
+  Older unmarked lists are not found until they are edited once (acceptable: pre-release, no migration job, A-103).
+  The marker is derived from the items on every write (`encodePrivate`), so it can never disagree with them.
 
 ### Untitled task lists (owner, 2026-10-12)
 

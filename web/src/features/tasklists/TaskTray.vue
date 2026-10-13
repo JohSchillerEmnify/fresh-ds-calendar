@@ -7,6 +7,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
+import { t } from '@/i18n';
 import { IconKeyboardArrowUp as IconExpand } from '@/components/icons';
 import { isPhone } from '@/composables/useViewport';
 import { appTimeout, type Disposer } from '@/lib/timers';
@@ -22,7 +23,7 @@ const ui = useUiStore();
 const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
 const root = ref<HTMLElement | null>(null);
-const countText = computed(() => (lists.count ? `${lists.count} open` : 'No open tasks'));
+const countText = computed(() => (lists.count ? t('tasks.tray.open', { count: lists.count }) : t('tasks.tray.none')));
 /**
  * Lists just finished here stay open (celebration and "All done!" visible) for this long before folding, or until the
  * support cat's visit ends if it came (`catMs`), so the cat keeps its card.
@@ -84,7 +85,7 @@ function toggleFold(id: string) {
       @click="expanded = !expanded"
     >
       <span class="chip" :class="{ none: !lists.count }" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}</span>
-      <span v-if="lists.nextTask && !expanded && isPhone" class="peek">Next: {{ lists.nextTask.item.title }}</span>
+      <span v-if="lists.nextTask && !expanded && isPhone" class="peek">{{ t('tasks.tray.next', { title: lists.nextTask.item.title }) }}</span>
       <IconExpand class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
     </button>
     <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
@@ -97,12 +98,12 @@ function toggleFold(id: string) {
           <span class="c">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
           <button
             v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
-            :aria-label="unfolded.has(r.list.id) ? `Fold ${displayTitle(r.list)}` : `Show items of ${displayTitle(r.list)}`" @click="toggleFold(r.list.id)"
+            :aria-label="unfolded.has(r.list.id) ? t('tasks.tray.fold', { title: displayTitle(r.list) }) : t('tasks.tray.showItems', { title: displayTitle(r.list) })" @click="toggleFold(r.list.id)"
           ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></button>
         </div>
         <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="(catMs) => linger(r.list.id, catMs)" />
       </li>
-      <li v-if="!lists.count" key="empty" class="empty">Nothing waiting. Nice.</li>
+      <li v-if="!lists.count" key="empty" class="empty">{{ t('tasks.tray.empty') }}</li>
     </TransitionGroup>
   </aside>
 </template>

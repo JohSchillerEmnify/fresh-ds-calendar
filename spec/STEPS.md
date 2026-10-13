@@ -973,6 +973,13 @@ the {string} slider shows {string}
 no option for {string} is pressed
 the option {string} for {string} is pressed
 the event {string} has a corner radius of {int} px
+I scroll the theme menu to the {string} section
+the live preview is pinned under the theme menu header
+the preview event has a corner radius of {int} px
+the live preview is expanded
+the live preview is collapsed
+I collapse the live preview
+I expand the live preview
 the event {string} glows with a blur between {int} and {int} px
 the entry tint is {int} %
 I choose {string} for the {string} setting
@@ -1023,6 +1030,15 @@ every option of the {string} setting shows a sample icon
   `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
+- Live preview (`theme-live-preview`, `data-collapsed` `true`|`false`; toggle `theme-live-preview-toggle`, `aria-expanded`):
+  "I scroll the theme menu to the X section" scrolls the `theme-section` whose heading is X into view inside the menu's
+  own scroll container (`theme-view`); "is pinned under the theme menu header" = after that scroll the preview is fully
+  inside the viewport and its top edge is within 2 px of the bottom edge of the menu header (`theme-view` > `header`).
+  "the preview event has a corner radius of N px" = the computed `border-top-left-radius` of `theme-preview-event` (the
+  first sample event of the preview, a timed block like the week view's, so the same numbers apply as in "the event X has
+  a corner radius of N px"); it does NOT leave the menu. "I collapse / expand the live preview" clicks the toggle when
+  the state differs; "is collapsed / expanded" reads `data-collapsed`. The sample events carry no `event-chip` testid, so
+  steps about the calendar's real events never meet them.
 - "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Halloween", "Neon · Halloween header", "Neon").
 - "I set the seasons and holidays to X": opens the theme menu when needed, clicks the option with that label ("Off",
   "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
@@ -1247,3 +1263,41 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
 - "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
   `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
   "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
+
+## Tasks archive (`@tasks-archive`)
+
+```
+the calendar contains a task list {string} finished on {date}
+the calendar contains a task list {string} finished on {date} with the item {string}
+the setting {string} is {string}
+I open the Archive
+I search the Archive for {string}
+I untick the item {string} of the task list {string} in the Archive
+I choose {string} for the task list {string} in the Archive
+the Archive lists {string}
+the Archive does not list {string}
+the Open tab lists {string}
+the Open tab does not list {string}
+the open task list {string} has no date and {int} open item(s)
+```
+
+- Also used from "Tasks view": "the calendar contains an undated task list ... with items:", "I tick the item ... in the
+  Tasks view", "the calendar shows the task list ... on ...", "neither the calendar ... nor the open tasks tray ...".
+- "finished on D" fixture: an undated list whose items (one item "Done" unless `with the item` names it) are ticked
+  through the API while the test clock is D (so `completedOn` = D), then the clock is set back to the Background date.
+  The undated list is dated to D by the completion (default setting), which does not matter for the Archive.
+- "the setting S is V": S = `Finished list without a date`, V = `Show on the day it was finished` | `Archive only`;
+  `PATCH /api/prefs { undatedDone: 'calendar' | 'archive' }` as that person.
+- "I open the Archive": opens the Tasks view (as the Tasks view steps do) and clicks `tasks-tab-archive`
+  (`aria-pressed="true"`). "the Open tab lists / does not list T" clicks `tasks-tab-open` and checks the `tasks-item`
+  titles (`data-title`); "the Archive lists A, B" opens the Archive and compares all `tasks-archive-item` titles in DOM
+  order joined `", "` ("does not list T": none has that title).
+- "I search the Archive for X": opens the Archive and fills `tasks-archive-search` (the field's own debounce is
+  awaited by the expectation that follows).
+- "I untick the item I of the task list L in the Archive": unticks `tasklist-item-checkbox` of that item inside L's
+  `tasks-archive-item` and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
+- "I choose Use as template for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
+  waits for the `POST /api/tasklists` response.
+- "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
+  `data-date` and N `tasklist-item` rows with `data-done="false"` (and no done ones).
+

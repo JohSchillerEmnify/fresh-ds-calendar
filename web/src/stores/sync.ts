@@ -7,9 +7,9 @@ import { useClockStore } from './clock';
 import { useItemsStore } from './items';
 import { useSettingsStore } from './settings';
 import { checkServerVersion, checkVersion } from '@/pwa/update';
+import { t } from '@/i18n';
 
 export type SyncState = 'idle' | 'syncing' | 'error';
-export const SYNC_ERROR_MESSAGE = "Can't reach Google Calendar. Showing the last known data.";
 const FOCUS_DEBOUNCE_MS = 500;
 
 /**
@@ -32,7 +32,7 @@ export const useSyncStore = defineStore('sync', () => {
   let current: Promise<void> | null = null;
   let again = false;
 
-  const errorMessage = computed(() => (error.value ? SYNC_ERROR_MESSAGE : ''));
+  const errorMessage = computed(() => (error.value ? t('calendar.sync.unreachable') : ''));
 
   /** Add a refresher run on every sync (e.g. the open task tray, motivation). Returns an unregister function. */
   function registerTask(name: string, fn: () => Promise<unknown>): () => void {

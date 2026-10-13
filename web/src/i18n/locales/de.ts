@@ -1,7 +1,13 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
 import type { Messages } from '../schema';
+import calendarDe from './de/calendar.ts';
+
+import tasksDe from './de/tasks.ts';
+import themeDe from './de/theme.ts';
 
 export default {
+  calendar: calendarDe,
+  tasks: tasksDe,
   views: {
     year: 'Jahr',
     month: 'Monat',
@@ -78,6 +84,7 @@ export default {
       editCategory: '{name} bearbeiten',
       moveUp: '{name} nach oben',
       moveDown: '{name} nach unten',
+      undatedDone: { label: 'Erledigte Liste ohne Datum', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv' },
     },
     motivation: {
       warnBefore: 'Vor Terminbeginn warnen',
@@ -109,5 +116,21 @@ export default {
       version: 'Version {version}',
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },
+    leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegelt das Handy-Layout, sodass die wichtigsten Bedienelemente unter dem linken Daumen liegen' },
+    plant: 'Pflanze',
+    sunflowers: { label: 'Sonnenblumen', hint: 'Gilt für die Szene Sonnenblumenfeld', grow: 'Wachsen mit Punkten', full: 'Volles Feld' },
+    ownThemes: { label: 'Eigene Designs (KI und Import)', hint: 'Experimentell: ein Prompt für eine KI und der Import ihrer Design-Datei im Design-Menü' },
   },
+  themePreview: {
+    label: 'Live-Vorschau',
+    collapse: 'Live-Vorschau einklappen',
+    expand: 'Live-Vorschau ausklappen',
+    month: 'Januar 2030',
+    today: 'Heute',
+    sample: {
+      sync: 'Team-Abstimmung', lunch: 'Mittagessen', run: 'Laufen', review: 'Review', call: 'Anruf',
+      groceries: 'Einkauf', milk: 'Milch', bread: 'Brot', eggs: 'Eier',
+    },
+  },
+  theme: themeDe,
 } satisfies Messages;

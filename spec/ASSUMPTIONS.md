@@ -371,3 +371,34 @@ spec files are named.
   it is small when idle. The scenario "The server stays small when idle" therefore uses the new step `When I request
   {string} on a fresh server` (one wording change: `... on a fresh server` appended to the existing request step); the
   assertion step is unchanged. The leak scenario keeps measuring growth on the shared server.
+- **A-103 Archive** (owner decisions 2026-10-13 are final; the readings below are mine): (a) a list is "finished" when it
+  has at least one item and all are ticked (same as A-94's complement), so an emptied list is not archived. (b) Lists
+  without `completedOn` are sorted after those with one, by event date newest first, then title; this is logged in the
+  UI nowhere, only here. (c) Search is a plain case-insensitive substring match (no fuzzy, no word split), and an empty
+  search shows everything. (d) The template copies title, category and tags only; estimate and recurrence are dropped,
+  so the copy never repeats (an undated list cannot). (e) Finished lists older than 365 days without the `done` marker
+  (written before this feature) are not found until they are edited once. (f) The setting lives in the "Task lists"
+  section of the settings as a two-option segmented control. (g) With "Archive only", a list that is already dated is
+  still dated: the setting concerns undated lists only (owner: "finished list without a date"). (h) The Archive refetches
+  when it opens and on every sync, like the Open tab.
+- **A-110 Theme menu live preview layout** (owner decisions 2026-10-13 are final; the readings are mine): (a) on the desktop
+  (>= 900 px) the menu is two columns, the settings on the left and the preview column sticky on the right; the owner asked
+  for "side-by-side, preview sticky on the right" and left the width open, so the column is 340 px and the whole menu
+  grows to 1100 px; (b) the phone preview is about a third of the viewport height (`max-height: 34vh`) and sits right under
+  the menu header; (c) left-handed mode needs no handling (owner).
+- **A-111 Live preview content** (my reading): the task list is a small card of real `RewardCheckbox` rows, not
+  `TaskListView` or `TaskListCard`, because both depend on the items store and the API ("no API calls, nothing touches the
+  real calendar"); the checkboxes are real and inert (no tick animation: pointer events are off). The sample titles are
+  catalogue strings, the day names come from `Intl` in the current language. The weekday labels and dates are fixed
+  (a Monday to a Wednesday in 2030) so a sample event is never "today".
+- **A-112 Live preview testids** (my reading): `theme-preview` (the old card) is gone; `theme-preview-event` is kept and
+  now sits on the first sample event, a time-grid block, so "the preview event is drawn as an outline" still reads an
+  entry with `data-color`. The sample events do not use the testid `event-chip`, so no step about the calendar's real
+  events can match them.
+- **A-113 Collapsed state storage** (my reading): "remembered per device in localStorage" is `cal.themePreviewCollapsed`
+  (`"1"` collapsed, absent expanded); it is not a setting or preference (it never reaches the server or other
+  devices). Collapsed shows the top bar scene strip only (the scene is what a person most wants to see from an
+  action in the Scene section), not a bare handle.
+- **A-114 Reduced motion** (my reading): "scaled animations only at Full motion" means the effective animation level
+  (setting, calm mode and system preference); below Full every CSS animation and transition inside the preview is
+  switched off, the scene stays as a still picture.

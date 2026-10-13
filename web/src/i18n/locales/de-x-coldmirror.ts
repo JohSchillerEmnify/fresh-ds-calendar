@@ -3,17 +3,23 @@
  * rapper. Complete: it covers every key of `de`. Never "Ich bin voll geil" (owner).
  */
 import type { Messages } from '../schema';
+import calendarColdmirror from './de-x-coldmirror/calendar.ts';
+
+import tasksColdmirror from './de-x-coldmirror/tasks.ts';
+import themeColdmirror from './de-x-coldmirror/theme.ts';
 
 export default {
+  calendar: calendarColdmirror,
+  tasks: tasksColdmirror,
   views: {
     year: 'Jahr, yo',
     month: 'Monat, yo',
     week: 'Woche, fresh',
     day: 'Tag, Digga',
+    tasks: 'Aufgaben, yo',
     clock: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
-    tasks: 'Aufgaben, Digga',
   },
   nav: {
     views: 'Ansichten, yo',
@@ -76,6 +82,7 @@ export default {
       tasksCalendar: { label: 'Aufgabenkalender in Google zeigen, yo', hint: 'Aufgabenlisten bleiben in jedem Fall in der App, Digga' },
     },
     tasklists: {
+      undatedDone: { label: 'Erledigte Liste ohne Datum, yo', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv, Digga' },
       categories: 'Kategorien, yo',
       addCategory: 'Kategorie am Start, yo',
       editCategory: '{name} pimpen',
@@ -112,5 +119,21 @@ export default {
       version: 'Version {version}, yo',
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },
+    leftHanded: { label: 'Linkshänder-Modus, yo', hint: 'Spiegelt das Handy-Layout, damit die wichtigen Knöpfe unter dem linken Daumen liegen. Fresh D. ist Linkshänder, Digga.' },
+    plant: 'Pflanze, yo',
+    sunflowers: { label: 'Sonnenblumen, fresh', hint: 'Gilt nur für die Szene Sonnenblumenfeld, Digga', grow: 'Wachsen mit Punkten, yo', full: 'Volles Feld, fresh' },
+    ownThemes: { label: 'Eigene Bling-Blings (KI und Import)', hint: 'Experimentell, Digga: ein Prompt für eine KI und der Import ihrer Theme-Datei im Bling-Bling-Menü' },
   },
+  themePreview: {
+    label: 'Live-Vorschau, fresh',
+    collapse: 'Vorschau einklappen, yo',
+    expand: 'Vorschau ausklappen, yo',
+    month: 'Januar 2030',
+    today: 'Heute, Digga',
+    sample: {
+      sync: 'Lehrerkonferenz', lunch: 'Mittag mit Hagrid', run: 'Vor Voldemort weglaufen', review: 'Rap-Battle', call: 'Eule an McGonagall',
+      groceries: 'Einkauf', milk: 'Kürbissaft', bread: 'Brot', eggs: 'Drachen-Eier',
+    },
+  },
+  theme: themeColdmirror,
 } satisfies Messages;

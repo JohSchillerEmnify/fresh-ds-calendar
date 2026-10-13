@@ -12,7 +12,7 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
 import { ApiError, type StoredTheme } from '@/api/client';
-import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
+import { isHexColor, MORDOR_SEED, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
@@ -21,10 +21,10 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Slider from '@/components/m3/Slider.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
+import ThemeLivePreview from '@/components/settings/ThemeLivePreview.vue';
 import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
 import ThemeImport from '@/components/settings/ThemeImport.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
-import RewardCheckbox from '@/motion/RewardCheckbox.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { BACKDROP_SCENES } from '@/features/motivation/types';
 import { useClockStore } from '@/stores/clock';
@@ -34,9 +34,11 @@ import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
+import { t } from '@/i18n';
 import {
-  CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES, sliderText,
+  CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES,
 } from '@/theme/fine';
+import { presetLabel, seedLabel } from '@/theme/labels';
 import { automaticPreset, docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type Seasonal, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
@@ -52,35 +54,36 @@ const attrs = computed(() => theme.resolved.attrs);
 const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {}, seasonal: 'off' }, clock.today)])) as Record<PresetName, ResolvedTheme>);
 
 /** Downloads a theme's document as a `.json` file. */
-function exportTheme(t: StoredTheme) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(t.doc, null, 2)], { type: 'application/json' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: `${t.doc.name.replace(/[^\w-]+/g, '-')}.theme.json` });
+function exportTheme(th: StoredTheme) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(th.doc, null, 2)], { type: 'application/json' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `${th.doc.name.replace(/[^\w-]+/g, '-')}.theme.json` });
   a.click();
   URL.revokeObjectURL(url);
 }
 
-const groups: { setting: keyof ThemeAttrs; label: string; options: { value: string; label: string }[] }[] = [
-  { setting: 'glow', label: 'Glow', options: [{ value: 'off', label: 'Off' }, { value: 'soft', label: 'Soft' }, { value: 'neon', label: 'Neon' }] },
-  { setting: 'entries', label: 'Entries', options: [{ value: 'solid', label: 'Solid' }, { value: 'tinted', label: 'Tinted' }, { value: 'outline', label: 'Outline' }] },
-  { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
-];
+interface OptionGroup { setting: keyof ThemeAttrs; label: string; options: { value: string; label: string }[] }
+const groups = computed<OptionGroup[]>(() => [
+  { setting: 'glow', label: t('theme.glow.label'), options: [{ value: 'off', label: t('common.off') }, { value: 'soft', label: t('theme.glow.soft') }, { value: 'neon', label: t('theme.glow.neon') }] },
+  { setting: 'entries', label: t('theme.entries.label'), options: [{ value: 'solid', label: t('theme.entries.solid') }, { value: 'tinted', label: t('theme.entries.tinted') }, { value: 'outline', label: t('theme.entries.outline') }] },
+  { setting: 'corners', label: t('theme.corners.label'), options: [{ value: 'square', label: t('theme.corners.square') }, { value: 'round', label: t('theme.corners.round') }, { value: 'pill', label: t('theme.corners.pill') }] },
+]);
 /** The Scene choice has its own section; its options look and behave like the fine-tuning ones. */
-const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', options: [
-  { value: 'spring', label: 'Spring' }, { value: 'easter', label: 'Easter' }, { value: 'summer', label: 'Summer' },
-  { value: 'summerholidays', label: 'Summer holidays' }, { value: 'fall', label: 'Fall' }, { value: 'halloween', label: 'Halloween' },
-  { value: 'christmas', label: 'Christmas' }, { value: 'newyearseve', label: 'New Year\'s Eve' }, { value: 'newyear', label: 'New Year' },
-  { value: 'winter', label: 'Winter' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' },
-] };
+const sceneGroup = computed<OptionGroup>(() => ({ setting: 'scene', label: t('theme.scene.title'), options: [
+  { value: 'spring', label: t('theme.scene.spring') }, { value: 'easter', label: t('theme.scene.easter') }, { value: 'summer', label: t('theme.scene.summer') },
+  { value: 'summerholidays', label: t('theme.scene.summerholidays') }, { value: 'fall', label: t('theme.scene.fall') }, { value: 'halloween', label: t('theme.scene.halloween') },
+  { value: 'christmas', label: t('theme.scene.christmas') }, { value: 'newyearseve', label: t('theme.scene.newyearseve') }, { value: 'newyear', label: t('theme.scene.newyear') },
+  { value: 'winter', label: t('theme.scene.winter') }, { value: 'sunflowers', label: t('theme.scene.sunflowers') }, { value: 'mordor', label: t('theme.scene.mordor') }, { value: 'none', label: t('theme.scene.none') },
+] }));
 /** One option group (label + option cards) is drawn in two sections, so its template is defined once. */
-const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
+const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: OptionGroup }>();
 const isSeason = (s: string) => (BACKDROP_SCENES as readonly string[]).includes(s);
 
 // --- Seasons & holidays (one setting for all of them) ----------------------------------------------------------------
-const seasonalOptions: { value: Seasonal; label: string }[] = [{ value: 'off', label: 'Off' }, { value: 'header', label: 'Header only' }, { value: 'all', label: 'Header + colours' }];
+const seasonalOptions = computed<{ value: Seasonal; label: string }[]>(() => [{ value: 'off', label: t('theme.seasonal.off') }, { value: 'header', label: t('theme.seasonal.header') }, { value: 'all', label: t('theme.seasonal.all') }]);
 /** What applies today, in words: the calendar's theme and which parts of it. */
 const seasonalToday = computed(() => {
-  const today = automaticPreset(clock.today);
-  return theme.pref.seasonal === 'all' ? `Today: ${today} header & colours` : theme.pref.seasonal === 'header' ? `Today: ${today} header` : 'Today: nothing changes automatically';
+  const name = presetLabel(automaticPreset(clock.today));
+  return theme.pref.seasonal === 'all' ? t('theme.seasonal.todayAll', { name }) : theme.pref.seasonal === 'header' ? t('theme.seasonal.todayHeader', { name }) : t('theme.seasonal.todayNone');
 });
 /** The scene option shown as pressed: the person's pick, or the theme's own scene while the calendar is off (none while it drives the header). */
 const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.seasonal === 'off' ? attrs.value.scene : null));
@@ -108,28 +111,29 @@ function pickOption(setting: keyof ThemeAttrs, value: string) {
 
 // --- sliders (live while moving, saved when the move ends) and the other fine-tuning choices ---------------------------
 type SliderKey = 'glowStrength' | 'radius' | 'tint';
-const sliders: Record<string, { key: SliderKey; label: string; testid: string }> = {
-  glow: { key: 'glowStrength', label: 'Glow strength', testid: 'theme-slider-glow' },
-  corners: { key: 'radius', label: 'Corner radius', testid: 'theme-slider-radius' },
-  entries: { key: 'tint', label: 'Entry tint', testid: 'theme-slider-tint' },
-};
+const sliders = computed<Record<string, { key: SliderKey; label: string; testid: string }>>(() => ({
+  glow: { key: 'glowStrength', label: t('theme.slider.glowStrength'), testid: 'theme-slider-glow' },
+  corners: { key: 'radius', label: t('theme.slider.radius'), testid: 'theme-slider-radius' },
+  entries: { key: 'tint', label: t('theme.slider.tint'), testid: 'theme-slider-tint' },
+}));
+/** Text shown next to a slider: `4 px`, `30 %`, glow strength without a unit. */
+function sliderText(kind: SliderKey, value: number): string {
+  return kind === 'radius' ? t('theme.fine.px', { value }) : kind === 'tint' ? t('theme.fine.percent', { value }) : String(value);
+}
 const live = (key: SliderKey, v: number) => theme.preview({ [key]: v });
 const commit = (key: SliderKey, v: number) => theme.pickMany({ [key]: v });
 /** The tint is only used by tinted entries, so the other styles disable its slider. */
 const tintOff = computed(() => attrs.value.entries !== 'tinted');
-const choices: { key: 'density' | 'checkbox' | 'checkFill' | 'check' | 'icons'; label: string; testid: string; options: { value: string; label: string }[]; fallback: string }[] = [
-  { key: 'density', label: 'Density', testid: 'theme-density', fallback: 'comfortable', options: DENSITIES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
-  { key: 'checkbox', label: 'Checkbox shape', testid: 'theme-checkbox-shape', fallback: 'rounded', options: CHECKBOXES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
-  { key: 'checkFill', label: 'Checkbox fill', testid: 'theme-check-fill', fallback: 'filled', options: CHECK_FILLS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
-  { key: 'check', label: 'Check mark', testid: 'theme-check-glyph', fallback: 'tick', options: CHECK_GLYPHS.map((v) => ({ value: v, label: v === 'bold' ? 'Bold tick' : v[0].toUpperCase() + v.slice(1) })) },
-  { key: 'icons', label: 'Icon set', testid: 'theme-icon-set', fallback: 'outlined', options: ICON_SETS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
-];
+const choices = computed<{ key: 'density' | 'checkbox' | 'checkFill' | 'check' | 'icons'; label: string; testid: string; options: { value: string; label: string }[]; fallback: string }[]>(() => [
+  { key: 'density', label: t('theme.density.label'), testid: 'theme-density', fallback: 'comfortable', options: DENSITIES.map((v) => ({ value: v, label: t(`theme.density.${v}`) })) },
+  { key: 'checkbox', label: t('theme.checkboxShape.label'), testid: 'theme-checkbox-shape', fallback: 'rounded', options: CHECKBOXES.map((v) => ({ value: v, label: t(`theme.checkboxShape.${v}`) })) },
+  { key: 'checkFill', label: t('theme.checkFill.label'), testid: 'theme-check-fill', fallback: 'filled', options: CHECK_FILLS.map((v) => ({ value: v, label: t(`theme.checkFill.${v}`) })) },
+  { key: 'check', label: t('theme.checkGlyph.label'), testid: 'theme-check-glyph', fallback: 'tick', options: CHECK_GLYPHS.map((v) => ({ value: v, label: t(`theme.checkGlyph.${v}`) })) },
+  { key: 'icons', label: t('theme.iconSet.label'), testid: 'theme-icon-set', fallback: 'outlined', options: ICON_SETS.map((v) => ({ value: v, label: t(`theme.iconSet.${v}`) })) },
+]);
 /** The sample icons shown in each option of the icon set control, drawn in that option's own set. */
 const SAMPLE_ICONS = [IconSettingsOutline, IconEditOutline, IconClose];
-const choiceValue = (c: (typeof choices)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
-/** The preview's two checkboxes are real ones that can be played with. */
-const tickedA = ref(true);
-const tickedB = ref(false);
+const choiceValue = (c: (typeof choices.value)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
 /** Attributes for an option's sample: the current look with this one option swapped in. */
 function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, string> {
   const a: Record<string, string> = { 'data-glow': attrs.value.glow, 'data-entries': attrs.value.entries, 'data-corners': attrs.value.corners };
@@ -147,17 +151,17 @@ async function save(p: Parameters<typeof settings.patch>[0]) {
     await settings.patch(p);
   } catch (e) {
     if (e instanceof ApiError && e.isUnavailable) sync.reportError(e);
-    else ui.notify(e instanceof ApiError ? e.userMessage : 'Could not save settings');
+    else ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
   }
 }
-const modes = [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }] as const;
+const modes = computed(() => [{ value: 'system', label: t('theme.mode.system') }, { value: 'light', label: t('theme.mode.light') }, { value: 'dark', label: t('theme.mode.dark') }]);
 const seed = computed(() => (theme.resolved.seed ?? s.value.seedColor).toLowerCase());
 const presetNames = SEED_PRESETS.map((p) => p.hex);
 const isMordor = computed(() => seed.value === MORDOR_SEED);
 const isCustom = computed(() => !presetNames.includes(seed.value) && !isMordor.value);
 const swatches = computed(() => [
-  ...SEED_PRESETS.map((p) => ({ value: p.hex, name: p.name, color: p.hex, testid: 'settings-seed-preset' })),
-  { value: 'custom', name: 'Custom', color: isCustom.value ? seed.value : '#9e9e9e', testid: 'settings-seed-preset' },
+  ...SEED_PRESETS.map((p) => ({ value: p.hex, name: seedLabel(p.name), color: p.hex, testid: 'settings-seed-preset' })),
+  { value: 'custom', name: t('theme.fine.custom'), color: isCustom.value ? seed.value : '#9e9e9e', testid: 'settings-seed-preset' },
 ]);
 const swatchValue = computed(() => (isCustom.value ? 'custom' : isMordor.value ? null : seed.value));
 const hex = ref(seed.value);
@@ -169,7 +173,7 @@ function pickSwatch(v: string) {
 }
 function commitHex() {
   const v = hex.value.trim();
-  if (!isHexColor(v)) { hexError.value = MSG_INVALID_COLOR; return; }
+  if (!isHexColor(v)) { hexError.value = t('theme.fine.invalidColor'); return; }
   hexError.value = '';
   if (v.toLowerCase() !== seed.value) void theme.pick('seed', v.toLowerCase());
 }
@@ -183,8 +187,8 @@ function back() {
 <template>
   <section class="page" data-testid="theme-view">
     <header class="bar">
-      <IconButton label="Back" data-testid="theme-back" @click="back"><IconBack /></IconButton>
-      <h1>Theme</h1>
+      <IconButton :label="t('settings.back')" data-testid="theme-back" @click="back"><IconBack /></IconButton>
+      <h1>{{ t('theme.title') }}</h1>
     </header>
     <div class="content">
       <DefineGroup v-slot="{ g }">
@@ -195,42 +199,35 @@ function back() {
               v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
               :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
             >
-              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
+              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" /></span>
               <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
                 <span class="back" :class="[`b-${o.value}`]"><SeasonScene v-if="isSeason(o.value)" :season="o.value as 'spring'" /></span>
-                <ThemeSample kind="event" title="Dentist" />
+                <ThemeSample kind="event" />
               </span>
               <span class="ol">{{ o.label }}</span>
             </button>
           </div>
         </div>
       </DefineGroup>
-      <section class="card preview" aria-labelledby="h-prev" data-testid="theme-preview">
-        <h2 id="h-prev">Preview</h2>
-        <div class="stage">
-          <div class="pv"><ThemeSample kind="event" title="Dentist" data-testid="theme-preview-event" /></div>
-          <div class="pv"><ThemeSample kind="tasklist" color="#0b8043" title="Groceries" /></div>
-          <div class="pv cbs"><RewardCheckbox v-model="tickedA" label="Done" /><RewardCheckbox v-model="tickedB" label="To do" /></div>
-        </div>
-      </section>
+      <ThemeLivePreview class="live-slot" />
 
       <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
-        <h2 id="h-cal">Seasons &amp; holidays</h2>
-        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" label="Seasons & holidays" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
+        <h2 id="h-cal">{{ t('theme.seasonal.title') }}</h2>
+        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" :label="t('theme.seasonal.title')" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
         <p class="today" data-testid="theme-seasonal-today">{{ seasonalToday }}</p>
       </section>
 
       <section class="card" aria-labelledby="h-gal" data-testid="theme-section" data-section="presets">
-        <h2 id="h-gal">Presets</h2>
+        <h2 id="h-gal">{{ t('theme.gallery.title') }}</h2>
         <div class="gallery">
           <ThemeCard
-            v-for="n in PRESET_NAMES" :key="n" :name="n" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
+            v-for="n in PRESET_NAMES" :key="n" :name="n" :label="presetLabel(n)" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
             @choose="theme.choose(n)"
           />
-          <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc, t.picture)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
+          <ThemeCard v-for="th in theme.themes" :key="th.id" :name="th.doc.name" :theme="docToResolved(th.doc, th.picture)" :pressed="theme.pref.preset === `theme:${th.id}`" @choose="theme.choose(`theme:${th.id}`)">
             <template #actions>
-              <IconButton label="Export theme" data-testid="theme-export" @click="exportTheme(t)"><IconExport /></IconButton>
-              <IconButton label="Delete theme" data-testid="theme-delete" @click="pending.deleteTheme(t.id, t.doc.name)"><IconDelete /></IconButton>
+              <IconButton :label="t('theme.export')" data-testid="theme-export" @click="exportTheme(th)"><IconExport /></IconButton>
+              <IconButton :label="t('theme.delete')" data-testid="theme-delete" @click="pending.deleteTheme(th.id, th.doc.name)"><IconDelete /></IconButton>
             </template>
           </ThemeCard>
         </div>
@@ -238,20 +235,20 @@ function back() {
       </section>
 
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
-        <h2 id="h-scene">Scene</h2>
+        <h2 id="h-scene">{{ t('theme.scene.title') }}</h2>
         <ReuseGroup :g="sceneGroup" />
       </section>
 
       <section class="card" aria-labelledby="h-fine" data-testid="theme-section" data-section="fine-tuning">
-        <h2 id="h-fine">Fine-tuning</h2>
+        <h2 id="h-fine">{{ t('theme.fine.title') }}</h2>
         <div class="group">
-          <span class="lab">Theme mode</span>
-          <SegmentedButton :model-value="s.themeMode" :options="[...modes]" label="Theme mode" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
+          <span class="lab">{{ t('theme.fine.mode') }}</span>
+          <SegmentedButton :model-value="s.themeMode" :options="modes" :label="t('theme.fine.mode')" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
         </div>
         <div class="group">
-          <span class="lab">Seed color</span>
-          <ColorSwatchPicker :swatches="swatches" :model-value="swatchValue" label="Seed color" @update:model-value="pickSwatch" />
-          <TextField v-model="hex" class="hex" label="Custom color (hex)" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
+          <span class="lab">{{ t('theme.fine.seed') }}</span>
+          <ColorSwatchPicker :swatches="swatches" :model-value="swatchValue" :label="t('theme.fine.seed')" @update:model-value="pickSwatch" />
+          <TextField v-model="hex" class="hex" :label="t('theme.fine.customHex')" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
         </div>
         <template v-for="g in groups" :key="g.setting">
           <ReuseGroup :g="g" />
@@ -262,7 +259,7 @@ function back() {
               :testid="sliders[g.setting].testid" :disabled="sliders[g.setting].key === 'tint' && tintOff"
               @update:model-value="live(sliders[g.setting].key, $event)" @commit="commit(sliders[g.setting].key, $event)"
             />
-            <span v-if="sliders[g.setting].key === 'tint' && tintOff" class="sub">Only used by Tinted entries.</span>
+            <span v-if="sliders[g.setting].key === 'tint' && tintOff" class="sub">{{ t('theme.fine.tintOnly') }}</span>
           </div>
         </template>
         <div v-for="c in choices" :key="c.key" class="group">
@@ -274,7 +271,7 @@ function back() {
           </SegmentedButton>
         </div>
         <div class="group">
-          <Button variant="tonal" data-testid="theme-save-own" @click="savingOwn = true">Save as my theme</Button>
+          <Button variant="tonal" data-testid="theme-save-own" @click="savingOwn = true">{{ t('theme.saveOwn.button') }}</Button>
         </div>
       </section>
       <SaveThemeDialog v-if="savingOwn" @close="savingOwn = false" />
@@ -289,9 +286,12 @@ h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 720px; margin: 0 auto; }
 .card { background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 12px 14px; }
 h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-primary); }
-.stage { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; padding: 14px; border-radius: var(--md-sys-shape-corner-large); background: var(--md-sys-color-surface); }
-.pv { display: flex; flex-direction: column; min-width: 0; }
-.cbs { flex-direction: row; gap: 12px; align-items: center; }
+/* desktop: settings left, the live preview sticky in a right column (it spans the four section rows) */
+@media (min-width: 900px) {
+  .content { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 16px; align-items: start; max-width: 1100px; }
+  .content > * { grid-column: 1; }
+  .content > .live-slot { grid-column: 2; grid-row: 1 / span 4; }
+}
 
 .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 @media (min-width: 560px) { .gallery { grid-template-columns: repeat(4, 1fr); } }

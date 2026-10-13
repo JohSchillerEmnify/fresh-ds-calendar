@@ -14,7 +14,7 @@ import {
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir,
+  isApproachWindow, isLanguagePref, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -147,6 +147,10 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (!TASKS_SORT_DIR_VALUES.includes(b.tasksSortDir as TasksSortDir)) throw validation('Invalid tasksSortDir', 'tasksSortDir');
       patch.tasksSortDir = b.tasksSortDir as TasksSortDir;
     }
+    if (b.undatedDone !== undefined) {
+      if (!UNDATED_DONE_VALUES.includes(b.undatedDone as UndatedDone)) throw validation('Invalid undatedDone', 'undatedDone');
+      patch.undatedDone = b.undatedDone as UndatedDone;
+    }
     if (b.language !== undefined) {
       if (!isLanguagePref(b.language)) throw validation('Invalid language', 'language');
       patch.language = b.language;
@@ -228,6 +232,11 @@ export function apiRoutes(ctx: Ctx): Hono {
     const today = c.req.query('today') ?? ctx.motivation.today();
     if (!isLocalDate(today)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
     return c.json(await cal(c).allOpenTaskLists(today));
+  });
+  r.get('/tasklists/archive', async (c) => {
+    const today = c.req.query('today') ?? ctx.motivation.today();
+    if (!isLocalDate(today)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
+    return c.json(await cal(c).archivedTaskLists(today));
   });
   r.post('/tasklists', async (c) => c.json(await cal(c).createTaskList(parse(createTaskListSchema, await body(c))), 201));
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));

@@ -268,6 +268,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 |---|---|---|---|
 | `POST` | `/api/tasklists` | `CreateTaskListInput` | `201` `TaskList` |
 | `GET` | `/api/tasklists/all-open?today=YYYY-MM-DD` | – | `200` `{ items: TaskList[] }` |
+| `GET` | `/api/tasklists/archive?today=YYYY-MM-DD` | – | `200` `{ items: TaskList[] }` |
 | `GET` | `/api/tasklists/:id` | – | `200` `TaskList` |
 | `PATCH` | `/api/tasklists/:id` | `UpdateTaskListInput` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
@@ -377,10 +378,18 @@ date); lists with no open items are never carried. `days` max 90, default 30.
 web app groups and sorts. Errors: 400, 502, 503. Undated lists are returned only here and by `GET /api/tasklists/:id`;
 `/api/items`, `/api/summary` and `/api/tasklists/open` never return them.
 
+### Archived task lists (Tasks view, Archive tab)
+
+`GET /api/tasklists/archive?today=YYYY-MM-DD` → `200 { items: TaskList[] }`: every finished task list (at least one
+item, all ticked), dated or undated: the lists carrying the private marker `done=1` of any age, plus the finished
+lists dated in `[today − 365, today + 365]` (lists written before the marker existed). Unordered; the web app sorts
+(newest `completedOn` first, lists without `completedOn` last by date). Errors: 400, 502, 503. `all-open` never returns
+finished lists; the date-range endpoints are unchanged.
+
 ### Prefs: Tasks view
 
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
-`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`.
+`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (ARCHITECTURE "Archive"); any other value is `400`.
 
 ### Motivation: check-in streak and plant
 

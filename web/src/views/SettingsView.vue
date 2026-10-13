@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -24,6 +24,7 @@ import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { shownVersion } from '@/pwa/version';
+import { googleColorLabel, presetLabel, themeLabel as nameOfTheme } from '@/theme/labels';
 import { automaticPreset } from '@/theme/presets';
 import { LANGUAGE_NAMES, LANGUAGES, t, type LanguagePref } from '@/i18n';
 
@@ -38,11 +39,11 @@ const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 const theme = useThemeStore();
 /** The chosen theme's name (an imported theme by its own name). */
-const baseName = computed(() => (theme.pref.preset.startsWith('theme:') ? theme.themes.find((t) => `theme:${t.id}` === theme.pref.preset)?.doc.name ?? 'Default' : theme.pref.preset));
+const baseName = computed(() => (theme.pref.preset.startsWith('theme:') ? theme.themes.find((t) => `theme:${t.id}` === theme.pref.preset)?.doc.name ?? presetLabel('Default') : nameOfTheme(theme.pref.preset)));
 /** The Theme row's value: the calendar's theme alone for Header + colours ("Halloween"), "Neon · Halloween header" for Header only, else the name. */
 const themeLabel = computed(() => {
-  const today = automaticPreset(clock.today);
-  return theme.pref.seasonal === 'all' ? today : theme.pref.seasonal === 'header' ? `${baseName.value} · ${today} header` : baseName.value;
+  const today = presetLabel(automaticPreset(clock.today));
+  return theme.pref.seasonal === 'all' ? today : theme.pref.seasonal === 'header' ? t('theme.seasonal.headerOf', { base: baseName.value, name: today }) : baseName.value;
 });
 /** Each language in its own name; Automatic follows the device language. */
 const languageOptions = computed(() => [{ value: 'auto', label: t('settings.language.auto') }, ...LANGUAGES.map((l) => ({ value: l, label: LANGUAGE_NAMES[l] }))]);
@@ -80,7 +81,7 @@ function jump(id: SectionId) {
 }
 
 const views = computed(() => [{ value: 'month', label: t('views.month') }, { value: 'week', label: t('views.week') }, { value: 'day', label: t('views.day') }]);
-const colorOptions = computed(() => [{ value: '', label: t('settings.calendar.calendarColor') }, ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, label: c.name }))]);
+const colorOptions = computed(() => [{ value: '', label: t('settings.calendar.calendarColor') }, ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, label: googleColorLabel(c) }))]);
 /** 3, 6 and 12 hours, plus "Custom…" which reveals the hours field. */
 const PRESET_WINDOWS = [3, 6, 12];
 const approachWindows = computed(() => [...PRESET_WINDOWS.map((v) => ({ value: String(v), label: t('settings.calendar.approachWindow.hours', { count: v }, v) })), { value: 'custom', label: t('settings.calendar.approachWindow.custom') }]);
@@ -111,7 +112,11 @@ const levels = computed(() => [{ value: 'full', label: t('settings.motion.full')
 const warns = computed(() => [{ value: '0', label: t('common.off') }, ...[5, 10, 15].map((m) => ({ value: String(m), label: t('settings.motivation.minutes', { count: m }) }))]);
 /** The sunflowers setting only has an effect on the Sunflower field scene; otherwise it is shown but inactive. */
 const fieldActive = computed(() => settings.effectiveScene === 'sunflowers');
-const sunflowerModes = [{ value: 'grow', label: 'Grow with points' }, { value: 'full', label: 'Full field' }] as const;
+const sunflowerModes = computed(() => [{ value: 'grow', label: t('settings.sunflowers.grow') }, { value: 'full', label: t('settings.sunflowers.full') }]);
+const undatedDoneOptions = computed(() => [
+  { value: 'calendar', label: t('settings.tasklists.undatedDone.calendar'), testid: 'settings-undated-done-calendar' },
+  { value: 'archive', label: t('settings.tasklists.undatedDone.archive'), testid: 'settings-undated-done-archive' },
+]);
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
 // --- categories ---------------------------------------------------------------------------
@@ -180,7 +185,7 @@ async function resetDemo() {
             <TextField v-if="approachChoice === 'custom'" v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" :label="t('settings.calendar.approachWindow.customLabel')" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
           </div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.tasksCalendar.label') }}</span><span class="sub">{{ t('settings.calendar.tasksCalendar.hint') }}</span></div><Switch :model-value="labs.tasksCalendarVisible" :label="t('settings.calendar.tasksCalendar.label')" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
-          <div class="row"><div class="grow"><span class="lab">Left-handed mode</span><span class="sub">Mirrors the phone layout so the main controls sit under the left thumb</span></div><Switch :model-value="labs.leftHanded" label="Left-handed mode" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.leftHanded.label') }}</span><span class="sub">{{ t('settings.leftHanded.hint') }}</span></div><Switch :model-value="labs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
         </section>
 
         <section id="s-tasklists" class="card" data-testid="settings-section" data-section="tasklists" aria-labelledby="h-cats">
@@ -195,6 +200,7 @@ async function resetDemo() {
               <IconButton :label="t('settings.tasklists.moveDown', { name: c.name })" :disabled="i === settings.categories.length - 1" data-testid="settings-category-down" @click="move(c.id, 1)"><IconDown /></IconButton>
             </li>
           </ul>
+          <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
           <div class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>
 
@@ -203,8 +209,8 @@ async function resetDemo() {
           <div class="row col"><span class="lab">{{ t('settings.motivation.warnBefore') }}</span><SegmentedButton :model-value="String(s.transitionWarningMinutes)" :options="warns" :label="t('settings.motivation.transitionWarning')" data-testid="settings-transition-warning" @update:model-value="save({ transitionWarningMinutes: Number($event) as 0 | 5 | 10 | 15 })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.motivation.calmMode.label') }}</span><span class="sub">{{ t('settings.motivation.calmMode.hint') }}</span></div><Switch :model-value="s.calmMode" :label="t('settings.motivation.calmMode.label')" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.motivation.streakFlame') }}</span><Switch :model-value="s.streakFlame" :label="t('settings.motivation.streakFlame')" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
-          <div class="row"><span class="lab grow">Plant</span><Switch :model-value="s.plant" label="Plant" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
-          <div class="row col"><span class="lab">Sunflowers</span><span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">Applies to the Sunflower field scene</span><SegmentedButton :model-value="s.sunflowers" :options="[...sunflowerModes]" label="Sunflowers" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
+          <div class="row"><span class="lab grow">{{ t('settings.plant') }}</span><Switch :model-value="s.plant" :label="t('settings.plant')" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.sunflowers.label') }}</span><span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">{{ t('settings.sunflowers.hint') }}</span><SegmentedButton :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
           <div v-if="currentStreak !== null" class="row"><span class="lab grow">{{ t('settings.motivation.currentStreak') }}</span><StreakFlame :count="currentStreak" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.motivation.bestStreak') }}</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>
           <div class="row col"><span class="lab">{{ t('settings.motivation.supportCat') }}</span><SegmentedButton :model-value="labs.supportCat" :options="supportCats" :label="t('settings.motivation.supportCat')" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" /></div>
@@ -228,7 +234,7 @@ async function resetDemo() {
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">{{ t('settings.account.resetDemo.label') }}</span><span class="sub">{{ t('settings.account.resetDemo.hint') }}</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
-          <div class="row"><div class="grow"><span class="lab">Own themes (AI and import)</span><span class="sub">Experimental: a prompt for an AI and the import of its theme file in the theme menu</span></div><Switch :model-value="labs.labsOwnThemes" label="Own themes (AI and import)" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.versionCorner.label') }}</span><span class="sub">{{ t('settings.account.versionCorner.hint') }}</span></div><Switch :model-value="labs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>
         </section>
       </div>

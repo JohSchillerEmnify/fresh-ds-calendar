@@ -3,6 +3,7 @@ import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { dialogs, type CreateContext } from './registry';
 import { useUiStore } from '@/stores/ui';
+import { t } from '@/i18n';
 
 /** Defaults for a new item (ARCHITECTURE §5): focus date; today → next full hour (cap 23:00), else 09:00. */
 export function createContext(date?: string, time?: string | null): CreateContext {
@@ -32,7 +33,7 @@ export function rememberNewKind(k: NewKind): void {
 export function openNewUndated(): void {
   const ui = useUiStore();
   if (dialogs.tasklist) ui.openDialog('tasklist', { mode: 'create', date: null });
-  else ui.notify('The editor is not available yet');
+  else ui.notify(t('calendar.create.editorUnavailable'));
 }
 
 /**
@@ -43,5 +44,5 @@ export function openNew(date?: string, time?: string | null): void {
   const ui = useUiStore();
   const kind = lastNewKind();
   if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', date: createContext(date).date, ...(time !== undefined ? { time } : {}) });
-  else ui.notify('The editor is not available yet');
+  else ui.notify(t('calendar.create.editorUnavailable'));
 }

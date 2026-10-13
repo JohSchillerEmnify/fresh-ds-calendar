@@ -13,6 +13,7 @@ import { usePrefsStore } from '@/stores/prefs';
 import ApproachBar from '@/features/labs/approach/ApproachBar.vue';
 import { approachEntries } from '@/features/labs/approach/approach';
 import { nowCardModel } from './timeline';
+import { t } from '@/i18n';
 
 const clock = useClockStore();
 const segs = useDaySegments();
@@ -27,7 +28,7 @@ const entered = ref(0);
 <template>
   <Transition name="now" appear @before-enter="entered++">
   <section
-    class="now-card" :class="{ track }" data-testid="now-card" aria-label="Approaching" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
+    class="now-card" :class="{ track }" data-testid="now-card" :aria-label="t('calendar.now.label')" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
     :style="{ '--c': model.current?.color }"
   >
     <div class="one" :data-testid="model.current ? 'now-card-current' : undefined">
@@ -35,7 +36,7 @@ const entered = ref(0);
       <p v-if="!track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
     <ApproachBar v-if="track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" />
-    <div v-if="model.current" class="bar" data-testid="now-progress" role="progressbar" aria-label="Event progress" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
+    <div v-if="model.current" class="bar" data-testid="now-progress" role="progressbar" :aria-label="t('calendar.now.progress')" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
       <span class="fill" :style="{ transform: `scaleX(${(100 - model.current.elapsedPercent) / 100})` }" />
     </div>
   </section>

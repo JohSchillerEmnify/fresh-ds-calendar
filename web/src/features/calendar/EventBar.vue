@@ -11,6 +11,7 @@ import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { barSegment, type Bar } from '@/lib/spans';
 import { useCalendarDrag } from './dnd';
+import { t } from '@/i18n';
 
 const props = defineProps<{ bar: Bar; dates: string[] }>();
 const root = ref<HTMLElement | null>(null);
@@ -36,7 +37,7 @@ function onClick(e: MouseEvent) {
     ref="root" v-ripple class="bar skin" :class="{ from: bar.continuedFromPrev, next: bar.continuesToNext }" type="button" data-testid="event-bar"
     :data-event-id="ev.id" :data-title="ev.title" :data-start="bar.startDate" :data-end="bar.endDate" :data-lane="bar.lane" :data-all-day="ev.allDay"
     :data-color="ev.color" :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`, gridRow: bar.lane + 1 }"
-    :aria-label="`${ev.title}, ${bar.startDate} to ${bar.endDate}`" @pointerdown.capture="onDown" @click="onClick"
+    :aria-label="t('calendar.item.range', { title: ev.title, start: bar.startDate, end: bar.endDate })" @pointerdown.capture="onDown" @click="onClick"
   >
     <span v-if="bar.continuedFromPrev" class="arr" aria-hidden="true">◂</span>
     <span class="title" data-testid="event-bar-title">{{ ev.title }}</span>

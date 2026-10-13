@@ -10,6 +10,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconTodayOutline as IconToday, IconAdd } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
+import { t } from '@/i18n';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
@@ -69,7 +70,7 @@ onMounted(async () => {
   try {
     items.upsert(await api.getTaskList(props.id));
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) ui.notify('This task list no longer exists.');
+    if (e instanceof ApiError && e.status === 404) ui.notify(t('tasks.list.gone'));
     emit('close');
   }
 });
@@ -83,14 +84,14 @@ const { celebrate } = useCelebrate(() => root.value);
 const flashId = ref<string | null>(null);
 let flashStop: Disposer | null = null;
 function tick(item: TaskItem, done: boolean) {
-  const t = tl.value;
-  if (!t) return;
+  const list = tl.value;
+  if (!list) return;
   if (done) {
     flashId.value = item.id;
     flashStop?.();
     flashStop = appTimeout(() => { flashId.value = null; flashStop = null; }, 700);
   }
-  const willComplete = done && !complete.value && t.items.every((i) => i.id === item.id || i.done);
+  const willComplete = done && !complete.value && list.items.every((i) => i.id === item.id || i.done);
   // a new completion strikes the title through at once unless the cat comes to do it
   strikeDraw.value = null;
   patchItem(props.id, item.id, { done });
@@ -165,7 +166,7 @@ async function commitRename() {
   try {
     await items.updateTaskList(props.id, { title: v });
   } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : "Couldn't rename the task list.");
+    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
     if (e instanceof ApiError && e.isConflict) void items.refreshVisible();
   }
 }
@@ -176,7 +177,7 @@ async function moveToday() {
     await items.updateTaskList(props.id, { date: clock.today });
     void lists.refresh();
   } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : "Couldn't move the task list.");
+    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.moveFailed'));
   }
 }
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
@@ -210,7 +211,7 @@ defineExpose({ root, busy });
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
       <div class="titles">
         <input
-          v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" maxlength="200" aria-label="Task list title"
+          v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" maxlength="200" :aria-label="t('tasks.list.titleLabel')"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
         <button v-else class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
@@ -221,43 +222,43 @@ defineExpose({ root, busy });
           <span v-if="carried" class="from" data-testid="tasklist-card-overdue">{{ carriedLabel(tl.date) }}</span>
         </p>
       </div>
-      <IconButton v-if="closable" label="Close" data-testid="tasklist-close" @click="emit('close')"><IconClose /></IconButton>
+      <IconButton v-if="closable" :label="t('tasks.list.close')" data-testid="tasklist-close" @click="emit('close')"><IconClose /></IconButton>
     </header>
 
-    <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">All done! 🎉</p>
-    <p v-else-if="next" class="next" data-testid="tasklist-next-task">Next task: <strong>{{ next.title }}</strong></p>
+    <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">{{ t('tasks.list.allDone') }}</p>
+    <p v-else-if="next" class="next" data-testid="tasklist-next-task">{{ t('tasks.list.nextTask') }} <strong>{{ next.title }}</strong></p>
 
     <ul class="list">
       <li
         v-for="(item, i) in tl.items" :key="stableKey(item.id)" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
         :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
       >
-        <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="`Done: ${item.title}`" @update:model-value="tick(item, $event)" />
+        <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
         <input
-          v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" aria-label="Item title"
+          v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" :aria-label="t('tasks.list.itemTitle')"
           @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
         />
         <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
-        <IconButton class="act" label="Move up" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
-        <IconButton class="act" label="Move down" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
-        <IconButton class="act" label="Delete item" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
+        <IconButton class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
+        <IconButton class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
+        <IconButton class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
       </li>
     </ul>
-    <p v-if="!tl.items.length" class="empty">No items yet. Add the first small step.</p>
+    <p v-if="!tl.items.length" class="empty">{{ t('tasks.list.empty') }}</p>
 
     <form v-if="adding" class="add" @submit.prevent="add">
       <input
         ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" maxlength="200"
-        placeholder="Add an item" aria-label="New item" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
+        :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
       />
     </form>
-    <Button v-else variant="text" class="add-btn" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>Add item</Button>
+    <Button v-else variant="text" class="add-btn" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
 
     <footer class="foot">
-      <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>Move to today</Button>
+      <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>{{ t('tasks.list.moveToday') }}</Button>
       <span class="grow" />
-      <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>Edit</Button>
-      <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>Delete</Button>
+      <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
+      <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
     </footer>
     <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :title="cat.title" :level="cat.level" @done="cat = null" /></Teleport>
   </section>

@@ -38,8 +38,8 @@ export class CalendarService {
     private readonly motivation: MotivationService,
     private readonly clock: Clock,
     private readonly config: Pick<AppConfig, 'tz'>,
-    prefs: PrefsStore,
-    sub: string,
+    private readonly prefs: PrefsStore,
+    private readonly sub: string,
   ) {
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.calCache = null; });
   }
@@ -300,7 +300,7 @@ export class CalendarService {
       const d = { ...fn(before) };
       d.completedOn = nextCompletedOn(before, d, this.today());
       // an undated list finished by this write is dated to today, so it shows where it was finished
-      const finishedOn = dateOnCompletion(before, d, this.today());
+      const finishedOn = dateOnCompletion(before, d, this.today(), this.prefs.labsPrefs(this.sub).undatedDone);
       if (finishedOn) { d.date = finishedOn; d.time = null; }
       this.checkTaskData(d, before.categoryId);
       try {
@@ -411,6 +411,25 @@ export class CalendarService {
     ];
     // a list is open until all of its items are ticked (a list without items is still open)
     return { items: lists.filter((l) => l.totalCount === 0 || l.doneCount < l.totalCount) };
+  }
+
+  /**
+   * Every finished task list for the Archive: the lists carrying the `done=1` marker (any age, undated ones too) plus
+   * the finished lists dated within a year of `today`, which covers lists written before the marker existed (API.md).
+   */
+  async archivedTaskLists(today: string): Promise<{ items: TaskList[] }> {
+    const tasksId = await this.tasks.id();
+    const [dated, marked] = await Promise.all([
+      this.fetchRange(addDays(today, -365), addDays(today, 366), undefined, true),
+      this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'done=1'] }),
+    ]);
+    const color = await this.calendarColor(tasksId);
+    const cats = this.settings.categories();
+    // keyed by id so a list found twice (marker and range) is returned once
+    const byId = new Map<string, TaskList>();
+    for (const i of dated) if (i.kind === 'tasklist') byId.set(i.id, i);
+    for (const e of marked.items) if (e.status !== 'cancelled') byId.set(e.id, this.toTaskList(e, color, cats));
+    return { items: [...byId.values()].filter((l) => l.totalCount > 0 && l.doneCount >= l.totalCount) };
   }
 
   async summary(from: string, to: string): Promise<Record<string, SummaryDay>> {

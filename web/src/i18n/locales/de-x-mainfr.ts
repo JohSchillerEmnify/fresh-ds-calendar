@@ -3,8 +3,14 @@
  * Moderate spellings only (des, ned, bassd, etz, amal, gud), readable for non-Franconians.
  */
 import type { PartialMessages } from '../schema';
+import calendarMainfr from './de-x-mainfr/calendar.ts';
+
+import tasksMainfr from './de-x-mainfr/tasks.ts';
+import themeMainfr from './de-x-mainfr/theme.ts';
 
 export default {
+  calendar: calendarMainfr,
+  tasks: tasksMainfr,
   views: {
     year: 'Jahr',
     month: 'Monad',
@@ -68,5 +74,21 @@ export default {
       signOut: 'Abmelden',
       resetDemo: { done: 'Demodaden sin widda da' },
     },
+    leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
+    plant: 'Pflanze',
+    sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
+    ownThemes: { label: 'Eigene Designs (KI un Import)', hint: 'Experimentell: a Prompt für a KI un der Import vo ihrer Design-Datei im Design-Menü' },
   },
+  themePreview: {
+    label: 'Live-Vorschau',
+    collapse: 'Live-Vorschau einklappn',
+    expand: 'Live-Vorschau ausklappn',
+    month: 'Januar 2030',
+    today: 'Heid',
+    sample: {
+      sync: 'Team-Abstimmung', lunch: 'Middagessn', run: 'Laufn', review: 'Review', call: 'Anruf',
+      groceries: 'Einkauf', milk: 'Milch', bread: 'Brod', eggs: 'Eier',
+    },
+  },
+  theme: themeMainfr,
 } satisfies PartialMessages;

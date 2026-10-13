@@ -2,6 +2,7 @@
 import { IconCloudOff as IconOff } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import { useSyncStore } from '@/stores/sync';
+import { t } from '@/i18n';
 
 const sync = useSyncStore();
 </script>
@@ -10,7 +11,7 @@ const sync = useSyncStore();
   <div v-if="sync.error" class="banner snack-skin" role="alert" data-testid="sync-error-banner">
     <IconOff class="ico" aria-hidden="true" />
     <span class="msg">{{ sync.errorMessage }}</span>
-    <Button variant="text" data-testid="sync-retry" @click="sync.retry()">Retry</Button>
+    <Button variant="text" data-testid="sync-retry" @click="sync.retry()">{{ t('calendar.actions.retry') }}</Button>
   </div>
 </template>
 

@@ -13,8 +13,11 @@ Feature: Choosing and fine-tuning a theme
   round, pill), each with a slider for the value in between (glow strength, corner radius in px, entry tint in %), plus
   density (compact, comfortable, airy), the checkbox shape and fill, the check mark and the icon set (outlined, rounded,
   sharp); it always sits on top, in every Seasons & holidays mode, and choosing a preset resets it. There is no separate Mordor button; the Mordor preset does the same. A live
-  preview with a real event, task list and checkbox follows every change, and so does the calendar, without a save
-  button. Ready themes: Default, Neon, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's
+  preview is pinned at the top of the menu and stays in view while the person scrolls through the sections: a mini
+  calendar made of the app's own components (the top bar with the current scene, a short week slice with sample events
+  in different colours, a task list with ticked and open checkboxes, the + button and a few icons). It follows every
+  change at once, even a slider before it is released, and so does the calendar, without a save button. It can be
+  collapsed to a thin strip, and the person's choice is kept on that device. Ready themes: Default, Neon, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's
   Eve, New Year, Winter and Mordor. The calendar's theme for a day follows this priority: New Year's Eve (31 December),
   New Year (1 January), Christmas (from the 1st Advent Sunday to 30 December), Easter (a week before to six days after
   Easter Sunday), Halloween (all of October), then the season (spring from 1 March, summer from 1 June, fall from
@@ -53,6 +56,31 @@ Feature: Choosing and fine-tuning a theme
     When I pick "Outline" for "Entries"
     Then the preview event is drawn as an outline
     And the event "Dentist" is drawn as an outline
+
+  Scenario: The live preview stays visible while I scroll the theme menu
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I scroll the theme menu to the "Fine-tuning" section
+    Then the live preview is pinned under the theme menu header
+
+  Scenario: The live preview shows my change at once
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I set the "Corner radius" slider to 4
+    Then the preview event has a corner radius of 5 px
+    When I set the "Corner radius" slider to 28
+    Then the preview event has a corner radius of 16 px
+
+  Scenario: I can collapse the live preview
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then the live preview is expanded
+    When I collapse the live preview
+    Then the live preview is collapsed
+    When I reload the page
+    Then the live preview is collapsed
+    When I expand the live preview
+    Then the live preview is expanded
 
   Scenario: My theme follows me to every device
     Given "jo@example.com" may use the calendar

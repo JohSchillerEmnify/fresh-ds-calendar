@@ -3,15 +3,16 @@ import { IconDownload, IconIosShare as IconShare } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 
 import { canInstall, dismissIosHint, promptInstall, showIosHint } from '@/pwa/install';
+import { t } from '@/i18n';
 defineProps<{ part: 'button' | 'hint' }>();
 </script>
 
 <template>
-  <Button v-if="part === 'button' && canInstall" variant="tonal" data-testid="install-app-button" @click="promptInstall"><template #icon><IconDownload /></template>Install app</Button>
+  <Button v-if="part === 'button' && canInstall" variant="tonal" data-testid="install-app-button" @click="promptInstall"><template #icon><IconDownload /></template>{{ t('calendar.install.button') }}</Button>
   <div v-if="part === 'hint' && showIosHint" class="hint" role="note" data-testid="ios-install-hint">
     <IconShare class="ico" aria-hidden="true" />
-    <span>Tap Share, then Add to Home Screen</span>
-    <button type="button" class="x" aria-label="Dismiss" data-testid="ios-install-hint-dismiss" @click="dismissIosHint">✕</button>
+    <span>{{ t('calendar.install.iosHint') }}</span>
+    <button type="button" class="x" :aria-label="t('calendar.actions.dismiss')" data-testid="ios-install-hint-dismiss" @click="dismissIosHint">✕</button>
   </div>
 </template>
 

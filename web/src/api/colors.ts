@@ -41,7 +41,6 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 export function isHexColor(s: string): boolean {
   return HEX.test(s.trim());
 }
-export const MSG_INVALID_COLOR = 'Enter a color like #1a73e8';
 
 function channels(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);

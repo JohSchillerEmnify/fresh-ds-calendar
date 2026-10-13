@@ -2,6 +2,7 @@
 import { parseIsoDate, toIsoDate, addDays } from '@/lib/dates';
 import type { CalendarEvent, CreateEventInput } from '@/api/types';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
+import { t } from '@/i18n';
 
 export interface EventForm {
   title: string;
@@ -18,14 +19,17 @@ export interface EventForm {
   colorId: string;
 }
 
-export const MSG_TITLE_REQUIRED = 'Title is required';
-export const MSG_TITLE_LONG = 'Title must be at most 200 characters';
-export const MSG_END = 'End must be after start';
-export const MSG_DATE = 'Enter a valid date';
-export const MSG_TIME = 'Enter a valid time';
-export const MSG_DESC_LONG = 'Description must be at most 8000 characters';
-export const MSG_LOC_LONG = 'Location must be at most 500 characters';
-export const MSG_TOO_LONG = 'An event can last at most 366 days';
+/** The validation messages in the active language (looked up when a problem is found, so a language switch applies). */
+const msg = {
+  titleRequired: () => t('calendar.event.validation.titleRequired'),
+  titleLong: () => t('calendar.event.validation.titleLong'),
+  end: () => t('calendar.event.validation.endAfterStart'),
+  date: () => t('calendar.event.validation.date'),
+  time: () => t('calendar.event.validation.time'),
+  descLong: () => t('calendar.event.validation.descriptionLong'),
+  locLong: () => t('calendar.event.validation.locationLong'),
+  tooLong: () => t('calendar.event.validation.tooLong'),
+};
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -76,21 +80,21 @@ export function withStart(f: EventForm, startDate: string, startTime: string): E
 /** First problem of the form, or null. `field` names the offending control for focus handling. */
 export function validate(f: EventForm): { field: string; message: string } | null {
   const title = f.title.trim();
-  if (!title) return { field: 'title', message: MSG_TITLE_REQUIRED };
-  if (title.length > 200) return { field: 'title', message: MSG_TITLE_LONG };
-  if (!validDate(f.startDate)) return { field: 'startDate', message: MSG_DATE };
-  if (!validDate(f.endDate)) return { field: 'endDate', message: MSG_DATE };
+  if (!title) return { field: 'title', message: msg.titleRequired() };
+  if (title.length > 200) return { field: 'title', message: msg.titleLong() };
+  if (!validDate(f.startDate)) return { field: 'startDate', message: msg.date() };
+  if (!validDate(f.endDate)) return { field: 'endDate', message: msg.date() };
   if (!f.allDay) {
-    if (!TIME.test(f.startTime)) return { field: 'startTime', message: MSG_TIME };
-    if (!TIME.test(f.endTime)) return { field: 'endTime', message: MSG_TIME };
+    if (!TIME.test(f.startTime)) return { field: 'startTime', message: msg.time() };
+    if (!TIME.test(f.endTime)) return { field: 'endTime', message: msg.time() };
   }
   const s = f.allDay ? wallMinutes(f.startDate, '00:00') : wallMinutes(f.startDate, f.startTime);
   const e = f.allDay ? wallMinutes(f.endDate, '00:00') : wallMinutes(f.endDate, f.endTime);
-  if (f.allDay ? e < s : e <= s) return { field: 'end', message: MSG_END };
+  if (f.allDay ? e < s : e <= s) return { field: 'end', message: msg.end() };
   const span = (e - s) / 1440 + (f.allDay ? 1 : 0);
-  if (span > 366) return { field: 'end', message: MSG_TOO_LONG };
-  if (f.description.length > 8000) return { field: 'description', message: MSG_DESC_LONG };
-  if (f.location.length > 500) return { field: 'location', message: MSG_LOC_LONG };
+  if (span > 366) return { field: 'end', message: msg.tooLong() };
+  if (f.description.length > 8000) return { field: 'description', message: msg.descLong() };
+  if (f.location.length > 500) return { field: 'location', message: msg.locLong() };
   return null;
 }
 

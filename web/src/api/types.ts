@@ -109,6 +109,8 @@ export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 
 /** Tasks view sort direction relative to the sort key's own default. */
 export type TasksSortDir = 'default' | 'reversed';
+/** What finishing an undated task list does (per person pref `undatedDone`): show it in the calendar or archive only. */
+export type UndatedDone = 'calendar' | 'archive';
 
 /** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
 export type ApproachWindowHours = number;
@@ -135,6 +137,8 @@ export interface Prefs {
   /** Labs: the AI prompt and the import in the theme menu (off by default). */
   labsOwnThemes: boolean;
   tasksSortDir: TasksSortDir;
+  /** "Finished list without a date" (ARCHITECTURE "Archive"). */
+  undatedDone: UndatedDone;
   /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
   language: LanguagePref;
 }

@@ -30,6 +30,10 @@ export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category
 export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export const TASKS_SORT_BY_VALUES: readonly TasksSortBy[] = ['date', 'name', 'category', 'changed', 'progress'];
 
+/** What finishing an undated task list does: show it in the calendar on that day, or keep it in the Archive only. */
+export type UndatedDone = 'calendar' | 'archive';
+export const UNDATED_DONE_VALUES: readonly UndatedDone[] = ['calendar', 'archive'];
+
 /** Sort direction relative to the sort key's own default (A-80). */
 export type TasksSortDir = 'default' | 'reversed';
 export const TASKS_SORT_DIR_VALUES: readonly TasksSortDir[] = ['default', 'reversed'];
@@ -72,6 +76,8 @@ export interface Prefs {
   /** Labs: the AI prompt and the import in the theme menu (saved own themes show either way). */
   labsOwnThemes: boolean;
   tasksSortDir: TasksSortDir;
+  /** "Finished list without a date" (ARCHITECTURE "Archive"). */
+  undatedDone: UndatedDone;
   /** The UI language: `auto` (device language) or a fixed one (ARCHITECTURE "i18n"). */
   language: LanguagePref;
 }
@@ -110,6 +116,7 @@ export class PrefsStore {
       tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
       labsOwnThemes: p?.labsOwnThemes === true,
       tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
+      undatedDone: UNDATED_DONE_VALUES.includes(p?.undatedDone as UndatedDone) ? (p!.undatedDone as UndatedDone) : 'calendar',
       language: isLanguagePref(p?.language) ? p.language : 'auto',
     };
   }
@@ -194,8 +201,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, language } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, language };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language };
   }
 
   /**

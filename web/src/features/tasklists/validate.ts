@@ -28,14 +28,14 @@ export function newTaskListForm(date: string | null, time?: string | null): Task
  */
 export function validateForm(f: TaskListForm, itemCount = parseItems(f.items).length): string | null {
   if (!f.title.trim() && itemCount === 0) return t('tasklist.titleOrItem');
-  if (f.title.trim().length > 200) return 'Title is too long (200 characters at most)';
-  if (!f.noDate && !parseIsoDate(f.date)) return 'Pick a date';
-  if (!f.noDate && f.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time)) return 'Enter a time like 18:00';
+  if (f.title.trim().length > 200) return t('tasks.validation.titleTooLong');
+  if (!f.noDate && !parseIsoDate(f.date)) return t('tasks.validation.pickDate');
+  if (!f.noDate && f.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time)) return t('tasks.validation.timeFormat');
   if (f.estimate.trim()) {
     const n = Number(f.estimate);
-    if (!Number.isInteger(n) || n < 5 || n > 720) return 'Estimate must be a whole number of minutes from 5 to 720';
+    if (!Number.isInteger(n) || n < 5 || n > 720) return t('tasks.validation.estimateRange');
   }
-  if (parseItems(f.items).length > 200) return 'A task list can have 200 items at most';
-  if (parseItems(f.items).some((t) => t.length > 200)) return 'Item titles can have 200 characters at most';
+  if (parseItems(f.items).length > 200) return t('tasks.validation.tooManyItems');
+  if (parseItems(f.items).some((line) => line.length > 200)) return t('tasks.validation.itemTooLong');
   return null;
 }

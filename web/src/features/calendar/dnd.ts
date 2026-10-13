@@ -23,6 +23,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
+import { t } from '@/i18n';
 
 /** Where the dragged card would land now (drives the `DropIndicator` grid layer). Null when not dragging. */
 export const dragPreview = shallowRef<{ date: string; minutes: number; durationMin: number } | null>(null);
@@ -83,8 +84,8 @@ export async function applyMove(seg: Segment, target: MoveTarget): Promise<void>
       ? api.updateEvent(item.id, plan.patch as UpdateEventInput, { ifMatch: etag })
       : api.updateTaskList(item.id, plan.patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
   } catch (e) {
-    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : 'Something went wrong';
-    useUiStore().notify(`Could not move “${displayTitle(item)}”. ${msg}`, { testid: 'move-failed' });
+    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
+    useUiStore().notify(t('calendar.drag.moveFailed', { title: displayTitle(item), reason: msg }), { testid: 'move-failed' });
     throw e;
   }
 }
