@@ -1421,6 +1421,55 @@ the same corner scale so shapes look consistent.
   a number: "My theme 2"); `theme-save-confirm` saves, and the new theme becomes the chosen one (its fine-tuning is
   now part of it, so the overrides are cleared).
 
+### Shared lists (owner, 2026-10-14)
+
+A person can share a task list, or a whole category, with another person who has their own Google login. The owner
+decided every point below.
+
+- **Storage: the server, not Google.** A shared list is one JSON document `DATA_DIR/shared/lists/<id>.json`
+  (`version`, `id`, `rev`, `owner` = Google `sub`, `members` = subs, `updated`, and the list: title, items, date/time or
+  undated, tags, estimate, `completedOn`, canvas place, the owner's `categoryId` and a `category` snapshot name/colour/icon).
+  One file per list: atomic writes (temp file + rename, as every store), no contention between lists, and a later
+  Google Drive backup of the server data takes the files as they are. The category rules (who a category is shared
+  with) are one document `DATA_DIR/shared/category-shares.json` (`owner sub -> { categoryId -> member sub }`). Known
+  people (`sub -> email, name`, written at every sign-in) are `DATA_DIR/people.json`.
+- **Why not a shared Google calendar** (alternative weighed): a calendar shared in Google would need the partner to
+  accept an invitation, would expose the owner's whole tasks calendar or need a second one per person, and gives no
+  per-list ownership, "leave" or per-category rule. The owner chose server storage. The price: a shared list is not
+  visible in Google Calendar and is not covered by Google's own backup until the Drive backup slice.
+- **Two ways to share, one store.** Per list (the task list dialog: "Share with ...", "Stop sharing") and per
+  category (Settings, Categories: "Share with ..."). The per-list way is the building block: *sharing MOVES* the list
+  from the owner's tasks calendar into the shared store (the Google event is created in the other direction by
+  "Stop sharing", with a new id). The per-category way is a rule on top: toggling it moves every list of the category,
+  and a list created in the category is created shared. Both are wanted because a single list is the everyday case
+  ("the groceries"), while a category ("Shopping", "Home") is how a couple thinks about what they run together.
+- **One API surface.** Shared lists are served by the existing task list endpoints under ids `shared:<id>`
+  (A-162): the `CalendarService` of every person merges the lists they own or are a member of into its range reads,
+  Tasks view reads and item ops. The web treats shared and own lists alike; only the badge, the share controls and
+  "Leave" are new. `SharedListService` owns the store, membership checks and the rules; the owner's `CalendarService`
+  does the Google side of moving in and out.
+- **Both people edit everywhere** (calendar views on the list's date, tray, Tasks view with Open/Canvas/Archive and
+  the filter): ticking, adding, editing, deleting items, renaming, re-dating. A small badge (`tasklist-shared-badge`)
+  shows the other person's initial. The canvas place is one place for both (the list's, not per person).
+- **Category of a shared list** (owner: the partner's categories differ). The list carries the owner's category
+  (`categoryId` plus a snapshot of name, colour and icon). Everyone sees that name, colour and icon, whatever their own
+  categories are. A member cannot change the category; the owner's rename, recolour or deletion of the category
+  refreshes (or clears) the snapshot.
+- **Deleting.** Only the owner deletes a shared list for everyone (`DELETE`, undo as usual). A member sees "Leave"
+  (`tasklist-leave`) instead of "Delete": it removes the list for them only (A-165).
+- **Concurrency** (owner: the same optimistic approach as Google events). Every list has a version counter `rev`; its
+  etag is the counter. A list write with a stale `If-Match` is refused with `412` and the existing conflict UI
+  ("This task list was changed elsewhere ..."). Item ops read-modify-write the latest version, so two people ticking
+  different items never conflict. The server writes synchronously (one process), which makes each write atomic.
+  Polling is unchanged: the partner's changes appear on the next sync. No websockets.
+- **Security.** Every shared-list route checks `owner === caller || members.includes(caller)`; anyone else gets `404`.
+  Members must be on the allow-list and known (signed in once). Sub values are validated before they reach a path.
+- **People picker.** "Share with ..." lists the allowed people other than yourself (`GET /api/people`) by name, else
+  email. A person who never signed in has no `sub` yet and is not offered (A-161).
+- **i18n.** All new text is in `locales/<lang>/sharing.ts` (`en`, `de`, `de-x-mainfr`, `de-x-coldmirror`).
+- **UI test contract.** `tasklist-shared-badge`, `tasklist-share-person`, `tasklist-share`, `tasklist-unshare`,
+  `tasklist-leave`, `category-share-person`.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |

@@ -36,6 +36,7 @@ interface ApiError {
 type ErrorCode =
   | 'VALIDATION_ERROR'      // 400
   | 'NOT_FOUND'             // 404 (also unknown /api routes and /api/__test/* when TEST_MODE is off)
+  | 'FORBIDDEN'             // 403 a member of a shared list tried an owner-only action
   | 'PRECONDITION_FAILED'   // 412 etag mismatch
   | 'PROVIDER_ERROR'        // 502 provider returned an unexpected error
   | 'PROVIDER_UNAVAILABLE'  // 503 provider unreachable / outage / auth failure
@@ -313,6 +314,43 @@ permutation of the current ids, else 400. A list with an empty title and no item
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
 
+### Shared task lists (owner, 2026-10-14; ARCHITECTURE "Shared lists")
+
+A shared list lives in the server's shared store, not in Google. It is served through the **same task list endpoints**
+as every list, under an id with the prefix `shared:` (`shared:<id>`); everything above (items, ops, `If-Match`,
+`/api/items`, `/tasklists/open|all-open|archive`, `/summary`) works on it for the owner and for every member. A shared
+list has `calendarId: "shared"` and an optional field on `TaskList`:
+
+```ts
+interface Person { sub: string; name: string; email: string; initial: string }   // initial: first letter, upper case
+interface SharedInfo { owned: boolean; owner: Person; with: Person[] }          // `with`: everyone but the requester
+// TaskList.shared?: SharedInfo   (absent on lists that are not shared)
+// TaskList.etag of a shared list: the version counter, e.g. "7"; every write bumps it
+// TaskList.categoryId / color: the OWNER's category, carried on the list (a member sees its name, colour and icon via `categoryInfo`)
+// TaskList.categoryInfo?: { name: string; color: string; icon: string | null } | null   (shared lists only)
+```
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/people` | – | `200` `{ people: Person[] }`: the allowed people who signed in at least once, without the requester |
+| `POST` | `/api/tasklists/:id/share` | `{ person: string }` (the person's `sub`) | `200` `TaskList` (a Google list is moved into the shared store: new id `shared:...`; on a shared list the owner adds a member) |
+| `DELETE` | `/api/tasklists/:id/share` | – | `200` `TaskList` (owner only: the list moves back into the owner's tasks calendar, new Google id; members lose it) |
+| `POST` | `/api/tasklists/:id/leave` | – | `204` (member only: removes the list for the caller) |
+| `GET` | `/api/categories/shares` | – | `200` `{ shares: Record<categoryId, Person> }` |
+| `PUT` | `/api/categories/:id/share` | `{ person: string \| null }` | `200` `{ shares }`: shares the category (all its lists move, new lists are created shared) or, with `null`, unshares it (its lists move back) |
+
+Rules:
+- Every shared-list call checks that the caller is the owner or a member: anyone else gets `404` (the list's existence
+  is not revealed). Owner-only actions (`DELETE /api/tasklists/:id`, `DELETE .../share`, adding a member) answer `403
+  FORBIDDEN` to a member. A member removes a list for themselves with `leave`; `DELETE` deletes it for everyone (owner).
+- A member must be a person who may use the app (the allow-list) and has signed in once; anything else is `400`. So is
+  sharing with yourself, sharing a repeating list (`recurrence` is not stored on shared lists) and sharing while sign-in
+  is off.
+- A member may change everything of a shared list except its category (`400`, key `sharing.categoryOwnerOnly`).
+- Writes with a stale `If-Match` (list `PATCH`/`DELETE`) answer `412 PRECONDITION_FAILED` (the existing conflict
+  message). Item ops and unpinned writes never conflict: they read the latest version and apply on top of it.
+- Moving in or out keeps title, items, ticks, date/time, tags, estimate, category, `completedOn` and the canvas place.
+
 ### Settings and categories
 
 Stored server-side in `DATA_DIR/settings.json` (single user, independent of the provider; atomic writes). Created with
@@ -501,6 +539,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |
+| `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string }` | Creates an undated task list in the mock Google account of `owner` (an email); `category` is a category name. `201` `TaskList` |
 | `GET` | `/api/__test/memory?gc=true` | – | With `gc=true` runs `global.gc()` twice first (server started with `--expose-gc` in test mode). `200 { rss: number; heapUsed: number; heapTotal: number; external: number }` (bytes, from `process.memoryUsage()`) |
 
 ```ts
@@ -535,7 +574,8 @@ The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
 | 201 | create event / task list / item / imported theme, remote insert |
 | 204 | delete event / task list / imported theme, remote delete |
 | 400 | validation |
-| 404 | unknown id / route; test routes when `TEST_MODE` is off |
+| 403 | owner-only action on a shared list by one of its members |
+| 404 | unknown id / route (also a shared list the person is not a member of); test routes when `TEST_MODE` is off |
 | 412 | stale `If-Match` |
 | 502 | provider error |
 | 503 | provider unavailable (outage, network, auth) |

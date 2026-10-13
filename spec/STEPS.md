@@ -1471,3 +1471,53 @@ the note {string} is not dimmed
 - "the Tasks view shows the active filters L": the texts of all `tasks-filter-active` chips (categories first, then When) joined
   `", "`. "I remove the active filter F": clicks that chip and waits for the `PATCH /api/prefs` response.
 - "the note N is dimmed / not dimmed": `canvas-note` `data-dimmed` is `"true"` / `"false"`.
+
+## Sharing task lists (`@sharing`)
+
+```
+{string}, {string} and {string} may use the calendar
+{string} has an undated task list {string} with the items {string}
+{string} has an undated task list {string} with the items {string} in the category {string}
+I share the task list {string} with {string}
+I stop sharing the task list {string}
+I share the category {string} with {string} in the settings
+{string} creates the undated task list {string} in the category {string}
+{string} opens the Tasks view on another device
+{string} ticks the item {string} of the shared task list {string}
+{string} renames the shared task list {string} to {string}
+{string} leaves the shared task list {string}
+{string} sees the task lists {string}
+{string} sees no task lists
+{string} cannot read the shared task list {string}
+the task list {string} in the Tasks view is shared with {string}
+the item {string} of the task list {string} in the Tasks view is ticked
+I edit the task list {string} in the Tasks view
+```
+
+- "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person
+  (as if they had signed in once), so they can be picked as members (ARCHITECTURE "Shared lists").
+- "P has an undated task list T with the items I [in the category C]": setup through `POST /api/__test/tasklists` for
+  person P (API.md); items are `, `-separated; the category is found by name in the settings. Not user activity: the
+  plant state is restored afterwards.
+- "I share the task list T with P": the signed-in person opens the Tasks view, opens T's dialog (`tasklist-expanded-title`),
+  picks P's email in `tasklist-share-person`, presses `tasklist-share` and waits for `POST /api/tasklists/:id/share`
+  (200), then closes the dialog. "I stop sharing the task list T": the same dialog, `tasklist-unshare`.
+- "I share the category C with P in the settings": opens the settings, edits the category C (`settings-category`),
+  picks P in `category-share-person` and saves (`PUT /api/categories/:id/share`, 200).
+- "P creates the undated task list T in the category C": `POST /api/tasklists` as P (a session of its own, see below).
+- "P opens the Tasks view on another device": a fresh browser context signed in as P (like "opens the week view ... on
+  another device"), then the Tasks view.
+- "P ticks the item I of the shared task list T", "P renames the shared task list T to N", "P leaves the shared task list
+  T": the person acts through the API with a session of their own (a second cookie jar signed in through the OAuth test
+  double); they find the list by its title in `GET /api/tasklists/all-open`, then `PATCH /api/tasklists/:id/items/:itemId`,
+  `PATCH /api/tasklists/:id` (title) and `POST /api/tasklists/:id/leave`.
+- "P sees the task lists "A, B"": `GET /api/tasklists/all-open` of P's own session; the titles, sorted, equal the
+  `, `-separated list. "P sees no task lists": the same call returns none.
+- "P cannot read the shared task list T": T's id is taken from the signed-in person's list; `GET /api/tasklists/:id` and
+  `PATCH` with P's session answer `404`, and P's lists do not contain it.
+- "the task list T in the Tasks view is shared with I": the `tasks-item` T contains `tasklist-shared-badge` whose text
+  is I (the other person's initial).
+- "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
+- "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
+  `tasklist-expanded-title`).
+
