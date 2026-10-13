@@ -33,7 +33,7 @@ onBeforeUnmount(() => timer && clearTimeout(timer));
 </template>
 
 <style scoped>
-.st { position: fixed; z-index: 80; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 68px); transform: translateX(-50%); pointer-events: none;
+.st { position: fixed; z-index: 80; left: 50%; top: calc(var(--safe-top) + 68px); transform: translateX(-50%); pointer-events: none;
   padding: 10px 18px; white-space: nowrap; }
 .st-enter-active { transition: transform 380ms cubic-bezier(0.34, 1.5, 0.64, 1), opacity 200ms; }
 .st-leave-active { transition: transform 220ms ease-in, opacity 220ms; }
