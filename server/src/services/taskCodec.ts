@@ -1,9 +1,11 @@
 import { stableId } from '../lib/ids.js';
 import { addDays, formatInZone, localDateOf, localTimeOf, zonedToUtc } from '../lib/time.js';
-import type { Category, Recurrence, TaskItem } from '../api/types.js';
+import type { CanvasPlace, Category, Recurrence, TaskItem } from '../api/types.js';
 import type { GoogleEvent, GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
 export const MAX_PRIVATE_BYTES = 30_000;
+/** Largest stored Canvas coordinate (ARCHITECTURE "Canvas"): larger than the board, so the board can grow. */
+export const CANVAS_MAX = 10_000;
 const CHUNK = 1000;
 const SINGLE_MAX = 1024;
 /** The all-day date that stores undated task lists in Google (ARCHITECTURE "Undated task lists"). */
@@ -22,6 +24,8 @@ export interface TaskListData {
   recurrence: Recurrence | null;
   /** App-clock date of the write that ticked the last open item; null while an item is open or when unknown. */
   completedOn: string | null;
+  /** The note's place on the Canvas (`cx`, `cy`); null = none yet. */
+  canvas: CanvasPlace | null;
 }
 
 const isFinished = (items: TaskItem[]): boolean => items.length > 0 && items.every((i) => i.done);
@@ -94,6 +98,8 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
     completedOn: d.completedOn,
     // the marker the Archive reads with `privateExtendedProperty=done=1`; derived from the items so it cannot disagree
     done: isFinished(d.items) ? '1' : null,
+    cx: d.canvas ? String(d.canvas.x) : null,
+    cy: d.canvas ? String(d.canvas.y) : null,
   };
   Object.assign(p, staleChunkKeys(existing, p));
   return p;
@@ -154,6 +160,12 @@ export function encodeTaskListPatch(d: TaskListData, tz: string, colorId: string
     else (patch as { recurrence?: string[] | null }).recurrence = null as unknown as string[];
   }
   return patch;
+}
+
+/** The Canvas place from `cx` / `cy`: both must be integer strings in 0..{@link CANVAS_MAX}, else none. */
+export function readCanvas(p: Record<string, string>): CanvasPlace | null {
+  const ok = (v: string | undefined): v is string => v !== undefined && /^\d{1,5}$/.test(v) && Number(v) <= CANVAS_MAX;
+  return ok(p.cx) && ok(p.cy) ? { x: Number(p.cx), y: Number(p.cy) } : null;
 }
 
 export function parseDescription(desc: string | undefined): TaskItem[] {
@@ -218,5 +230,6 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
     estimateMinutes: Number.isFinite(est) ? est : null,
     recurrence,
     completedOn: p.completedOn && /^\d{4}-\d{2}-\d{2}$/.test(p.completedOn) ? p.completedOn : null,
+    canvas: readCanvas(p),
   };
 }

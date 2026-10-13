@@ -10,11 +10,11 @@ import { nanoid } from '../lib/ids.js';
 import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
-  addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
+  addItemSchema, canvasDocSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isLanguagePref, LOCAL_PERSON, parseBedtimePatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -151,9 +151,19 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (!UNDATED_DONE_VALUES.includes(b.undatedDone as UndatedDone)) throw validation('Invalid undatedDone', 'undatedDone');
       patch.undatedDone = b.undatedDone as UndatedDone;
     }
+    if (b.tasksFilter !== undefined) {
+      const f = toTasksFilter(b.tasksFilter);
+      if (!f) throw validation('Invalid tasksFilter', 'tasksFilter');
+      patch.tasksFilter = f;
+    }
     if (b.language !== undefined) {
       if (!isLanguagePref(b.language)) throw validation('Invalid language', 'language');
       patch.language = b.language;
+    }
+    if (b.bedtime !== undefined) {
+      const parsed = parseBedtimePatch(b.bedtime);
+      if (typeof parsed === 'string') throw validation(parsed, 'bedtime');
+      patch.bedtime = { ...ctx.prefs.labsPrefs(person(c)).bedtime, ...parsed };
     }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
@@ -196,6 +206,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!ctx.themes.remove(person(c), c.req.param('id'))) throw notFound('Theme not found');
     return c.body(null, 204);
   });
+
+  // ---- canvas areas (ARCHITECTURE "Canvas") ----
+  r.get('/canvas', (c) => c.json(ctx.canvas.get(person(c))));
+  r.put('/canvas', async (c) => c.json(ctx.canvas.put(person(c), parse(canvasDocSchema, await body(c)).areas)));
 
   // ---- items ----
   r.get('/items', async (c) => {

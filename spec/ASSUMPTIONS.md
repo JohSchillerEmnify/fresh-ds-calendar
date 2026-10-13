@@ -402,3 +402,129 @@ spec files are named.
 - **A-114 Reduced motion** (my reading): "scaled animations only at Full motion" means the effective animation level
   (setting, calm mode and system preference); below Full every CSS animation and transition inside the preview is
   switched off, the scene stays as a still picture.
+- **A-120 Canvas board and note size** (my numbers; the owner asked for "larger than the screen"): the board is 4000 x 3000
+  canvas units, a note is 240 units wide, zoom 0.3 .. 2 (owner: "such as 0.3-2"); at least 120 px of the board stay in view
+  when panning. The server limit for saved places (0 .. 10000) is deliberately larger than the board.
+- **A-121 Place fields** (owner: "choose the field names and the size limits"): `cx` and `cy`, integer strings 0 .. 10000, both
+  or none; API field `canvas: { x, y } | null`. A pair that is not two integers in range is read as "no place".
+- **A-122 Which lists** (my reading of "ALL open task lists"): the same set as the Open tab (all-open: undated plus dated within
+  a year either side of today), without the category filter chips (a filtered-out note vanishing from a board you arranged
+  by hand would look like data loss).
+- **A-123 Dragging** (superseded by owner feedback 2026-10-13, see A-132): a long press (350 ms) anywhere on a note picks it up.
+- **A-124 Unsorted order** (my reading): by title, then id, 14 units diagonal offset per note, the last offset shared after
+  10 notes; stable so a stack does not reshuffle while ticking. "Top left" is (24, 24) on the board; the default view
+  (pan 0, 0, zoom 1) shows it.
+- **A-125 Leaving the canvas** (my reading of "after the usual finish feedback"): the note stays 1400 ms after the tick (the
+  celebration) plus the support cat's visit when it comes, then disappears; the list is in the Archive at once.
+- **A-126 Area defaults** (my choice): new area 320 x 240 units, centred in the view, name "Area" (translated), colour
+  from an eight-colour palette by count; minimum size 160 x 120. Membership uses the note's anchor (middle of its top edge:
+  x + 120, y + 24); with overlapping areas the topmost (last in the list) wins.
+- **A-127 Area storage** (owner: "per person on the server ... one serialisable JSON doc"): `canvas.json`, whole-document
+  `GET/PUT`, last write wins, at most 50 areas, written after each finished edit and read when the canvas opens and on
+  syncs while nothing is unsaved. Two devices editing at the same moment can overwrite each other (acceptable for one person).
+- **A-128 View memory** (owner: "per device in localStorage"): key `cal.canvasView` = `{ x, y, zoom }`; the first visit
+  starts at zoom 1, pan 0, 0.
+- **A-129 No extra controls** (my reading, "no features beyond what was asked"): no zoom buttons, minimap or "reset view"; the
+  only buttons on the canvas are "Add area" and the area editor's. Zoom is pinch and Ctrl+wheel; the plain wheel pans.
+- **A-130 Test steps** (my reading): "the Canvas shows the notes A, B" compares the note titles sorted alphabetically (the
+  DOM order is not a promise); drags in steps use the mouse (the e2e phones emulate touch, but `page.mouse` events are
+  mouse pointers, so the plain-drag path is what runs); the area scenario drops the note at the area's top left + (20, 56).
+- **A-131 Translations** (owner): `canvas.*` keys in `locales/<lang>/canvas.ts` for `en`, `de`, `de-x-mainfr` and
+  `de-x-coldmirror`; the dialect catalogues are complete for these keys.
+- **A-130 Weekend nights** (my reading, owner asked for a simple override and to log the choice): "Different on
+  weekends" means the nights before Saturday and before Sunday (Friday and Saturday evening), because people sleep in
+  on Saturday and Sunday; all other nights use the main pair. Alternatives weighed: a table with one pair per weekday
+  (too much UI, the owner asked for simple) and Saturday and Sunday evenings (the usual late nights are Friday and
+  Saturday). The override also applies to the fixed pair that dynamic mode falls back to and compares with.
+- **A-131 Night named by wake-up day** (my reading): a night belongs to the day it ends on; its length is the distance
+  from bedtime to wake-up on the clock, so `00:00` to `09:00` is a valid weekend pair.
+- **A-132 Dynamic uses the whole fixed pair when it would be later** (my reading of "never later than fixed"): when the
+  dynamic bedtime is not earlier than the fixed one, both fixed times apply (not a mix); otherwise both dynamic times.
+- **A-133 First appointment** (owner: first timed item, timed task lists included, never all-day): the first segment
+  that starts on the wake-up day with a time. Not counted: continuation days of a multi-day event, untimed or
+  carried-over task lists, hidden calendars. Items not yet loaded are not known; the app loads the day after the shown
+  range in the background (dynamic mode only), and until it arrives the fixed times show.
+- **A-134 Reminder rules** (my reading): "Bedtime in N minutes" shows N = the minutes left (30 at the exact moment, less
+  when the app is opened later); 0 minutes means no reminder; it is not shown once bedtime has started; "once per night"
+  is remembered per device (`localStorage` `cal.bedtimeReminded`), not on the server; while the app is hidden nothing is
+  shown, and it shows when the app is visible again if bedtime has not started yet. The snackbar stays 10 seconds.
+- **A-135 Push hook** (owner: later, structure only): a list of reminder sinks, the snackbar is the first; a push
+  notification would add one. Not built.
+- **A-136 Bedtime values** (my reading): sleep 1 to 16 hours (offered 6 to 10), lead 0 to 480 minutes (offered 0, 15,
+  30, 45, 60, 90, 120), reminder 0 to 240 minutes (offered off, 5, 10, 15, 30, 45, 60); times `HH:MM`; the server
+  validates all of it and merges a partial `bedtime` patch into the stored one.
+- **A-137 Overlay drawing** (my reading of "dark band with a moon"): translucent scrim colour over the day column (below
+  the events, no pointer events), moon icon at the bedtime edge and sun icon at the wake-up edge. The Clock draws a dark
+  sector on the dial plate; the Approaching track a dark stretch on the track line (inside its window). In the Week,
+  Timeline and Strip views each day shows its own piece; the Timeline's all-day band is not covered.
+- **A-138 Bedtime strings** (owner): module `locales/*/bedtime.ts` in all four languages; Coldmirror in the Fresh
+  Dumbledore voice, rude only about Harry Potter characters, never sexual and never slurs.
+- **A-139 Track without entries** (my reading): the Approaching track is also shown when nothing timed is ahead but a
+  night lies inside its window (otherwise the band would never show on a quiet day); it then replaces the "Nothing else
+  today" line, like entries do. With the track switched off there is no band on the card.
+- **A-132 Long press anywhere** (owner feedback 2026-10-13, the first version was unusable on a phone): a touch long press
+  anywhere on a note, including the title, items and checkboxes, picks it up; a short tap still ticks or opens the dialog;
+  a touch that moves before the long press does nothing on a note. After a drag the click is swallowed so nothing ticks
+  under the finger. `canvas-note-grip` stays only as the top strip with the date, where the e2e mouse grabs a note.
+- **A-133 Areas by long press** (owner): a touch long press anywhere on an area (header or body, where no note is on top)
+  moves it; a touch that moves before it pans the canvas, because the body is background.
+- **A-134 Resize handles** (owner: "same interaction as the calendar's events"): handles show on a long press released
+  without moving, and also after a move or a click on the header or when an area is created (my reading: any way of
+  touching the area "selects" it); four corner handles of 44 px (the calendar has top and bottom only because its entries
+  are one-dimensional); a handle drags at once with no long press; any pointer-down elsewhere or Escape hides them. I did
+  not swallow the click of the dismissing tap as the calendar does (a tap on a note's checkbox that hides the handles also
+  ticks it): hiding costs no extra tap, and the dismissing tap is mostly on the empty board.
+- **A-135 Mouse** (my choice for "show handles on hover or after a click, whichever is simpler"): after a click, not on
+  hover (hover does not exist on a phone, so one rule for both): a click on an area's header, or any drag of it, shows
+  the handles. A mouse drag moves an area by its header only, because the body must stay available for panning with the
+  mouse (areas can be large); touch has no such conflict, as a long press tells a move from a pan.
+
+## Compact, collapsible task list cards (owner 2026-10-13)
+
+- **A-150 Next-task hint removed** (owner: it repeats the first open item): `tasklist-next-task` and the locale key
+  `tasks.list.nextTask` are gone in all four catalogues. No scenario or step covered it. The tray's phone "Next: <title>"
+  peek (`tasks.tray.next`) and `useTaskListsStore().nextTask` are a different thing and stay.
+- **A-151 Add item in the footer row** (owner): `tasklist-add` is a text button with icon and label beside Edit and
+  Delete; its field appears above the footer only while adding and goes away again when left empty (as before).
+- **A-152 Tighter spacing** (my reading of "a bit"): head, list and footer margins shrink by 4 to 8 px; rows and buttons
+  keep their 44 px touch targets.
+- **A-153 Collapse state** (owner: "per list per device in localStorage"): one key `cal.tasklistCollapsed` holding a map of
+  list id to `true`; lists expanded by default; storage failures only mean the state lasts for this visit.
+- **A-154 What stays when collapsed** (my reading of "title row with category colour, progress and date"): the head as it
+  is: progress ring, title with category icon, count and the "From" tag of an overdue list. The date is not new text:
+  the views already group or tag by date. The "All done" message and the strike-through of a finished title are
+  part of the body and head respectively: the strike stays, the message collapses.
+- **A-155 Where the chevron shows** (my reading of "where sensible"): the tray, the Tasks view (Open and Archive) and the
+  Canvas notes. Not in the expanded list's sheet (`closable`): it is opened to see the items, so collapsing it
+  makes no sense. The calendar grid cards are untouched (they already have their own collapsed form).
+- **A-156 Collapse all** (owner: one toggle `tasks-collapse-all`): it acts on the lists of the Open tab; the label says
+  "Collapse all" until every list shown is collapsed, then "Expand all". It writes the same per-list state, so it
+  is remembered too.
+- **A-157 Motion** (owner): no height animation at any level, because the body is removed at once; Full motion fades
+  the body in and out (opacity), Reduced and Off do not.
+- **A-158 Translations** (owner): `tasks.list.collapse`, `tasks.list.expand`, `tasks.view.collapseAll`,
+  `tasks.view.expandAll` in `locales/<lang>/tasks.ts` for `en`, `de`, `de-x-mainfr` and `de-x-coldmirror`.
+- **A-136 Tasks filter replaces the calendar chips in the Tasks view** (owner: one filter bar for all tabs, stored per person):
+  the top bar's filter button and the global filter row are not shown on `/tasks`; supersedes A-77 and A-122.
+- **A-137 "This week"** (owner: "today through Sunday, matching the existing time groups"): date from today through the coming
+  Sunday inclusive (on a Sunday: only today). Undated lists never match Overdue, Today, Tomorrow or This week.
+- **A-138 Overdue in the Archive** (my reading): the rule is on the date only, so a finished list dated before today matches
+  "Overdue" in the Archive; the filter does not look at whether the list is finished.
+- **A-139 Filter UI** (owner: compact on the phone; my choice): the When chip with its menu and Clear filters sit left of a
+  horizontally scrolling strip of category chips, all in one row. A chip for a category that no longer exists is not shown;
+  such a stale id matches nothing and is dropped by "Clear filters".
+- **A-140 Dimmed notes** (owner: "e.g. opacity 0.25, not interactive"): opacity 0.25, `pointer-events: none` on the note, so a
+  dimmed note cannot be ticked, opened or moved (a long press on it pans nothing either: it acts as background).
+- **A-141 Saving** (my reading): each choice is one `PATCH /api/prefs { tasksFilter }` with the whole filter, optimistic
+  (the chips change at once, a refusal puts them back with a snackbar), like grouping and sorting.
+- **A-142 Create button and the area editor** (owner bug report): on the phone the "+" button slides away (`.away`, as for the
+  expanded tray) while the Canvas's area editor is open, through the ui flag `panelOpen`; any later bottom panel of a view
+  sets the same flag. Labs views in the navigation bar have icons of their own (clock, timeline, view column).
+- **A-143 Long press on item rows** (owner bug report, phone): not reproducible in Chromium's touch emulation, with or without a
+  scrollable page (a CDP long press on an item title and on a checkbox picks the note up). Falsified there: a row handler
+  that stops or prevents the pointer stream (none exists in `TaskListView`, `RewardCheckbox`, `Chip`), the global
+  `button { touch-action: manipulation }` (the same run passes with and without a `touch-action: none` override, and the
+  event stream shows no `pointercancel`). What a phone adds and the emulation lacks is the browser's own long-press
+  reaction (context menu, text selection, native drag, callout). So the canvas defends against it: every element inside a
+  note is `touch-action: none; user-select: none; -webkit-touch-callout: none`, and `contextmenu`, `selectstart` and
+  `dragstart` are prevented on notes and areas. The scenarios stay as regression tests.

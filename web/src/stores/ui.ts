@@ -31,6 +31,8 @@ export const useUiStore = defineStore('ui', () => {
   const filtersShown = ref(false);
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
+  /** A bottom panel of a view (the Canvas's area editor) is open: the phone's create button slides away like for the tray. */
+  const panelOpen = ref(false);
   const dialog = ref<OpenDialog | null>(null);
   const resizing = ref<ResizingEntry | null>(null);
   const snackbars = ref<SnackbarMessage[]>([]);
@@ -52,5 +54,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, panelOpen, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
 });

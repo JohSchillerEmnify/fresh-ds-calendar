@@ -58,7 +58,7 @@ function toggleFilters() {
         <InstallPrompts part="button" />
       </div>
       <div class="actions">
-        <span class="fwrap">
+        <span v-if="!route.meta.tasks" class="fwrap">
           <IconButton :label="t('calendar.topBar.filters')" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
           <b v-if="filters.count.value" class="badge" aria-hidden="true">{{ filters.count.value }}</b>
         </span>

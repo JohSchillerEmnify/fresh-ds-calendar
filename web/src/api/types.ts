@@ -80,8 +80,16 @@ export interface TaskList {
   color: string;
   /** Date the last open item was ticked (server, app clock); null/absent while an item is open. */
   completedOn?: LocalDate | null;
+  /** Place on the Tasks view's Canvas (canvas units); null/absent = no place yet (Unsorted). */
+  canvas?: CanvasPlace | null;
   etag: string;
   updated: DateTime;
+}
+
+/** A note's top-left corner on the Canvas, in canvas units (ARCHITECTURE "Canvas"). */
+export interface CanvasPlace {
+  x: number;
+  y: number;
 }
 
 export type CalendarItem = CalendarEvent | TaskList;
@@ -111,6 +119,10 @@ export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export type TasksSortDir = 'default' | 'reversed';
 /** What finishing an undated task list does (per person pref `undatedDone`): show it in the calendar or archive only. */
 export type UndatedDone = 'calendar' | 'archive';
+/** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
+export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
+/** The Tasks view's filter (per person pref `tasksFilter`): category ids or `none` ("or"), and one When choice ("and"). */
+export interface TasksFilter { categories: string[]; when: TasksWhen }
 
 /** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
 export type ApproachWindowHours = number;
@@ -139,8 +151,29 @@ export interface Prefs {
   tasksSortDir: TasksSortDir;
   /** "Finished list without a date" (ARCHITECTURE "Archive"). */
   undatedDone: UndatedDone;
+  tasksFilter: TasksFilter;
   /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
   language: LanguagePref;
+  /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
+  bedtime: BedtimePrefs;
+}
+
+/** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */
+export type BedtimeMode = 'fixed' | 'dynamic';
+/** The per-person bedtime preference; times are `HH:MM`, durations whole minutes. */
+export interface BedtimePrefs {
+  enabled: boolean;
+  mode: BedtimeMode;
+  bedtime: string;
+  wake: string;
+  /** "Different on weekends": the nights before Saturday and Sunday use the weekend pair. */
+  weekendDifferent: boolean;
+  weekendBedtime: string;
+  weekendWake: string;
+  sleepMinutes: number;
+  leadMinutes: number;
+  /** Minutes before bedtime for the in-app reminder; 0 = no reminder. */
+  reminderMinutes: number;
 }
 
 export interface Settings {
@@ -225,6 +258,25 @@ export interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
+  /** Integers 0-10000; null clears the place. */
+  canvas?: CanvasPlace | null;
+}
+
+/** One labelled rectangle on the Canvas (API.md "Canvas"). */
+export interface CanvasArea {
+  id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** A person's Canvas document (`GET/PUT /api/canvas`). */
+export interface CanvasDoc {
+  version: 1;
+  areas: CanvasArea[];
 }
 
 export type Density = 0 | 1 | 2 | 3;

@@ -1138,6 +1138,32 @@ Google shows the calendar {string}
   reloads; `settings-version` text starts with "Version 0.4.2"; `app-version` text equals "0.4.2". The corner switch
   goes through the generic `I turn on {string} in the settings` step.
 
+## Bedtime (`@bedtime`)
+
+```
+bedtime mode is on with fixed times {time} and {time}
+bedtime mode is on based on my first appointment with {int} hours of sleep and {int} minutes of lead time
+the night bands of {date} are {string}
+the night band runs from {date} {time} to {date} {time}
+no night band is shown
+the approach bar shows a night band
+I see the bedtime reminder {string}
+I do not see a bedtime reminder
+```
+
+- Setup steps `PATCH /api/prefs { bedtime: { enabled: true, mode, ... } }` as that person (the other fields keep
+  their defaults: fixed 23:00 and 07:00, reminder 30 minutes). The first one sets `mode: "fixed"`, `bedtime`, `wake`;
+  the second `mode: "dynamic"`, `sleepMinutes` = hours x 60 and `leadMinutes`. No setup step means bedtime is off.
+- Night band: every drawn piece has `data-testid="bedtime-band"` with `data-date` (the day it is drawn on),
+  `data-start` / `data-end` (`HH:MM` within that day, `24:00` at its end) and `data-from` / `data-to` (the whole
+  night as `YYYY-MM-DD HH:MM`). "the night bands of D are S" joins `data-start-data-end` of the pieces with
+  `data-date` D (in the view that is open, in document order) with `", "`, e.g. `"00:00-07:00, 23:00-24:00"`.
+  "the night band runs from A to B" looks for a piece with that `data-from` and `data-to`. "no night band is shown":
+  no `bedtime-band` and no `bedtime-track-band` exists. Day and week show `bedtime-band` pieces in the day columns,
+  the Timeline in its day sections, the Strip in its columns and the Clock as arcs.
+- Approach bar: "shows a night band" = a `bedtime-track-band` inside `approach-bar`.
+- Reminder: a snackbar with `data-testid="bedtime-reminder"`; "I see" compares its text exactly.
+
 ## Left-handed mode (`@left-hand`)
 
 ```
@@ -1223,11 +1249,32 @@ the Tasks view lists {string} under {string}
 the Tasks view lists {string}
 the Tasks view groups are {string}
 the Tasks view is grouped by {string}
+I collapse the card of the task list {string} in the Tasks view
+I expand the card of the task list {string} in the Tasks view
+the card of the task list {string} in the Tasks view is collapsed
+the card of the task list {string} in the Tasks view is expanded
+the card of the task list {string} in the Tasks view shows the items {string}
+the card of the task list {string} in the Tasks view shows no items
+the card of the task list {string} in the Tasks view shows the done count {string}
+I collapse all task lists in the Tasks view
+I expand all task lists in the Tasks view
+the Add item button of the task list {string} in the Tasks view shares a row with Edit and Delete
+the add field of the task list {string} in the Tasks view is hidden
+the add field of the task list {string} in the Tasks view is shown
+I tap Add item of the task list {string} in the Tasks view
 the calendar shows the task list {string} on {date}
 neither the calendar on {date} nor the open tasks tray shows the task list {string}
 ```
 
 - Steps that act in the Tasks view open it first (`/tasks`, via `view-switch-tasks`) when it is not shown.
+- Collapse steps (`tasklists-collapse.feature`) act on the `tasks-item` with `data-title` L: "collapse/expand the card"
+  clicks its `tasklist-collapse` when its `aria-expanded` differs; "is collapsed / expanded" = `data-collapsed` on
+  its `tasklist-view` is `true` / `false`; "shows no items" = no visible `tasklist-item`; "shows the items" = the
+  visible `tasklist-item` `data-title`s joined by ", "; "shows the done count" = `tasklist-expanded-count`.
+  "collapse/expand all" clicks `tasks-collapse-all` until every card shows the wanted state. "shares a row with
+  Edit and Delete": `tasklist-add`, `tasklist-edit` and `tasklist-delete` have the same vertical centre (within
+  4 px). "the add field is hidden / shown" = `tasklist-new-item` not visible / visible; "I tap Add item" clicks
+  `tasklist-add`.
 - "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
   without a date), type T into `tasklist-title`, `tasklist-save`.
@@ -1301,3 +1348,116 @@ the open task list {string} has no date and {int} open item(s)
 - "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
   `data-date` and N `tasklist-item` rows with `data-done="false"` (and no done ones).
 
+## Tasks canvas (`@tasks-canvas`)
+
+```
+I open the Canvas
+the Canvas shows the notes {string}
+the Canvas does not show the note {string}
+the note {string} shows the date {date}
+the note {string} shows the items {string}
+I move the note {string} to {int}, {int} on the Canvas
+the note {string} is at {int}, {int} on the Canvas
+the note {string} is in the Unsorted stack
+the note {string} is not in the Unsorted stack
+I tick the item {string} of the note {string} on the Canvas
+the page is a little taller than the screen
+I add an area on the Canvas
+the add button covers no control of the area editor
+I create the area {string} on the Canvas
+I move the note {string} into the area {string} on the Canvas
+the note {string} is in the area {string}
+the Canvas shows the area {string}
+I long-press the note {string} on its first item and drag it to {int}, {int}
+the item {string} of the note {string} is not ticked
+I long-press the item {string} of the note {string} and drag the note to {int}, {int}
+I long-press the checkbox of the item {string} of the note {string} and drag the note to {int}, {int}
+I swipe across the note {string} on the Canvas
+I tap the empty Canvas
+I long-press the area {string} and release without moving
+the area {string} shows resize handles
+the area {string} shows no resize handles
+I drag the bottom right handle of the area {string} by {int}, {int} pixels
+the area {string} is {int} wide and {int} high
+I pan the Canvas by {int}, {int} pixels
+the Canvas is panned to {int}, {int}
+I zoom the Canvas in with Ctrl+wheel
+the Canvas zoom is above {float}
+```
+
+- Also used: "the calendar contains an undated task list ... with items:", "... finished on D", "I create the task list T in the
+  Tasks view", "the Archive lists ...", "I reload the page", "I switch to another device".
+- "I open the Canvas": opens the Tasks view as the Tasks view steps do and clicks `tasks-tab-canvas`
+  (`aria-pressed="true"`), then waits for `tasks-canvas`.
+- "the Canvas shows the notes A, B": the `data-title` of all `canvas-note`s, sorted alphabetically and joined `", "`,
+  equals the text (A-130). "does not show the note T": none has that title.
+- "the note T shows the date D": `canvas-note` T has `data-date` D and a `canvas-note-date`. "shows the items": the
+  `tasklist-item` titles of the note joined `", "` in order.
+- "I move the note T to X, Y": on a phone (`hasTouch`) a finger through CDP (`touchStart` in the middle of the note, a
+  500 ms long press, `touchMove` in 10 steps, `touchEnd`, as the Drag and drop steps); otherwise a plain mouse drag from
+  the middle of `canvas-note-grip` (a mouse must not start on a button). Either way the pointer travels
+  `(X - data-x, Y - data-y) * data-zoom` pixels; the step waits for the `PATCH /api/tasklists/:id` response (status 200).
+  "the note T is at X, Y": `data-x`, `data-y` and `data-placed="true"`.
+- "I long-press the note T on its first item and drag it to X, Y": like the move, but the finger goes down on the first
+  `tasklist-item-title` (a button), to show that a long press picks the note up anywhere. "the item I of the note T is
+  not ticked": `data-done="false"`.
+- "I long-press the item I of the note T and drag the note to X, Y": like the long press on the first item, but the finger
+  goes down on the text of that `tasklist-item` row (its `tasklist-item-title`, not the checkbox).
+- "I long-press the checkbox of the item I of the note T and drag the note to X, Y": the same, with the finger down on the
+  item's `tasklist-item-checkbox`.
+- "I swipe across the note T": the same finger (or mouse) drag by (60, 80) px from the middle of the note with no long
+  press; the scenario then expects an unmoved note in the stack and the view still at 0, 0.
+- "I tap the empty Canvas": a click in the bottom right corner of `canvas-viewport` (outside notes and areas); it hides
+  the resize handles.
+- "I long-press the area A and release without moving": finger down on the body of `canvas-area` (a spot away from the
+  header), held 500 ms, up. A mouse has no long press, so there it is a click on `canvas-area-header` (which also opens
+  the editor; the step closes it with `canvas-area-editor-close`).
+- "the area A shows / shows no resize handles": the area has 4 / 0 `canvas-area-handle` elements.
+- "I drag the bottom right handle of the area A by DX, DY pixels": drags `canvas-area-handle` with `data-corner="se"`
+  (a handle drags at once, no long press). "the area A is W wide and H high": `data-w`, `data-h` and the saved area
+  (`GET /api/canvas`) agree.
+- "in / not in the Unsorted stack": `data-placed` is `"false"` / `"true"`.
+- "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
+  note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
+- "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
+  `GET /api/canvas` (through the test API) lists an area named N.
+- "the page is a little taller than the screen": gives the document 120 px of scroll range (an invisible 1 px box below the screen), as a phone's collapsing address bar does, so the browser can start a native pan.
+- "I add an area on the Canvas": clicks `canvas-area-add` and waits for `canvas-area-editor`.
+- "the add button covers no control of the area editor": waits until the bounding box of `create-button` (when it has one)
+  intersects none of the boxes of the visible buttons of `canvas-area-editor`. On a phone the button slides away while the
+  editor is open (`ui.panelOpen`, the same `.away` as for the expanded tray).
+- "I move the note T into the area A": like "I move the note T to X, Y" with X, Y = the area's `data-x` + 20 and
+  `data-y` + 56. "the note T is in the area A": `data-area` of the note equals A.
+- "the Canvas shows the area N": a `canvas-area` with `data-name` N is visible.
+- "I pan the Canvas by DX, DY pixels": a mouse drag on an empty spot of `canvas-viewport` (bottom right quarter) by DX, DY;
+  "is panned to": `data-pan-x` and `data-pan-y` equal the numbers (zoom 1).
+- "I zoom the Canvas in with Ctrl+wheel": dispatches a `wheel` event with `ctrlKey` and `deltaY` -300 over the middle of
+  `canvas-viewport` (as the time grid's zoom step does) and waits until `data-zoom` grew and `localStorage` `cal.canvasView`
+  holds the new zoom (the view is remembered a moment after the last change). "the Canvas zoom is above Z": `data-zoom` greater than Z (waits).
+
+## Tasks filter (`@tasks-filter`)
+
+```
+the calendar contains a task list {string} in the category {string} finished on {date}
+I filter the Tasks view by the category {string}
+I choose {string} as the Tasks view When filter
+I clear the Tasks view filters
+the Tasks view category filter {string} is on
+the Tasks view When filter is {string}
+the note {string} is dimmed
+the note {string} is not dimmed
+```
+
+- Also used: "the calendar contains a task list ... in the category ... on ...", "... with items:", "I open the Tasks view",
+  "I open the Canvas", "the Tasks view lists ...", "the Archive lists ...", "I switch to another device".
+- "... in the category C finished on D": like "finished on D" (Tasks archive: one item "Done" ticked while the test clock
+  stands on D) with `categoryId` of the category named C set on creation.
+- "I filter the Tasks view by the category C": opens the Tasks view when it is not shown, clicks the
+  `tasks-filter-category` chip whose text is C (`No category` for the "none" chip) and waits for the `PATCH /api/prefs`
+  response (status 200).
+- "I choose W as the Tasks view When filter": clicks `tasks-filter-when`, then the `tasks-filter-when-option` whose text is
+  W (`All`, `No date`, `Dated`, `Overdue`, `Today`, `Tomorrow`, `This week`), and waits for the `PATCH /api/prefs`
+  response. "I clear the Tasks view filters": clicks `tasks-filter-clear` and waits for the same.
+- "the category filter C is on": that `tasks-filter-category` chip has `aria-pressed="true"`. "the When filter is W":
+  `tasks-filter-when` has `data-value` equal to W's value (`all`, `nodate`, `dated`, `overdue`, `today`, `tomorrow`, `week`).
+- "the note N is dimmed / not dimmed": `canvas-note` `data-dimmed` is `"true"` / `"false"`.

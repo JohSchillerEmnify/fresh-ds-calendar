@@ -36,6 +36,12 @@ export interface TaskItem {
   done: boolean;
 }
 
+/** A note's top-left corner on the Canvas (ARCHITECTURE "Canvas"). */
+export interface CanvasPlace {
+  x: number;
+  y: number;
+}
+
 export type Recurrence = 'daily' | 'weekly' | 'monthly';
 
 export interface TaskList {
@@ -55,6 +61,8 @@ export interface TaskList {
   tags: string[];
   color: string;
   completedOn: LocalDate | null;
+  /** Place on the Tasks view's Canvas in canvas units; null = no place yet (Unsorted). */
+  canvas: CanvasPlace | null;
   etag: string;
   updated: DateTime;
 }
@@ -128,6 +136,25 @@ export interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
+  /** Integers 0-10000; null clears the place. */
+  canvas?: CanvasPlace | null;
+}
+
+/** One labelled rectangle on the Canvas (API.md "Canvas"). */
+export interface CanvasArea {
+  id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** A person's Canvas document: one serialisable JSON file. */
+export interface CanvasDoc {
+  version: 1;
+  areas: CanvasArea[];
 }
 
 export type ErrorCode =

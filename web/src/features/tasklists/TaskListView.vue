@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head, "All done" /
- * next task, item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
+ * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head with the collapse chevron,
+ * "All done", item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
  * open tasks tray (one per list). All item changes go through `ops.ts` (optimistic, queued, rolled back with a
  * snackbar on failure); the tick logic (flash, celebration, support cat, markFinished) lives only here. A complete list's title is struck through
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconTodayOutline as IconToday, IconAdd } from '@/components/icons';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconTodayOutline as IconToday, IconAdd } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
@@ -24,7 +24,8 @@ import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel, firstOpenItem } from './format';
+import { carriedLabel } from './format';
+import { isCollapsed, setCollapsed } from './collapse';
 import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
@@ -37,6 +38,8 @@ const props = defineProps<{
   closable?: boolean;
   /** Tapping the title opens the task list dialog instead of renaming in place (the Tasks view). */
   titleOpensDialog?: boolean;
+  /** A sticky note on the Canvas: head, celebration and the item rows only (no row buttons, add field or footer). */
+  compact?: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -59,7 +62,9 @@ const tl = computed(() => {
   return i?.kind === 'tasklist' ? i : null;
 });
 const complete = computed(() => !!tl.value && tl.value.totalCount > 0 && tl.value.doneCount >= tl.value.totalCount);
-const next = computed(() => (tl.value ? firstOpenItem(tl.value) : null));
+/** Collapsed to the head, remembered per list and device; the expanded list's sheet (`closable`) never collapses. */
+const collapsed = computed(() => !props.closable && isCollapsed(props.id));
+watch(collapsed, (c) => { if (c) { adding.value = false; editingItem.value = null; } });
 const carried = computed(() => !!tl.value && lists.isCarried(tl.value));
 const category = computed(() => settings.categoryById(tl.value?.categoryId));
 
@@ -206,6 +211,7 @@ defineExpose({ root, busy });
   <section
     v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
     :style="{ '--c': tl.color }"
+    :data-collapsed="collapsed ? 'true' : 'false'"
   >
     <header class="head">
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
@@ -222,50 +228,63 @@ defineExpose({ root, busy });
           <span v-if="carried" class="from" data-testid="tasklist-card-overdue">{{ carriedLabel(tl.date) }}</span>
         </p>
       </div>
+      <IconButton
+        v-if="!closable" class="chev" :class="{ open: !collapsed }" :label="collapsed ? t('tasks.list.expand') : t('tasks.list.collapse')" :aria-expanded="!collapsed"
+        data-testid="tasklist-collapse" @click="setCollapsed(id, !collapsed)"
+      ><IconChevron /></IconButton>
       <IconButton v-if="closable" :label="t('tasks.list.close')" data-testid="tasklist-close" @click="emit('close')"><IconClose /></IconButton>
     </header>
 
-    <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">{{ t('tasks.list.allDone') }}</p>
-    <p v-else-if="next" class="next" data-testid="tasklist-next-task">{{ t('tasks.list.nextTask') }} <strong>{{ next.title }}</strong></p>
+    <Transition name="tlc">
+      <div v-if="!collapsed" class="tlc-body">
+        <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">{{ t('tasks.list.allDone') }}</p>
 
-    <ul class="list">
-      <li
-        v-for="(item, i) in tl.items" :key="stableKey(item.id)" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
-        :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
-      >
-        <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
-        <input
-          v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" :aria-label="t('tasks.list.itemTitle')"
-          @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
-        />
-        <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
-        <IconButton class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
-        <IconButton class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
-        <IconButton class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
-      </li>
-    </ul>
-    <p v-if="!tl.items.length" class="empty">{{ t('tasks.list.empty') }}</p>
+        <ul class="list">
+          <li
+            v-for="(item, i) in tl.items" :key="stableKey(item.id)" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
+            :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
+          >
+            <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
+            <input
+              v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" :aria-label="t('tasks.list.itemTitle')"
+              @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
+            />
+            <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
+            <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
+            <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
+            <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
+          </li>
+        </ul>
+        <p v-if="!tl.items.length" class="empty">{{ t('tasks.list.empty') }}</p>
 
-    <form v-if="adding" class="add" @submit.prevent="add">
-      <input
-        ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" maxlength="200"
-        :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
-      />
-    </form>
-    <Button v-else variant="text" class="add-btn" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
+        <form v-if="adding && !compact" class="add" @submit.prevent="add">
+          <input
+            ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" maxlength="200"
+            :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
+          />
+        </form>
 
-    <footer class="foot">
-      <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>{{ t('tasks.list.moveToday') }}</Button>
-      <span class="grow" />
-      <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
-      <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
-    </footer>
+        <footer v-if="!compact" class="foot">
+          <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>{{ t('tasks.list.moveToday') }}</Button>
+          <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
+          <span class="grow" />
+          <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
+          <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
+        </footer>
+      </div>
+    </Transition>
     <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :title="cat.title" :level="cat.level" @done="cat = null" /></Teleport>
   </section>
 </template>
 
 <style scoped>
-.head { display: flex; align-items: center; gap: 12px; padding: 8px 0 4px; }
+.head { display: flex; align-items: center; gap: 12px; padding: 4px 0 2px; }
+.chev :deep(svg) { transform: rotate(-90deg); }
+.chev.open :deep(svg) { transform: none; }
+/* Full motion only: a short fade of the body and a turn of the chevron; never a height animation */
+html[data-motion='full'] .chev :deep(svg) { transition: transform 160ms ease-out; }
+html[data-motion='full'] .tlc-enter-active, html[data-motion='full'] .tlc-leave-active { transition: opacity 160ms ease-out; }
+html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to { opacity: 0; }
 .titles { flex: 1; min-width: 0; }
 .name { display: block; max-width: 100%; text-align: left; font: var(--md-sys-typescale-title-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 0; min-height: 44px; }
 .name-in, .item-in, .new {
@@ -279,9 +298,8 @@ defineExpose({ root, busy });
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }
-.next { margin: 4px 0 4px; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); font: var(--md-sys-typescale-body-medium); overflow: hidden; text-overflow: ellipsis; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
-.list { list-style: none; margin: 4px 0 0; padding: 0; }
+.list { list-style: none; margin: 2px 0 0; padding: 0; }
 .row { display: flex; align-items: center; gap: 4px; min-height: max(44px, calc(48px * var(--dz, 1))); border-radius: 12px; transition: background 400ms; }
 html:not([data-motion='off']) .row.flash { animation: tickflash 700ms ease-out; }
 .ititle {
@@ -296,10 +314,9 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .act { width: 36px; height: 44px; opacity: 0.75; }
 .act:disabled { opacity: 0.2; }
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
-.add { margin-top: 8px; }
-.add-btn { margin-top: 4px; align-self: flex-start; }
+.add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }
-.foot { display: flex; align-items: center; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
+.foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; }
 .grow { flex: 1; }
 .danger { color: var(--md-sys-color-error); }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }

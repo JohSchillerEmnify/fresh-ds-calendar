@@ -311,14 +311,14 @@ describe('filter chips', () => {
 });
 
 describe('settings', () => {
-  it('has seven sections, each setting once; theme controls only in the theme menu', async () => {
+  it('has eight sections, each setting once; theme controls only in the theme menu', async () => {
     const { w, router } = await mountAt('/settings');
     await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
     useThemeStore().pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
     await w.vm.$nextTick();
     const sections = w.findAll(tid('settings-section'));
-    expect(sections.map((x) => x.attributes('data-section'))).toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'labs', 'account']);
-    expect(sections.map((x) => x.get('h2').text())).toEqual(['Appearance', 'Calendar', 'Task lists', 'Focus & motivation', 'Motion & sound', 'Labs', 'Account & data']);
+    expect(sections.map((x) => x.attributes('data-section'))).toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'labs', 'account']);
+    expect(sections.map((x) => x.get('h2').text())).toEqual(['Appearance', 'Calendar', 'Task lists', 'Focus & motivation', 'Motion & sound', 'Bedtime', 'Labs', 'Account & data']);
     expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home']);
     for (const id of ['settings-theme-mode', 'settings-seed-preset', 'settings-seed-custom', 'settings-scene', 'settings-theme-mordor']) expect(w.find(tid(id)).exists()).toBe(false);
     expect(w.get(tid('settings-theme')).text()).toContain('Default');

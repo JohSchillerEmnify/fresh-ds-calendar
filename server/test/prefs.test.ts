@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto' };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', tasksFilter: { categories: [], when: 'all' }, language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 } };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -35,6 +35,20 @@ describe('prefs (Labs switches)', () => {
     await t.json('PATCH', '/api/prefs', { labsOwnThemes: false });
     await t.req('POST', '/api/__test/reset');
     expect((await t.json('GET', '/api/prefs')).body.versionInCorner).toBe(false);
+  });
+
+  it('keeps the bedtime preference per person: off by default, partial patches merge, bad values are refused', async () => {
+    const get = async () => (await t.json('GET', '/api/prefs')).body.bedtime;
+    expect((await get()).enabled).toBe(false);
+    expect((await t.json('PATCH', '/api/prefs', { bedtime: { enabled: true, mode: 'dynamic', sleepMinutes: 420 } })).body.bedtime).toMatchObject({ enabled: true, mode: 'dynamic', sleepMinutes: 420, bedtime: '23:00', reminderMinutes: 30 });
+    expect((await t.json('PATCH', '/api/prefs', { bedtime: { bedtime: '22:15' } })).body.bedtime).toMatchObject({ enabled: true, mode: 'dynamic', bedtime: '22:15' });
+    for (const bad of ['x', null, [], { enabled: 'yes' }, { mode: 'sometimes' }, { bedtime: '25:00' }, { wake: '7:00' }, { sleepMinutes: 5 }, { leadMinutes: 1.5 }, { reminderMinutes: 999 }]) {
+      const r = await t.json('PATCH', '/api/prefs', { bedtime: bad });
+      expect(r.status, JSON.stringify(bad)).toBe(400);
+    }
+    expect((await get()).bedtime).toBe('22:15');
+    await t.req('POST', '/api/__test/reset');
+    expect((await get()).enabled).toBe(false);
   });
 
   it('keeps the left-handed switch per person, off by default, boolean only', async () => {
@@ -82,7 +96,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto' });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', tasksFilter: { categories: [], when: 'all' }, language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 } });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
   });
 
@@ -114,5 +128,38 @@ describe('prefs (Labs switches)', () => {
   it('validates the whole patch before changing Google or the stored prefs', async () => {
     expect((await t.json('PATCH', '/api/prefs', { tasksCalendarVisible: true, labs: true, supportCat: 'maybe' })).status).toBe(400);
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ labs: false, tasksCalendarVisible: false });
+  });
+});
+
+describe('prefs: Tasks filter', () => {
+  it('defaults to no filter, replaces the whole filter and survives a reset only as the default', async () => {
+    expect((await t.json('GET', '/api/prefs')).body.tasksFilter).toEqual({ categories: [], when: 'all' });
+    const f = { categories: ['shopping', 'none'], when: 'week' };
+    expect((await t.json('PATCH', '/api/prefs', { tasksFilter: f })).body.tasksFilter).toEqual(f);
+    expect((await t.json('GET', '/api/prefs')).body.tasksFilter).toEqual(f);
+    expect((await t.json('PATCH', '/api/prefs', { tasksFilter: { categories: [], when: 'all' } })).body.tasksFilter).toEqual({ categories: [], when: 'all' });
+    await t.json('PATCH', '/api/prefs', { tasksFilter: f });
+    await t.req('POST', '/api/__test/reset');
+    expect((await t.json('GET', '/api/prefs')).body.tasksFilter).toEqual({ categories: [], when: 'all' });
+  });
+
+  it.each([
+    ['an unknown when', { categories: [], when: 'soon' }],
+    ['a missing when', { categories: [] }],
+    ['a missing list', { when: 'all' }],
+    ['a non-text id', { categories: [1], when: 'all' }],
+    ['an empty id', { categories: [''], when: 'all' }],
+    ['a long id', { categories: ['x'.repeat(65)], when: 'all' }],
+    ['a duplicate id', { categories: ['a', 'a'], when: 'all' }],
+    ['too many ids', { categories: Array.from({ length: 51 }, (_, i) => `c${i}`), when: 'all' }],
+    ['an extra field', { categories: [], when: 'all', x: 1 }],
+    ['a string', 'week'],
+    ['null', null],
+  ])('rejects %s and changes nothing', async (_n, tasksFilter) => {
+    await t.json('PATCH', '/api/prefs', { tasksFilter: { categories: ['a'], when: 'today' } });
+    const r = await t.json('PATCH', '/api/prefs', { tasksFilter });
+    expect(r.status).toBe(400);
+    expect(r.body.error.code).toBe('VALIDATION_ERROR');
+    expect((await t.json('GET', '/api/prefs')).body.tasksFilter).toEqual({ categories: ['a'], when: 'today' });
   });
 });

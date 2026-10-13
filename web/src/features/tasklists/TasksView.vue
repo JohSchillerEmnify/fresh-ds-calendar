@@ -14,7 +14,6 @@ import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
 import Select from '@/components/m3/Select.vue';
-import { useFilters } from '@/composables/useFilters';
 import { addDays, toIsoDate } from '@/lib/dates';
 import { displayTitle } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
@@ -23,10 +22,14 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
+import { isCollapsed, setAllCollapsed } from './collapse';
 import { matchesSearch, sortArchive, templateOf } from './archive';
 import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
+import TasksCanvas from './TasksCanvas.vue';
+import TasksFilterBar from './TasksFilterBar.vue';
+import { matchesTasksFilter } from './tasksFilter';
 
 const tasks = useTasksViewStore();
 const items = useItemsStore();
@@ -35,7 +38,6 @@ const settings = useSettingsStore();
 const clock = useClockStore();
 const sync = useSyncStore();
 const ui = useUiStore();
-const filters = useFilters();
 
 const groupOptions = computed<{ value: TasksGroupBy; label: string }[]>(() => [
   { value: 'time', label: t('tasks.view.group.time') }, { value: 'category', label: t('tasks.view.group.category') }, { value: 'none', label: t('tasks.view.group.none') },
@@ -45,15 +47,21 @@ const sortOptions = computed<{ value: TasksSortBy; label: string }[]>(() => [
   { value: 'changed', label: t('tasks.view.sort.changed') }, { value: 'progress', label: t('tasks.view.sort.progress') },
 ]);
 
-const shown = computed(() => filters.apply(tasks.lists) as TaskList[]);
+/** The filter bar's choice (all three tabs, ARCHITECTURE "Tasks filter"). */
+const passes = (l: TaskList): boolean => matchesTasksFilter(l, prefs.tasksFilter, clock.today);
+const shown = computed(() => tasks.lists.filter(passes));
 const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories, prefs.tasksSortDir));
+
+/** True when every list shown in the Open tab is collapsed: the toggle then offers "Expand all". */
+const allCollapsed = computed(() => shown.value.length > 0 && shown.value.every((l) => isCollapsed(l.id)));
 
 const tabOptions = computed(() => [
   { value: 'open' as TasksTab, label: t('tasks.tabs.open'), testid: 'tasks-tab-open' },
+  { value: 'canvas' as TasksTab, label: t('canvas.tab'), testid: 'tasks-tab-canvas' },
   { value: 'archive' as TasksTab, label: t('tasks.tabs.archive'), testid: 'tasks-tab-archive' },
 ]);
 const search = ref('');
-const archive = computed(() => sortArchive((filters.apply(tasks.archived) as TaskList[]).filter((l) => matchesSearch(l, search.value))));
+const archive = computed(() => sortArchive(tasks.archived.filter((l) => passes(l) && matchesSearch(l, search.value))));
 
 function chooseTab(next: TasksTab): void {
   tasks.setTab(next).catch((e) => sync.reportError(e));
@@ -94,6 +102,8 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
     <div class="controls">
       <SegmentedButton :model-value="tasks.tab" :options="tabOptions" :label="t('tasks.tabs.label')" class="tabs" @update:model-value="chooseTab" />
     </div>
+    <TasksFilterBar />
+    <TasksCanvas v-if="tasks.tab === 'canvas'" />
     <div v-if="tasks.tab === 'archive'" class="archive" data-testid="tasks-archive">
       <div class="controls">
         <TextField v-model="search" :label="t('tasks.archive.search')" type="search" class="search" data-testid="tasks-archive-search" />
@@ -126,6 +136,7 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
         :label="prefs.tasksSortDir === 'reversed' ? t('tasks.view.sortDirReversed') : t('tasks.view.sortDirDefault')" :pressed="prefs.tasksSortDir === 'reversed'"
         :data-dir="prefs.tasksSortDir" data-testid="tasks-sort-dir" @click="choose({ tasksSortDir: prefs.tasksSortDir === 'reversed' ? 'default' : 'reversed' })"
       ><IconSwap /></IconButton>
+      <Button variant="text" :aria-pressed="allCollapsed" data-testid="tasks-collapse-all" @click="setAllCollapsed(shown.map((l) => l.id), !allCollapsed)">{{ allCollapsed ? t('tasks.view.expandAll') : t('tasks.view.collapseAll') }}</Button>
     </div>
     <div v-if="tasks.tab === 'open'" class="scroll">
       <p v-if="!groups.length" class="empty" data-testid="tasks-empty">{{ t('tasks.view.empty') }}</p>

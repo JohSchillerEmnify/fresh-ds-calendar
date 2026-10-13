@@ -28,6 +28,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.resetPeople();
     ctx.prefs.reset();
     ctx.themes.reset();
+    ctx.canvas.reset();
     const settings = ctx.settings.reset();
     ctx.motivation.reset();
     if (input.seed) await ctx.seed();

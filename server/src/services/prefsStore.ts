@@ -30,6 +30,22 @@ export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category
 export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export const TASKS_SORT_BY_VALUES: readonly TasksSortBy[] = ['date', 'name', 'category', 'changed', 'progress'];
 
+/** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
+export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
+export const TASKS_WHEN_VALUES: readonly TasksWhen[] = ['all', 'nodate', 'dated', 'overdue', 'today', 'tomorrow', 'week'];
+/** The Tasks view's filter: category ids (or `none`) combined with "or", and one When choice, combined with "and". */
+export interface TasksFilter { categories: string[]; when: TasksWhen }
+export const DEFAULT_TASKS_FILTER: TasksFilter = { categories: [], when: 'all' };
+
+/** The filter as stored, or a default for anything that is not a valid one (also the shape check of `PATCH /api/prefs`). */
+export function toTasksFilter(v: unknown): TasksFilter | null {
+  if (!v || typeof v !== 'object') return null;
+  const { categories, when, ...rest } = v as Record<string, unknown>;
+  if (Object.keys(rest).length || !TASKS_WHEN_VALUES.includes(when as TasksWhen) || !Array.isArray(categories) || categories.length > 50) return null;
+  if (!categories.every((c) => typeof c === 'string' && c.length >= 1 && c.length <= 64) || new Set(categories).size !== categories.length) return null;
+  return { categories: [...categories] as string[], when: when as TasksWhen };
+}
+
 /** What finishing an undated task list does: show it in the calendar on that day, or keep it in the Archive only. */
 export type UndatedDone = 'calendar' | 'archive';
 export const UNDATED_DONE_VALUES: readonly UndatedDone[] = ['calendar', 'archive'];
@@ -58,6 +74,61 @@ export function isLanguagePref(v: unknown): v is LanguagePref {
   return v === 'auto' || LANGUAGE_VALUES.includes(v as (typeof LANGUAGE_VALUES)[number]);
 }
 
+/** Bedtime mode (ARCHITECTURE "Bedtime mode"): fixed times, or follow the first appointment of the next day. */
+export type BedtimeMode = 'fixed' | 'dynamic';
+export const BEDTIME_MODES: readonly BedtimeMode[] = ['fixed', 'dynamic'];
+/** The per-person bedtime preference; times are `HH:MM`. */
+export interface BedtimePrefs {
+  enabled: boolean; mode: BedtimeMode; bedtime: string; wake: string;
+  weekendDifferent: boolean; weekendBedtime: string; weekendWake: string;
+  sleepMinutes: number; leadMinutes: number; reminderMinutes: number;
+}
+export const DEFAULT_BEDTIME: BedtimePrefs = {
+  enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00',
+  sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30,
+};
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Allowed range (inclusive) of each whole-number bedtime field. */
+const BEDTIME_RANGES = { sleepMinutes: [60, 960], leadMinutes: [0, 480], reminderMinutes: [0, 240] } as const;
+
+/**
+ * Checks a `bedtime` patch and returns the valid fields, or the message of the first problem.
+ *
+ * @param raw The `bedtime` value of a `PATCH /api/prefs` body.
+ * @returns The validated partial preference, or an error message string.
+ */
+export function parseBedtimePatch(raw: unknown): Partial<BedtimePrefs> | string {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return 'bedtime must be an object';
+  const b = raw as Record<string, unknown>;
+  const out: Partial<BedtimePrefs> = {};
+  for (const k of ['enabled', 'weekendDifferent'] as const) {
+    if (b[k] === undefined) continue;
+    if (typeof b[k] !== 'boolean') return `bedtime.${k} must be a boolean`;
+    out[k] = b[k] as boolean;
+  }
+  if (b.mode !== undefined) {
+    if (!BEDTIME_MODES.includes(b.mode as BedtimeMode)) return 'bedtime.mode must be fixed or dynamic';
+    out.mode = b.mode as BedtimeMode;
+  }
+  for (const k of ['bedtime', 'wake', 'weekendBedtime', 'weekendWake'] as const) {
+    if (b[k] === undefined) continue;
+    if (typeof b[k] !== 'string' || !TIME_RE.test(b[k] as string)) return `bedtime.${k} must be HH:MM`;
+    out[k] = b[k] as string;
+  }
+  for (const [k, [lo, hi]] of Object.entries(BEDTIME_RANGES) as Array<[keyof typeof BEDTIME_RANGES, readonly [number, number]]>) {
+    if (b[k] === undefined) continue;
+    if (!Number.isInteger(b[k]) || (b[k] as number) < lo || (b[k] as number) > hi) return `bedtime.${k} must be a whole number from ${lo} to ${hi}`;
+    out[k] = b[k] as number;
+  }
+  return out;
+}
+
+/** Fills a stored value up to a complete {@link BedtimePrefs}; anything invalid falls back to the default. */
+function readBedtime(raw: unknown): BedtimePrefs {
+  const parsed = parseBedtimePatch(raw);
+  return { ...DEFAULT_BEDTIME, ...(typeof parsed === 'string' ? {} : parsed) };
+}
+
 /** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat, Tasks view grouping and sorting, language). */
 export interface Prefs {
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
@@ -78,8 +149,12 @@ export interface Prefs {
   tasksSortDir: TasksSortDir;
   /** "Finished list without a date" (ARCHITECTURE "Archive"). */
   undatedDone: UndatedDone;
+  /** The Tasks view's filter, shared by Open, Canvas and Archive (ARCHITECTURE "Tasks filter"). */
+  tasksFilter: TasksFilter;
   /** The UI language: `auto` (device language) or a fixed one (ARCHITECTURE "i18n"). */
   language: LanguagePref;
+  /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
+  bedtime: BedtimePrefs;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -117,7 +192,9 @@ export class PrefsStore {
       labsOwnThemes: p?.labsOwnThemes === true,
       tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
       undatedDone: UNDATED_DONE_VALUES.includes(p?.undatedDone as UndatedDone) ? (p!.undatedDone as UndatedDone) : 'calendar',
+      tasksFilter: toTasksFilter(p?.tasksFilter) ?? { ...DEFAULT_TASKS_FILTER, categories: [] },
       language: isLanguagePref(p?.language) ? p.language : 'auto',
+      bedtime: readBedtime(p?.bedtime),
     };
   }
 
@@ -201,8 +278,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime };
   }
 
   /**

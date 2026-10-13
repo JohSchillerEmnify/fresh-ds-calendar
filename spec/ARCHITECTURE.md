@@ -141,6 +141,7 @@ option A of two — B, server storage with Drive backup, may follow in the VPS t
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
 | `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| `canvas` (@optional) | `extendedProperties.private.cx` and `.cy`: integer strings `0..10000`, the note's place on the Canvas (ARCHITECTURE "Canvas"); both absent = no place yet |
 | undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |
 | `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
 | `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
@@ -361,8 +362,9 @@ otherwise; bundle budget §5a applies).
   3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
   4. *Focus & motivation*: transition warning, calm mode, streak flame, plant, sunflowers, best streak, support cat.
   5. *Motion & sound*: animations, ignore the device setting, sounds.
-  6. *Labs*: experimental views.
-  7. *Account & data*: sign out, demo data.
+  6. *Bedtime*: bedtime mode (see "Bedtime mode").
+  7. *Labs*: experimental views.
+  8. *Account & data*: sign out, demo data.
   Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
   rolled back with the error banner on failure).
 - **Tags shelved** (owner, 2026-10-13: purpose and flow unclear): no tag field in the forms, no tag chips in the
@@ -406,8 +408,7 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   animates when it first appears.
   - Lines (`now-card-line`), compact: current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
-    `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things; each list's own "Next task"
-    stays in its expanded view).
+    `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things).
   - Duration format: `< 60 min` → `35 min`; whole hours → `2 h`; otherwise `1 h 20 min`. Values round down to whole
     minutes.
   - The current event is the one with start ≤ now < end; with several, the one ending first.
@@ -416,9 +417,15 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   notifications are a later option (they need HTTPS, permission and, on iOS, an installed PWA; not in scope).
 - **Task list view** (`features/tasklists/TaskListView.vue`, root `tasklist-view` with `data-tasklist-id`,
   `data-title`): the one component that shows a task list with everything that can be done to it. Head (progress ring,
-  title that renames on tap, done count `x/y` that bumps on change, "From <day>"), tags, "All done! 🎉" or "Next task",
-  item rows (reward checkbox, title that edits on tap with the animated strike-through, up/down/delete), add field,
-  footer (Move to today, Edit, Delete with confirmation). It owns the tick logic once for every host: optimistic
+  title that renames on tap, done count `x/y` that bumps on change, "From <day>", the collapse chevron), tags,
+  "All done! 🎉" (no "Next task" hint: owner 2026-10-13, it repeated the first open item), item rows (reward
+  checkbox, title that edits on tap with the animated strike-through, up/down/delete), the add field (only while
+  adding, above the footer) and one footer row (Move to today, Add item, Edit, Delete with confirmation).
+  **Collapsible** (owner 2026-10-13): the chevron `tasklist-collapse` (`aria-expanded`) hides everything below the head;
+  the root carries `data-collapsed="true|false"`. The state is per list and per device (`localStorage` key
+  `cal.tasklistCollapsed`, a map id → true, every access in try/catch; `features/tasklists/collapse.ts`). The expanded
+  list's sheet (`closable`) has no chevron: it is opened to see the list. Motion: Off and Reduced switch without a
+  height animation; Full fades the body (opacity, 160 ms). It owns the tick logic once for every host: optimistic
   `ops.patchItem`, row flash, `useCelebrate` on the tick that completes the list, `lists.markFinished` for that list.
   Hosts only frame it: the **expanded list** (`ExpandedTaskList.vue`) wraps it in `AdaptiveSheet` (placement, Escape,
   focus, `tasklist-close`, which the view renders only when its host listens to `close`); the **tray** renders one
@@ -622,16 +629,25 @@ Rules for implementers:
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
 | `resize-handle-top`, `resize-handle-bottom` | inside the block of the entry being resized (`event-chip` / `tasklist-card`) |
 | `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`) with one `tasklist-card-item` (`data-title`) per item, `tasklist-card-count` (`1/3`), `tasklist-card-time` |
-| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("+ Add item" button, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
+| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("Add item" button in the footer row beside `tasklist-edit` and `tasklist-delete`, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-collapse` (chevron in the head, `aria-expanded`; the `tasklist-view` root has `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
 | `tasks-group-by` | segmented button, options `data-value="time\|category\|none"`, labels Time/Category/None, `aria-pressed` |
 | `tasks-sort-by` | select, labels Date/Name/Category/Last changed/Progress |
+| `tasks-collapse-all` | one toggle after the sort controls: collapses every list shown in the Open tab, or expands them all when all are collapsed (`aria-pressed="true"` = all collapsed) |
 | `tasks-sort-dir` | toggle button next to it, `aria-pressed="true"` when reversed, `data-dir="default\|reversed"` |
 | `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
 | `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
 | `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
+| `tasks-filter-bar` | the Tasks view's one filter row (all three tabs): `tasks-filter-category` (chip, `data-id`, `aria-pressed`), `tasks-filter-when` (chip, `data-value`) with the menu options `tasks-filter-when-option` (`data-value`), `tasks-filter-clear` (only while a filter is on) |
+| `tasks-tab-canvas` | the Canvas tab (`aria-pressed`); the tab's content is `tasks-canvas` |
+| `tasks-canvas`, `canvas-viewport` | Canvas root and its viewport; `canvas-viewport` has `data-zoom`, `data-pan-x`, `data-pan-y` |
+| `canvas-note` | one sticky note (picked up by a long press anywhere on it): `data-tasklist-id`, `data-title`, `data-date` (`""` when undated), `data-x`, `data-y` (top-left corner in canvas units, rounded), `data-placed` (`"true"` once it has a place), `data-area` (name of the area it lies in, `""` = none), `data-dimmed` (`"true"` when the Tasks filter does not match); contains a `tasklist-view`, `canvas-note-grip` (the top strip, where a mouse can grab it, with `canvas-note-date` when dated) |
+| `canvas-unsorted` | the "Unsorted" label above the stack of notes without a place |
+| `canvas-area` | one area: `data-area-id`, `data-name`, `data-color`, `data-x`, `data-y`, `data-w`, `data-h`; `data-selected` while its handles show; contains `canvas-area-header` (tap opens the editor) and, while selected, four `canvas-area-handle` (`data-corner`) |
+| `canvas-area-add` | creates an area in the middle of the view and opens its editor |
+| `canvas-area-editor` | the editor panel: `canvas-area-name-input`, `canvas-area-color` (one per swatch, `data-color`, `aria-pressed`), `canvas-area-delete`, `canvas-area-editor-close` |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
 | `sync-status` | `data-state`, `data-last-sync` |
 | `sync-error-banner`, `sync-retry` | error strip |
@@ -796,6 +812,57 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 - Strip: CSS scroll-snap columns, one per day, sharing ONE time scale (owner: aligned, like the week view): one hour
   gutter, one vertical scroll for all columns, all-day bands equally tall across columns; heights proportional to
   duration; extended in both directions as the user scrolls (virtualised).
+
+### Bedtime mode (owner, 2026-10-13)
+
+- **Setting**: a Settings section "Bedtime" (`settings-section` `data-section="bedtime"`) with the per-person pref
+  `bedtime` (server-whitelisted in `PATCH /api/prefs`, see API.md): `enabled` (default off), `mode` (`fixed` |
+  `dynamic`), fixed `bedtime` / `wake` (default 23:00 / 07:00), "Different on weekends" (`weekendDifferent`) with its
+  own `weekendBedtime` / `weekendWake` (default 00:00 / 09:00), dynamic `sleepMinutes` (default 480) and `leadMinutes`
+  (default 60), and `reminderMinutes` (default 30, 0 = no reminder). Testids `settings-bedtime-on`,
+  `settings-bedtime-mode` (segmented: `-fixed`, `-dynamic`), `settings-bedtime-time`, `settings-bedtime-wake`,
+  `settings-bedtime-weekend` (+ `-time`, `-wake`), `settings-bedtime-sleep`, `settings-bedtime-lead`,
+  `settings-bedtime-reminder`. Fields that do not apply to the chosen mode are hidden.
+- **The rule** (one pure module, `web/src/features/bedtime/bedtime.ts`; no view re-implements it):
+  `bedtimeWindows(range, prefs, items)` returns the night windows that touch `range` (`{ from, to }`, dates, `to`
+  exclusive). A night is named by its **wake-up day** W and spans `[W@wake - d, W@wake]` with `d = (wake - bedtime)
+  mod 24 h` (so `00:00` to `09:00` and `23:00` to `07:00` both work). The fixed pair of W is the main pair, or the
+  weekend pair when W is a Saturday or Sunday (the nights of Friday and Saturday).
+  - `fixed`: that pair.
+  - `dynamic`: wake-up = (first timed item of W) - `leadMinutes`, bedtime = wake-up - `sleepMinutes`. **Never later
+    than fixed**: when that bedtime is not earlier than the fixed bedtime, or W has no timed item, the whole fixed pair
+    is used. First item = the first segment on W that has a time and starts there (`first`, so no continuation of a
+    multi-day event), events and timed task lists, never all-day events or untimed / carried-over lists, hidden
+    calendars left out. `items` is anything with `get(date) -> Segment[]` (the items store's `byDate`).
+  - A window carries `wakeDate`, absolute `start` / `end` (minutes of wall-clock time since 1970-01-01, the same
+    wall-clock model as the segments), the `HH:MM` texts and its mode. `clipToDay(window, date)` gives the
+    `[startMin, endMin]` piece on one date (`1440` at the day's end), so a night over midnight is two pieces.
+- **Overlay**: one small component per view type, all fed by `useBedtimeWindows(range)` (store glue: prefs, items,
+  hidden calendars, and in dynamic mode a background `items.prefetch` of the day after the range so the next
+  morning's first item is known):
+  - `BedtimeColumn.vue` for every vertical day column (a registered grid layer for the Day and Week time grid, and a
+    direct insert in the Timeline day body and the Strip column);
+  - `BedtimeDial.vue` for the Clock (sector on the dial plate behind the arcs);
+  - `BedtimeTrack.vue` for the Approaching track.
+  Look: a dark translucent band (`color-mix` of the scrim token, so it works in light and dark themes), `pointer-events:
+  none` and below the event blocks (z-index 0, blocks start at 1), so events stay visible and interactive. A thin line
+  with a moon icon marks the bedtime edge and one with a sun icon the wake-up edge, only where the night really starts
+  or ends (the next day's piece of a night starts at 00:00 without an icon). Testids `bedtime-band` (grid, Timeline,
+  Strip, Clock) and `bedtime-track-band` (track); `bedtime-moon`, `bedtime-sun`. No animation anywhere (owner: reduced
+  motion), so there is nothing to switch off.
+- **Reminder** (`bedtimeReminder.ts`): driven by the shared clock tick like the transition warnings (no timer of its
+  own). When bedtime is on, `reminderMinutes` > 0 and now is within `reminderMinutes` before the start of tonight's
+  night, a snackbar `bedtime-reminder` says "Bedtime in N minutes" (N = minutes left). Once per night: the shown night is
+  remembered per device (`localStorage` `cal.bedtimeReminded` = the night's wake-up date, plus in memory). The clock tick
+  pauses while the app is hidden and the reminder is not raised while `document.hidden`; it shows when the app is visible
+  again if bedtime has not started. It uses the app clock only (test clock friendly).
+  **Push later**: the reminder goes out through a list of sinks (`reminderSinks`, the snackbar is the first one); a push
+  notification registers another sink without touching the schedule logic. No push is built now.
+- **Why** (alternatives weighed): one nested `bedtime` pref object instead of ten flat prefs (one validation, one
+  Settings group, one place to extend with push); naming the night by its wake-up day instead of its evening because the
+  dynamic rule and the weekend rule both start from the morning; the whole fixed pair when dynamic would be later
+  (instead of mixing a dynamic wake-up with a fixed bedtime) so the two times never contradict; a pure function plus
+  small overlay components (owner) instead of per-view logic, so a rule change is made once.
 
 ### New version notice (owner, 2026-10-12)
 
@@ -1139,6 +1206,124 @@ A task list may have no date. It is stored in the same place as every other list
   +-365-day range and keeps the complete lists (deduplicated by id); every later write of such a list adds the marker.
   Older unmarked lists are not found until they are edited once (acceptable: pre-release, no migration job, A-103).
   The marker is derived from the items on every write (`encodePrivate`), so it can never disagree with them.
+
+### Canvas (owner, 2026-10-13, slice 3 of the task management feature)
+
+The Tasks view gets a third tab, **Canvas** (`tasks-tab-canvas`; tabs: Open · Canvas · Archive). It shows ALL open task
+lists, dated and undated, as **sticky notes** you place freely on a large board, with named **areas** to sort them by.
+Owner decisions are final; the numbers and names below are mine (A-120 .. A-131).
+
+- **Board and units.** One canvas unit = one CSS pixel at zoom 1. The board is `4000 x 3000` units (`WORLD_W`,
+  `WORLD_H`), origin top left. A note is `240` units wide (`NOTE_W`) and as tall as its items. Pure geometry (clamping,
+  stack layout, zoom around a point, area lookup) lives in `web/src/features/tasklists/canvas.ts` with unit tests.
+- **Notes** (`canvas-note`): a card in the category colour with a grip strip on top (the date, when the list has one),
+  the title, the done count and the items with the same `RewardCheckbox` rows as everywhere. A note is the tray's
+  `TaskListView` in a `compact` mode (no move/delete buttons, add field or footer), so ticking, the
+  celebration and the support cat are the existing code and the existing optimistic item ops. Tapping the title
+  opens the task list dialog (`titleOpensDialog`). A tick that finishes the list plays the usual finish feedback, then
+  the note leaves the canvas (the list is in the Archive, ARCHITECTURE "Archive"): the Tasks view store keeps a list that
+  was finished here until the view is opened again (as in Open), and the canvas hides it after the feedback
+  (`1400 ms` plus the cat's visit, A-125).
+- **Place on the event** (owner). The place of a note is stored on its Google event, in `extendedProperties.private`:
+  `cx` and `cy`, the note's top-left corner in canvas units as **integer strings** (`"100"`, `"260"`). Both are present
+  or both absent (absent = no place yet: the note is in the Unsorted stack). Limits: integers `0 .. 10000`
+  (`CANVAS_MAX`); the server rejects anything else with `400 VALIDATION_ERROR` (field `canvas`), and a reader ignores a
+  pair that is not two integers in range. The API shows `canvas: { x, y } | null` on a `TaskList` and takes
+  `canvas?: { x, y } | null` in `PATCH /api/tasklists/:id` (null clears the place: the list goes back to Unsorted).
+  `encodePrivate` writes `cx` / `cy` (null removes them), so every other write of the list keeps the place. The web app
+  clamps a dropped note to the board (`0 .. WORLD - NOTE_W`, `0 .. WORLD_H - 24`) before it saves.
+  *Why two integer properties and not one JSON value*: like `estimate`, they are tiny (about 12 bytes against the 32 kB
+  budget), readable in Google's raw event, and `privateExtendedProperty=cx=100` stays queryable. *Why the server limit
+  (10000) is larger than the board*: the board can grow later without a data migration. *Why integers*: a position needs
+  no sub-unit precision and strings of digits cannot carry stray text.
+- **Moving** (owner feedback 2026-10-13: the first version was unusable on a phone). On a touch screen a **long press
+  anywhere on a note** (350 ms, the calendar's delay; title, items, padding, all of it) lifts it with a haptic tick and the
+  finger then drags; a short tap keeps its meaning (a checkbox ticks, the title opens the dialog), and a touch that moves
+  before the long press does **nothing** on a note (no accidental moves, no pan). The click that ends a drag is swallowed.
+  With a mouse a plain drag after a 4 px slop moves a note (not from a button, box or field). Escape cancels. During the
+  drag the note follows through `transform` only (no layout work); on release the place is saved with
+  `PATCH /api/tasklists/:id { canvas }` **without** `If-Match` (a move never conflicts with item edits: the server
+  re-reads and retries) and shown at once; on a failure the note springs back (the old place) with a snackbar.
+  The existing drag controller (`motion/drag.ts`) is built around slot grids and ghost cards; the canvas reuses its
+  *conventions* (long-press delay, slop, haptic) with a small pointer-event module of its own (`useCanvasPointer.ts`),
+  because a free 2-D board with pan and pinch needs none of the slot hit-testing.
+- **Unsorted stack.** Open lists without a place sit at the top left, offset diagonally on top of each other: the
+  n-th note (ordered by title, then id) at `(24 + 14 n, 24 + 14 n)` for n up to 10, further notes share the last offset.
+  The label "Unsorted" (`canvas-unsorted`) sits above the stack while it is not empty. A note leaves the stack by being
+  moved; a list created later arrives in the stack (`data-placed="false"`).
+- **Zoom and pan.** The board is drawn in a viewport (`canvas-viewport`) as one layer with
+  `transform: translate(px, py) scale(z)`; `data-zoom`, `data-pan-x` and `data-pan-y` expose the view. Pan: dragging
+  the empty background (one finger or the mouse; areas are transparent to the pointer except their header and resize
+  handle), and the plain mouse wheel / trackpad scroll. Zoom: pinch and Ctrl+wheel (the same gesture rate as the time
+  grid, `wheelZoomFactor`), about the pointer or pinch centre, within `0.3 .. 2`. The pan is clamped so that at least
+  `120` px of the board stay in view. The view `{ x, y, zoom }` is remembered **per device** in `localStorage`
+  (`cal.canvasView`, written 250 ms after the last change and on `pagehide`, every access in try/catch; unusable values give the default zoom 1, pan 0, 0); it is never sent to
+  the server.
+- **Areas** (`canvas-area`). A labelled rectangle (name, colour, position, size) that collects notes. It is created with
+  `canvas-area-add` (centred in the view, `320 x 240`, named "Area", colour from a palette). **Moving**: a touch long press
+  anywhere on it (header or body, where no note sits on top) lifts it like a note; a touch that moves earlier pans the
+  canvas (the body is background); with a mouse the header drags it and the body pans. **Resizing, the calendar's
+  pattern** (`features/calendar/ResizeHandles.vue`: release a picked-up entry without moving and handles appear): after a
+  long press released without moving (or a click on the header, or a move), the area is *selected* and shows four round
+  handles on its corners (`canvas-area-handle`, `data-corner` nw, ne, sw, se), each a **44 px** touch target. A handle
+  drags at once, no long press; the opposite corner stays, minimum `160 x 120`, maximum `4000`, kept on the board. A pointer
+  going down anywhere but on a handle, or Escape, hides them. (The calendar's component is vertical, tied to time segments
+  and `ui.resizing`, so it is not reused as a component, only its interaction and sizes.) A tap on the header also opens
+  the editor panel (`canvas-area-editor`: name field `canvas-area-name-input`, Enter or blur saves and closes; colour swatches
+  `canvas-area-color`, `data-color`; `canvas-area-delete`; `canvas-area-editor-close`). Deleting an area deletes only the
+  rectangle: **membership is stored nowhere**; a note belongs to the topmost area that contains the note's *anchor* (the
+  middle of its top edge: `x + 120`, `y + 24`); `data-area` on the note holds that area's name (`""` = none). Why by
+  position only (owner): notes keep their meaning when areas are deleted, resized or restored, and there is nothing to
+  keep in sync. The anchor, not the whole note, because a note's height varies with its items.
+- **Where areas live (owner: per person on the server, not in Google).** `DATA_DIR/users/<sub>/canvas.json`, one JSON
+  document `{ "version": 1, "areas": [ { id, name, color, x, y, w, h } ] }` per person, read and written whole by
+  `GET /api/canvas` and `PUT /api/canvas` (API.md "Canvas"), written atomically like `prefs.json`. A later slice backs
+  this document up to Google Drive, which is why it is one self-contained, serialisable file and not part of `prefs.json`
+  and not many files. *Alternatives weighed*: (a) areas as Google events (rejected: owner, and rectangles are not
+  events); (b) a `canvas` field in `prefs.json` (rejected: prefs are small switches that `PATCH` merges, the canvas
+  document is a growing document with its own limits and backup); (c) one endpoint per area (rejected: more routes and
+  a half-saved board after a failed second call; a whole-document `PUT` is atomic). The price of (c)'s alternative: two
+  devices editing areas at the same moment overwrite each other (last write wins, A-127); the web app writes after each
+  finished edit (create, rename, recolour, drop, resize, delete), serialised in order, and reads the document when the
+  canvas opens and on every sync while nothing is unsaved.
+- **Motion and smoothness.** Everything that follows a pointer or the zoom is `transform`; no gesture reads layout
+  (`getBoundingClientRect` once at pointer-down). The lift of a dragged note (shadow, a slight scale) and the springing
+  back are CSS transitions under `html:not([data-motion='off'])`, so Off and Reduced motion show the plain state change.
+  No `requestAnimationFrame` loop runs while idle; all listeners are bound through `lib/timers` helpers and removed on
+  unmount (ARCHITECTURE 5a). Left-handed mode needs nothing special (owner).
+- **i18n.** All text through `t()`, keys in the per-area module `web/src/i18n/locales/<lang>/canvas.ts` (`canvas.*`),
+  for `en`, `de`, `de-x-mainfr` and `de-x-coldmirror` (the Fresh Dumbledore voice; crude humour only about Harry Potter
+  characters). The new components are added to the raw-text test.
+- **Not in this slice**: the Google Drive backup of the document (a later slice), area membership as data, snapping and
+  alignment, multi-select, per-note sizes, a minimap.
+
+### Tasks filter (owner, 2026-10-13)
+
+One filter for the whole Tasks view, shown in `tasks-filter-bar` under the tabs of **Open, Canvas and Archive** alike. It
+replaces the calendar's URL-based chips in this view (A-77): the top bar's filter button and the global `filter-bar` are
+not offered on `/tasks` (the calendar views keep them).
+
+- **Fields.** Categories: any number of chips (`tasks-filter-category`, `data-id` = the category id or `none`), combined
+  with **or**; "No category" is the `none` chip. **When**: exactly one of `all` (default), `nodate`, `dated`, `overdue`,
+  `today`, `tomorrow`, `week`; **and** with the categories. Definitions on the app clock's today: `nodate` = no date;
+  `dated` = any date; `overdue` = date before today; `today`; `tomorrow` = today + 1; `week` = from today through the
+  coming Sunday (the same Sunday as the time groups, `weekEnd`, but including today). No category chip on and When `all`
+  = no filter.
+- **Where it applies.** Open: non-matching lists are hidden. Archive: hidden too, and **and** with the search. Canvas:
+  non-matching notes are **dimmed, not hidden** (opacity 0.25, no pointer events: not tickable, not draggable, `data-dimmed`),
+  so the hand-made layout does not vanish; areas are never dimmed. This replaces A-122 (the canvas used to ignore the chips).
+- **Pure function.** `matchesTasksFilter(list, filter, today)` and `filterActive(filter)` in
+  `features/tasklists/tasksFilter.ts`, unit-tested with fixed dates.
+- **Stored per person** (owner): the pref `tasksFilter: { categories: string[], when: TasksWhen }` in `prefs.json`, in
+  `GET/PATCH /api/prefs` (API.md "Prefs: Tasks view"), whitelisted: `when` from the list above, `categories` at most 50
+  unique strings of 1-64 characters; anything else is `400`. Why a pref and not the URL (the old chips): the choice follows
+  the person to other devices, like grouping and sorting. An id of a deleted category matches nothing and can be removed
+  with "Clear filters".
+- **UI.** One compact row: the **When chip** (`tasks-filter-when`, `data-value`; it shows "When" or the chosen value, selected
+  while not `all`) opens a small menu (`tasks-filter-when-option`, `data-value`), then, while any filter is on, **Clear
+  filters** (`tasks-filter-clear`), then the category chips in a horizontally scrolling strip. The When chip and Clear sit
+  outside the scrolling strip so the menu is not clipped by its overflow. Why a menu for When and not seven chips: seven
+  chips plus the categories would not fit one phone row, and only one value can be on at a time anyway. Texts: `tasks.filter.*`.
 
 ### Untitled task lists (owner, 2026-10-12)
 

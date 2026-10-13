@@ -81,7 +81,7 @@ describe('TaskListCodec', () => {
     expect(mirror([])).toBe('');
   });
   it('round-trips through the Google shape', () => {
-    const data = { title: 'T', date: '2026-10-12', time: '09:00', items, categoryId: 'work', tags: ['a', 'b'], estimateMinutes: 45, recurrence: 'weekly' as const, completedOn: '2026-10-11' };
+    const data = { title: 'T', date: '2026-10-12', time: '09:00', items, categoryId: 'work', tags: ['a', 'b'], estimateMinutes: 45, recurrence: 'weekly' as const, completedOn: '2026-10-11', canvas: { x: 120, y: 340 } };
     const ev = encodeTaskList(data, 'Europe/Berlin', '3');
     expect(ev).toMatchObject({ summary: 'T', colorId: '3', recurrence: ['RRULE:FREQ=WEEKLY'] });
     expect(ev.extendedProperties?.private?.completedOn).toBe('2026-10-11');
@@ -90,7 +90,7 @@ describe('TaskListCodec', () => {
     expect(back).toEqual(data);
   });
   it('an untitled list is stored with the items as summary and the untitled flag, and decodes to an empty title', () => {
-    const data = { title: '', date: '2026-10-12', time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null };
+    const data = { title: '', date: '2026-10-12', time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null, canvas: null };
     const ev = encodeTaskList(data, 'Europe/Berlin', null);
     expect(ev.summary).toBe('One, Two');
     expect(ev.extendedProperties?.private?.untitled).toBe('1');
@@ -115,7 +115,7 @@ describe('TaskListCodec', () => {
     expect(nextCompletedOn(d(done, '2026-10-10'), d([], '2026-10-10'), '2026-10-12')).toBeNull(); // an empty list is not finished
   });
   it('an undated list is an all-day event on the anchor date with the undated marker, and round-trips to date null', () => {
-    const data = { title: 'T', date: null, time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null };
+    const data = { title: 'T', date: null, time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null, canvas: null };
     const ev = encodeTaskList(data, 'Europe/Berlin', null);
     expect(UNDATED_ANCHOR).toBe('2099-12-31');
     expect(ev.start).toEqual({ date: '2099-12-31' });
@@ -144,7 +144,7 @@ describe('TaskListCodec', () => {
     expect(dateOnCompletion(l(open), l(done), '2026-10-12', 'calendar')).toBe('2026-10-12');
   });
   it('encodePrivate marks finished lists with done=1 and clears it when an item is open again', () => {
-    const base = { title: 'T', date: null, time: null, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null };
+    const base = { title: 'T', date: null, time: null, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null, canvas: null };
     expect(encodePrivate({ ...base, items: [{ id: 'a', title: 'A', done: true }] }).done).toBe('1');
     expect(encodePrivate({ ...base, items: [{ id: 'a', title: 'A', done: false }] }).done).toBeNull();
     expect(encodePrivate({ ...base, items: [] }).done).toBeNull();

@@ -7,6 +7,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { addDays, format } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
+import BedtimeColumn from '@/features/bedtime/BedtimeColumn.vue';
 import { parseIsoDate, toIsoDate } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { packColumns, blockGeometry, MIN_BLOCK_PX, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
@@ -232,6 +233,7 @@ watch(() => clock.today, () => nextTick(scrollToNow), { once: true });
           </div>
           <div class="vbody" :style="{ height: 24 * HH + 'px' }">
             <span v-for="h in HOURS" :key="h" class="hl" :style="{ top: h * HH + 'px' }">{{ String(h).padStart(2, '0') }}:00</span>
+            <BedtimeColumn :date="v.iso" :hour-height="HH" />
             <div
               v-for="p in v.blocks" :key="p.seg.item.id + p.seg.date" class="vitem block"
               data-testid="timeline-item" :data-title="p.seg.item.title" :data-date="p.seg.date" :style="blockStyle(p)"

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -71,7 +71,7 @@ function back() {
 
 // --- sections -------------------------------------------------------------------------------
 /** Every setting lives in exactly one section (ARCHITECTURE "Settings"); the desktop list links to them. */
-const SECTION_IDS = ['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'labs', 'account'] as const;
+const SECTION_IDS = ['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'labs', 'account'] as const;
 type SectionId = (typeof SECTION_IDS)[number];
 const sections = computed(() => SECTION_IDS.map((id) => ({ id, title: t(`settings.sections.${id}`) })));
 const title = (id: SectionId) => t(`settings.sections.${id}`);
@@ -117,6 +117,22 @@ const undatedDoneOptions = computed(() => [
   { value: 'calendar', label: t('settings.tasklists.undatedDone.calendar'), testid: 'settings-undated-done-calendar' },
   { value: 'archive', label: t('settings.tasklists.undatedDone.archive'), testid: 'settings-undated-done-archive' },
 ]);
+// --- bedtime ------------------------------------------------------------------------------------
+const bt = computed(() => labs.bedtime);
+/** Saves part of the bedtime preference; a time field only saves a complete `HH:MM`. */
+function saveBedtime(p: Partial<BedtimePrefs>) {
+  for (const v of [p.bedtime, p.wake, p.weekendBedtime, p.weekendWake]) if (v !== undefined && !/^\d{2}:\d{2}$/.test(v)) return;
+  void savePrefs({ bedtime: p as BedtimePrefs });
+}
+const bedtimeModes = computed(() => [
+  { value: 'fixed', label: t('bedtime.settings.mode.fixed'), testid: 'settings-bedtime-mode-fixed' },
+  { value: 'dynamic', label: t('bedtime.settings.mode.dynamic'), testid: 'settings-bedtime-mode-dynamic' },
+]);
+/** The offered values plus the stored one, so a value set elsewhere still shows. */
+const withCurrent = (offered: number[], current: number) => (offered.includes(current) ? offered : [...offered, current].sort((a, b) => a - b));
+const sleepOptions = computed(() => withCurrent([6, 7, 8, 9, 10].map((h) => h * 60), bt.value.sleepMinutes).map((m) => ({ value: String(m), label: t('bedtime.settings.sleep.hours', { count: m / 60 }, m / 60) })));
+const leadOptions = computed(() => withCurrent([0, 15, 30, 45, 60, 90, 120], bt.value.leadMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.lead.none') : t('bedtime.settings.lead.minutes', { count: m }) })));
+const reminderOptions = computed(() => withCurrent([0, 5, 10, 15, 30, 45, 60], bt.value.reminderMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.reminder.off') : t('bedtime.settings.reminder.minutes', { count: m }) })));
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
 // --- categories ---------------------------------------------------------------------------
@@ -222,6 +238,29 @@ async function resetDemo() {
           <p v-if="systemReducedMotion" class="sub note" data-testid="settings-system-reduced-motion">{{ t('settings.motion.systemReduced') }}</p>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.motion.ignoreSystem.label') }}</span><span class="sub">{{ t('settings.motion.ignoreSystem.hint') }}</span></div><Switch :model-value="s.ignoreSystemMotion" :label="t('settings.motion.ignoreSystem.label')" data-testid="settings-ignore-system-motion" @update:model-value="save({ ignoreSystemMotion: $event })" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.motion.sounds') }}</span><Switch :model-value="s.sounds" :label="t('settings.motion.sounds')" data-testid="settings-sounds" @update:model-value="save({ sounds: $event })" /></div>
+        </section>
+
+        <section id="s-bedtime" class="card" data-testid="settings-section" data-section="bedtime" aria-labelledby="h-bedtime">
+          <h2 id="h-bedtime">{{ title('bedtime') }}</h2>
+          <div class="row"><div class="grow"><span class="lab">{{ t('bedtime.settings.on.label') }}</span><span class="sub">{{ t('bedtime.settings.on.hint') }}</span></div><Switch :model-value="bt.enabled" :label="t('bedtime.settings.on.label')" data-testid="settings-bedtime-on" @update:model-value="saveBedtime({ enabled: $event })" /></div>
+          <template v-if="bt.enabled">
+            <div class="row col"><span class="lab">{{ t('bedtime.settings.mode.label') }}</span><SegmentedButton :model-value="bt.mode" :options="bedtimeModes" :label="t('bedtime.settings.mode.label')" data-testid="settings-bedtime-mode" @update:model-value="saveBedtime({ mode: $event as BedtimeMode })" /></div>
+            <div class="row">
+              <TextField class="grow" :model-value="bt.bedtime" type="time" :label="t('bedtime.settings.bedtime')" data-testid="settings-bedtime-time" @update:model-value="saveBedtime({ bedtime: $event })" />
+              <TextField class="grow" :model-value="bt.wake" type="time" :label="t('bedtime.settings.wake')" data-testid="settings-bedtime-wake" @update:model-value="saveBedtime({ wake: $event })" />
+            </div>
+            <div class="row"><div class="grow"><span class="lab">{{ t('bedtime.settings.weekend.label') }}</span><span class="sub">{{ t('bedtime.settings.weekend.hint') }}</span></div><Switch :model-value="bt.weekendDifferent" :label="t('bedtime.settings.weekend.label')" data-testid="settings-bedtime-weekend" @update:model-value="saveBedtime({ weekendDifferent: $event })" /></div>
+            <div v-if="bt.weekendDifferent" class="row">
+              <TextField class="grow" :model-value="bt.weekendBedtime" type="time" :label="t('bedtime.settings.weekendBedtime')" data-testid="settings-bedtime-weekend-time" @update:model-value="saveBedtime({ weekendBedtime: $event })" />
+              <TextField class="grow" :model-value="bt.weekendWake" type="time" :label="t('bedtime.settings.weekendWake')" data-testid="settings-bedtime-weekend-wake" @update:model-value="saveBedtime({ weekendWake: $event })" />
+            </div>
+            <template v-if="bt.mode === 'dynamic'">
+              <p class="sub note" data-testid="settings-bedtime-dynamic-hint">{{ t('bedtime.settings.dynamicHint') }}</p>
+              <div class="row"><Select class="fw" :model-value="String(bt.sleepMinutes)" :options="sleepOptions" :label="t('bedtime.settings.sleep.label')" data-testid="settings-bedtime-sleep" @update:model-value="saveBedtime({ sleepMinutes: Number($event) })" /></div>
+              <div class="row"><Select class="fw" :model-value="String(bt.leadMinutes)" :options="leadOptions" :label="t('bedtime.settings.lead.label')" data-testid="settings-bedtime-lead" @update:model-value="saveBedtime({ leadMinutes: Number($event) })" /></div>
+            </template>
+            <div class="row"><Select class="fw" :model-value="String(bt.reminderMinutes)" :options="reminderOptions" :label="t('bedtime.settings.reminder.label')" data-testid="settings-bedtime-reminder" @update:model-value="saveBedtime({ reminderMinutes: Number($event) })" /></div>
+          </template>
         </section>
 
         <section id="s-labs" class="card" data-testid="settings-section" data-section="labs" aria-labelledby="h-labs">
