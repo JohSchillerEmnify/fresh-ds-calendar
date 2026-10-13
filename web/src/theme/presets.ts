@@ -19,7 +19,9 @@ export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode
 /** An imported theme the person chose: `theme:<id>` (API.md "Imported themes"). */
 export type CustomThemeKey = `theme:${string}`;
 /** What the person's fine-tuning replaces of the chosen theme: the four attributes and the seed colour. */
-export type ThemeOverrides = Partial<ThemeAttrs> & { seed?: string };
+/** What a person can store as scene: any scene, or `season`, the automatic choice that follows today's date. */
+export type SceneChoice = ThemeScene | 'season';
+export type ThemeOverrides = Partial<Omit<ThemeAttrs, 'scene'>> & { scene?: SceneChoice; seed?: string };
 export interface ThemePref { preset: PresetName | CustomThemeKey; overrides: ThemeOverrides }
 /** What the one apply path works from, whether it came from a preset or an imported theme document. */
 export interface ResolvedTheme {
@@ -109,7 +111,9 @@ export function resolveTheme(pref: ThemePref, today: string, custom: Record<stri
   const own = id === null ? { doc: presetDoc(presetFor(pref.preset as PresetName, today)) } : custom[id];
   const base = own ? docToResolved(own.doc, own.picture) : docToResolved(presetDoc(PRESETS.Default));
   const { seed, ...attrs } = pref.overrides;
-  return { ...base, ...(seed ? { seed } : {}), attrs: { ...base.attrs, ...attrs } };
+  const merged = { ...base.attrs, ...attrs };
+  // the automatic choice follows the date
+  return { ...base, ...(seed ? { seed } : {}), attrs: { ...merged, scene: merged.scene === 'season' ? seasonScene(today) : merged.scene } };
 }
 
 const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
