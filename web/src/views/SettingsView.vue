@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
 import IconUp from '~icons/material-symbols/keyboard-arrow-up';
@@ -85,11 +85,22 @@ function commitHex() {
 const scenes = [{ value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] as const;
 const views = [{ value: 'month', label: 'Month' }, { value: 'week', label: 'Week' }, { value: 'day', label: 'Day' }] as const;
 const colorOptions = [{ value: '', label: 'Calendar color' }, ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, label: c.name }))];
-/** 3, 6 and 12 hours, plus the person's own number of hours while one is chosen (so the choice shows it). */
-const approachWindows = computed(() => {
-  const h = labs.approachWindowHours;
-  return [3, 6, 12, ...([3, 6, 12].includes(h) ? [] : [h])].sort((a, b) => a - b).map((v) => ({ value: String(v), label: `${v} hours` }));
-});
+/** 3, 6 and 12 hours, plus "Custom…" which reveals the hours field. */
+const PRESET_WINDOWS = [3, 6, 12];
+const approachWindows = [...PRESET_WINDOWS.map((v) => ({ value: String(v), label: `${v} hours` })), { value: 'custom', label: 'Custom…' }];
+const customPicked = ref(false);
+/** The select shows Custom… while picked or while the stored value is not a preset. */
+const approachChoice = computed(() => (customPicked.value || !PRESET_WINDOWS.includes(labs.approachWindowHours) ? 'custom' : String(labs.approachWindowHours)));
+/** Picking a preset saves it and hides the field; picking Custom… reveals and focuses the field. */
+function pickApproachWindow(v: string) {
+  if (v === 'custom') {
+    customPicked.value = true;
+    void nextTick(() => document.querySelector<HTMLInputElement>('[data-testid="settings-approach-window-custom"]')?.focus());
+    return;
+  }
+  customPicked.value = false;
+  void savePrefs({ approachWindowHours: Number(v) as ApproachWindowHours });
+}
 const customHours = ref(String(labs.approachWindowHours));
 const customHoursError = ref('');
 watch(() => labs.approachWindowHours, (h) => { customHours.value = String(h); customHoursError.value = ''; });
@@ -185,8 +196,8 @@ async function resetDemo() {
         <div class="row"><div class="grow"><span class="lab">Approaching card</span><span class="sub">What is on now and next, above the calendar</span></div><Switch :model-value="labs.approachingCard" label="Approaching card" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" /></div>
         <div class="row"><div class="grow"><span class="lab">Approaching track</span><span class="sub">What comes next today as a track in the Approaching card</span></div><Switch :model-value="labs.approachBar" label="Approaching track" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" /></div>
         <div class="row">
-          <Select class="grow" :model-value="String(labs.approachWindowHours)" :options="approachWindows" label="Track reaches ahead" data-testid="settings-approach-window" @update:model-value="savePrefs({ approachWindowHours: Number($event) as ApproachWindowHours })" />
-          <TextField v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" label="Hours" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
+          <Select class="grow" :model-value="approachChoice" :options="approachWindows" label="Track reaches ahead" data-testid="settings-approach-window" @update:model-value="pickApproachWindow" />
+          <TextField v-if="approachChoice === 'custom'" v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" label="Hours" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
         </div>
         <div class="row"><div class="grow"><span class="lab">Show tasks calendar in Google</span><span class="sub">Task lists stay in the app either way</span></div><Switch :model-value="labs.tasksCalendarVisible" label="Show tasks calendar in Google" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
       </section>
