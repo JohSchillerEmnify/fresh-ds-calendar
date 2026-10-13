@@ -25,10 +25,10 @@ describe('theme presets', () => {
     const days = Array.from({ length: 366 }, (_, i) => new Date(Date.UTC(2028, 0, 1 + i)).toISOString().slice(0, 10));
     expect(days.map(automaticPreset)).not.toContain('Summer holidays');
   });
-  it('offers the holiday presets in the order of the Scene card, each with its own scene and the person\'s mode', () => {
+  it('offers the holiday presets in the order of the Scene card, each with its own scene, the person\'s mode except a dark New Year\'s Eve', () => {
     expect(PRESET_NAMES).toEqual(['Default', 'Neon', 'Spring', 'Easter', 'Summer', 'Summer holidays', 'Fall', 'Halloween', 'Christmas', 'New Year\'s Eve', 'New Year', 'Winter', 'Mordor', 'Automatic']);
     expect((['Easter', 'Summer holidays', 'Christmas', 'New Year\'s Eve', 'New Year'] as const).map((n) => [PRESETS[n].attrs.scene, PRESETS[n].mode]))
-      .toEqual([['easter', null], ['summerholidays', null], ['christmas', null], ['newyearseve', null], ['newyear', null]]);
+      .toEqual([['easter', null], ['summerholidays', null], ['christmas', null], ['newyearseve', 'dark'], ['newyear', null]]);
   });
   it('Automatic "scene only" takes the colours of the base theme and the scene of the calendar', () => {
     const r = resolveTheme({ preset: 'Automatic', overrides: {}, automatic: 'scene', automaticBase: 'Neon' }, '2026-12-24');

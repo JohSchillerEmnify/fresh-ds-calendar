@@ -118,6 +118,13 @@ Feature: Choosing and fine-tuning a theme
     Then the top bar shows the "summerholidays" scene
     And the theme "Summer holidays" is marked as chosen
 
+  Scenario: New Year's Eve is dark even when I chose light
+    Given today is 2026-12-31
+    When I open the theme menu
+    And I choose the theme mode "Light"
+    And I choose the theme "Automatic"
+    Then the app uses the dark theme
+
   Scenario: Automatic can change only the scene, on colours I choose
     Given today is 2026-12-24
     And I chose the theme "Automatic"
