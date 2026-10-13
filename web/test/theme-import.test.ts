@@ -369,6 +369,22 @@ describe('own themes in the theme menu', () => {
     expect(w.find(tid('theme-save-own')).exists()).toBe(true);
   });
 
+  it('asks for the saved themes and the choice together, not one after the other', async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    const m = mockFetch({
+      'GET /api/themes': async () => { await held; return { themes: [{ id: 'T1', doc: ocean() }] }; },
+      'GET /api/prefs/theme': () => ({ preset: 'theme:T1', overrides: {} }),
+    });
+    const loading = useThemeStore().load();
+    await flushPromises();
+    // the choice was requested while the (held) themes request was still open
+    expect(m.calls.map((c) => c.path).sort()).toEqual(['/api/prefs/theme', '/api/themes']);
+    release();
+    await loading;
+    expect(useThemeStore().resolved.name).toBe('Ocean');
+  });
+
   it('applies a chosen own theme with the Labs switch off', async () => {
     mockFetch({ 'GET /api/themes': () => ({ themes: [{ id: 'T1', doc: ocean() }] }), 'GET /api/prefs/theme': () => ({ preset: 'theme:T1', overrides: {} }) });
     await useThemeStore().load();
