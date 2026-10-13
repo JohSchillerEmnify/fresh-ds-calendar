@@ -181,3 +181,7 @@ spec files are named.
   HTTPS via Cloudflare) for the real instance.
 - **A-68 Approaching card always compact** (owner, 2026-10-13): the card always has its slim (formerly collapsed)
   form; an expanded form may come back as a later feature.
+- **A-69 One scene choice** (owner, 2026-10-13; wording of the migration inferred, flagged for confirmation): the old
+  "Top bar scene" setting and the theme's "Scene" attribute become one theme attribute. On migration the scene that was
+  visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
+  style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.

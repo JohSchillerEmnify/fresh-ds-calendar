@@ -10,6 +10,8 @@ export const LOCAL_PERSON = 'local';
 export interface ThemeOverrides { glow?: string; entries?: string; corners?: string; scene?: string }
 /** A person's chosen theme: a preset name plus fine-tuning overrides. */
 export interface ThemePref { preset: string; overrides: ThemeOverrides }
+/** What `prefs.json` stores: the theme plus a marker that the retired top bar scene was folded into it. */
+interface StoredTheme extends ThemePref { sceneUnified?: true }
 export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
 
 /** How often the emotional support cat comes by when a task list is finished. */
@@ -43,7 +45,7 @@ interface StoredPrefs extends Prefs {
   hiddenCalendars: string[];
   /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
   tasksCalendarId: string | null;
-  theme?: ThemePref;
+  theme?: StoredTheme;
 }
 
 /** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, support cat, theme, tasks calendar). */
@@ -86,12 +88,29 @@ export class PrefsStore {
     return t ? { preset: t.preset, overrides: t.overrides ?? {} } : { ...DEFAULT_THEME, overrides: {} };
   }
 
+  /**
+   * Folds the retired top bar scene into the person's theme, once (ARCHITECTURE "Themes"). The scene that was
+   * visible wins: the theme's own scene if it was not `none`, otherwise the old top bar setting.
+   *
+   * @param legacy The old `Settings.scene`, or undefined when there is none to migrate.
+   */
+  migrateScene(sub: string, legacy: string | undefined): void {
+    const prev = this.read(sub);
+    if (legacy === undefined || prev.theme?.sceneUnified) return;
+    const cur = this.theme(sub);
+    // Default and Neon had no scene of their own; the other presets always did
+    const own = cur.overrides.scene ?? (cur.preset === 'Default' || cur.preset === 'Neon' ? 'none' : 'preset');
+    const overrides = own === 'none' ? { ...cur.overrides, scene: legacy } : cur.overrides;
+    writeJsonAtomic(this.file(sub), { ...prev, theme: { preset: cur.preset, overrides, sceneUnified: true } } satisfies StoredPrefs);
+  }
+
   /** Merges a theme change into the stored preferences and returns the result. */
   setTheme(sub: string, patch: { preset?: string; overrides?: ThemeOverrides }): ThemePref {
     const prev = this.read(sub);
     const cur = this.theme(sub);
     const theme: ThemePref = { preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides };
-    writeJsonAtomic(this.file(sub), { ...prev, theme } satisfies StoredPrefs);
+    // a person's own save replaces the old scene, so there is nothing left to migrate
+    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...theme, sceneUnified: true } } satisfies StoredPrefs);
     return theme;
   }
 

@@ -321,19 +321,20 @@ describe('settings store', () => {
     expect(s.settings.sounds).toBe(true);
     expect(s.settings.defaultView).toBe('week');
   });
-  it('resolves the effective scene from scene + garden and sets the Mordor preset', async () => {
+  it('resolves the effective scene from the theme scene + garden and sets the Mordor shortcut', async () => {
     let server = settingsFixture();
     mockFetch({
       'GET /api/settings': () => server,
       'PATCH /api/settings': ({ body }) => (server = settingsFixture({ ...server, ...body, version: server.version + 1 })),
+      'PATCH /api/prefs/theme': ({ body }) => body,
     });
     const s = useSettingsStore();
     await s.load();
-    expect(s.effectiveScene).toBe('none'); // sunflowers scene needs garden = sunflowers
+    expect(s.effectiveScene).toBe('none'); // the Default theme's sunflower scene needs garden = sunflowers
     await s.patch({ garden: 'sunflowers' });
     expect(s.effectiveScene).toBe('sunflowers');
     await s.applyMordor();
-    expect(s.settings).toMatchObject({ seedColor: '#c43e00', themeMode: 'dark', scene: 'mordor' });
+    expect(s.settings).toMatchObject({ seedColor: '#c43e00', themeMode: 'dark' });
     await s.patch({ garden: 'off' });
     expect(s.effectiveScene).toBe('mordor');
   });

@@ -39,6 +39,8 @@ const items = useItemsStore();
 const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 const theme = useThemeStore();
+/** The Theme row's value: the preset name, for Automatic with the seasonal theme in use ("Automatic · Fall"). */
+const themeLabel = computed(() => (theme.pref.preset === 'Automatic' ? `Automatic · ${theme.resolved.name}` : theme.pref.preset));
 const build = shownVersion();
 
 /** Persist a per-person preference (Labs switch, support cat, tasks calendar); a refusal rolls back in the store and shows a snackbar. */
@@ -161,7 +163,7 @@ async function resetDemo() {
           <h2 id="h-appearance">{{ title('appearance') }}</h2>
           <button type="button" class="row link" data-testid="settings-theme" @click="router.push('/settings/theme')">
             <span class="grow"><span class="lab">Theme</span><span class="sub">Mode, colour, glow, entries, corners and scene</span></span>
-            <span class="val" data-testid="settings-theme-name">{{ theme.pref.preset }}</span>
+            <span class="val" data-testid="settings-theme-name">{{ themeLabel }}</span>
             <IconNext aria-hidden="true" />
           </button>
         </section>
