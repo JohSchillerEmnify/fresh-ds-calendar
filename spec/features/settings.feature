@@ -124,3 +124,11 @@ Feature: Settings
     When I open the settings
     Then the settings sections are "Appearance, Calendar, Task lists, Focus & motivation, Motion & sound, Labs, Account & data"
     And the settings page has no theme mode or seed colour controls
+
+  Scenario: The version is shown in the settings and, if I want, in the corner
+    Given the server reports the build version "0.4.2+abc1234"
+    When I open the settings
+    Then the settings show the version "0.4.2"
+    When I turn on "Show version in the corner" in the settings
+    And I open the week view for 2026-10-12
+    Then the corner shows the version "0.4.2"

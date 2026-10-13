@@ -724,6 +724,20 @@ back to the foreground it compares them; when they differ it shows a persistent 
 "Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
 It never reloads by itself and never interrupts an open dialog.
 
+### Version numbers (owner, 2026-10-13)
+
+- Semantic versions, counted automatically on every deploy from master: since the last tag `vX.Y.Z`, a commit
+  subject starting `feat` raises the minor version, otherwise (fix, test, chore, spec, …) the patch version; a
+  `BREAKING` marker raises the major version — but while the major is 0 (until the public VPS instance with Google
+  sign-in goes live, then 1.0.0 by hand) it raises the minor instead. The first tag is `v0.1.0`. `scripts/version.sh`
+  computes it; `deploy.sh` tags master locally (no remote) and builds with `APP_VERSION=X.Y.Z+<sha>`; previews build
+  with `<last tag>-preview+<sha>`. Alternative weighed: a hand-kept version in package.json — rejected (owner: automatic).
+- The update notice keeps comparing the full build version, so every deploy is noticed.
+- Settings → Account & data shows "Version X.Y.Z" with the sha in small print (`settings-version`). A switch "Show
+  version in the corner" (`settings-version-corner`, per device in `localStorage`, default off) shows a small label
+  `app-version` ("0.4.2") in the bottom-left corner of the main UI (above the safe area, below dialogs, never covering
+  the bottom bar or the FAB).
+
 ### Themes
 
 - A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season

@@ -415,6 +415,9 @@ pressing the create button shows a state layer
 I open the settings
 the settings sections are {string}
 the settings page has no theme mode or seed colour controls
+the server reports the build version {string}
+the settings show the version {string}
+the corner shows the version {string}
 the settings screen is shown
 I leave the settings
 I choose the theme mode {string}
@@ -965,3 +968,6 @@ Google shows the calendar {string}
   color preset`, `I enter the custom seed color`, `the seed color … is selected`, `the theme mode … is selected`)
   operate in the theme menu (open it from the settings' `settings-theme` if not open); the testids are unchanged.
   "I open the settings" stays the settings page.
+- Version: "the server reports the build version V" uses the existing `POST /api/__test/version { version }` and
+  reloads; `settings-version` text starts with "Version 0.4.2"; `app-version` text equals "0.4.2". The corner switch
+  goes through the generic `I turn on {string} in the settings` step.
