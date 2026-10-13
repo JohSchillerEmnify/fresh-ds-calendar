@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarItem } from '@/api/types';
 import { approachEntries, approachLayout, approachTicks, type ApproachSizes } from '@/features/labs/approach/approach';
+import { itemSegments } from '@/lib/items';
 import { ev, segsOf, t } from './helpers';
 
 const D = '2026-10-14';
@@ -84,6 +85,24 @@ describe('approach bar layout', () => {
     const later = at(9 * 60 + 45, 360, 180, segsOf([dentist], D));
     expect(later.chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 30, true]]);
     expect(at(10 * 60, 360, 180, segsOf([dentist], D)).chips).toEqual([]);
+  });
+  it('keeps a running task list on the track with the time it has left (default block, else its estimate)', () => {
+    const tax = list('tax', '02:00', 'Tax paperwork');
+    const now = 2 * 60 + 17;
+    expect(at(now, 360, 180, segsOf([tax], D)).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 26, true]]); // 13 min left
+    const est = { ...tax, estimateMinutes: 90 } as CalendarItem;
+    expect(at(now, 360, 180, segsOf([est], D)).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 146, true]]); // 1 h 13 min left
+  });
+  it('a carried-over task list with a time sits on the track at that time today', () => {
+    const tax = { ...list('tax', '02:00', 'Tax paperwork'), date: '2026-10-11', totalCount: 3, doneCount: 1 } as CalendarItem;
+    const now = 2 * 60 + 17;
+    const segs = itemSegments(tax, D); // rendered on today, untimed, with carriedFrom
+    expect(approachEntries(segs, now, 180).entries.map((s) => [s.item.title, s.startMin, s.endMin])).toEqual([['Tax paperwork', 120, 150]]);
+    expect(at(now, 360, 180, segs).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 26, true]]);
+    const est = itemSegments({ ...tax, estimateMinutes: 90 } as CalendarItem, D);
+    expect(at(now, 360, 180, est).chips.map((c) => [c.x, c.width, c.running])).toEqual([[0, 146, true]]);
+    // an untimed carried-over list stays off the track
+    expect(approachEntries(itemSegments({ ...tax, time: null } as CalendarItem, D), now, 180).entries).toEqual([]);
   });
   it('places each block at its start time on an absolute window, now at 0', () => {
     const l = at(8 * 60, 720, 360);
