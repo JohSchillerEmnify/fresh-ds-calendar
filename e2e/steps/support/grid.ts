@@ -28,3 +28,10 @@ export async function expectPositioned(world: World, chip: Locator, from: string
     .toBe('ok');
 }
 
+
+/** Current hour height (px) of the time grid, from its `data-hour-height`. */
+export async function gridHourHeight(world: World): Promise<number> {
+  const grid = world.page.getByTestId('time-grid').first();
+  await expect(grid).toHaveAttribute('data-hour-height', /\d/);
+  return Number(await grid.getAttribute('data-hour-height'));
+}

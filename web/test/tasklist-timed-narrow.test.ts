@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import type { TaskList } from '@/api/types';
-import { itemSegments, segmentMinPx, blockGeometry } from '@/lib/items';
+import { itemSegments, blockGeometry, MIN_BLOCK_PX } from '@/lib/items';
 import { freshPinia } from './helpers';
 
 const cardWidth = vi.hoisted(() => ({ px: 47 }));
@@ -29,10 +29,10 @@ describe('timed task list block in a 47 x 45 px column', () => {
     expect(visible(w).map((e) => e.text())).toEqual(['Item 0']);
     expect(w.find('[data-testid=tasklist-card-more]').exists()).toBe(false);
   });
-  it('lists with open items get a 44 px minimum height, events 24', () => {
+  it('lists are drawn to scale like events, with the same 25 px minimum', () => {
     const seg = itemSegments(list(2, 15))[0];
-    expect(segmentMinPx(seg)).toBe(44);
-    expect(blockGeometry(seg.startMin, seg.endMin, 48, segmentMinPx(seg)).height).toBe(44);
+    expect(blockGeometry(seg.startMin, seg.endMin, 160).height).toBe(40);
+    expect(blockGeometry(seg.startMin, seg.endMin, 48).height).toBe(MIN_BLOCK_PX);
   });
 });
 

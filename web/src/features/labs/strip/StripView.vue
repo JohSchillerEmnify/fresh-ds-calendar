@@ -10,7 +10,7 @@ import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { addDays, HOURS, hourLabel, MONTH_NAMES, parseIsoDate, routePath, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
-import { blockGeometry, packColumns, segmentMinPx, STACK_INDENT_PX, type Segment } from '@/lib/items';
+import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, type Segment } from '@/lib/items';
 
 /** Days added per extension and the distance (in columns) from an edge that triggers one. */
 const CHUNK = 14;
@@ -34,7 +34,7 @@ const segs = (date: string): Segment[] => (items.byDate.get(date) ?? []).filter(
 /** Pixels per hour: each column is a small time grid, block height proportional to duration. */
 const HH = 48;
 const topOf = (date: string) => segs(date).filter((s) => s.allDay || s.startTime === null);
-const placedOf = (date: string) => packColumns(segs(date), (s) => (segmentMinPx(s) / HH) * 60);
+const placedOf = (date: string) => packColumns(segs(date), (MIN_BLOCK_PX / HH) * 60);
 const weekday = (d: string) => WEEKDAY_LABELS[(parseIsoDate(d)!.getDay() + 6) % 7];
 const dayLabel = (d: string) => `${parseIsoDate(d)!.getDate()} ${MONTH_NAMES[parseIsoDate(d)!.getMonth()].slice(0, 3)}`;
 
@@ -117,9 +117,9 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
           <span v-for="h in HOURS" :key="h" class="hl" data-testid="strip-hour-line" :data-hour="h" :style="{ top: h * HH + 'px', height: HH + 'px' }" />
           <div
             v-for="p in placedOf(d)" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).height + 'px', left: `calc(100% * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc(100% * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, HH).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH).height + 'px', left: `calc(100% * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc(100% * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
           >
-            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, HH, segmentMinPx(p.seg)).height" />
+            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, HH).height" />
           </div>
         </article>
       </div>
