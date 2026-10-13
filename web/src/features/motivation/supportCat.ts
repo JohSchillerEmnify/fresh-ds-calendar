@@ -44,3 +44,18 @@ export function takeForcedCat(testMode: boolean, w: { __catNext?: boolean } | un
 export function catDuration(level: MotionLevel): number {
   return level === 'off' ? 0 : CAT_DURATION_MS[level];
 }
+
+/**
+ * When, within a visit, the paw swipes across the list title (ms from the start, and how long the stroke takes). The
+ * title's strike line draws itself in this window so line and paw move together; `SupportCat`'s paw keyframes use the
+ * same fractions (full: 36-52 %, reduced: 28-46 %).
+ */
+export const CAT_SWIPE = { full: { at: 0.36, until: 0.52 }, reduced: { at: 0.28, until: 0.46 } } as const;
+
+/** The strike line's draw timing for a visit at a motion level (null = no visit, the line just appears). */
+export function catSwipe(level: MotionLevel): { delay: number; duration: number } | null {
+  if (level === 'off') return null;
+  const d = CAT_DURATION_MS[level];
+  const s = CAT_SWIPE[level];
+  return { delay: Math.round(d * s.at), duration: Math.round(d * (s.until - s.at)) };
+}

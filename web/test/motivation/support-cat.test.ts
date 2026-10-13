@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import SupportCat from '@/features/motivation/SupportCat.vue';
-import { CAT_CHANCE, CAT_DURATION_MS, catComes, catDuration, takeForcedCat } from '@/features/motivation/supportCat';
+import { CAT_CHANCE, CAT_DURATION_MS, CAT_SWIPE, catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
 
 describe('support cat roll', () => {
   it('comes by on about one in ten finished lists', () => {
@@ -46,6 +46,22 @@ describe('support cat roll', () => {
   });
 });
 
+describe('paw swipe timing', () => {
+  it('falls inside the visit, after the cat has arrived and before it fades out', () => {
+    for (const level of ['full', 'reduced'] as const) {
+      const sw = catSwipe(level)!;
+      expect(sw.delay).toBe(Math.round(CAT_DURATION_MS[level] * CAT_SWIPE[level].at));
+      expect(sw.duration).toBeGreaterThan(200);
+      expect(sw.delay + sw.duration).toBeLessThan(CAT_DURATION_MS[level] * 0.8);
+    }
+    expect(catSwipe('full')!.delay).toBeGreaterThanOrEqual(CAT_DURATION_MS.full * 0.3); // after the walk-in
+  });
+
+  it('has no swipe at Off', () => {
+    expect(catSwipe('off')).toBeNull();
+  });
+});
+
 describe('SupportCat', () => {
   afterEach(() => vi.useRealTimers());
   const card = { left: 0, top: 100, right: 375, bottom: 400 };
@@ -62,6 +78,18 @@ describe('SupportCat', () => {
     vi.advanceTimersByTime(1);
     expect(w.emitted('done')).toHaveLength(1);
     w.unmount();
+  });
+
+  it('stands at the end of the title when it is known, but never past the card', () => {
+    vi.useFakeTimers();
+    const w = mount(SupportCat, { props: { card, title: { left: 60, top: 120, right: 180, bottom: 148 }, level: 'full' } });
+    const style = w.get('[data-testid="support-cat"]').attributes('style');
+    expect(style).toContain('left: 160px');
+    expect(style).toContain('top: 80px');
+    w.unmount();
+    const far = mount(SupportCat, { props: { card, title: { left: 60, top: 120, right: 900, bottom: 148 }, level: 'full' } });
+    expect(far.get('[data-testid="support-cat"]').attributes('style')).toContain('left: 297px');
+    far.unmount();
   });
 
   it('is shorter at Reduced', () => {
