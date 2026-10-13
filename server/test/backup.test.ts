@@ -197,7 +197,7 @@ describe('backups over HTTP (TEST_MODE, MockDrive)', () => {
       const [f] = await drive(t);
       expect(f!.name).toMatch(/^backup-mock-[0-9a-f]{16}-20261012T060000000Z\.json$/);
       const stored = JSON.parse(await t.app.ctx.mockDrive!.forPerson(mockSub(JO)).get(f!.id));
-      expect(Object.keys(stored.files)).toEqual([`users/${mockSub(JO)}/prefs.json`]);
+      expect(Object.keys(stored.files).filter((k) => !k.startsWith('server/'))).toEqual([`users/${mockSub(JO)}/prefs.json`]);
       for (let i = 0; i < 9; i++) await t.json('POST', '/api/backup', undefined, h);
       expect(await drive(t)).toHaveLength(7);
     } finally { t.cleanup(); }
@@ -338,46 +338,103 @@ describe('backups over HTTP (TEST_MODE, MockDrive)', () => {
     const t = await setup();
     try {
       const sub = mockSub(JO);
-      t.app.ctx.backup.registerSource({ prefix: 'shared', collect: () => ({ 'shared/lists/l1.json': '{"id":"l1"}', 'elsewhere.json': 'x' }) });
+      t.app.ctx.backup.registerSource({ prefix: 'extra', collect: () => ({ 'extra/l1.json': '{"id":"l1"}', 'elsewhere.json': 'x' }) });
       const h = { cookie: await signIn(t, JO) };
       await t.json('PATCH', '/api/prefs', { supportCat: 'always' }, h);
       await t.json('POST', '/api/backup', undefined, h);
       const [f] = await drive(t);
       const stored = JSON.parse(await t.app.ctx.mockDrive!.forPerson(sub).get(f!.id));
-      expect(Object.keys(stored.files).sort()).toEqual(['shared/lists/l1.json', `users/${sub}/prefs.json`]);
+      expect(Object.keys(stored.files).filter((k) => !k.startsWith('server/')).sort()).toEqual(['extra/l1.json', `users/${sub}/prefs.json`]);
       await t.json('POST', '/api/backup/restore', undefined, h);
-      expect(fs.readFileSync(path.join(t.dir, 'shared', 'lists', 'l1.json'), 'utf8')).toBe('{"id":"l1"}');
+      expect(fs.readFileSync(path.join(t.dir, 'extra', 'l1.json'), 'utf8')).toBe('{"id":"l1"}');
       expect(fs.existsSync(path.join(t.dir, 'elsewhere.json'))).toBe(false);
       expect(() => t.app.ctx.backup.registerSource({ prefix: 'users', collect: () => ({}) })).toThrow();
     } finally { t.cleanup(); }
   });
 });
 
-describe('shared lists adapter', () => {
-  it('backs up owned lists, records only ids for member lists, and restores only owned lists', async () => {
-    const { registerSharedListsBackup } = await import('../src/services/sharedListsBackup.js');
+describe('shared lists (real store)', () => {
+  const JO = 'jo@example.com', ANNA = 'anna@example.com';
+  const titles = async (t: TestApp, h: { cookie: string }) => ((await t.json('GET', '/api/tasklists/all-open?today=2026-10-12', undefined, h)).body.items as any[]).map((l) => l.title);
+
+  it('backs up the owner\'s list, records only ids for a member, and a restore brings the list back through the store', async () => {
     const t = makeApp();
     try {
-      const dir = path.join(t.dir, 'shared', 'lists');
-      fs.mkdirSync(dir, { recursive: true });
-      const sub = mockSub('jo@example.com');
-      const w = (id: string, owner: string, members: string[]) => fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify({ owner, members }));
-      w('mine', sub, [sub, 'other']); w('theirs', 'other', ['other', sub]); w('unrelated', 'other', ['other']);
-      registerSharedListsBackup(t.app.ctx.backup, t.dir);
-      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
-      const h = { cookie: await signIn(t, 'jo@example.com') };
-      await t.json('PATCH', '/api/prefs', { supportCat: 'always' }, h);
+      await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+      const jo = { cookie: await signIn(t, JO) }, anna = { cookie: await signIn(t, ANNA) };
+      const own = (await t.json('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] }, jo)).body;
+      expect((await t.json('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) }, jo)).status).toBe(200);
+      await t.json('POST', '/api/backup', undefined, jo);
+      await t.json('PATCH', '/api/prefs', { supportCat: 'always' }, anna);
+      await t.json('POST', '/api/backup', undefined, anna);
+      const bundleOf = async (email: string) => {
+        const [f] = (await t.json('GET', `/api/__test/backup/drive?owner=${email}`)).body.files;
+        return JSON.parse(await t.app.ctx.mockDrive!.forPerson(mockSub(email)).get(f.id)).files as Record<string, string>;
+      };
+      const ownerFiles = Object.keys(await bundleOf(JO)).filter((k) => k.startsWith('shared/'));
+      expect(ownerFiles).toHaveLength(1);
+      expect(ownerFiles[0]).toMatch(/^shared\/lists\/[A-Za-z0-9_-]+\.json$/);
+      const memberFiles = await bundleOf(ANNA);
+      expect(Object.keys(memberFiles).filter((k) => k.startsWith('shared/lists/'))).toEqual([]);
+      expect(JSON.parse(memberFiles[`shared/memberships/${mockSub(ANNA)}.json`]!).listIds).toHaveLength(1);
+      // the list is lost on disk and in the store's cache; restoring Jo recreates it, and Anna sees it again
+      fs.rmSync(path.join(t.dir, 'shared', 'lists'), { recursive: true });
+      t.app.ctx.shared.reload();
+      expect(await titles(t, jo)).toEqual([]);
+      await t.json('POST', '/api/backup/restore', undefined, jo);
+      expect(await titles(t, jo)).toEqual(['Groceries']);
+      expect(await titles(t, anna)).toEqual(['Groceries']);
+    } finally { t.cleanup(); }
+  });
+});
+
+describe('server-wide files', () => {
+  const JO = 'jo@example.com';
+  const cats = async (t: TestApp, h: { cookie: string }) => ((await t.json('GET', '/api/settings', undefined, h)).body.categories as any[]).map((c) => c.name);
+
+  async function backedUp() {
+    const t = makeApp();
+    await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, 'anna@example.com'] });
+    const h = { cookie: await signIn(t, JO) };
+    await t.json('PATCH', '/api/prefs', { supportCat: 'always' }, h);
+    await t.json('POST', '/api/categories', { name: 'Garden', color: '#1a73e8' }, h);
+    await t.json('POST', '/api/backup', undefined, h);
+    return { t, h };
+  }
+
+  it('puts settings, motivation, people and share rules into the bundle under server/', async () => {
+    const { t, h } = await backedUp();
+    try {
+      await t.json('POST', '/api/streak/checkin', undefined, h);
       await t.json('POST', '/api/backup', undefined, h);
-      const [f] = (await t.json('GET', '/api/__test/backup/drive?owner=jo@example.com')).body.files;
-      const stored = JSON.parse(await t.app.ctx.mockDrive!.forPerson(sub).get(f.id));
-      expect(Object.keys(stored.files).filter((k) => k.startsWith('shared/')).sort()).toEqual(['shared/lists/mine.json', `shared/memberships/${sub}.json`]);
-      expect(JSON.parse(stored.files[`shared/memberships/${sub}.json`])).toEqual({ listIds: ['theirs'] });
-      // restore: the owned list returns, the member's record is not written, others' lists stay untouched
-      fs.rmSync(path.join(dir, 'mine.json'));
+      const [f] = (await t.json('GET', `/api/__test/backup/drive?owner=${JO}`)).body.files;
+      const files = JSON.parse(await t.app.ctx.mockDrive!.forPerson(mockSub(JO)).get(f.id)).files;
+      expect(Object.keys(files).filter((k) => k.startsWith('server/')).sort()).toEqual(['server/motivation.json', 'server/people.json', 'server/settings.json']);
+    } finally { t.cleanup(); }
+  });
+
+  it('restores them onto a fresh server', async () => {
+    const { t, h } = await backedUp();
+    try {
+      // a fresh server: settings back to the defaults and nobody else known yet
+      t.app.ctx.settings.reset();
+      t.app.ctx.people.reset();
+      await t.json('POST', '/api/__test/backup/wipe', { owner: JO });
+      const h2 = { cookie: await signIn(t, JO) };
+      expect(await cats(t, h2)).toContain('Garden');
+      void h;
+    } finally { t.cleanup(); }
+  });
+
+  it('never overwrites server-wide files that are in use', async () => {
+    const { t, h } = await backedUp();
+    try {
+      await t.json('POST', '/api/categories', { name: 'Kids', color: '#0b8043' }, h);
+      await t.json('POST', '/api/backup', undefined, h);
+      await t.json('POST', '/api/categories', { name: 'Later', color: '#d93025' }, h);
+      await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon' }, h);
       await t.json('POST', '/api/backup/restore', undefined, h);
-      expect(fs.existsSync(path.join(dir, 'mine.json'))).toBe(true);
-      expect(fs.existsSync(path.join(t.dir, 'shared', 'memberships'))).toBe(false);
-      expect(fs.existsSync(path.join(dir, 'theirs.json'))).toBe(true);
+      expect(await cats(t, h)).toContain('Later');
     } finally { t.cleanup(); }
   });
 });

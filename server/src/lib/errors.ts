@@ -24,3 +24,4 @@ export const validation = (message: string, field?: string, key?: string) =>
 export const notFound = (message = 'Not found') => new ApiException('NOT_FOUND', 404, message);
 export const preconditionFailed = (message = 'This item was changed elsewhere. Reload it and try again.') =>
   new ApiException('PRECONDITION_FAILED', 412, message);
+export const forbidden = (message = 'Only the owner can do this', key?: string) => new ApiException('FORBIDDEN', 403, message, undefined, key);

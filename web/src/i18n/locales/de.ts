@@ -5,6 +5,7 @@ import backupDe from './de/backup.ts';
 import canvasDe from './de/canvas.ts';
 import bedtimeDe from './de/bedtime.ts';
 
+import sharingDe from './de/sharing.ts';
 import tasksDe from './de/tasks.ts';
 import themeDe from './de/theme.ts';
 
@@ -13,6 +14,7 @@ export default {
   backup: backupDe,
   canvas: canvasDe,
   bedtime: bedtimeDe,
+  sharing: sharingDe,
   tasks: tasksDe,
   views: {
     year: 'Jahr',

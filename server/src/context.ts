@@ -1,5 +1,6 @@
 import type { AppConfig } from './config.js';
 import { AuthState } from './auth/state.js';
+import { PeopleStore } from './auth/peopleStore.js';
 import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CanvasStore } from './services/canvasStore.js';
@@ -7,8 +8,11 @@ import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
 import { SettingsStore } from './services/settingsStore.js';
+import { SharedListService } from './services/sharedLists.js';
 import { ThemeStore } from './services/themeStore.js';
 import { BackupService } from './services/backupService.js';
+import { registerServerFilesBackup } from './services/serverFilesBackup.js';
+import { registerSharedListsBackup } from './services/sharedListsBackup.js';
 import { hasDriveScope } from './auth/people.js';
 import type { DriveClient } from './providers/DriveClient.js';
 import { MockDrive } from './providers/mock/MockDrive.js';
@@ -32,6 +36,10 @@ export interface Ctx {
   backup: BackupService;
   /** Drive double (TEST_MODE / mock provider); null with the real Google provider. */
   mockDrive: MockDrive | null;
+  /** The people who signed in at least once (sharing picks members from them). */
+  people: PeopleStore;
+  /** Shared task lists, stored on the server (ARCHITECTURE "Shared lists"). */
+  shared: SharedListService;
   motivation: MotivationService;
   calendar: CalendarService;
   auth: AuthState;
@@ -66,13 +74,16 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     driveFor: (sub) => (driveFor ? driveFor(sub) : mockDrive?.forPerson(sub) ?? null),
     log: (m) => { if (config.logLevel !== 'error') console.log(m); },
   });
-  const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON);
+  const people = new PeopleStore(config.dataDir);
+  const shared = new SharedListService(config.dataDir, people, clock, config.tz, () => (auth.on ? (e: string) => auth.allows(e) : null));
+  registerSharedListsBackup(backup, shared, config.dataDir);
+  registerServerFilesBackup(backup, { settings, motivation, people, shared });
+  const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared);
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>();
-  const people = new Map<string, CalendarService>();
+  const calendars = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, mockDrive, motivation, calendar, overrides: {}, health: null, personProvider,
-    auth,
+    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, mockDrive, people, shared, motivation, calendar, overrides: {}, health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
@@ -80,17 +91,17 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     },
     calendarFor(sub) {
       if (!ctx.auth.on || !sub) return calendar;
-      let c = people.get(sub);
+      let c = calendars.get(sub);
       if (!c) {
         // google: one provider per person; mock: one calendar per person; tests with an injected provider share it
         const p = personProvider ? personProvider(sub) : mock ? ctx.mockFor(sub) : null;
         if (!p) return calendar;
-        people.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub)));
+        calendars.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub, shared)));
       }
       return c;
     },
     resetPeople() {
-      people.clear();
+      calendars.clear();
       mocks.clear();
     },
     async seed() {

@@ -14,7 +14,11 @@ const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
 const settings = useSettingsStore();
 const it = computed(() => props.segment.item);
-const icon = computed(() => (it.value.kind === 'tasklist' ? settings.categoryById(it.value.categoryId)?.icon ?? null : null));
+const icon = computed(() => {
+  const i = it.value;
+  if (i.kind !== 'tasklist') return null;
+  return (i.categoryInfo === undefined ? settings.categoryById(i.categoryId)?.icon : i.categoryInfo?.icon) ?? null;
+});
 const items = computed(() => {
   const i = it.value;
   return i.kind === 'tasklist' ? (i.items.length ? i.items.map((x) => x.title).join(', ') : t('calendar.item.noItems')) : '';

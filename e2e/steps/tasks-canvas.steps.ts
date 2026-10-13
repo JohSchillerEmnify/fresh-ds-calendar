@@ -119,7 +119,8 @@ When('I create the area {string} on the Canvas', async function (this: World, na
   await name_.press('Enter');
   await expect(this.page.getByTestId('canvas-area-editor')).toHaveCount(0);
   // the answer of the last write is not a single response (the area was saved once when it was created), so ask the server
-  await expect.poll(async () => (await this.api.get<{ areas: { name: string }[] }>('/api/canvas')).areas.map((a) => a.name)).toContain(name);
+  // (the page's own request context carries the session cookie, so this also works while sign-in is on)
+  await expect.poll(async () => ((await (await this.page.request.get('/api/canvas')).json()) as { areas: { name: string }[] }).areas.map((a) => a.name)).toContain(name);
 });
 
 When('I move the note {string} into the area {string} on the Canvas', async function (this: World, title: string, name: string) {

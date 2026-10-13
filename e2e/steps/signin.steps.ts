@@ -8,9 +8,9 @@ import { addDays, berlinIso } from './support/dates.js';
 import { tid, type World } from './support/world.js';
 
 /** Open the week, get sent to the sign-in page, and press "Sign in with Google" as this person. */
-async function signIn(world: World, email: string, date = '2026-10-12') {
+export async function signIn(world: World, email: string, date = '2026-10-12', driveScope = true) {
   world.person = email;
-  await world.api.chooseGoogleAccount(email);
+  await world.api.chooseGoogleAccount(email, driveScope);
   await world.page.goto(`/week/${date}`);
   await world.page.getByTestId('signin-google').click();
   // leaves /signin through the round trip and lands on the calendar (or back on /signin?error=private)

@@ -64,13 +64,18 @@ export function runs(dates: string[]): { current: number; best: number } {
 }
 
 export class MotivationService {
-  private st: State;
+  private st!: State;
   /** Increments whenever points were awarded (drives the X-Motivation-Changed header). */
   rev = 0;
   private readonly file: string | null;
 
   constructor(dataDir: string | null, private readonly clock: Clock, private readonly tz: string) {
     this.file = dataDir ? path.join(dataDir, 'motivation.json') : null;
+    this.reload();
+  }
+
+  /** Reads the file again (start, and after a backup restore replaced it). */
+  reload(): void {
     this.st = { ...empty(), ...(this.file ? readJson<Partial<State>>(this.file) : null) };
   }
 

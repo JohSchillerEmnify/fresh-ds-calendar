@@ -99,6 +99,10 @@ export const updateTaskListSchema = so({
 });
 export const addItemSchema = so({ title: itemTitle, done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
+/** `POST /api/tasklists/:id/share`: the person (their `sub`) to add. */
+export const shareSchema = so({ person: v.pipe(v.string('person is required'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long')) });
+/** `PUT /api/categories/:id/share`: the person to share the category with, or null to stop. */
+export const categoryShareSchema = so({ person: v.nullable(v.pipe(v.string('person must be text'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long'))) });
 export const orderSchema = so({ itemIds: v.array(v.string()) });
 
 export const settingsPatchSchema = so({

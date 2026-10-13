@@ -1452,14 +1452,24 @@ restored from there. Owner decisions are final; the numbers and names are mine (
   `collect` returns `{ 'shared/lists/<id>.json': content }` for the person. Restore writes back only paths under
   `users/<sub>/` or under a registered prefix, so a bundle can never write elsewhere; a source with `restore` receives
   its files instead of having them written verbatim.
-  **Shared lists** (coordinator, 2026-10-13): `server/src/services/sharedListsBackup.ts` is the ready adapter. The
-  shared-lists merge adds exactly one line where it builds its context: `registerSharedListsBackup(ctx.backup, config.dataDir);`.
-  Rules: the **owner's** bundle holds the lists they own (`shared/lists/<id>.json`); a **member's** bundle records only
-  the ids of the lists they belong to (`shared/memberships/<sub>.json`, `{ listIds }`); a **restore** recreates the lists
-  the restoring person owns (by the `owner` field) and does not act on the member record or touch others' lists. If the
-  store caches lists in memory it must re-read after a restore (the page reloads, the server does not restart).
-  `people.json` and `shared/category-shares.json` are server-wide, not per person, and are not in the backup (A-187).
-  Changes by a member trigger only that member's backup; the daily backup catches the owner's.
+  **Shared lists** (coordinator, 2026-10-13): `server/src/services/sharedListsBackup.ts` is the adapter, wired in
+  `createContext` with one line: `registerSharedListsBackup(backup, shared, config.dataDir);`. Rules: the **owner's**
+  bundle holds the lists they own (`shared/lists/<id>.json`); a **member's** bundle records only the ids of the lists they
+  belong to (`shared/memberships/<sub>.json`, `{ listIds }`); a **restore** recreates the lists the restoring person owns
+  (by the `owner` field) and does not act on the member record or touch others' lists. The adapter calls
+  `SharedListService.reload()` afterwards, because the store caches the lists in memory. Changes by a member trigger only
+  that member's backup; the daily backup catches the owner's.
+- **Server-wide files (owner: "ALL data").** `settings.json` (categories), `motivation.json` (streak, plant),
+  `people.json` and `shared/category-shares.json` belong to no person. They go into **every** person's bundle as
+  `server/<path relative to DATA_DIR>` (`services/serverFilesBackup.ts`; another server-wide store adds one
+  `backup.registerServerFile({ rel, pristine, reload })` call). On restore they come back **only onto a fresh server**:
+  every registered file must be "pristine" (settings still at version 1, no check-ins or plant growth, no category
+  shares, no person in `people.json` other than the one restoring). One file in use means none is touched, so a
+  per-person restore never overwrites what other people use. Each store re-reads its file (`reload()`) afterwards.
+  Reasoning: an exact "no such files" test cannot work, because the server creates `settings.json` with defaults at
+  start and records the restoring person in `people.json` at sign-in; "untouched" is the honest meaning of fresh.
+  A person with only server-wide changes and no data of their own is still not backed up (A-181). Not backed up:
+  `sessions.json`, the mock stores and secrets.
 - **Versions (owner).** Each backup is a new Drive file `backup-<sub>-<UTC timestamp>.json`; the last **7** versions
   (`BACKUP_KEEP`) are kept, older ones are deleted after a successful upload (a failed delete is logged, never fatal).
   The server logs the number at start (`backup: keeping the last 7 versions`). A person without data is not backed up
@@ -1508,6 +1518,54 @@ restored from there. Owner decisions are final; the numbers and names are mine (
   `data-last-backup` = ISO instant), `settings-backup-now`, `settings-backup-restore` with a `ConfirmDialog`, and
   `settings-backup-allow` while the permission is missing. All texts via `t()` in `locales/*/backup.ts`. The block is
   hidden while sign-in is off (`available: false`), because backups need a Google account.
+### Shared lists (owner, 2026-10-14)
+
+A person can share a task list, or a whole category, with another person who has their own Google login. The owner
+decided every point below.
+
+- **Storage: the server, not Google.** A shared list is one JSON document `DATA_DIR/shared/lists/<id>.json`
+  (`version`, `id`, `rev`, `owner` = Google `sub`, `members` = subs, `updated`, and the list: title, items, date/time or
+  undated, tags, estimate, `completedOn`, canvas place, the owner's `categoryId` and a `category` snapshot name/colour/icon).
+  One file per list: atomic writes (temp file + rename, as every store), no contention between lists, and a later
+  Google Drive backup of the server data takes the files as they are. The category rules (who a category is shared
+  with) are one document `DATA_DIR/shared/category-shares.json` (`owner sub -> { categoryId -> member sub }`). Known
+  people (`sub -> email, name`, written at every sign-in) are `DATA_DIR/people.json`.
+- **Why not a shared Google calendar** (alternative weighed): a calendar shared in Google would need the partner to
+  accept an invitation, would expose the owner's whole tasks calendar or need a second one per person, and gives no
+  per-list ownership, "leave" or per-category rule. The owner chose server storage. The price: a shared list is not
+  visible in Google Calendar and is not covered by Google's own backup until the Drive backup slice.
+- **Two ways to share, one store.** Per list (the task list dialog: "Share with ...", "Stop sharing") and per
+  category (Settings, Categories: "Share with ..."). The per-list way is the building block: *sharing MOVES* the list
+  from the owner's tasks calendar into the shared store (the Google event is created in the other direction by
+  "Stop sharing", with a new id). The per-category way is a rule on top: toggling it moves every list of the category,
+  and a list created in the category is created shared. Both are wanted because a single list is the everyday case
+  ("the groceries"), while a category ("Shopping", "Home") is how a couple thinks about what they run together.
+- **One API surface.** Shared lists are served by the existing task list endpoints under ids `shared:<id>`
+  (A-162): the `CalendarService` of every person merges the lists they own or are a member of into its range reads,
+  Tasks view reads and item ops. The web treats shared and own lists alike; only the badge, the share controls and
+  "Leave" are new. `SharedListService` owns the store, membership checks and the rules; the owner's `CalendarService`
+  does the Google side of moving in and out.
+- **Both people edit everywhere** (calendar views on the list's date, tray, Tasks view with Open/Canvas/Archive and
+  the filter): ticking, adding, editing, deleting items, renaming, re-dating. A small badge (`tasklist-shared-badge`)
+  shows the other person's initial. The canvas place is one place for both (the list's, not per person).
+- **Category of a shared list** (owner: the partner's categories differ). The list carries the owner's category
+  (`categoryId` plus a snapshot of name, colour and icon). Everyone sees that name, colour and icon, whatever their own
+  categories are. A member cannot change the category; the owner's rename, recolour or deletion of the category
+  refreshes (or clears) the snapshot.
+- **Deleting.** Only the owner deletes a shared list for everyone (`DELETE`, undo as usual). A member sees "Leave"
+  (`tasklist-leave`) instead of "Delete": it removes the list for them only (A-165).
+- **Concurrency** (owner: the same optimistic approach as Google events). Every list has a version counter `rev`; its
+  etag is the counter. A list write with a stale `If-Match` is refused with `412` and the existing conflict UI
+  ("This task list was changed elsewhere ..."). Item ops read-modify-write the latest version, so two people ticking
+  different items never conflict. The server writes synchronously (one process), which makes each write atomic.
+  Polling is unchanged: the partner's changes appear on the next sync. No websockets.
+- **Security.** Every shared-list route checks `owner === caller || members.includes(caller)`; anyone else gets `404`.
+  Members must be on the allow-list and known (signed in once). Sub values are validated before they reach a path.
+- **People picker.** "Share with ..." lists the allowed people other than yourself (`GET /api/people`) by name, else
+  email. A person who never signed in has no `sub` yet and is not offered (A-161).
+- **i18n.** All new text is in `locales/<lang>/sharing.ts` (`en`, `de`, `de-x-mainfr`, `de-x-coldmirror`).
+- **UI test contract.** `tasklist-shared-badge`, `tasklist-share-person`, `tasklist-share`, `tasklist-unshare`,
+  `tasklist-leave`, `category-share-person`.
 
 ## 8. Configuration (env)
 

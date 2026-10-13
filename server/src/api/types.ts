@@ -63,8 +63,36 @@ export interface TaskList {
   completedOn: LocalDate | null;
   /** Place on the Tasks view's Canvas in canvas units; null = no place yet (Unsorted). */
   canvas: CanvasPlace | null;
+  /** Present on shared lists only (API.md "Shared task lists"). */
+  shared?: SharedInfo;
+  /** The owner's category (name, colour, icon) carried on a shared list, whatever the requester's own categories are. */
+  categoryInfo?: CategoryInfo | null;
   etag: string;
   updated: DateTime;
+}
+
+/** A person as the sharing UI shows them. */
+export interface Person {
+  sub: string;
+  name: string;
+  email: string;
+  /** First letter of the name (upper case), for the badge. */
+  initial: string;
+}
+
+/** What a shared list tells its requester: whether they own it and who else is on it. */
+export interface SharedInfo {
+  owned: boolean;
+  owner: Person;
+  /** Everyone but the requester (owner included when the requester is a member). */
+  with: Person[];
+}
+
+/** A category's look as carried on a shared list. */
+export interface CategoryInfo {
+  name: string;
+  color: string;
+  icon: string | null;
 }
 
 export type CalendarItem = CalendarEvent | TaskList;
@@ -161,6 +189,7 @@ export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
   | 'UNAUTHENTICATED'
+  | 'FORBIDDEN'
   | 'GOOGLE_REAUTH'
   | 'PRECONDITION_FAILED'
   | 'PROVIDER_ERROR'

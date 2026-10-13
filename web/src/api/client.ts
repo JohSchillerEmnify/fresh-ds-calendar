@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
@@ -254,6 +254,30 @@ export class ApiClient {
   }
   reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions) {
     return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/order`, { itemIds }, o);
+  }
+  // --- sharing (API.md "Shared task lists") -----------------------------------------------
+  /** The allowed people who signed in at least once, without the requester. */
+  people(o?: RequestOptions) {
+    return this.request<{ people: Person[] }>('GET', '/api/people', undefined, o);
+  }
+  /** Moves a list into the shared store (new id `shared:...`) or adds a member to a shared one. */
+  shareTaskList(id: string, person: string, o?: RequestOptions) {
+    return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/share`, { person }, o);
+  }
+  /** Owner: moves a shared list back into the owner's Google tasks calendar (new id). */
+  unshareTaskList(id: string, o?: RequestOptions) {
+    return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/share`, undefined, o);
+  }
+  /** Member: removes the list for the requester only. */
+  leaveTaskList(id: string, o?: RequestOptions) {
+    return this.request<void>('POST', `/api/tasklists/${enc(id)}/leave`, undefined, o);
+  }
+  categoryShares(o?: RequestOptions) {
+    return this.request<{ shares: Record<string, Person> }>('GET', '/api/categories/shares', undefined, o);
+  }
+  /** `person` null stops sharing the category. */
+  shareCategory(id: string, person: string | null, o?: RequestOptions) {
+    return this.request<{ shares: Record<string, Person> }>('PUT', `/api/categories/${enc(id)}/share`, { person }, o);
   }
   openTaskLists(today: LocalDate, days = 30, o?: RequestOptions) {
     const q = new URLSearchParams({ today, days: String(days) });

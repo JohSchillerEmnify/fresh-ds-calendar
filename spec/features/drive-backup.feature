@@ -8,24 +8,25 @@ Feature: Backup to Google Drive
 
   Background:
     Given the time is 2026-10-12 08:00
-    And "jo@example.com" may use the calendar
-    And "jo@example.com" is signed in
+    And "jo@example.com" and "anna@example.com" may use the calendar
 
   Scenario: A change is backed up after the quiet period
+    Given "jo@example.com" is signed in
     When the support cat is set to "Every time" in the settings
     And the quiet period of the backup has passed
     Then the Drive holds 1 backup of "jo@example.com"
-    And I open the settings
     And the last backup is from 2026-10-12 at 08:00
 
   Scenario: A daily backup happens without changes
-    Given the support cat is set to "Every time" in the settings
+    Given "jo@example.com" is signed in
+    And the support cat is set to "Every time" in the settings
     And I back up now
     When a day passes on the server
     Then the Drive holds 2 backups of "jo@example.com"
 
   Scenario: "Back up now" shows the new time
-    Given I open the settings
+    Given "jo@example.com" is signed in
+    And the support cat is set to "Every time" in the settings
     And I back up now
     And the last backup is from 2026-10-12 at 08:00
     When the time is 2026-10-12 09:30
@@ -33,18 +34,22 @@ Feature: Backup to Google Drive
     Then the last backup is from 2026-10-12 at 09:30
 
   Scenario: A fresh server restores my theme and canvas at sign-in
-    Given I chose the theme "Neon"
+    Given "jo@example.com" is signed in
+    And I chose the theme "Neon"
+    And I open the Canvas
     And I create the area "Garden" on the Canvas
     And I back up now
     When the server loses all data of "jo@example.com"
     And "jo@example.com" signs in with Google
     Then the theme "Neon" is in use
-    And the Canvas shows the area "Garden"
+    When I open the Canvas
+    Then the Canvas shows the area "Garden"
 
   Scenario: A manual restore brings back an older state after confirming
-    Given I chose the theme "Neon"
+    Given "jo@example.com" is signed in
+    And I chose the theme "Neon"
     And I back up now
-    And I chose the theme "Ocean"
+    And I chose the theme "Winter"
     When I restore from the backup
     Then the restore asks for confirmation
     When I confirm the restore
@@ -52,16 +57,16 @@ Feature: Backup to Google Drive
     And the Drive holds 2 backups of "jo@example.com"
 
   Scenario: A failed backup shows the status and does not block saving
-    Given the Drive is unavailable
-    And I open the settings
+    Given "jo@example.com" is signed in
+    And the support cat is set to "Off" in the settings
+    And the Drive is unavailable
     When I back up now
     Then the backup status says it failed
     When the support cat is set to "Every time" in the settings
     Then the saved support cat setting is "Every time"
 
   Scenario: Without the Drive permission the app asks for it and does not back up
-    Given "anna@example.com" may use the calendar
-    And "anna@example.com" signs in without the Drive permission
+    Given "anna@example.com" signs in without the Drive permission
     When I open the settings
     Then I am asked to allow backups to Google Drive
     And there is no button to back up now

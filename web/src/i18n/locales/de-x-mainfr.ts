@@ -8,6 +8,7 @@ import backupMainfr from './de-x-mainfr/backup.ts';
 import canvasMainfr from './de-x-mainfr/canvas.ts';
 import bedtimeMainfr from './de-x-mainfr/bedtime.ts';
 
+import sharingMainfr from './de-x-mainfr/sharing.ts';
 import tasksMainfr from './de-x-mainfr/tasks.ts';
 import themeMainfr from './de-x-mainfr/theme.ts';
 
@@ -16,6 +17,7 @@ export default {
   backup: backupMainfr,
   canvas: canvasMainfr,
   bedtime: bedtimeMainfr,
+  sharing: sharingMainfr,
   tasks: tasksMainfr,
   views: {
     year: 'Jahr',

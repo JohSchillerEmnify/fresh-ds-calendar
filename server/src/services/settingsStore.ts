@@ -36,7 +36,7 @@ export function defaultSettings(now: string): Settings {
 
 /** Settings and categories in DATA_DIR/settings.json (atomic writes, versioned). Independent of the provider. */
 export class SettingsStore {
-  private s: Settings;
+  private s!: Settings;
   private readonly file: string | null;
   /** The retired `Settings.scene`, kept on disk (not served) until every person's theme has absorbed it. */
   private legacyScene: string | undefined;
@@ -45,6 +45,11 @@ export class SettingsStore {
 
   constructor(dataDir: string | null, private readonly clock: Clock, private readonly tz: string) {
     this.file = dataDir ? path.join(dataDir, 'settings.json') : null;
+    this.reload();
+  }
+
+  /** Reads the file again (start, and after a backup restore replaced it). */
+  reload(): void {
     const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string }>(this.file) : null;
     const { scene, garden, ...loaded } = raw ?? {};
     this.legacyScene = typeof scene === 'string' ? scene : undefined;

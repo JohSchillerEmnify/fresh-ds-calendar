@@ -8,6 +8,7 @@ import backupColdmirror from './de-x-coldmirror/backup.ts';
 import canvasColdmirror from './de-x-coldmirror/canvas.ts';
 import bedtimeColdmirror from './de-x-coldmirror/bedtime.ts';
 
+import sharingColdmirror from './de-x-coldmirror/sharing.ts';
 import tasksColdmirror from './de-x-coldmirror/tasks.ts';
 import themeColdmirror from './de-x-coldmirror/theme.ts';
 
@@ -16,6 +17,7 @@ export default {
   backup: backupColdmirror,
   canvas: canvasColdmirror,
   bedtime: bedtimeColdmirror,
+  sharing: sharingColdmirror,
   tasks: tasksColdmirror,
   views: {
     year: 'Jahr, yo',

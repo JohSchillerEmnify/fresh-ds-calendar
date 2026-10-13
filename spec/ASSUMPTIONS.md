@@ -557,12 +557,11 @@ spec files are named.
 - **A-186 Shared lists** (coordinator rules, replacing my first "every member" idea): the owner's backup holds the lists
   they own, a member's backup only the ids of their lists, a restore recreates what the restoring person owns. Reasoning:
   one copy of each list, and a restore can never overwrite a list another person owns. Hook: `registerSource({ prefix,
-  collect, restore })`; the adapter is `sharedListsBackup.ts`.
-- **A-187 Global stores** (OPEN, for the owner): `settings.json` (categories), `motivation.json` (streak, plant), `people.json` and `shared/category-shares.json` are
-  server-wide, not per person, so a per-person bundle cannot own them and a restore of one person could overwrite what
-  another sees. They are **not** backed up in this slice. Options: include them in every bundle and restore them only on
-  a server that has none (a "new server" case), or make them per person first (the "next slice" ARCHITECTURE "Sign-in"
-  mentions).
+  collect, restore, reload })`; the adapter is `sharedListsBackup.ts`, wired in `createContext`.
+- **A-187 Global stores** (owner: ALL data, decided): `settings.json`, `motivation.json`, `people.json` and
+  `shared/category-shares.json` go into every person's bundle under `server/`. They are restored only onto a fresh server
+  (every one of them untouched, see ARCHITECTURE "Backups"), never over files in use; a restore by button on a used
+  server therefore leaves them alone. "Fresh" means untouched, not absent, because the server writes defaults at start.
 - **A-188 Manual restore**: newest readable version (a corrupt one is skipped); the safety backup is taken after that
   version is chosen, so pressing the button again undoes the restore. The person's files under `users/<sub>/` are replaced
   (files not in the backup are deleted), then the page reloads.
@@ -580,3 +579,37 @@ spec files are named.
   clock, ids in insertion order; the reset clears it.
 - **A-195 Backups run in-process**: timers live in the server process and `unref` so they never keep it alive; a restart
   loses a pending debounce (the next change or the hourly check catches up, the first check being a minute after start).
+## Shared lists (owner, 2026-10-14)
+
+- **A-160 Where the data lives** (owner): shared lists are server documents in `DATA_DIR/shared/lists/<id>.json`, one
+  file per list, rules in `shared/category-shares.json`, known people in `people.json`; all plain JSON for the later
+  Drive backup. I chose one file per list over one big store: independent atomic writes.
+- **A-161 Members are subs, picked from people who signed in once** (owner: members are subs, picked from the
+  allow-list; my reading): the allow-list holds emails and a sub is only known after a sign-in, so `people.json` maps
+  sub to email and name at every sign-in and the picker offers allowed people found there. A person who has never
+  signed in cannot be picked yet. In TEST_MODE the allow-list step records its addresses as known people.
+- **A-162 Ids** (owner: "choose and log"): a shared list has the id `shared:<id>`, `calendarId` `shared`, and is served by
+  the existing task list endpoints, so the web treats both kinds alike. Alternative weighed: a parallel
+  `/api/shared/...` surface, which would have meant two code paths in every store and view.
+- **A-163 412, not 409** (owner said 409): the API and the conflict UI already use `412 PRECONDITION_FAILED` for stale
+  writes; the same status reuses the existing UI as the owner asked.
+- **A-164 Category carried on the list** (owner): the list keeps the owner's `categoryId` and a snapshot (name, colour,
+  icon). The owner's rename/recolour refreshes it; deleting the category clears it from the owner's shared lists. Only
+  the owner can change a shared list's category (a member would otherwise overwrite the owner's category with one the
+  owner does not have).
+- **A-165 Leave vs delete** (owner): a member's "Leave" removes them from `members`; the list stays with the owner,
+  even with no member left (the owner can share it again or stop sharing). Owner-only actions answer a member `403`.
+- **A-166 Repeating lists cannot be shared**: the owner's field list has no recurrence and a Google recurring series
+  cannot move as one document without losing its rule, so sharing one is refused (`400`) instead of silently
+  dropping the repetition.
+- **A-167 Category rule timing**: a category share moves the lists of the category when it is switched on and
+  creates new lists of the category shared; changing an existing list's category later does not move it, and
+  leaving a list does not undo the rule. Sharing a category with another person while one is set re-targets the lists
+  already shared through it. Unsharing moves every list of the category that I own back (members lose it).
+- **A-168 Moving in and out gives a new id**: "Stop sharing" creates a new Google event (new Google id); a list that
+  leaves Google is deleted there only after the shared document was written (and the reverse), so a failure never
+  loses a list (at worst a duplicate that is removed again).
+- **A-169 One canvas place**: the canvas place is a field of the list, so both people see the note where it was
+  last put; each person's areas stay their own.
+- **A-170 Sharing while sign-in is off**: there is no second person, so `GET /api/people` is empty and sharing answers `400`.
+

@@ -10,6 +10,7 @@
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
  */
+import { badgeInitial } from './sharing';
 import { computed, inject, onMounted, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { t } from '@/i18n';
@@ -48,7 +49,9 @@ const tl = computed(() => {
 });
 /** Resize handles show after a release without moving (time grid blocks only). */
 const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
-const icon = computed(() => settings.categoryById(tl.value.categoryId)?.icon ?? null);
+const icon = computed(() => (tl.value.categoryInfo === undefined ? settings.categoryById(tl.value.categoryId)?.icon : tl.value.categoryInfo?.icon) ?? null);
+/** The other person's initial on a shared list. */
+const badge = computed(() => badgeInitial(tl.value));
 const calm = computed(() => settings.settings.calmMode);
 const carried = computed(() => !!props.segment.carriedFrom);
 const complete = computed(() => isComplete(tl.value));
@@ -110,6 +113,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" /></span></span>
+      <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
       <span class="meta">
@@ -130,6 +134,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 </template>
 
 <style scoped>
+.shbadge { flex: none; min-width: 14px; padding: 0 3px; border-radius: 7px; font-size: 9px; line-height: 14px; text-align: center; background: color-mix(in srgb, currentColor 18%, transparent); }
 .tl {
   container-type: inline-size; position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; text-align: left;
   

@@ -24,6 +24,18 @@ export interface BackupSource {
    * as they are; a source that must not overwrite everything (shared lists: only what the person owns) provides it.
    */
   restore?(sub: string, files: Record<string, string>): void;
+  /** Called after this source's files were restored, so the store re-reads them from disk. */
+  reload?(): void;
+}
+
+/** A server-wide file (not owned by one person) that goes into every bundle under `server/<rel>`. */
+export interface ServerFile {
+  /** Path relative to `DATA_DIR`, e.g. `settings.json`. */
+  rel: string;
+  /** Whether the server's current content (null = no file) is still untouched, i.e. nothing is lost by replacing it. */
+  pristine(content: string | null, sub: string): boolean;
+  /** Called after the file was restored, so the store re-reads it. */
+  reload?(): void;
 }
 
 /** What Settings shows (API.md "Backups"). */
@@ -48,6 +60,8 @@ interface State { lastBackupAt?: string; lastHash?: string; error?: string; erro
 
 /** The tunable timings (hooks in TEST_MODE change them). */
 export interface BackupTimings { keep: number; debounceMs: number; minIntervalMs: number; dailyMs: number; checkEveryMs: number }
+/** Bundle prefix of the server-wide files. */
+export const SERVER_PREFIX = 'server';
 export const DEFAULT_TIMINGS: BackupTimings = { keep: BACKUP_KEEP, debounceMs: 2 * 60_000, minIntervalMs: 5 * 60_000, dailyMs: 24 * 3_600_000, checkEveryMs: 3_600_000 };
 
 export interface BackupDeps {
@@ -67,6 +81,7 @@ export interface BackupDeps {
 export class BackupService {
   readonly timings: BackupTimings = { ...DEFAULT_TIMINGS };
   private readonly sources: BackupSource[] = [];
+  private readonly serverFiles: ServerFile[] = [];
   private readonly timers = new Map<string, NodeJS.Timeout>();
   private readonly lastChange = new Map<string, number>();
   private readonly lastRun = new Map<string, number>();
@@ -82,12 +97,25 @@ export class BackupService {
 
   /** Adds the files of another store to every person's backup (the one line a new store needs). */
   registerSource(source: BackupSource): void {
-    if (!/^[A-Za-z0-9_-]+$/.test(source.prefix) || source.prefix === 'users') throw new Error(`Invalid backup prefix: ${source.prefix}`);
+    if (!/^[A-Za-z0-9_-]+$/.test(source.prefix) || source.prefix === 'users' || source.prefix === SERVER_PREFIX) throw new Error(`Invalid backup prefix: ${source.prefix}`);
     this.sources.push(source);
   }
 
+  /** Adds a server-wide file to every bundle; restored only onto a fresh server (see {@link ServerFile}). */
+  registerServerFile(f: ServerFile): void {
+    this.serverFiles.push(f);
+  }
+
   private get prefixes(): string[] {
-    return this.sources.map((s) => s.prefix);
+    return [...this.sources.map((s) => s.prefix), SERVER_PREFIX];
+  }
+
+  private readServer(f: ServerFile): string | null {
+    try {
+      return fs.readFileSync(path.join(this.d.dataDir, ...f.rel.split('/')), 'utf8');
+    } catch {
+      return null;
+    }
   }
 
   // ---- state file ----------------------------------------------------------
@@ -138,6 +166,10 @@ export class BackupService {
         else this.log(`backup: ignoring ${rel} from source ${src.prefix} (outside its prefix)`);
       }
     }
+    for (const f of this.serverFiles) {
+      const content = this.readServer(f);
+      if (content !== null) files[`${SERVER_PREFIX}/${f.rel}`] = content;
+    }
     return files;
   }
 
@@ -154,6 +186,7 @@ export class BackupService {
     }
     const own: Record<string, string> = {};
     for (const [rel, content] of Object.entries(b.files)) {
+      if (rel.startsWith(`${SERVER_PREFIX}/`)) continue;
       const src = this.sources.find((s) => rel.startsWith(`${s.prefix}/`));
       if (src?.restore) continue;
       own[rel] = content;
@@ -163,13 +196,21 @@ export class BackupService {
       const mine = Object.fromEntries(Object.entries(b.files).filter(([rel]) => rel.startsWith(`${src.prefix}/`)));
       if (Object.keys(mine).length) src.restore(sub, mine);
     }
-    for (const [rel, content] of Object.entries(own)) {
-      const abs = path.join(this.d.dataDir, ...rel.split('/'));
-      fs.mkdirSync(path.dirname(abs), { recursive: true });
-      const tmp = `${abs}.${process.pid}.tmp`;
-      fs.writeFileSync(tmp, content);
-      fs.renameSync(tmp, abs);
+    // server-wide files only come back onto a fresh server, never over what other people already use
+    const wanted = this.serverFiles.filter((f) => typeof b.files[`${SERVER_PREFIX}/${f.rel}`] === 'string');
+    if (wanted.length && this.serverFiles.every((f) => f.pristine(this.readServer(f), sub))) {
+      for (const f of wanted) this.writeFile(path.join(this.d.dataDir, ...f.rel.split('/')), b.files[`${SERVER_PREFIX}/${f.rel}`]!);
+      for (const f of wanted) f.reload?.();
     }
+    for (const [rel, content] of Object.entries(own)) this.writeFile(path.join(this.d.dataDir, ...rel.split('/')), content);
+    for (const src of this.sources) if (src.reload && Object.keys(b.files).some((k) => k.startsWith(`${src.prefix}/`))) src.reload();
+  }
+
+  private writeFile(abs: string, content: string): void {
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    const tmp = `${abs}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, content);
+    fs.renameSync(tmp, abs);
   }
 
   // ---- Drive ----------------------------------------------------------------
