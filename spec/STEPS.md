@@ -872,9 +872,18 @@ I open the clock view for {date}
 the event {string} is an arc from {time} to {time}
 the clock hand points at {time}
 the task list {string} is an arc from {time} to {time}
-the middle of the clock lists {string}
+the clock lists {string} without a time
 the clock fills the available space
 the arc of {string} is labelled {string}
+I tap the arc of {string}
+I turn the arc of {string} to {time}
+I select the arc of {string}
+I drag the start handle of {string} to {time}
+I drag the end handle of {string} to {time}
+I tap the clock at {time}
+the middle of the clock says {string}
+the clock shades the time until {time}
+the clock shows the all-day event {string}
 the approach bar is on
 the approaching track is off
 I set the approaching window to {int} hours in the settings
@@ -911,8 +920,16 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 ```
 
 - Clock: `clock-arc` per event and per timed task list (`data-title`, `data-start`, `data-end` as HH:MM, `data-kind`
-  `event|tasklist`), `clock-hand` (`data-time` HH:MM). "the middle lists X": a `clock-untimed` entry with that text.
+  `event|tasklist`), `clock-hand` (`data-time` HH:MM). "lists X without a time": a `clock-untimed` chip with that text (next to the dial).
   "fills the available space": the dial's diameter is ≥ 90 % of the smaller side of the view's content area.
+- Clock gestures: points on the dial are computed from the minute and the arc's `data-r` (viewBox radius) through the
+  dial's screen matrix. "tap the arc" = a tap/click on the middle of the arc; "turn the arc of X to T" = press 5 minutes
+  after its start, hold 500 ms (long press), move round the dial in 5-minute steps the short way to T (+ the same offset)
+  and release; "select" = a long press released in place (the arc gets `data-selected="true"` and `clock-handle`s with
+  `data-edge` `start|end`); "drag the start|end handle" = press the handle and move round to T; "tap the clock at T" =
+  a tap on the plate at radius 120. Touch projects use CDP touch events, others the mouse.
+- "the middle of the clock says": `clock-now-line` text; "shades the time until T": `clock-wedge` `data-to`;
+  all-day events: `clock-allday` (`data-title`).
 - Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
   (`data-title`, `data-minutes` = minutes until start) and `approach-now`; "in this order" = exactly these chips, by
   distance from `approach-now`; "closer" compares the item's distance from `approach-now` before and after the clock

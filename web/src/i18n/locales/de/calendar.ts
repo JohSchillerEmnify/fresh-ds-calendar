@@ -84,6 +84,9 @@ export default {
   },
   clock: {
     face: '24-Stunden-Uhr für {date}',
+    arc: '{title}, {start} bis {end}',
+    handleStart: 'Ziehen, um den Beginn zu ändern',
+    handleEnd: 'Ziehen, um das Ende zu ändern',
   },
   event: {
     editTitle: 'Termin bearbeiten',

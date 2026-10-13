@@ -84,6 +84,9 @@ export default {
   },
   clock: {
     face: '24-Schdundn-Uhr für {date}',
+    arc: '{title}, {start} bis {end}',
+    handleStart: 'Ziehn, dass der Anfang woanders is',
+    handleEnd: 'Ziehn, dass des End woanders is',
   },
   event: {
     editTitle: 'Termin ändern',

@@ -67,6 +67,16 @@ export function isGestureClaimed(): boolean {
 }
 export const GESTURE_CLAIM_EVENT = 'gesture-claim';
 
+/** Claims the gesture for a drag that does not use the controller (the clock dial) until the returned release runs. */
+export function claimGesture(): () => void {
+  claimed++;
+  window.dispatchEvent(new CustomEvent(GESTURE_CLAIM_EVENT));
+  let done = false;
+  return () => {
+    if (!done) { done = true; claimed--; }
+  };
+}
+
 // ---------------------------------------------------------------- read-only drag watch (drag helper cat)
 
 /** One frame of the active drag as drawn, for passive followers (the drag helper cat). */

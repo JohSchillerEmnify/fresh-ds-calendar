@@ -3,8 +3,13 @@ Feature: Labs: experimental views and the 24-hour clock
   Experimental views are tried out behind a Labs switch in the settings: when it is on, the view switcher offers them,
   marked as experimental; when it is off, nothing changes. The clock view shows one day as a 24-hour circle: events are
   arcs from their start to their end, task lists with a time are arcs as long as their estimate (30 minutes without
-  one) and named with their done count, task lists without a time are listed in the middle, and a hand points at the
-  current time. The clock is as large as the space allows.
+  one) and named with their done count, and a hand points at the current time. Task lists without a time and all-day
+  events are chips next to the dial (below and above it on a phone, beside it on a wide screen), so the middle stays
+  free for the time. Labels never overlap; one that fits nowhere is left out. The clock is as large as the space allows.
+  The clock is a full calendar view (owner, 2026-10-13): a tap on an arc opens the entry, a long press picks it up and
+  turns it round the dial (15-minute steps, its length kept), a long press released in place shows handles at both ends
+  that change the start or the end, and a tap on the empty dial creates an entry at that time. Today the middle says
+  what is running or comes next, and a shaded wedge from the hand shows the time until then (time made visible).
 
   Background:
     Given the calendar is empty
@@ -35,12 +40,12 @@ Feature: Labs: experimental views and the 24-hour clock
     Then the task list "Laundry" is an arc from 18:00 to 19:30
     And the arc of "Laundry" is labelled "Laundry 1/2"
 
-  Scenario: Task lists without a time are listed in the middle
+  Scenario: Task lists without a time are listed next to the dial
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
       | Milk | no   |
     When I open the clock view for 2026-10-14
-    Then the middle of the clock lists "Groceries 0/1"
+    Then the clock lists "Groceries 0/1" without a time
 
   Scenario: The clock uses the space it is given
     When I open the clock view for 2026-10-14
@@ -52,3 +57,64 @@ Feature: Labs: experimental views and the 24-hour clock
     Then the URL path is "/clock/2026-10-15"
     When I switch to the day view
     Then the URL path is "/day/2026-10-15"
+
+  Scenario: A tap on an event arc opens the event
+    When I open the clock view for 2026-10-14
+    And I tap the arc of "Dentist"
+    Then the event dialog is open
+
+  Scenario: A tap on a timed task list opens it
+    Given the calendar contains a task list "Laundry" on 2026-10-14 at 18:00 for 90 minutes with items:
+      | item | done |
+      | Wash | no   |
+    When I open the clock view for 2026-10-14
+    And I tap the arc of "Laundry"
+    Then the task list "Laundry" is expanded
+
+  Scenario: A long press turns an event round the dial
+    When I open the clock view for 2026-10-14
+    And I turn the arc of "Dentist" to 11:00
+    Then the event "Dentist" is an arc from 11:00 to 12:00
+    When I reload the page
+    Then the event "Dentist" is an arc from 11:00 to 12:00
+
+  Scenario: A timed task list turns round the dial too
+    Given the calendar contains a task list "Laundry" on 2026-10-14 at 18:00 for 90 minutes with items:
+      | item | done |
+      | Wash | no   |
+    When I open the clock view for 2026-10-14
+    And I turn the arc of "Laundry" to 20:00
+    Then the task list "Laundry" is an arc from 20:00 to 21:30
+
+  Scenario: The handles of a selected arc change its start and end
+    When I open the clock view for 2026-10-14
+    And I select the arc of "Dentist"
+    And I drag the end handle of "Dentist" to 10:30
+    Then the event "Dentist" is an arc from 09:00 to 10:30
+    When I drag the start handle of "Dentist" to 08:30
+    Then the event "Dentist" is an arc from 08:30 to 10:30
+
+  Scenario: A tap on the empty dial creates an entry at that time
+    When I open the clock view for 2026-10-14
+    And I tap the clock at 15:00
+    Then the event dialog is open
+    And the event form shows:
+      | start date | 2026-10-14 |
+      | start time | 15:00      |
+
+  Scenario: Today the middle says what comes next and shades the time until then
+    Given the time is 2026-10-14 08:00
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Next: Dentist in 1 h"
+    And the clock shades the time until 09:00
+
+  Scenario: Today the middle says how long the running event has left
+    Given the time is 2026-10-14 09:30
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Dentist · 30 min left"
+    And the clock shades the time until 10:00
+
+  Scenario: All-day events are listed next to the dial
+    Given the calendar contains an all-day event "Holiday" on 2026-10-14
+    When I open the clock view for 2026-10-14
+    Then the clock shows the all-day event "Holiday"

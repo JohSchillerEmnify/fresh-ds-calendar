@@ -793,8 +793,39 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle as large as the view allows (owner, 2026-10-13), events as arcs labelled with their
   titles, timed task lists as arcs too (estimate, else 30 min; thinner or dashed, labelled "title done/total"),
-  untimed task lists listed under the time in the middle (tap opens them), hand at the app clock
-  (`clock` store), progress ring.
+  hand at the app clock (`clock` store), progress ring.
+  **Clock v3 (owner, 2026-10-13: "flesh out the clock view so that it becomes much more usable")**: the clock is a full
+  calendar view, not just a picture.
+  - *Open*: a tap on an arc or its label opens the entry (`openItem`: event dialog, expanded task list; timed task lists
+    too). Each arc has a 26-unit invisible stroke over it (`clock-arc-hit`, `role="button"`, focusable, `aria-label`
+    "title, start to end"), so thin arcs are easy to hit; the drawn arc ignores the pointer.
+  - *Move*: a long press (350 ms, touch/pen/mouse held still; a mouse also picks up after 4 px of movement) picks the arc up
+    (lifted: thicker, shadow, haptic tick per 15-minute step) and it turns round the dial with the pointer: the pointer's
+    turn is accumulated with `wrapDelta` (so crossing midnight is a small step, not a jump of 24 h), the start snaps to
+    15 minutes and the arc stays on the day (`turnedStart`). The middle shows where it would land (`clock-drag-time`).
+    Release saves with the time grid's `applyMove` (optimistic, spring back + snackbar on failure). Esc cancels. Touch
+    scrolling is blocked only while an arc is held; a touch that moves before the long press cancels it (swipe to the next
+    day still works).
+  - *Resize*: a long press released in place selects the arc (`data-selected`): a handle (`clock-handle`, `data-edge`
+    `start|end`, `role="slider"`) sits on each end; dragging one changes the start or the end via `resizeEdges` /
+    `finishResize` (same limits as the time grid: ≥ 15 min, task lists ≤ 720 min). A tap on the plate or Esc clears it.
+  - *Create*: a tap on the empty plate (outside the middle, radius ≥ 56) opens the "new" dialog at that time
+    (`tappedTime`, nearest quarter hour). With an arc selected the tap only clears the selection.
+  - *Keyboard*: on a focused arc Enter/Space opens, Alt+←/→ moves by 15 min, Alt+Shift+←/→ changes the end; on a handle
+    Alt+←/→ moves that edge.
+  - *Middle*: today the time and under it the Approaching card's text (`nowCardModel`: "Dentist · 40 min left" or
+    "Next: Gym in 2 h") in `clock-now-line`; a *focus wedge* (`clock-wedge`, `focusWedge`) shades the sector from the
+    hand to the end of the running event, else to the start of the next one, in that event's colour: the remaining time as
+    an area, like a Time Timer (ADHD-RESEARCH 1.1, 1.2, 1.12, R31). The hand is drawn under labels and text, which have a
+    halo.
+  - *Lists next to the dial*: untimed task lists (`clock-untimed`) and all-day events (`clock-allday`) are chips beside the
+    dial: below and above it on an upright screen, left and right of it on a wide one (container query on the view,
+    aspect ≥ 5:4). Before, they were text rows in the middle, which collided with the labels and the hand.
+  - *Labels* (`placeLabels`): longest arcs first, each label starts inside the innermost lane on its arc's angle and moves
+    inwards row by row, trying ±20/40 minutes round, until its estimated box (0.56 em per character) is free of the earlier
+    labels and of the middle; labels near the top or bottom are centred, the others point inwards. A label that fits
+    nowhere is left out (its arc still opens and names itself in the tooltip and `aria-label`).
+  - Swipe navigation is told about a held arc through `claimGesture()` (motion), like the time grid's drag.
 - Approach bar (owner v3, 2026-10-13: "the next-event element becomes the timeline", then absolute and configurable):
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
   the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end

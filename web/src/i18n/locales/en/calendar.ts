@@ -82,6 +82,9 @@ export default {
   },
   clock: {
     face: '24-hour clock for {date}',
+    arc: '{title}, {start} to {end}',
+    handleStart: 'Drag to change the start',
+    handleEnd: 'Drag to change the end',
   },
   event: {
     editTitle: 'Edit event',
