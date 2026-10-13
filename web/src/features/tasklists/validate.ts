@@ -7,23 +7,8 @@ export interface TaskListForm {
   time: string;
   estimate: string;
   categoryId: string; // 'none' = no category
-  tags: string;
   items: string;
   repeat: '' | 'daily' | 'weekly' | 'monthly';
-}
-
-/** "a, B,a ,," -> ['a', 'B'] (comma separated, trimmed, unique case-insensitively, order kept). */
-export function parseTags(text: string): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const raw of text.split(',')) {
-    const t = raw.trim();
-    if (t && !seen.has(t.toLowerCase())) {
-      seen.add(t.toLowerCase());
-      out.push(t);
-    }
-  }
-  return out;
 }
 
 export function parseItems(text: string): string[] {
@@ -32,7 +17,7 @@ export function parseItems(text: string): string[] {
 
 /** Empty create form: the slot's (or focused) date, and the slot's time when one was tapped, else no time. */
 export function newTaskListForm(date: string, time?: string | null): TaskListForm {
-  return { title: '', date, time: time ?? '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' };
+  return { title: '', date, time: time ?? '', estimate: '', categoryId: 'none', items: '', repeat: '' };
 }
 
 /**
@@ -48,9 +33,6 @@ export function validateForm(f: TaskListForm, itemCount = parseItems(f.items).le
     const n = Number(f.estimate);
     if (!Number.isInteger(n) || n < 5 || n > 720) return 'Estimate must be a whole number of minutes from 5 to 720';
   }
-  const tags = parseTags(f.tags);
-  if (tags.length > 10) return 'Use at most 10 tags';
-  if (tags.some((t) => t.length > 30)) return 'Tags can have 30 characters at most';
   if (parseItems(f.items).length > 200) return 'A task list can have 200 items at most';
   if (parseItems(f.items).some((t) => t.length > 200)) return 'Item titles can have 200 characters at most';
   return null;

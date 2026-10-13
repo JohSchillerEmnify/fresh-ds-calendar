@@ -12,6 +12,27 @@ const themeOption = (w: World, label: string) =>
   w.page.getByTestId('settings-theme-mode').locator(attr('data-value', label.toLowerCase()));
 const seedPreset = (w: World, name: string) => w.byTestId('settings-seed-preset', attr('data-name', name));
 
+/**
+ * Theme mode and seed colour live in the theme menu (STEPS.md, owner 2026-10-13): open it from the settings page's
+ * `settings-theme` row when it is not open yet. Returns whether this call opened it.
+ */
+async function inThemeMenu(w: World): Promise<boolean> {
+  if (await w.page.getByTestId('theme-view').isVisible()) return false;
+  await w.page.getByTestId('settings-theme').click();
+  await expect(w.page.getByTestId('theme-view')).toBeVisible();
+  return true;
+}
+
+/** Runs a read-only check in the theme menu and returns to the settings page if the check had to open the menu. */
+async function checkInThemeMenu(w: World, check: () => Promise<void>) {
+  const opened = await inThemeMenu(w);
+  await check();
+  if (opened) {
+    await w.page.getByTestId('theme-back').click();
+    await expect(w.page.getByTestId('settings-view')).toBeVisible();
+  }
+}
+
 When('I open the settings', async function (this: World) {
   await this.page.getByTestId('settings-button').click();
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
@@ -26,25 +47,47 @@ When('I leave the settings', async function (this: World) {
   await expect(this.page.getByTestId('settings-view')).toBeHidden();
 });
 
+Then('the settings sections are {string}', async function (this: World, list: string) {
+  await expect(this.page.getByTestId('settings-view')).toBeVisible();
+  const headings = this.page.getByTestId('settings-section').locator('h2');
+  await expect(headings).toHaveText(list.split(', '));
+  await expect
+    .poll(() => this.page.getByTestId('settings-section').evaluateAll((els) => els.map((e) => e.getAttribute('data-section'))))
+    .toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'labs', 'account']);
+});
+
+Then('the settings page has no theme mode or seed colour controls', async function (this: World) {
+  const view = this.page.getByTestId('settings-view');
+  await expect(view).toBeVisible();
+  for (const id of ['settings-theme-mode', 'settings-seed-preset', 'settings-seed-custom']) {
+    await expect(view.getByTestId(id)).toHaveCount(0);
+  }
+});
+
 When('I choose the theme mode {string}', async function (this: World, label: string) {
+  await inThemeMenu(this);
   const option = themeOption(this, label);
   await expect(option).toBeVisible();
   await saveSetting(this, (await option.getAttribute('aria-pressed')) === 'true', () => option.click());
 });
 
 Then('the theme mode {string} is selected', async function (this: World, label: string) {
-  const option = themeOption(this, label);
-  await expect(option).toHaveAttribute('aria-pressed', 'true');
-  await expect(option).toHaveText(new RegExp(label));
+  await checkInThemeMenu(this, async () => {
+    const option = themeOption(this, label);
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
+    await expect(option).toHaveText(new RegExp(label));
+  });
 });
 
 When('I choose the seed color preset {string}', async function (this: World, name: string) {
+  await inThemeMenu(this);
   const preset = seedPreset(this, name);
   await expect(preset).toBeVisible();
   await saveSetting(this, (await preset.getAttribute('aria-pressed')) === 'true', () => preset.click());
 });
 
 When('I enter the custom seed color {string}', async function (this: World, value: string) {
+  await inThemeMenu(this);
   const input = this.page.getByTestId('settings-seed-custom');
   await expect(input).toBeVisible();
   // A rejected custom color does not send a request.
@@ -55,18 +98,22 @@ When('I enter the custom seed color {string}', async function (this: World, valu
 });
 
 Then('the seed color {string} is selected', async function (this: World, name: string) {
+  await checkInThemeMenu(this, () => expectSeed(this, name));
+});
+
+async function expectSeed(w: World, name: string) {
   const pressed = () =>
-    this.page
+    w.page
       .locator(`${tid('settings-seed-preset')}[aria-pressed="true"]`)
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-name') ?? ''));
   if (name === 'Custom') {
     // "Custom" may be its own swatch (data-name="Custom") or simply no preset pressed.
     await expect.poll(async () => (await pressed()).filter((n) => n !== 'Custom').length).toBe(0);
-    await expect(this.page.getByTestId('settings-seed-custom')).not.toHaveValue('');
+    await expect(w.page.getByTestId('settings-seed-custom')).not.toHaveValue('');
   } else {
     await expect.poll(pressed).toEqual([name]);
   }
-});
+}
 
 Then('the custom seed color field shows the error {string}', async function (this: World, message: string) {
   await expect(this.page.getByTestId('settings-seed-error')).toHaveText(message);
@@ -185,11 +232,6 @@ Then('the task list {string} shows the icon {string}', async function (this: Wor
 Then('the task list {string} shows no icon', async function (this: World, title: string) {
   await expect(this.taskCard(title)).toBeVisible();
   await expect(this.taskCard(title).getByTestId('tasklist-card-icon')).toHaveCount(0);
-});
-
-Then('the expanded task list shows the tags {string}', async function (this: World, list: string) {
-  await expect(this.expanded).toBeVisible();
-  await expectJoined(this.expanded.getByTestId('tasklist-expanded-tag'), list, 'data-name');
 });
 
 // --- filters ---------------------------------------------------------------------------------------------------

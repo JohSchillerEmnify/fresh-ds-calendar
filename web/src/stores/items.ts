@@ -48,11 +48,6 @@ export const useItemsStore = defineStore('items', () => {
   /** Segments per day over every cached item. Views read this (after filtering via `useDaySegments`). */
   const segmentsOf = (items: Iterable<CalendarItem>): Map<LocalDate, Segment[]> => segmentsByDate(items, useClockStore().today);
   const byDate = computed(() => segmentsByDate(all.value, useClockStore().today));
-  const tagsInUse = computed(() => {
-    const set = new Set<string>();
-    for (const i of all.value) if (i.kind === 'tasklist') i.tags.forEach((t) => set.add(t));
-    return [...set].sort((a, b) => a.localeCompare(b));
-  });
   const get = (id: string) => byId.value[id];
   const isDeleted = (id: string) => deleted.has(id);
   /** The item without its deleted/hidden task list items (counts follow). */
@@ -338,7 +333,7 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   return {
-    byId, ranges, visible, loading, all, byDate, segmentsOf, tagsInUse, get, summary,
+    byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
     isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, applyResponse, upsert, remove, beginPending, endPending, setCarried,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
     loadSummary, refreshSummaries, $reset,
