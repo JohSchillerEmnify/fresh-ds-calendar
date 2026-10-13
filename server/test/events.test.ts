@@ -143,6 +143,26 @@ describe('GET /api/items', () => {
     expect((await t.json('GET', '/api/items?from=2026-10-15&to=2026-10-16')).body.items).toHaveLength(1);
     expect((await t.json('GET', '/api/items?from=2026-10-16&to=2026-10-17')).body.items).toHaveLength(0);
   });
+
+  it('validates the also range with the same rules', async () => {
+    const base = '/api/items?from=2026-10-14&to=2026-10-15&also=';
+    for (const a of ['', 'x', '2026-10-01', '2026-10-01..', '2026-10-02..2026-10-02', '2026-10-03..2026-10-02', '2026-01-01..2026-06-01', '2026-10-01..x']) {
+      const r = await t.json('GET', `${base}${a}`);
+      expect(r.status).toBe(400);
+      expect(r.body.error.details[0].field).toBe('also');
+    }
+  });
+
+  it('merges the also range into one response, each item once, and echoes it', async () => {
+    await t.json('POST', '/api/events', { ...timed, title: 'Shown' });
+    await t.json('POST', '/api/events', { ...timed, title: 'Today', start: '2026-10-20T09:00:00+02:00', end: '2026-10-20T09:30:00+02:00' });
+    await t.json('POST', '/api/events', { title: 'Both', allDay: true, start: '2026-10-14', end: '2026-10-21' });
+    const r = await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15&also=2026-10-20..2026-10-21');
+    expect(r.status).toBe(200);
+    expect(r.body.items.map((i: any) => i.title)).toEqual(['Both', 'Shown', 'Today']);
+    expect(r.body).toMatchObject({ from: '2026-10-14', to: '2026-10-15', also: { from: '2026-10-20', to: '2026-10-21' } });
+    expect((await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.also).toBeUndefined();
+  });
 });
 
 describe('calendars, config, health, errors', () => {

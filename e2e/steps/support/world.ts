@@ -27,9 +27,16 @@ function installProbes() {
     },
   });
   w.__rewardLog = [];
+  // Every now-card node ever inserted gets a sequence number (for "the now card stayed in place").
+  w.__nowCardInserts = 0;
   const open = new Map<Element, RewardLogEntry>();
   const scan = (node: Node, added: boolean) => {
     if (!(node instanceof Element)) return;
+    if (added) {
+      const cards = node.matches('[data-testid="now-card"]') ? [node] : [];
+      node.querySelectorAll('[data-testid="now-card"]').forEach((e) => cards.push(e));
+      for (const c of cards) (c as Element & { __nowCardSeq?: number }).__nowCardSeq = ++w.__nowCardInserts!;
+    }
     // The support cat is logged too (kind `support-cat`): it is a one-off overlay like the reward effects.
     const sel = '[data-testid="reward-effect"], [data-testid="support-cat"]';
     const effects = node.matches(sel) ? [node] : [];
@@ -61,6 +68,7 @@ export interface RewardLogEntry { kind: string; insertedAt: number; removedAt?: 
 export interface ProbeWindow extends Window {
   __haptics?: (number | number[])[];
   __rewardLog?: RewardLogEntry[];
+  __nowCardInserts?: number;
 }
 
 export interface BrowserMemory { heap: number; nodes: number; listeners: number }
@@ -88,6 +96,8 @@ export class World {
   /** The week the last "without signing in" step opened. */
   weekOpened?: string;
   lastResponse?: { status: number; json: unknown; url: string };
+  /** The first-open check-in of the page opened by "I open the app" (settles to undefined when none comes). */
+  firstCheckIn?: Promise<unknown>;
   browserMemory?: BrowserMemory;
   serverRss?: number;
   requestCount?: number;

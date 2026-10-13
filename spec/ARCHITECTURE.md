@@ -332,11 +332,20 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   proportional day view.
 - **Now marker** (`now-marker`, `data-time`): a primary-colour line with a dot across today's column in the day and
   week views. It updates every minute. Today's day view scrolls so now sits in the upper third (other days: 07:00).
-- **Now card** (`now-card`): above the time grid in the day view (today) and the week view (current week).
-  - Up to three lines (`now-card-line`): current event `"<title> · <d> left"` with a shrinking linear progress bar
+- **Approaching card** (formerly "Now card"; owner 2026-10-13; testid `now-card` kept): above every calendar view (day, week, month, year) whatever period is shown — it is
+  about now, not about the shown period (owner, 2026-10-13: hiding it on other days/weeks "diminishes the
+  usefulness"). Always compact (owner, 2026-10-13: "always collapsed instead of always open"): what used to be the
+  collapsed form is the only form — a slim card with the running event line and the track; no toggle, expanding is
+  shelved. Setting "Approaching card" on/off
+  (`settings-approaching-card`, pref `approachingCard`, default on) in the Calendar section switches it off entirely. Today's entries are always loaded for it (the calendar store keeps today in its fetched range in
+  addition to the shown period).
+  It is one instance above the calendar views, not part of each view: switching between day, week, month and year
+  keeps it in place without leaving or entering again (owner, 2026-10-13: "keep it there persistently"); it only
+  animates when it first appears.
+  - Lines (`now-card-line`), compact: current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
-    `"Next: <title> in <d>"`, else `"Nothing else today"`; next task `"Next task: <item> (<list>)"`. The next task is
-    the first unticked item of the oldest open list in the tray order.
+    `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things; each list's own "Next task"
+    stays in its expanded view).
   - Duration format: `< 60 min` → `35 min`; whole hours → `2 h`; otherwise `1 h 20 min`. Values round down to whole
     minutes.
   - The current event is the one with start ≤ now < end; with several, the one ending first.
@@ -661,7 +670,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 
 ### Labs (experiments, owner 2026-10-12)
 
-- Settings get a Labs section: `labs` (experimental views on/off) and `approachBar` (on/off), stored per person in
+- Settings get a Labs section: `labs` (experimental views on/off); `approachBar` (on/off, default on since
+  2026-10-13, now in the Calendar section next to the window, no longer Labs), stored per person in
   `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
   `settings-approach-bar`.
 - Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
@@ -676,12 +686,20 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
   the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end
   `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
-  person in prefs, default 3). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
-  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). Up to three timed entries of today
-  that start within the window (events and task lists with a time, by start, excluding the current event) as chips
+  person in prefs, default 3; any whole number 1–24: one choice 3 h / 6 h / 12 h / Custom…, the hours field `settings-approach-window-custom`
+  only shows for Custom… or a custom value (owner: no duplicate controls),
+  owner 2026-10-13). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
+  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). All timed entries of today (open task lists carried over to today count with their time, owner 2026-10-13)
+  that start within the window (owner, 2026-10-13: all, not only the next three) (events and task lists with a time, by start); entries already running stay on the
+  track (owner, 2026-10-13): their block starts at "now" and shows only the time left, so they slide out to the left
+  as time passes and leave when they end as chips
   at their start position; when none is within the window, the next timed entry of today sits at the right end
-  (`data-at-end="true"`, label "in 5 h"). Chips are the month view's compact `ItemView` (same colours, title, tap
-  opens the entry). Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
+  (`data-at-end="true"`, label "in 5 h" on the card colour so the track line does not strike it through). Each entry is a block as long as its duration on the track's scale (owner, 2026-10-13: entries take up only the
+  time they take); the title sits inside when it fits, else right after the block (`data-title-outside="true"`) on the card colour, so the track line has a gap there and the title never looks struck through (owner), so
+  a short entry on a phone or in a 6/12 h window shows a short block followed by its title. Blocks use the entry's
+  colour like `ItemView` chips (reuse its colour/skin and open handling) but show only the title: no time, estimate,
+  done count or item preview (owner, 2026-10-13: a narrow block must not leak card internals); tap opens the entry. A block is at least
+  4 px wide. Overlapping chips take a second row and the card grows; beyond two rows they stay in two rows,
   shortened and overlapping with a fade, so the card never grows further (owner: "don't take too much space").
   Nothing ahead today → the usual "Nothing else today" line. The current-event and next-task lines are unchanged.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never

@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { APPROACH_WINDOWS, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
+import { isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -30,12 +30,25 @@ function dateParam(c: Context, name: string): string {
   return v;
 }
 
-function range(c: Context, maxDays: number): { from: string; to: string } {
-  const from = dateParam(c, 'from');
-  const to = dateParam(c, 'to');
-  if (to <= from) throw validation('to must be after from', 'to');
-  if (dayNumber(to) - dayNumber(from) > maxDays) throw validation(`Range must be at most ${maxDays} days`, 'to');
+function checkRange(from: string, to: string, maxDays: number, field: string): { from: string; to: string } {
+  if (to <= from) throw validation('to must be after from', field);
+  if (dayNumber(to) - dayNumber(from) > maxDays) throw validation(`Range must be at most ${maxDays} days`, field);
   return { from, to };
+}
+
+function range(c: Context, maxDays: number): { from: string; to: string } {
+  return checkRange(dateParam(c, 'from'), dateParam(c, 'to'), maxDays, 'to');
+}
+
+/** The optional `also=YYYY-MM-DD..YYYY-MM-DD` range (same rules as `from`/`to`). */
+function alsoRange(c: Context, maxDays: number): { from: string; to: string } | undefined {
+  const v = c.req.query('also');
+  if (v === undefined) return undefined;
+  const [from, to, ...rest] = v.split('..');
+  if (rest.length || !from || !to || !isLocalDate(from) || !isLocalDate(to)) {
+    throw validation('also must be a range (YYYY-MM-DD..YYYY-MM-DD)', 'also');
+  }
+  return checkRange(from, to, maxDays, 'also');
 }
 
 export function configResponse(ctx: Ctx) {
@@ -106,14 +119,13 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'tasksCalendarVisible'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.approachWindowHours !== undefined) {
-      const h = APPROACH_WINDOWS.find((w) => w === b.approachWindowHours);
-      if (h === undefined) throw validation('approachWindowHours must be 3, 6 or 12', 'approachWindowHours');
-      patch.approachWindowHours = h;
+      if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
+      patch.approachWindowHours = b.approachWindowHours;
     }
     if (b.supportCat !== undefined) {
       if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
@@ -130,8 +142,9 @@ export function apiRoutes(ctx: Ctx): Hono {
   // ---- items ----
   r.get('/items', async (c) => {
     const { from, to } = range(c, 100);
+    const also = alsoRange(c, 100);
     const ids = c.req.query('calendarIds')?.split(',').map((s) => s.trim()).filter(Boolean);
-    return c.json(await cal(c).items(from, to, ids));
+    return c.json(await cal(c).items(from, to, ids, also));
   });
 
   r.get('/summary', async (c) => {

@@ -40,6 +40,12 @@ export function isCarriedOver(item: CalendarItem, today: LocalDate | undefined):
   return !!a && !!b && differenceInCalendarDays(b, a) <= CARRY_OVER_DAYS;
 }
 
+/** Minutes a task list with a time takes: it lasts its estimate, else {@link TASKLIST_BLOCK_MINUTES}, up to midnight. */
+export function taskListSpan(time: string, estimateMinutes: number | null): { startMin: number; endMin: number } {
+  const startMin = timeToMinutes(time);
+  return { startMin, endMin: Math.min(24 * 60, startMin + (estimateMinutes ?? TASKLIST_BLOCK_MINUTES)) };
+}
+
 export function itemSegments(item: CalendarItem, today?: LocalDate): Segment[] {
   if (item.kind === 'tasklist') {
     if (isCarriedOver(item, today)) {
@@ -48,12 +54,10 @@ export function itemSegments(item: CalendarItem, today?: LocalDate): Segment[] {
         carriedFrom: item.date,
       }];
     }
-    const timed = item.time !== null;
-    const s = timed ? timeToMinutes(item.time!) : 0;
-    const e = timed ? Math.min(24 * 60, s + (item.estimateMinutes ?? TASKLIST_BLOCK_MINUTES)) : 0;
+    const span = item.time !== null ? taskListSpan(item.time, item.estimateMinutes) : null;
     return [{
-      item, date: item.date, allDay: false, startTime: item.time, endTime: timed ? hhmm(e) : null,
-      startMin: s, endMin: e, first: true, last: true,
+      item, date: item.date, allDay: false, startTime: item.time, endTime: span ? hhmm(span.endMin) : null,
+      startMin: span?.startMin ?? 0, endMin: span?.endMin ?? 0, first: true, last: true,
     }];
   }
   if (item.allDay) {

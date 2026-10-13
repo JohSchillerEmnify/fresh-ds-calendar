@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/client';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { apiError, config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
@@ -223,12 +224,64 @@ describe('items store', () => {
     expect((s.get('t') as typeof tl).doneCount).toBe(1);
   });
 
+  it('keeps today loaded in the same request (also) when today is outside the visible range', async () => {
+    const { calls } = mockFetch({
+      'GET /api/config': () => config(), // today = 2026-10-12
+      'GET /api/items': () => resp([
+        eventFixture('nov', '2026-11-03T09:00:00+01:00', '2026-11-03T10:00:00+01:00'),
+        eventFixture('today', '2026-10-12T09:00:00+02:00', '2026-10-12T10:00:00+02:00'),
+      ]),
+    });
+    await useClockStore().load();
+    const s = useItemsStore();
+    await s.setVisible('2026-11-01', '2026-12-01', true);
+    const reqs = calls.filter((c) => c.path === '/api/items');
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0].url.searchParams.get('also')).toBe('2026-10-12..2026-10-13');
+    expect(s.ranges['2026-11-01_2026-12-01'].ids).toEqual(['nov']);
+    expect(s.ranges['2026-10-12_2026-10-13'].ids).toEqual(['today']);
+    expect(s.all.map((i) => i.id).sort()).toEqual(['nov', 'today']);
+    await s.refreshVisible();
+    expect(calls.filter((c) => c.path === '/api/items')).toHaveLength(2);
+  });
+
+  it('sends no also range when today is inside the visible range or not wanted', async () => {
+    const { calls } = mockFetch({ 'GET /api/config': () => config(), 'GET /api/items': () => resp([]) });
+    await useClockStore().load();
+    const s = useItemsStore();
+    await s.setVisible('2026-10-12', '2026-10-19', true);
+    await s.setVisible('2026-11-01', '2026-12-01');
+    const reqs = calls.filter((c) => c.path === '/api/items');
+    expect(reqs).toHaveLength(2);
+    expect(reqs.every((c) => !c.url.searchParams.has('also'))).toBe(true);
+  });
+
   it('aborts a superseded range load', async () => {
     let n = 0;
     mockFetch({ 'GET /api/items': () => resp([eventFixture('x' + n++, '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00')]) });
     const s = useItemsStore();
     await Promise.all([s.setVisible('2026-10-12', '2026-10-19'), s.setVisible('2026-10-19', '2026-10-26')]);
     expect(s.visible!.from).toBe('2026-10-19');
+  });
+});
+
+describe('prefs store', () => {
+  beforeEach(() => freshPinia());
+  it('starts with the Approaching card and its track on (3 h), applies loaded prefs and rolls back a refused change', async () => {
+    let fail = false;
+    mockFetch({
+      'GET /api/prefs': () => ({ labs: false, approachBar: false, approachWindowHours: 5, approachingCard: false, tasksCalendarVisible: false }),
+      'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}),
+    });
+    const p = usePrefsStore();
+    expect(p).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3 });
+    await p.load();
+    expect(p).toMatchObject({ approachBar: false, approachingCard: false, approachWindowHours: 5 });
+    await p.set({ approachingCard: true, approachWindowHours: 24 });
+    expect(p).toMatchObject({ approachingCard: true, approachWindowHours: 24 });
+    fail = true;
+    await expect(p.set({ approachingCard: false })).rejects.toThrow();
+    expect(p.approachingCard).toBe(true);
   });
 });
 

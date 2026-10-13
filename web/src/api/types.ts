@@ -100,14 +100,18 @@ export type SceneName = 'sunflowers' | 'mordor' | 'none';
 /** How often the emotional support cat comes by when a task list is finished (per person, `GET/PATCH /api/prefs`). */
 export type SupportCatSetting = 'off' | 'sometimes' | 'always';
 
-/** Approach bar window lengths in hours (ARCHITECTURE "Labs"). */
-export type ApproachWindowHours = 3 | 6 | 12;
+/** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
+export type ApproachWindowHours = number;
 
-/** Per-person preferences (`GET/PATCH /api/prefs`): Labs switches, tasks calendar visibility and the support cat. */
+/**
+ * Per-person preferences (`GET/PATCH /api/prefs`): Labs, the approach track and window, the Approaching card, tasks
+ * calendar visibility and the support cat.
+ */
 export interface Prefs {
   labs: boolean;
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;
+  approachingCard: boolean;
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;
   supportCat: SupportCatSetting;
@@ -159,6 +163,8 @@ export interface ItemsResponse {
   items: CalendarItem[];
   from: LocalDate;
   to: LocalDate;
+  /** Echo of the optional `also` range whose items are merged into `items`. */
+  also?: { from: LocalDate; to: LocalDate };
   syncedAt: DateTime;
 }
 

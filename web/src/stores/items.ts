@@ -5,7 +5,9 @@ import type {
   CalendarEvent, CalendarItem, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
+import { toIsoDate } from '@/lib/dates';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
+import { addDays } from 'date-fns';
 import { useClockStore } from './clock';
 import { useSyncStore } from './sync';
 
@@ -22,6 +24,8 @@ interface RangeEntry {
 /**
  * Range cache with normalized items (events and task lists share one id-keyed map, as ids are unique).
  * - `setVisible(from, to)` fetches the range the router needs; LRU of 6 ranges, unreferenced items are dropped.
+ *   With `withToday`, today is fetched (and refreshed) in the same request (`also`) when outside `[from, to)` (Now card)
+ *   and cached as its own range.
  * - A refresh replaces the range; items with a pending mutation keep their optimistic state.
  * - Mutations: events/task list details are not optimistic (`createEvent`...), item ops use `optimistic()`.
  */
@@ -29,7 +33,7 @@ export const useItemsStore = defineStore('items', () => {
   const byId = shallowRef<Record<string, CalendarItem>>({});
   const ranges = shallowRef<Record<string, RangeEntry>>({});
   const lru = ref<string[]>([]);
-  const visible = ref<{ from: LocalDate; to: LocalDate } | null>(null);
+  const visible = ref<{ from: LocalDate; to: LocalDate; withToday?: boolean } | null>(null);
   const pending = new Set<string>();
   /** Open task lists outside the visible ranges that are carried over to today (kept by gc). */
   const carriedIds = new Set<string>();
@@ -96,9 +100,20 @@ export const useItemsStore = defineStore('items', () => {
     applyResponse(from, to, res.items, res.syncedAt);
   }
 
+  /** One request for `[from, to)` plus the `also` range; the merged response is split back into both cached ranges. */
+  async function fetchWithAlso(from: LocalDate, to: LocalDate, also: { from: LocalDate; to: LocalDate }, signal?: AbortSignal): Promise<void> {
+    const res = await api.items(from, to, undefined, { signal }, also);
+    const extra: RangeEntry = { ...also, ids: [], syncedAt: res.syncedAt };
+    const inAlso = res.items.filter((it) => overlaps(it, extra));
+    // an item not placed in `also` stays with the main range, so a boundary mismatch never loses it to gc
+    const inMain = res.items.filter((it) => overlaps(it, { from, to, ids: [], syncedAt: '' }) || !inAlso.includes(it));
+    applyResponse(also.from, also.to, inAlso, res.syncedAt);
+    applyResponse(from, to, inMain, res.syncedAt);
+  }
+
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
-  async function setVisible(from: LocalDate, to: LocalDate): Promise<void> {
-    visible.value = { from, to };
+  async function setVisible(from: LocalDate, to: LocalDate, withToday = false): Promise<void> {
+    visible.value = { from, to, withToday };
     return refreshVisible();
   }
 
@@ -109,7 +124,13 @@ export const useItemsStore = defineStore('items', () => {
     const mine = (ctrl = new AbortController());
     loading.value = true;
     try {
-      await fetchRange(v.from, v.to, mine.signal);
+      const clock = useClockStore();
+      const today = clock.today;
+      if (v.withToday && (today < v.from || today >= v.to)) {
+        await fetchWithAlso(v.from, v.to, { from: today, to: toIsoDate(addDays(clock.todayDate, 1)) }, mine.signal);
+      } else {
+        await fetchRange(v.from, v.to, mine.signal);
+      }
       useSyncStore().markSynced();
     } catch (e) {
       if (e instanceof ApiError && e.isAbort) return;

@@ -3,14 +3,15 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import NowMarker from '@/features/calendar/NowMarker.vue';
 import NowCard from '@/features/calendar/NowCard.vue';
-import { registerNowCardLine } from '@/features/calendar/nowLines';
 import { startTransitionWarnings, stopTransitionWarnings } from '@/features/calendar/transitionWarning';
 import { enableTimerCounting } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
+import type { CalendarItem } from '@/api/types';
 import { config, freshPinia, mockFetch, settingsFixture } from '../helpers';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { advance, ev, t } from './helpers';
@@ -47,8 +48,38 @@ describe('now marker', () => {
 });
 
 describe('now card', () => {
-  it('counts down the current event and shows next; hides outside today', async () => {
+  it('is the always-compact Approaching card with the approach track on by default', async () => {
     const { pinia } = await boot('09:20', false);
+    expect(usePrefsStore()).toMatchObject({ approachBar: true, approachingCard: true, approachWindowHours: 3 });
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
+    const w = mount(NowCard, { global: { plugins: [pinia, router] } });
+    const card = w.get('[data-testid="now-card"]');
+    expect(card.attributes('aria-label')).toBe('Approaching');
+    expect(card.attributes('role')).toBeUndefined();
+    expect(card.attributes('data-collapsed')).toBeUndefined();
+    expect(w.find('[data-testid="approach-bar"]').exists()).toBe(true);
+    expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual([]);
+    // tapping the card no longer collapses it
+    await card.trigger('click');
+    expect(w.find('[data-testid="approach-bar"]').exists()).toBe(true);
+  });
+
+  it('keeps a running carried-over task list with a time on the approach track', async () => {
+    const { pinia, items } = await boot('02:17', false);
+    const tax = {
+      kind: 'tasklist', id: 'tax', calendarId: 'primary', title: 'Tax paperwork', date: '2026-10-09', time: '02:00', items: [], doneCount: 0, totalCount: 2,
+      estimateMinutes: null, categoryId: null, tags: [], color: '#000000', etag: 'e', updated: '',
+    } as unknown as CalendarItem;
+    items.applyResponse(D, '2026-10-13', [tax, ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' })], 's');
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
+    const w = mount(NowCard, { global: { plugins: [pinia, router] } });
+    const chips = w.findAll('[data-testid="approach-item"]');
+    expect(chips.map((c) => [c.attributes('data-title'), c.attributes('data-running')])).toEqual([['Tax paperwork', 'true']]);
+  });
+
+  it('counts down the current event and shows next, also while another period is shown', async () => {
+    const { pinia } = await boot('09:20', false);
+    usePrefsStore().approachBar = false;
     const cal = useCalendarStore();
     cal.view = 'day';
     cal.anchor = at('00:00');
@@ -61,16 +92,36 @@ describe('now card', () => {
     await nextTick();
     expect(lines()).toEqual(['Dentist · 35 min left', 'Next: Call in 2 h 5 min']);
     expect(w.get('[data-testid="now-progress"]').attributes('aria-valuenow')).toBe('30');
-    const stop = registerNowCardLine(() => 'Next task: Fold (Laundry)');
-    await nextTick();
-    expect(lines()).toContain('Next task: Fold (Laundry)');
-    stop();
-    cal.anchor = at('00:00'); cal.anchor = new Date(2026, 9, 13);
-    await nextTick();
-    expect(w.find('[data-testid="now-card"]').exists()).toBe(false);
     cal.view = 'week'; cal.anchor = new Date(2026, 9, 19);
     await nextTick();
-    expect(w.find('[data-testid="now-card"]').exists()).toBe(false);
+    expect(lines()).toEqual(['Dentist · 35 min left', 'Next: Call in 2 h 5 min']);
+  });
+
+  it('browsing another week keeps today\'s next event loaded for the card (and refreshes it on poll)', async () => {
+    const pinia = freshPinia();
+    let title = 'Dentist';
+    const { calls } = mockFetch({
+      'GET /api/config': () => config({ now: at('09:20').toISOString(), clockFrozen: true }),
+      'GET /api/items': ({ url }) => ({
+        items: url.searchParams.get('from') === D || url.searchParams.get('also')?.startsWith(`${D}..`) ? [ev('dentist', t(D, '10:40'), t(D, '11:00'), { title })] : [],
+        from: url.searchParams.get('from'), to: url.searchParams.get('to'), syncedAt: 's',
+      }),
+    });
+    await useClockStore().load();
+    usePrefsStore().approachBar = false;
+    const items = useItemsStore();
+    useCalendarStore().setFromRoute('week', new Date(2026, 9, 19));
+    await flushPromises();
+    const ranges = calls.filter((c) => c.path === '/api/items').map((c) => `${c.url.searchParams.get('from')}_${c.url.searchParams.get('to')} also=${c.url.searchParams.get('also')}`);
+    expect(ranges).toEqual(['2026-10-19_2026-10-26 also=2026-10-12..2026-10-13']); // one request per load/poll
+    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
+    const w = mount(NowCard, { global: { plugins: [pinia, router] } });
+    expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual(['Next: Dentist in 1 h 20 min']);
+    title = 'Doctor';
+    await items.refreshVisible();
+    await nextTick();
+    expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual(['Next: Doctor in 1 h 20 min']);
+    expect(calls.filter((c) => c.path === '/api/items')).toHaveLength(2);
   });
 });
 

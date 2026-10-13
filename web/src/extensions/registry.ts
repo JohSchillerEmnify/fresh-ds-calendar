@@ -71,10 +71,13 @@ export const gridLayers = shallowReactive<Component[]>([]);
 export function registerGridLayer(c: Component): void {
   if (!gridLayers.includes(c)) gridLayers.push(markRaw(c));
 }
-/** Rendered above the time grid in day/week views (e.g. the Now card) and above the month grid. */
-export const viewHeaders = shallowReactive<{ time: Component[]; month: Component[] }>({ time: [], month: [] });
-export function registerViewHeader(where: 'time' | 'month', c: Component): void {
-  viewHeaders[where].push(markRaw(c));
+/**
+ * Rendered once by the shell above the calendar views (year, month, week, day), e.g. the Approaching card. They are
+ * not part of any view, so switching views keeps them mounted. `shown` lets the shell leave one out (a setting).
+ */
+export const calendarHeaders = shallowReactive<{ component: Component; shown: () => boolean }[]>([]);
+export function registerCalendarHeader(c: Component, shown: () => boolean = () => true): void {
+  if (!calendarHeaders.some((h) => h.component === c)) calendarHeaders.push({ component: markRaw(c), shown });
 }
 /** Rendered between the view and the navigation bar (open tasks tray). */
 export const trayComponents = shallowReactive<Component[]>([]);

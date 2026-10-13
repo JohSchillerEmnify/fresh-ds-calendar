@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { fetchRange, nextFocus, periodTitle, type ViewKind } from '@/lib/dates';
+import { addDays } from 'date-fns';
+import { fetchRange, nextFocus, periodTitle, toIsoDate, type ViewKind } from '@/lib/dates';
 import { useClockStore } from './clock';
 import { useItemsStore } from './items';
 import { useSyncStore } from './sync';
@@ -18,11 +19,12 @@ export const useCalendarStore = defineStore('calendar', () => {
   function setFromRoute(v: ViewKind, d: Date): void {
     view.value = v;
     anchor.value = d;
-    focus.value = nextFocus(v, d, focus.value, useClockStore().todayDate);
-    if (v === 'year') return; // the year view loads /api/summary itself
-    const [from, to] = fetchRange(v, d);
+    const today = useClockStore().todayDate;
+    focus.value = nextFocus(v, d, focus.value, today);
+    // the year view loads /api/summary itself, so only today is loaded there; every view keeps today for the Now card
+    const [from, to] = v === 'year' ? [toIsoDate(today), toIsoDate(addDays(today, 1))] : fetchRange(v, d);
     const sync = useSyncStore();
-    useItemsStore().setVisible(from, to).then(
+    useItemsStore().setVisible(from, to, true).then(
       () => { if (sync.error) sync.clearError(); sync.markSynced(); },
       (e) => sync.reportError(e),
     );

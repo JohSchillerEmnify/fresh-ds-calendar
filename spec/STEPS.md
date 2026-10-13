@@ -522,7 +522,7 @@ the time grid is scrolled to show {time} at the top
 the now card shows the line {string}
 the now card does not show a current event
 the current event progress is {int} percent
-I do not see the now card
+the now card stayed in place
 I see the transition warning {string}
 I do not see a transition warning
 I dismiss the transition warning
@@ -813,6 +813,10 @@ the middle of the clock lists {string}
 the clock fills the available space
 the arc of {string} is labelled {string}
 the approach bar is on
+the approaching track is off
+I set the approaching window to {int} hours in the settings
+I switch off the Approaching card in the settings
+I do not see the Approaching card
 the approach bar shows {string} in {int} minutes
 {string} is closer to now on the approach bar
 I turn on the approach bar and open the week view for {date}
@@ -820,6 +824,10 @@ the approach bar shows {string}, {string} and {string} in this order
 the approach bar shows {string} at its end
 the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
+the approach bar shows {int} entries
+on the approach bar {string} is {int} times as long as {string}
+the title of {string} is shown next to its block
+on the approach bar {string} starts at now and shows {int} minutes
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
@@ -874,6 +882,7 @@ the app runs the new version
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
   until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
   the visible `undo-snackbar` message (`snackbar-text`).
+
 ## Theme menu (`@themes`)
 
 ```
@@ -901,6 +910,7 @@ the event {string} glows
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
   "Task list".
+
 - Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
   container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
   vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
@@ -953,6 +963,15 @@ Google shows the calendar {string}
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
+- "N times as long": widths of the two `approach-item` blocks (`approach-block` inside) differ by factor N ± 10 %.
+  "shown next to its block": `data-title-outside="true"` and the title's left edge ≥ the block's right edge.
+- "the now card stayed in place": the `now-card` element present before the previous step is the same DOM node
+  afterwards (a marker property set on it survives) and no enter animation ran on it (`data-entered` unchanged).
+- "starts at now and shows N minutes": the block's left edge is at `approach-now` (± 2 px) and its width equals N
+  minutes on the track scale (± 10 %); `data-running="true"` on the item.
+- Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
+  (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
+  for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.
 - "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
   `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
   element over it).

@@ -10,6 +10,8 @@ When('I request {string}', async function (this: World, spec: string) {
   const [method, ...rest] = spec.trim().split(/\s+/);
   const path = rest.join(' ');
   if (path.startsWith('/api/__test/')) this.api.usedTestApi = true;
+  // read the server state only after the app's first-open check-in has landed (it changes the motivation)
+  if (path.startsWith('/api/') && this.firstCheckIn) await this.firstCheckIn;
   const res = await this.request.fetch(path, { method, failOnStatusCode: false });
   const body = await res.text();
   let json: unknown;
