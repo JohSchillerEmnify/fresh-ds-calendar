@@ -57,7 +57,9 @@ const mountIn = (comp: unknown, props: Record<string, unknown>, pinia: unknown) 
   (wrapper = mount(comp as never, { props, global: { plugins: [pinia as never, router] }, attachTo: document.body } as never));
 
 beforeEach(() => { document.body.innerHTML = ''; celebrate.mockClear(); });
-afterEach(() => { wrapper?.unmount(); wrapper = null; });
+// the support cat comes by at random (about 1 in 10); tests that want it force it, all others must never roll it
+beforeEach(() => { vi.spyOn(Math, 'random').mockReturnValue(0.99); });
+afterEach(() => { wrapper?.unmount(); wrapper = null; vi.restoreAllMocks(); });
 
 describe('collapsed card', () => {
   it('strikes the title of a complete list through (its done state), not an open one', async () => {

@@ -38,7 +38,8 @@ async function mountAt(path: string, extra: Record<string, () => unknown> = {}, 
   return { router, w: wrapper, m };
 }
 const tid = (id: string) => `[data-testid="${id}"]`;
-const wait = async (fn: () => void) => { await vi.waitFor(fn); await flushPromises(); };
+// the deploy host is slower: lazy chunks (e.g. the colour library) can take over the 1 s default
+const wait = async (fn: () => void) => { await vi.waitFor(fn, { timeout: 5000 }); await flushPromises(); };
 
 beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); });
 afterEach(() => { wrapper?.unmount(); wrapper = null; });
