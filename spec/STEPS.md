@@ -1301,3 +1301,49 @@ the open task list {string} has no date and {int} open item(s)
 - "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
   `data-date` and N `tasklist-item` rows with `data-done="false"` (and no done ones).
 
+## Tasks canvas (`@tasks-canvas`)
+
+```
+I open the Canvas
+the Canvas shows the notes {string}
+the Canvas does not show the note {string}
+the note {string} shows the date {date}
+the note {string} shows the items {string}
+I move the note {string} to {int}, {int} on the Canvas
+the note {string} is at {int}, {int} on the Canvas
+the note {string} is in the Unsorted stack
+the note {string} is not in the Unsorted stack
+I tick the item {string} of the note {string} on the Canvas
+I create the area {string} on the Canvas
+I move the note {string} into the area {string} on the Canvas
+the note {string} is in the area {string}
+the Canvas shows the area {string}
+I pan the Canvas by {int}, {int} pixels
+the Canvas is panned to {int}, {int}
+I zoom the Canvas in with Ctrl+wheel
+the Canvas zoom is above {float}
+```
+
+- Also used: "the calendar contains an undated task list ... with items:", "... finished on D", "I create the task list T in the
+  Tasks view", "the Archive lists ...", "I reload the page", "I switch to another device".
+- "I open the Canvas": opens the Tasks view as the Tasks view steps do and clicks `tasks-tab-canvas`
+  (`aria-pressed="true"`), then waits for `tasks-canvas`.
+- "the Canvas shows the notes A, B": the `data-title` of all `canvas-note`s, sorted alphabetically and joined `", "`,
+  equals the text (A-130). "does not show the note T": none has that title.
+- "the note T shows the date D": `canvas-note` T has `data-date` D and a `canvas-note-date`. "shows the items": the
+  `tasklist-item` titles of the note joined `", "` in order.
+- "I move the note T to X, Y": plain mouse drag from the middle of `canvas-note-grip`; the pointer travels
+  `(X - data-x, Y - data-y) * data-zoom` pixels in steps and is released while the step waits for the
+  `PATCH /api/tasklists/:id` response (status 200). "the note T is at X, Y": `data-x`, `data-y` and `data-placed="true"`.
+- "in / not in the Unsorted stack": `data-placed` is `"false"` / `"true"`.
+- "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
+  note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
+- "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
+  `GET /api/canvas` (through the test API) lists an area named N.
+- "I move the note T into the area A": like "I move the note T to X, Y" with X, Y = the area's `data-x` + 20 and
+  `data-y` + 56. "the note T is in the area A": `data-area` of the note equals A.
+- "the Canvas shows the area N": a `canvas-area` with `data-name` N is visible.
+- "I pan the Canvas by DX, DY pixels": a mouse drag on an empty spot of `canvas-viewport` (bottom right quarter) by DX, DY;
+  "is panned to": `data-pan-x` and `data-pan-y` equal the numbers (zoom 1).
+- "I zoom the Canvas in with Ctrl+wheel": holds Control and turns the wheel up (`deltaY` -300) over the middle of
+  `canvas-viewport`. "the Canvas zoom is above Z": `data-zoom` greater than Z (waits).
