@@ -34,6 +34,7 @@ Feature: Sunflower field
     Then I do not see the sunflower field
 
   Scenario: The field sits in a small landscape
+    Given the plant has 200 growth points and was last watered on 2026-10-12
     When I open the app
     Then the top bar scene shows "sky", "hills", "cloud" and "sunflower"
 
