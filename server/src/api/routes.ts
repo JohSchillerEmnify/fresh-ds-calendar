@@ -8,7 +8,7 @@ import { dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
 import { sanitizeTheme, validateTheme } from '@calendar/shared';
-import { sanitizeSvg } from '../lib/svg.js';
+import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
@@ -148,7 +148,8 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.get('/themes', (c) => c.json({ themes: ctx.themes.list(person(c)).map(({ id, doc }) => ({ id, doc })) }));
   r.post('/themes', async (c) => {
     const checked = validateTheme(await body(c));
-    const safe = checked.ok ? sanitizeTheme(sanitizeSvg, checked.doc) : checked;
+    // the sanitiser (jsdom) is only loaded for a theme that brings a picture
+    const safe = checked.ok ? (checked.doc.scene?.svg ? sanitizeTheme(await loadSvgSanitizer(), checked.doc) : { ok: true as const, doc: checked.doc, removed: false }) : checked;
     if (!safe.ok) throw new ApiException('VALIDATION_ERROR', 400, safe.errors[0]!, safe.errors.map((issue) => ({ issue })));
     const { id, doc } = ctx.themes.add(person(c), safe.doc);
     return c.json({ id, doc, sanitized: safe.removed }, 201);

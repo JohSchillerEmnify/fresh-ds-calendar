@@ -1,15 +1,15 @@
 /**
  * Server-side SVG sanitiser for theme scenes: DOMPurify bound to a jsdom window, with the rules of
- * `@calendar/shared` (ARCHITECTURE "Theme engine and AI themes"). Built on first use, since jsdom is slow to start.
+ * `@calendar/shared` (ARCHITECTURE "Theme engine and AI themes"). Both libraries load on the first use only,
+ * so a server nobody imports a theme into never pays their memory.
  */
-import createDOMPurify from 'dompurify';
-import { JSDOM } from 'jsdom';
 import { createSvgSanitizer, type SvgSanitizer } from '@calendar/shared';
 
-let sanitizer: SvgSanitizer | null = null;
+let sanitizer: Promise<SvgSanitizer> | null = null;
 
-/** Sanitises one SVG text; `removed` tells whether anything unsafe was taken out. */
-export const sanitizeSvg: SvgSanitizer = (svg) => {
-  sanitizer ??= createSvgSanitizer(createDOMPurify(new JSDOM('').window));
-  return sanitizer(svg);
-};
+/** The SVG sanitiser (reports in `removed` whether anything unsafe was taken out), built on first call. */
+export function loadSvgSanitizer(): Promise<SvgSanitizer> {
+  sanitizer ??= Promise.all([import('dompurify'), import('jsdom')])
+    .then(([purify, { JSDOM }]) => createSvgSanitizer(purify.default(new JSDOM('').window)));
+  return sanitizer;
+}
