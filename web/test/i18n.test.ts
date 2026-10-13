@@ -26,9 +26,8 @@ describe('catalogues', () => {
       for (const k of flattenKeys(c)) expect(placeholders(at(c, k)), k).toEqual(placeholders(at(en, k)));
     }
   });
-  it('the fun languages are allowed to be partial', () => {
+  it('the Fränggisch dialect is allowed to be partial', () => {
     expect(missingKeys(en, deXMainfr).length).toBeGreaterThan(0);
-    expect(missingKeys(en, deXColdmirror).length).toBeGreaterThan(0);
   });
 });
 
@@ -77,7 +76,7 @@ describe('t()', () => {
     expect(html()).toBe('de-x-mainfr');
     await applyLanguage('de-x-coldmirror');
     expect(t('tasklist.titleOrItem')).toContain('Schinken!');
-    expect(t('views.day')).toBe('Tag');
+    expect(t('views.day')).toBe('Tag, Digga');
     expect(html()).toBe('de-x-coldmir');
   });
   it('knows which keys exist', () => {
