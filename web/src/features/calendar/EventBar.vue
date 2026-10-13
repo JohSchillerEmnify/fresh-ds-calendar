@@ -7,6 +7,7 @@
 import { computed, ref } from 'vue';
 import { onColor } from '@/api/colors';
 import { openItem } from '@/extensions/registry';
+import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { barSegment, type Bar } from '@/lib/spans';
 import { useCalendarDrag } from './dnd';
@@ -21,7 +22,8 @@ function onDown(e: PointerEvent) {
   const i = Math.min(n - 1, Math.max(0, Math.floor(((e.clientX - r.left) / (r.width || 1)) * n)));
   grab = props.dates[props.bar.startCol + i];
 }
-useCalendarDrag(root, () => barSegment(ev.value, grab), () => 'allday');
+// a preview copy (swipe neighbour) is inert: no drag handlers
+if (!inPreview()) useCalendarDrag(root, () => barSegment(ev.value, grab), () => 'allday');
 let dragged = false;
 function onClick(e: MouseEvent) {
   e.stopPropagation();

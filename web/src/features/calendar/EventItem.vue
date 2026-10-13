@@ -10,6 +10,7 @@ import { onColor } from '@/api/colors';
 import type { CalendarEvent } from '@/api/types';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { isPhone } from '@/composables/useViewport';
+import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
@@ -24,7 +25,8 @@ const clock = useClockStore();
 const ui = useUiStore();
 const root = ref<HTMLElement | null>(null);
 const ev = computed(() => props.segment.item as CalendarEvent);
-useCalendarDrag(root, () => props.segment, () => props.variant);
+// a preview copy (swipe neighbour) is inert: no drag handlers
+if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant);
 /** Resize handles show after a release without moving (time grid blocks only). */
 const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'event' && ui.resizing.id === ev.value.id && ui.resizing.date === props.segment.date);
 

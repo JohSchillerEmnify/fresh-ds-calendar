@@ -14,6 +14,7 @@ import { useElementSize } from '@vueuse/core';
 import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
+import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
@@ -33,7 +34,8 @@ const ui = useUiStore();
 const el = ref<HTMLElement | null>(null);
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
-useCalendarDrag(el, () => props.segment, () => props.variant);
+// a preview copy (swipe neighbour) is inert: no drag handlers
+if (!inPreview()) useCalendarDrag(el, () => props.segment, () => props.variant);
 const { width } = useElementSize(el);
 
 const tl = computed(() => {

@@ -123,20 +123,54 @@ describe('shell navigation', () => {
     await wait(() => expect(w.find(tid('tasklist-dialog')).exists()).toBe(true));
     expect(val('tasklist-time')).toBe('');
   });
-  it('swiping left goes to the next period, a vertical swipe does nothing', async () => {
+  const touchOn = (area: Element) => (type: string, x: number, y: number) => {
+    const e = new Event(type, { bubbles: true }) as Event & { touches: unknown[]; changedTouches: unknown[] };
+    e.touches = type === 'touchend' ? [] : [{ clientX: x, clientY: y }];
+    e.changedTouches = [{ clientX: x, clientY: y }];
+    area.dispatchEvent(e);
+  };
+  it('swiping left goes to the next period at once with motion off, a vertical swipe does nothing', async () => {
     const { w, router } = await mountAt('/day/2026-10-12');
-    const area = w.get(tid('calendar-swipe-area')).element;
-    const touch = (type: string, x: number, y: number) => {
-      const e = new Event(type, { bubbles: true }) as Event & { touches: unknown[]; changedTouches: unknown[] };
-      e.touches = type === 'touchend' ? [] : [{ clientX: x, clientY: y }];
-      e.changedTouches = [{ clientX: x, clientY: y }];
-      area.dispatchEvent(e);
-    };
+    useSettingsStore().settings.animationLevel = 'off';
+    await flushPromises();
+    const touch = touchOn(w.get(tid('calendar-swipe-area')).element);
     touch('touchstart', 300, 300); touch('touchend', 100, 305);
     await wait(() => expect(router.currentRoute.value.path).toBe('/day/2026-10-13'));
+    expect(w.find(tid('swipe-neighbour')).exists()).toBe(false);
     touch('touchstart', 200, 500); touch('touchend', 205, 200);
     await flushPromises();
     expect(router.currentRoute.value.path).toBe('/day/2026-10-13');
+  });
+  it('a live swipe shows the neighbouring period beside the current one, then settles on it', async () => {
+    const { w, router, m } = await mountAt('/week/2026-10-12');
+    const area = w.get(tid('calendar-swipe-area')).element;
+    Object.defineProperty(area, 'clientWidth', { value: 400 });
+    const touch = touchOn(area);
+    touch('touchstart', 300, 300); touch('touchmove', 280, 301); touch('touchmove', 200, 302);
+    await flushPromises();
+    const nb = w.get(tid('swipe-neighbour'));
+    expect(nb.attributes()).toMatchObject({ 'data-period-start': '2026-10-19', 'aria-hidden': 'true' });
+    expect(nb.find(tid('week-view')).attributes('data-week-start')).toBe('2026-10-19');
+    // its range is fetched in the background
+    expect(m.calls.some((c) => c.path === '/api/items' && c.url.searchParams.get('from') === '2026-10-19')).toBe(true);
+    touch('touchmove', 150, 302); touch('touchend', 150, 302);
+    await wait(() => expect(router.currentRoute.value.path).toBe('/week/2026-10-19'));
+    await wait(() => expect(w.find(tid('swipe-neighbour')).exists()).toBe(false));
+    expect(w.get(tid('week-view')).attributes('data-week-start')).toBe('2026-10-19');
+  });
+  it('a short live swipe springs back and drops the neighbour', async () => {
+    const { w, router } = await mountAt('/week/2026-10-12');
+    const area = w.get(tid('calendar-swipe-area')).element;
+    Object.defineProperty(area, 'clientWidth', { value: 400 });
+    const touch = touchOn(area);
+    touch('touchstart', 100, 300); touch('touchmove', 120, 300); touch('touchmove', 160, 300);
+    await flushPromises();
+    expect(w.get(tid('swipe-neighbour')).attributes('data-period-start')).toBe('2026-10-05');
+    // the finger rests before letting go: no flick
+    await new Promise((r) => setTimeout(r, 150));
+    touch('touchend', 160, 300);
+    await wait(() => expect(w.find(tid('swipe-neighbour')).exists()).toBe(false));
+    expect(router.currentRoute.value.path).toBe('/week/2026-10-12');
   });
   it('shows the error banner with a retry that clears it', async () => {
     let down = true;

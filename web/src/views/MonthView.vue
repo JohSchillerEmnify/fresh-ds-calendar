@@ -9,17 +9,22 @@ import { isPhone } from '@/composables/useViewport';
 import { allotHeights } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { laneCount } from '@/lib/spans';
-import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
+import { providePreview } from '@/composables/usePreview';
+import { monthGrid, periodTitle, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 
+/** `anchor`/`preview`: a light copy for another period (swipe neighbour), see `usePreview`. */
+const props = defineProps<{ anchor?: Date; preview?: boolean }>();
+providePreview(props.preview);
 const cal = useCalendarStore();
 const clock = useClockStore();
 const nav = useNav();
 const segs = useDaySegments();
 const barsOf = useBars();
 
-const weeks = computed(() => monthGrid(cal.anchor));
+const anchor = computed(() => props.anchor ?? cal.anchor);
+const weeks = computed(() => monthGrid(anchor.value));
 /** Bars per week row: every lane is drawn, what does not fit the cell is clipped and fades out. */
 const rows = computed(() => weeks.value.map((week) => {
   const dates = week.map(toIsoDate);
@@ -72,7 +77,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 </script>
 
 <template>
-  <section class="month" :class="{ phone: isPhone }" data-testid="month-view" :data-month="cal.title">
+  <section class="month" :class="{ phone: isPhone }" data-testid="month-view" :data-month="periodTitle('month', anchor)">
     <div class="weekdays" role="row">
       <div v-for="w in WEEKDAY_LABELS" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
@@ -83,8 +88,8 @@ function onChipsClick(e: MouseEvent, day: Date): void {
         </div>
         <div
           v-for="day in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
-          :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, cal.anchor) ? 'true' : undefined"
-          :class="{ outside: !isSameMonth(day, cal.anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
+          :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, anchor) ? 'true' : undefined"
+          :class="{ outside: !isSameMonth(day, anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div v-if="row.lanes" class="lanes" />

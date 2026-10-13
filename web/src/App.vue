@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import IconYear from '~icons/material-symbols/calendar-month';
 import IconMonth from '~icons/material-symbols/calendar-view-month';
@@ -11,6 +11,7 @@ import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
 import InstallPrompts from '@/components/shell/InstallPrompts.vue';
 import ReauthBanner from '@/components/shell/ReauthBanner.vue';
+import SwipeCarousel from '@/components/shell/SwipeCarousel.vue';
 import SyncErrorBanner from '@/components/shell/SyncErrorBanner.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
@@ -18,7 +19,6 @@ import Snackbar from '@/components/m3/Snackbar.vue';
 import type { NavItem } from '@/components/m3/types';
 import { acquireViewport, isPhone } from '@/composables/useViewport';
 import { useNav } from '@/composables/useNav';
-import { bindSwipe } from '@/composables/useSwipe';
 import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry';
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
@@ -66,7 +66,8 @@ const items = computed<NavItem[]>(() => labs.labs
 const filterShown = computed(() => isCalendar.value && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
-const swipeArea = ref<HTMLElement | null>(null);
+/** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, and outside the calendar. */
+const swipeDisabled = () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
 let undo: Array<() => void> = [];
 onMounted(() => {
   undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }), auth.listen());
@@ -76,13 +77,6 @@ onMounted(() => {
     sync.start();
     void calendars.load().catch((e) => sync.reportError(e));
     void labs.load();
-  }
-  if (swipeArea.value) {
-    undo.push(bindSwipe(swipeArea.value, {
-      onLeft: () => void nav.next(),
-      onRight: () => void nav.prev(),
-      disabled: () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value,
-    }));
   }
 });
 onBeforeUnmount(() => {
@@ -111,10 +105,9 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
     <div class="body">
       <NavigationRail v-if="isCalendar && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
       <div class="col">
-        <main ref="swipeArea" class="main" data-testid="calendar-swipe-area">
+        <SwipeCarousel :disabled="swipeDisabled">
           <template v-if="route.meta.view"><template v-for="(h, i) in calendarHeaders" :key="i"><component :is="h.component" v-if="h.shown()" /></template></template>
-          <RouterView />
-        </main>
+        </SwipeCarousel>
         <component :is="t" v-for="(t, i) in trayComponents" :key="i" />
       </div>
     </div>
@@ -129,7 +122,6 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
 .shell { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .body { flex: 1; min-height: 0; display: flex; }
 .col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; touch-action: pan-y; overflow: hidden; }
 /* Desktop: the open tasks tray is a right-hand side panel. */
 @media (min-width: 768px) { .col { flex-direction: row; } }
 </style>
