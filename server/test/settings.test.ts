@@ -15,9 +15,10 @@ describe('settings', () => {
     const { body: s } = await t.json('GET', '/api/settings');
     expect(s).toMatchObject({
       themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
-      transitionWarningMinutes: 10, streakFlame: true, garden: 'plant', version: 1,
+      transitionWarningMinutes: 10, streakFlame: true, plant: true, sunflowers: 'grow', version: 1,
     });
     expect(s).not.toHaveProperty('scene');
+    expect(s).not.toHaveProperty('garden');
     expect(s.categories.map((c: any) => [c.id, c.name, c.color, c.icon, c.googleColorId])).toEqual([
       ['shopping', 'Shopping', '#0b8043', '🛒', '10'], ['todo', 'To-do', '#3f51b5', '✅', '9'],
       ['work', 'Work', '#8e24aa', '💼', '3'], ['home', 'Home', '#f4511e', '🏠', '6'],
@@ -25,13 +26,13 @@ describe('settings', () => {
   });
 
   it('PATCH merges, lowercases the seed color, bumps version', async () => {
-    const r = await t.json('PATCH', '/api/settings', { themeMode: 'dark', seedColor: '#C43E00', garden: 'sunflowers' });
+    const r = await t.json('PATCH', '/api/settings', { themeMode: 'dark', seedColor: '#C43E00', plant: false, sunflowers: 'full' });
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ themeMode: 'dark', seedColor: '#c43e00', garden: 'sunflowers', version: 2 });
+    expect(r.body).toMatchObject({ themeMode: 'dark', seedColor: '#c43e00', plant: false, sunflowers: 'full', version: 2 });
   });
 
   it('validates values', async () => {
-    const bad = [{ seedColor: 'red' }, { themeMode: 'x' }, { scene: 'mordor' }, { transitionWarningMinutes: 7 }, { defaultEventColorId: '12' }, { garden: 'tree' }, { nope: 1 }, { categories: [] }];
+    const bad = [{ seedColor: 'red' }, { themeMode: 'x' }, { scene: 'mordor' }, { transitionWarningMinutes: 7 }, { defaultEventColorId: '12' }, { garden: 'plant' }, { plant: 'yes' }, { sunflowers: 'many' }, { nope: 1 }, { categories: [] }];
     for (const b of bad) expect((await t.json('PATCH', '/api/settings', b)).status, JSON.stringify(b)).toBe(400);
     expect((await t.json('PATCH', '/api/settings', { seedColor: 'red' })).body.error.message).toBe('Enter a color like #1a73e8');
     expect((await t.json('PATCH', '/api/settings', { defaultEventColorId: '5' })).body.defaultEventColorId).toBe('5');
@@ -100,9 +101,9 @@ describe('categories', () => {
 
   it('reset restores default settings and categories', async () => {
     await t.json('DELETE', '/api/categories/home');
-    await t.json('PATCH', '/api/settings', { garden: 'off' });
+    await t.json('PATCH', '/api/settings', { plant: false });
     const r = await t.json('POST', '/api/__test/reset');
     expect(r.body.settings.categories).toHaveLength(4);
-    expect(r.body.settings.garden).toBe('plant');
+    expect(r.body.settings.plant).toBe(true);
   });
 });

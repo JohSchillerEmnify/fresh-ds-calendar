@@ -3,10 +3,11 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useAnimationLevel } from '@/motion/level';
 import Butterfly from './Butterfly.vue';
 import SunflowerField from './SunflowerField.vue';
+import SunflowerLandscape from './SunflowerLandscape.vue';
 import { onceFlag } from './session';
 import type { ChangeKind, Mood } from './types';
 
-/** Sunflower field + once-per-session butterfly (Full animations and >= 1 flower only). */
+/** Landscape + sunflower field + once-per-session butterfly (Full animations and >= 1 flower only). */
 const props = defineProps<{ flowers: number; mood?: Mood; change?: { id: number; kinds: ChangeKind[] } | null }>();
 const level = useAnimationLevel();
 const root = ref<HTMLElement | null>(null);
@@ -28,6 +29,7 @@ onBeforeUnmount(() => (alive = false));
 
 <template>
   <div ref="root" class="ss" data-testid="scene-sunflowers">
+    <SunflowerLandscape />
     <SunflowerField :flowers="flowers" :mood="mood" :change="change" />
     <Butterfly v-if="showButterfly" :container="root" @done="showButterfly = false" />
   </div>

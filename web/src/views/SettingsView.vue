@@ -8,7 +8,7 @@ import IconAdd from '~icons/material-symbols/add';
 import IconNext from '~icons/material-symbols/chevron-right';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, Category, GardenStyle, Motivation, Prefs, SupportCatSetting, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -111,7 +111,7 @@ function commitCustomHours() {
 }
 const levels = [{ value: 'full', label: 'Full' }, { value: 'reduced', label: 'Reduced' }, { value: 'off', label: 'Off' }] as const;
 const warns = [{ value: '0', label: 'Off' }, { value: '5', label: '5 min' }, { value: '10', label: '10 min' }, { value: '15', label: '15 min' }] as const;
-const gardens = [{ value: 'plant', label: 'Single plant' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'off', label: 'Off' }] as const;
+const sunflowerModes = [{ value: 'grow', label: 'Grow with points' }, { value: 'full', label: 'Full field' }] as const;
 const supportCats = [{ value: 'off', label: 'Off' }, { value: 'sometimes', label: 'Sometimes' }, { value: 'always', label: 'Every time' }] as const;
 
 // --- categories ---------------------------------------------------------------------------
@@ -201,7 +201,8 @@ async function resetDemo() {
           <div class="row col"><span class="lab">Warn before an event starts</span><SegmentedButton :model-value="String(s.transitionWarningMinutes)" :options="[...warns]" label="Transition warning" data-testid="settings-transition-warning" @update:model-value="save({ transitionWarningMinutes: Number($event) as 0 | 5 | 10 | 15 })" /></div>
           <div class="row"><div class="grow"><span class="lab">Calm mode</span><span class="sub">Fewer details, quieter colors, reduced motion</span></div><Switch :model-value="s.calmMode" label="Calm mode" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
           <div class="row"><span class="lab grow">Streak flame</span><Switch :model-value="s.streakFlame" label="Streak flame" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
-          <div class="row col"><span class="lab">Garden</span><SegmentedButton :model-value="s.garden" :options="[...gardens]" label="Garden" data-testid="settings-garden" @update:model-value="save({ garden: $event as GardenStyle })" /></div>
+          <div class="row"><span class="lab grow">Plant</span><Switch :model-value="s.plant" label="Plant" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
+          <div class="row col"><span class="lab">Sunflowers</span><SegmentedButton :model-value="s.sunflowers" :options="[...sunflowerModes]" label="Sunflowers" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
           <div v-if="currentStreak !== null" class="row"><span class="lab grow">Current streak</span><StreakFlame :count="currentStreak" /></div>
           <div class="row"><span class="lab grow">Best streak</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>
           <div class="row col"><span class="lab">Support cat</span><SegmentedButton :model-value="labs.supportCat" :options="[...supportCats]" label="Support cat" data-testid="settings-support-cat" @update:model-value="savePrefs({ supportCat: $event as SupportCatSetting })" /></div>

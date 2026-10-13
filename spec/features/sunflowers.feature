@@ -1,15 +1,18 @@
 @plant @sunflowers @reward
 Feature: Sunflower field
-  An alternative garden style: a row of small sunflowers drawn subtly in the background of the top
-  app bar. One sunflower per 40 growth points (same points as the plant), at most 24. Phones show at
-  most 12, wider screens up to 24. Flowers sway gently (paused when animations are Reduced or Off, or
-  the app is hidden), share the plant's mood (resting flowers droop and fade gently), never disappear
-  and never die. A newly earned sunflower grows in with a short animation.
+  The Sunflower field is a scene (a choice of the top app bar background in the theme menu): a small landscape
+  (sky, soft rolling hills, a few drifting clouds, a bee now and then) with a row of sunflowers in front. It shows
+  whenever it is the chosen scene, whatever the plant setting. The Motivation setting "Sunflowers" decides how many
+  flowers: "Grow with points" (default) grows one flower per 40 growth points (same points as the plant), at most
+  30; "Full field" shows a fixed full field without growing. Phones (under 600 px) show at most 15, wider screens up
+  to 30. Flowers sway gently (paused when animations are Reduced or Off, or the app is hidden), share the plant's
+  mood (resting flowers droop and fade gently), never disappear and never die. A newly earned sunflower grows in
+  with a short animation.
 
   Background:
     Given the calendar is empty
     And today is 2026-10-12
-    And the garden style is "Sunflower field"
+    And the scene is "Sunflower field"
 
   Scenario: The field shows one sunflower per 40 growth points
     Given the plant has 200 growth points and was last watered on 2026-10-12
@@ -17,6 +20,23 @@ Feature: Sunflower field
     Then I see the sunflower field
     And the sunflower field shows 5 flowers
     And the sunflower field is labelled "Sunflower field: 5 flowers"
+
+  Scenario: The field shows whatever the plant setting is
+    When I open the path "/settings"
+    And I turn the plant "off"
+    And I open the app
+    Then I see the sunflower field
+    And I do not see the plant
+
+  Scenario: Without the scene there is no field
+    Given the scene is "None"
+    When I open the app
+    Then I do not see the sunflower field
+
+  Scenario: The field sits in a small landscape
+    Given the plant has 200 growth points and was last watered on 2026-10-12
+    When I open the app
+    Then the top bar scene shows "sky", "hills", "cloud" and "sunflower"
 
   Scenario: A new sunflower grows in when enough points are earned
     Given the plant has 39 growth points and was last watered on 2026-10-11
@@ -30,15 +50,36 @@ Feature: Sunflower field
     Given I am using a phone
     And the plant has 2000 growth points and was last watered on 2026-10-12
     When I open the app
-    Then the sunflower field shows 12 flowers
-    And the sunflower field is labelled "Sunflower field: 24 flowers"
+    Then the sunflower field shows 15 flowers
+    And the sunflower field is labelled "Sunflower field: 30 flowers"
     And the page has no horizontal scroll
 
   @desktop
-  Scenario: A full field on a wide screen shows up to 24 flowers
+  Scenario: A full field on a wide screen shows up to 30 flowers
     Given the plant has 2000 growth points and was last watered on 2026-10-12
     When I open the app
-    Then the sunflower field shows 24 flowers
+    Then the sunflower field shows 30 flowers
+
+  @desktop
+  Scenario: The full field setting shows a fixed field without growing
+    Given the plant has 0 growth points and was last watered on 2026-10-12
+    And the sunflowers are set to "Full field"
+    When I open the app
+    Then the sunflower field shows 30 flowers
+    And the sunflower field is labelled "Sunflower field: 30 flowers"
+
+  @mobile
+  Scenario: The full field setting fits a phone
+    Given I am using a phone
+    And the sunflowers are set to "Full field"
+    When I open the app
+    Then the sunflower field shows 15 flowers
+
+  Scenario: The sunflowers setting is chosen in the settings
+    When I open the path "/settings"
+    And I choose "Full field" for the sunflowers
+    And I request "GET /api/settings"
+    Then the response JSON field "sunflowers" equals "full"
 
   Scenario Outline: The field never hurts legibility of the top app bar
     Given the device prefers a <scheme> color scheme

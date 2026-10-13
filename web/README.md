@@ -47,8 +47,8 @@ Other hooks:
 - `useUiStore().notify(text, { action, duration, testid })` for snackbars (transition warning, streak message).
 - `TimeGrid` exposes `scrollToMinutes(min)`; blocks are `top = start/60 * hourHeight`, min height 24 px, Google-like column packing in `lib/items.ts#packColumns`.
 - Motion/motivation (merged from feat/web-motion): `App.vue` feeds `animationLevel`/`calmMode` to `useAnimationLevel`, `sounds` to `setSoundsEnabled`;
-  `main.ts` calls `installMotion()`. `AppTopBar` mounts `<TopBarScene :scene="settings.effectiveScene">` (`mordor` always; `sunflowers` only with garden
-  `sunflowers`; else `none`) in the `background` slot and `<LeadingWidgets>` in `leading-widgets`. `api.onMotivationChanged` triggers `motivation.refresh()`.
+  `main.ts` calls `installMotion()`. `AppTopBar` mounts `<TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers">` (the theme's scene,
+  whatever the plant setting; `sunflowers` grows with points or is a fixed full field) in the `background` slot and `<LeadingWidgets>` in `leading-widgets`. `api.onMotivationChanged` triggers `motivation.refresh()`.
   Swipe navigation bails when `isGestureClaimed()`. `/lab` is the lazy MotionLab route. See `src/motion/README.md` for the reward/drag APIs the event and task list UI should use.
 - `settings.installAppearance()` sets `data-theme`, the theme-color meta and `html[data-calm]`; `html[data-motion]` is owned by `motion/level.ts`.
 
@@ -65,7 +65,7 @@ Other hooks:
 
 - The scene is the theme's `scene` attribute (`/api/prefs/theme`, cached in `cal.theme`); there is no `Settings.scene` any more.
 - `POST /api/demo/reset` for "Reset demo data" (exists on the server; shown only when `/api/config.provider === 'mock'`). Etags are opaque: sent verbatim.
-- Dialog props shape and testids `settings-theme-mordor`, `settings-category-up/down`, `settings-reset-demo` are additions to the catalog.
+- Dialog props shape and testids `settings-category-up/down`, `settings-reset-demo` are additions to the catalog.
 - `year-month` carries `data-month="YYYY-MM"`.
 
 ## Known gaps
