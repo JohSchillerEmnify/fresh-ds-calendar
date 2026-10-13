@@ -548,6 +548,13 @@ immutable`. `/manifest.webmanifest` (`application/manifest+json`), `/sw.js` (`no
 served from the build output. Text responses (HTML, JS, CSS, JSON, manifest) are served compressed (brotli or gzip,
 pre-compressed at build time where possible) when the client accepts it.
 
+### `GET /app.apk` (Android app download)
+
+Serves `DATA_DIR/downloads/app.apk` if the file exists: `200`, `Content-Type: application/vnd.android.package-archive`,
+`Content-Length`, `Content-Disposition: attachment; filename="calendar.apk"`, `Cache-Control: no-cache`. Without the file
+`404` with the usual JSON error body (never the SPA `index.html`). Public (outside `/api`, no session needed: the
+file holds no secrets). The file is put there by `scripts/android-build.sh`, not by the server.
+
 ## Sign-in (auth on when `PROVIDER=google`; off with `PROVIDER=mock` unless a test turns it on)
 
 | Method | Path | Effect |
