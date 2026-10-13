@@ -1,6 +1,6 @@
 @themes @scenes @id:theme-scenes
 Feature: Season themes keep my light or dark choice and bring their own scene
-  The season themes (Spring, Summer, Fall, Winter and so Automatic) change colours, shapes and the top bar scene but
+  The season themes (Spring, Summer, Fall and Winter) change colours, shapes and the top bar scene but
   never my choice of System, Light or Dark (owner, 2026-10-13); only Neon and Mordor are dark by design. Each season
   has a lively scene in the top bar: spring with sprouting trees and the first flowers such as lily of the valley,
   summer with sunflowers and a small sun; Halloween with a moon, bare trees, glowing jack-o'-lanterns, bats and now
@@ -25,7 +25,8 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       | Light | Winter | light  |
 
   Scenario Outline: Each season scene has its own life, butterflies and a cat
-    When I choose the theme "<theme>"
+    When I set the seasons and holidays to "Off"
+    And I choose the theme "<theme>"
     Then the top bar scene shows <parts>
 
     Examples:

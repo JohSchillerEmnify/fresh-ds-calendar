@@ -315,8 +315,8 @@ otherwise; bundle budget §5a applies).
   desktop) with M3 list sections:
   Sections (owner, 2026-10-13: deduplicated, proper sections; each a card with a heading, on desktop with a section
   list on the left; every setting exists exactly once):
-  1. *Appearance*: one row "Theme" showing the chosen theme (for Automatic "Automatic · <the seasonal theme in use>", e.g.
-     "Automatic · Halloween" in October; owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
+  1. *Appearance*: one row "Theme" showing the chosen theme (the calendar's theme for Header + colours, "<theme> · <calendar theme> header" for Header only, the theme name for Off;
+     owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
      (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`) and
      the Scene choice live only in the theme menu, no longer on the settings page.
   2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.
@@ -785,18 +785,13 @@ It never reloads by itself and never interrupts an open dialog.
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|sunflowers|mordor|spring|summer|fall|winter;
   Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
-  Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
-  1 September, winter from 1 December).
+  Winter and Mordor (the calendar's theme for a day is in "Holiday themes and Seasons & holidays" below).
 - **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
-  The theme menu's Scene card has a switch "Follow the calendar (seasons & holidays)" (`theme-scene-follows`) and the
-  scene options, in this order: Spring, Easter, Summer, Summer holidays, Fall,
-  Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower
-  field (`sunflowers`), Mordor, None (owner 2026-10-13: every scene can be picked on its own). The switch
-  is the automatic choice (it replaces the former "Season" option) and is stored as the sentinel `season` in
-  `overrides.scene`; it is on when that is the stored value or, with no scene override, for the preset Automatic; the shell resolves it by date to today's season scene
-  (Halloween in October). An explicit pick (e.g. Halloween in spring) is stored as that scene and shows only its own
-  option as pressed. Alternative weighed: keeping "Season" as today's concrete scene and also marking it pressed for
-  any season scene (rejected: an explicit pick and the automatic one could not be told apart). Default and Neon start with
+  The theme menu's Scene card has the scene options, in this order: Spring, Easter, Summer, Summer holidays, Fall,
+  Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field (`sunflowers`), Mordor, None (owner
+  2026-10-13: every scene can be picked on its own). An explicit pick is stored as that scene, sets "Seasons &
+  holidays" to Off and shows only its own option as pressed. The former `season` sentinel and "Season" option are
+  gone, replaced by that setting. Default and Neon start with
   `none`; every scene, the Sunflower field included, shows whenever it is chosen (API.md "Scenes"). Alternatives
   weighed: keeping the old `Settings.scene` and hiding the theme one (rejected: two stored values and a precedence
   rule nobody could see) and moving everything into settings (rejected: presets need to carry a scene).
@@ -817,22 +812,17 @@ It never reloads by itself and never interrupts an open dialog.
   changes; for themes without a seed the setting stays the base). **Theme mode stays a setting** (`themeMode`): the
   owner decided that season presets keep the person's System/Light/Dark and only Neon and Mordor are dark by design,
   so a mode pick must survive choosing another theme, which an override (cleared on choose) would break.
-- The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <the calendar's preset of
-  today>", e.g. "Automatic · Fall", "Automatic · Halloween", "Automatic · Christmas"; with "Scene only" or "Colours only"
-  (below) it reads "Automatic (scene) · Christmas" or "Automatic (colours) · Christmas".
-- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
-  `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
-  halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
-  Winter, Mordor and Automatic (resolves to the season by date; Halloween for all of October, owner 2026-10-13: spring from 1 March, summer from 1 June, fall from
-  1 September, winter from 1 December).
-- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Halloween" for Automatic in October),
+- The settings page's Theme row shows the calendar's theme alone for Header + colours (e.g. "Halloween"), "<theme> ·
+  <calendar theme> header" for Header only (e.g. "Neon · Halloween header") and the chosen theme's name for Off.
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved theme: with Header + colours the calendar's theme, e.g. "Halloween" in October, else the chosen preset),
   `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
   Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows
   but stop animated ones.
-- Stored per person in `DATA_DIR/users/<sub>/prefs.json` (`theme: { preset, overrides }`, same store as hidden
+- Stored per person in `DATA_DIR/users/<sub>/prefs.json` (`theme: { preset, overrides, seasonal }`, same store as hidden
   calendars); `GET/PATCH /api/prefs/theme`. Cached in `localStorage` and applied before mount to avoid a flash.
-- Theme menu (`/settings/theme`, entry `settings-theme`): below the live preview, three sections in this order
-  (`theme-section`, `data-section`): **Presets** (`presets`, the gallery), **Scene** (`scene`, its own card with the
+- Theme menu (`/settings/theme`, entry `settings-theme`): below the live preview, four sections in this order
+  (`theme-section`, `data-section`): **Seasons & holidays** (`calendar`, the segmented button `theme-seasonal` and a line
+  `theme-seasonal-today` saying what applies today), **Presets** (`presets`, the gallery), **Scene** (`scene`, its own card with the
   scene choices) and **Fine-tuning** (`fine-tuning`: theme mode, seed colour, glow, entries, corners). There is no
   separate Mordor row or button (`settings-theme-mordor` is removed): the Mordor preset (seed #c43e00, dark mode,
   Mordor scene) does the same, and Mordor stays a scene choice. Gallery `theme-card` (`data-name`, `aria-pressed`), each
@@ -841,13 +831,13 @@ It never reloads by itself and never interrupts an open dialog.
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
 
-### Holiday themes and "Automatic follows" (owner, 2026-10-13)
+### Holiday themes and "Seasons & holidays" (owner, 2026-10-13)
 
 - **Calendar mapping** (pure functions in `web/src/theme/holidays.ts`, unit-tested; `presets.ts` builds on them).
-  `automaticPreset(date)` priority: New Year's Eve (31 Dec), New Year (1 Jan only), Christmas (1st Advent Sunday to
+  `automaticPreset(date)` (the calendar's theme for a date) priority: New Year's Eve (31 Dec), New Year (1 Jan only), Christmas (1st Advent Sunday to
   30 Dec; the 1st Advent is the 4th Sunday before 25 Dec), Easter (Easter Sunday −7 to +6 days; Easter by the anonymous
   Gregorian Meeus/Jones/Butcher algorithm), Halloween (all of October), then the season. Summer holidays is never
-  picked, it is hand-picked only. The `season` scene sentinel resolves through the same mapping. Alternatives weighed
+  picked, it is hand-picked only. Alternatives weighed
   for the Easter algorithm: a lookup table of years (rejected: runs out) and Date libraries (rejected: nothing to add).
   Christmas state for a date: Advent (1st Advent .. 23 Dec) = tree lights off and 1 + whole weeks since the 1st Advent
   candles lit (max 4); every other date, which includes 24-30 Dec and a hand-picked Christmas scene in April = lights on,
@@ -865,17 +855,25 @@ It never reloads by itself and never interrupts an open dialog.
   Motion: CSS transforms and opacity only; fireworks, candle flicker, tree twinkle, waves and confetti run only at Full
   (`html[data-motion='full']`), at Reduced and Off everything stands still; paused while the page is hidden is inherited
   from the animation level handling like the other scenes.
-- **The scene follows the calendar** (owner decision, replacing an earlier three-way "Automatic follows" control that
-  never reached master): one switch at the top of the Scene card, `theme-scene-follows`, independent of the chosen
-  preset or own theme. On = `overrides.scene = 'season'`: only the top bar picture follows the calendar mapping,
-  colours and every other setting stay from the chosen theme plus Fine-tuning. Off = the person's picked scene, or the
-  theme's own scene when none was picked. Defaults: on for the preset Automatic (colours AND scene follow the
-  calendar), off for every other theme; choosing a theme resets overrides and so the switch to that default. Picking a
-  scene option turns it off (stores that scene). Turning it off stores the theme's own scene by removing the override
-  (for Automatic, which has no scene of its own, today's calendar scene is stored so the picture stays). The
-  settings row stays "Automatic · <calendar preset>". Alternatives weighed: a 3-way Automatic control with a base
-  theme (rejected by the owner: it hid the idea in one preset) and an extra pref field (rejected: `season` already is
-  the stored form).
+- **Seasons & holidays** (owner decision after a journey walk-through; replaces the preset Automatic and two earlier
+  controls that never reached master). One setting for all seasons and holidays, `seasonal: 'off' | 'header' |
+  'all'` in the theme pref, shown as the segmented button `theme-seasonal` (Off · Header only · Header + colours) at the
+  top of the theme menu with a line `theme-seasonal-today`: "Today: <calendar theme> header & colours", "Today:
+  <calendar theme> header" or "Today: nothing changes automatically". `all`: colours and style (seed, mode rule, glow,
+  entries, corners, an imported theme's role colours) come from the calendar's theme for today (`automaticPreset`) and
+  the scene from `seasonScene`; New Year's Eve is therefore dark whenever its colours apply, as base or through this.
+  `header`: colours from the chosen preset, scene from the calendar. `off`: the chosen preset and the person's scene
+  pick (or the preset's own scene). Fine-tuning overrides always sit on top; an explicit scene override wins over the
+  calendar's scene. New people start with `all` on base Default. **An explicit pick wins and steps the setting down**:
+  choosing a preset turns `all` into `header` (the header stays seasonal, the colours are the person's; `header` and
+  `off` stay) and resets the overrides; picking a scene stores it and sets `off`; setting `header` or `all` again drops
+  the scene override so the calendar shows. The `season` scene sentinel is gone: the header mode resolves the calendar's
+  scene directly, so nothing needs a sentinel. Migration on read (server, marker `seasonalMigrated` in the stored theme;
+  the web cache applies the same rule): a stored preset Automatic becomes Default with `all`; a stored scene override
+  `season` becomes `header` with the override removed; everything else becomes `off`, so nobody's look changes.
+  Alternatives weighed: a switch pair (rejected by the owner: four combinations, two of them confusing), keeping
+  Automatic as a preset (rejected: it hid the idea in one card), and a separate setting per season/holiday (rejected:
+  one rule for all, as asked).
 
 ### Season scenes and the support cat (owner, 2026-10-13)
 
