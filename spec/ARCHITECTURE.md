@@ -878,7 +878,7 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
 `version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
 back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
-"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
+"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load. A preview build (version `…-preview+<sha>`) skips the snackbar and reloads by itself, so the owner always sees the newest preview (owner, 2026-10-13); production keeps the snackbar.
 It never reloads by itself and never interrupts an open dialog.
 
 ### Version numbers (owner, 2026-10-13)
@@ -1132,7 +1132,7 @@ app at once and is a **theme override** (reset by choosing a preset, captured by
 - Drag helper (owner, 2026-10-13): when the person picks up an event or task list, the cat may come to "help" — same
   setting as the support cat (Off / Sometimes ≈ every 5th drag / Every time). It follows the dragged card: moving
   later/down → it pushes from above, earlier/up → it pulls from below, to another day → it pushes from the side;
-  when the pointer rests > 0.5 s it sits beside the card with a paw on it and looks at the person questioningly; on
+  when the pointer rests > 0.5 s it sits beside the card (on the left, away from the dragging thumb; on the right in left-handed mode — owner 2026-10-13) with a paw on it and looks at the person questioningly; on
   drop or cancel it hops away (≤ 1.5 s). It reads the drag state from `motion/drag.ts` (no second drag logic),
   never takes pointer events and must not slow the drag (transform-only, one rAF loop shared with the drag).
 - Cat look (owner, 2026-10-13, two reference pictures; the second one wins where they differ): a black cat in a

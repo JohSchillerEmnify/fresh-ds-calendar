@@ -133,6 +133,9 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
 .tv { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 12px; }
 .tabs { flex: 1 1 220px; max-width: 360px; }
+/* compact tabs (owner: "so much waste of space"): shorter, smaller label, no check mark */
+.tabs :deep(.opt) { min-height: 34px; padding: 0 10px; font: var(--md-sys-typescale-label-medium); }
+.tabs :deep(.chk) { display: none; }
 .search { flex: 1 1 240px; max-width: 480px; }
 .archive { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .archive .list { max-width: 760px; margin: 0 auto; }
