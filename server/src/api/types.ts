@@ -167,6 +167,8 @@ export interface ItemsResponse {
   items: CalendarItem[];
   from: LocalDate;
   to: LocalDate;
+  /** Echo of the optional `also` range whose items are merged into `items`. */
+  also?: { from: LocalDate; to: LocalDate };
   syncedAt: DateTime;
 }
 

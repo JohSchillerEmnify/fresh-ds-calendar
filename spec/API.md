@@ -210,6 +210,11 @@ Sorted by start (all-day first per day, then by time, then title). A Google even
 `extendedProperties.private.kind === 'tasklist'` is returned as `TaskList`, all others as `CalendarEvent`. Cancelled
 events are omitted. Errors: 400 (`from`/`to` invalid, `to <= from`, range > 100 days), 503, 502.
 
+Optional `&also=YYYY-MM-DD..YYYY-MM-DD` (one extra range, same rules) adds that range's items to the same response, so
+the client's poll stays one request when it also keeps today loaded for the Approaching card (owner, 2026-10-13;
+alternatives weighed: two requests per poll — breaks the polling budget; refreshing today less often — staler card).
+The response then also carries `also: { from, to }`; items present in both ranges appear once.
+
 ### Events
 
 | Method | Path | Body | Success |

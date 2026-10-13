@@ -96,6 +96,8 @@ export class World {
   /** The week the last "without signing in" step opened. */
   weekOpened?: string;
   lastResponse?: { status: number; json: unknown; url: string };
+  /** The first-open check-in of the page opened by "I open the app" (settles to undefined when none comes). */
+  firstCheckIn?: Promise<unknown>;
   browserMemory?: BrowserMemory;
   serverRss?: number;
   requestCount?: number;
