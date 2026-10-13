@@ -103,6 +103,7 @@ interface TaskList {
   color: string;               // category color, else calendar color
   completedOn: LocalDate | null; // read-only: app-clock date of the write that ticked the last open item; null while
                                  // an item is open (also for lists completed in the Google app); ignored on input
+  canvas: { x: number; y: number } | null;  // place on the Canvas in canvas units (integers 0-10000); null = Unsorted
   etag: string;
   updated: DateTime;
 }
@@ -297,6 +298,7 @@ interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
+  canvas?: { x: number; y: number } | null; // x, y integers 0-10000 (else 400, field `canvas`); null clears the place
 }
 ```
 Item ops return the whole updated `TaskList`. `index` inserts at a position (default: append). `itemIds` must be a
@@ -390,6 +392,31 @@ finished lists; the date-range endpoints are unchanged.
 
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
 `tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (ARCHITECTURE "Archive"); any other value is `400`.
+
+### Canvas (`/api/canvas`)
+
+The person's **areas** on the Tasks view's Canvas (ARCHITECTURE "Canvas"), one JSON document per person in
+`DATA_DIR/users/<sub>/canvas.json`; not in Google. The place of a note is not here: it is the `canvas` field of the
+task list.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/canvas` | – | `200` `CanvasDoc` (`{ version: 1, areas: [] }` for a person without one) |
+| `PUT` | `/api/canvas` | `{ areas: CanvasArea[] }` | `200` `CanvasDoc` (replaces the whole document) |
+
+```ts
+interface CanvasArea {
+  id: string;      // 1-32 characters of A-Za-z0-9_-, unique in the document; the client makes it
+  name: string;    // trimmed, 1-60 characters
+  color: string;   // #rrggbb
+  x: number; y: number;   // top-left corner in canvas units, integers 0-10000
+  w: number; h: number;   // size, integers 160-4000 wide, 120-4000 high
+}
+interface CanvasDoc { version: 1; areas: CanvasArea[] }   // at most 50 areas
+```
+A `PUT` with an unknown field, a bad value, a duplicate id or more than 50 areas is `400 VALIDATION_ERROR` and changes
+nothing. Last write wins (no etag). The document is per person (the signed-in person; one shared document with sign-in
+off). `POST /api/__test/reset` forgets every person's document.
 
 ### Motivation: check-in streak and plant
 

@@ -402,3 +402,34 @@ spec files are named.
 - **A-114 Reduced motion** (my reading): "scaled animations only at Full motion" means the effective animation level
   (setting, calm mode and system preference); below Full every CSS animation and transition inside the preview is
   switched off, the scene stays as a still picture.
+- **A-120 Canvas board and note size** (my numbers; the owner asked for "larger than the screen"): the board is 4000 x 3000
+  canvas units, a note is 240 units wide, zoom 0.3 .. 2 (owner: "such as 0.3-2"); at least 120 px of the board stay in view
+  when panning. The server limit for saved places (0 .. 10000) is deliberately larger than the board.
+- **A-121 Place fields** (owner: "choose the field names and the size limits"): `cx` and `cy`, integer strings 0 .. 10000, both
+  or none; API field `canvas: { x, y } | null`. A pair that is not two integers in range is read as "no place".
+- **A-122 Which lists** (my reading of "ALL open task lists"): the same set as the Open tab (all-open: undated plus dated within
+  a year either side of today), without the category filter chips (a filtered-out note vanishing from a board you arranged
+  by hand would look like data loss).
+- **A-123 Dragging** (my reading of "as the calendar does"): mouse = plain drag after 4 px; touch = long press 350 ms (the
+  calendar's delay) with a haptic tick, then drag; a touch that moves earlier pans the canvas. A drag starts anywhere on a
+  note except on buttons, checkboxes and fields, so the title (a button) opens the dialog and never drags.
+- **A-124 Unsorted order** (my reading): by title, then id, 14 units diagonal offset per note, the last offset shared after
+  10 notes; stable so a stack does not reshuffle while ticking. "Top left" is (24, 24) on the board; the default view
+  (pan 0, 0, zoom 1) shows it.
+- **A-125 Leaving the canvas** (my reading of "after the usual finish feedback"): the note stays 1400 ms after the tick (the
+  celebration) plus the support cat's visit when it comes, then disappears; the list is in the Archive at once.
+- **A-126 Area defaults** (my choice): new area 320 x 240 units, centred in the view, name "Area" (translated), colour
+  from an eight-colour palette by count; minimum size 160 x 120. Membership uses the note's anchor (middle of its top edge:
+  x + 120, y + 24); with overlapping areas the topmost (last in the list) wins.
+- **A-127 Area storage** (owner: "per person on the server ... one serialisable JSON doc"): `canvas.json`, whole-document
+  `GET/PUT`, last write wins, at most 50 areas, written after each finished edit and read when the canvas opens and on
+  syncs while nothing is unsaved. Two devices editing at the same moment can overwrite each other (acceptable for one person).
+- **A-128 View memory** (owner: "per device in localStorage"): key `cal.canvasView` = `{ x, y, zoom }`; the first visit
+  starts at zoom 1, pan 0, 0.
+- **A-129 No extra controls** (my reading, "no features beyond what was asked"): no zoom buttons, minimap or "reset view"; the
+  only buttons on the canvas are "Add area" and the area editor's. Zoom is pinch and Ctrl+wheel; the plain wheel pans.
+- **A-130 Test steps** (my reading): "the Canvas shows the notes A, B" compares the note titles sorted alphabetically (the
+  DOM order is not a promise); drags in steps use the mouse (the e2e phones emulate touch, but `page.mouse` events are
+  mouse pointers, so the plain-drag path is what runs); the area scenario drops the note at the area's top left + (20, 56).
+- **A-131 Translations** (owner): `canvas.*` keys in `locales/<lang>/canvas.ts` for `en`, `de`, `de-x-mainfr` and
+  `de-x-coldmirror`; the dialect catalogues are complete for these keys.

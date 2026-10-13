@@ -141,6 +141,7 @@ option A of two — B, server storage with Drive backup, may follow in the VPS t
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
 | `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| `canvas` (@optional) | `extendedProperties.private.cx` and `.cy`: integer strings `0..10000`, the note's place on the Canvas (ARCHITECTURE "Canvas"); both absent = no place yet |
 | undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |
 | `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
 | `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
@@ -632,6 +633,13 @@ Rules for implementers:
 | `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
 | `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
 | `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
+| `tasks-tab-canvas` | the Canvas tab (`aria-pressed`); the tab's content is `tasks-canvas` |
+| `tasks-canvas`, `canvas-viewport` | Canvas root and its viewport; `canvas-viewport` has `data-zoom`, `data-pan-x`, `data-pan-y` |
+| `canvas-note` | one sticky note: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated), `data-x`, `data-y` (top-left corner in canvas units, rounded), `data-placed` (`"true"` once it has a place), `data-area` (name of the area it lies in, `""` = none); contains a `tasklist-view`, `canvas-note-grip` (the drag strip, with `canvas-note-date` when dated) |
+| `canvas-unsorted` | the "Unsorted" label above the stack of notes without a place |
+| `canvas-area` | one area: `data-area-id`, `data-name`, `data-color`, `data-x`, `data-y`, `data-w`, `data-h`; contains `canvas-area-header` (drag, tap opens the editor) and `canvas-area-resize` |
+| `canvas-area-add` | creates an area in the middle of the view and opens its editor |
+| `canvas-area-editor` | the editor panel: `canvas-area-name-input`, `canvas-area-color` (one per swatch, `data-color`, `aria-pressed`), `canvas-area-delete`, `canvas-area-editor-close` |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
 | `sync-status` | `data-state`, `data-last-sync` |
 | `sync-error-banner`, `sync-retry` | error strip |
@@ -1139,6 +1147,87 @@ A task list may have no date. It is stored in the same place as every other list
   +-365-day range and keeps the complete lists (deduplicated by id); every later write of such a list adds the marker.
   Older unmarked lists are not found until they are edited once (acceptable: pre-release, no migration job, A-103).
   The marker is derived from the items on every write (`encodePrivate`), so it can never disagree with them.
+
+### Canvas (owner, 2026-10-13, slice 3 of the task management feature)
+
+The Tasks view gets a third tab, **Canvas** (`tasks-tab-canvas`; tabs: Open · Canvas · Archive). It shows ALL open task
+lists, dated and undated, as **sticky notes** you place freely on a large board, with named **areas** to sort them by.
+Owner decisions are final; the numbers and names below are mine (A-120 .. A-131).
+
+- **Board and units.** One canvas unit = one CSS pixel at zoom 1. The board is `4000 x 3000` units (`WORLD_W`,
+  `WORLD_H`), origin top left. A note is `240` units wide (`NOTE_W`) and as tall as its items. Pure geometry (clamping,
+  stack layout, zoom around a point, area lookup) lives in `web/src/features/tasklists/canvas.ts` with unit tests.
+- **Notes** (`canvas-note`): a card in the category colour with a grip strip on top (the date, when the list has one),
+  the title, the done count and the items with the same `RewardCheckbox` rows as everywhere. A note is the tray's
+  `TaskListView` in a `compact` mode (no move/delete buttons, next-task hint, add field or footer), so ticking, the
+  celebration and the support cat are the existing code and the existing optimistic item ops. Tapping the title
+  opens the task list dialog (`titleOpensDialog`). A tick that finishes the list plays the usual finish feedback, then
+  the note leaves the canvas (the list is in the Archive, ARCHITECTURE "Archive"): the Tasks view store keeps a list that
+  was finished here until the view is opened again (as in Open), and the canvas hides it after the feedback
+  (`1400 ms` plus the cat's visit, A-125).
+- **Place on the event** (owner). The place of a note is stored on its Google event, in `extendedProperties.private`:
+  `cx` and `cy`, the note's top-left corner in canvas units as **integer strings** (`"100"`, `"260"`). Both are present
+  or both absent (absent = no place yet: the note is in the Unsorted stack). Limits: integers `0 .. 10000`
+  (`CANVAS_MAX`); the server rejects anything else with `400 VALIDATION_ERROR` (field `canvas`), and a reader ignores a
+  pair that is not two integers in range. The API shows `canvas: { x, y } | null` on a `TaskList` and takes
+  `canvas?: { x, y } | null` in `PATCH /api/tasklists/:id` (null clears the place: the list goes back to Unsorted).
+  `encodePrivate` writes `cx` / `cy` (null removes them), so every other write of the list keeps the place. The web app
+  clamps a dropped note to the board (`0 .. WORLD - NOTE_W`, `0 .. WORLD_H - 24`) before it saves.
+  *Why two integer properties and not one JSON value*: like `estimate`, they are tiny (about 12 bytes against the 32 kB
+  budget), readable in Google's raw event, and `privateExtendedProperty=cx=100` stays queryable. *Why the server limit
+  (10000) is larger than the board*: the board can grow later without a data migration. *Why integers*: a position needs
+  no sub-unit precision and strings of digits cannot carry stray text.
+- **Moving.** With a mouse a plain drag on the note's body or grip (not on a button, checkbox or field) moves it after a
+  4 px slop; on a touch screen a long press (350 ms, the calendar's delay, with a haptic tick) lifts it and the finger
+  then drags; a touch that moves before that scrolls (pans) the canvas instead. Escape cancels a drag. During the
+  drag the note follows through `transform` only (no layout work); on release the place is saved with
+  `PATCH /api/tasklists/:id { canvas }` **without** `If-Match` (a move never conflicts with item edits: the server
+  re-reads and retries) and shown at once; on a failure the note springs back (the old place) with a snackbar.
+  The existing drag controller (`motion/drag.ts`) is built around slot grids and ghost cards; the canvas reuses its
+  *conventions* (long-press delay, slop, haptic, claim of the gesture) with a small pointer-event module of its own
+  (`useCanvasPointer.ts`), because a free 2-D board with pan and pinch needs none of the slot hit-testing.
+- **Unsorted stack.** Open lists without a place sit at the top left, offset diagonally on top of each other: the
+  n-th note (ordered by title, then id) at `(24 + 14 n, 24 + 14 n)` for n up to 10, further notes share the last offset.
+  The label "Unsorted" (`canvas-unsorted`) sits above the stack while it is not empty. A note leaves the stack by being
+  moved; a list created later arrives in the stack (`data-placed="false"`).
+- **Zoom and pan.** The board is drawn in a viewport (`canvas-viewport`) as one layer with
+  `transform: translate(px, py) scale(z)`; `data-zoom`, `data-pan-x` and `data-pan-y` expose the view. Pan: dragging
+  the empty background (one finger or the mouse; areas are transparent to the pointer except their header and resize
+  handle), and the plain mouse wheel / trackpad scroll. Zoom: pinch and Ctrl+wheel (the same gesture rate as the time
+  grid, `wheelZoomFactor`), about the pointer or pinch centre, within `0.3 .. 2`. The pan is clamped so that at least
+  `120` px of the board stay in view. The view `{ x, y, zoom }` is remembered **per device** in `localStorage`
+  (`cal.canvasView`, written 250 ms after the last change and on `pagehide`, every access in try/catch; unusable values give the default zoom 1, pan 0, 0); it is never sent to
+  the server.
+- **Areas** (`canvas-area`). A labelled rectangle (name, colour, position, size) that collects notes. It is created with
+  `canvas-area-add` (centred in the view, `320 x 240`, named "Area", colour from a palette), moved by dragging its header,
+  resized by `canvas-area-resize` (bottom right; minimum `160 x 120`, maximum `4000`), and edited by tapping its header:
+  the editor panel (`canvas-area-editor`) has the name field (`canvas-area-name-input`, Enter or blur saves and closes),
+  colour swatches (`canvas-area-color`, `data-color`), `canvas-area-delete` and `canvas-area-editor-close`. Deleting an
+  area deletes only the rectangle: **membership is stored nowhere**; a note belongs to the topmost area that contains the
+  note's *anchor* (the middle of its top edge: `x + 120`, `y + 24`); `data-area` on the note holds that area's name
+  (`""` = none). Why by position only (owner): notes keep their meaning when areas are deleted, resized or restored, and
+  there is nothing to keep in sync. The anchor, not the whole note, because a note's height varies with its items.
+- **Where areas live (owner: per person on the server, not in Google).** `DATA_DIR/users/<sub>/canvas.json`, one JSON
+  document `{ "version": 1, "areas": [ { id, name, color, x, y, w, h } ] }` per person, read and written whole by
+  `GET /api/canvas` and `PUT /api/canvas` (API.md "Canvas"), written atomically like `prefs.json`. A later slice backs
+  this document up to Google Drive, which is why it is one self-contained, serialisable file and not part of `prefs.json`
+  and not many files. *Alternatives weighed*: (a) areas as Google events (rejected: owner, and rectangles are not
+  events); (b) a `canvas` field in `prefs.json` (rejected: prefs are small switches that `PATCH` merges, the canvas
+  document is a growing document with its own limits and backup); (c) one endpoint per area (rejected: more routes and
+  a half-saved board after a failed second call; a whole-document `PUT` is atomic). The price of (c)'s alternative: two
+  devices editing areas at the same moment overwrite each other (last write wins, A-127); the web app writes after each
+  finished edit (create, rename, recolour, drop, resize, delete), serialised in order, and reads the document when the
+  canvas opens and on every sync while nothing is unsaved.
+- **Motion and smoothness.** Everything that follows a pointer or the zoom is `transform`; no gesture reads layout
+  (`getBoundingClientRect` once at pointer-down). The lift of a dragged note (shadow, a slight scale) and the springing
+  back are CSS transitions under `html:not([data-motion='off'])`, so Off and Reduced motion show the plain state change.
+  No `requestAnimationFrame` loop runs while idle; all listeners are bound through `lib/timers` helpers and removed on
+  unmount (ARCHITECTURE 5a). Left-handed mode needs nothing special (owner).
+- **i18n.** All text through `t()`, keys in the per-area module `web/src/i18n/locales/<lang>/canvas.ts` (`canvas.*`),
+  for `en`, `de`, `de-x-mainfr` and `de-x-coldmirror` (the Fresh Dumbledore voice; crude humour only about Harry Potter
+  characters). The new components are added to the raw-text test.
+- **Not in this slice**: the Google Drive backup of the document (a later slice), area membership as data, snapping and
+  alignment, multi-select, per-note sizes, a minimap.
 
 ### Untitled task lists (owner, 2026-10-12)
 

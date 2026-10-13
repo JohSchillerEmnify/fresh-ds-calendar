@@ -13,8 +13,8 @@ import { useItemsStore } from '@/stores/items';
 import { isFinished } from './archive';
 import { isOpen } from './tasksView';
 
-/** The two tabs of the Tasks view. */
-export type TasksTab = 'open' | 'archive';
+/** The tabs of the Tasks view: the Canvas shows the same open lists as Open (ARCHITECTURE "Canvas"). */
+export type TasksTab = 'open' | 'canvas' | 'archive';
 
 /** Same horizon as the endpoint (API.md): a year either side of today. */
 const WINDOW_DAYS = 365;

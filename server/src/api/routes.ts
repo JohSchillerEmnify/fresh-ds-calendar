@@ -10,7 +10,7 @@ import { nanoid } from '../lib/ids.js';
 import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
-  addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
+  addItemSchema, canvasDocSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
@@ -196,6 +196,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!ctx.themes.remove(person(c), c.req.param('id'))) throw notFound('Theme not found');
     return c.body(null, 204);
   });
+
+  // ---- canvas areas (ARCHITECTURE "Canvas") ----
+  r.get('/canvas', (c) => c.json(ctx.canvas.get(person(c))));
+  r.put('/canvas', async (c) => c.json(ctx.canvas.put(person(c), parse(canvasDocSchema, await body(c)).areas)));
 
   // ---- items ----
   r.get('/items', async (c) => {

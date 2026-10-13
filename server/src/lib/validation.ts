@@ -24,6 +24,25 @@ const itemTitle = v.pipe(v.string('Item title is required'), v.trim(), v.minLeng
 
 const strict = v.strictObject;
 const so = <T extends v.ObjectEntries>(e: T) => strict(e);
+/** A whole number of canvas units (ARCHITECTURE "Canvas"). */
+const canvasInt = (min: number, max: number, msg: string) => v.pipe(v.number(msg), v.integer(msg), v.minValue(min, msg), v.maxValue(max, msg));
+const canvasPlace = v.nullable(so({ x: canvasInt(0, 10_000, 'Canvas x must be a whole number from 0 to 10000'), y: canvasInt(0, 10_000, 'Canvas y must be a whole number from 0 to 10000') }));
+const canvasId = v.pipe(v.string('Area id must be text'), v.regex(/^[A-Za-z0-9_-]{1,32}$/, 'Area id must be 1-32 characters of A-Z a-z 0-9 _ -'));
+const canvasArea = so({
+  id: canvasId,
+  name: v.pipe(v.string('Area name is required'), v.trim(), v.minLength(1, 'Area name is required'), v.maxLength(60, 'Area name must be at most 60 characters')),
+  color: hex,
+  x: canvasInt(0, 10_000, 'Area x must be a whole number from 0 to 10000'),
+  y: canvasInt(0, 10_000, 'Area y must be a whole number from 0 to 10000'),
+  w: canvasInt(160, 4000, 'Area width must be a whole number from 160 to 4000'),
+  h: canvasInt(120, 4000, 'Area height must be a whole number from 120 to 4000'),
+});
+/** `PUT /api/canvas` (API.md "Canvas"): the whole list of areas. */
+export const canvasDocSchema = v.pipe(
+  so({ areas: v.pipe(v.array(canvasArea), v.maxLength(50, 'At most 50 areas')) }),
+  v.check((d) => new Set(d.areas.map((a) => a.id)).size === d.areas.length, 'Area ids must be unique'),
+);
+
 const REQUIRED: Record<string, string> = {
   title: TITLE_REQ, name: 'Name is required', start: 'Start is required', end: 'End is required', date: 'Date is required',
   allDay: 'allDay is required', color: HEX_MSG, now: 'now is required', down: 'down is required',
@@ -76,6 +95,7 @@ export const updateTaskListSchema = so({
   categoryId: v.optional(v.nullable(v.string())),
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
+  canvas: v.optional(canvasPlace),
 });
 export const addItemSchema = so({ title: itemTitle, done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
