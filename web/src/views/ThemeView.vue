@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /**
- * Theme menu (`/settings/theme`): a gallery of ready themes (each a real mini week under that theme's attributes),
- * fine-tuning options that each show a sample of their look, and a live preview. Picking applies at once and is
- * saved in the background by the theme store; there is no save button. The one Scene choice is a theme attribute. Theme
- * mode, seed colour and the Mordor shortcut are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
+ * Theme menu (`/settings/theme`): a live preview and three sections, in this order: Presets (a gallery of ready
+ * themes, each a real mini week under that theme's attributes), Scene (the top bar background, one choice) and
+ * Fine-tuning (theme mode, seed colour and options that each show a sample of their look). Picking applies at once
+ * and is saved in the background by the theme store; there is no save button. The scene is a theme attribute. Theme
+ * mode and seed colour are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
  */
+import { createReusableTemplate } from '@vueuse/core';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
 import { ApiError } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
-import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
@@ -49,8 +50,11 @@ const groups: { setting: keyof ThemeAttrs; label: string; options: { value: stri
   { setting: 'glow', label: 'Glow', options: [{ value: 'off', label: 'Off' }, { value: 'soft', label: 'Soft' }, { value: 'neon', label: 'Neon' }] },
   { setting: 'entries', label: 'Entries', options: [{ value: 'solid', label: 'Solid' }, { value: 'tinted', label: 'Tinted' }, { value: 'outline', label: 'Outline' }] },
   { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
-  { setting: 'scene', label: 'Scene', options: [{ value: 'season', label: 'Season' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] },
 ];
+/** The Scene choice has its own section; its options look and behave like the fine-tuning ones. */
+const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', options: [{ value: 'season', label: 'Season' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] };
+/** One option group (label + option cards) is drawn in two sections, so its template is defined once. */
+const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'halloween'];
 const isSeason = (s: string) => SEASONS.includes(s);
 
@@ -70,7 +74,7 @@ function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, s
 }
 const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
 
-// --- mode, seed colour, Mordor (settings, not theme prefs) ---------------------------
+// --- mode, seed colour (settings, not theme prefs) ---------------------------
 const sync = useSyncStore();
 const ui = useUiStore();
 const s = computed(() => settings.settings);
@@ -120,6 +124,24 @@ function back() {
       <h1>Theme</h1>
     </header>
     <div class="content">
+      <DefineGroup v-slot="{ g }">
+        <div class="group" role="group" :aria-label="g.label">
+          <span class="lab">{{ g.label }}</span>
+          <div class="opts">
+            <button
+              v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
+              :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
+            >
+              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
+              <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
+                <span class="back" :class="[`b-${sceneOf(o.value)}`]"><SeasonScene v-if="isSeason(sceneOf(o.value))" :season="sceneOf(o.value) as 'spring'" /></span>
+                <ThemeSample kind="event" title="Dentist" />
+              </span>
+              <span class="ol">{{ o.label }}</span>
+            </button>
+          </div>
+        </div>
+      </DefineGroup>
       <section class="card preview" aria-labelledby="h-prev" data-testid="theme-preview">
         <h2 id="h-prev">Preview</h2>
         <div class="stage">
@@ -129,8 +151,8 @@ function back() {
         </div>
       </section>
 
-      <section class="card" aria-labelledby="h-gal">
-        <h2 id="h-gal">Themes</h2>
+      <section class="card" aria-labelledby="h-gal" data-testid="theme-section" data-section="presets">
+        <h2 id="h-gal">Presets</h2>
         <div class="gallery">
           <button
             v-for="n in PRESET_NAMES" :key="n" type="button" class="tcard" data-testid="theme-card" :data-name="n" :aria-pressed="theme.pref.preset === n"
@@ -154,7 +176,12 @@ function back() {
         </div>
       </section>
 
-      <section class="card" aria-labelledby="h-fine">
+      <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
+        <h2 id="h-scene">Scene</h2>
+        <ReuseGroup :g="sceneGroup" />
+      </section>
+
+      <section class="card" aria-labelledby="h-fine" data-testid="theme-section" data-section="fine-tuning">
         <h2 id="h-fine">Fine-tuning</h2>
         <div class="group">
           <span class="lab">Theme mode</span>
@@ -165,28 +192,7 @@ function back() {
           <ColorSwatchPicker :swatches="swatches" :model-value="swatchValue" label="Seed color" @update:model-value="pickSwatch" />
           <TextField v-model="hex" class="hex" label="Custom color (hex)" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
         </div>
-        <div v-for="g in groups" :key="g.setting" class="group" role="group" :aria-label="g.label">
-          <span class="lab">{{ g.label }}</span>
-          <div class="opts">
-            <button
-              v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
-              :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
-            >
-              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
-              <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
-                <span class="back" :class="[`b-${sceneOf(o.value)}`]"><SeasonScene v-if="isSeason(sceneOf(o.value))" :season="sceneOf(o.value) as 'spring'" /></span>
-                <ThemeSample kind="event" title="Dentist" />
-              </span>
-              <span class="ol">{{ o.label }}</span>
-            </button>
-          </div>
-        </div>
-        <div class="group mordor">
-          <span class="grow"><span class="lab">Mordor</span><span class="sub">Ember seed, dark mode and the Mordor scene</span></span>
-          <Button :variant="isMordor && s.themeMode === 'dark' ? 'filled' : 'tonal'" data-testid="settings-theme-mordor" :aria-pressed="isMordor" data-name="Mordor" :data-color="MORDOR_SEED" @click="settings.applyMordor().catch((e) => sync.reportError(e))">
-            {{ isMordor ? 'Active' : 'Use Mordor' }}
-          </Button>
-        </div>
+        <ReuseGroup v-for="g in groups" :key="g.setting" :g="g" />
       </section>
     </div>
   </section>
@@ -229,10 +235,8 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .scenebox { position: relative; }
 .back { position: absolute; inset: 0; overflow: hidden; }
 .b-mordor { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); }
+.b-sunflowers { background: linear-gradient(180deg, color-mix(in srgb, #8ec9f2 40%, transparent) 55%, color-mix(in srgb, #7fbf6a 45%, transparent) 55%); }
 .scenebox :deep(.s-ev) { position: relative; }
 .ol { font: var(--md-sys-typescale-label-large); }
 .hex { margin-top: 10px; }
-.mordor { display: flex; align-items: center; gap: 12px; }
-.grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); padding: 0 4px; }
 </style>

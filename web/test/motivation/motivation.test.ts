@@ -175,13 +175,13 @@ describe('components', () => {
       w.unmount();
     }
   });
-  it('SunflowerField: label, cap at 12 on phones, singular, mood', async () => {
+  it('SunflowerField: label, cap at 15 on phones, singular, mood', async () => {
     const mm = (q: string) => ({ matches: /max-width: 599/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
     vi.stubGlobal('matchMedia', mm);
-    const w = mount(SunflowerField, { props: { flowers: 24 } });
-    expect(w.attributes('aria-label')).toBe('Sunflower field: 24 flowers');
-    expect(w.findAll('[data-testid="sunflower"]').length).toBe(12);
-    expect(w.findAll('use').length).toBe(12);
+    const w = mount(SunflowerField, { props: { flowers: 30 } });
+    expect(w.attributes('aria-label')).toBe('Sunflower field: 30 flowers');
+    expect(w.findAll('[data-testid="sunflower"]').length).toBe(15);
+    expect(w.findAll('use').length).toBe(15);
     expect(w.findAll('symbol').length).toBe(1);
     await w.setProps({ flowers: 1, mood: 'droopy' });
     expect(w.attributes('aria-label')).toBe('Sunflower field: 1 flower');
@@ -281,6 +281,27 @@ describe('scenes', () => {
     expect(document.querySelector('[data-kind="butterfly"]')).toBeNull();
     s.unmount();
   });
+  it('the sunflower scene is a landscape: sky, hills, clouds and bees behind the field', () => {
+    const w = mount(TopBarScene, { props: { scene: 'sunflowers', flowers: 2 } });
+    const part = (p: string) => w.findAll(`[data-part="${p}"]`).length;
+    expect([part('sky'), part('hills'), part('cloud'), part('bee')]).toEqual([1, 1, 3, 2]);
+    // the landscape comes first in the DOM, so the flowers are drawn over it
+    const order = [...w.element.querySelectorAll('[data-part="sky"], [data-testid="sunflower-field"]')].map((e) => e.getAttribute('data-part') ?? 'field');
+    expect(order).toEqual(['sky', 'field']);
+    w.unmount();
+  });
+  it('the full field mode shows a fixed full field that ignores the earned count and never blooms', async () => {
+    const mm = (q: string) => ({ matches: /max-width: 599/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+    const w = mount(TopBarScene, { props: { scene: 'sunflowers', fieldMode: 'full', flowers: 2, change: { id: 1, kinds: ['bloom'] } } });
+    expect(w.get('[data-testid="sunflower-field"]').attributes('aria-label')).toBe('Sunflower field: 30 flowers');
+    expect(w.findAll('[data-testid="sunflower"]').length).toBe(30);
+    w.unmount();
+    vi.stubGlobal('matchMedia', mm);
+    const p = mount(TopBarScene, { props: { scene: 'sunflowers', fieldMode: 'full' } });
+    expect(p.findAll('[data-testid="sunflower"]').length).toBe(15);
+    p.unmount();
+    vi.unstubAllGlobals();
+  });
   it('none renders nothing; scenes never take pointer events', () => {
     expect(mount(TopBarScene, { props: { scene: 'none' } }).html()).toBe('<!--v-if-->');
   });
@@ -304,7 +325,7 @@ describe('LeadingWidgets', () => {
     expect(w.find('[data-testid="plant-button"]').attributes('data-stage')).toBe('Leafy');
     await w.find('[data-testid="plant-button"]').trigger('click');
     expect(w.find('[data-testid="plant-card-stage"]').text()).toBe('Leafy');
-    await w.setProps({ streakFlame: false, garden: 'off' });
+    await w.setProps({ streakFlame: false, showPlant: false });
     expect(w.find('[data-testid="streak-flame"]').exists()).toBe(false);
     expect(w.find('[data-testid="plant-button"]').exists()).toBe(false);
     w.unmount();

@@ -3,22 +3,23 @@ import { computed } from 'vue';
 import { getActivePinia } from 'pinia';
 import { scenes } from './scenes';
 import { useMotivationStore } from './store';
-import type { ChangeKind, Mood, SceneName } from './types';
+import { SUNFLOWER_MAX, type ChangeKind, type Mood, type SceneName } from './types';
 
 /**
  * Background scene for the top bar `background` slot. `scene` is the EFFECTIVE scene resolved by the shell
- * (mordor | sunflowers | none). Sunflower data comes from the motivation store unless overridden by props.
+ * (mordor | sunflowers | none). Sunflower data comes from the motivation store unless overridden by props; with
+ * `fieldMode` 'full' the sunflower field is a fixed full field that never grows (no flower count, no bloom).
  * Absolutely positioned, pointer-events none: it fills its positioned parent.
  */
-const props = defineProps<{ scene: SceneName; flowers?: number; mood?: Mood; change?: { id: number; kinds: ChangeKind[] } | null }>();
+const props = defineProps<{ scene: SceneName; fieldMode?: 'grow' | 'full'; flowers?: number; mood?: Mood; change?: { id: number; kinds: ChangeKind[] } | null }>();
 const store = getActivePinia() ? useMotivationStore() : null;
 const comp = computed(() => scenes[props.scene] ?? null);
 const bind = computed(() =>
   props.scene === 'sunflowers'
     ? {
-        flowers: props.flowers ?? store?.motivation?.plant.flowers ?? 0,
+        flowers: props.fieldMode === 'full' ? SUNFLOWER_MAX : (props.flowers ?? store?.motivation?.plant.flowers ?? 0),
         mood: props.mood ?? store?.motivation?.plant.mood ?? 'happy',
-        change: props.change ?? store?.change ?? null,
+        change: props.fieldMode === 'full' ? null : (props.change ?? store?.change ?? null),
       }
     : {},
 );

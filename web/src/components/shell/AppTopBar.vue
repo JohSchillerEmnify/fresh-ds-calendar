@@ -39,7 +39,7 @@ function toggleFilters() {
 
 <template>
   <TopAppBar>
-    <template #background><TopBarScene :scene="settings.effectiveScene" /></template>
+    <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
       <button class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
@@ -51,7 +51,7 @@ function toggleFilters() {
       </div>
       <div class="widgets">
         <slot name="leading-widgets">
-          <LeadingWidgets :streak-flame="settings.settings.streakFlame" :garden="settings.settings.garden" :today="() => clock.today" />
+          <LeadingWidgets :streak-flame="settings.settings.streakFlame" :show-plant="settings.settings.plant" :today="() => clock.today" />
           <component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" />
         </slot>
         <slot name="trailing-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.trailing" :key="'t' + i" /></slot>

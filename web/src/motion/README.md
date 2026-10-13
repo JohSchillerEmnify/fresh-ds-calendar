@@ -19,13 +19,13 @@ Top bar (`TopBar` slots):
 - `background`: `<TopBarScene :scene="effectiveScene" />` (`'sunflowers' | 'mordor' | 'none'`, already resolved by the
   shell per spec/API.md "Scenes"). Absolutely positioned, `pointer-events: none`, fills the positioned parent
   (`position: relative`). Reads flowers/mood/bloom from the motivation store (needs Pinia). Optional overrides:
-  `flowers`, `mood`, `change`. Sunflowers: butterfly once per session (Full, >= 1 flower). Mordor: eye opens once per
+  `flowers`, `mood`, `change`, `fieldMode` (`grow` | `full`, a fixed 30-flower field). Sunflowers: landscape behind the field, butterfly once per session (Full, >= 1 flower). Mordor: eye opens once per
   session (Full), replaces the butterfly. Static at Reduced/Off.
-- `leading-widgets`: `<LeadingWidgets :streak-flame="settings.streakFlame" :garden="settings.garden" :today="() => appClockLocalDate" />`.
+- `leading-widgets`: `<LeadingWidgets :streak-flame="settings.streakFlame" :show-plant="settings.plant" :today="() => appClockLocalDate" />`.
   It starts the store on mount (loads `/api/motivation`, first-open `POST /api/streak/checkin`, re-checks on
   `visibilitychange` when the app-clock day changed) and stops it on unmount. It renders `streak-flame`,
   `plant-button` (+ `plant-card` popover, do not `overflow:hidden` its ancestor), and the `streak-message` toast.
-  `garden: 'sunflowers'` renders no plant button (the field is the scene).
+  `showPlant: false` renders no plant button; the sunflower field is a scene and does not depend on it.
 
 After mutations whose response has `X-Motivation-Changed: 1` call `useMotivationStore().refresh()`; the store diffs
 and emits `change = { id, kinds: ('water'|'grow'|'bloom'|'perk-up')[] }`, which Plant/SunflowerField play.
@@ -73,7 +73,7 @@ Settings page: best streak = `store.motivation.streak.best`.
 ## features/motivation API (`@/features/motivation`)
 
 `StreakFlame {count, pulse}`, `StreakToast {message}`, `Plant {stage 0-4, mood, size, change}`, `PlantCard {plant, change}`
-(emits `close`), `SunflowerField {flowers, mood, change}` (12 max < 600 px, label always the full count),
+(emits `close`), `SunflowerField {flowers, mood, change}` (15 max < 600 px, 30 otherwise, label always the full count),
 `Butterfly {container}` (emits `done`), `MordorScene {intro}`, `SunflowerScene`, `TopBarScene`, `LeadingWidgets`,
 scene registry `scenes`, `useMotivationStore`, `onceFlag(key)` (sessionStorage once-per-session).
 `SupportCat {card, level}` (emits `done`; ≈3 s at Full, 2 s at Reduced, never mounted at Off) is mounted by

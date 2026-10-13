@@ -20,7 +20,7 @@ export interface ResolvedTheme { name: Exclude<PresetName, 'Automatic'>; seed: s
 export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic'];
 export const DEFAULT_PREF: ThemePref = { preset: 'Default', overrides: {} };
 
-const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'sunflowers' };
+const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none' };
 
 export const PRESETS: Record<Exclude<PresetName, 'Automatic'>, Preset> = {
   Default: { name: 'Default', seed: null, mode: null, attrs: base },
