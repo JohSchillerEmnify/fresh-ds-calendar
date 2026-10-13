@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { addReminderSink, dueReminder, REMINDED_KEY, startBedtimeReminder, stopBedtimeReminder } from '@/features/bedtime/bedtimeReminder';
+import { addReminderSink, dueReminder, NATIVE_REMINDER_ID, REMINDED_KEY, upcomingReminder, startBedtimeReminder, stopBedtimeReminder } from '@/features/bedtime/bedtimeReminder';
 import { absMinutes, bedtimeWindows, DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
@@ -21,6 +21,17 @@ describe('dueReminder', () => {
 
   it('never with a lead of 0 minutes', () => {
     expect(dueReminder(windows, at('22:59'), 0)).toBeNull();
+  });
+});
+
+describe('upcomingReminder', () => {
+  it('is tonight until its reminder time, then the next night', () => {
+    expect(upcomingReminder(windows, at('12:00'), 30)).toEqual({ night: '2026-10-15', at: at('22:30'), bedtime: '23:00' });
+    expect(upcomingReminder(windows, at('22:30'), 30)).toEqual({ night: '2026-10-16', at: at('22:30') + 1440, bedtime: '23:00' });
+  });
+
+  it('never with a lead of 0 minutes', () => {
+    expect(upcomingReminder(windows, at('12:00'), 0)).toBeNull();
   });
 });
 
@@ -85,5 +96,39 @@ describe('startBedtimeReminder', () => {
     expect(seen).toEqual([15]);
     off();
     stop();
+  });
+
+  describe('in the Android app', () => {
+    const plugin = { schedule: vi.fn(() => Promise.resolve()), cancel: vi.fn(() => Promise.resolve()) };
+    beforeEach(() => {
+      plugin.schedule.mockClear();
+      plugin.cancel.mockClear();
+      (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    });
+    afterEach(() => { delete (window as unknown as { Capacitor?: unknown }).Capacitor; });
+
+    it('schedules the next reminder as a notification, once, and the next night after it is due', async () => {
+      const clock = setup('2026-10-14T12:00:00+02:00');
+      const stop = startBedtimeReminder();
+      expect(plugin.schedule.mock.calls).toEqual([[{
+        id: NATIVE_REMINDER_ID, at: Date.parse('2026-10-14T22:30:00+02:00'), title: 'Bedtime in 30 minutes', body: 'Bedtime 23:00',
+      }]]);
+      clock.nowTick = Date.parse('2026-10-14T12:01:00+02:00');
+      await nextTick();
+      expect(plugin.schedule).toHaveBeenCalledTimes(1);
+      clock.nowTick = Date.parse('2026-10-14T22:30:00+02:00');
+      await nextTick();
+      expect(plugin.schedule).toHaveBeenLastCalledWith(expect.objectContaining({ at: Date.parse('2026-10-15T22:30:00+02:00') }));
+      stop();
+    });
+
+    it('cancels it when bedtime mode is switched off', async () => {
+      setup('2026-10-14T12:00:00+02:00');
+      const stop = startBedtimeReminder();
+      usePrefsStore().bedtime = { ...DEFAULT_BEDTIME, enabled: false };
+      await nextTick();
+      expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_REMINDER_ID });
+      stop();
+    });
   });
 });

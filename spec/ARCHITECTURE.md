@@ -752,6 +752,8 @@ animation level at Reduced (no particles). Settings show a hint while the device
 `ignoreSystemMotion` (per person, default off) that lets the app's own level apply.
 ### Back closes overlays (owner, 2026-10-12)
 
+In the Android app the system back reaches this through the WebView history ("Android app and widget", System back).
+
 Every overlay (expanded task list, dialogs and sheets, the expanded phone tray, filter bar, month picker, create menu)
 pushes a history entry when it opens (`history.pushState` with an overlay marker, no route change) and closes on
 `popstate`; closing it by other means goes back over its entry. So the system back gesture/button closes the topmost
@@ -865,8 +867,13 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   remembered per device (`localStorage` `cal.bedtimeReminded` = the night's wake-up date, plus in memory). The clock tick
   pauses while the app is hidden and the reminder is not raised while `document.hidden`; it shows when the app is visible
   again if bedtime has not started. It uses the app clock only (test clock friendly).
-  **Push later**: the reminder goes out through a list of sinks (`reminderSinks`, the snackbar is the first one); a push
-  notification registers another sink without touching the schedule logic. No push is built now.
+  The reminder goes out through a list of sinks (`reminderSinks`, the snackbar is the first one).
+  **Android notification** (owner, 2026-10-13): a sink fires only while the app is open, so inside the Android app the
+  *next* reminder (`upcomingReminder`: the first night whose bedtime minus the lead is after now) is also scheduled ahead
+  through the native plugin `Reminders.schedule({ id: 'bedtime', at, title, body })` and cancelled when bedtime mode or
+  the reminder is off; see "Android app and widget". Re-sent only when time, text or language change, so after tonight's
+  reminder time the next night is scheduled. In dynamic mode the next night uses the items loaded at that time (the next
+  open of the app corrects it). Web Push (for the PWA) still needs HTTPS and is not built.
 - **Why** (alternatives weighed): one nested `bedtime` pref object instead of ten flat prefs (one validation, one
   Settings group, one place to extend with push); naming the night by its wake-up day instead of its evening because the
   dynamic rule and the weekend rule both start from the morning; the whole fixed pair when dynamic would be later
@@ -1498,6 +1505,21 @@ browser does not change.
   any use (app or widget), or after signing out, the widget shows the sign-in hint until the app is opened. The cookie
   is `HttpOnly; SameSite=Lax` and `Secure` only when `PUBLIC_URL` is https, so a native client over plain HTTP is not
   blocked and no server security was loosened. The WebView's cookie jar is only readable by this app.
+- **System back** (owner bug, 2026-10-13): without a handler the Android back gesture finished the activity whatever was
+  open. `MainActivity` registers an `OnBackPressedCallback` (works with predictive back, target SDK 36): when the WebView
+  `canGoBack()` it calls `goBack()`, which fires `popstate`, so the overlay back-stack ("Back closes overlays") closes
+  the topmost overlay, else the router returns to the previous view; with no history left, back leaves the app as
+  before. `@capacitor/app` was not added: it would do the same with a JS listener, one more dependency in both bundles.
+- **Reminders as notifications** (`notify/`): the plugin `Reminders` stores each pending reminder in SharedPreferences
+  (`calendar_reminders`, one per id, a new one replaces it) and sets an `AlarmManager` alarm: exact while idle
+  (`USE_EXACT_ALARM`, granted to calendar apps from Android 13; `SCHEDULE_EXACT_ALARM` on 12), else inexact.
+  `ReminderReceiver` shows the notification (channel "Reminders", the moon icon; a tap opens the app) unless the app is
+  in the foreground, where the snackbar shows the same reminder. It sets the stored alarms again after a reboot or an
+  app update; a reminder whose time passed while the phone was off shows at once. The first `schedule` asks for the
+  notification permission (Android 13+); declined, the reminder is stored but not shown. The text is translated by the
+  web app (the app's language), the channel name by Android (the system language). Alternatives weighed:
+  `@capacitor/local-notifications` (a generic plugin with more surface than one reminder needs, and its own permission
+  flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
 - **Distribution: a download link.** `scripts/android-build.sh` builds a release-signed APK (key generated locally in
   `~/.config/calendar-android/`, never in git; the build falls back to the debug key without it) and copies it to
   `/home/sauron/docker-compose/calendar/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
