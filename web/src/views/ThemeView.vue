@@ -52,19 +52,23 @@ const groups: { setting: keyof ThemeAttrs; label: string; options: { value: stri
   { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
 ];
 /** The Scene choice has its own section; its options look and behave like the fine-tuning ones. */
-const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', options: [{ value: 'season', label: 'Season' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] };
+const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', options: [
+  { value: 'season', label: 'Season' }, { value: 'spring', label: 'Spring' }, { value: 'summer', label: 'Summer' }, { value: 'fall', label: 'Fall' },
+  { value: 'halloween', label: 'Halloween' }, { value: 'winter', label: 'Winter' }, { value: 'sunflowers', label: 'Sunflower field' },
+  { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' },
+] };
 /** One option group (label + option cards) is drawn in two sections, so its template is defined once. */
 const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
 const SEASONS = ['spring', 'summer', 'fall', 'winter', 'halloween'];
 const isSeason = (s: string) => SEASONS.includes(s);
 
+/** The stored scene choice: an explicit pick, the automatic `season`, or the preset's own scene (Automatic follows the season). */
+const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.preset === 'Automatic' ? 'season' : presetFor(theme.pref.preset, clock.today).attrs.scene));
 function pressed(setting: keyof ThemeAttrs, value: string): boolean {
-  const cur = attrs.value[setting];
-  return setting === 'scene' && value === 'season' ? isSeason(cur) : cur === value;
+  return setting === 'scene' ? sceneChoice.value === value : attrs.value[setting] === value;
 }
 function pickOption(setting: keyof ThemeAttrs, value: string) {
-  if (setting === 'scene') void theme.pick('scene', (value === 'season' ? theme.todaysSeasonScene : value) as ThemeAttrs['scene']);
-  else void theme.pick(setting, value as never);
+  void theme.pick(setting, value as never);
 }
 /** Attributes for an option's sample: the current look with this one option swapped in. */
 function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, string> {

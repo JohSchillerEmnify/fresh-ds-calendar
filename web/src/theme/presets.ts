@@ -14,7 +14,10 @@ export type PresetName = 'Default' | 'Neon' | 'Spring' | 'Summer' | 'Fall' | 'Ha
 export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene }
 /** `seed`/`mode` null = keep the person's own seed colour / mode setting. */
 export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
-export interface ThemePref { preset: PresetName; overrides: Partial<ThemeAttrs> }
+/** What a person can store as scene: any scene, or `season`, the automatic choice that follows today's date. */
+export type SceneChoice = ThemeScene | 'season';
+export type ThemeOverrides = Partial<Omit<ThemeAttrs, 'scene'>> & { scene?: SceneChoice };
+export interface ThemePref { preset: PresetName; overrides: ThemeOverrides }
 export interface ResolvedTheme { name: Exclude<PresetName, 'Automatic'>; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
 
 export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic'];
@@ -58,7 +61,9 @@ export function presetFor(name: PresetName, today: string): Preset {
 /** The preset plus the person's overrides, ready to be applied. */
 export function resolveTheme(pref: ThemePref, today: string): ResolvedTheme {
   const p = presetFor(pref.preset, today);
-  return { name: p.name as ResolvedTheme['name'], seed: p.seed, mode: p.mode, attrs: { ...p.attrs, ...pref.overrides } };
+  const attrs = { ...p.attrs, ...pref.overrides, scene: pref.overrides.scene ?? p.attrs.scene };
+  // the automatic choice follows the date
+  return { name: p.name as ResolvedTheme['name'], seed: p.seed, mode: p.mode, attrs: { ...attrs, scene: attrs.scene === 'season' ? seasonScene(today) : attrs.scene } };
 }
 
 const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
@@ -68,5 +73,5 @@ export function sanitizePref(raw: unknown): ThemePref {
   const r = (raw ?? {}) as { preset?: string; overrides?: Record<string, unknown> };
   const preset = PRESET_NAMES.includes(r.preset as PresetName) ? (r.preset as PresetName) : 'Default';
   const overrides = Object.fromEntries(Object.entries(r.overrides ?? {}).filter(([k]) => ATTR_KEYS.includes(k as keyof ThemeAttrs)));
-  return { preset, overrides: overrides as Partial<ThemeAttrs> };
+  return { preset, overrides: overrides as ThemeOverrides };
 }

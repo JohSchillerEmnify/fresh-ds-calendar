@@ -99,7 +99,7 @@ const themeOverrides = so({
   glow: v.optional(v.picklist(['off', 'soft', 'neon'], 'Invalid glow')),
   entries: v.optional(v.picklist(['solid', 'tinted', 'outline'], 'Invalid entries style')),
   corners: v.optional(v.picklist(['square', 'round', 'pill'], 'Invalid corners')),
-  scene: v.optional(v.picklist(['none', 'sunflowers', 'mordor', 'spring', 'summer', 'fall', 'winter', 'halloween'], 'Invalid scene')),
+  scene: v.optional(v.picklist(['season', 'none', 'sunflowers', 'mordor', 'spring', 'summer', 'fall', 'winter', 'halloween'], 'Invalid scene')),
 });
 export const themePatchSchema = so({
   preset: v.optional(v.picklist(['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic'], 'Invalid theme')),

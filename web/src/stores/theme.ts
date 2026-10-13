@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { api } from '@/api/client';
 import {
   DEFAULT_PREF, resolveTheme, sanitizePref, seasonScene,
-  type PresetName, type ThemeAttrs, type ThemePref,
+  type PresetName, type ThemeOverrides, type ThemePref,
 } from '@/theme/presets';
 import { useClockStore } from './clock';
 
@@ -51,7 +51,7 @@ export const useThemeStore = defineStore('theme', () => {
   /** Chooses a preset; its own look replaces earlier fine-tuning. */
   const choose = (preset: PresetName) => save({ preset, overrides: {} });
   /** Fine-tunes one attribute on top of the chosen preset. */
-  const pick = <K extends keyof ThemeAttrs>(setting: K, value: ThemeAttrs[K]) =>
+  const pick = <K extends keyof ThemeOverrides>(setting: K, value: NonNullable<ThemeOverrides[K]>) =>
     save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, [setting]: value } });
 
   /** Mirrors the resolved theme onto `<html>` (attributes read by theme.css and the shell). */

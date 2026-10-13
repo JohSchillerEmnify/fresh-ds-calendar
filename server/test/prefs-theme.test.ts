@@ -42,6 +42,12 @@ describe('one scene choice (migration of the retired top bar scene)', () => {
   const store = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-scene-')); dirs.push(d); return { d, prefs: new PrefsStore(d) }; };
   afterAll(() => dirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
 
+  it('accepts the automatic season scene and every single season scene', async () => {
+    for (const scene of ['season', 'spring', 'summer', 'fall', 'halloween', 'winter']) {
+      expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { scene } })).body.overrides).toEqual({ scene });
+    }
+  });
+
   it('accepts sunflowers as a theme scene', async () => {
     const r = await t.json('PATCH', '/api/prefs/theme', { overrides: { scene: 'sunflowers' } });
     expect(r.body.overrides).toEqual({ scene: 'sunflowers' });
