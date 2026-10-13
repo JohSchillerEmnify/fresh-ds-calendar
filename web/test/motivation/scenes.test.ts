@@ -1,6 +1,6 @@
 /** Themed top bar scenes: each scene's own parts, butterflies and the cat (theme-scenes.feature). */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import TopBarScene from '@/features/motivation/TopBarScene.vue';
 import SproutingTree from '@/features/motivation/SproutingTree.vue';
@@ -200,6 +200,17 @@ describe('themed top bar scenes', () => {
     expect(at('05:00')).toBe(15);
     expect(at('12:00')).toBe(50);
     expect(at('20:00')).toBe(100);
+  });
+});
+
+describe('lazy scene registry', () => {
+  it('the real registry loads a holiday scene on demand and then renders its parts', async () => {
+    setActivePinia(createPinia());
+    const real = await vi.importActual<typeof import('@/features/motivation/scenes')>('@/features/motivation/scenes');
+    const w = mount(real.scenes.easter!, { attachTo: document.body });
+    await vi.waitFor(async () => { await flushPromises(); expect(parts(w.element, 'easter-egg')).toBeGreaterThan(0); });
+    expect(parts(w.element, 'cat')).toBe(1);
+    w.unmount();
   });
 });
 
