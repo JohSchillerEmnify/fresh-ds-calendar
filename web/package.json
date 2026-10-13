@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "build:e2e": "vite build",
+    "build": "vue-tsc --noEmit && vite build && node scripts/precompress.mjs",
+    "build:e2e": "vite build && node scripts/precompress.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "size": "size-limit",
