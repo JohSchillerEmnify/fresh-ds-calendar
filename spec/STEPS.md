@@ -928,7 +928,7 @@ the top bar shows no scene
 the settings show the theme {string}
 I let Automatic change {string}
 I use {string} as the base for Automatic
-the advent wreath shows {int} lit candle(s)
+the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
 the Christmas tree lights are off
 the preview event is drawn as an outline
@@ -962,9 +962,9 @@ the event {string} glows
   "Scene only", "Colours only") of the segmented button `theme-automatic-follows` (`data-value` `both`, `scene`,
   `colors`) and waits for the save. "I use X as the base for Automatic": selects the option with that label in the
   select `theme-automatic-base` (shown only for "Scene only") and waits for the save.
-- "the advent wreath shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
-  `data-part`), exactly N of them with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
-  has one `xmas-tree` element with `data-lights` `on` / `off`; the tree stands in the left third of the top bar.
+- "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
+  `data-part`), in timeline order left to right, exactly the first N with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
+  has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.
 - New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
@@ -994,7 +994,7 @@ the support cat is gone within {int} ms
   "butterfly" part is present for the check.
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
   `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`; the holiday scenes have `easter-egg`,
-  `hare`, `first-flower`, `sea`, `beach-umbrella`, `advent-wreath`, `advent-candle`, `xmas-tree`, `firework`, `skyline`,
+  `hare`, `first-flower`, `sea`, `beach-umbrella`, `advent-candle`, `xmas-tree`, `snow`, `firework`, `skyline`,
   `star`, `sunrise`, `confetti`, `hill`; the sunflower field scene also has
   `sky`, `hills`, `cloud` and `bee`); the step lowercases and
   hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without

@@ -855,8 +855,10 @@ It never reloads by itself and never interrupts an open dialog.
   `newyearseve`, `newyear`) in the registry of `scenes.ts`, built like Halloween: a backdrop in `SeasonScene` (gradient
   and drifting particles, also used by the sample cards) and a living layer in `SceneLife` with `data-part`s. Easter:
   spring meadow with first flowers, painted eggs and a hare. Summer holidays: sun, sea with waves, sand and a beach
-  umbrella. Christmas: a tree on the LEFT (`xmas-tree`, `data-lights` on/off) and an Advent wreath with four
-  `advent-candle`s (`data-lit`); the date comes from the app clock. New Year's Eve: night sky, stars, skyline and
+  umbrella. Christmas: a timeline across the full bar (owner feedback): four big `advent-candle`s (`data-lit`) at about
+  7 / 25 / 50 / 70 % and the tree (`xmas-tree`, `data-lights` on/off) at about 87 % as its end point; unlit candles stay
+  visible but dark, lit ones get a flame with a soft glow; low opacity keeps the bar's title and buttons legible; the
+  date comes from the app clock. New Year's Eve: night sky, stars, skyline and
   fireworks. New Year: sunrise over a hill with falling confetti. Preset order in the gallery follows the Scene card.
   Motion: CSS transforms and opacity only; fireworks, candle flicker, tree twinkle, waves and confetti run only at Full
   (`html[data-motion='full']`), at Reduced and Off everything stands still; paused while the page is hidden is inherited

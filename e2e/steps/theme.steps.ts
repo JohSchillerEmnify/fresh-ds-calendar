@@ -346,7 +346,7 @@ When('I use {string} as the base for Automatic', async function (this: World, la
   await saved;
 });
 
-Then('the advent wreath shows {int} lit candle(s)', async function (this: World, n: number) {
+Then('the advent timeline shows {int} lit candle(s)', async function (this: World, n: number) {
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
   await expect(scene.getByTestId('advent-candle')).toHaveCount(4);
@@ -357,9 +357,9 @@ async function treeLights(world: World, state: 'on' | 'off') {
   await backToCalendar(world);
   const tree = world.page.getByTestId('top-bar-scene').getByTestId('xmas-tree');
   await expect(tree).toHaveAttribute('data-lights', state);
-  // the tree stands in the left third of the top bar
-  const [t, bar] = await Promise.all([tree.boundingBox(), world.page.getByTestId('top-bar-scene').boundingBox()]);
-  expect(t!.x + t!.width / 2).toBeLessThan(bar!.x + bar!.width / 3);
+  // the tree ends the timeline: it stands right of the fourth candle
+  const [t, c] = await Promise.all([tree.boundingBox(), world.page.getByTestId('top-bar-scene').getByTestId('advent-candle').nth(3).boundingBox()]);
+  expect(t!.x).toBeGreaterThan(c!.x + c!.width);
 }
 Then('the Christmas tree lights are on', async function (this: World) { await treeLights(this, 'on'); });
 Then('the Christmas tree lights are off', async function (this: World) { await treeLights(this, 'off'); });

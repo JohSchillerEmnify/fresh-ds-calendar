@@ -11,8 +11,9 @@ Feature: Choosing and fine-tuning a theme
   Winter, Mordor and Automatic, which follows the calendar in this priority: New Year's Eve (31 December), New Year
   (1 January), Christmas (from the 1st Advent Sunday to 30 December), Easter (a week before to six days after Easter
   Sunday), Halloween (all of October), then the season (spring from 1 March, summer from 1 June, fall from
-  1 September, winter from 1 December). Summer holidays is never picked by Automatic. Christmas shows an Advent wreath
-  with four candles, lit one more each Advent Sunday, and a tree on the left whose lights come on on 24 December. For
+  1 September, winter from 1 December). Summer holidays is never picked by Automatic. Christmas shows a timeline across
+  the top bar: four big Advent candles, one more lit each Advent Sunday, and the tree at the end whose lights come on on
+  24 December. For
   Automatic the person chooses what follows the calendar: colours and scene, only the scene (colours from a base
   theme they pick) or only the colours (the scene stays their own pick). The choice is kept per person and
   holds on every device.
@@ -85,11 +86,11 @@ Feature: Choosing and fine-tuning a theme
       | 2027-03-25 | easter      |
       | 2027-10-12 | halloween   |
 
-  Scenario Outline: The Advent wreath lights a candle each Advent Sunday and the tree lights come on at Christmas Eve
+  Scenario Outline: The Advent timeline lights a candle each Advent Sunday and the tree lights come on at Christmas Eve
     Given today is <date>
     And I chose the theme "Automatic"
     When I open the week view for <date>
-    Then the advent wreath shows <candles> lit candles
+    Then the advent timeline shows <candles> lit candles
     And the Christmas tree lights are <lights>
 
     Examples:
@@ -107,7 +108,7 @@ Feature: Choosing and fine-tuning a theme
     And I open the theme menu
     And I pick "Christmas" for "Scene"
     Then the top bar shows the "christmas" scene
-    And the advent wreath shows 4 lit candles
+    And the advent timeline shows 4 lit candles
     And the Christmas tree lights are on
 
   Scenario: Summer holidays can only be picked by hand
