@@ -12,7 +12,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter @calendar/server --filter @calendar/web
 COPY server server
 COPY web web
-# Build version (git sha) shared by the web bundle and the server so the app can detect a newer deploy.
+# Build version (X.Y.Z+<sha>, scripts/version.sh) shared by the web bundle and the server so the app can detect a newer deploy.
 ARG APP_VERSION=0.1.0
 ENV APP_VERSION=$APP_VERSION
 RUN pnpm build

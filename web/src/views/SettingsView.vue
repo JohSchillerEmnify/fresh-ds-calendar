@@ -27,6 +27,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
+import { shownVersion } from '@/pwa/version';
 
 const router = useRouter();
 const settings = useSettingsStore();
@@ -38,6 +39,7 @@ const items = useItemsStore();
 const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 const theme = useThemeStore();
+const build = shownVersion();
 
 /** Persist a per-person preference (Labs switch, support cat, tasks calendar); a refusal rolls back in the store and shows a snackbar. */
 async function savePrefs(p: Partial<Prefs>) {
@@ -220,6 +222,8 @@ async function resetDemo() {
           <h2 id="h-account">{{ title('account') }}</h2>
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">Signed in with Google</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">Sign out</Button></div>
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">Reset demo data</span><span class="sub">Replaces the mock calendar with fresh demo events</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">Reset</Button></div>
+          <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">Version {{ build.version }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
+          <div class="row"><div class="grow"><span class="lab">Show version in the corner</span><span class="sub">A small label at the bottom left</span></div><Switch :model-value="labs.versionInCorner" label="Show version in the corner" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>
         </section>
       </div>
     </div>

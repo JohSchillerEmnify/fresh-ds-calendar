@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes' };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -23,6 +23,14 @@ describe('prefs (Labs switches)', () => {
     expect((await t.json('PATCH', '/api/prefs', { approachingCard: 'no' })).status).toBe(400);
     await t.req('POST', '/api/__test/reset');
     expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ approachingCard: true, approachBar: true });
+  });
+
+  it('keeps the version-in-the-corner switch per person, off by default, boolean only', async () => {
+    expect((await t.json('GET', '/api/prefs')).body.versionInCorner).toBe(false);
+    expect((await t.json('PATCH', '/api/prefs', { versionInCorner: true })).body.versionInCorner).toBe(true);
+    expect((await t.json('PATCH', '/api/prefs', { versionInCorner: 'yes' })).status).toBe(400);
+    await t.req('POST', '/api/__test/reset');
+    expect((await t.json('GET', '/api/prefs')).body.versionInCorner).toBe(false);
   });
 
   it('keeps the approach window per person, 3 hours by default, any whole number from 1 to 24', async () => {
@@ -49,7 +57,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always' });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
   });
 

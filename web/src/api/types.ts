@@ -115,6 +115,8 @@ export interface Prefs {
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;
   supportCat: SupportCatSetting;
+  /** Show the small build-version label in the bottom-left corner of the main UI. */
+  versionInCorner: boolean;
 }
 
 export interface Settings {

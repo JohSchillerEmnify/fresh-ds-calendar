@@ -1,6 +1,6 @@
 /** Settings, categories and filter steps (STEPS.md "Settings", "Categories, tags and filters"). */
 import { expect, type Locator } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { expectRoleHue } from './support/color.js';
 import { chooseSelect, saveSetting } from './support/settings.js';
 import { chooseOption, expectJoined, selectedLabel } from './support/ui.js';
@@ -277,4 +277,20 @@ Then('the tag filters are {string}', async function (this: World, list: string) 
 
 Then('the URL query is {string}', async function (this: World, query: string) {
   await expect.poll(() => new URL(this.page.url()).search.replace(/^\?/, '')).toBe(query);
+});
+
+Given('the server reports the build version {string}', async function (this: World, version: string) {
+  await this.api.post('/api/__test/version', { version });
+  // The page learns its build version from the served index.html, so it must be (re)loaded after the override.
+  if (this.page.url().startsWith('http')) await this.page.reload();
+  else await this.page.goto('/');
+  await this.calendarShown();
+});
+
+Then('the settings show the version {string}', async function (this: World, version: string) {
+  await expect(this.page.getByTestId('settings-version')).toHaveText(new RegExp(`^Version ${version.replaceAll('.', '\\.')}`));
+});
+
+Then('the corner shows the version {string}', async function (this: World, version: string) {
+  await expect(this.page.getByTestId('app-version')).toHaveText(version);
 });

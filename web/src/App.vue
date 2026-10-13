@@ -12,6 +12,7 @@ import FilterBar from '@/components/shell/FilterBar.vue';
 import InstallPrompts from '@/components/shell/InstallPrompts.vue';
 import ReauthBanner from '@/components/shell/ReauthBanner.vue';
 import SyncErrorBanner from '@/components/shell/SyncErrorBanner.vue';
+import VersionLabel from '@/components/shell/VersionLabel.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
 import Snackbar from '@/components/m3/Snackbar.vue';
@@ -121,6 +122,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
     <CreateFab v-if="isCalendar" />
     <NavigationBar v-if="isCalendar && isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
     <component :is="dialogComp" v-if="dialogComp && ui.dialog" v-bind="ui.dialog.props" @close="ui.closeDialog()" />
+    <VersionLabel v-if="isCalendar && labs.versionInCorner" :raised="isPhone" />
     <Snackbar />
   </div>
 </template>

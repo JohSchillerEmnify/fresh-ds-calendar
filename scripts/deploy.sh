@@ -20,7 +20,12 @@ fi
 # Data dir must be writable by the container's non-root `node` user (uid 1000).
 mkdir -p "$(dirname "$COMPOSE_FILE")/data"
 
-APP_VERSION="$(git -C "$REPO" rev-parse --short HEAD)"
+# Semantic version from the commits since the last tag (scripts/version.sh); master deploys are tagged locally (no remote).
+VERSION="$("$REPO/scripts/version.sh")"
+if [[ "$(git -C "$REPO" branch --show-current)" == "master" ]] && ! git -C "$REPO" rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+  git -C "$REPO" tag "v$VERSION"
+fi
+APP_VERSION="$VERSION+$(git -C "$REPO" rev-parse --short HEAD)"
 echo "==> docker compose build (APP_VERSION=$APP_VERSION) + up -d"
 docker compose -f "$COMPOSE_FILE" build --build-arg "APP_VERSION=$APP_VERSION"
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate  # compose v2.3 sometimes keeps the old container
