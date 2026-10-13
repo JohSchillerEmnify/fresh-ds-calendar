@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import Button from '@/components/m3/Button.vue';
+import { t } from '@/i18n';
 
 const route = useRoute();
 const isPrivate = route.query.error === 'private';
@@ -13,10 +14,10 @@ function signIn() {
 
 <template>
   <section class="page" data-testid="signin-page">
-    <h1>Calendar</h1>
-    <p v-if="isPrivate" class="notice" role="alert" data-testid="signin-private">This calendar is private. This Google account is not allowed to use it.</p>
-    <p v-else class="hint">Sign in with Google to see your calendar.</p>
-    <Button data-testid="signin-google" @click="signIn">Sign in with Google</Button>
+    <h1>{{ t('calendar.signIn.title') }}</h1>
+    <p v-if="isPrivate" class="notice" role="alert" data-testid="signin-private">{{ t('calendar.signIn.privateCalendar') }}</p>
+    <p v-else class="hint">{{ t('calendar.signIn.hint') }}</p>
+    <Button data-testid="signin-google" @click="signIn">{{ t('calendar.signIn.withGoogle') }}</Button>
   </section>
 </template>
 

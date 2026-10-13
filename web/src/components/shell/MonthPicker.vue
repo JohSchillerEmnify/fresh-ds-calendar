@@ -12,6 +12,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
+import { t } from '@/i18n';
 
 /** Expanding mini-month picker under the top app bar (month-picker.feature). */
 const cal = useCalendarStore();
@@ -71,11 +72,11 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 <template>
   <div class="wrap">
     <div class="scrim" data-testid="month-picker-scrim" @click="ui.pickerOpen = false" />
-    <section class="picker" data-testid="month-picker" role="dialog" aria-label="Choose a date">
+    <section class="picker" data-testid="month-picker" role="dialog" :aria-label="t('calendar.picker.label')">
       <div class="head">
-        <IconButton label="Previous month" data-testid="month-picker-prev" @click="move(-1)"><IconPrev /></IconButton>
+        <IconButton :label="t('calendar.picker.previousMonth')" data-testid="month-picker-prev" @click="move(-1)"><IconPrev /></IconButton>
         <h2 class="ttl" data-testid="month-picker-title" aria-live="polite">{{ title }}</h2>
-        <IconButton label="Next month" data-testid="month-picker-next" @click="move(1)"><IconNext /></IconButton>
+        <IconButton :label="t('calendar.picker.nextMonth')" data-testid="month-picker-next" @click="move(1)"><IconNext /></IconButton>
       </div>
       <div ref="grid" class="grid">
         <span v-for="w in weekdayLabels()" :key="w" class="wd" aria-hidden="true">{{ w[0] }}</span>

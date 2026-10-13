@@ -20,6 +20,7 @@ import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX } from '@/lib
 import { laneCount } from '@/lib/spans';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';
 import { useClockStore } from '@/stores/clock';
+import { t } from '@/i18n';
 
 const props = defineProps<{ mode: 'week' | 'day'; dates: Date[] }>();
 const clock = useClockStore();
@@ -42,7 +43,7 @@ const smode = computed(() => sectionMode(props.mode, isPhone.value));
 provide(sectionKey, () => smode.value);
 const isList = (s: { item: { kind: string } }) => s.item.kind === 'tasklist';
 const taskTotal = computed(() => cols.value.reduce((n, c) => n + c.top.filter(isList).length, 0));
-const SECTION_LABEL = { titles: 'Titles only', full: 'Expanded', count: 'Counts only' };
+const sectionLabel = (m: 'titles' | 'full' | 'count') => t(m === 'titles' ? 'calendar.grid.modeTitles' : m === 'full' ? 'calendar.grid.modeFull' : 'calendar.grid.modeCount');
 const dateStrs = computed(() => props.dates.map(toIsoDate));
 const bars = computed(() => barsOf(dateStrs.value));
 const lanes = computed(() => laneCount(bars.value));
@@ -122,10 +123,10 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
       </button>
     </div>
     <div class="alldays" :style="{ gridTemplateRows: lanes ? `repeat(${lanes}, var(--bar-h)) auto` : undefined }">
-      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="`Tasks: ${SECTION_LABEL[smode]}. Tap to change`" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
+      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${lanes + 2}`, paddingTop: lanes * 22 + 'px' }" :data-testid="ids.all" :data-date="c.date">
-        <button v-if="smode === 'count' && c.top.some(isList)" class="taskcount" type="button" data-testid="tasks-count-chip" @click="cycleSection(mode, isPhone)">{{ c.top.filter(isList).length }} tasks</button>
+        <button v-if="smode === 'count' && c.top.some(isList)" class="taskcount" type="button" data-testid="tasks-count-chip" @click="cycleSection(mode, isPhone)">{{ t('calendar.grid.taskCount', { count: c.top.filter(isList).length }, c.top.filter(isList).length) }}</button>
         <ItemView v-for="s in c.top.filter((x) => smode !== 'count' || !isList(x))" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" />
       </div>
     </div>
@@ -137,7 +138,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         <div v-for="c in cols" :key="c.date" class="col" :class="{ today: c.today }" :data-testid="ids.col" :data-date="c.date">
           <button
             v-for="h in HOURS" :key="h" class="slot" type="button" data-testid="time-slot" :data-date="c.date" :data-hour="h"
-            :aria-label="`Create at ${c.date} ${hourLabel(h)}`" @click="openNew(c.date, hourLabel(h))"
+            :aria-label="t('calendar.grid.createAt', { date: c.date, time: hourLabel(h) })" @click="openNew(c.date, hourLabel(h))"
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk" :class="{ settle: settling(p.seg.item.id, p.seg.date) }"

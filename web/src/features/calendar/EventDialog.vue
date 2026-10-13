@@ -26,6 +26,7 @@ import { createContext } from '@/extensions/create';
 import { diffInput, formFromEvent, newForm, toInput, validate, withStart, type EventForm } from './eventForm';
 import { formatDuration } from './timeline';
 import { wallMinutes } from './zone';
+import { t, type MessageKey } from '@/i18n';
 
 const props = defineProps<{ mode?: 'create'; id?: string; date?: string; time?: string | null; draft?: EventForm; error?: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -62,7 +63,7 @@ async function loadExisting() {
       ev = await api.getEvent(props.id);
       items.upsert(ev);
     } catch (e) {
-      loadError.value = e instanceof ApiError ? e.userMessage : 'Could not load the event';
+      loadError.value = e instanceof ApiError ? e.userMessage : t('calendar.event.loadFailed');
     } finally {
       loading.value = false;
     }
@@ -96,13 +97,13 @@ const startDate = computed({ get: () => form.value.startDate, set: (v: string) =
 const startTime = computed({ get: () => form.value.startTime, set: (v: string) => { form.value = withStart(form.value, form.value.startDate, v); } });
 const calOptions = computed(() => {
   const l = calendars.value.map((c) => ({ value: c.id, label: c.name }));
-  if (!l.some((o) => o.value === form.value.calendarId)) l.unshift({ value: form.value.calendarId, label: form.value.calendarId === 'primary' ? 'Personal' : form.value.calendarId });
+  if (!l.some((o) => o.value === form.value.calendarId)) l.unshift({ value: form.value.calendarId, label: form.value.calendarId === 'primary' ? t('calendar.event.personal') : form.value.calendarId });
   return l;
 });
 const calColor = computed(() => calendars.value.find((c) => c.id === form.value.calendarId)?.color ?? original.value?.color ?? '#039be5');
 const swatches = computed(() => [
-  { value: '', name: 'Calendar color', color: calColor.value, testid: 'event-color-option' },
-  ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, name: c.name, color: c.hex, testid: 'event-color-option' })),
+  { value: '', name: t('calendar.event.fields.calendarColor'), color: calColor.value, testid: 'event-color-option' },
+  ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, name: t(`calendar.event.colors.${c.name.toLowerCase()}` as MessageKey), color: c.hex, testid: 'event-color-option' })),
 ]);
 const accent = computed(() => googleColor(form.value.colorId)?.hex ?? calColor.value);
 const duration = computed(() => {
@@ -110,12 +111,12 @@ const duration = computed(() => {
   if (validate({ ...f, title: 'x' })) return '';
   if (f.allDay) {
     const days = (wallMinutes(f.endDate, '00:00') - wallMinutes(f.startDate, '00:00')) / 1440 + 1;
-    return days === 1 ? 'All day' : `${days} days`;
+    return days === 1 ? t('calendar.event.allDay') : t('calendar.event.days', { count: days }, days);
   }
   return formatDuration(wallMinutes(f.endDate, f.endTime) - wallMinutes(f.startDate, f.startTime));
 });
 
-watch(() => form.value.title, () => { if (error.value === 'Title is required') error.value = ''; });
+watch(() => form.value.title, () => { if (error.value === t('calendar.event.validation.titleRequired')) error.value = ''; });
 
 function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEvent {
   const b = original.value;
@@ -127,9 +128,9 @@ function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEven
 }
 
 function fail(e: unknown, what: string) {
-  const msg = e instanceof ApiError ? e.userMessage : 'Something went wrong';
+  const msg = e instanceof ApiError ? e.userMessage : t('calendar.event.genericError');
   error.value = msg;
-  ui.notify(`${what} was not saved. It is back as it was.`, { testid: 'event-rollback' });
+  ui.notify(t('calendar.event.rollback', { what }), { testid: 'event-rollback' });
 }
 
 async function save() {
@@ -171,41 +172,41 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet :open="true" :label="isEdit ? 'Edit event' : 'New event'" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
+  <AdaptiveSheet :open="true" :label="isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle')" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
     <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save">
       <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
-        <h2 class="t">{{ isEdit ? 'Edit event' : 'New event' }}</h2>
+        <h2 class="t">{{ isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle') }}</h2>
         <span v-if="duration" class="dur" data-testid="event-duration">{{ duration }}</span>
       </header>
       <p v-if="loadError" class="err" role="alert" data-testid="event-error">{{ loadError }}</p>
-      <TextField v-model="form.title" class="rise" style="--i: 1" label="Title" data-testid="event-title" data-field="title" autocomplete="off" enterkeyhint="done" />
+      <TextField v-model="form.title" class="rise" style="--i: 1" :label="t('calendar.event.fields.title')" data-testid="event-title" data-field="title" autocomplete="off" enterkeyhint="done" />
       <label class="check rise" style="--i: 2">
         <input v-model="form.allDay" type="checkbox" data-testid="event-all-day" data-field="allDay">
-        <span>All day</span>
+        <span>{{ t('calendar.event.fields.allDay') }}</span>
       </label>
       <div class="pair rise" style="--i: 3">
-        <TextField v-model="startDate" type="date" label="Start date" data-testid="event-start-date" data-field="startDate" />
-        <TextField v-if="!form.allDay" v-model="startTime" type="time" label="Start time" data-testid="event-start-time" data-field="startTime" />
+        <TextField v-model="startDate" type="date" :label="t('calendar.event.fields.startDate')" data-testid="event-start-date" data-field="startDate" />
+        <TextField v-if="!form.allDay" v-model="startTime" type="time" :label="t('calendar.event.fields.startTime')" data-testid="event-start-time" data-field="startTime" />
       </div>
       <div class="pair rise" style="--i: 4">
-        <TextField v-model="form.endDate" type="date" label="End date" data-testid="event-end-date" data-field="endDate" />
-        <TextField v-if="!form.allDay" v-model="form.endTime" type="time" label="End time" data-testid="event-end-time" data-field="endTime" />
+        <TextField v-model="form.endDate" type="date" :label="t('calendar.event.fields.endDate')" data-testid="event-end-date" data-field="endDate" />
+        <TextField v-if="!form.allDay" v-model="form.endTime" type="time" :label="t('calendar.event.fields.endTime')" data-testid="event-end-time" data-field="endTime" />
       </div>
-      <Select v-model="form.calendarId" class="rise" style="--i: 5" label="Calendar" :options="calOptions" data-testid="event-calendar" />
+      <Select v-model="form.calendarId" class="rise" style="--i: 5" :label="t('calendar.event.fields.calendar')" :options="calOptions" data-testid="event-calendar" />
       <div class="colors rise" style="--i: 6">
-        <span class="lab">Color</span>
-        <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" label="Color" radio data-testid="event-color" />
+        <span class="lab">{{ t('calendar.event.fields.color') }}</span>
+        <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" :label="t('calendar.event.fields.color')" radio data-testid="event-color" />
       </div>
-      <TextField v-model="form.location" class="rise" style="--i: 7" label="Location" data-testid="event-location" data-field="location" autocomplete="off" />
-      <TextField v-model="form.description" class="rise" style="--i: 8" label="Description" data-testid="event-description" data-field="description" multiline :rows="3" />
+      <TextField v-model="form.location" class="rise" style="--i: 7" :label="t('calendar.event.fields.location')" data-testid="event-location" data-field="location" autocomplete="off" />
+      <TextField v-model="form.description" class="rise" style="--i: 8" :label="t('calendar.event.fields.description')" data-testid="event-description" data-field="description" multiline :rows="3" />
       <p v-if="error" class="err" role="alert" data-testid="event-error">{{ error }}</p>
       <div class="actions">
-        <Button v-if="isEdit" variant="text" class="del" data-testid="event-delete" :disabled="saving || !original" @click="remove">Delete</Button>
+        <Button v-if="isEdit" variant="text" class="del" data-testid="event-delete" :disabled="saving || !original" @click="remove">{{ t('calendar.actions.delete') }}</Button>
         <span class="sp" />
-        <Button variant="text" data-testid="event-cancel" @click="emit('close')">Cancel</Button>
-        <Button type="submit" :disabled="saving || loading" data-testid="event-save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+        <Button variant="text" data-testid="event-cancel" @click="emit('close')">{{ t('calendar.actions.cancel') }}</Button>
+        <Button type="submit" :disabled="saving || loading" data-testid="event-save">{{ saving ? t('calendar.event.saving') : t('calendar.actions.save') }}</Button>
       </div>
     </form>
   </AdaptiveSheet>

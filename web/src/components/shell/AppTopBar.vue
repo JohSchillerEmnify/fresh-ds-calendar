@@ -16,6 +16,7 @@ import MonthPicker from './MonthPicker.vue';
 import SyncStatus from './SyncStatus.vue';
 import { LeadingWidgets, TopBarScene } from '@/features/motivation';
 import { useClockStore } from '@/stores/clock';
+import { t } from '@/i18n';
 
 
 const cal = useCalendarStore();
@@ -38,14 +39,14 @@ function toggleFilters() {
   <TopAppBar>
     <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
-      <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">Tasks</span></h1>
+      <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">{{ t('views.tasks') }}</span></h1>
       <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>
       <div v-if="!route.meta.tasks" class="nav">
-        <IconButton label="Previous period" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
-        <Button variant="tonal" class="today" data-testid="nav-today" @click="nav.today()">Today</Button>
-        <IconButton label="Next period" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
+        <IconButton :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
+        <Button variant="tonal" class="today" data-testid="nav-today" @click="nav.today()">{{ t('calendar.topBar.today') }}</Button>
+        <IconButton :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
         <slot name="leading-widgets">
@@ -58,10 +59,10 @@ function toggleFilters() {
       </div>
       <div class="actions">
         <span class="fwrap">
-          <IconButton label="Filters" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
+          <IconButton :label="t('calendar.topBar.filters')" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
           <b v-if="filters.count.value" class="badge" aria-hidden="true">{{ filters.count.value }}</b>
         </span>
-        <IconButton label="Settings" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
+        <IconButton :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
     <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks" />

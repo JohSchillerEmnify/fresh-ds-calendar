@@ -11,6 +11,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { addDays, HOURS, hourLabel, monthNames, parseIsoDate, routePath, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, type Segment } from '@/lib/items';
+import { t } from '@/i18n';
 
 /** Days added per extension and the distance (in columns) from an edge that triggers one. */
 const CHUNK = 14;
@@ -97,9 +98,9 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
 <template>
   <section class="strip-view" data-testid="strip-view">
     <header class="bar">
-      <button type="button" class="btn" data-testid="strip-back" @click="router.push(routePath('month', parseIsoDate(days[Math.round((scroller?.scrollLeft ?? 0) / (scroller ? colWidth() : 1))]) ?? clock.todayDate))">Month</button>
-      <span class="title">Strip</span>
-      <button type="button" class="btn" data-testid="strip-today" @click="goToday">Today</button>
+      <button type="button" class="btn" data-testid="strip-back" @click="router.push(routePath('month', parseIsoDate(days[Math.round((scroller?.scrollLeft ?? 0) / (scroller ? colWidth() : 1))]) ?? clock.todayDate))">{{ t('views.month') }}</button>
+      <span class="title">{{ t('views.strip') }}</span>
+      <button type="button" class="btn" data-testid="strip-today" @click="goToday">{{ t('calendar.topBar.today') }}</button>
     </header>
     <div ref="scroller" class="scroller" data-testid="strip" @scroll.passive="onScroll">
       <div class="top">

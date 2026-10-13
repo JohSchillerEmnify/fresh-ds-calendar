@@ -8,6 +8,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { useSettingsStore } from '@/stores/settings';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
+import { t } from '@/i18n';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
@@ -16,7 +17,7 @@ const it = computed(() => props.segment.item);
 const icon = computed(() => (it.value.kind === 'tasklist' ? settings.categoryById(it.value.categoryId)?.icon ?? null : null));
 const items = computed(() => {
   const i = it.value;
-  return i.kind === 'tasklist' ? (i.items.length ? i.items.map((x) => x.title).join(', ') : 'No items') : '';
+  return i.kind === 'tasklist' ? (i.items.length ? i.items.map((x) => x.title).join(', ') : t('calendar.item.noItems')) : '';
 });
 const timeText = computed(() => {
   const s = props.segment;

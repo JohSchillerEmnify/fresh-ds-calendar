@@ -12,6 +12,7 @@ import { openItem } from '@/extensions/registry';
 import { displayTitle, type Segment } from '@/lib/items';
 import { formatDuration } from '@/features/calendar/timeline';
 import { approachLayout, approachTicks, type ApproachSizes } from './approach';
+import { t } from '@/i18n';
 
 const props = defineProps<{ entries: Segment[]; atEnd: boolean; nowMin: number; windowMin: number }>();
 /** Width of the waiting entry at the end of the track. */
@@ -43,14 +44,14 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
 
 <template>
   <div
-    ref="el" class="approach" data-testid="approach-bar" role="group" aria-label="Next" :data-window-hours="windowMin / 60"
+    ref="el" class="approach" data-testid="approach-bar" role="group" :aria-label="t('calendar.now.track')" :data-window-hours="windowMin / 60"
     :style="{ height: `${TICK_PX + layout.rows * ROW_PX}px` }"
   >
     <span v-for="t in ticks" :key="t.min" class="tick" data-testid="approach-tick" :style="{ left: `${NOW_PX + t.x}px` }">{{ t.label }}</span>
     <span class="line" />
     <span class="now" data-testid="approach-now" />
     <template v-for="(c, i) in layout.chips" :key="c.segment.item.id + c.segment.date">
-      <span v-if="atEnd" class="in" :style="{ right: `${c.width + 4}px`, top: `${TICK_PX}px` }">in {{ formatDuration(c.minutes) }}</span>
+      <span v-if="atEnd" class="in" :style="{ right: `${c.width + 4}px`, top: `${TICK_PX}px` }">{{ t('calendar.now.inDuration', { duration: formatDuration(c.minutes) }) }}</span>
       <div
         class="item" :class="{ faded: c.faded }" data-testid="approach-item" :data-title="c.segment.item.title" :data-minutes="c.minutes"
         :data-at-end="atEnd ? 'true' : undefined" :data-running="c.running ? 'true' : undefined" :data-title-outside="c.titleOutside ? 'true' : undefined"

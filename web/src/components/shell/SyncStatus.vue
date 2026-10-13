@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { IconSync, IconSyncProblem as IconProblem } from '@/components/icons';
 import { useSyncStore } from '@/stores/sync';
+import { t } from '@/i18n';
 
 const sync = useSyncStore();
 </script>
 
 <template>
-  <span class="status" role="status" data-testid="sync-status" :data-state="sync.state" :data-last-sync="sync.lastSync ?? ''" :aria-label="sync.state === 'error' ? 'Sync problem' : sync.state === 'syncing' ? 'Syncing' : 'Synced'">
+  <span class="status" role="status" data-testid="sync-status" :data-state="sync.state" :data-last-sync="sync.lastSync ?? ''" :aria-label="sync.state === 'error' ? t('calendar.sync.problem') : sync.state === 'syncing' ? t('calendar.sync.syncing') : t('calendar.sync.synced')">
     <component :is="sync.state === 'error' ? IconProblem : IconSync" :class="{ spin: sync.state === 'syncing' }" />
   </span>
 </template>

@@ -13,6 +13,7 @@ import { providePreview } from '@/composables/usePreview';
 import { monthGrid, periodTitle, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
+import { t } from '@/i18n';
 
 /** `anchor`/`preview`: a light copy for another period (swipe neighbour), see `usePreview`. */
 const props = defineProps<{ anchor?: Date; preview?: boolean }>();
@@ -91,7 +92,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, anchor) ? 'true' : undefined"
           :class="{ outside: !isSameMonth(day, anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
-          <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="`Open ${toIsoDate(day)}`" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
+          <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
           <div v-if="row.lanes" class="lanes" />
           <div v-fade class="chips" data-testid="month-cell-entries" @click.capture="onChipsClick($event, day)">
             <ItemView v-for="{ s, h } in entries(toIsoDate(day), row.lanes)" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
