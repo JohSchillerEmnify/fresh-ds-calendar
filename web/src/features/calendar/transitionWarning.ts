@@ -9,8 +9,9 @@ import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { dueWarnings } from './timeline';
+import { t } from '@/i18n';
 
-export const warningText = (title: string, inMin: number) => `${title} starts in ${inMin} min`;
+export const warningText = (title: string, inMin: number) => t('calendar.warning.startsIn', { title, minutes: inMin });
 
 let scope: EffectScope | null = null;
 

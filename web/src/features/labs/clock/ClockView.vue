@@ -10,6 +10,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { clockSegments, clockText } from './clock';
 import { angleOf, arcPath, CENTER, clip, fadingRows, labelSizing, pointAt, VIEW } from './geometry';
+import { t } from '@/i18n';
 
 const cal = useCalendarStore();
 const clock = useClockStore();
@@ -85,7 +86,7 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
     <h2 class="date">{{ dateLabel }}</h2>
     <div ref="area" class="area">
       <svg
-        class="face" :viewBox="VIEW_BOX" role="img" :aria-label="`24-hour clock for ${dateLabel}`"
+        class="face" :viewBox="VIEW_BOX" role="img" :aria-label="t('calendar.clock.face', { date: dateLabel })"
         :style="size > 0 ? { width: `${size}px`, height: `${size}px` } : undefined"
       >
         <circle :cx="CENTER" :cy="CENTER" r="205" class="track" data-testid="clock-dial" />

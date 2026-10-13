@@ -1,5 +1,6 @@
 import { api } from '@/api/client';
 import { useUiStore } from '@/stores/ui';
+import { t } from '@/i18n';
 
 let offered: number | null = null;
 /** The waiting service worker to activate on "Reload" (null: no worker, e.g. insecure context or TEST_MODE). */
@@ -26,9 +27,9 @@ function reload(): void {
 export function offerUpdate(): void {
   const ui = useUiStore();
   if (offered !== null && ui.snackbars.some((s) => s.id === offered)) return;
-  offered = ui.notify('New version available', {
+  offered = ui.notify(t('calendar.update.available'), {
     duration: 0, testid: 'update-available',
-    action: { label: 'Reload', testid: 'update-reload', run: reload },
+    action: { label: t('calendar.update.reload'), testid: 'update-reload', run: reload },
   });
 }
 

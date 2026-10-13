@@ -2,6 +2,7 @@
 import { IconCloudOff as IconOff } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import { useAuthStore } from '@/stores/auth';
+import { t } from '@/i18n';
 
 const auth = useAuthStore();
 const signIn = () => window.location.assign('/api/auth/google/start');
@@ -10,8 +11,8 @@ const signIn = () => window.location.assign('/api/auth/google/start');
 <template>
   <div v-if="auth.reauth" class="banner" role="alert" data-testid="reauth-banner">
     <IconOff class="ico" aria-hidden="true" />
-    <span class="msg">Google no longer accepts your access. Sign in with Google again to see your calendar.</span>
-    <Button variant="text" data-testid="reauth-signin" @click="signIn">Sign in</Button>
+    <span class="msg">{{ t('calendar.reauth.message') }}</span>
+    <Button variant="text" data-testid="reauth-signin" @click="signIn">{{ t('calendar.reauth.signIn') }}</Button>
   </div>
 </template>
 

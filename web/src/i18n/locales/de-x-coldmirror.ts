@@ -3,8 +3,10 @@
  * rapper. Complete: it covers every key of `de`. Never "Ich bin voll geil" (owner).
  */
 import type { Messages } from '../schema';
+import calendarColdmirror from './de-x-coldmirror/calendar.ts';
 
 export default {
+  calendar: calendarColdmirror,
   views: {
     year: 'Jahr, yo',
     month: 'Monat, yo',

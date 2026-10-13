@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import AdaptiveSheet from './AdaptiveSheet.vue';
 import Button from './Button.vue';
+import { t } from '@/i18n';
 
 /** Delete / discard confirmation (confirm-dialog, confirm-ok, confirm-cancel). */
-withDefaults(defineProps<{ open: boolean; title: string; message?: string; okLabel?: string }>(), { okLabel: 'Delete' });
+defineProps<{ open: boolean; title: string; message?: string; okLabel?: string }>();
 defineEmits<{ ok: []; cancel: [] }>();
 </script>
 
@@ -12,8 +13,8 @@ defineEmits<{ ok: []; cancel: [] }>();
     <h2 class="t">{{ title }}</h2>
     <p v-if="message" class="m">{{ message }}</p>
     <div class="actions">
-      <Button variant="text" data-testid="confirm-cancel" @click="$emit('cancel')">Cancel</Button>
-      <Button data-testid="confirm-ok" @click="$emit('ok')">{{ okLabel }}</Button>
+      <Button variant="text" data-testid="confirm-cancel" @click="$emit('cancel')">{{ t('calendar.actions.cancel') }}</Button>
+      <Button data-testid="confirm-ok" @click="$emit('ok')">{{ okLabel ?? t('calendar.actions.delete') }}</Button>
     </div>
   </AdaptiveSheet>
 </template>

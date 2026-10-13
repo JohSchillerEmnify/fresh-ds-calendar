@@ -11,6 +11,18 @@ const MIGRATED = [
   'src/views/SettingsView.vue',
   'src/components/m3/NavigationBar.vue',
   'src/components/m3/NavigationRail.vue',
+  // calendar area
+  'src/views/YearView.vue', 'src/views/MonthView.vue', 'src/views/WeekView.vue', 'src/views/DayView.vue', 'src/views/SignInView.vue',
+  'src/components/calendar/TimeGrid.vue', 'src/components/calendar/BasicItem.vue', 'src/components/calendar/ItemView.vue',
+  'src/components/shell/AppTopBar.vue', 'src/components/shell/MonthPicker.vue', 'src/components/shell/FilterBar.vue',
+  'src/components/shell/CreateFab.vue', 'src/components/shell/NewKindSwitch.vue', 'src/components/shell/ReauthBanner.vue',
+  'src/components/shell/SyncErrorBanner.vue', 'src/components/shell/SyncStatus.vue', 'src/components/shell/InstallPrompts.vue',
+  'src/components/shell/VersionLabel.vue', 'src/components/m3/ConfirmDialog.vue', 'src/components/m3/Snackbar.vue',
+  'src/features/calendar/EventDialog.vue', 'src/features/calendar/NowCard.vue', 'src/features/calendar/NowMarker.vue',
+  'src/features/calendar/EventBar.vue', 'src/features/calendar/EventItem.vue', 'src/features/calendar/DropIndicator.vue',
+  'src/features/calendar/ResizeHandles.vue',
+  'src/features/labs/approach/ApproachBar.vue', 'src/features/labs/clock/ClockView.vue', 'src/features/labs/strip/StripView.vue',
+  'src/features/labs/timeline/TimelineView.vue',
 ];
 /**
  * Strings that other feature branches added before the i18n slice landed. They move into the catalogue with their area
