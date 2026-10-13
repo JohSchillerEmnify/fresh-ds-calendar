@@ -138,10 +138,11 @@ describe('ThemeImport', () => {
   it('shows the prompt and copies it', async () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
     const w = open();
     expect(w.find(tid('theme-ai-prompt')).exists()).toBe(false);
     await w.get(tid('theme-ai')).trigger('click');
-    expect(w.get(tid('theme-ai-prompt')).text()).toContain('calendar-theme/1');
+    expect((w.get(tid('theme-ai-prompt')).element as HTMLTextAreaElement).value).toContain('calendar-theme/1');
     await w.get(tid('theme-ai-copy')).trigger('click');
     expect(writeText).toHaveBeenCalledWith(themePrompt());
   });

@@ -11,6 +11,7 @@ import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
 import { useThemeStore } from '@/stores/theme';
+import { copyText } from '@/lib/copyText';
 import { useUiStore } from '@/stores/ui';
 import { themePrompt } from '@/theme/aiPrompt';
 import { docToResolved } from '@/theme/presets';
@@ -21,13 +22,10 @@ const ui = useUiStore();
 
 const aiOpen = ref(false);
 const prompt = themePrompt();
+const promptField = ref<HTMLTextAreaElement | null>(null);
 async function copyPrompt() {
-  try {
-    await navigator.clipboard.writeText(prompt);
-    ui.notify('Prompt copied');
-  } catch {
-    ui.notify('Could not copy: select the prompt and copy it by hand');
-  }
+  if (await copyText(prompt, promptField.value)) ui.notify('Prompt copied');
+  else ui.notify('Could not copy: select the prompt and copy it by hand');
 }
 
 const text = ref('');
@@ -92,7 +90,8 @@ async function save() {
     </div>
     <div v-if="aiOpen" class="ai">
       <p class="hint">Copy this prompt into the AI you like, add your wishes at the end, and import the theme file it answers with below.</p>
-      <pre class="prompt" data-testid="theme-ai-prompt" tabindex="0">{{ prompt }}</pre>
+      <!-- a read-only field, not <pre>: Ctrl+A then selects the prompt only, and the http copy fallback can select it -->
+      <textarea ref="promptField" class="prompt" data-testid="theme-ai-prompt" readonly rows="10" aria-label="AI prompt" :value="prompt" />
       <Button variant="outlined" data-testid="theme-ai-copy" @click="copyPrompt">Copy prompt</Button>
     </div>
 
@@ -122,7 +121,7 @@ async function save() {
 h3 { margin: 0; padding: 12px 4px 4px; font: var(--md-sys-typescale-label-large); }
 .row { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
 .hint { margin: 4px; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
-.prompt { margin: 4px 0 8px; padding: 10px 12px; max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/16px ui-monospace, monospace; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); }
+.prompt { display: block; box-sizing: border-box; width: 100%; margin: 4px 0 8px; padding: 10px 12px; max-height: 220px; overflow: auto; resize: vertical; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/16px ui-monospace, monospace; color: inherit; border: 0; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); }
 .paste { margin-top: 8px; }
 .errors { margin: 4px 0; padding: 0 0 0 20px; color: var(--md-sys-color-error); font: var(--md-sys-typescale-body-medium); }
 .preview { padding: 4px 0; }
