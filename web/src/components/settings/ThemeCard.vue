@@ -6,6 +6,7 @@
  */
 import { computed, onMounted, shallowRef } from 'vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
+import DrawnScene from '@/features/motivation/DrawnScene.vue';
 import SceneImage from '@/features/motivation/SceneImage.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { useSettingsStore } from '@/stores/settings';
@@ -42,7 +43,10 @@ const style = computed<Record<string, string>>(() => {
       >
         <span class="hdr" :class="{ ember: scene === 'mordor' }">
           <SeasonScene v-if="SEASONS.includes(scene)" :season="scene as 'spring'" />
-          <SceneImage v-else-if="scene === 'custom'" :svg="theme.sceneSvg" :dark="dark" />
+          <template v-else-if="scene === 'custom'">
+            <SceneImage v-if="theme.sceneSvg" :svg="theme.sceneSvg" :dark="dark" />
+            <DrawnScene v-else-if="theme.sceneDraw" v-bind="theme.sceneDraw" :dark="dark" />
+          </template>
           <span v-for="(d, i) in DAYS" :key="i" class="day">{{ d }}</span>
         </span>
         <span class="mini">

@@ -38,6 +38,8 @@ export interface Prefs {
   supportCat: SupportCat;
   /** The small build-version label in the bottom-left corner of the main UI (off by default). */
   versionInCorner: boolean;
+  /** Labs: the AI prompt and the import in the theme menu (saved own themes show either way). */
+  labsOwnThemes: boolean;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -69,6 +71,7 @@ export class PrefsStore {
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
       versionInCorner: p?.versionInCorner === true,
+      labsOwnThemes: p?.labsOwnThemes === true,
     };
   }
 
@@ -143,8 +146,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes };
   }
 
   /**

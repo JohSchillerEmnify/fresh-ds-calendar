@@ -6,7 +6,7 @@ import type { ApproachWindowHours, Prefs, SupportCatSetting } from '@/api/types'
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
- * support cat, and the version label in the corner (off by default).
+ * support cat, the version label in the corner (off by default) and the Labs switch for the AI theme prompt and import.
  */
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
@@ -16,6 +16,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   const tasksCalendarVisible = ref(false);
   const supportCat = ref<SupportCatSetting>('sometimes');
   const versionInCorner = ref(false);
+  const labsOwnThemes = ref(false);
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -25,6 +26,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     tasksCalendarVisible.value = p.tasksCalendarVisible ?? tasksCalendarVisible.value;
     supportCat.value = p.supportCat ?? supportCat.value;
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
+    labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
   }
 
   async function load(): Promise<void> {
@@ -38,7 +40,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value,
     };
     apply(p);
     try {
@@ -49,5 +51,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, load, set };
 });

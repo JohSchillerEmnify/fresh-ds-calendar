@@ -2,7 +2,7 @@
  * Theme presets (ARCHITECTURE "Themes"): a preset is a seed colour, an optional mode and four attributes. A person's
  * choice is a preset name plus overrides of single attributes. Pure data and functions, no DOM.
  */
-import type { ThemeDoc, ThemeFont } from '@calendar/shared';
+import type { ThemeDecor, ThemeDensity, ThemeDoc, ThemeFont, ThemePicture } from '@calendar/shared';
 import type { ThemeMode } from './index';
 
 export type Glow = 'off' | 'soft' | 'neon';
@@ -25,9 +25,13 @@ export interface ResolvedTheme {
   /** Role colours replacing single roles of the generated scheme. */
   roles?: { light?: Record<string, string>; dark?: Record<string, string> };
   font?: ThemeFont;
-  /** The theme's own scene pictures (SVG text, light and dark variants). */
-  sceneSvg?: { light?: string; dark?: string };
+  /** The theme's own picture (SVG text, light and optional dark); it replaces the drawn scene. */
+  sceneSvg?: ThemePicture;
+  /** The scene the app draws from building blocks (attrs.scene is `custom` for it). */
+  sceneDraw?: { gradient: string[]; decor?: ThemeDecor; density: ThemeDensity };
 }
+/** An imported or saved theme as the resolver needs it. */
+export interface CustomTheme { doc: ThemeDoc; picture?: ThemePicture }
 
 export const PRESET_NAMES: PresetName[] = ['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic'];
 export const DEFAULT_PREF: ThemePref = { preset: 'Default', overrides: {} };
@@ -65,25 +69,27 @@ export function seasonScene(date: string): ThemeScene {
 /** A preset written as a `calendar-theme/1` document, so presets and imported themes share one apply path. */
 export function presetDoc(p: Preset): ThemeDoc {
   return {
-    schema: 'calendar-theme/1', name: p.name, mode: p.mode === 'light' || p.mode === 'dark' ? p.mode : 'follow', ...(p.seed ? { colors: { seed: p.seed } } : {}),
+    schema: 'calendar-theme/2', name: p.name, mode: p.mode === 'light' || p.mode === 'dark' ? p.mode : 'follow', ...(p.seed ? { colors: { seed: p.seed } } : {}),
     glow: p.attrs.glow, entries: p.attrs.entries, corners: p.attrs.corners, scene: { builtin: p.attrs.scene as never },
   };
 }
 
-/** The values to apply for a theme document; what the document leaves out takes the app's defaults. */
-export function docToResolved(doc: ThemeDoc): ResolvedTheme {
-  const svg = doc.scene?.svg;
+/** The values to apply for a theme document (and its own picture); what it leaves out takes the app's defaults. */
+export function docToResolved(doc: ThemeDoc, picture?: ThemePicture): ResolvedTheme {
+  const draw = doc.scene?.gradient;
+  const own = !!(picture?.light || picture?.dark);
   return {
     name: doc.name,
     seed: doc.colors?.seed ?? null,
     mode: doc.mode === 'light' || doc.mode === 'dark' ? doc.mode : null,
     attrs: {
       glow: doc.glow ?? 'off', entries: doc.entries ?? 'solid', corners: doc.corners ?? 'round',
-      scene: svg ? 'custom' : doc.scene?.builtin ?? 'none',
+      scene: own || draw ? 'custom' : doc.scene?.builtin ?? 'none',
     },
     ...(doc.colors?.light || doc.colors?.dark ? { roles: { light: doc.colors.light, dark: doc.colors.dark } } : {}),
     ...(doc.font && doc.font !== 'system' ? { font: doc.font } : {}),
-    ...(svg ? { sceneSvg: svg } : {}),
+    ...(own ? { sceneSvg: picture } : {}),
+    ...(draw ? { sceneDraw: { gradient: draw, decor: doc.scene?.decor, density: doc.scene?.density ?? 'medium' } } : {}),
   };
 }
 
@@ -96,10 +102,10 @@ export function presetFor(name: PresetName, today: string): Preset {
  * The chosen theme (a preset or one of the person's imported themes, `custom` by id) plus the person's overrides,
  * ready to be applied. An imported theme that is gone falls back to Default.
  */
-export function resolveTheme(pref: ThemePref, today: string, custom: Record<string, ThemeDoc> = {}): ResolvedTheme {
+export function resolveTheme(pref: ThemePref, today: string, custom: Record<string, CustomTheme> = {}): ResolvedTheme {
   const id = pref.preset.startsWith('theme:') ? pref.preset.slice(6) : null;
-  const doc = id === null ? presetDoc(presetFor(pref.preset as PresetName, today)) : custom[id];
-  const base = docToResolved(doc ?? presetDoc(PRESETS.Default));
+  const own = id === null ? { doc: presetDoc(presetFor(pref.preset as PresetName, today)) } : custom[id];
+  const base = own ? docToResolved(own.doc, own.picture) : docToResolved(presetDoc(PRESETS.Default));
   return { ...base, attrs: { ...base.attrs, ...pref.overrides } };
 }
 

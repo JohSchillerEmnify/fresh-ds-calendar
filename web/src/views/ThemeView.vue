@@ -15,16 +15,19 @@ import IconExport from '~icons/material-symbols/download';
 import { ApiError, type StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
+import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
+import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
 import ThemeImport from '@/components/settings/ThemeImport.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { useClockStore } from '@/stores/clock';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
@@ -36,6 +39,8 @@ const theme = useThemeStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
 const pending = usePendingDeletesStore();
+const prefs = usePrefsStore();
+const savingOwn = ref(false);
 const attrs = computed(() => theme.resolved.attrs);
 
 /** Every preset as the gallery shows it today (Automatic = the season's). */
@@ -161,14 +166,14 @@ function back() {
             v-for="n in PRESET_NAMES" :key="n" :name="n" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
             :sub="n === 'Automatic' ? presetThemes[n].name : undefined" @choose="theme.choose(n)"
           />
-          <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
+          <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc, t.picture)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
             <template #actions>
               <IconButton label="Export theme" data-testid="theme-export" @click="exportTheme(t)"><IconExport /></IconButton>
               <IconButton label="Delete theme" data-testid="theme-delete" @click="pending.deleteTheme(t.id, t.doc.name)"><IconDelete /></IconButton>
             </template>
           </ThemeCard>
         </div>
-        <ThemeImport />
+        <ThemeImport v-if="prefs.labsOwnThemes" />
       </section>
 
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
@@ -188,7 +193,11 @@ function back() {
           <TextField v-model="hex" class="hex" label="Custom color (hex)" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
         </div>
         <ReuseGroup v-for="g in groups" :key="g.setting" :g="g" />
+        <div class="group">
+          <Button variant="tonal" data-testid="theme-save-own" @click="savingOwn = true">Save as my theme</Button>
+        </div>
       </section>
+      <SaveThemeDialog v-if="savingOwn" @close="savingOwn = false" />
     </div>
   </section>
 </template>

@@ -7,7 +7,7 @@ import { isLocalDate, formatInZone } from '../lib/time.js';
 import { dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
-import { sanitizeTheme, validateTheme } from '@calendar/shared';
+import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
@@ -121,10 +121,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible', 'versionInCorner'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'versionInCorner'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'versionInCorner', 'labsOwnThemes'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.approachWindowHours !== undefined) {
       if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
       patch.approachWindowHours = b.approachWindowHours;
@@ -146,14 +146,29 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));
 
   // ---- imported themes ----
-  r.get('/themes', (c) => c.json({ themes: ctx.themes.list(person(c)).map(({ id, doc }) => ({ id, doc })) }));
+  r.get('/themes', (c) => c.json({ themes: ctx.themes.list(person(c)).map(({ id, doc, picture }) => ({ id, doc, ...(picture ? { picture } : {}) })) }));
   r.post('/themes', async (c) => {
-    const checked = validateTheme(await body(c));
-    // the sanitiser (jsdom) is only loaded for a theme that brings a picture
-    const safe = checked.ok ? (checked.doc.scene?.svg ? sanitizeTheme(await loadSvgSanitizer(), checked.doc) : { ok: true as const, doc: checked.doc, removed: false }) : checked;
-    if (!safe.ok) throw new ApiException('VALIDATION_ERROR', 400, safe.errors[0]!, safe.errors.map((issue) => ({ issue })));
-    const { id, doc } = ctx.themes.add(person(c), safe.doc);
-    return c.json({ id, doc, sanitized: safe.removed }, 201);
+    const b = await body(c);
+    const fail = (errors: string[]) => new ApiException('VALIDATION_ERROR', 400, errors[0]!, errors.map((issue) => ({ issue })));
+    if (typeof b !== 'object' || b === null || Array.isArray(b)) throw fail(['Request body must be a JSON object']);
+    const unknown = Object.keys(b).filter((k) => k !== 'theme' && k !== 'picture');
+    if (unknown.length) throw fail(unknown.map((k) => `${k} is not a known field`));
+    const { theme, picture } = b as { theme?: unknown; picture?: unknown };
+    const doc = validateTheme(theme);
+    if (!doc.ok) throw fail(doc.errors);
+    let clean: ThemePicture | undefined;
+    let removed = false;
+    if (picture !== undefined) {
+      const valid = validatePicture(picture);
+      if (!valid.ok) throw fail(valid.errors);
+      // the sanitiser (jsdom) is only loaded for a theme that brings a picture
+      const safe = sanitizePicture(await loadSvgSanitizer(), valid.picture);
+      if (!safe.ok) throw fail(safe.errors);
+      clean = safe.picture;
+      removed = safe.removed;
+    }
+    const saved = ctx.themes.add(person(c), doc.doc, clean);
+    return c.json({ id: saved.id, doc: saved.doc, ...(clean ? { picture: clean } : {}), sanitized: removed }, 201);
   });
   r.delete('/themes/:id', (c) => {
     if (!ctx.themes.remove(person(c), c.req.param('id'))) throw notFound('Theme not found');

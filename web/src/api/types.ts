@@ -116,6 +116,8 @@ export interface Prefs {
   supportCat: SupportCatSetting;
   /** Show the small build-version label in the bottom-left corner of the main UI. */
   versionInCorner: boolean;
+  /** Labs: the AI prompt and the import in the theme menu (off by default). */
+  labsOwnThemes: boolean;
 }
 
 export interface Settings {

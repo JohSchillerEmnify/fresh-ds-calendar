@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MAX_THEMES, type ThemeDoc } from '@calendar/shared';
+import { MAX_THEMES, type ThemeDoc, type ThemePicture } from '@calendar/shared';
 import { userDir } from '../auth/people.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { nanoid } from '../lib/ids.js';
 import { validation } from '../lib/errors.js';
 
-/** A theme a person imported: the (already sanitised) document under an id of its own. */
-export interface StoredTheme { id: string; created: number; doc: ThemeDoc }
+/** A theme of a person: the document and its (already sanitised) own picture, under an id of its own. */
+export interface StoredTheme { id: string; created: number; doc: ThemeDoc; picture?: ThemePicture }
 
 const ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
 
@@ -30,10 +30,10 @@ export class ThemeStore {
       .sort((a, b) => a.created - b.created);
   }
 
-  /** Stores a validated, sanitised document; at most {@link MAX_THEMES} per person. */
-  add(sub: string, doc: ThemeDoc): StoredTheme {
+  /** Stores a validated document and its sanitised picture; at most {@link MAX_THEMES} per person. */
+  add(sub: string, doc: ThemeDoc, picture?: ThemePicture): StoredTheme {
     if (this.list(sub).length >= MAX_THEMES) throw validation(`You can keep at most ${MAX_THEMES} themes. Delete one first.`);
-    const theme: StoredTheme = { id: nanoid(10), created: Date.now(), doc };
+    const theme: StoredTheme = { id: nanoid(10), created: Date.now(), doc, ...(picture ? { picture } : {}) };
     writeJsonAtomic(path.join(this.dir(sub), `${theme.id}.json`), theme);
     return theme;
   }
