@@ -732,8 +732,10 @@ the plant card shows {string}
 
 ```
 I turn the streak flame {string}
-I choose {string} as the garden style
-the garden style is {string}
+I turn the plant {string}
+I choose {string} for the sunflowers
+the scene is {string}
+the sunflowers are set to {string}
 I see the sunflower field
 I do not see the sunflower field
 the sunflower field shows {int} flower(s)
@@ -743,9 +745,12 @@ the sunflowers are not swaying
 the sunflowers look {string}
 ```
 
-- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state. Garden styles are the
-  labels `Single plant`, `Sunflower field` and `Off` of `settings-garden`. `the garden style is X` (Given) uses
-  `PATCH /api/settings`.
+- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state; `I turn the plant
+  "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
+  label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
+  (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Season` (today's season scene), `Sunflower field`,
+  `Mordor` or `None`.
 - `sunflower-field` (in the top app bar background) has `aria-label` = the label and contains one `sunflower` element
   per **visible** flower ("shows N flowers" counts them). Swaying = computed `animation-name` of `sunflower` is not
   `none` and `animation-play-state` is `running`. "look X" = `data-mood` on `sunflower-field`.
@@ -908,7 +913,9 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
+the theme menu sections are {string}, {string} and {string}
 the scene choices are {string}, {string}, {string} and {string}
+the theme menu has no Mordor button
 the top bar shows the {string} scene
 the top bar shows no scene
 the settings show the theme {string}
@@ -926,8 +933,11 @@ the event {string} glows
 - "the theme X is in use": `<html data-theme-name>` equals X.
 - "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
   menu is opened first when it is not open. Scene options, in order: "Season", "Sunflower field", "Mordor", "None"
-  (`data-value` `season`, `sunflowers`, `mordor`, `none`); "the scene choices are" compares their labels and checks
-  that `settings-scene` (the retired second control) is absent.
+  (`data-value` `season`, `sunflowers`, `mordor`, `none`); "the scene choices are" compares their labels, checks that
+  they sit in the `scene` section (not in fine-tuning) and that `settings-scene` (the retired second control) is absent.
+- "the theme menu sections are": the headings of the `theme-section` elements (`data-section` `presets`, `scene`,
+  `fine-tuning`; the live preview card above them is not a section), in page order. "has no Mordor button":
+  `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
 - "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
@@ -959,7 +969,8 @@ the support cat is gone within {int} ms
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
   "butterfly" part is present for the check.
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
-  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`); the step lowercases and
+  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`; the sunflower field scene also has
+  `sky`, `hills`, `cloud` and `bee`); the step lowercases and
   hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
