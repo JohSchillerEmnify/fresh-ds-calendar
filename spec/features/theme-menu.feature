@@ -1,8 +1,8 @@
 @themes @id:theme-menu
 Feature: Choosing and fine-tuning a theme
   A theme menu has three sections, in this order. "Presets" is a gallery of ready themes, each card drawn as a small
-  week in that theme's real look. "Scene" is the top app bar background (one choice: Season, which is automatic, or
-  any single scene: Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year,
+  week in that theme's real look. "Scene" is the top app bar background: a switch "Follow the calendar (seasons & holidays)" that lets the picture
+  follow the calendar whatever theme is chosen (colours stay), or any single scene to pick: Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year,
   Winter, Sunflower field, Mordor or None). "Fine-tuning" is where every option shows itself as a small sample before it is picked: theme mode, seed
   colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square, round, pill). There is no
   separate Mordor button; the Mordor preset does the same. A live preview with a
@@ -13,10 +13,10 @@ Feature: Choosing and fine-tuning a theme
   Sunday), Halloween (all of October), then the season (spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December). Summer holidays is never picked by Automatic. Christmas shows a timeline across
   the top bar: four big Advent candles, one more lit each Advent Sunday, and the tree at the end whose lights come on on
-  24 December. For
-  Automatic the person chooses what follows the calendar: colours and scene, only the scene (colours from a base
-  theme they pick) or only the colours (the scene stays their own pick). The choice is kept per person and
-  holds on every device.
+  24 December. Automatic
+  changes colours and scene with the calendar; the switch in the Scene card does the same for the picture alone on any
+  other theme (it is on for Automatic and off for the others, and picking a scene turns it off). The choice is kept per
+  person and holds on every device.
 
   Background:
     Given the calendar is empty
@@ -126,34 +126,16 @@ Feature: Choosing and fine-tuning a theme
     And I choose the theme "Automatic"
     Then the app uses the dark theme
 
-  Scenario: Automatic can change only the scene, on colours I choose
+  Scenario: With Neon and the scene following the calendar, Christmas shows on Neon colours
     Given today is 2026-12-24
-    And I chose the theme "Automatic"
     When I open the week view for 2026-12-24
     And I open the theme menu
-    And I let Automatic change "Scene only"
-    And I use "Neon" as the base for Automatic
-    Then the color role "primary" has a hue within 15 degrees of "#9d4dff"
+    And I choose the theme "Neon"
+    And I switch the scene to follow the calendar
+    Then the scene follows the calendar
+    And the color role "primary" has a hue within 15 degrees of "#9d4dff"
     And the top bar shows the "christmas" scene
     And the Christmas tree lights are on
-
-  Scenario: Automatic can change only the colours
-    Given today is 2026-12-24
-    And I chose the theme "Automatic"
-    When I open the week view for 2026-12-24
-    And I open the theme menu
-    And I let Automatic change "Colours only"
-    Then the color role "primary" has a hue within 15 degrees of "#c62828"
-    And the top bar shows no scene
-
-  Scenario: The settings show what Automatic changes
-    Given today is 2026-12-24
-    And I chose the theme "Automatic"
-    When I open the week view for 2026-12-24
-    And I open the theme menu
-    And I let Automatic change "Scene only"
-    And I open the settings
-    Then the settings show the theme "Automatic (scene) · Christmas"
 
   Scenario: The menu has three sections
     When I open the week view for 2026-10-12
@@ -163,7 +145,7 @@ Feature: Choosing and fine-tuning a theme
   Scenario: The scene has its own section with one choice
     When I open the week view for 2026-10-12
     And I open the theme menu
-    Then the scene choices are "Season, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None"
+    Then the scene choices are "Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None"
 
   Scenario: I can pick the Halloween scene in spring
     Given today is 2026-04-12
@@ -172,13 +154,15 @@ Feature: Choosing and fine-tuning a theme
     And I pick "Halloween" for "Scene"
     Then the top bar shows the "halloween" scene
 
-  Scenario: Season stays the automatic choice
+  Scenario: Picking a scene stops it following the calendar
     Given today is 2026-04-12
     When I open the week view for 2026-04-12
     And I open the theme menu
-    And I pick "Halloween" for "Scene"
-    And I pick "Season" for "Scene"
+    And I switch the scene to follow the calendar
     Then the top bar shows the "spring" scene
+    When I pick "Halloween" for "Scene"
+    Then the scene does not follow the calendar
+    And the top bar shows the "halloween" scene
 
   Scenario: The Mordor preset replaces the old Mordor button
     When I open the week view for 2026-10-12

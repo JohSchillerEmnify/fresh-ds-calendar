@@ -227,13 +227,13 @@ spec files are named.
   and Automatic use the same calendar mapping; (f) the holiday presets keep the person's light/dark mode like the season
   presets (no forced dark, except New Year's Eve, which is dark like Neon and Mordor — owner 2026-10-13); (g) preset names are
   the labels ("Easter", "Summer holidays", "Christmas", "New Year's Eve", "New Year") and the scene values are `easter`,
-  `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) the pref stores `automatic` (`both` | `scene` |
-  `colors`, default `both`) and, for "Scene only", `automaticBase` (a non-seasonal preset name, or `theme:<id>`,
-  default `Default`); both are kept when another theme is chosen and validated on the server; (i) in "Scene only" a
-  scene the person picks explicitly in the Scene card still wins over the calendar, in "Colours only" the scene is
-  `none` until they pick one (`season` there means the calendar's scene); fine-tuning overrides apply in all modes;
-  (j) the settings row reads "Automatic · X" (both), "Automatic (scene) · X" and "Automatic (colours) · X" where X is
-  the calendar's preset of today; (k) Christmas, New Year's Eve and New Year have a cat but no butterflies; the fireworks
+  `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) "Automatic follows" is not a pref any more: the switch "Follow the calendar
+  (seasons & holidays)" in the Scene card stores `overrides.scene = 'season'` (owner decision; `automatic` and
+  `automaticBase` were dropped, nothing to migrate); (i) the switch is on by default for Automatic only. The owner text
+  "off for other presets, unless their own scene is seasonal" is read narrowly: a seasonal preset such as Spring keeps
+  showing its own scene and the switch is off for it (flagged for confirmation: the broad reading would make Spring
+  show the Halloween scene in October); turning the switch off on Automatic stores today's calendar scene so the picture
+  does not jump; (j) the settings row reads "Automatic · X" with X the calendar's preset of today; (k) Christmas, New Year's Eve and New Year have a cat but no butterflies; the fireworks
   and the candle flicker run only at Full motion (at Reduced and Off the fireworks stand still, the flames are steady);
   (l) holiday presets' colours: Easter #8e6bbf, Summer holidays #0097a7, Christmas #c62828, New Year's Eve #d4af37,
   New Year #00897b.

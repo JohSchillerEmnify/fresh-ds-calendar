@@ -926,8 +926,9 @@ the theme menu has no Mordor button
 the top bar shows the {string} scene
 the top bar shows no scene
 the settings show the theme {string}
-I let Automatic change {string}
-I use {string} as the base for Automatic
+I switch the scene to follow the calendar
+the scene follows the calendar
+the scene does not follow the calendar
 the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
 the Christmas tree lights are off
@@ -944,9 +945,9 @@ the event {string} glows
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X.
 - "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
-  menu is opened first when it is not open. Scene options, in order: "Season", "Spring", "Summer", "Fall", "Halloween", "Winter", "Sunflower field", "Mordor",
-  "None" (`data-value` `season`, `spring`, `summer`, `fall`, `halloween`, `winter`, `sunflowers`, `mordor`, `none`);
-  the holiday scenes sit in the order Season, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas,
+  menu is opened first when it is not open. Scene options, in order: "Spring", "Summer", "Fall", "Halloween", "Winter", "Sunflower field", "Mordor",
+  "None" (`data-value` `spring`, `summer`, `fall`, `halloween`, `winter`, `sunflowers`, `mordor`, `none`);
+  the holiday scenes sit in the order Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas,
   New Year's Eve, New Year, Winter, Sunflower field, Mordor, None (`data-value` `easter`, `summerholidays`,
   `christmas`, `newyearseve`, `newyear`; the top bar's `data-scene` is the same value);
   "the scene choices are" takes the labels as one comma-separated string, compares them in order, checks that
@@ -956,12 +957,11 @@ the event {string} glows
   `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
-- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall",
-  "Automatic (scene) · Christmas", "Automatic (colours) · Christmas").
-- "I let Automatic change X": with the theme Automatic chosen, clicks the option with that label ("Colours and scene",
-  "Scene only", "Colours only") of the segmented button `theme-automatic-follows` (`data-value` `both`, `scene`,
-  `colors`) and waits for the save. "I use X as the base for Automatic": selects the option with that label in the
-  select `theme-automatic-base` (shown only for "Scene only") and waits for the save.
+- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
+- "I switch the scene to follow the calendar": opens the theme menu when needed, turns the switch
+  `theme-scene-follows` (`role="switch"`, in the Scene section, label "Follow the calendar (seasons & holidays)") on
+  when it is off, and waits for the save. "the scene follows / does not follow the calendar": the switch has
+  `aria-checked` `true` / `false`.
 - "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
   `data-part`), in timeline order left to right, exactly the first N with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
   has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.

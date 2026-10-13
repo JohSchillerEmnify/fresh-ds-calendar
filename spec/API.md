@@ -148,7 +148,7 @@ Slate #4f6170, Mordor #c43e00 (preset id `mordor`).
 Selecting the Mordor preset in the UI also sets `themeMode: 'dark'` and the scene "Mordor" (a theme preference, see
 ARCHITECTURE "Themes"). The server only stores the values, and the user can change each one afterwards.
 **Scenes** (owner 2026-10-13): the top app bar background is not a setting any more. There is one "Scene" choice
-(Season, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `season`, `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
+(a switch "Follow the calendar" stored as `season`, and Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
 (`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"; the value `season` is the automatic choice, see there). `PATCH /api/settings` rejects a `scene` field and
 `GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
 depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
