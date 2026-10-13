@@ -22,6 +22,7 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
+import { isCollapsed, setAllCollapsed } from './collapse';
 import { matchesSearch, sortArchive, templateOf } from './archive';
 import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
@@ -50,6 +51,9 @@ const sortOptions = computed<{ value: TasksSortBy; label: string }[]>(() => [
 const passes = (l: TaskList): boolean => matchesTasksFilter(l, prefs.tasksFilter, clock.today);
 const shown = computed(() => tasks.lists.filter(passes));
 const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories, prefs.tasksSortDir));
+
+/** True when every list shown in the Open tab is collapsed: the toggle then offers "Expand all". */
+const allCollapsed = computed(() => shown.value.length > 0 && shown.value.every((l) => isCollapsed(l.id)));
 
 const tabOptions = computed(() => [
   { value: 'open' as TasksTab, label: t('tasks.tabs.open'), testid: 'tasks-tab-open' },
@@ -132,6 +136,7 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
         :label="prefs.tasksSortDir === 'reversed' ? t('tasks.view.sortDirReversed') : t('tasks.view.sortDirDefault')" :pressed="prefs.tasksSortDir === 'reversed'"
         :data-dir="prefs.tasksSortDir" data-testid="tasks-sort-dir" @click="choose({ tasksSortDir: prefs.tasksSortDir === 'reversed' ? 'default' : 'reversed' })"
       ><IconSwap /></IconButton>
+      <Button variant="text" :aria-pressed="allCollapsed" data-testid="tasks-collapse-all" @click="setAllCollapsed(shown.map((l) => l.id), !allCollapsed)">{{ allCollapsed ? t('tasks.view.expandAll') : t('tasks.view.collapseAll') }}</Button>
     </div>
     <div v-if="tasks.tab === 'open'" class="scroll">
       <p v-if="!groups.length" class="empty" data-testid="tasks-empty">{{ t('tasks.view.empty') }}</p>

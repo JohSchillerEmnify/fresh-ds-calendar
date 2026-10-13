@@ -471,3 +471,29 @@ spec files are named.
   reaction (context menu, text selection, native drag, callout). So the canvas defends against it: every element inside a
   note is `touch-action: none; user-select: none; -webkit-touch-callout: none`, and `contextmenu`, `selectstart` and
   `dragstart` are prevented on notes and areas. The scenarios stay as regression tests.
+
+## Compact, collapsible task list cards (owner 2026-10-13)
+
+- **A-150 Next-task hint removed** (owner: it repeats the first open item): `tasklist-next-task` and the locale key
+  `tasks.list.nextTask` are gone in all four catalogues. No scenario or step covered it. The tray's phone "Next: <title>"
+  peek (`tasks.tray.next`) and `useTaskListsStore().nextTask` are a different thing and stay.
+- **A-151 Add item in the footer row** (owner): `tasklist-add` is a text button with icon and label beside Edit and
+  Delete; its field appears above the footer only while adding and goes away again when left empty (as before).
+- **A-152 Tighter spacing** (my reading of "a bit"): head, list and footer margins shrink by 4 to 8 px; rows and buttons
+  keep their 44 px touch targets.
+- **A-153 Collapse state** (owner: "per list per device in localStorage"): one key `cal.tasklistCollapsed` holding a map of
+  list id to `true`; lists expanded by default; storage failures only mean the state lasts for this visit.
+- **A-154 What stays when collapsed** (my reading of "title row with category colour, progress and date"): the head as it
+  is: progress ring, title with category icon, count and the "From" tag of an overdue list. The date is not new text:
+  the views already group or tag by date. The "All done" message and the strike-through of a finished title are
+  part of the body and head respectively: the strike stays, the message collapses.
+- **A-155 Where the chevron shows** (my reading of "where sensible"): the tray, the Tasks view (Open and Archive) and the
+  Canvas notes. Not in the expanded list's sheet (`closable`): it is opened to see the items, so collapsing it
+  makes no sense. The calendar grid cards are untouched (they already have their own collapsed form).
+- **A-156 Collapse all** (owner: one toggle `tasks-collapse-all`): it acts on the lists of the Open tab; the label says
+  "Collapse all" until every list shown is collapsed, then "Expand all". It writes the same per-list state, so it
+  is remembered too.
+- **A-157 Motion** (owner): no height animation at any level, because the body is removed at once; Full motion fades
+  the body in and out (opacity), Reduced and Off do not.
+- **A-158 Translations** (owner): `tasks.list.collapse`, `tasks.list.expand`, `tasks.view.collapseAll`,
+  `tasks.view.expandAll` in `locales/<lang>/tasks.ts` for `en`, `de`, `de-x-mainfr` and `de-x-coldmirror`.
