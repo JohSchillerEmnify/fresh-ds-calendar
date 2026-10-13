@@ -569,3 +569,25 @@ spec files are named.
 - **A-211 SDK level** (my choice): minSdk 26 (Android 8.0), target and compile SDK 36.
 - **A-212 `/app.apk` is public** (my choice): no sign-in needed to download it, because the APK has no secrets and the
   route is outside `/api`; with Google sign-in on, anyone on the LAN could download the app, not use it.
+- **A-213 Widget = bitmap** (my choice): the widget draws the week as one bitmap (hour grid, blocks, bars); RemoteViews
+  cannot place views by time. Text sizes are fixed dp, not the system font scale.
+- **A-214 "Like the week view"** (my reading of "same with the lists"): the grid, the all-day band with bars, blocks in the
+  item colour, side-by-side/cascade packing (port of `packColumns`), task lists as blocks with checkbox and `done/total` and,
+  when tall enough, the open item names; the web's entry style (solid, tinted, outline) and corner shape from the snapshot.
+  Not drawn: drag, resize, glow, the "past" strike on lists, category emoji, location and description lines.
+- **A-215 Hour range** (my reading of "auto-fits, clamped (e.g. 7-22)"): the grid spans the earliest start to the latest
+  end of the week, whole hours, at least 6 h, within 0 to 24, so no item is ever cut off; 08 to 18 for a week without timed
+  items. 7 to 22 are example values, not hard limits.
+- **A-216 Band height** (my choice): the all-day band takes at most 40 % of the height below the weekday row; rows beyond
+  that become "+N" per day, bars beyond it are dropped.
+- **A-217 Tapping** (my choice): the whole day column (weekday row to the bottom) opens `/day/<date>`; there is no separate
+  tap on a block (the widget cannot know what is under a finger on a bitmap, and a day is the app's own landing for it).
+- **A-218 Carried-over lists** (my choice): open task lists from earlier days of the same week are shown on today without
+  a time like the web; lists from before this Monday are not (the widget fetches only the week, one request).
+- **A-219 Now line** (my choice): drawn at the time of the last redraw; it moves when the widget is redrawn (a data refresh
+  every 30 min, a resize, midnight), not every minute.
+- **A-220 Size cap** (my choice): the bitmap never has more pixels than the screen (the system limit is 1.5 screens); on a
+  large widget the picture is drawn at a lower resolution, not smaller.
+- **A-221 Download button in the app** (my choice): "Update the app" hands `/app.apk` to the system browser
+  (`ACTION_VIEW`) instead of using `DownloadManager`: no permission, no notification channel code, and Chrome shows progress
+  and the install prompt. Only URLs of the calendar's own host are handed over. The label switch is by `window.Capacitor`.

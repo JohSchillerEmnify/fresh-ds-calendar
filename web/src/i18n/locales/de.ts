@@ -119,7 +119,7 @@ export default {
       signOut: 'Abmelden',
       resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Testkalender durch frische Demotermine', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
       version: 'Version {version}',
-      androidApp: { label: 'Android-App', hint: 'Den Kalender als Android-App mit Wochen-Widget für den Homescreen installieren (nur im Heim-WLAN)', download: 'Herunterladen' },
+      androidApp: { label: 'Android-App', updateLabel: 'App aktualisieren', hint: 'Den Kalender als Android-App mit Wochen-Widget für den Homescreen installieren (nur im Heim-WLAN)', download: 'Herunterladen' },
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegelt das Handy-Layout, sodass die wichtigsten Bedienelemente unter dem linken Daumen liegen' },

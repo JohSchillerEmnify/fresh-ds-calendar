@@ -6,8 +6,12 @@ import org.json.JSONObject;
 /** The colour roles of the widget, taken from the app's current theme (snapshot) or a built-in default. */
 final class WidgetTheme {
     final int primary, onPrimary, primaryContainer, onPrimaryContainer, surface, surfaceContainer, onSurface, onSurfaceVariant, outlineVariant;
+    /** How entries are filled: {@code solid}, {@code tinted} or {@code outline}; and their corners: {@code square}, {@code round} or {@code pill}. */
+    final String entries, corners;
 
-    private WidgetTheme(int[] c) {
+    private WidgetTheme(int[] c, String entries, String corners) {
+        this.entries = entries;
+        this.corners = corners;
         primary = c[0];
         onPrimary = c[1];
         primaryContainer = c[2];
@@ -23,7 +27,7 @@ final class WidgetTheme {
     static WidgetTheme defaults(boolean dark) {
         return new WidgetTheme(dark
                 ? new int[] {0xFFB0C7F9, 0xFF122B54, 0xFF324973, 0xFFD6E3FF, 0xFF121318, 0xFF1E1F26, 0xFFE3E2E9, 0xFFC4C6D0, 0xFF44474F}
-                : new int[] {0xFF495F8B, 0xFFF9F8FF, 0xFFB0C7F9, 0xFF29406A, 0xFFFAF9FE, 0xFFEDEDF6, 0xFF2F323A, 0xFF5C5F68, 0xFFAFB1BC});
+                : new int[] {0xFF495F8B, 0xFFF9F8FF, 0xFFB0C7F9, 0xFF29406A, 0xFFFAF9FE, 0xFFEDEDF6, 0xFF2F323A, 0xFF5C5F68, 0xFFAFB1BC}, "solid", "round");
     }
 
     /** Reads the {@code theme} object of a snapshot; roles that are missing or malformed keep the default's colour. */
@@ -35,7 +39,13 @@ final class WidgetTheme {
         String[] keys = {"primary", "onPrimary", "primaryContainer", "onPrimaryContainer", "surface", "surfaceContainer", "onSurface", "onSurfaceVariant", "outlineVariant"};
         int[] base = {d.primary, d.onPrimary, d.primaryContainer, d.onPrimaryContainer, d.surface, d.surfaceContainer, d.onSurface, d.onSurfaceVariant, d.outlineVariant};
         for (int i = 0; i < keys.length; i++) base[i] = color(t.optString(keys[i]), base[i]);
-        return new WidgetTheme(base);
+        return new WidgetTheme(base, pick(snapshot.optString("entries"), d.entries, "solid", "tinted", "outline"),
+                pick(snapshot.optString("corners"), d.corners, "square", "round", "pill"));
+    }
+
+    private static String pick(String value, String fallback, String... allowed) {
+        for (String a : allowed) if (a.equals(value)) return value;
+        return fallback;
     }
 
     /** Parses {@code #rrggbb}; returns {@code fallback} for anything else. */

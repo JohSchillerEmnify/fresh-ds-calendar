@@ -1454,14 +1454,41 @@ browser does not change.
   `color`) and today's task lists (`title`, `done`, `total`, `color`). The widget uses it for the **theme and the
   language** (always) and as the **fallback data** when the API call fails. The week is read from the server at most
   every 10 min for the snapshot (an extra request, only in the app).
-- **What the widget shows** (default 4x2, resizable): the week range as the header (tap: opens `/week/<Monday>`), a
-  refresh icon, seven day columns (short weekday and date; today highlighted; each event as a colour bar, the start time
-  when the column is wide enough, and the title; as many rows as fit, the last one "+N" when more), a line with
-  today's task lists and their `done/total` progress, and a footer "Updated HH:MM" / "Stand: HH:MM" (language of the
-  snapshot, German for both fun languages). A tap on a day column opens the app at `/day/<date>` (an intent extra the
-  `MainActivity` turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted).
-  Dark or light and all colours follow the snapshot; without one the widget follows the system and the default theme.
-  Which data is shown: the newer of snapshot and last fetch, if it is for the current week.
+- **What the widget shows** (default 4x2, resizable): the week view of the app in miniature (owner, 2026-10-13: "more like
+  the actual weekly calendar view, same with the lists"). Top to bottom: the week range as the header (tap: opens
+  `/week/<Monday>`) and a refresh icon; a weekday + date row (today as a filled pill, like the app's today circle); an
+  **all-day band** (multi-day events as bars across their days in lanes, then per day the all-day events and the untimed
+  task lists, as many rows as fit with a "+N" row; the band takes at most 40 % of the free height); an **hour grid** with
+  hour lines, labels, a tinted today column and a **now line** on today; a footer "Updated HH:MM" / "Stand: HH:MM". Timed
+  events are rounded colour blocks placed and sized by start and end (title, the time when tall enough); timed task lists
+  are blocks of their estimate (30 min without one) in their category colour with a task checkbox, `done/total` and, when
+  tall enough, the names of the open items; blocks that overlap sit side by side or cascade, by a Java port of the web's
+  `packColumns` (`WeekLayout.packColumns`, same constants: 15 min start gap, depth 3). Which items go where mirrors the web
+  (`itemSegments`, `computeBars`): timed lists and events in the grid, untimed lists and all-day events in the band, events
+  of two or more days (timed ones from 24 h) as bars, an undated list nowhere, an open list from the last 30 days carried over
+  to today. The hour range is **fitted** to the earliest start and latest end of the week (whole hours, at least 6 h, within
+  0 to 24; 08 to 18 for an empty week). Colours, the entry style (solid, tinted, outline) and the corner shape follow the
+  snapshot's theme, dark or light; without a snapshot the widget follows the system and the default theme.
+  A tap on a day column (header row to the bottom) opens the app at `/day/<date>` (an intent extra the `MainActivity`
+  turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted). Which data is shown: the newer
+  of snapshot and last fetch, if it is for the current week. The snapshot as data has no timed task lists, so it is only
+  the fallback: events in the grid, today's task lists in the band.
+- **The week is one bitmap, because RemoteViews cannot do a time grid.** A widget's views are the RemoteViews subset
+  (`FrameLayout`, `LinearLayout`, `TextView`, `ImageView`, ...), placed by a layout pass: there is no absolute position, no
+  `top`/`height` in minutes, no overlap, so blocks proportional to time, placed side by side and cut at the hour range cannot
+  be built from views (a `LinearLayout` per column with spacer weights would need one view per block and per gap, a layout
+  per resize, and still no overlap or cascade). `WeekCanvas` therefore draws the whole week with `android.graphics.Canvas`
+  into an `ImageView` at the widget's real pixel size (`AppWidgetManager` options: min width/max height in portrait, max
+  width/min height in landscape; recomputed in `onAppWidgetOptionsChanged`, on every update and every data change). The
+  geometry is in dp and scaled by the density, so the picture is sharp at any size. **Size cap:** RemoteViews carry their
+  bitmaps in a Binder transaction and the system rejects a widget update above 1.5 screens of ARGB_8888 pixels
+  (`RemoteViews` "too much memory"); `WeekLayout.bitmapScale` lowers the pixels per dp, never the dp size, so the bitmap never
+  exceeds one screen of pixels (the density when it fits). The refresh icon is a real `ImageView`, and the header and the seven
+  day columns are transparent `View`s over the bitmap that carry the `PendingIntent`s (their paddings mirror the constants in
+  `WeekCanvas`). Alternatives weighed: nested `LinearLayout`s with weighted spacers (no overlap, one view per block, hits the
+  RemoteViews view-count and memory limits); a `ListView`/`RemoteViewsService` per day (a list, not a time axis); keeping the
+  old compact event-list columns (what the owner rejected). Cost: text is not selectable and does not follow the system font
+  scale (sizes are fixed dp); the picture is redrawn on every update (cheap, a few ms for a week).
 - **Failure states.** API call fails (offline, server down, HTTP error): the last data stays, the footer says when it
   was current. HTTP 401 (session expired): the footer says "Open the app to sign in again" (tap opens the app);
   signing in there makes the next refresh work. No snapshot and no fetched data yet: "Open the app once to load your week".
@@ -1478,9 +1505,14 @@ browser does not change.
   not part of the Docker image and is not rebuilt by a deploy.
 - **Build constraints.** minSdk 26 (Android 8, `java.time`), compile/target SDK 36. Capacitor's modules ask for Java 21;
   `android/build.gradle` pins every module to Java 17 so JDK 17 builds them.
+- **The app's own download button.** Inside the Capacitor app the Settings row is called "Update the app" (otherwise
+  "Android app"; hidden on iOS) and loads `/app.apk`. The WebView has no download handler, so `MainActivity` sets a
+  `DownloadListener` that hands URLs of the calendar's own host to the system (`ACTION_VIEW`: the browser downloads the file and
+  shows its notification); other hosts are ignored.
 - **Tests.** No e2e scenarios: Playwright cannot drive a native widget. The snapshot builder has unit tests
-  (`web/test/widget-snapshot.test.ts`), the native day-splitting that mirrors it has JUnit tests
-  (`android/app/src/test`, `./gradlew testDebugUnitTest`), the download route a server test.
+  (`web/test/widget-snapshot.test.ts`), the native splitting into days and bars that mirrors the web has JUnit tests
+  (`WeekDataTest`), the pure layout maths (column packing, hour range, bitmap scale, text colour) too (`WeekLayoutTest`,
+  `android/app/src/test`, `./gradlew testDebugUnitTest`), the download route a server test. The drawing itself is checked by eye on a device.
 
 ## 8. Configuration (env)
 

@@ -76,7 +76,7 @@ export default {
       supportAlways: 'Jedes Mal',
     },
     account: {
-      androidApp: { label: 'Android-App', hint: 'Den Kalender als Android-App mit Wochen-Widget, nur im Heim-WLAN', download: 'Runnerladen' },
+      androidApp: { label: 'Android-App', updateLabel: 'App aktualisiern', hint: 'Den Kalender als Android-App mit Wochen-Widget, nur im Heim-WLAN', download: 'Runnerladen' },
       signOut: 'Abmelden',
       resetDemo: { done: 'Demodaden sin widda da' },
     },
