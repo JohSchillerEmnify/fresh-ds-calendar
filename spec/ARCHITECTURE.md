@@ -686,7 +686,7 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   person in prefs, default 3; any whole number 1–24: one choice 3 h / 6 h / 12 h / Custom…, the hours field `settings-approach-window-custom`
   only shows for Custom… or a custom value (owner: no duplicate controls),
   owner 2026-10-13). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
-  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). All timed entries of today
+  2 h / 3 h whose labels do not collide at the current width (dynamic scaling). All timed entries of today (open task lists carried over to today count with their time, owner 2026-10-13)
   that start within the window (owner, 2026-10-13: all, not only the next three) (events and task lists with a time, by start); entries already running stay on the
   track (owner, 2026-10-13): their block starts at "now" and shows only the time left, so they slide out to the left
   as time passes and leave when they end as chips
