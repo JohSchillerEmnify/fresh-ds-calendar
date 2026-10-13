@@ -749,8 +749,7 @@ the sunflowers look {string}
   "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
   label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
-  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Season` (today's season scene), `Sunflower field`,
-  `Mordor` or `None`.
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`.
 - `sunflower-field` (in the top app bar background) has `aria-label` = the label and contains one `sunflower` element
   per **visible** flower ("shows N flowers" counts them). Swaying = computed `animation-name` of `sunflower` is not
   `none` and `animation-play-state` is `running`. "look X" = `data-mood` on `sunflower-field`.

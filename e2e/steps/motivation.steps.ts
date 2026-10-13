@@ -4,10 +4,14 @@ import { Given, Then, When } from './fixtures.js';
 import { chooseSelect, setSwitch } from './support/settings.js';
 import { exactText, type World } from './support/world.js';
 
-const GARDEN_STYLES: Record<string, 'plant' | 'sunflowers' | 'off'> = {
-  'Single plant': 'plant',
+const SCENES: Record<string, 'sunflowers' | 'mordor' | 'none'> = {
   'Sunflower field': 'sunflowers',
-  Off: 'off',
+  Mordor: 'mordor',
+  None: 'none',
+};
+const SUNFLOWER_MODES: Record<string, 'grow' | 'full'> = {
+  'Grow with points': 'grow',
+  'Full field': 'full',
 };
 
 /** "Small plant" and "small-plant" count as the same stage name (data-stage format is not fixed by the spec). */
@@ -24,10 +28,16 @@ Given(
   },
 );
 
-Given('the garden style is {string}', async function (this: World, label: string) {
-  const garden = GARDEN_STYLES[label];
-  if (!garden) throw new Error(`Unknown garden style "${label}"`);
-  await this.api.patch('/api/settings', { garden });
+Given('the scene is {string}', async function (this: World, label: string) {
+  const scene = SCENES[label];
+  if (!scene) throw new Error(`Unknown scene "${label}"`);
+  await this.api.patch('/api/prefs/theme', { overrides: { scene } });
+});
+
+Given('the sunflowers are set to {string}', async function (this: World, label: string) {
+  const sunflowers = SUNFLOWER_MODES[label];
+  if (!sunflowers) throw new Error(`Unknown sunflowers setting "${label}"`);
+  await this.api.patch('/api/settings', { sunflowers });
 });
 
 const flame = (w: World) => w.page.getByTestId('streak-flame');
@@ -99,8 +109,13 @@ When('I turn the streak flame {string}', async function (this: World, state: str
   await setSwitch(this, this.page.getByTestId('settings-streak-flame'), state === 'on');
 });
 
-When('I choose {string} as the garden style', async function (this: World, label: string) {
-  await chooseSelect(this, this.page.getByTestId('settings-garden'), label);
+When('I turn the plant {string}', async function (this: World, state: string) {
+  if (state !== 'on' && state !== 'off') throw new Error(`Expected "on" or "off", got "${state}"`);
+  await setSwitch(this, this.page.getByTestId('settings-plant'), state === 'on');
+});
+
+When('I choose {string} for the sunflowers', async function (this: World, label: string) {
+  await chooseSelect(this, this.page.getByTestId('settings-sunflowers'), label);
 });
 
 Then('I see the sunflower field', async function (this: World) {
