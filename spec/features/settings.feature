@@ -119,3 +119,8 @@ Feature: Settings
     And the settings are changed elsewhere to the theme mode "Dark"
     And the app regains focus
     Then the app uses the dark theme
+
+  Scenario: Every setting appears once, in its section
+    When I open the settings
+    Then the settings sections are "Appearance, Calendar, Task lists, Focus & motivation, Motion & sound, Labs, Account & data"
+    And the settings page has no theme mode or seed colour controls

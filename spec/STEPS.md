@@ -413,6 +413,8 @@ pressing the create button shows a state layer
 
 ```
 I open the settings
+the settings sections are {string}
+the settings page has no theme mode or seed colour controls
 the settings screen is shown
 I leave the settings
 I choose the theme mode {string}
@@ -958,3 +960,8 @@ Google shows the calendar {string}
 - Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
   (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
   for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.
+- Settings sections (owner 2026-10-13): `settings-section` with `data-section` = appearance | calendar | tasklists |
+  motivation | motion | labs | account. Theme mode and seed colour steps (`I choose the theme mode`, `I choose the seed
+  color preset`, `I enter the custom seed color`, `the seed color … is selected`, `the theme mode … is selected`)
+  operate in the theme menu (open it from the settings' `settings-theme` if not open); the testids are unchanged.
+  "I open the settings" stays the settings page.

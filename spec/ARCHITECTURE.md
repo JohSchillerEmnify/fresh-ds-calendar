@@ -298,12 +298,17 @@ otherwise; bundle budget §5a applies).
 
 - **Settings** (`/settings`, `settings-button` in the top app bar; full-screen page on phones, centered page on
   desktop) with M3 list sections:
-  1. *Appearance*: theme mode as a segmented button (System / Light / Dark); seed color as 8 preset swatches (Blue,
-     Purple, Teal, Green, Orange, Red, Pink, Slate; shown as round color buttons with check mark) plus "Custom" with a hex
-     text field (and native color input). Changes apply immediately (preview = the real UI) and are saved at once.
-  2. *Calendar*: default view (Month/Week/Day), default event color (Calendar color + 11 Google colors).
-  3. *Task list categories*: list with color dot, icon and name; tap opens the category dialog (name, color presets
-     from the Google palette + custom hex, emoji icon field, delete); "Add category" button.
+  Sections (owner, 2026-10-13: deduplicated, proper sections; each a card with a heading, on desktop with a section
+  list on the left; every setting exists exactly once):
+  1. *Appearance*: one row "Theme" showing the chosen theme, opening the theme menu (`settings-theme`). Theme mode
+     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), top
+     bar scene and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
+  2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.
+  3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
+  4. *Focus & motivation*: transition warning, calm mode, streak flame, garden, best streak, support cat.
+  5. *Motion & sound*: animations, ignore the device setting, sounds.
+  6. *Labs*: experimental views.
+  7. *Account & data*: sign out, demo data.
   Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
   rolled back with the error banner on failure).
 - **Tags shelved** (owner, 2026-10-13: purpose and flow unclear): no tag field in the forms, no tag chips in the
