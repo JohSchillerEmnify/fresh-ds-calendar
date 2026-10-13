@@ -11,10 +11,12 @@ import { onColor } from '@/api/colors';
 import { openItem } from '@/extensions/registry';
 import { displayTitle, type Segment } from '@/lib/items';
 import { formatDuration } from '@/features/calendar/timeline';
+import BedtimeTrack from '@/features/bedtime/BedtimeTrack.vue';
+import type { TrackBand } from '@/features/bedtime/bedtime';
 import { approachLayout, approachTicks, type ApproachSizes } from './approach';
 import { t } from '@/i18n';
 
-const props = defineProps<{ entries: Segment[]; atEnd: boolean; nowMin: number; windowMin: number }>();
+const props = defineProps<{ entries: Segment[]; atEnd: boolean; nowMin: number; windowMin: number; bands?: TrackBand[] }>();
 /** Width of the waiting entry at the end of the track. */
 const CHIP_PX = 96;
 /** Room a block needs around its title (padding and border). */
@@ -47,6 +49,7 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
     ref="el" class="approach" data-testid="approach-bar" role="group" :aria-label="t('calendar.now.track')" :data-window-hours="windowMin / 60"
     :style="{ height: `${TICK_PX + layout.rows * ROW_PX}px` }"
   >
+    <BedtimeTrack v-if="bands?.length" :bands="bands" :offset-px="NOW_PX" />
     <span v-for="t in ticks" :key="t.min" class="tick" data-testid="approach-tick" :style="{ left: `${NOW_PX + t.x}px` }">{{ t.label }}</span>
     <span class="line" />
     <span class="now" data-testid="approach-now" />

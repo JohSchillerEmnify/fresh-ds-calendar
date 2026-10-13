@@ -149,6 +149,26 @@ export interface Prefs {
   undatedDone: UndatedDone;
   /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
   language: LanguagePref;
+  /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
+  bedtime: BedtimePrefs;
+}
+
+/** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */
+export type BedtimeMode = 'fixed' | 'dynamic';
+/** The per-person bedtime preference; times are `HH:MM`, durations whole minutes. */
+export interface BedtimePrefs {
+  enabled: boolean;
+  mode: BedtimeMode;
+  bedtime: string;
+  wake: string;
+  /** "Different on weekends": the nights before Saturday and Sunday use the weekend pair. */
+  weekendDifferent: boolean;
+  weekendBedtime: string;
+  weekendWake: string;
+  sleepMinutes: number;
+  leadMinutes: number;
+  /** Minutes before bedtime for the in-app reminder; 0 = no reminder. */
+  reminderMinutes: number;
 }
 
 export interface Settings {

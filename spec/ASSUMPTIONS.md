@@ -433,3 +433,34 @@ spec files are named.
   mouse pointers, so the plain-drag path is what runs); the area scenario drops the note at the area's top left + (20, 56).
 - **A-131 Translations** (owner): `canvas.*` keys in `locales/<lang>/canvas.ts` for `en`, `de`, `de-x-mainfr` and
   `de-x-coldmirror`; the dialect catalogues are complete for these keys.
+- **A-130 Weekend nights** (my reading, owner asked for a simple override and to log the choice): "Different on
+  weekends" means the nights before Saturday and before Sunday (Friday and Saturday evening), because people sleep in
+  on Saturday and Sunday; all other nights use the main pair. Alternatives weighed: a table with one pair per weekday
+  (too much UI, the owner asked for simple) and Saturday and Sunday evenings (the usual late nights are Friday and
+  Saturday). The override also applies to the fixed pair that dynamic mode falls back to and compares with.
+- **A-131 Night named by wake-up day** (my reading): a night belongs to the day it ends on; its length is the distance
+  from bedtime to wake-up on the clock, so `00:00` to `09:00` is a valid weekend pair.
+- **A-132 Dynamic uses the whole fixed pair when it would be later** (my reading of "never later than fixed"): when the
+  dynamic bedtime is not earlier than the fixed one, both fixed times apply (not a mix); otherwise both dynamic times.
+- **A-133 First appointment** (owner: first timed item, timed task lists included, never all-day): the first segment
+  that starts on the wake-up day with a time. Not counted: continuation days of a multi-day event, untimed or
+  carried-over task lists, hidden calendars. Items not yet loaded are not known; the app loads the day after the shown
+  range in the background (dynamic mode only), and until it arrives the fixed times show.
+- **A-134 Reminder rules** (my reading): "Bedtime in N minutes" shows N = the minutes left (30 at the exact moment, less
+  when the app is opened later); 0 minutes means no reminder; it is not shown once bedtime has started; "once per night"
+  is remembered per device (`localStorage` `cal.bedtimeReminded`), not on the server; while the app is hidden nothing is
+  shown, and it shows when the app is visible again if bedtime has not started yet. The snackbar stays 10 seconds.
+- **A-135 Push hook** (owner: later, structure only): a list of reminder sinks, the snackbar is the first; a push
+  notification would add one. Not built.
+- **A-136 Bedtime values** (my reading): sleep 1 to 16 hours (offered 6 to 10), lead 0 to 480 minutes (offered 0, 15,
+  30, 45, 60, 90, 120), reminder 0 to 240 minutes (offered off, 5, 10, 15, 30, 45, 60); times `HH:MM`; the server
+  validates all of it and merges a partial `bedtime` patch into the stored one.
+- **A-137 Overlay drawing** (my reading of "dark band with a moon"): translucent scrim colour over the day column (below
+  the events, no pointer events), moon icon at the bedtime edge and sun icon at the wake-up edge. The Clock draws a dark
+  sector on the dial plate; the Approaching track a dark stretch on the track line (inside its window). In the Week,
+  Timeline and Strip views each day shows its own piece; the Timeline's all-day band is not covered.
+- **A-138 Bedtime strings** (owner): module `locales/*/bedtime.ts` in all four languages; Coldmirror in the Fresh
+  Dumbledore voice, rude only about Harry Potter characters, never sexual and never slurs.
+- **A-139 Track without entries** (my reading): the Approaching track is also shown when nothing timed is ahead but a
+  night lies inside its window (otherwise the band would never show on a quiet day); it then replaces the "Nothing else
+  today" line, like entries do. With the track switched off there is no band on the card.

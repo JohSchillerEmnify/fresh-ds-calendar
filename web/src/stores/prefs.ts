@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
+import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
-import type { ApproachWindowHours, Prefs, SupportCatSetting, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
+import type { ApproachWindowHours, BedtimePrefs, Prefs, SupportCatSetting, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
@@ -25,6 +26,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const undatedDone = ref<UndatedDone>('calendar');
   /** The UI language preference; the shell applies it with `applyLanguage` whenever it changes. */
   const language = ref<LanguagePref>(cachedLanguagePref());
+  /** Bedtime mode (night band and reminder); off until switched on in the settings. */
+  const bedtime = ref<BedtimePrefs>({ ...DEFAULT_BEDTIME });
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -41,6 +44,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     tasksSortDir.value = p.tasksSortDir ?? tasksSortDir.value;
     undatedDone.value = p.undatedDone ?? undatedDone.value;
     language.value = p.language ?? language.value;
+    bedtime.value = p.bedtime ? { ...bedtime.value, ...p.bedtime } : bedtime.value;
   }
 
   async function load(): Promise<void> {
@@ -54,7 +58,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, language: language.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, language: language.value, bedtime: bedtime.value,
     };
     apply(p);
     try {
@@ -65,5 +69,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, language, bedtime, load, set };
 });

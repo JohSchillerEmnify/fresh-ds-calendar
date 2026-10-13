@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto' };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 } };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -35,6 +35,20 @@ describe('prefs (Labs switches)', () => {
     await t.json('PATCH', '/api/prefs', { labsOwnThemes: false });
     await t.req('POST', '/api/__test/reset');
     expect((await t.json('GET', '/api/prefs')).body.versionInCorner).toBe(false);
+  });
+
+  it('keeps the bedtime preference per person: off by default, partial patches merge, bad values are refused', async () => {
+    const get = async () => (await t.json('GET', '/api/prefs')).body.bedtime;
+    expect((await get()).enabled).toBe(false);
+    expect((await t.json('PATCH', '/api/prefs', { bedtime: { enabled: true, mode: 'dynamic', sleepMinutes: 420 } })).body.bedtime).toMatchObject({ enabled: true, mode: 'dynamic', sleepMinutes: 420, bedtime: '23:00', reminderMinutes: 30 });
+    expect((await t.json('PATCH', '/api/prefs', { bedtime: { bedtime: '22:15' } })).body.bedtime).toMatchObject({ enabled: true, mode: 'dynamic', bedtime: '22:15' });
+    for (const bad of ['x', null, [], { enabled: 'yes' }, { mode: 'sometimes' }, { bedtime: '25:00' }, { wake: '7:00' }, { sleepMinutes: 5 }, { leadMinutes: 1.5 }, { reminderMinutes: 999 }]) {
+      const r = await t.json('PATCH', '/api/prefs', { bedtime: bad });
+      expect(r.status, JSON.stringify(bad)).toBe(400);
+    }
+    expect((await get()).bedtime).toBe('22:15');
+    await t.req('POST', '/api/__test/reset');
+    expect((await get()).enabled).toBe(false);
   });
 
   it('keeps the left-handed switch per person, off by default, boolean only', async () => {
@@ -82,7 +96,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto' });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto', bedtime: { enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00', sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30 } });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
   });
 

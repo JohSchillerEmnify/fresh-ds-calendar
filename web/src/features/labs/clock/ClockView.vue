@@ -4,6 +4,7 @@ import { useElementSize } from '@vueuse/core';
 import { toIsoDate, minutesToTime } from '@/lib/dates';
 import { displayTitle } from '@/lib/items';
 import { openItem } from '@/extensions/registry';
+import BedtimeDial from '@/features/bedtime/BedtimeDial.vue';
 import { useCalendarStore } from '@/stores/calendar';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
@@ -92,6 +93,7 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
         <circle :cx="CENTER" :cy="CENTER" r="205" class="track" data-testid="clock-dial" />
         <path v-if="progress" :d="progress" class="progress" data-testid="clock-progress" />
         <circle :cx="CENTER" :cy="CENTER" r="178" class="plate" />
+        <BedtimeDial :date="date" />
         <g class="ticks">
           <line v-for="t in ticks" :key="t.h" :x1="t.a.x" :y1="t.a.y" :x2="t.b.x" :y2="t.b.y" :class="{ major: t.h % 6 === 0 }" />
         </g>

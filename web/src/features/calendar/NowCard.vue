@@ -8,6 +8,9 @@
  */
 import { computed, ref } from 'vue';
 import { useDaySegments } from '@/composables/useDaySegments';
+import { absMinutes, trackBands } from '@/features/bedtime/bedtime';
+import { useBedtimeWindows } from '@/features/bedtime/useBedtime';
+import { addDays, toIsoDate } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
 import ApproachBar from '@/features/labs/approach/ApproachBar.vue';
@@ -21,7 +24,10 @@ const model = computed(() => nowCardModel(segs(clock.today), clock.minutesNow));
 const prefs = usePrefsStore();
 /** Approach track: replaces the "Next" line while something timed is still ahead today. */
 const approach = computed(() => (prefs.approachBar ? approachEntries(segs(clock.today), clock.minutesNow, prefs.approachWindowHours * 60) : { entries: [], atEnd: false }));
-const track = computed(() => approach.value.entries.length > 0);
+/** Night bands on the track (bedtime mode); a night inside the window shows the track even when nothing timed is ahead. */
+const nights = useBedtimeWindows(() => ({ from: clock.today, to: toIsoDate(addDays(clock.todayDate, 2)) }));
+const bands = computed(() => (prefs.approachBar ? trackBands(nights.value, absMinutes(clock.today, clock.minutesNow), prefs.approachWindowHours * 60) : []));
+const track = computed(() => approach.value.entries.length > 0 || bands.value.length > 0);
 const entered = ref(0);
 </script>
 
@@ -35,7 +41,7 @@ const entered = ref(0);
       <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ model.current.line }}</p>
       <p v-if="!track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
-    <ApproachBar v-if="track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" />
+    <ApproachBar v-if="track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" :bands="bands" />
     <div v-if="model.current" class="bar" data-testid="now-progress" role="progressbar" :aria-label="t('calendar.now.progress')" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="model.current.elapsedPercent">
       <span class="fill" :style="{ transform: `scaleX(${(100 - model.current.elapsedPercent) / 100})` }" />
     </div>
