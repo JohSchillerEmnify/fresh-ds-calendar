@@ -1,6 +1,8 @@
 package lan.mordor.calendar;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
@@ -18,7 +20,25 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
+        handDownloadsToTheSystem();
         openPathFrom(getIntent());
+    }
+
+    /**
+     * The Capacitor WebView has no download handler, so a navigation to a file (the Settings "Update the app" button loads
+     * {@code /app.apk}) would be dropped. Downloads of the calendar's own host are handed to the system browser, which downloads
+     * the file and shows its notification; any other host is ignored.
+     */
+    private void handDownloadsToTheSystem() {
+        String base = ServerConfig.baseUrl(this);
+        getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            if (url == null || !(url.equals(base) || url.startsWith(base + "/"))) return;
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (ActivityNotFoundException ignored) {
+                // no browser installed: nothing to hand the download to
+            }
+        });
     }
 
     @Override

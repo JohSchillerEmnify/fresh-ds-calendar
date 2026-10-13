@@ -25,11 +25,7 @@ const ITEMS_MAX_AGE_MS = 10 * 60_000;
 let cached: { weekStart: string; at: number; items: CalendarItem[] } | null = null;
 let running: Promise<void> | null = null;
 
-/** Whether the page runs inside the Capacitor app. */
-export function isNativeApp(): boolean {
-  const cap = (window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor;
-  return !!cap && (cap.isNativePlatform?.() ?? true);
-}
+export { isNativeApp } from './app';
 
 /** Reads the widget's colour roles from the generated theme on `<html>`. */
 export function readTheme(root: HTMLElement = document.documentElement): WidgetTheme {
