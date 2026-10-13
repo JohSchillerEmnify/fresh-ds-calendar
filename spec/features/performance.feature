@@ -16,9 +16,9 @@ Feature: Resource efficiency and no memory leaks
 
   Scenario: Switching views and opening dialogs repeatedly does not leak memory
     When I open the month view for 2026-10
-    And I cycle through the month, week and day views 5 times
-    And I open and close the event dialog 5 times
-    And I expand and collapse the task list "Groceries" 5 times
+    And I cycle through the month, week and day views 10 times
+    And I open and close the event dialog 10 times
+    And I expand and collapse the task list "Groceries" 10 times
     And I record the browser memory after garbage collection
     And I cycle through the month, week and day views 50 times
     And I open and close the event dialog 50 times
@@ -74,9 +74,9 @@ Feature: Resource efficiency and no memory leaks
   Scenario: Reward effects and drag and drop leave nothing behind
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
-    And I tick and untick the item "Milk" 5 times
+    And I tick and untick the item "Milk" 10 times
     And I collapse the task list
-    And I drag the event "Dentist" back and forth 3 times
+    And I drag the event "Dentist" back and forth 5 times
     And I record the browser memory after garbage collection
     And I expand the task list "Groceries"
     And I tick and untick the item "Milk" 50 times
