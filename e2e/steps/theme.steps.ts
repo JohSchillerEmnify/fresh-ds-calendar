@@ -299,8 +299,8 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
 });
 
-Then('the theme menu sections are {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string) {
-  await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c]);
+Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
+  await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c, d]);
 });
 
 Then('the theme menu has no Mordor button', async function (this: World) {
@@ -330,24 +330,20 @@ Then('the settings show the theme {string}', async function (this: World, text: 
   await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
 });
 
-When('I switch the scene to follow the calendar', async function (this: World) {
+When('I set the seasons and holidays to {string}', async function (this: World, label: string) {
   await ensureMenu(this);
-  const sw = this.page.getByTestId('theme-scene-follows');
-  if ((await sw.getAttribute('aria-checked')) !== 'true') {
+  const o = this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true });
+  if ((await o.getAttribute('aria-pressed')) !== 'true') {
     const saved = this.page.waitForResponse(isSaved);
-    await sw.click();
+    await o.click();
     await saved;
   }
-  await expect(sw).toHaveAttribute('aria-checked', 'true');
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
 });
 
-Then('the scene follows the calendar', async function (this: World) {
-  await expect(this.page.getByTestId('theme-scene-follows')).toHaveAttribute('aria-checked', 'true');
-});
-
-Then('the scene does not follow the calendar', async function (this: World) {
+Then('the seasons and holidays are set to {string}', async function (this: World, label: string) {
   await ensureMenu(this);
-  await expect(this.page.getByTestId('theme-scene-follows')).toHaveAttribute('aria-checked', 'false');
+  await expect(this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 Then('the advent timeline shows {int} lit candle(s)', async function (this: World, n: number) {

@@ -1,5 +1,5 @@
 /**
- * Calendar logic of the holiday themes (ARCHITECTURE "Holiday themes and Automatic follows"): Easter, the Advent
+ * Calendar logic of the holiday themes (ARCHITECTURE "Holiday themes and Seasons & holidays"): Easter, the Advent
  * Sundays, the Advent candles and the tree lights, and which holiday (if any) a date falls in. Pure functions on
  * `YYYY-MM-DD` strings, no DOM and no clock.
  */
@@ -60,7 +60,7 @@ export function christmasState(date: string): ChristmasState {
   return { candles: 4, lights: true };
 }
 
-/** The holiday a date falls in, in the priority of Automatic, or null. */
+/** The holiday a date falls in, in the priority of the calendar, or null. */
 export function holidayOf(date: string): Holiday | null {
   const year = Number(date.slice(0, 4));
   const md = date.slice(5);

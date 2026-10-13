@@ -55,8 +55,8 @@ describe('theme documents', () => {
 
   it('resolves an own theme under its overrides and falls back to Default when it is gone', () => {
     const custom = { abc: { doc: ocean() } };
-    expect(resolveTheme({ preset: 'theme:abc', overrides: { glow: 'neon' } }, '2026-10-12', custom).attrs).toMatchObject({ glow: 'neon', entries: 'tinted' });
-    expect(resolveTheme({ preset: 'theme:gone', overrides: {} }, '2026-10-12', custom).name).toBe('Default');
+    expect(resolveTheme({ preset: 'theme:abc', overrides: { glow: 'neon' }, seasonal: 'off' }, '2026-10-12', custom).attrs).toMatchObject({ glow: 'neon', entries: 'tinted' });
+    expect(resolveTheme({ preset: 'theme:gone', overrides: {}, seasonal: 'off' }, '2026-10-12', custom).name).toBe('Default');
     expect(sanitizePref({ preset: 'theme:abc' }).preset).toBe('theme:abc');
     expect(sanitizePref({ preset: 'theme:../x' }).preset).toBe('Default');
   });
@@ -189,12 +189,12 @@ describe('SceneImage', () => {
 describe('saving the look as my own theme', () => {
   const own = { mode: 'system' as const, seed: '#1A73E8' };
   it('writes the chosen theme with the fine-tuning, mode, seed and font as a valid document', () => {
-    const r = resolveTheme({ preset: 'Neon', overrides: { glow: 'soft' } }, '2026-10-12');
+    const r = resolveTheme({ preset: 'Neon', overrides: { glow: 'soft' }, seasonal: 'off' }, '2026-10-12');
     const { doc: d, picture } = lookToDoc(r, own, 'Night');
     expect(d).toMatchObject({ schema: 'calendar-theme/2', name: 'Night', mode: 'dark', colors: { seed: '#9d4dff' }, glow: 'soft', entries: 'outline', corners: 'pill', scene: { builtin: 'none' } });
     expect(picture).toBeUndefined();
     expect(validateTheme(d).ok).toBe(true);
-    const own2 = lookToDoc(resolveTheme({ preset: 'Default', overrides: {} }, '2026-10-12'), own, 'D').doc;
+    const own2 = lookToDoc(resolveTheme({ preset: 'Default', overrides: {}, seasonal: 'off' }, '2026-10-12'), own, 'D').doc;
     expect(own2).toMatchObject({ mode: 'follow', colors: { seed: '#1a73e8' } });
   });
   it('keeps a drawn scene, the font, role colours and an own picture', () => {
@@ -205,7 +205,7 @@ describe('saving the look as my own theme', () => {
     expect(validateTheme(saved.doc).ok).toBe(true);
   });
   it('saves a scene override instead of the own scene, and numbers a name that is taken', () => {
-    const r = resolveTheme({ preset: 'theme:a', overrides: { scene: 'mordor' } }, '2026-10-12', { a: { doc: ocean() } });
+    const r = resolveTheme({ preset: 'theme:a', overrides: { scene: 'mordor' }, seasonal: 'off' }, '2026-10-12', { a: { doc: ocean() } });
     expect(lookToDoc(r, own, 'M').doc.scene).toEqual({ builtin: 'mordor' });
     expect(uniqueName(DEFAULT_THEME_NAME, [])).toBe('My theme');
     expect(uniqueName(DEFAULT_THEME_NAME, ['My theme', 'My theme 2'])).toBe('My theme 3');
@@ -280,6 +280,7 @@ describe('ThemeImport', () => {
       'POST /api/themes': ({ body }) => ({ status: 201, body: { id: 'T1', doc: body.theme, sanitized: false } }),
       'PATCH /api/prefs/theme': ({ body }) => body,
     });
+    useThemeStore().pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
     const w = open();
     await paste(w, JSON.stringify(ocean()));
     expect(w.get(tid('theme-import-preview')).attributes('data-name')).toBe('Ocean');
@@ -288,7 +289,7 @@ describe('ThemeImport', () => {
     await w.get(tid('theme-import-save')).trigger('click');
     await vi.waitFor(() => expect(useThemeStore().pref.preset).toBe('theme:T1'));
     expect(m.calls.find((c) => c.path === '/api/themes')!.body).toEqual({ theme: ocean() });
-    expect(m.calls.find((c) => c.path === '/api/prefs/theme')!.body).toEqual({ preset: 'theme:T1', overrides: {} });
+    expect(m.calls.find((c) => c.path === '/api/prefs/theme')!.body).toEqual({ preset: 'theme:T1', overrides: {}, seasonal: 'off' });
     expect(useThemeStore().resolved.name).toBe('Ocean');
     expect(w.find(tid('theme-import-preview')).exists()).toBe(false);
   });
@@ -298,6 +299,7 @@ describe('ThemeImport', () => {
       'POST /api/themes': ({ body }) => ({ status: 201, body: { id: 'T1', doc: body.theme, picture: body.picture, sanitized: true } }),
       'PATCH /api/prefs/theme': ({ body }) => body,
     });
+    useThemeStore().pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
     const w = open();
     await w.get(tid('theme-import-text')).setValue(JSON.stringify(ocean()));
     await pick(w, 'theme-picture-file', new File([sneaky()], 'sneaky.svg'));
@@ -433,7 +435,7 @@ describe('own themes in the theme menu', () => {
     await vi.waitFor(() => expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')).toBe(true));
     const sent = m.calls.find((c) => c.method === 'POST' && c.path === '/api/themes')!.body.theme;
     expect(sent).toMatchObject({ name: 'Night', mode: 'dark', glow: 'soft', entries: 'outline', corners: 'pill', colors: { seed: '#9d4dff' } });
-    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')!.body).toEqual({ preset: 'theme:N1', overrides: {} });
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')!.body).toEqual({ preset: 'theme:N1', overrides: {}, seasonal: 'off' });
     expect(document.querySelector(tid('theme-save-dialog'))).toBeNull();
   });
 });

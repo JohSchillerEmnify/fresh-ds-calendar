@@ -3,8 +3,8 @@ import { computed, ref } from 'vue';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import { api, type StoredTheme } from '@/api/client';
 import {
-  DEFAULT_PREF, resolveTheme, sanitizePref, seasonScene,
-  type CustomThemeKey, type ThemeOverrides, type ThemePref,
+  DEFAULT_PREF, resolveTheme, sanitizePref,
+  type CustomThemeKey, type Seasonal, type ThemeOverrides, type ThemePref,
 } from '@/theme/presets';
 import { useClockStore } from './clock';
 
@@ -28,10 +28,8 @@ export const useThemeStore = defineStore('theme', () => {
   const hidden = ref<string[]>([]);
   /** The person's imported themes as the gallery shows them. */
   const themes = computed(() => custom.value.filter((t) => !hidden.value.includes(t.id)));
-  /** The chosen theme (Automatic resolved by today's date) with the overrides applied. */
+  /** The chosen theme (the calendar's theme and scene applied per the seasons & holidays setting) with the overrides applied. */
   const resolved = computed(() => resolveTheme(pref.value, clock.today, Object.fromEntries(themes.value.map((t) => [t.id, t]))));
-  /** The scene that stands for "the season" today. */
-  const todaysSeasonScene = computed(() => seasonScene(clock.today));
 
   function remember(): void {
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(pref.value)); } catch { /* storage unavailable */ }
@@ -56,15 +54,18 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
-  /** Chooses a preset; its own look replaces earlier fine-tuning . */
-  const choose = (preset: ThemePref['preset']) => save({ preset, overrides: {} });
-  /** Fine-tunes one attribute or the seed colour on top of the chosen theme. */
+  /**
+   * Chooses a preset (an explicit pick): its own look replaces earlier fine-tuning, and Header + colours steps down to
+   * Header only so the person's colours show while the header stays seasonal.
+   */
+  const choose = (preset: ThemePref['preset']) => save({ preset, overrides: {}, seasonal: pref.value.seasonal === 'all' ? 'header' : pref.value.seasonal });
+  /** Fine-tunes one attribute or the seed colour on top of the chosen theme; picking a scene turns seasons off. */
   const pick = <K extends keyof ThemeOverrides>(setting: K, value: NonNullable<ThemeOverrides[K]>) =>
-    save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, [setting]: value } });
-  /** Drops one fine-tuning override, so the chosen theme's own value applies again. */
-  const unpick = (setting: keyof ThemeOverrides) => {
-    const { [setting]: _gone, ...rest } = pref.value.overrides;
-    return save({ preset: pref.value.preset, overrides: rest });
+    save({ ...pref.value, overrides: { ...pref.value.overrides, [setting]: value }, seasonal: setting === 'scene' ? 'off' : pref.value.seasonal });
+  /** Sets what the calendar changes by itself; the seasons and holidays show again, so a picked scene is dropped. */
+  const setSeasonal = (seasonal: Seasonal) => {
+    const { scene: _scene, ...rest } = pref.value.overrides;
+    return save({ ...pref.value, overrides: seasonal === 'off' ? pref.value.overrides : rest, seasonal });
   };
 
   /** Saves a validated document (and its own picture) as one of the person's themes and chooses it. */
@@ -82,5 +83,5 @@ export const useThemeStore = defineStore('theme', () => {
     unhide(id);
   }
 
-  return { pref, resolved, themes, todaysSeasonScene, saveError, load, choose, pick, unpick, importTheme, hide, unhide, removeCustom };
+  return { pref, resolved, themes, saveError, load, choose, pick, setSeasonal, importTheme, hide, unhide, removeCustom };
 });
