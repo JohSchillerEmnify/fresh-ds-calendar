@@ -216,8 +216,10 @@ spec files are named.
 - **A-88 Raw-text check** (owner decision 7: only if lightweight): a unit test over the templates of an explicit list of
   migrated components, no eslint plugin (the repo has no eslint). The list grows per migrated area.
 - **A-89 Fun-language wording** is written by the agent and needs the owner's eye. Fränggisch is light ("des", "ned",
-  "bassd", "etz", "amal", "gud", "Eisdellunga"); Coldmirror uses "Schinken!", "BÄMbus!", "Was ist das für 1 …", "du
-  Oberpflaume", "Eulen. Eulen everywhere." and never "Ich bin voll geil". Both are partial on purpose.
+  "bassd", "etz", "amal", "gud", "Eisdellunga"); Coldmirror is complete and speaks as "Fresh Dumbledore" (an ancient headmaster
+  rapping too hard: "Yo", "Digga", "fresh", sign-out "Yo, vielen lieben thank und schönen day noch!") with sparse
+  "Schinken!", "BÄMbus!", "Was ist das für 1 …", "du Oberpflaume", "Eulen. Eulen everywhere." and never "Ich bin voll
+  geil". Fränggisch stays partial on purpose.
 - **A-90 Settings row**: "Language" sits at the end of Appearance (below Theme). The Automatic option is translated;
   the language names are not (each in its own name). Choosing saves through `PATCH /api/prefs` like the other prefs.
 - **A-91 First-load size** (owner decision, 2026-10-13: runtime compiling): messages are compiled in the browser by
