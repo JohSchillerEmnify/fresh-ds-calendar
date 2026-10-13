@@ -398,7 +398,7 @@ finished lists; the date-range endpoints are unchanged.
 ### Prefs: Tasks view
 
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
-`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (ARCHITECTURE "Archive"); any other value is `400`.
+`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `tasksFilter: { categories: string[]; when: 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week' }` (default `{ categories: [], when: 'all' }`) is the Tasks view's filter (ARCHITECTURE "Tasks filter"); `categories` holds at most 50 unique strings of 1-64 characters (category ids, or `none`), the whole object is replaced by a `PATCH`, any other shape or value is `400` (field `tasksFilter`). `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (ARCHITECTURE "Archive"); any other value is `400`.
 
 ### Canvas (`/api/canvas`)
 

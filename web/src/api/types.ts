@@ -119,6 +119,10 @@ export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export type TasksSortDir = 'default' | 'reversed';
 /** What finishing an undated task list does (per person pref `undatedDone`): show it in the calendar or archive only. */
 export type UndatedDone = 'calendar' | 'archive';
+/** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
+export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
+/** The Tasks view's filter (per person pref `tasksFilter`): category ids or `none` ("or"), and one When choice ("and"). */
+export interface TasksFilter { categories: string[]; when: TasksWhen }
 
 /** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
 export type ApproachWindowHours = number;
@@ -147,6 +151,7 @@ export interface Prefs {
   tasksSortDir: TasksSortDir;
   /** "Finished list without a date" (ARCHITECTURE "Archive"). */
   undatedDone: UndatedDone;
+  tasksFilter: TasksFilter;
   /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
   language: LanguagePref;
   /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */

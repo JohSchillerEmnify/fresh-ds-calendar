@@ -1361,12 +1361,17 @@ the note {string} is at {int}, {int} on the Canvas
 the note {string} is in the Unsorted stack
 the note {string} is not in the Unsorted stack
 I tick the item {string} of the note {string} on the Canvas
+the page is a little taller than the screen
+I add an area on the Canvas
+the add button covers no control of the area editor
 I create the area {string} on the Canvas
 I move the note {string} into the area {string} on the Canvas
 the note {string} is in the area {string}
 the Canvas shows the area {string}
 I long-press the note {string} on its first item and drag it to {int}, {int}
 the item {string} of the note {string} is not ticked
+I long-press the item {string} of the note {string} and drag the note to {int}, {int}
+I long-press the checkbox of the item {string} of the note {string} and drag the note to {int}, {int}
 I swipe across the note {string} on the Canvas
 I tap the empty Canvas
 I long-press the area {string} and release without moving
@@ -1396,6 +1401,10 @@ the Canvas zoom is above {float}
 - "I long-press the note T on its first item and drag it to X, Y": like the move, but the finger goes down on the first
   `tasklist-item-title` (a button), to show that a long press picks the note up anywhere. "the item I of the note T is
   not ticked": `data-done="false"`.
+- "I long-press the item I of the note T and drag the note to X, Y": like the long press on the first item, but the finger
+  goes down on the text of that `tasklist-item` row (its `tasklist-item-title`, not the checkbox).
+- "I long-press the checkbox of the item I of the note T and drag the note to X, Y": the same, with the finger down on the
+  item's `tasklist-item-checkbox`.
 - "I swipe across the note T": the same finger (or mouse) drag by (60, 80) px from the middle of the note with no long
   press; the scenario then expects an unmoved note in the stack and the view still at 0, 0.
 - "I tap the empty Canvas": a click in the bottom right corner of `canvas-viewport` (outside notes and areas); it hides
@@ -1412,6 +1421,11 @@ the Canvas zoom is above {float}
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
   `GET /api/canvas` (through the test API) lists an area named N.
+- "the page is a little taller than the screen": gives the document 120 px of scroll range (an invisible 1 px box below the screen), as a phone's collapsing address bar does, so the browser can start a native pan.
+- "I add an area on the Canvas": clicks `canvas-area-add` and waits for `canvas-area-editor`.
+- "the add button covers no control of the area editor": waits until the bounding box of `create-button` (when it has one)
+  intersects none of the boxes of the visible buttons of `canvas-area-editor`. On a phone the button slides away while the
+  editor is open (`ui.panelOpen`, the same `.away` as for the expanded tray).
 - "I move the note T into the area A": like "I move the note T to X, Y" with X, Y = the area's `data-x` + 20 and
   `data-y` + 56. "the note T is in the area A": `data-area` of the note equals A.
 - "the Canvas shows the area N": a `canvas-area` with `data-name` N is visible.
@@ -1420,3 +1434,30 @@ the Canvas zoom is above {float}
 - "I zoom the Canvas in with Ctrl+wheel": dispatches a `wheel` event with `ctrlKey` and `deltaY` -300 over the middle of
   `canvas-viewport` (as the time grid's zoom step does) and waits until `data-zoom` grew and `localStorage` `cal.canvasView`
   holds the new zoom (the view is remembered a moment after the last change). "the Canvas zoom is above Z": `data-zoom` greater than Z (waits).
+
+## Tasks filter (`@tasks-filter`)
+
+```
+the calendar contains a task list {string} in the category {string} finished on {date}
+I filter the Tasks view by the category {string}
+I choose {string} as the Tasks view When filter
+I clear the Tasks view filters
+the Tasks view category filter {string} is on
+the Tasks view When filter is {string}
+the note {string} is dimmed
+the note {string} is not dimmed
+```
+
+- Also used: "the calendar contains a task list ... in the category ... on ...", "... with items:", "I open the Tasks view",
+  "I open the Canvas", "the Tasks view lists ...", "the Archive lists ...", "I switch to another device".
+- "... in the category C finished on D": like "finished on D" (Tasks archive: one item "Done" ticked while the test clock
+  stands on D) with `categoryId` of the category named C set on creation.
+- "I filter the Tasks view by the category C": opens the Tasks view when it is not shown, clicks the
+  `tasks-filter-category` chip whose text is C (`No category` for the "none" chip) and waits for the `PATCH /api/prefs`
+  response (status 200).
+- "I choose W as the Tasks view When filter": clicks `tasks-filter-when`, then the `tasks-filter-when-option` whose text is
+  W (`All`, `No date`, `Dated`, `Overdue`, `Today`, `Tomorrow`, `This week`), and waits for the `PATCH /api/prefs`
+  response. "I clear the Tasks view filters": clicks `tasks-filter-clear` and waits for the same.
+- "the category filter C is on": that `tasks-filter-category` chip has `aria-pressed="true"`. "the When filter is W":
+  `tasks-filter-when` has `data-value` equal to W's value (`all`, `nodate`, `dated`, `overdue`, `today`, `tomorrow`, `week`).
+- "the note N is dimmed / not dimmed": `canvas-note` `data-dimmed` is `"true"` / `"false"`.

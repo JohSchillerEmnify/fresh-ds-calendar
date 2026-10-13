@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { IconAdd } from '@/components/icons';
 import Fab from '@/components/m3/Fab.vue';
 import { useRoute } from 'vue-router';
@@ -10,10 +11,12 @@ import { t } from '@/i18n';
 /** FAB: opens the one "new" dialog (event or task list, switchable there); in the Tasks view a new list without a date. */
 const ui = useUiStore();
 const route = useRoute();
+/** Phone: out of the way while the open tasks tray or a view's bottom panel is open (it would cover their controls). */
+const away = computed(() => isPhone.value && (ui.trayExpanded || ui.panelOpen));
 </script>
 
 <template>
-  <div class="fab-wrap" :class="{ away: isPhone && ui.trayExpanded }" data-testid="create-fab-area" :inert="isPhone && ui.trayExpanded">
+  <div class="fab-wrap" :class="{ away: away }" data-testid="create-fab-area" :inert="away">
     <Fab :label="t('calendar.create.label')" data-testid="create-button" @click="route.meta.tasks ? openNewUndated() : openNew()"><IconAdd /></Fab>
   </div>
 </template>

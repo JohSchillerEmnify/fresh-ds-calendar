@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconChecklist as IconTasks, IconScience as IconLab } from '@/components/icons';
+import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconChecklist as IconTasks, IconSchedule as IconClock, IconTimeline, IconViewColumn as IconStrip } from '@/components/icons';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
@@ -63,11 +63,13 @@ const baseItems = computed<NavItem[]>(() => [
   { id: 'day', label: t('views.day'), icon: IconDay, testid: 'view-switch-day' },
   { id: 'tasks', label: t('views.tasks'), icon: IconTasks, testid: 'view-switch-tasks' },
 ]);
+/** Each Labs view has an icon of its own. */
+const LAB_ICONS = { clock: IconClock, timeline: IconTimeline, strip: IconStrip } as const;
 // Labs views are offered only with the Labs switch on, marked as experimental.
 const items = computed<NavItem[]>(() => labs.labs
-  ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
+  ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: LAB_ICONS[id], testid: `view-switch-${id}`, experimental: true }))]
   : baseItems.value);
-const filterShown = computed(() => hasShell.value && (ui.filtersShown || filters.active.value));
+const filterShown = computed(() => hasShell.value && !route.meta.tasks && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
 /** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, and outside the calendar. */

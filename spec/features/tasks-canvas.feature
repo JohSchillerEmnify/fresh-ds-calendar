@@ -86,6 +86,29 @@ Feature: The Canvas places task lists as sticky notes
     And the item "Form" of the note "Taxes" is not ticked
 
   @mobile
+  Scenario: A long press on an item row picks up the note
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item  | done |
+      | Form  | no   |
+      | Stamp | no   |
+    When I open the Canvas
+    And the page is a little taller than the screen
+    And I long-press the item "Stamp" of the note "Taxes" and drag the note to 100, 260
+    Then the note "Taxes" is at 100, 260 on the Canvas
+    And the item "Stamp" of the note "Taxes" is not ticked
+
+  @mobile
+  Scenario: A long press on an item's checkbox picks up the note without ticking it
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item  | done |
+      | Form  | no   |
+      | Stamp | no   |
+    When I open the Canvas
+    And I long-press the checkbox of the item "Stamp" of the note "Taxes" and drag the note to 100, 260
+    Then the note "Taxes" is at 100, 260 on the Canvas
+    And the item "Stamp" of the note "Taxes" is not ticked
+
+  @mobile
   Scenario: A drag on a note without a long press does nothing
     Given the calendar contains an undated task list "Taxes" with items:
       | item | done |
@@ -106,6 +129,12 @@ Feature: The Canvas places task lists as sticky notes
     Then the area "Haus" is 340 wide and 280 high
     When I tap the empty Canvas
     Then the area "Haus" shows no resize handles
+
+  @mobile
+  Scenario: The add button never covers the area editor
+    When I open the Canvas
+    And I add an area on the Canvas
+    Then the add button covers no control of the area editor
 
   @desktop
   Scenario: Zoom with Ctrl+wheel, pan the background and keep the view

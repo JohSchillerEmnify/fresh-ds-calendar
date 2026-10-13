@@ -11,10 +11,14 @@ import type { CanvasArea as Area, TaskList } from '@/api/types';
 import { IconAdd, IconDeleteOutline } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
+import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSyncStore } from '@/stores/sync';
+import { useUiStore } from '@/stores/ui';
 import { AREA_COLORS, areaOf, centeredArea, clampArea, clampNote, clampView, placeNotes, resizeRect, type Corner, type Point, type Rect, WORLD_H, WORLD_W } from './canvas';
 import { useCanvasStore } from './canvasStore';
+import { matchesTasksFilter } from './tasksFilter';
 import CanvasArea from './CanvasArea.vue';
 import CanvasNote from './CanvasNote.vue';
 import { isComplete } from './format';
@@ -28,6 +32,9 @@ const tasks = useTasksViewStore();
 const canvas = useCanvasStore();
 const items = useItemsStore();
 const sync = useSyncStore();
+const ui = useUiStore();
+const prefs = usePrefsStore();
+const clock = useClockStore();
 
 const viewport = ref<HTMLElement | null>(null);
 const size = reactive({ w: 0, h: 0 });
@@ -50,7 +57,7 @@ const rects = computed(() => canvas.areas.map((a) => {
 const notes = computed(() => placeNotes(lists.value, canvas.placed).map((n) => {
   const at: Point = live.value?.kind === 'note' && live.value.id === n.id ? live.value : n;
   const z = raised[n.id] !== undefined ? 20 + raised[n.id]! : n.placed ? 20 : 10 + Math.min(n.stack, 9);
-  return { id: n.id, x: at.x, y: at.y, placed: n.placed, z, list: byId.value.get(n.id)!, area: areaOf(at, rects.value)?.area.name ?? '' };
+  return { id: n.id, x: at.x, y: at.y, placed: n.placed, z, list: byId.value.get(n.id)!, area: areaOf(at, rects.value)?.area.name ?? '', dimmed: !matchesTasksFilter(byId.value.get(n.id)!, prefs.tasksFilter, clock.today) };
 }));
 const stacked = computed(() => notes.value.some((n) => !n.placed));
 
@@ -136,6 +143,8 @@ const editArea = computed<Area | null>(() => canvas.areas.find((a) => a.id === e
 const nameDraft = ref('');
 const nameInput = ref<HTMLInputElement | null>(null);
 
+// the phone's create button must not cover the editor's buttons
+watch(editArea, (a) => { ui.panelOpen = !!a; });
 function openEditor(id: string): void {
   editing.value = id;
 }
@@ -191,6 +200,7 @@ onMounted(() => {
   stopSync = sync.registerTask('tasks-canvas', () => canvas.loadAreas());
 });
 onBeforeUnmount(() => {
+  ui.panelOpen = false;
   stopPointer?.();
   stopHide?.();
   stopEsc?.();
@@ -214,7 +224,7 @@ onBeforeUnmount(() => {
         />
         <span v-if="stacked" class="unsorted" data-testid="canvas-unsorted">{{ t('canvas.unsorted') }}</span>
         <CanvasNote
-          v-for="n in notes" :key="n.id" :list="n.list" :x="n.x" :y="n.y" :z="n.z" :placed="n.placed" :area="n.area" :dragging="live?.id === n.id"
+          v-for="n in notes" :key="n.id" :list="n.list" :x="n.x" :y="n.y" :z="n.z" :placed="n.placed" :area="n.area" :dragging="live?.id === n.id" :dimmed="n.dimmed"
           @completed="onCompleted(n.id, $event)"
         />
       </div>
