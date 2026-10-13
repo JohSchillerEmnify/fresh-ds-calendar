@@ -71,7 +71,8 @@ export interface Category {
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ViewName = 'month' | 'week' | 'day';
 export type AnimationLevel = 'full' | 'reduced' | 'off';
-export type GardenStyle = 'plant' | 'sunflowers' | 'off';
+/** How many flowers the Sunflower field scene shows: one per 40 growth points, or a fixed full field. */
+export type SunflowersMode = 'grow' | 'full';
 
 export interface Settings {
   themeMode: ThemeMode;
@@ -84,7 +85,8 @@ export interface Settings {
   ignoreSystemMotion: boolean;
   transitionWarningMinutes: 0 | 5 | 10 | 15;
   streakFlame: boolean;
-  garden: GardenStyle;
+  plant: boolean;
+  sunflowers: SunflowersMode;
   categories: Category[];
   updated: DateTime;
   version: number;

@@ -138,6 +138,7 @@ export function apiRoutes(ctx: Ctx): Hono {
   // ---- per-person theme ----
   r.get('/prefs/theme', (c) => {
     ctx.prefs.migrateScene(person(c), settings.legacyTopBarScene());
+    ctx.prefs.migrateGarden(person(c), settings.legacyGarden());
     return c.json(ctx.prefs.theme(person(c)));
   });
   r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));

@@ -26,7 +26,8 @@ export function defaultSettings(now: string): Settings {
     ignoreSystemMotion: false,
     transitionWarningMinutes: 10,
     streakFlame: true,
-    garden: 'plant',
+    plant: true,
+    sunflowers: 'grow',
     categories: DEFAULT_CATEGORIES.map(withGoogleColor),
     updated: now,
     version: 1,
@@ -39,15 +40,25 @@ export class SettingsStore {
   private readonly file: string | null;
   /** The retired `Settings.scene`, kept on disk (not served) until every person's theme has absorbed it. */
   private legacyScene: string | undefined;
+  /** The retired `Settings.garden`, kept on disk (not served) until every person's theme has absorbed it. */
+  private legacyGardenStyle: string | undefined;
 
   constructor(dataDir: string | null, private readonly clock: Clock, private readonly tz: string) {
     this.file = dataDir ? path.join(dataDir, 'settings.json') : null;
-    const raw = this.file ? readJson<Partial<Settings> & { scene?: string }>(this.file) : null;
-    const { scene, ...loaded } = raw ?? {};
+    const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string }>(this.file) : null;
+    const { scene, garden, ...loaded } = raw ?? {};
     this.legacyScene = typeof scene === 'string' ? scene : undefined;
+    this.legacyGardenStyle = typeof garden === 'string' ? garden : undefined;
     const defaults = defaultSettings(this.stamp());
     this.s = raw ? { ...defaults, ...loaded } : defaults;
+    // only the old single plant kept the plant widget; `sunflowers` and `off` hid it (API.md "Scenes")
+    if (this.legacyGardenStyle !== undefined && loaded.plant === undefined) this.s.plant = this.legacyGardenStyle === 'plant';
     if (!raw) this.save(false);
+  }
+
+  /** The retired garden style (`plant`, `sunflowers` or `off`), or undefined when none was ever stored. */
+  legacyGarden(): string | undefined {
+    return this.legacyGardenStyle;
   }
 
   /** The retired top bar scene (`sunflowers`, `mordor` or `none`), or undefined when none was ever stored. */
@@ -80,11 +91,13 @@ export class SettingsStore {
 
   reset(): Settings {
     this.s = defaultSettings(this.stamp());
+    this.legacyGardenStyle = undefined;
     this.save(false);
     return this.get();
   }
 
   private save(_bump: boolean): void {
-    if (this.file) writeJsonAtomic(this.file, this.legacyScene ? { ...this.s, scene: this.legacyScene } : this.s);
+    if (!this.file) return;
+    writeJsonAtomic(this.file, { ...this.s, ...(this.legacyScene && { scene: this.legacyScene }), ...(this.legacyGardenStyle && { garden: this.legacyGardenStyle }) });
   }
 }
