@@ -901,6 +901,30 @@ Text fields, selects and text areas are fully rounded (radius follows the theme'
 softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
 the same corner scale so shapes look consistent.
 
+### Theme engine and AI themes (owner, 2026-10-13)
+
+- **One theme document format**, `calendar-theme/1` (JSON, schema in `shared/theme.schema.json`, used by server and
+  web): `{ schema, name, author?, description?, mode: "follow"|"light"|"dark", colors: { seed } | { light: {role:
+  hex}, dark: {role: hex} } (roles override the generated scheme), glow, entries, corners, font? (curated list),
+  scene?: { builtin: name } | { svg: { light?, dark? } } }`. The built-in presets are expressed as such documents too,
+  so there is a single apply path (`applyTheme(doc)` → html attributes + CSS custom properties) — the "proper
+  theming engine" (owner). Fine-tuning overrides stay on top of a document as before.
+- **Create with AI**: the theme menu's `theme-ai` shows a generated prompt (`theme-ai-prompt`): what the app is,
+  the full JSON Schema, the rules (contrast for light and dark, SVG limits below), one complete example, and a slot
+  for my wishes; `theme-ai-copy` copies it. No AI is called by the app (owner: use your preferred agent).
+- **Import**: paste (`theme-import-text`) or file (`theme-import-file`, `.json`, ≤ 200 KB). Validation against the
+  schema with readable messages (field + rule, e.g. "glow must be one of off, soft, neon"); valid → live preview
+  (gallery card + the existing live preview) → save. Saved per person on the server: `DATA_DIR/users/<sub>/themes/`,
+  `GET/POST/DELETE /api/themes` (max 20 themes; the server validates and sanitises again). Imported themes appear in
+  the gallery with export (download the document) and delete (undo snackbar).
+- **Scene SVG (owner chose to allow it) — safety**: sanitised on the server and again in the browser with an SVG
+  allow-list (DOMPurify SVG profile): no `script`, `foreignObject`, event-handler attributes, external `href`/`url()`
+  (only `#fragment` refs), no `<image>`; ≤ 100 KB per variant. Rendered only as an image (`<img src="data:image/
+  svg+xml;…">`), never inlined into the page, so even a sanitiser gap cannot run code; therefore a scene SVG carries its
+  own colours (separate light/dark variants; missing dark → light is used). Whatever was removed is reported
+  (`theme-import-sanitized`). Alternative weighed: inlining (could use theme tokens and the cat parts) — rejected for
+  safety; builtin scenes keep their live parts.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |

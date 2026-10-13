@@ -3,6 +3,7 @@ import MordorIntro from './MordorIntro.vue';
 import SceneLife from './SceneLife.vue';
 import SeasonScene from './SeasonScene.vue';
 import SunflowerScene from './SunflowerScene.vue';
+import ThemeImageScene from './ThemeImageScene.vue';
 import type { SceneName } from './types';
 
 /** A themed scene: its own backdrop plus the living layer (scene parts, butterflies and the cat) on top. */
@@ -19,5 +20,6 @@ export const scenes: Record<SceneName, Component | null> = {
   fall: season('fall'),
   winter: season('winter'),
   halloween: season('halloween'),
+  custom: ThemeImageScene,
   none: null,
 };

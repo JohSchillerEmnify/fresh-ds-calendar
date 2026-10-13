@@ -12,6 +12,7 @@ import type {
   ItemsResponse, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
+import type { ThemeDoc } from '@calendar/shared';
 import type { ThemePref } from '@/theme/presets';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
@@ -50,6 +51,9 @@ export class ApiError extends Error {
     return this.message;
   }
 }
+
+/** One of the person's imported themes (API.md "Imported themes"). */
+export interface StoredTheme { id: string; doc: ThemeDoc }
 
 export interface RequestOptions {
   signal?: AbortSignal;
@@ -161,6 +165,18 @@ export class ApiClient {
 
   patchThemePref(p: Partial<ThemePref>, o?: RequestOptions) {
     return this.request<ThemePref>('PATCH', '/api/prefs/theme', p, o);
+  }
+
+  themes(o?: RequestOptions) {
+    return this.request<{ themes: StoredTheme[] }>('GET', '/api/themes', undefined, o);
+  }
+
+  saveTheme(doc: ThemeDoc, o?: RequestOptions) {
+    return this.request<StoredTheme & { sanitized: boolean }>('POST', '/api/themes', doc, o);
+  }
+
+  deleteTheme(id: string, o?: RequestOptions) {
+    return this.request<void>('DELETE', `/api/themes/${enc(id)}`, undefined, o);
   }
 
   setCalendarHidden(id: string, hidden: boolean, o?: RequestOptions) {

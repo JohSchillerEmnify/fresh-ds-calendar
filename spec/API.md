@@ -316,6 +316,22 @@ in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `t
 `/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
 AND-ed. Events are never filtered.
 
+### Imported themes (`/api/themes`)
+
+Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE
+"Theme engine and AI themes"). The body of a theme is a `calendar-theme/1` document (`shared/theme.schema.json`).
+
+- `GET /api/themes` → `200` `{ themes: { id: string; doc: ThemeDoc }[] }`, oldest first.
+- `POST /api/themes` with a `ThemeDoc` → `201` `{ id: string; doc: ThemeDoc; sanitized: boolean }`. The server validates
+  the document and sanitises the scene SVGs again (what is stored is the sanitised document); `sanitized` is true when
+  something unsafe was removed. `400 VALIDATION_ERROR` with the first problem as `message` and every problem in
+  `details[].issue`, in plain words (`glow must be one of off, soft, neon`). Also `400` when the person already has 20
+  themes (`You can keep at most 20 themes. Delete one first.`).
+- `DELETE /api/themes/:id` → `204`; `404` for an unknown id.
+
+A person chooses an imported theme with `PATCH /api/prefs/theme` `{ preset: "theme:<id>" }` (a preset name or `theme:<id>`).
+`POST /api/__test/reset` forgets every person's imported themes.
+
 ### Summary (year view, month picker dots)
 
 `GET /api/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` (to exclusive, max 400 days) → `200`
@@ -440,8 +456,8 @@ The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
 | Code | When |
 |---|---|
 | 200 | reads, updates, item ops, test endpoints |
-| 201 | create event / task list / item, remote insert |
-| 204 | delete event / task list, remote delete |
+| 201 | create event / task list / item / imported theme, remote insert |
+| 204 | delete event / task list / imported theme, remote delete |
 | 400 | validation |
 | 404 | unknown id / route; test routes when `TEST_MODE` is off |
 | 412 | stale `If-Match` |

@@ -1,5 +1,6 @@
 packages:
   - server
+  - shared
   - web
   - e2e
 

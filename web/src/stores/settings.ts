@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { Category, Settings, SettingsPatch } from '@/api/types';
-import { applySeed, applyThemeMode, DEFAULT_SEED } from '@/theme';
+import { applyTheme, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
 import { usePrefsStore } from './prefs';
@@ -109,16 +109,14 @@ export const useSettingsStore = defineStore('settings', () => {
     stopAppearance();
     const root = document.documentElement;
     const theme = useThemeStore();
-    const stopTheme = theme.install();
     if (typeof matchMedia === 'function') {
       bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(theme.resolved.mode ?? s.value.themeMode); syncMeta(); }));
     }
     stopWatch = watch(
-      // a theme preset's seed/mode replace the person's own while it is chosen
-      () => [theme.resolved.mode ?? s.value.themeMode, theme.resolved.seed ?? s.value.seedColor] as const,
-      async ([mode, seed]) => {
-        applyThemeMode(mode);
-        await applySeed(seed);
+      // a theme's seed/mode replace the person's own while it is chosen
+      () => [theme.resolved, s.value.themeMode, s.value.seedColor] as const,
+      async ([resolved, mode, seed]) => {
+        await applyTheme(resolved, { mode, seed });
         syncMeta();
       },
       { immediate: true },
@@ -134,7 +132,7 @@ export const useSettingsStore = defineStore('settings', () => {
       if (on) root.dataset.hand = 'left';
       else delete root.dataset.hand;
     }, { immediate: true });
-    return () => { stop2(); stop3(); stopTheme(); stopAppearance(); };
+    return () => { stop2(); stop3(); stopAppearance(); };
   }
   function stopAppearance() {
     stopWatch?.();
