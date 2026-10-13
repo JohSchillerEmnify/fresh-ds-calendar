@@ -71,7 +71,7 @@ Feature: Choosing and fine-tuning a theme
     And I chose the theme "Automatic"
     When I open the week view for 2026-10-12
     And I open the settings
-    Then the settings show the theme "Automatic · Fall"
+    Then the settings show the theme "Automatic · Halloween"
 
   Scenario: A fixed theme shows its own name in the settings
     Given I chose the theme "Neon"

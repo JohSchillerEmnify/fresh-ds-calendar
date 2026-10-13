@@ -316,7 +316,7 @@ otherwise; bundle budget §5a applies).
   Sections (owner, 2026-10-13: deduplicated, proper sections; each a card with a heading, on desktop with a section
   list on the left; every setting exists exactly once):
   1. *Appearance*: one row "Theme" showing the chosen theme (for Automatic "Automatic · <the seasonal theme in use>", e.g.
-     "Automatic · Fall"; owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
+     "Automatic · Halloween" in October; owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
      (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), the
      Scene choice and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
   2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.

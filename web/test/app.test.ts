@@ -357,7 +357,7 @@ describe('settings', () => {
     const { w } = await mountAt('/settings');
     const theme = useThemeStore();
     theme.pref = { preset: 'Automatic', overrides: {} };
-    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Automatic · Fall'));
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic · (Spring|Summer|Fall|Halloween|Winter)$/)); // depends on today's season
     theme.pref = { preset: 'Neon', overrides: {} };
     await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Neon'));
   });
