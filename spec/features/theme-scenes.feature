@@ -35,6 +35,6 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       | Halloween | "jack-o-lantern", "bat", "moon" and "cat"                  |
       | Easter | "easter egg", "hare", "first flower" and "cat"                  |
       | Summer holidays | "sea", "sun", "beach umbrella" and "cat"               |
-      | Christmas | "xmas tree", "advent wreath", "advent candle" and "cat"      |
+      | Christmas | "xmas tree", "advent candle", "snow" and "cat"      |
       | New Year's Eve | "firework", "skyline", "star" and "cat"                 |
       | New Year | "sunrise", "confetti", "hill" and "cat"                       |

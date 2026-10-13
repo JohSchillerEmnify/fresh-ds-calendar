@@ -30,19 +30,16 @@ describe('per-person theme', () => {
     expect((await t.json('GET', '/api/prefs/theme')).body).toEqual({ preset: 'Halloween', overrides: { scene: 'halloween' } });
   });
 
-  it('stores the holiday presets, their scenes and what Automatic follows (kept across other patches)', async () => {
-    const p = { preset: "New Year's Eve", overrides: { scene: 'newyearseve' } };
-    expect((await t.json('PATCH', '/api/prefs/theme', p)).status).toBe(200);
+  it('stores the holiday presets and their scenes', async () => {
+    expect((await t.json('PATCH', '/api/prefs/theme', { preset: "New Year's Eve", overrides: { scene: 'newyearseve' } })).status).toBe(200);
     for (const scene of ['easter', 'summerholidays', 'christmas', 'newyear']) expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { scene } })).status).toBe(200);
-    const r = await t.json('PATCH', '/api/prefs/theme', { preset: 'Automatic', automatic: 'scene', automaticBase: 'Neon' });
-    expect(r.body).toEqual({ preset: 'Automatic', overrides: { scene: 'newyear' }, automatic: 'scene', automaticBase: 'Neon' });
-    expect((await t.json('PATCH', '/api/prefs/theme', { overrides: {} })).body).toEqual({ preset: 'Automatic', overrides: {}, automatic: 'scene', automaticBase: 'Neon' });
+    expect((await t.json('GET', '/api/prefs/theme')).body).toEqual({ preset: "New Year's Eve", overrides: { scene: 'newyear' } });
   });
 
   it('rejects unknown presets and values', async () => {
     expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Midsummer' })).status).toBe(400);
-    expect((await t.json('PATCH', '/api/prefs/theme', { automatic: 'sometimes' })).status).toBe(400);
-    expect((await t.json('PATCH', '/api/prefs/theme', { automaticBase: 'Nope' })).status).toBe(400);
+    // the retired "Automatic follows" fields are refused
+    expect((await t.json('PATCH', '/api/prefs/theme', { automatic: 'scene' })).status).toBe(400);
     expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { glow: 'blinding' } })).status).toBe(400);
     expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { cat: 'off' } })).status).toBe(400);
   });

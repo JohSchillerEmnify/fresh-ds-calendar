@@ -4,7 +4,7 @@ import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import { api, type StoredTheme } from '@/api/client';
 import {
   DEFAULT_PREF, resolveTheme, sanitizePref, seasonScene,
-  type AutomaticFollows, type CustomThemeKey, type PresetName, type ThemeOverrides, type ThemePref,
+  type CustomThemeKey, type ThemeOverrides, type ThemePref,
 } from '@/theme/presets';
 import { useClockStore } from './clock';
 
@@ -56,13 +56,16 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
-  /** Chooses a preset; its own look replaces earlier fine-tuning (what Automatic follows is kept). */
-  const choose = (preset: ThemePref['preset']) => save({ ...pref.value, preset, overrides: {} });
+  /** Chooses a preset; its own look replaces earlier fine-tuning . */
+  const choose = (preset: ThemePref['preset']) => save({ preset, overrides: {} });
   /** Fine-tunes one attribute or the seed colour on top of the chosen theme. */
   const pick = <K extends keyof ThemeOverrides>(setting: K, value: NonNullable<ThemeOverrides[K]>) =>
-    save({ ...pref.value, overrides: { ...pref.value.overrides, [setting]: value } });
-  /** Sets what Automatic changes with the calendar and, for "Scene only", the theme the colours come from. */
-  const setAutomatic = (patch: { automatic?: AutomaticFollows; automaticBase?: PresetName | CustomThemeKey }) => save({ ...pref.value, ...patch });
+    save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, [setting]: value } });
+  /** Drops one fine-tuning override, so the chosen theme's own value applies again. */
+  const unpick = (setting: keyof ThemeOverrides) => {
+    const { [setting]: _gone, ...rest } = pref.value.overrides;
+    return save({ preset: pref.value.preset, overrides: rest });
+  };
 
   /** Saves a validated document (and its own picture) as one of the person's themes and chooses it. */
   async function importTheme(doc: ThemeDoc, picture?: ThemePicture): Promise<void> {
@@ -79,5 +82,5 @@ export const useThemeStore = defineStore('theme', () => {
     unhide(id);
   }
 
-  return { pref, resolved, themes, todaysSeasonScene, saveError, load, choose, pick, setAutomatic, importTheme, hide, unhide, removeCustom };
+  return { pref, resolved, themes, todaysSeasonScene, saveError, load, choose, pick, unpick, importTheme, hide, unhide, removeCustom };
 });

@@ -110,8 +110,6 @@ const importedTheme = v.pipe(v.string(), v.regex(/^theme:[A-Za-z0-9_-]{1,32}$/))
 export const themePatchSchema = so({
   preset: v.optional(v.union([presetName, importedTheme], 'Invalid theme')),
   overrides: v.optional(themeOverrides),
-  automatic: v.optional(v.picklist(['both', 'scene', 'colors'], 'Invalid automatic setting')),
-  automaticBase: v.optional(v.union([presetName, importedTheme], 'Invalid base theme')),
 });
 const catName = v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(40, 'Name must be at most 40 characters'));
 const icon = v.nullable(v.pipe(v.string(), v.maxLength(8, 'Icon must be a single emoji')));

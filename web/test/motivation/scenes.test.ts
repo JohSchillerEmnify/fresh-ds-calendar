@@ -98,7 +98,7 @@ describe('themed top bar scenes', () => {
   it.each<[SceneName, string[]]>([
     ['easter', ['easter-egg', 'hare', 'first-flower', 'cat']],
     ['summerholidays', ['sea', 'sun', 'beach-umbrella', 'cat']],
-    ['christmas', ['xmas-tree', 'advent-wreath', 'advent-candle', 'cat']],
+    ['christmas', ['xmas-tree', 'advent-candle', 'snow', 'cat']],
     ['newyearseve', ['firework', 'skyline', 'star', 'cat']],
     ['newyear', ['sunrise', 'confetti', 'hill', 'cat']],
   ])('%s has its own parts and one cat; only the cat\'s winter-holiday siblings have no butterfly', (scene, want) => {
@@ -113,14 +113,17 @@ describe('themed top bar scenes', () => {
   it.each([
     ['2026-11-29', 1, 'off'], ['2026-12-06', 2, 'off'], ['2026-12-13', 3, 'off'], ['2026-12-20', 4, 'off'], ['2026-12-23', 4, 'off'],
     ['2026-12-24', 4, 'on'], ['2026-12-30', 4, 'on'], ['2026-04-12', 4, 'on'],
-  ])('Christmas on %s: %i lit candles, tree lights %s, the tree on the left', (date, lit, lights) => {
+  ])('Christmas on %s: %i lit candles, tree lights %s, the tree after the candles', (date, lit, lights) => {
     setActivePinia(createPinia());
     useClockStore().nowTick = Date.parse(`${date}T12:00:00+01:00`);
     const w = mount(TopBarScene, { props: { scene: 'christmas' } });
     expect(w.findAll('[data-testid="advent-candle"]')).toHaveLength(4);
     expect(w.findAll('[data-testid="advent-candle"][data-lit="true"]')).toHaveLength(lit);
     expect(w.get('[data-testid="xmas-tree"]').attributes('data-lights')).toBe(lights);
-    expect(w.get('[data-testid="xmas-tree"]').classes()).toContain('tree');
+    // timeline order: the candles come first in the DOM, the tree after them
+    const all = [...w.element.querySelectorAll('[data-testid="advent-candle"], [data-testid="xmas-tree"]')].map((e) => e.getAttribute('data-testid'));
+    expect(all).toEqual(['advent-candle', 'advent-candle', 'advent-candle', 'advent-candle', 'xmas-tree']);
+    expect(w.findAll('[data-testid="advent-candle"]').map((c) => c.attributes('data-lit'))).toEqual([0, 1, 2, 3].map((i) => String(i < lit)));
     w.unmount();
   });
 

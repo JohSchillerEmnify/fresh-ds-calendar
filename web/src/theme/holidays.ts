@@ -1,6 +1,6 @@
 /**
  * Calendar logic of the holiday themes (ARCHITECTURE "Holiday themes and Automatic follows"): Easter, the Advent
- * Sundays, the Advent wreath and the tree lights, and which holiday (if any) a date falls in. Pure functions on
+ * Sundays, the Advent candles and the tree lights, and which holiday (if any) a date falls in. Pure functions on
  * `YYYY-MM-DD` strings, no DOM and no clock.
  */
 
@@ -43,7 +43,7 @@ export function firstAdvent(year: number): string {
   return addDays(christmasEve, -weekday - 21);
 }
 
-/** The Advent wreath and the tree on a date: lit candles (1..4) and whether the tree lights are on. */
+/** The Advent candles and the tree on a date: lit candles (1..4) and whether the tree lights are on. */
 export interface ChristmasState { candles: 1 | 2 | 3 | 4; lights: boolean }
 
 /**

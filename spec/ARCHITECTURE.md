@@ -821,10 +821,12 @@ It never reloads by itself and never interrupts an open dialog.
   Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
 - **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
-  The theme menu offers one "Scene" selector, in this order: Season, Spring, Easter, Summer, Summer holidays, Fall,
+  The theme menu's Scene card has a switch "Follow the calendar (seasons & holidays)" (`theme-scene-follows`) and the
+  scene options, in this order: Spring, Easter, Summer, Summer holidays, Fall,
   Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower
-  field (`sunflowers`), Mordor, None (owner 2026-10-13: every scene can be picked on its own). "Season" is the
-  automatic choice and is stored as the sentinel `season`; the shell resolves it by date to today's season scene
+  field (`sunflowers`), Mordor, None (owner 2026-10-13: every scene can be picked on its own). The switch
+  is the automatic choice (it replaces the former "Season" option) and is stored as the sentinel `season` in
+  `overrides.scene`; it is on when that is the stored value or, with no scene override, for the preset Automatic; the shell resolves it by date to today's season scene
   (Halloween in October). An explicit pick (e.g. Halloween in spring) is stored as that scene and shows only its own
   option as pressed. Alternative weighed: keeping "Season" as today's concrete scene and also marking it pressed for
   any season scene (rejected: an explicit pick and the automatic one could not be told apart). Default and Neon start with
@@ -883,21 +885,25 @@ It never reloads by itself and never interrupts an open dialog.
   `newyearseve`, `newyear`) in the registry of `scenes.ts`, built like Halloween: a backdrop in `SeasonScene` (gradient
   and drifting particles, also used by the sample cards) and a living layer in `SceneLife` with `data-part`s. Easter:
   spring meadow with first flowers, painted eggs and a hare. Summer holidays: sun, sea with waves, sand and a beach
-  umbrella. Christmas: a tree on the LEFT (`xmas-tree`, `data-lights` on/off) and an Advent wreath with four
-  `advent-candle`s (`data-lit`); the date comes from the app clock. New Year's Eve: night sky, stars, skyline and
+  umbrella. Christmas: a timeline across the full bar (owner feedback): four big `advent-candle`s (`data-lit`) at about
+  7 / 25 / 50 / 70 % and the tree (`xmas-tree`, `data-lights` on/off) at about 87 % as its end point; unlit candles stay
+  visible but dark, lit ones get a flame with a soft glow; low opacity keeps the bar's title and buttons legible; the
+  date comes from the app clock. New Year's Eve: night sky, stars, skyline and
   fireworks. New Year: sunrise over a hill with falling confetti. Preset order in the gallery follows the Scene card.
   Motion: CSS transforms and opacity only; fireworks, candle flicker, tree twinkle, waves and confetti run only at Full
   (`html[data-motion='full']`), at Reduced and Off everything stands still; paused while the page is hidden is inherited
   from the animation level handling like the other scenes.
-- **Automatic follows** (`theme.pref.automatic`, `both` | `scene` | `colors`, default `both`; plus `automaticBase` for
-  `scene`). Shown in the Presets section as the segmented button `theme-automatic-follows` while Automatic is the
-  chosen preset. `both`: as before. `scene`: colours, glow, entries and corners come from the base theme the person
-  picks in the select `theme-automatic-base` (Default, Neon, Mordor and their own themes; default Default), only the
-  scene follows the calendar. `colors`: the calendar's preset colours apply and the scene is the person's own pick
-  from the Scene card (default None). Fine-tuning overrides apply on top in all modes. Both fields are stored in the
-  theme pref (`GET/PATCH /api/prefs/theme`), kept when another theme is chosen, and validated by the server.
-  Alternatives weighed: separate presets "Automatic scene"/"Automatic colours" (rejected: the owner asked for a switch
-  under the gallery) and storing the base as an override (rejected: choosing a theme clears overrides).
+- **The scene follows the calendar** (owner decision, replacing an earlier three-way "Automatic follows" control that
+  never reached master): one switch at the top of the Scene card, `theme-scene-follows`, independent of the chosen
+  preset or own theme. On = `overrides.scene = 'season'`: only the top bar picture follows the calendar mapping,
+  colours and every other setting stay from the chosen theme plus Fine-tuning. Off = the person's picked scene, or the
+  theme's own scene when none was picked. Defaults: on for the preset Automatic (colours AND scene follow the
+  calendar), off for every other theme; choosing a theme resets overrides and so the switch to that default. Picking a
+  scene option turns it off (stores that scene). Turning it off stores the theme's own scene by removing the override
+  (for Automatic, which has no scene of its own, today's calendar scene is stored so the picture stays). The
+  settings row stays "Automatic · <calendar preset>". Alternatives weighed: a 3-way Automatic control with a base
+  theme (rejected by the owner: it hid the idea in one preset) and an extra pref field (rejected: `season` already is
+  the stored form).
 
 ### Season scenes and the support cat (owner, 2026-10-13)
 
