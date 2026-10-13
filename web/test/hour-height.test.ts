@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   HOUR_HEIGHT_KEY, MAX_HOUR_PX, MIN_HOUR_PX, clampHourHeight, hourHeight, pinchHourHeight, readStoredHourHeight, setHourHeight,
-  wheelZoomFactor,
+  WHEEL_SETTLE_MS, bindGridZoom, gridYUnder, previewShift, wheelZoomFactor,
 } from '@/composables/useHourHeight';
 
 afterEach(() => { vi.restoreAllMocks(); localStorage.clear(); });
@@ -50,5 +50,63 @@ describe('remembered hour height', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
     expect(setHourHeight(100)).toBe(100);
     expect(hourHeight.value).toBe(100);
+  });
+});
+
+describe('zoom preview anchoring', () => {
+  it('the shift keeps grid y at the same screen offset, and gridYUnder inverts it', () => {
+    const t = previewShift(100, 50, 300, 2);
+    expect(t).toBe(100 + 50 - 600);
+    expect(gridYUnder(100, 50, 2, t)).toBe(300);
+  });
+});
+
+describe('bindGridZoom: preview during the gesture, commit once when it settles', () => {
+  const touch = (x: number, y: number) => ({ clientX: x, clientY: y });
+  const fire = (el: HTMLElement, type: string, touches: unknown[]) => {
+    const e = new Event(type, { cancelable: true });
+    Object.assign(e, { touches });
+    el.dispatchEvent(e);
+  };
+
+  it('a pinch previews on every touchmove and commits once on touchend', () => {
+    const el = document.createElement('div');
+    const h = { get: () => 48, preview: vi.fn(), commit: vi.fn() };
+    bindGridZoom(el, h);
+    fire(el, 'touchstart', [touch(0, 0), touch(0, 100)]);
+    fire(el, 'touchmove', [touch(0, 0), touch(0, 150)]);
+    fire(el, 'touchmove', [touch(0, 0), touch(0, 200)]);
+    expect(h.preview).toHaveBeenCalledTimes(2);
+    expect(h.preview).toHaveBeenLastCalledWith(96, 100);
+    expect(h.commit).not.toHaveBeenCalled();
+    fire(el, 'touchend', [touch(0, 0)]);
+    expect(h.commit).toHaveBeenCalledOnce();
+    expect(h.commit).toHaveBeenCalledWith(96);
+  });
+
+  it('a Ctrl+wheel burst accumulates in the preview and commits after the idle debounce', () => {
+    vi.useFakeTimers();
+    try {
+      const el = document.createElement('div');
+      const h = { get: () => 48, preview: vi.fn(), commit: vi.fn() };
+      bindGridZoom(el, h);
+      const wheel = () => el.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, clientY: 10, cancelable: true }));
+      wheel();
+      vi.advanceTimersByTime(WHEEL_SETTLE_MS - 1);
+      wheel();
+      expect(h.preview).toHaveBeenCalledTimes(2);
+      expect(h.preview.mock.calls[1][0]).toBeCloseTo(48 * wheelZoomFactor(-100) ** 2, 1);
+      expect(h.commit).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(WHEEL_SETTLE_MS);
+      expect(h.commit).toHaveBeenCalledOnce();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('a wheel without Ctrl is ignored', () => {
+    const el = document.createElement('div');
+    const h = { get: () => 48, preview: vi.fn(), commit: vi.fn() };
+    bindGridZoom(el, h);
+    el.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, cancelable: true }));
+    expect(h.preview).not.toHaveBeenCalled();
   });
 });
