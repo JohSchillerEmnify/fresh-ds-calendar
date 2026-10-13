@@ -9,6 +9,7 @@
  */
 import calendarEn from './en/calendar.ts';
 import tasksEn from './en/tasks.ts';
+import themeEn from './en/theme.ts';
 
 export default {
   calendar: calendarEn,
@@ -121,6 +122,10 @@ export default {
       version: 'Version {version}',
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },
+    leftHanded: { label: 'Left-handed mode', hint: 'Mirrors the phone layout so the main controls sit under the left thumb' },
+    plant: 'Plant',
+    sunflowers: { label: 'Sunflowers', hint: 'Applies to the Sunflower field scene', grow: 'Grow with points', full: 'Full field' },
+    ownThemes: { label: 'Own themes (AI and import)', hint: 'Experimental: a prompt for an AI and the import of its theme file in the theme menu' },
   },
   themePreview: {
     label: 'Live preview',
@@ -133,4 +138,5 @@ export default {
       groceries: 'Groceries', milk: 'Milk', bread: 'Bread', eggs: 'Eggs',
     },
   },
+  theme: themeEn,
 };

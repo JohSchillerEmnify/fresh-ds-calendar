@@ -14,10 +14,7 @@ export function cleanAiText(raw: string): string {
   return from >= 0 && to > from ? t.slice(from, to + 1) : t;
 }
 
-/** Hint shown for text that is not JSON. */
-export const NOT_JSON_HINT = 'This is not valid JSON. Ask the AI to answer with only the JSON in one code block.';
-
-/** A prompt that asks the AI to repair its answer: the problems found and the text that was imported. */
+/** A prompt that asks the AI (English on purpose: the AI reads it, the person only copies it) to repair its answer: the problems found and the text that was imported. */
 export function repairPrompt(text: string, errors: string[]): string {
   return `The theme JSON you gave me could not be imported. Fix it and answer with only the corrected JSON in one code block, no SVG, no explanation.
 

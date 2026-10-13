@@ -39,19 +39,18 @@ const MIGRATED = [
   'src/features/motivation/SunflowerField.vue',
   'src/features/motivation/SupportCat.vue',
   'src/features/motivation/DragCat.vue',
+  'src/views/ThemeView.vue',
+  'src/components/settings/ThemeCard.vue',
+  'src/components/settings/ThemeImport.vue',
+  'src/components/settings/ThemeSample.vue',
+  'src/components/settings/SaveThemeDialog.vue',
+  'src/components/settings/CategoryDialog.vue',
 ];
 /**
  * Strings that other feature branches added before the i18n slice landed. They move into the catalogue with their area
  * (the per-area migration, ARCHITECTURE "i18n"); delete each entry then. Nothing else may be hard-coded.
  */
-const NOT_YET_MIGRATED: Record<string, string[]> = {
-  'src/views/SettingsView.vue': [
-    'Left-handed mode', 'Mirrors the phone layout so the main controls sit under the left thumb', 'label="Left-handed mode"',
-    'Plant', 'label="Plant"', 'Sunflowers', 'Applies to the Sunflower field scene', 'label="Sunflowers"',
-    'Own themes (AI and import)', 'Experimental: a prompt for an AI and the import of its theme file in the theme menu',
-    'label="Own themes (AI and import)"',
-  ],
-};
+const NOT_YET_MIGRATED: Record<string, string[]> = {};
 describe('migrated components have no hard-coded UI text', () => {
   it.each(MIGRATED)('%s', (file) => {
     const { descriptor } = parse(readFileSync(resolve(process.cwd(), file), 'utf8'));

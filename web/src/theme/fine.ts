@@ -91,8 +91,3 @@ export function sanitizeFine(raw: unknown): ThemeFine {
 
 /** The names of all fine-tuning fields (what `sanitizePref` lets through for overrides). */
 export const FINE_KEYS = ['glowStrength', 'radius', 'tint', 'density', 'checkbox', 'checkFill', 'check', 'icons'] as const satisfies readonly (keyof ThemeFine)[];
-
-/** Text shown next to a slider: `4 px`, `30 %`, glow strength without a unit. */
-export function sliderText(kind: 'glowStrength' | 'radius' | 'tint', value: number): string {
-  return kind === 'radius' ? `${value} px` : kind === 'tint' ? `${value} %` : String(value);
-}

@@ -6,22 +6,23 @@ import { ApiError } from '@/api/client';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
+import { t } from '@/i18n';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
-import { DEFAULT_THEME_NAME, lookToDoc, uniqueName } from '@/theme/saveLook';
+import { lookToDoc, uniqueName } from '@/theme/saveLook';
 
 const emit = defineEmits<{ close: [] }>();
 const theme = useThemeStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 
-const name = ref(uniqueName(DEFAULT_THEME_NAME, theme.themes.map((t) => t.doc.name)));
+const name = ref(uniqueName(t('theme.saveOwn.defaultName'), theme.themes.map((t) => t.doc.name)));
 const error = ref('');
 const saving = ref(false);
 
 async function save() {
-  if (!name.value.trim()) { error.value = 'Name is required'; return; }
+  if (!name.value.trim()) { error.value = t('theme.saveOwn.nameRequired'); return; }
   const named = uniqueName(name.value.trim(), theme.themes.map((t) => t.doc.name));
   const { doc, picture } = lookToDoc(theme.resolved, { mode: settings.settings.themeMode, seed: settings.settings.seedColor }, named);
   const valid = validateTheme(doc);
@@ -29,10 +30,10 @@ async function save() {
   saving.value = true;
   try {
     await theme.importTheme(doc, picture);
-    ui.notify(`Saved theme: ${doc.name}`);
+    ui.notify(t('theme.saveOwn.saved', { name: doc.name }));
     emit('close');
   } catch (e) {
-    error.value = e instanceof ApiError ? e.userMessage : 'Could not save the theme';
+    error.value = e instanceof ApiError ? e.userMessage : t('theme.saveOwn.failed');
   } finally {
     saving.value = false;
   }
@@ -40,15 +41,15 @@ async function save() {
 </script>
 
 <template>
-  <AdaptiveSheet :open="true" label="Save as my theme" testid="theme-save-dialog" @close="emit('close')">
+  <AdaptiveSheet :open="true" :label="t('theme.saveOwn.title')" testid="theme-save-dialog" @close="emit('close')">
     <form class="f" novalidate @submit.prevent="save">
-      <h2 class="t">Save as my theme</h2>
-      <p class="hint">Keeps the theme, your fine-tuning and the scene as a theme of your own.</p>
-      <TextField v-model="name" label="Name" data-testid="theme-save-name" maxlength="40" autocomplete="off" :error="error" error-testid="theme-save-error" />
+      <h2 class="t">{{ t('theme.saveOwn.title') }}</h2>
+      <p class="hint">{{ t('theme.saveOwn.hint') }}</p>
+      <TextField v-model="name" :label="t('theme.saveOwn.name')" data-testid="theme-save-name" maxlength="40" autocomplete="off" :error="error" error-testid="theme-save-error" />
       <div class="actions">
         <span class="sp" />
-        <Button variant="text" data-testid="theme-save-cancel" @click="emit('close')">Cancel</Button>
-        <Button type="submit" :disabled="saving" data-testid="theme-save-confirm">Save</Button>
+        <Button variant="text" data-testid="theme-save-cancel" @click="emit('close')">{{ t('theme.saveOwn.cancel') }}</Button>
+        <Button type="submit" :disabled="saving" data-testid="theme-save-confirm">{{ t('theme.saveOwn.save') }}</Button>
       </div>
     </form>
   </AdaptiveSheet>
