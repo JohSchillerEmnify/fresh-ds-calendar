@@ -1477,8 +1477,10 @@ browser does not change.
   0 to 24; 08 to 18 for an empty week). Colours, the entry style (solid, tinted, outline) and the corner shape follow the
   snapshot's theme, dark or light; without a snapshot the widget follows the system and the default theme.
   A tap on a day column (header row to the bottom) opens the app at `/day/<date>` (an intent extra the `MainActivity`
-  turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted). Which data is shown: the newer
-  of snapshot and last fetch, if it is for the current week. The snapshot as data has no timed task lists, so it is only
+  turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted). Which data is shown: the last fetch
+  whenever it is for the current week, else the snapshot (owner bug 2026-10-14: the snapshot is stamped when written but its
+  week may be cached up to 10 min, so "newest stamp" let stale snapshots revert the widget; a snapshot triggers a fetch at
+  most every 30 s). The snapshot as data has no timed task lists, so it is only
   the fallback: events in the grid, today's task lists in the band.
 - **The week is one bitmap, because RemoteViews cannot do a time grid.** A widget's views are the RemoteViews subset
   (`FrameLayout`, `LinearLayout`, `TextView`, `ImageView`, ...), placed by a layout pass: there is no absolute position, no
