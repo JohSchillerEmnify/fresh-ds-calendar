@@ -17,7 +17,6 @@ export default {
     clock: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
-    tasks: 'Aufgaben, Digga',
   },
   nav: {
     views: 'Ansichten, yo',
