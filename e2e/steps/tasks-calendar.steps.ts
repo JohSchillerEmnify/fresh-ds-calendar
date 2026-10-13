@@ -27,7 +27,7 @@ When(
       await this.calendarShown();
     }
     await this.page.getByTestId('create-button').click();
-    await this.page.getByTestId('create-menu-tasklist').click();
+    await this.page.getByTestId('new-kind-tasklist').click();
     const dialog = this.page.getByTestId('tasklist-dialog');
     await expect(dialog).toBeVisible();
     await dialog.getByTestId('tasklist-title').fill(title);

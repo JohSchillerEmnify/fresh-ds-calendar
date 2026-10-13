@@ -6,6 +6,10 @@ import { attr, tid, type World } from './support/world.js';
 import { expectJoined, pathname } from './support/ui.js';
 
 When('I open the app', async function (this: World) {
+  // the app checks in on first open in the background (plant, streak): a later server read waits for it
+  this.firstCheckIn = this.page
+    .waitForResponse((r) => new URL(r.url()).pathname === '/api/streak/checkin', { timeout: 15_000 })
+    .catch(() => undefined);
   await this.page.goto('/');
 });
 
