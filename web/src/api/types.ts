@@ -143,6 +143,8 @@ export interface Prefs {
   versionInCorner: boolean;
   /** Left-handed mode: mirror the phone layout (`html[data-hand="left"]`). */
   leftHanded: boolean;
+  /** The "From Sat 10 Oct" label on carried-over task lists. */
+  showCarriedFrom: boolean;
   /** Tasks view grouping and sorting. */
   tasksGroupBy: TasksGroupBy;
   tasksSortBy: TasksSortBy;

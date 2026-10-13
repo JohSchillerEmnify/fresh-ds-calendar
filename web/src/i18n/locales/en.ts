@@ -90,6 +90,7 @@ export default {
       tasksCalendar: { label: 'Show tasks calendar in Google', hint: 'Task lists stay in the app either way' },
     },
     tasklists: {
+      carriedFrom: { label: 'Show where carried-over lists come from', hint: 'The “From Sat 10 Oct” label on open lists moved to today. Off: they simply show up today.' },
       categories: 'Categories',
       addCategory: 'Add category',
       editCategory: 'Edit {name}',

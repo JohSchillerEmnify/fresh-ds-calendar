@@ -21,6 +21,7 @@ import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { ProgressRing } from '@/motion';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
@@ -50,7 +51,9 @@ const tl = computed(() => {
 const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
 const icon = computed(() => settings.categoryById(tl.value.categoryId)?.icon ?? null);
 const calm = computed(() => settings.settings.calmMode);
-const carried = computed(() => !!props.segment.carriedFrom);
+const prefs = usePrefsStore();
+/** Carried over to today and labelled so (Settings → Task lists can hide where it came from). */
+const carried = computed(() => !!props.segment.carriedFrom && prefs.showCarriedFrom);
 const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));

@@ -141,6 +141,8 @@ export interface Prefs {
   versionInCorner: boolean;
   /** Left-handed mode: the phone layout is mirrored (ARCHITECTURE "Left-handed mode"; off by default). */
   leftHanded: boolean;
+  /** The "From Sat 10 Oct" label on task lists carried over to today (on by default; off for no reminder of the past). */
+  showCarriedFrom: boolean;
   /** Tasks view grouping and sorting, remembered per person. */
   tasksGroupBy: TasksGroupBy;
   tasksSortBy: TasksSortBy;
@@ -187,6 +189,7 @@ export class PrefsStore {
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
       versionInCorner: p?.versionInCorner === true,
       leftHanded: p?.leftHanded === true,
+      showCarriedFrom: p?.showCarriedFrom !== false,
       tasksGroupBy: TASKS_GROUP_BY_VALUES.includes(p?.tasksGroupBy as TasksGroupBy) ? (p!.tasksGroupBy as TasksGroupBy) : 'time',
       tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
       labsOwnThemes: p?.labsOwnThemes === true,
@@ -278,8 +281,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime };
   }
 
   /**

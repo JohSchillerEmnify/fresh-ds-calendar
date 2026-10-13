@@ -170,3 +170,14 @@ Then('the overdue label of {string} does not use the error color', async functio
 Then('the open tasks tray is collapsed', async function (this: World) {
   await expect(this.page.getByTestId('task-tray')).toHaveAttribute('data-expanded', 'false');
 });
+
+When('I hide where carried-over task lists come from in the settings', async function (this: World) {
+  await this.page.goto('/');
+  await this.page.getByTestId('settings-button').click();
+  const control = this.page.getByTestId('settings-carried-from');
+  await expect(control).toHaveAttribute('aria-checked', 'true');
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await control.click();
+  expect((await saved).status(), 'prefs saved').toBe(200);
+  await this.page.getByTestId('settings-back').click();
+});

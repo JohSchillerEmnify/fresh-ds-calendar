@@ -65,6 +65,7 @@ export default {
       tasksCalendar: { label: 'Aufgabnkalender in Google zeing', hint: 'Die Lisdn bleibn auf jeden Fall in der App' },
     },
     tasklists: {
+      carriedFrom: { label: 'Zeigen, wo verschobne Listen herkumma', hint: 'Des „Vom Sa., 10. Okt.“ an offne Listen, die auf heut grutscht sin. Aus: Die stehn halt bei heut.' },
       categories: 'Kadegorien',
       addCategory: 'Kadegorie dazu',
     },

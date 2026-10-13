@@ -65,7 +65,7 @@ const complete = computed(() => !!tl.value && tl.value.totalCount > 0 && tl.valu
 /** Collapsed to the head, remembered per list and device; the expanded list's sheet (`closable`) never collapses. */
 const collapsed = computed(() => !props.closable && isCollapsed(props.id));
 watch(collapsed, (c) => { if (c) { adding.value = false; editingItem.value = null; } });
-const carried = computed(() => !!tl.value && lists.isCarried(tl.value));
+const carried = computed(() => !!tl.value && lists.isCarried(tl.value) && prefs.showCarriedFrom);
 const category = computed(() => settings.categoryById(tl.value?.categoryId));
 
 // --- load: from the host's copy, else from the API (deep link, tray list outside the loaded range) -------------

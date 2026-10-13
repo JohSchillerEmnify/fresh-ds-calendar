@@ -19,6 +19,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const supportCat = ref<SupportCatSetting>('sometimes');
   const versionInCorner = ref(false);
   const leftHanded = ref(false);
+  /** The "From …" label on task lists carried over to today (on by default). */
+  const showCarriedFrom = ref(true);
   const tasksGroupBy = ref<TasksGroupBy>('time');
   const tasksSortBy = ref<TasksSortBy>('date');
   const labsOwnThemes = ref(false);
@@ -40,6 +42,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     supportCat.value = p.supportCat ?? supportCat.value;
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
     leftHanded.value = p.leftHanded ?? leftHanded.value;
+    showCarriedFrom.value = p.showCarriedFrom ?? showCarriedFrom.value;
     tasksGroupBy.value = p.tasksGroupBy ?? tasksGroupBy.value;
     tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
     labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
@@ -61,7 +64,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value,
     };
     apply(p);
     try {
@@ -72,5 +75,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, load, set };
 });
