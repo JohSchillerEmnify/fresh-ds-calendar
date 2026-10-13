@@ -229,6 +229,14 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
 - **Touch targets** ≥ 44 × 44 px for all buttons, checkboxes (hit area), chips that open things.
 - **Swipe**: horizontal swipe on `calendar-swipe-area` (touch events; ≥ 60 px horizontal, |dx| > 1.5·|dy|, < 600 ms)
   changes period: left = next, right = previous. Vertical movement scrolls normally (`touch-action: pan-y`).
+  Owner, 2026-10-13: the swipe is a live carousel. Once the gesture is horizontal, the current period follows the
+  finger and the neighbouring period (next when pulling left, previous when pulling right) slides in beside it,
+  already rendered. On release past a third of the width or with a quick flick (> 0.5 px/ms) it settles onto the
+  neighbour with a short spring and the route changes; otherwise both spring back. The neighbour is mounted only
+  when a horizontal swipe starts (no permanent pre-rendering), as a light copy of the same view component (no
+  entry animations, no drag/resize handlers, `aria-hidden`), and it uses already cached items, fetching its range in
+  the background if needed. Only `transform` is animated; Reduced/Off motion: no follow, the period changes at once
+  on a completed swipe as before. Desktop (mouse) is unchanged.
 - **Month view on phone**: cells show the day number and compact chips (colored, title only, truncated) as many as fit,
   the rest fading out at the bottom. Tapping anywhere in a cell opens `/day/<date>` (the day agenda). Desktop: day number → day view, chip → opens
   the event / expands the task list.

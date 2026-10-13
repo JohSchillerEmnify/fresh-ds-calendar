@@ -291,6 +291,10 @@ the navigation, view switcher and create buttons are at least {int} by {int} pix
 I swipe left on the calendar
 I swipe right on the calendar
 I swipe up on the calendar
+I start swiping left on the calendar by a quarter of the width
+I start swiping left on the calendar by half the width
+the week of {date} is shown beside the current one
+I let go
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
 ```
@@ -299,6 +303,9 @@ the bottom bar reserves the safe-area inset at the bottom
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
+- "start swiping … by a quarter/half of the width": touchstart + slow touchmoves (≥ 400 ms, so no flick) to that
+  fraction of `calendar-swipe-area`'s width, finger kept down; "I let go" sends touchend. "shown beside": a
+  `swipe-neighbour` element with `data-period-start` = that date is visible and sits right of the current view.
 - Safe area: the computed style of `bottom-bar` uses `env(safe-area-inset-bottom)`; the step checks the inline/
   stylesheet rule via `data-safe-area="true"` on `bottom-bar` (set by the component that applies the padding).
 
