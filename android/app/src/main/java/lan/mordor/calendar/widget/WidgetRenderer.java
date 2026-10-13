@@ -5,31 +5,24 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
-import android.text.SpannableStringBuilder;
-import android.text.Spanned;
-import android.text.style.BackgroundColorSpan;
-import android.text.style.ForegroundColorSpan;
-import android.text.style.StyleSpan;
-import android.graphics.Typeface;
+import android.util.DisplayMetrics;
+import android.view.View;
 import android.widget.RemoteViews;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import lan.mordor.calendar.MainActivity;
 import lan.mordor.calendar.R;
 import org.json.JSONObject;
 
-/** Builds the week widget's {@link RemoteViews} from the stored snapshot and the last fetched week. */
+/** Builds the week widget's {@link RemoteViews}: one bitmap of the week (see {@link WeekCanvas}) plus transparent tap targets. */
 final class WidgetRenderer {
-    private static final int[] ROWS = {R.id.row0, R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5, R.id.row6, R.id.row7, R.id.row8, R.id.row9};
-    /** Below this column width (dp) the event rows show the title only, without the start time. */
-    private static final int TIME_MIN_COLUMN_DP = 75;
-    private static final int ROW_DP = 12;
+    private static final int[] DAYS = {R.id.d0, R.id.d1, R.id.d2, R.id.d3, R.id.d4, R.id.d5, R.id.d6};
 
     private WidgetRenderer() {}
 
@@ -55,48 +48,36 @@ final class WidgetRenderer {
         rv.setOnClickPendingIntent(R.id.refresh, WeekWidgetProvider.refreshIntent(context));
 
         if (nothingYet) {
-            rv.setViewVisibility(R.id.content, android.view.View.GONE);
-            rv.setViewVisibility(R.id.empty, android.view.View.VISIBLE);
+            rv.setViewVisibility(R.id.content, View.GONE);
+            rv.setViewVisibility(R.id.canvas, View.GONE);
+            rv.setViewVisibility(R.id.empty, View.VISIBLE);
             rv.setTextViewText(R.id.empty, str.openOnce());
             rv.setTextColor(R.id.empty, theme.onSurface);
             rv.setOnClickPendingIntent(R.id.root, openApp(context, "/week/" + monday));
             return rv;
         }
 
-        // header opens the week
-        rv.setTextViewText(R.id.title, str.weekRange(monday));
-        rv.setTextColor(R.id.title, theme.onSurface);
-        rv.setOnClickPendingIntent(R.id.title, openApp(context, "/week/" + monday));
+        // tap targets: the header opens the week, each day column its day
+        rv.setOnClickPendingIntent(R.id.hdr, openApp(context, "/week/" + monday));
+        for (int i = 0; i < 7; i++) rv.setOnClickPendingIntent(DAYS[i], openApp(context, "/day/" + monday.plusDays(i)));
 
-        int widthDp = widthDp(context, options), heightDp = heightDp(context, options);
-        boolean hasTasks = data != null && !data.tasks.isEmpty();
-        int columnDp = Math.max(1, (widthDp - 12) / 7);
-        int rowsFit = Math.max(1, Math.min(ROWS.length, (heightDp - 12 - 22 - 14 - 14 - (hasTasks ? 14 : 0)) / ROW_DP));
-
-        rv.removeAllViews(R.id.columns);
-        for (int i = 0; i < 7; i++) {
-            WeekData.Day day = data != null ? data.days.get(i) : null;
-            LocalDate date = monday.plusDays(i);
-            rv.addView(R.id.columns, column(context, theme, str, date, day, date.equals(today), rowsFit, columnDp >= TIME_MIN_COLUMN_DP));
-        }
-
-        if (hasTasks) {
-            rv.setViewVisibility(R.id.tasks, android.view.View.VISIBLE);
-            rv.setTextViewText(R.id.tasks, tasksText(str, theme, data.tasks));
-            rv.setTextColor(R.id.tasks, theme.onSurfaceVariant);
-        } else {
-            rv.setViewVisibility(R.id.tasks, android.view.View.GONE);
-        }
-
-        rv.setTextColor(R.id.footer, theme.onSurfaceVariant);
-        if (WidgetStore.AUTH_SIGN_IN.equals(store.auth())) {
-            rv.setTextViewText(R.id.footer, str.signInAgain());
-            rv.setTextColor(R.id.footer, theme.primary);
-            rv.setOnClickPendingIntent(R.id.footer, openApp(context, "/week/" + monday));
+        String footer;
+        boolean signIn = WidgetStore.AUTH_SIGN_IN.equals(store.auth());
+        if (signIn) {
+            footer = str.signInAgain();
         } else {
             String time = data == null ? "" : DateTimeFormatter.ofPattern("HH:mm").format(LocalTime.ofInstant(Instant.ofEpochMilli(data.timeMillis), ZoneId.systemDefault()));
-            rv.setTextViewText(R.id.footer, data == null ? "" : str.updated() + ": " + time);
+            footer = data == null ? "" : str.updated() + ": " + time;
         }
+
+        // the bitmap is drawn at the widget's real size, never above one screen of pixels (the RemoteViews memory limit is 1.5 screens)
+        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        float widthDp = widthDp(context, options), heightDp = heightDp(context, options);
+        float scale = WeekLayout.bitmapScale(widthDp, heightDp, dm.density, (long) dm.widthPixels * dm.heightPixels);
+        LocalTime now = LocalTime.now();
+        Bitmap bmp = WeekCanvas.draw(data, theme, str, monday, today, now.getHour() * 60 + now.getMinute(), footer, signIn,
+                Math.max(1, Math.round(widthDp * scale)), Math.max(1, Math.round(heightDp * scale)), scale);
+        rv.setImageViewBitmap(R.id.canvas, bmp);
         return rv;
     }
 
@@ -104,7 +85,7 @@ final class WidgetRenderer {
     private static WeekData pickData(WidgetStore store, JSONObject snapshot, LocalDate today, LocalDate monday) {
         WeekData best = null;
         try {
-            if (snapshot != null && monday.equals(WidgetStore.weekOf(snapshot))) best = WeekData.fromSnapshot(snapshot, store.snapshotAtMillis());
+            if (snapshot != null && monday.equals(WidgetStore.weekOf(snapshot))) best = WeekData.fromSnapshot(snapshot, today, store.snapshotAtMillis());
         } catch (Exception ignored) {
             // an unreadable snapshot is treated as absent
         }
@@ -117,61 +98,6 @@ final class WidgetRenderer {
             // unreadable fetch result: keep the snapshot
         }
         return best;
-    }
-
-    private static RemoteViews column(Context context, WidgetTheme theme, WidgetStrings str, LocalDate date, WeekData.Day day, boolean isToday, int rowsFit, boolean showTime) {
-        RemoteViews c = new RemoteViews(context.getPackageName(), R.layout.widget_day_column);
-        c.setTextViewText(R.id.head, str.weekday(date) + " " + date.getDayOfMonth());
-        c.setTextColor(R.id.head, isToday ? theme.onPrimaryContainer : theme.onSurfaceVariant);
-        if (isToday) {
-            c.setViewVisibility(R.id.col_bg, android.view.View.VISIBLE);
-            c.setInt(R.id.col_bg, "setColorFilter", theme.primaryContainer);
-        }
-        c.setOnClickPendingIntent(R.id.col, openApp(context, "/day/" + date));
-
-        List<WeekData.Event> events = day != null ? day.events : List.of();
-        boolean overflow = events.size() > rowsFit;
-        int shown = overflow ? rowsFit - 1 : events.size();
-        for (int i = 0; i < shown; i++) {
-            WeekData.Event e = events.get(i);
-            c.setViewVisibility(ROWS[i], android.view.View.VISIBLE);
-            c.setTextViewText(ROWS[i], eventText(theme, e, showTime, str));
-            c.setTextColor(ROWS[i], isToday ? theme.onPrimaryContainer : theme.onSurface);
-        }
-        if (overflow) {
-            c.setViewVisibility(ROWS[shown], android.view.View.VISIBLE);
-            c.setTextViewText(ROWS[shown], "+" + (events.size() - shown));
-            c.setTextColor(ROWS[shown], isToday ? theme.onPrimaryContainer : theme.onSurfaceVariant);
-        }
-        return c;
-    }
-
-    /** A coloured bar (a space with the event colour as background), then the time (when there is room) and the title. */
-    private static CharSequence eventText(WidgetTheme theme, WeekData.Event e, boolean showTime, WidgetStrings str) {
-        SpannableStringBuilder b = new SpannableStringBuilder();
-        bar(b, WidgetTheme.color(e.color, theme.primary));
-        if (showTime && e.start != null) b.append(e.start).append(' ');
-        b.append(e.title.isEmpty() ? str.untitled() : e.title);
-        return b;
-    }
-
-    private static CharSequence tasksText(WidgetStrings str, WidgetTheme theme, List<WeekData.Task> tasks) {
-        SpannableStringBuilder b = new SpannableStringBuilder();
-        int start = b.length();
-        b.append(str.tasks()).append("  ");
-        b.setSpan(new StyleSpan(Typeface.BOLD), start, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        for (WeekData.Task t : tasks) {
-            bar(b, WidgetTheme.color(t.color, theme.primary));
-            b.append(t.title.isEmpty() ? str.untitled() : t.title).append(' ').append(String.valueOf(t.done)).append('/').append(String.valueOf(t.total)).append("   ");
-        }
-        return b;
-    }
-
-    private static void bar(SpannableStringBuilder b, int color) {
-        int at = b.length();
-        b.append(' ');
-        b.setSpan(new BackgroundColorSpan(color), at, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        b.append(' ');
     }
 
     /** A tap target that opens the app at {@code path} (a day or the week). */

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The week is one bitmap (WeekCanvas); the views above it are transparent tap targets. The paddings below must match the
+     constants PAD, HEADER, GUTTER and FOOTER of WeekCanvas (dp). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -11,69 +13,56 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_bg" />
 
+    <ImageView
+        android:id="@+id/canvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
     <LinearLayout
         android:id="@+id/content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="6dp">
+        android:paddingTop="4dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="22dp"
-            android:gravity="center_vertical"
+            android:layout_height="20dp"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/title"
+            <View
+                android:id="@+id/hdr"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center_vertical"
-                android:includeFontPadding="false"
-                android:maxLines="1"
-                android:paddingStart="4dp"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:layout_weight="1" />
 
             <ImageView
                 android:id="@+id/refresh"
                 android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_height="20dp"
                 android:contentDescription="@string/widget_refresh"
                 android:padding="3dp"
                 android:src="@drawable/ic_refresh" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/columns"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="horizontal" />
+            android:orientation="horizontal"
+            android:paddingStart="26dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="14dp">
 
-        <TextView
-            android:id="@+id/tasks"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:paddingHorizontal="4dp"
-            android:paddingTop="2dp"
-            android:textSize="10sp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/footer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:paddingHorizontal="4dp"
-            android:paddingTop="2dp"
-            android:textSize="9sp" />
+            <View android:id="@+id/d0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <View android:id="@+id/d1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <View android:id="@+id/d2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <View android:id="@+id/d3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <View android:id="@+id/d4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <View android:id="@+id/d5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <View android:id="@+id/d6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView

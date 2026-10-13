@@ -34,10 +34,6 @@ final class WidgetStrings {
         return german ? "Öffne die App, um dich neu anzumelden" : "Open the app to sign in again";
     }
 
-    String tasks() {
-        return german ? "Aufgaben" : "Tasks";
-    }
-
     String untitled() {
         return german ? "Ohne Titel" : "Untitled";
     }
