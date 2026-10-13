@@ -10,8 +10,8 @@ export function formatEstimate(min: number): string {
 }
 
 /** "From Sat 10 Oct" (gentle wording, never "overdue"). */
-export function carriedLabel(date: string): string {
-  const d = parseIsoDate(date);
+export function carriedLabel(date: string | null): string {
+  const d = date ? parseIsoDate(date) : null;
   return d ? `From ${format(d, 'EEE d MMM')}` : 'From earlier';
 }
 

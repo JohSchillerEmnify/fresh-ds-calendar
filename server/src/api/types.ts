@@ -43,7 +43,8 @@ export interface TaskList {
   id: string;
   calendarId: string;
   title: string;
-  date: LocalDate;
+  /** Null = undated: the list appears only in the Tasks view (ARCHITECTURE "Undated task lists"). */
+  date: LocalDate | null;
   time: LocalTime | null;
   items: TaskItem[];
   doneCount: number;
@@ -108,7 +109,8 @@ export type UpdateEventInput = Partial<CreateEventInput>;
 
 export interface CreateTaskListInput {
   title: string;
-  date: LocalDate;
+  /** Null creates an undated list (no time, no recurrence). */
+  date: LocalDate | null;
   time?: LocalTime | null;
   items?: { title: string; done?: boolean }[];
   categoryId?: string | null;
@@ -119,7 +121,8 @@ export interface CreateTaskListInput {
 
 export interface UpdateTaskListInput {
   title?: string;
-  date?: LocalDate;
+  /** A date dates the list; null makes it undated and drops its time. */
+  date?: LocalDate | null;
   time?: LocalTime | null;
   items?: { id?: string; title: string; done: boolean }[];
   categoryId?: string | null;

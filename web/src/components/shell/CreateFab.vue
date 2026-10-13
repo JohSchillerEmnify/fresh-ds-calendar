@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import IconAdd from '~icons/material-symbols/add';
 import Fab from '@/components/m3/Fab.vue';
-import { openNew } from '@/extensions/create';
+import { useRoute } from 'vue-router';
+import { openNew, openNewUndated } from '@/extensions/create';
 import { isPhone } from '@/composables/useViewport';
 import { useUiStore } from '@/stores/ui';
 
-/** FAB: opens the one "new" dialog (event or task list, switchable there). */
+/** FAB: opens the one "new" dialog (event or task list, switchable there); in the Tasks view a new list without a date. */
 const ui = useUiStore();
+const route = useRoute();
 </script>
 
 <template>
   <div class="fab-wrap" :class="{ away: isPhone && ui.trayExpanded }" data-testid="create-fab-area" :inert="isPhone && ui.trayExpanded">
-    <Fab label="Create" data-testid="create-button" @click="openNew()"><IconAdd /></Fab>
+    <Fab label="Create" data-testid="create-button" @click="route.meta.tasks ? openNewUndated() : openNew()"><IconAdd /></Fab>
   </div>
 </template>
 

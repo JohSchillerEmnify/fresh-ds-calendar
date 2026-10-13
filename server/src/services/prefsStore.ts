@@ -18,6 +18,13 @@ export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
 export type SupportCat = 'off' | 'sometimes' | 'always';
 export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'always'];
 
+/** How the Tasks view groups its lists (ARCHITECTURE "Tasks view"). */
+export type TasksGroupBy = 'time' | 'category' | 'none';
+export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category', 'none'];
+/** How the Tasks view sorts its lists. */
+export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
+export const TASKS_SORT_BY_VALUES: readonly TasksSortBy[] = ['date', 'name', 'category', 'changed', 'progress'];
+
 /** How far ahead the approach bar reaches, in whole hours (ARCHITECTURE "Labs"): 3, 6, 12 or any custom value. */
 export const APPROACH_WINDOW_MIN = 1;
 export const APPROACH_WINDOW_MAX = 24;
@@ -28,7 +35,7 @@ export function isApproachWindow(v: unknown): v is ApproachWindowHours {
   return Number.isInteger(v) && (v as number) >= APPROACH_WINDOW_MIN && (v as number) <= APPROACH_WINDOW_MAX;
 }
 
-/** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat). */
+/** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat, Tasks view grouping and sorting). */
 export interface Prefs {
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
   /** The Approaching card above the calendar views (ARCHITECTURE "Approaching card"). */
@@ -40,6 +47,9 @@ export interface Prefs {
   versionInCorner: boolean;
   /** Left-handed mode: the phone layout is mirrored (ARCHITECTURE "Left-handed mode"; off by default). */
   leftHanded: boolean;
+  /** Tasks view grouping and sorting, remembered per person. */
+  tasksGroupBy: TasksGroupBy;
+  tasksSortBy: TasksSortBy;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -72,6 +82,8 @@ export class PrefsStore {
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
       versionInCorner: p?.versionInCorner === true,
       leftHanded: p?.leftHanded === true,
+      tasksGroupBy: TASKS_GROUP_BY_VALUES.includes(p?.tasksGroupBy as TasksGroupBy) ? (p!.tasksGroupBy as TasksGroupBy) : 'time',
+      tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
     };
   }
 
@@ -148,6 +160,8 @@ export class PrefsStore {
   labsPrefs(sub: string): Prefs {
     const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, leftHanded } = this.read(sub);
     return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, leftHanded };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, tasksGroupBy, tasksSortBy } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, tasksGroupBy, tasksSortBy };
   }
 
   /**

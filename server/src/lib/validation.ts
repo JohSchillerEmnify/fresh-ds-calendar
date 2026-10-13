@@ -60,7 +60,7 @@ export const updateEventSchema = so({
 
 export const createTaskListSchema = so({
   title: listTitle,
-  date: localDate,
+  date: v.nullable(localDate),
   time: v.optional(v.nullable(localTime)),
   items: v.optional(v.pipe(v.array(so({ title: v.pipe(v.string(), v.trim(), v.maxLength(200, 'Item title must be at most 200 characters')), done: v.optional(v.boolean()) })), v.maxLength(200, 'At most 200 items'))),
   categoryId: v.optional(v.nullable(v.string())),
@@ -70,7 +70,7 @@ export const createTaskListSchema = so({
 });
 export const updateTaskListSchema = so({
   title: v.optional(listTitle),
-  date: v.optional(localDate),
+  date: v.optional(v.nullable(localDate)),
   time: v.optional(v.nullable(localTime)),
   items: v.optional(v.pipe(v.array(so({ id: v.optional(v.string()), title: v.pipe(v.string(), v.trim(), v.maxLength(200, 'Item title must be at most 200 characters')), done: v.boolean() })), v.maxLength(200, 'At most 200 items'))),
   categoryId: v.optional(v.nullable(v.string())),

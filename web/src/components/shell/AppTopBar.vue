@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import IconPrev from '~icons/material-symbols/chevron-left';
 import IconNext from '~icons/material-symbols/chevron-right';
 import IconExpand from '~icons/material-symbols/expand-more';
@@ -28,6 +28,7 @@ const settings = useSettingsStore();
 const nav = useNav();
 const clock = useClockStore();
 const router = useRouter();
+const route = useRoute();
 const filters = useFilters();
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
 
@@ -41,10 +42,11 @@ function toggleFilters() {
   <TopAppBar>
     <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
-      <button class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
+      <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">Tasks</span></h1>
+      <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>
-      <div class="nav">
+      <div v-if="!route.meta.tasks" class="nav">
         <IconButton label="Previous period" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
         <Button variant="tonal" class="today" data-testid="nav-today" @click="nav.today()">Today</Button>
         <IconButton label="Next period" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
@@ -66,7 +68,7 @@ function toggleFilters() {
         <IconButton label="Settings" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
-    <MonthPicker v-if="ui.pickerOpen" />
+    <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks" />
   </TopAppBar>
 </template>
 
@@ -75,7 +77,7 @@ function toggleFilters() {
   display: grid; align-items: center; column-gap: 4px; padding: 2px 4px 2px 8px;
   grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title actions' 'nav widgets';
 }
-.title { grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
+.title { margin: 0; grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
 .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .chev.up { transform: rotate(180deg); }

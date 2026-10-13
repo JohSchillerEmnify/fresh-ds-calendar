@@ -35,7 +35,7 @@ export const CARRY_OVER_DAYS = 30;
 
 /** True for an open list dated within the last 30 days before `today` (shown on today, ARCHITECTURE 5b). */
 export function isCarriedOver(item: CalendarItem, today: LocalDate | undefined): boolean {
-  if (item.kind !== 'tasklist' || !today || item.date >= today || item.doneCount >= item.totalCount) return false;
+  if (item.kind !== 'tasklist' || !item.date || !today || item.date >= today || item.doneCount >= item.totalCount) return false;
   const a = parseIsoDate(item.date), b = parseIsoDate(today);
   return !!a && !!b && differenceInCalendarDays(b, a) <= CARRY_OVER_DAYS;
 }
@@ -48,6 +48,7 @@ export function taskListSpan(time: string, estimateMinutes: number | null): { st
 
 export function itemSegments(item: CalendarItem, today?: LocalDate): Segment[] {
   if (item.kind === 'tasklist') {
+    if (item.date === null) return []; // undated: in no calendar view
     if (isCarriedOver(item, today)) {
       return [{
         item, date: today!, allDay: false, startTime: null, endTime: null, startMin: 0, endMin: 0, first: true, last: true,

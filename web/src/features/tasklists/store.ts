@@ -10,7 +10,7 @@ import { firstOpenItem, isComplete } from './format';
 
 /** Tray order (API.md): date ascending, untimed before timed, then time, then title. */
 export function compareOpen(a: TaskList, b: TaskList): number {
-  return a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title);
+  return (a.date ?? '').localeCompare(b.date ?? '') || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title);
 }
 
 /**
@@ -40,8 +40,8 @@ export const useTaskListsStore = defineStore('tasklists', () => {
   }
 
   const inWindow = (l: TaskList): boolean => {
-    const a = parseIsoDate(l.date), b = clock.todayDate;
-    if (!a || l.date > clock.today) return false;
+    const a = l.date ? parseIsoDate(l.date) : null, b = clock.todayDate;
+    if (!a || !l.date || l.date > clock.today) return false;
     return differenceInCalendarDays(b, a) <= CARRY_OVER_DAYS;
   };
   /** Every known list in the tray window: API results, overridden by the (fresher) items store. */

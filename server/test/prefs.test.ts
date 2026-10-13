@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, leftHanded: false };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date' };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -42,6 +42,16 @@ describe('prefs (Labs switches)', () => {
     expect((await t.json('GET', '/api/prefs')).body.leftHanded).toBe(false);
   });
 
+  it('keeps the Tasks view grouping and sorting per person, time and date by default, whitelisted', async () => {
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ tasksGroupBy: 'time', tasksSortBy: 'date' });
+    expect((await t.json('PATCH', '/api/prefs', { tasksGroupBy: 'category', tasksSortBy: 'progress' })).body).toMatchObject({ tasksGroupBy: 'category', tasksSortBy: 'progress' });
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ tasksGroupBy: 'category', tasksSortBy: 'progress' });
+    expect((await t.json('PATCH', '/api/prefs', { tasksGroupBy: 'week' })).status).toBe(400);
+    expect((await t.json('PATCH', '/api/prefs', { tasksSortBy: 'size' })).status).toBe(400);
+    await t.req('POST', '/api/__test/reset');
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ tasksGroupBy: 'time', tasksSortBy: 'date' });
+  });
+
   it('keeps the approach window per person, 3 hours by default, any whole number from 1 to 24', async () => {
     expect((await t.json('PATCH', '/api/prefs', { approachWindowHours: 6 })).body.approachWindowHours).toBe(6);
     expect((await t.json('GET', '/api/prefs')).body.approachWindowHours).toBe(6);
@@ -66,7 +76,7 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, leftHanded: false });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date' });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
   });
 

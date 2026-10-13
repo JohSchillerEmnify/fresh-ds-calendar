@@ -31,8 +31,10 @@ export interface ProviderCalendar {
 
 export interface ListEventsParams {
   calendarId: string;
-  timeMin: string;
-  timeMax: string;
+  /** Absent bounds mean no bound (the undated task lists are read by their property alone). */
+  timeMin?: string;
+  timeMax?: string;
+  /** `key=value` filters, all of which must match. */
   privateExtendedProperty?: string[];
   showDeleted?: boolean;
 }
