@@ -140,3 +140,80 @@ Then('neither the calendar on {date} nor the open tasks tray shows the task list
   if (!(await rows.first().isVisible()) && (await toggle.isVisible())) await toggle.click();
   await expect(this.byTestId('task-tray-item', attr('data-title', title))).toHaveCount(0);
 });
+
+// --- collapsible, compact cards (STEPS.md "Tasks view", tasklists-collapse.feature) ---------------------------------
+
+const cardView = (w: World, title: string): Locator => item(w, title).getByTestId('tasklist-view');
+
+async function setCardCollapsed(world: World, title: string, collapsed: boolean) {
+  await openTasksView(world);
+  const view = cardView(world, title);
+  if ((await view.getAttribute('data-collapsed')) !== String(collapsed)) await view.getByTestId('tasklist-collapse').click();
+  await expect(view).toHaveAttribute('data-collapsed', String(collapsed));
+}
+
+When('I collapse the card of the task list {string} in the Tasks view', async function (this: World, title: string) {
+  await setCardCollapsed(this, title, true);
+});
+
+When('I expand the card of the task list {string} in the Tasks view', async function (this: World, title: string) {
+  await setCardCollapsed(this, title, false);
+});
+
+Then('the card of the task list {string} in the Tasks view is collapsed', async function (this: World, title: string) {
+  await expect(cardView(this, title)).toHaveAttribute('data-collapsed', 'true');
+});
+
+Then('the card of the task list {string} in the Tasks view is expanded', async function (this: World, title: string) {
+  await expect(cardView(this, title)).toHaveAttribute('data-collapsed', 'false');
+});
+
+Then('the card of the task list {string} in the Tasks view shows the items {string}', async function (this: World, title: string, items: string) {
+  await expectJoined(cardView(this, title).getByTestId('tasklist-item'), items, 'data-title');
+});
+
+Then('the card of the task list {string} in the Tasks view shows no items', async function (this: World, title: string) {
+  await expect(cardView(this, title).getByTestId('tasklist-item')).toHaveCount(0);
+});
+
+Then('the card of the task list {string} in the Tasks view shows the done count {string}', async function (this: World, title: string, count: string) {
+  await expect(cardView(this, title).getByTestId('tasklist-expanded-count')).toHaveText(exactText(count));
+});
+
+async function setAllCollapsed(world: World, collapsed: boolean) {
+  await openTasksView(world);
+  const toggle = world.page.getByTestId('tasks-collapse-all');
+  // the toggle reads "pressed" while every card is collapsed
+  if ((await toggle.getAttribute('aria-pressed')) !== String(collapsed)) await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', String(collapsed));
+}
+
+When('I collapse all task lists in the Tasks view', async function (this: World) {
+  await setAllCollapsed(this, true);
+});
+
+When('I expand all task lists in the Tasks view', async function (this: World) {
+  await setAllCollapsed(this, false);
+});
+
+Then('the Add item button of the task list {string} in the Tasks view shares a row with Edit and Delete', async function (this: World, title: string) {
+  const view = cardView(this, title);
+  const centres = await Promise.all(['tasklist-add', 'tasklist-edit', 'tasklist-delete'].map(async (id) => {
+    const box = await view.getByTestId(id).boundingBox();
+    expect(box, id).not.toBeNull();
+    return box!.y + box!.height / 2;
+  }));
+  expect(Math.max(...centres) - Math.min(...centres)).toBeLessThanOrEqual(4);
+});
+
+Then('the add field of the task list {string} in the Tasks view is hidden', async function (this: World, title: string) {
+  await expect(cardView(this, title).getByTestId('tasklist-new-item')).toBeHidden();
+});
+
+Then('the add field of the task list {string} in the Tasks view is shown', async function (this: World, title: string) {
+  await expect(cardView(this, title).getByTestId('tasklist-new-item')).toBeVisible();
+});
+
+When('I tap Add item of the task list {string} in the Tasks view', async function (this: World, title: string) {
+  await cardView(this, title).getByTestId('tasklist-add').click();
+});
