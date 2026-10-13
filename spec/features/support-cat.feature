@@ -35,3 +35,15 @@ Feature: The emotional support cat
     And I expand the task list "Groceries"
     And I tick the item "Eggs"
     Then the support cat does not appear
+
+  @dnd @desktop
+  Scenario: The cat helps me move an entry
+    Given the calendar contains an event "Dentist" on 2026-10-12 from 09:00 to 10:00
+    And the support cat is set to "Every time" in the settings
+    When I open the day view for 2026-10-12
+    And I pick up the event "Dentist" and move it down by 2 hours
+    Then the support cat pushes the card from above
+    When I hold the dragged card still for 1 second
+    Then the support cat sits beside the card with a paw on it
+    When I drop the dragged event
+    Then the support cat is gone within 1500 ms

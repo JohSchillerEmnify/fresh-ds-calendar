@@ -746,6 +746,12 @@ It never reloads by itself and never interrupts an open dialog.
   the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
   (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
   support cat share one cat drawing (`CatFigure`), posed differently.
+- Drag helper (owner, 2026-10-13): when the person picks up an event or task list, the cat may come to "help" — same
+  setting as the support cat (Off / Sometimes ≈ every 5th drag / Every time). It follows the dragged card: moving
+  later/down → it pushes from above, earlier/up → it pulls from below, to another day → it pushes from the side;
+  when the pointer rests > 0.5 s it sits beside the card with a paw on it and looks at the person questioningly; on
+  drop or cancel it hops away (≤ 1.5 s). It reads the drag state from `motion/drag.ts` (no second drag logic),
+  never takes pointer events and must not slow the drag (transform-only, one rAF loop shared with the drag).
 - Cat look (owner, 2026-10-13, two reference pictures; the second one wins where they differ): a black cat in a
   flat paper-cut style with a subtle paper/fur texture, no outlines, no cartoon mouth or cheeks: tall narrow body
   that flows into a small head without a neck, seen from the front; two sharp triangle ears with pink insides; big
