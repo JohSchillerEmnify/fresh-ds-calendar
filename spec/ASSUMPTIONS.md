@@ -270,23 +270,49 @@ spec files are named.
   becomes the chosen theme at once; mode `system` is saved as `follow`, while seed colour and the other settings are
   saved as set, so the theme no longer follows later changes of the person's seed; an own picture is saved as the
   theme's picture, and a scene override on top of an own scene saves the overriding built-in scene instead.
-- **A-74 Holiday scenes and "Automatic follows"** (owner decisions 2026-10-13 are final; the readings below are mine,
-  flagged for confirmation): (a) **New Year** is 1 January only, then Automatic is Winter again; (b) the Easter window
+- **A-74 Holiday scenes and "Seasons & holidays"** (owner decisions 2026-10-13 are final; the readings below are mine,
+  flagged for confirmation): (a) **New Year** is 1 January only, then the calendar is Winter again; (b) the Easter window
   "two weeks around Easter" is Easter Sunday minus 7 days to plus 6 days (14 days); (c) the Christmas window is the
   1st Advent Sunday (the 4th Sunday before 25 December) to 30 December; the 4th Advent Sunday is the last Sunday on or
   before 24 December; candles on a date before 24 December = 1 + whole weeks since the 1st Advent (max 4); from 24
   December all four are lit and the tree lights are on; (d) the Christmas scene picked by hand outside its dates shows
   the full state (tree lights on, 4 candles), also the "Christmas" sample in the Scene card; (e) the `season` sentinel
-  and Automatic use the same calendar mapping; (f) the holiday presets keep the person's light/dark mode like the season
+  and the seasons & holidays setting use the same calendar mapping; (f) the holiday presets keep the person's light/dark mode like the season
   presets (no forced dark, except New Year's Eve, which is dark like Neon and Mordor — owner 2026-10-13); (g) preset names are
   the labels ("Easter", "Summer holidays", "Christmas", "New Year's Eve", "New Year") and the scene values are `easter`,
-  `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) "Automatic follows" is not a pref any more: the switch "Follow the calendar
-  (seasons & holidays)" in the Scene card stores `overrides.scene = 'season'` (owner decision; `automatic` and
-  `automaticBase` were dropped, nothing to migrate); (i) the switch is on by default for Automatic only. The owner text
-  "off for other presets, unless their own scene is seasonal" is read narrowly: a seasonal preset such as Spring keeps
-  showing its own scene and the switch is off for it (flagged for confirmation: the broad reading would make Spring
-  show the Halloween scene in October); turning the switch off on Automatic stores today's calendar scene so the picture
-  does not jump; (j) the settings row reads "Automatic · X" with X the calendar's preset of today; (k) Christmas, New Year's Eve and New Year have a cat but no butterflies; the fireworks
+  `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) the pref stores `seasonal` (`off` | `header` | `all`) and nothing else for this (owner journey, final); new
+  people get `all` on base Default; "Automatic" and the `season` scene sentinel are gone, because `header` resolves the
+  calendar's scene directly; migration on read (marker `seasonalMigrated`): preset Automatic becomes Default + `all`
+  (an explicit scene override of an old Automatic stays and wins), a stored scene `season` becomes `header` with the
+  override removed, everything else `off`; (i) in `all` the calendar's theme replaces seed, mode rule, glow, entries,
+  corners and an imported theme's role colours (the font stays the base's); these are the attributes counted as
+  "colours and style"; fine-tuning overrides sit on top, and an explicit scene override wins over the calendar's scene;
+  choosing a preset turns `all` into `header` and resets overrides, picking a scene sets `off`, setting `header` or
+  `all` drops the scene override; (j) the line under the control reads "Today: <calendar theme> header & colours",
+  "Today: <calendar theme> header" or "Today: nothing changes automatically"; the settings row reads "<calendar
+  theme>" (all), "<theme> · <calendar theme> header" (header) and "<theme>" (off), the theme being the chosen preset or
+  own theme name; (k) Christmas, New Year's Eve and New Year have a cat but no butterflies; the fireworks
   and the candle flicker run only at Full motion (at Reduced and Off the fireworks stand still, the flames are steady);
   (l) holiday presets' colours: Easter #8e6bbf, Summer holidays #0097a7, Christmas #c62828, New Year's Eve #d4af37,
   New Year #00897b.
+- **A-75 Fine-tuning sliders, density and icon choices** (owner decisions 2026-10-13 are final; the readings below are mine,
+  flagged for confirmation): (a) **between steps no step is pressed**; a pressed step means exactly its value (glow Off 0 /
+  Soft 40 / Neon 100, radius Square 2 / Round 6 / Pill 28 px); (b) glow strength runs 0..150, "beyond Neon" being up to a
+  blur of 20 px at 150; the neon pulse starts at 100; (c) the corner slider runs 0..28 px, 28 = pill (chips 999 px); timed
+  blocks take a derived radius (about a third rounder, 16 px at most), so 4 px gives 5 px on a timed event; (d) the entry
+  tint (5..60 %, default 24) applies to Tinted only, Solid and Outline ignore it, the slider is disabled for them; (e) the
+  density is three steps (Compact 0.9, Comfortable 1, Airy 1.12 of the font size), not a slider; it scales font sizes and
+  the task list row height, not line heights and not the time grid; (f) the checkbox has two settings: shape (round, square,
+  rounded; default rounded, which is today's look) and fill (filled default, outline), the glyph a third (tick default, bold
+  tick, cross, dot); they apply to the task item checkbox and the preview; the tiny box in the task list card takes the shape only (its mark stays a tick); (g) steps store their
+  value too (`glow` + `glowStrength`), so a step pick over a theme that carries its own number wins; (h) an own theme's
+  `glowStrength`/`radius` win over its `glow`/`corners` step for the look, but the step fields are always written; (i) the
+  **app icon set** was first left out and then built (see A-76); (j) the new document fields are top-level and flat (`glowStrength`, `radius`, `tint`,
+  `density`, `checkbox`, `checkFill`, `check`); `density` is not the scene's `scene.density` (decor amount).
+- **A-76 App icon set** (owner confirmed A-75 and asked for option (a), 2026-10-13; the readings are mine): (a) the field is
+  `icons` (`outlined` default = today's icons, `rounded`, `sharp`), an override like the others, reset by a preset pick,
+  saved in "Save as my theme"; (b) the set is a module-level reactive value plus `<html data-icons>`, not a store; (c) the
+  24 icons in use are mapped to their Material Symbols variants; a few have identical sharp or rounded drawings in the
+  set (aliases), so those icons do not change; (d) all three variants are bundled, none lazy; (e) icons drawn by other
+  means (emoji, the scene art, inline SVG such as the checkbox glyphs) are not part of the set.
+

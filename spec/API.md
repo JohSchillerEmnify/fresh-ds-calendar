@@ -148,8 +148,8 @@ Slate #4f6170, Mordor #c43e00 (preset id `mordor`).
 Selecting the Mordor preset in the UI also sets `themeMode: 'dark'` and the scene "Mordor" (a theme preference, see
 ARCHITECTURE "Themes"). The server only stores the values, and the user can change each one afterwards.
 **Scenes** (owner 2026-10-13): the top app bar background is not a setting any more. There is one "Scene" choice
-(a switch "Follow the calendar" stored as `season`, and Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
-(`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"; the value `season` is the automatic choice, see there). `PATCH /api/settings` rejects a `scene` field and
+(Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
+(`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"; `seasonal` is `off`, `header` or `all`, see there). `PATCH /api/settings` rejects a `scene` field and
 `GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
 depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
 **Garden style is gone** (owner 2026-10-13): `Settings.garden` was removed, `PATCH /api/settings` rejects a `garden`
@@ -316,6 +316,8 @@ Filtering by category/tag is done in the web app on the loaded items (no server 
 in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `tags=<tag>[,<tag>…]`, e.g.
 `/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
 AND-ed. Events are never filtered.
+
+`PATCH /api/prefs/theme` `overrides` also takes the fine-tuning fields (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): `glowStrength` (integer 0..150), `radius` (integer 0..28), `tint` (integer 5..60), `density` (`compact|comfortable|airy`), `checkbox` (`round|square|rounded`), `checkFill` (`filled|outline`), `check` (`tick|bold|cross|dot`), `icons` (`outlined|rounded|sharp`). Out-of-range or unknown values answer `400`. The same optional fields exist in `calendar-theme/2`.
 
 ### Imported themes (`/api/themes`)
 

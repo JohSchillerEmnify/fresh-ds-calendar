@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import IconCheck from '~icons/material-symbols/check';
+import { IconCheck } from '@/components/icons';
 import { onColor } from '@/api/colors';
 
 import type { Swatch } from './types';

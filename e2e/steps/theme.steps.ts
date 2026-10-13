@@ -299,8 +299,8 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
 });
 
-Then('the theme menu sections are {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string) {
-  await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c]);
+Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
+  await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c, d]);
 });
 
 Then('the theme menu has no Mordor button', async function (this: World) {
@@ -330,24 +330,20 @@ Then('the settings show the theme {string}', async function (this: World, text: 
   await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
 });
 
-When('I switch the scene to follow the calendar', async function (this: World) {
+When('I set the seasons and holidays to {string}', async function (this: World, label: string) {
   await ensureMenu(this);
-  const sw = this.page.getByTestId('theme-scene-follows');
-  if ((await sw.getAttribute('aria-checked')) !== 'true') {
+  const o = this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true });
+  if ((await o.getAttribute('aria-pressed')) !== 'true') {
     const saved = this.page.waitForResponse(isSaved);
-    await sw.click();
+    await o.click();
     await saved;
   }
-  await expect(sw).toHaveAttribute('aria-checked', 'true');
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
 });
 
-Then('the scene follows the calendar', async function (this: World) {
-  await expect(this.page.getByTestId('theme-scene-follows')).toHaveAttribute('aria-checked', 'true');
-});
-
-Then('the scene does not follow the calendar', async function (this: World) {
+Then('the seasons and holidays are set to {string}', async function (this: World, label: string) {
   await ensureMenu(this);
-  await expect(this.page.getByTestId('theme-scene-follows')).toHaveAttribute('aria-checked', 'false');
+  await expect(this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 Then('the advent timeline shows {int} lit candle(s)', async function (this: World, n: number) {
@@ -530,5 +526,103 @@ Then('my own theme {string} has {string} set to {string}', async function (this:
   const { themes } = (await (await this.page.request.get('/api/themes')).json()) as { themes: { doc: Record<string, unknown> }[] };
   const found = themes.find((t) => t.doc.name === name);
   expect(found, `own theme ${name}`).toBeTruthy();
-  expect(found!.doc[key]).toBe(value);
+  expect(String(found!.doc[key])).toBe(value);
+});
+
+// --- Fine-tuning: sliders, density, checkbox choices (STEPS.md "Fine-tuning sliders") ---------------------------------
+const SLIDERS: Record<string, string> = { 'Glow strength': 'theme-slider-glow', 'Corner radius': 'theme-slider-radius', 'Entry tint': 'theme-slider-tint' };
+const CHOICES: Record<string, string> = { Density: 'theme-density', 'Checkbox shape': 'theme-checkbox-shape', 'Checkbox fill': 'theme-check-fill', 'Check mark': 'theme-check-glyph', 'Icon set': 'theme-icon-set' };
+
+When('I set the {string} slider to {int}', async function (this: World, label: string, value: number) {
+  await ensureMenu(this);
+  const saved = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId(SLIDERS[label]!).fill(String(value));
+  await saved;
+});
+
+Then('the {string} slider shows {string}', async function (this: World, label: string, text: string) {
+  await expect(this.page.getByTestId(`${SLIDERS[label]!}-value`)).toHaveText(text);
+});
+
+Then('no option for {string} is pressed', async function (this: World, label: string) {
+  await expect(this.page.locator(`[data-testid="theme-option"][data-setting="${label.toLowerCase()}"][aria-pressed="true"]`)).toHaveCount(0);
+});
+
+Then('the option {string} for {string} is pressed', async function (this: World, value: string, label: string) {
+  await expect(option(this, label, value)).toHaveAttribute('aria-pressed', 'true');
+});
+
+When('I choose {string} for the {string} setting', async function (this: World, value: string, label: string) {
+  await ensureMenu(this);
+  const saved = this.page.waitForResponse(isSaved);
+  const o = this.page.getByTestId(CHOICES[label]!).getByRole('button', { name: value, exact: true });
+  await o.click();
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
+  await saved;
+});
+
+Then('the event {string} has a corner radius of {int} px', async function (this: World, name: string, px: number) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect.poll(() => chip.evaluate((n) => parseFloat(getComputedStyle(n).borderTopLeftRadius))).toBe(px);
+});
+
+/** Blur radii (px) of the coloured shadows of an element: the glow, not the black elevation shadows. */
+async function glowBlurs(chip: Locator): Promise<number[]> {
+  const shadow = await chip.evaluate((n) => getComputedStyle(n).boxShadow);
+  return shadow.split(/,(?![^(]*\))/).flatMap((p) => {
+    const colour = /(rgba?|color)\([^)]*\)/.exec(p)?.[0] ?? '';
+    const alpha = Number(/\/\s*([\d.]+)\s*\)/.exec(colour)?.[1] ?? /rgba?\([^)]*?,\s*([\d.]+)\)/.exec(colour)?.[1] ?? '1');
+    const black = /^(rgba?\(\s*0,\s*0,\s*0|color\(srgb 0 0 0)/.test(colour);
+    const blur = parseFloat(p.replace(colour, '').match(/-?[\d.]+px/g)?.[2] ?? '0');
+    return alpha > 0 && !black && blur > 0 ? [blur] : [];
+  });
+}
+
+Then('the event {string} glows with a blur between {int} and {int} px', async function (this: World, name: string, min: number, max: number) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect.poll(async () => Math.max(0, ...(await glowBlurs(chip)))).toBeGreaterThanOrEqual(min);
+  expect(Math.max(...(await glowBlurs(chip)))).toBeLessThanOrEqual(max);
+});
+
+Then('the event {string} does not glow', async function (this: World, name: string) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect.poll(() => glowBlurs(chip)).toEqual([]);
+});
+
+Then('the entry tint is {int} %', async function (this: World, pct: number) {
+  await expect.poll(() => this.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e-fill').trim())).toBe(`${pct}%`);
+});
+
+Then('the app text is {float} px', async function (this: World, px: number) {
+  await expect.poll(() => this.page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize))).toBeCloseTo(px, 2);
+});
+
+Then('the task item checkboxes are drawn as {string} with a {string} mark', async function (this: World, shape: string, glyph: string) {
+  const html = this.page.locator('html');
+  await expect(html).toHaveAttribute('data-checkbox', shape);
+  await expect(html).toHaveAttribute('data-check', glyph);
+  const boxes = this.page.getByTestId('tasklist-item-checkbox');
+  await expect(boxes.first()).toBeVisible();
+  // only the chosen glyph is drawn; the other three are display: none
+  const shown = await boxes.first().locator('.rcb-check').evaluateAll((els) => els.filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.getAttribute('data-glyph')));
+  expect(shown).toEqual([glyph]);
+});
+
+Then('the app uses the {string} icon set', async function (this: World, set: string) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-icons', set);
+  // the icons of the menu itself are drawn in that set too
+  await expect(this.page.getByTestId('theme-back').locator('svg').first()).toHaveAttribute('data-icon-set', set);
+});
+
+Then('every option of the {string} setting shows a sample icon', async function (this: World, label: string) {
+  const options = this.page.getByTestId(CHOICES[label]!).getByRole('button');
+  const n = await options.count();
+  expect(n).toBeGreaterThan(1);
+  for (let i = 0; i < n; i++) await expect(options.nth(i).locator('.isamp svg').first()).toBeVisible();
 });

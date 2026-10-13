@@ -21,3 +21,24 @@ Feature: Saving my fine-tuned look as my own theme
     And I open the theme menu
     Then the gallery offers the theme "Night"
     And the theme "Night" is in use
+
+  Scenario: A fine-tuned look with slider values and icon choices keeps them when saved as my theme
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I set the "Corner radius" slider to 4
+    And I set the "Glow strength" slider to 70
+    And I set the "Entry tint" slider to 30
+    And I choose "Compact" for the "Density" setting
+    And I choose "Square" for the "Checkbox shape" setting
+    And I choose "Cross" for the "Check mark" setting
+    And I choose "Rounded" for the "Icon set" setting
+    And I save my look as my own theme named "Fine"
+    Then my own theme "Fine" has "radius" set to "4"
+    And my own theme "Fine" has "glowStrength" set to "70"
+    And my own theme "Fine" has "tint" set to "30"
+    And my own theme "Fine" has "density" set to "compact"
+    And my own theme "Fine" has "checkbox" set to "square"
+    And my own theme "Fine" has "check" set to "cross"
+    And my own theme "Fine" has "icons" set to "rounded"
+    And the "Corner radius" slider shows "4 px"
+

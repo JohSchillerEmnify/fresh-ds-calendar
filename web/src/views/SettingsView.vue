@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import IconBack from '~icons/material-symbols/arrow-back';
-import IconUp from '~icons/material-symbols/keyboard-arrow-up';
-import IconDown from '~icons/material-symbols/keyboard-arrow-down';
-import IconAdd from '~icons/material-symbols/add';
-import IconNext from '~icons/material-symbols/chevron-right';
+import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import type { AnimationLevel, ApproachWindowHours, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, ViewName } from '@/api/types';
@@ -40,8 +36,13 @@ const items = useItemsStore();
 const s = computed(() => settings.settings);
 const labs = usePrefsStore();
 const theme = useThemeStore();
-/** The Theme row's value: the preset name, for Automatic with the calendar's theme in use ("Automatic · Fall"). */
-const themeLabel = computed(() => (theme.pref.preset === 'Automatic' ? `Automatic · ${automaticPreset(clock.today)}` : theme.pref.preset));
+/** The chosen theme's name (an imported theme by its own name). */
+const baseName = computed(() => (theme.pref.preset.startsWith('theme:') ? theme.themes.find((t) => `theme:${t.id}` === theme.pref.preset)?.doc.name ?? 'Default' : theme.pref.preset));
+/** The Theme row's value: the calendar's theme alone for Header + colours ("Halloween"), "Neon · Halloween header" for Header only, else the name. */
+const themeLabel = computed(() => {
+  const today = automaticPreset(clock.today);
+  return theme.pref.seasonal === 'all' ? today : theme.pref.seasonal === 'header' ? `${baseName.value} · ${today} header` : baseName.value;
+});
 const build = shownVersion();
 
 /** Persist a per-person preference (Labs switch, support cat, tasks calendar); a refusal rolls back in the store and shows a snackbar. */

@@ -1,6 +1,7 @@
 @import './theme/tokens.css';
 
-/* ---- M3 (Expressive) design tokens other than color (color: theme/tokens.css) ---- */
+/* ---- M3 (Expressive) design tokens other than color (color: theme/tokens.css) ----
+   Type scale: the font size follows the theme's density factor `--dz` (1 = Comfortable; line heights stay fixed). */
 :root {
   --md-sys-shape-corner-extra-small: 6px;
   --md-sys-shape-corner-small: 12px; /* text fields, selects, textareas */
@@ -9,15 +10,15 @@
   --md-sys-shape-corner-extra-large: 32px;
   --md-sys-shape-corner-full: 9999px;
 
-  --md-sys-typescale-display-small: 400 36px/44px var(--font);
-  --md-sys-typescale-headline-small: 400 24px/32px var(--font);
-  --md-sys-typescale-title-large: 500 22px/28px var(--font);
-  --md-sys-typescale-title-medium: 600 16px/24px var(--font);
-  --md-sys-typescale-body-large: 400 16px/24px var(--font);
-  --md-sys-typescale-body-medium: 400 14px/20px var(--font);
-  --md-sys-typescale-label-large: 600 14px/20px var(--font);
-  --md-sys-typescale-label-medium: 600 12px/16px var(--font);
-  --md-sys-typescale-label-small: 600 11px/16px var(--font);
+  --md-sys-typescale-display-small: 400 calc(36px * var(--dz, 1))/44px var(--font);
+  --md-sys-typescale-headline-small: 400 calc(24px * var(--dz, 1))/32px var(--font);
+  --md-sys-typescale-title-large: 500 calc(22px * var(--dz, 1))/28px var(--font);
+  --md-sys-typescale-title-medium: 600 calc(16px * var(--dz, 1))/24px var(--font);
+  --md-sys-typescale-body-large: 400 calc(16px * var(--dz, 1))/24px var(--font);
+  --md-sys-typescale-body-medium: 400 calc(14px * var(--dz, 1))/20px var(--font);
+  --md-sys-typescale-label-large: 600 calc(14px * var(--dz, 1))/20px var(--font);
+  --md-sys-typescale-label-medium: 600 calc(12px * var(--dz, 1))/16px var(--font);
+  --md-sys-typescale-label-small: 600 calc(11px * var(--dz, 1))/16px var(--font);
 
   --md-sys-motion-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --md-sys-motion-emphasized: cubic-bezier(0.2, 0, 0, 1);

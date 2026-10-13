@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import IconDownload from '~icons/material-symbols/download';
-import IconShare from '~icons/material-symbols/ios-share';
+import { IconDownload, IconIosShare as IconShare } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 
 import { canInstall, dismissIosHint, promptInstall, showIosHint } from '@/pwa/install';

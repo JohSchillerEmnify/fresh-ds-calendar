@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import IconPrev from '~icons/material-symbols/chevron-left';
-import IconNext from '~icons/material-symbols/chevron-right';
-import IconExpand from '~icons/material-symbols/expand-more';
-import IconFilter from '~icons/material-symbols/filter-list';
-import IconSettings from '~icons/material-symbols/settings-outline';
+import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';

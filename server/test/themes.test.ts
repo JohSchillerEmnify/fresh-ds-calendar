@@ -15,6 +15,15 @@ describe('theme document validation', () => {
     expect(validateTheme(ocean()).ok).toBe(true);
   });
 
+  it('accepts the fine-tuning fields within range and refuses the rest', () => {
+    expect(validateTheme(minimal({ glowStrength: 70, radius: 4, tint: 30, density: 'airy', checkbox: 'square', checkFill: 'outline', check: 'dot', icons: 'rounded' })).ok).toBe(true);
+    expect(validateTheme(minimal({ icons: 'filled' })).ok).toBe(false);
+    expect(validateTheme(minimal({ radius: 29 }))).toEqual({ ok: false, errors: ['radius must be between 0 and 28'] });
+    expect(validateTheme(minimal({ tint: 2.5 }))).toEqual({ ok: false, errors: ['tint must be a whole number'] });
+    expect(validateTheme(minimal({ glowStrength: '70' }))).toEqual({ ok: false, errors: ['glowStrength must be a whole number'] });
+    expect(validateTheme(minimal({ check: 'star' })).ok).toBe(false);
+  });
+
   it.each([
     [minimal({ glow: 'ultra' }), 'glow must be one of off, soft, neon'],
     [{ name: 'X' }, 'schema is required'],

@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends string">
 import { vRipple } from '@/lib/ripple';
-import IconCheck from '~icons/material-symbols/check';
+import { IconCheck } from '@/components/icons';
 import type { Option } from './types';
 
 defineProps<{ modelValue: T; options: Option<T>[]; label: string; disabled?: boolean }>();
@@ -14,7 +14,7 @@ defineEmits<{ 'update:modelValue': [v: T] }>();
       :aria-pressed="o.value === modelValue" :data-value="o.value" :data-testid="o.testid" @click="$emit('update:modelValue', o.value)"
     >
       <IconCheck v-if="o.value === modelValue" class="chk" aria-hidden="true" />
-      <span>{{ o.label }}</span>
+      <span class="lbl"><slot name="option" :option="o" />{{ o.label }}</span>
     </button>
   </div>
 </template>
@@ -29,4 +29,5 @@ defineEmits<{ 'update:modelValue': [v: T] }>();
 .opt.on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .opt:disabled { opacity: 0.38; cursor: default; }
 .chk { width: 18px; height: 18px; }
+.lbl { display: inline-flex; align-items: center; gap: 6px; }
 </style>

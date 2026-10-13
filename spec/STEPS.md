@@ -920,30 +920,64 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
-the theme menu sections are {string}, {string} and {string}
+the theme menu sections are {string}, {string}, {string} and {string}
 the scene choices are {string}
 the theme menu has no Mordor button
 the top bar shows the {string} scene
 the top bar shows no scene
 the settings show the theme {string}
-I switch the scene to follow the calendar
-the scene follows the calendar
-the scene does not follow the calendar
+I set the seasons and holidays to {string}
+the seasons and holidays are set to {string}
 the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
 the Christmas tree lights are off
 the preview event is drawn as an outline
 the event {string} is drawn as an outline
 the event {string} glows
+the event {string} does not glow
 {string} may use the calendar
+I set the {string} slider to {int}
+the {string} slider shows {string}
+no option for {string} is pressed
+the option {string} for {string} is pressed
+the event {string} has a corner radius of {int} px
+the event {string} glows with a blur between {int} and {int} px
+the entry tint is {int} %
+I choose {string} for the {string} setting
+the app text is {float} px
+the task item checkboxes are drawn as {string} with a {string} mark
+the app uses the {string} icon set
+every option of the {string} setting shows a sample icon
 ```
+
+- Fine-tuning sliders (owner 2026-10-13): "I set the X slider to N" finds the native `input[type=range]` by its label (`Glow strength` =
+  `theme-slider-glow`, `Corner radius` = `theme-slider-radius`, `Entry tint` = `theme-slider-tint`), opens the theme menu
+  when needed, sets the value the way a keyboard or pointer would (fires `input`) and waits for the save
+  (`PATCH /api/prefs/theme`). "the X slider shows T": the visible value text next to it (`<testid>-value`), e.g. `4 px`, `30 %`,
+  `40` (glow strength has no unit).
+- "no option for Y is pressed" / "the option V for Y is pressed": the `theme-option` buttons of that `data-setting`
+  (`glow`, `corners`) and their `aria-pressed`.
+- "has a corner radius of N px": the computed `border-top-left-radius` of the event as the week view draws it (a timed
+  block, whose radius follows the slider as `--r-block`: slider 4 px = 5 px, Round 6 px = 8 px, Pill = 16 px). "glows with a blur
+  between A and B px": the largest blur radius of the chip's coloured `box-shadow` is within A..B. "does not glow": no
+  coloured shadow with a blur. "the entry tint is N %": the computed `--e-fill` on `<html>` is `N%`.
+- "I choose V for the S setting": segmented controls of the menu by label (`Density` = `theme-density`, `Checkbox shape` =
+  `theme-checkbox-shape`, `Checkbox fill` = `theme-check-fill`, `Check mark` = `theme-check-glyph`, `Icon set` = `theme-icon-set`); the option is the button
+  with that label inside; waits for the save. "the app text is N px": computed `font-size` of `<body>` (the body text size;
+  14 px at Comfortable, 12.6 px Compact, 15.68 px Airy).
+- "the app uses the X icon set": `<html data-icons>` equals X (`outlined`, `rounded`, `sharp`) and the back
+  icon of the menu (`theme-back`) is drawn in that set (its `svg` has `data-icon-set` X; every app icon carries it). "every option of
+  the S setting shows a sample icon": each button of that control contains an `svg`.
+- "the task item checkboxes are drawn as S with a G mark": `<html data-checkbox>` equals S (`round`, `square`, `rounded`) and
+  `data-check` equals G (`tick`, `bold`, `cross`, `dot`), and in the expanded task list every `tasklist-item-checkbox` shows
+  only that glyph (`[data-glyph]` with a non-`none` display).
 
 - "glows": the event chip has a visible glow (a non-`none` `box-shadow` or `filter: drop-shadow` in the item colour).
 - "drawn as an outline": transparent or surface fill with a 1.5 px or wider border in the item colour.
 - "every option ... shows a sample": each option of that setting contains a sample event chip drawn in that style.
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
-- "the theme X is in use": `<html data-theme-name>` equals X.
+- "the theme X is in use": `<html data-theme-name>` equals X (with Header + colours, the calendar's theme for today).
 - "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
   menu is opened first when it is not open. Scene options, in order: "Spring", "Summer", "Fall", "Halloween", "Winter", "Sunflower field", "Mordor",
   "None" (`data-value` `spring`, `summer`, `fall`, `halloween`, `winter`, `sunflowers`, `mordor`, `none`);
@@ -952,16 +986,16 @@ the event {string} glows
   `christmas`, `newyearseve`, `newyear`; the top bar's `data-scene` is the same value);
   "the scene choices are" takes the labels as one comma-separated string, compares them in order, checks that
   they sit in the `scene` section (not in fine-tuning) and that `settings-scene` (the retired second control) is absent.
-- "the theme menu sections are": the headings of the `theme-section` elements (`data-section` `presets`, `scene`,
+- "the theme menu sections are": the headings of the `theme-section` elements (`data-section` `calendar`, `presets`, `scene`,
   `fine-tuning`; the live preview card above them is not a section), in page order. "has no Mordor button":
   `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
-- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
-- "I switch the scene to follow the calendar": opens the theme menu when needed, turns the switch
-  `theme-scene-follows` (`role="switch"`, in the Scene section, label "Follow the calendar (seasons & holidays)") on
-  when it is off, and waits for the save. "the scene follows / does not follow the calendar": the switch has
-  `aria-checked` `true` / `false`.
+- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Halloween", "Neon · Halloween header", "Neon").
+- "I set the seasons and holidays to X": opens the theme menu when needed, clicks the option with that label ("Off",
+  "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
+  "Seasons & holidays" section and waits for the save. "the seasons and holidays are set to X": that option has
+  `aria-pressed` `true`. A new person has "Header + colours", so scenarios that want a plain look set "Off" first.
 - "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
   `data-part`), in timeline order left to right, exactly the first N with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
   has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.

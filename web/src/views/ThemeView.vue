@@ -2,16 +2,15 @@
 /**
  * Theme menu (`/settings/theme`): a live preview and three sections, in this order: Presets (a gallery of ready
  * themes, each a real mini week under that theme's attributes), Scene (the top bar background, one choice) and
- * Fine-tuning (theme mode, seed colour and options that each show a sample of their look). Picking applies at once
+ * Fine-tuning (theme mode, seed colour, options that each show a sample of their look, a slider for the values between
+ * the glow, corner and tint steps, density and the checkbox choices). Picking applies at once
  * and is saved in the background by the theme store; there is no save button. The scene is a theme attribute. Theme
  * mode and seed colour are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
  */
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import IconBack from '~icons/material-symbols/arrow-back';
-import IconDelete from '~icons/material-symbols/delete-outline';
-import IconExport from '~icons/material-symbols/download';
+import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
 import { ApiError, type StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
@@ -19,12 +18,13 @@ import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
-import Switch from '@/components/m3/Switch.vue';
+import Slider from '@/components/m3/Slider.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
 import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
 import ThemeImport from '@/components/settings/ThemeImport.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
+import RewardCheckbox from '@/motion/RewardCheckbox.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { BACKDROP_SCENES } from '@/features/motivation/types';
 import { useClockStore } from '@/stores/clock';
@@ -34,7 +34,10 @@ import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
-import { docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type ThemeAttrs } from '@/theme/presets';
+import {
+  CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES, sliderText,
+} from '@/theme/fine';
+import { automaticPreset, docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type Seasonal, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
 const theme = useThemeStore();
@@ -45,8 +48,8 @@ const prefs = usePrefsStore();
 const savingOwn = ref(false);
 const attrs = computed(() => theme.resolved.attrs);
 
-/** Every preset as the gallery shows it today (Automatic = the season's). */
-const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {} }, clock.today)])) as Record<PresetName, ResolvedTheme>);
+/** Every preset as the gallery shows it: its own look, whatever the seasons & holidays setting is. */
+const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {}, seasonal: 'off' }, clock.today)])) as Record<PresetName, ResolvedTheme>);
 
 /** Downloads a theme's document as a `.json` file. */
 function exportTheme(t: StoredTheme) {
@@ -72,22 +75,61 @@ const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', 
 const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
 const isSeason = (s: string) => (BACKDROP_SCENES as readonly string[]).includes(s);
 
-/** The stored scene choice: an explicit pick, the automatic `season`, or the preset's own scene (Automatic follows the calendar). */
-const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.preset === 'Automatic' ? 'season' : attrs.value.scene));
-/** The "Follow the calendar" switch: the picture follows the calendar whatever theme is chosen (stored as the scene `season`). */
-const followsCalendar = computed(() => sceneChoice.value === 'season');
-function setFollows(on: boolean) {
-  if (on) void theme.pick('scene', 'season');
-  // Automatic has no scene of its own: keep today's picture; any other theme goes back to its own scene
-  else if (theme.pref.preset === 'Automatic') void theme.pick('scene', theme.todaysSeasonScene);
-  else void theme.unpick('scene');
-}
+// --- Seasons & holidays (one setting for all of them) ----------------------------------------------------------------
+const seasonalOptions: { value: Seasonal; label: string }[] = [{ value: 'off', label: 'Off' }, { value: 'header', label: 'Header only' }, { value: 'all', label: 'Header + colours' }];
+/** What applies today, in words: the calendar's theme and which parts of it. */
+const seasonalToday = computed(() => {
+  const today = automaticPreset(clock.today);
+  return theme.pref.seasonal === 'all' ? `Today: ${today} header & colours` : theme.pref.seasonal === 'header' ? `Today: ${today} header` : 'Today: nothing changes automatically';
+});
+/** The scene option shown as pressed: the person's pick, or the theme's own scene while the calendar is off (none while it drives the header). */
+const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.seasonal === 'off' ? attrs.value.scene : null));
+/** Glow and corners are a step and a slider value in one: a step is pressed only while the slider is exactly on its value. */
+const STEP_VALUES = { glow: GLOW_STEPS, corners: RADIUS_STEPS } as Record<string, Record<string, number>>;
+const STEP_FIELD = { glow: 'glowStrength', corners: 'radius' } as const;
+const fine = computed(() => theme.resolved.fine);
+/** The slider values in use: the fine-tuned number, else the chosen step's value (tint: the default). */
+const values = computed(() => ({
+  glowStrength: fine.value.glowStrength ?? GLOW_STEPS[attrs.value.glow],
+  radius: fine.value.radius ?? RADIUS_STEPS[attrs.value.corners],
+  tint: fine.value.tint ?? DEFAULT_TINT,
+}));
 function pressed(setting: keyof ThemeAttrs, value: string): boolean {
-  return setting === 'scene' ? sceneChoice.value === value : attrs.value[setting] === value;
+  if (setting === 'scene') return sceneChoice.value === value;
+  const steps = STEP_VALUES[setting];
+  return steps ? values.value[STEP_FIELD[setting as 'glow' | 'corners']] === steps[value] : attrs.value[setting] === value;
 }
 function pickOption(setting: keyof ThemeAttrs, value: string) {
-  void theme.pick(setting, value as never);
+  const steps = STEP_VALUES[setting];
+  // a step also sets its slider value, so the number of an earlier slider move does not outlive the pick
+  if (steps) void theme.pickMany({ [setting]: value, [STEP_FIELD[setting as 'glow' | 'corners']]: steps[value] } as never);
+  else void theme.pick(setting, value as never);
 }
+
+// --- sliders (live while moving, saved when the move ends) and the other fine-tuning choices ---------------------------
+type SliderKey = 'glowStrength' | 'radius' | 'tint';
+const sliders: Record<string, { key: SliderKey; label: string; testid: string }> = {
+  glow: { key: 'glowStrength', label: 'Glow strength', testid: 'theme-slider-glow' },
+  corners: { key: 'radius', label: 'Corner radius', testid: 'theme-slider-radius' },
+  entries: { key: 'tint', label: 'Entry tint', testid: 'theme-slider-tint' },
+};
+const live = (key: SliderKey, v: number) => theme.preview({ [key]: v });
+const commit = (key: SliderKey, v: number) => theme.pickMany({ [key]: v });
+/** The tint is only used by tinted entries, so the other styles disable its slider. */
+const tintOff = computed(() => attrs.value.entries !== 'tinted');
+const choices: { key: 'density' | 'checkbox' | 'checkFill' | 'check' | 'icons'; label: string; testid: string; options: { value: string; label: string }[]; fallback: string }[] = [
+  { key: 'density', label: 'Density', testid: 'theme-density', fallback: 'comfortable', options: DENSITIES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'checkbox', label: 'Checkbox shape', testid: 'theme-checkbox-shape', fallback: 'rounded', options: CHECKBOXES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'checkFill', label: 'Checkbox fill', testid: 'theme-check-fill', fallback: 'filled', options: CHECK_FILLS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'check', label: 'Check mark', testid: 'theme-check-glyph', fallback: 'tick', options: CHECK_GLYPHS.map((v) => ({ value: v, label: v === 'bold' ? 'Bold tick' : v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'icons', label: 'Icon set', testid: 'theme-icon-set', fallback: 'outlined', options: ICON_SETS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+];
+/** The sample icons shown in each option of the icon set control, drawn in that option's own set. */
+const SAMPLE_ICONS = [IconSettingsOutline, IconEditOutline, IconClose];
+const choiceValue = (c: (typeof choices)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
+/** The preview's two checkboxes are real ones that can be played with. */
+const tickedA = ref(true);
+const tickedB = ref(false);
 /** Attributes for an option's sample: the current look with this one option swapped in. */
 function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, string> {
   const a: Record<string, string> = { 'data-glow': attrs.value.glow, 'data-entries': attrs.value.entries, 'data-corners': attrs.value.corners };
@@ -168,8 +210,14 @@ function back() {
         <div class="stage">
           <div class="pv"><ThemeSample kind="event" title="Dentist" data-testid="theme-preview-event" /></div>
           <div class="pv"><ThemeSample kind="tasklist" color="#0b8043" title="Groceries" /></div>
-          <div class="pv cbs"><ThemeSample kind="checkbox" color="#3f51b5" checked /><ThemeSample kind="checkbox" color="#3f51b5" /></div>
+          <div class="pv cbs"><RewardCheckbox v-model="tickedA" label="Done" /><RewardCheckbox v-model="tickedB" label="To do" /></div>
         </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
+        <h2 id="h-cal">Seasons &amp; holidays</h2>
+        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" label="Seasons & holidays" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
+        <p class="today" data-testid="theme-seasonal-today">{{ seasonalToday }}</p>
       </section>
 
       <section class="card" aria-labelledby="h-gal" data-testid="theme-section" data-section="presets">
@@ -177,7 +225,7 @@ function back() {
         <div class="gallery">
           <ThemeCard
             v-for="n in PRESET_NAMES" :key="n" :name="n" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
-            :sub="n === 'Automatic' ? presetThemes[n].name : undefined" @choose="theme.choose(n)"
+            @choose="theme.choose(n)"
           />
           <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc, t.picture)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
             <template #actions>
@@ -191,10 +239,6 @@ function back() {
 
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
         <h2 id="h-scene">Scene</h2>
-        <div class="follow">
-          <span class="ftxt"><span class="lab">Follow the calendar (seasons &amp; holidays)</span><span class="sub">Only the top bar picture changes; your colours stay.</span></span>
-          <Switch :model-value="followsCalendar" label="Follow the calendar (seasons & holidays)" data-testid="theme-scene-follows" @update:model-value="setFollows" />
-        </div>
         <ReuseGroup :g="sceneGroup" />
       </section>
 
@@ -209,7 +253,26 @@ function back() {
           <ColorSwatchPicker :swatches="swatches" :model-value="swatchValue" label="Seed color" @update:model-value="pickSwatch" />
           <TextField v-model="hex" class="hex" label="Custom color (hex)" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
         </div>
-        <ReuseGroup v-for="g in groups" :key="g.setting" :g="g" />
+        <template v-for="g in groups" :key="g.setting">
+          <ReuseGroup :g="g" />
+          <div v-if="sliders[g.setting]" class="group">
+            <Slider
+              :model-value="values[sliders[g.setting].key]" :min="RANGES[sliders[g.setting].key][0]" :max="RANGES[sliders[g.setting].key][1]"
+              :label="sliders[g.setting].label" :value-text="sliderText(sliders[g.setting].key, values[sliders[g.setting].key])"
+              :testid="sliders[g.setting].testid" :disabled="sliders[g.setting].key === 'tint' && tintOff"
+              @update:model-value="live(sliders[g.setting].key, $event)" @commit="commit(sliders[g.setting].key, $event)"
+            />
+            <span v-if="sliders[g.setting].key === 'tint' && tintOff" class="sub">Only used by Tinted entries.</span>
+          </div>
+        </template>
+        <div v-for="c in choices" :key="c.key" class="group">
+          <span class="lab">{{ c.label }}</span>
+          <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
+            <template v-if="c.key === 'icons'" #option="{ option }">
+              <span class="isamp" aria-hidden="true"><component :is="ic.variants[option.value as 'sharp']" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
+            </template>
+          </SegmentedButton>
+        </div>
         <div class="group">
           <Button variant="tonal" data-testid="theme-save-own" @click="savingOwn = true">Save as my theme</Button>
         </div>
@@ -247,7 +310,9 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .scenebox :deep(.s-ev) { position: relative; }
 .ol { font: var(--md-sys-typescale-label-large); }
 .hex { margin-top: 10px; }
-.follow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }
-.ftxt { display: flex; flex-direction: column; min-width: 0; }
+.isamp { display: inline-flex; gap: 2px; }
+.isamp :deep(svg) { width: 16px; height: 16px; }
+
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
+.today { margin: 8px 4px 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 </style>

@@ -31,6 +31,9 @@ function check(value, sch, path, errors) {
     else if (sch.minLength && value.length < sch.minLength) errors.push(`${name} must not be empty`);
     else if (sch.maxLength && value.length > sch.maxLength) errors.push(`${name} must be at most ${sch.maxLength} characters`);
     else if (sch.pattern && !new RegExp(sch.pattern).test(value)) errors.push(`${name} must be ${sch['x-hint'] ?? `in the form ${sch.pattern}`}`);
+  } else if (sch.type === 'integer') {
+    if (!Number.isInteger(value)) errors.push(`${name} must be a whole number`);
+    else if (value < sch.minimum || value > sch.maximum) errors.push(`${name} must be between ${sch.minimum} and ${sch.maximum}`);
   } else if (sch.type === 'array') {
     if (!Array.isArray(value)) return void errors.push(`${name} must be a list`);
     if (sch.minItems && value.length < sch.minItems) errors.push(`${name} must have at least ${sch.minItems} entries`);

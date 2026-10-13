@@ -4,6 +4,8 @@
  * A custom seed, role colours or font lazily load the color library and inject a generated stylesheet that overrides them.
  */
 import type { ThemeFont } from '@calendar/shared';
+import { fineVars } from './fine';
+import { iconSet } from './iconSet';
 import type { ResolvedTheme } from './presets';
 
 export const DEFAULT_SEED = '#1a73e8';
@@ -11,6 +13,9 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 
 const STYLE_ID = 'm3-dynamic-theme';
 const ATTR_KEY = 'cal.themeAttrs';
+/** The inline custom properties of the fine-tuning, cached as CSS text for the first paint. */
+const FINE_KEY = 'cal.themeFine';
+const FINE_ATTRS = ['checkbox', 'checkFill', 'check', 'icons'] as const;
 
 /** Curated font stacks of a theme document's `font` (system = the app's own). */
 const FONT_STACKS: Record<Exclude<ThemeFont, 'system'>, string> = {
@@ -52,6 +57,10 @@ export async function applySeed(seedHex: string, doc: Document = document, look:
   try { localStorage.setItem('cal.themeCss', style.textContent); } catch { /* storage unavailable */ }
 }
 
+const DEFAULT_FINE_ATTR = { checkbox: 'rounded', checkFill: 'filled', check: 'tick', icons: 'outlined' } as const;
+/** Every custom property `fineVars` can set, so a value that is gone is removed again. */
+const FINE_VARS = ['--glow-r', '--glow-s', '--glow-a', '--glow-anim', '--r-chip', '--r-block', '--e-fill', '--dz'];
+
 /** Mirrors the theme's attributes onto `<html>` (read by theme.css and the shell) and caches them for the next first paint. */
 export function applyAttrs(t: ResolvedTheme, root: HTMLElement = document.documentElement): void {
   root.setAttribute('data-theme-name', t.name);
@@ -59,7 +68,17 @@ export function applyAttrs(t: ResolvedTheme, root: HTMLElement = document.docume
   root.setAttribute('data-entries', t.attrs.entries);
   root.setAttribute('data-corners', t.attrs.corners);
   root.setAttribute('data-scene', t.attrs.scene);
-  try { localStorage.setItem(ATTR_KEY, JSON.stringify({ name: t.name, ...t.attrs })); } catch { /* storage unavailable */ }
+  // checkbox choices are attributes (the glyph is picked by CSS), the numbers are inline custom properties
+  const fine = t.fine;
+  for (const k of FINE_ATTRS) root.setAttribute(`data-${k.toLowerCase()}`, fine[k] ?? DEFAULT_FINE_ATTR[k]);
+  iconSet.value = fine.icons ?? DEFAULT_FINE_ATTR.icons;
+  const vars = fineVars(fine, t.attrs.entries);
+  for (const p of FINE_VARS) root.style.removeProperty(p);
+  for (const [p, v] of Object.entries(vars)) root.style.setProperty(p, v);
+  try {
+    localStorage.setItem(ATTR_KEY, JSON.stringify({ name: t.name, ...t.attrs, ...Object.fromEntries(FINE_ATTRS.map((k) => [k, fine[k] ?? DEFAULT_FINE_ATTR[k]])) }));
+    localStorage.setItem(FINE_KEY, Object.entries(vars).map(([p, v]) => `${p}:${v}`).join(';'));
+  } catch { /* storage unavailable */ }
 }
 
 /**

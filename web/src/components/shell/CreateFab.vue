@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import IconAdd from '~icons/material-symbols/add';
+import { IconAdd } from '@/components/icons';
 import Fab from '@/components/m3/Fab.vue';
 import { useRoute } from 'vue-router';
 import { openNew, openNewUndated } from '@/extensions/create';
