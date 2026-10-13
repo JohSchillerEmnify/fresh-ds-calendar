@@ -4,6 +4,9 @@
  * Templates use the same detector as `test/i18n-raw-text.test.ts` (static text nodes and the attributes label,
  * aria-label, title, placeholder, alt). Scripts (`.ts` and `<script>` blocks) are scanned for string literals passed to
  * `notify(` and `new Error(`. Strings already routed through `t(` are not literals of these calls and never listed.
+ *
+ * Two lists keep the report honest: `IGNORED` (whole files that are dev-only) and `ALLOWED` (single developer-facing
+ * strings that no person ever reads). Add to them with a reason; do not use them to hide missing translations.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
@@ -13,6 +16,15 @@ import { HAS_WORD, rawTextHits, type Node, type RawHit } from '../src/i18n/raw-t
 
 const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = resolve(webDir, '..');
+/** Files skipped entirely: the dev-only motion playground is never shipped to a person, so it stays English. */
+const IGNORED = ['web/src/features/motivation/MotionLab.vue'];
+/** Developer-facing strings left in English on purpose (`file`: repo-relative path, `text`: the literal). */
+const ALLOWED: { file: string; text: string; why: string }[] = [
+  { file: 'web/src/features/tasklists/ops.ts', text: 'replaced below', why: 'placeholder `apply` that is always overwritten before use; a programming error, never shown' },
+  { file: 'web/src/features/tasklists/ops.ts', text: 'delete failed', why: 'fallback error object handed to a promise rejection when the queue gave none; the snackbar text comes from the failed request' },
+  { file: 'web/src/features/tasklists/TaskListCard.vue', text: 'TaskListCard needs a task list', why: 'developer error: the card was mounted with a non-task-list item' },
+];
+
 const args = process.argv.slice(2);
 const json = args.includes('--json');
 const targets = args.filter((a) => !a.startsWith('--'));
@@ -65,6 +77,14 @@ function scriptHits(src: string, firstLine: number): RawHit[] {
 
 /** All hits of one file, sorted by line. */
 function scan(file: string): RawHit[] {
+  const rel = relative(repoDir, file);
+  if (IGNORED.includes(rel)) return [];
+  const allowed = new Set(ALLOWED.filter((a) => a.file === rel).map((a) => a.text));
+  return scanAll(file).filter((h) => !allowed.has(h.text));
+}
+
+/** All hits of one file before the allow-list is applied. */
+function scanAll(file: string): RawHit[] {
   const src = readFileSync(file, 'utf8');
   if (!file.endsWith('.vue')) return scriptHits(src, 1);
   const { descriptor } = parse(src);

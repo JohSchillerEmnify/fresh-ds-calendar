@@ -248,6 +248,15 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   - **Formats**: 24 h and Monday as the first day stay in every language. Dates follow the language: English keeps its
     en-GB forms (`lib/dates.ts`, date-fns), all other languages use `Intl` with `de-DE` ("Dienstag, 13. Oktober 2026",
     weekday headers "Mo".."So", month names). `weekdayLabels()` / `monthNames()` replace the former constants.
+    Every displayed date goes through `formatDate(d, kind)` in `lib/dates.ts` (date-fns pattern for English, as A-85
+    decided, `Intl` otherwise); no view calls date-fns `format` or `toLocaleDateString` for display. Hour labels stay
+    `HH:00`, the same in both locales.
+  - **Theme validator messages**: `@calendar/shared` keeps `validateTheme` / `validatePicture` / `sanitizePicture`
+    returning the English `errors` (the AI repair prompt stays English, the server API is unchanged) and adds
+    `validateThemeIssues` / `validatePictureIssues` / `sanitizePictureIssues` returning `{ code, params, message }`
+    per problem. The UI shows `issueText(issue)` (`theme/issueText.ts`, keys `theme.import.issue.<code>`; an unknown
+    code falls back to the English message) and feeds the English `message`s to the repair prompt. Alternative
+    weighed: changing `errors` to objects (rejected: breaks the server and its tests for no gain).
   - **Server messages** stay English; user-facing validation errors also carry `error.key` (API.md "Error format"),
     equal to a catalogue key. `ApiError.userMessage` translates a known key and otherwise shows the server's English.
   - **Rules for new code**: all new UI text goes through `t()`; no hard-coded strings in templates or scripts, new
@@ -1483,6 +1492,6 @@ Mock data is not migrated to Google.
 Terse output on purpose (one line on success, only failures otherwise); every command finishes in about a minute.
 
 - `pnpm verify`: the gate before any merge or deploy; runs web/server/e2e tsc, server and web unit tests, `i18n:check` and `spec/scripts/check-steps.py` in parallel (`scripts/verify.mjs`).
-- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`.
+- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`. The dev-only `MotionLab.vue` is skipped (`IGNORED`) and three developer-error strings are allow-listed with a reason (`ALLOWED`), both at the top of `web/scripts/i18n-scan.ts`.
 - `pnpm e2e:affected [base]`: the Playwright `--grep` for features touched since `base` (default `origin/master`), mapped via feature tags/titles, step definitions and `data-testid` literals (`scripts/e2e-affected.mjs`); `none` if nothing is affected.
 - `scripts/deploy-status.sh`: last auto-deploy result and the `calendar` container's age, read from sauron over ssh (`DEPLOY_HOST=user@host` overrides the host).
