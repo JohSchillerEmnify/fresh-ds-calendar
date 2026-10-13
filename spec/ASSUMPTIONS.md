@@ -198,3 +198,18 @@ spec files are named.
   (before, the field was hidden by the default garden `plant`); (e) in "Full field" the mood still follows the plant,
   only the count and the bloom are fixed; (f) the "Sunflowers" setting is global like the plant switch (not per
   person), and is shown even when the scene is not the Sunflower field.
+  visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
+  style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
+- **A-70 Left-handed mode** (owner, 2026-10-13; the details below are assumptions, flagged for confirmation):
+  a person pref `leftHanded` (like `versionInCorner`), phone layout only. (a) The setting sits in Settings → Calendar,
+  label "Left-handed mode". (b) The filter button moves with the settings button (the whole actions group, gear
+  leftmost). (c) The version label's text "bottom left" becomes "A small label in a bottom corner" (neutral). (d) The
+  settings row that links to the theme menu (chevron) does not mirror; the category rows do (move buttons at the left,
+  in reversed order); the "Add category" row and full-width fields stay; every row with a switch or trailing control
+  mirrors. The unused `Menu` component is mirrored too, for when it is used again. (e) The support cat stands at the
+  start of the finished list's title instead of its end, facing right. (f) The drag helper cat mirrors only its default
+  side, the hop away and the ask mark; sideways pushing stays "behind the movement", as that is physics, not
+  handedness; it is covered by unit tests, not by a scenario (the drag step needs a mouse). (g) The tray's chevron
+  sits to the right of the FAB's clearance at the left, followed by the count chip. (h) The e2e side check compares the
+  element centre with the viewport centre.
+

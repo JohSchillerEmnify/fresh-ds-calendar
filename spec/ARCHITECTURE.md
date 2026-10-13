@@ -767,8 +767,28 @@ It never reloads by itself and never interrupts an open dialog.
 - The update notice keeps comparing the full build version, so every deploy is noticed.
 - Settings → Account & data shows "Version X.Y.Z" with the sha in small print (`settings-version`). A switch "Show
   version in the corner" (`settings-version-corner`, a person pref `versionInCorner` in `Prefs`, default off) shows a small label
-  `app-version` ("0.4.2") in the bottom-left corner of the main UI (above the safe area, below dialogs, never covering
+  `app-version` ("0.4.2") in the bottom-left corner of the main UI (bottom right in left-handed mode on the phone; above the safe area, below dialogs, never covering
   the bottom bar or the FAB).
+
+### Left-handed mode (owner, 2026-10-13)
+
+- A switch "Left-handed mode" (`settings-left-handed`, Settings → Calendar; person pref `leftHanded` in `Prefs`,
+  default off) mirrors the **phone layout** (< 768 px) so the main controls sit under the left thumb. The desktop layout
+  never changes. The pref follows the person to every device.
+- Mechanism: the settings store sets `html[data-hand="left"]` from the pref (like `data-calm`; prefs load after mount).
+  Components carry their own `html[data-hand='left']` overrides inside the phone media query (`max-width: 767.98px`,
+  the same as `isPhone`); positions computed in JS (the cats) read `useLeftHand()` (pref and phone layout).
+  Alternatives weighed: `dir="rtl"` (rejected: it would also flip text, the time gutter, swipe and grid order);
+  a second set of components (rejected: duplication).
+- Mirrored: the "+" button (and its menu, and the side it slides away to), the open tasks tray (chevron, FAB clearance,
+  fold toggle of finished lists), snackbar buttons, the action bars of the confirm, event, category and task list
+  dialogs (primary action bottom left), the version label (bottom right, clear of the mirrored "+"), the top bar (the
+  settings group on the left, the title to its right; the Previous/Today/Next group on the right, the leading widgets
+  on the left; the arrows keep their meaning: left = previous), the rows of the settings and the theme menu (switch,
+  segmented button or trailing control at the left start, label after it), the support cat (walks in from the left,
+  drawn mirrored; `data-from="left"`) and the drag helper cat (its default side, the hop away and the ask mark).
+- Not mirrored: the time gutter and grid, month/week/year order, swipe directions, the approaching card track, resize
+  handles, the now marker, text alignment.
 
 ### Themes
 

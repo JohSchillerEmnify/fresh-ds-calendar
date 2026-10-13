@@ -160,6 +160,9 @@ absorb it. When a person's theme is first served after the change (marker `garde
 for `garden === 'sunflowers'` and a Default or Neon preset without a scene override, the override becomes
 `sunflowers` (the field they saw); for `plant` or `off`, an override `sunflowers` becomes `none` (they did not see
 the field). Other presets and overrides stay as they were. The Default and Neon presets start with scene `none`.
+**Prefs** (`GET/PATCH /api/prefs`): besides the Labs switches, `approachingCard`, `approachBar`, `approachWindowHours`,
+`tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `leftHanded` (boolean, default `false`; a
+non-boolean is a 400) turns on the mirrored phone layout (ARCHITECTURE "Left-handed mode").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 

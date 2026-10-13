@@ -1033,3 +1033,25 @@ Google shows the calendar {string}
   `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
   "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
   … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
+
+## Left-handed mode (`@left-hand`)
+
+```
+left-handed mode is on
+the {string} is on the {string} side of the screen
+the switches in the settings are on the {string} side of the screen
+the support cat walks in from the {string}
+```
+
+- "left-handed mode is on" sets the person pref with `PATCH /api/prefs { "leftHanded": true }` through the API before the
+  page is opened (the switch itself is exercised through the generic `I turn on {string} in the settings` step with the
+  label "Left-handed mode", switch testid `settings-left-handed`).
+- "the X is on the S side of the screen" (S = `left` | `right`): the centre x of the element's bounding box is left
+  / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
+  `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
+  `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
+  `time-grid`).
+- "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
+- "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
+  side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
+

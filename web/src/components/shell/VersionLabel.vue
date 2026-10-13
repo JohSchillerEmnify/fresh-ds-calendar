@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { shownVersion } from '@/pwa/version';
 
-/** Small build-version label in the bottom-left corner (pref `versionInCorner`); `raised` lifts it above the bottom bar. */
+/** Small build-version label in the bottom-left corner, bottom right in left-handed mode on the phone (pref `versionInCorner`); `raised` lifts it above the bottom bar. */
 defineProps<{ raised: boolean }>();
 const { version } = shownVersion();
 </script>
@@ -17,4 +17,6 @@ const { version } = shownVersion();
   font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); opacity: 0.7;
 }
 .version-label.raised { bottom: calc(var(--navbar-h) + var(--safe-bottom) + 4px); }
+/* Left-handed mode (phone): the "+" button is at the left, so the label goes to the right. */
+@media (max-width: 767.98px) { html[data-hand='left'] .version-label { left: auto; right: 8px; } }
 </style>

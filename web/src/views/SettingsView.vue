@@ -179,6 +179,7 @@ async function resetDemo() {
             <TextField v-if="approachChoice === 'custom'" v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" label="Hours" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
           </div>
           <div class="row"><div class="grow"><span class="lab">Show tasks calendar in Google</span><span class="sub">Task lists stay in the app either way</span></div><Switch :model-value="labs.tasksCalendarVisible" label="Show tasks calendar in Google" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">Left-handed mode</span><span class="sub">Mirrors the phone layout so the main controls sit under the left thumb</span></div><Switch :model-value="labs.leftHanded" label="Left-handed mode" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
         </section>
 
         <section id="s-tasklists" class="card" data-testid="settings-section" data-section="tasklists" aria-labelledby="h-cats">
@@ -226,7 +227,7 @@ async function resetDemo() {
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">Signed in with Google</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">Sign out</Button></div>
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">Reset demo data</span><span class="sub">Replaces the mock calendar with fresh demo events</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">Reset</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">Version {{ build.version }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
-          <div class="row"><div class="grow"><span class="lab">Show version in the corner</span><span class="sub">A small label at the bottom left</span></div><Switch :model-value="labs.versionInCorner" label="Show version in the corner" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">Show version in the corner</span><span class="sub">A small label in a bottom corner</span></div><Switch :model-value="labs.versionInCorner" label="Show version in the corner" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>
         </section>
       </div>
     </div>
@@ -267,4 +268,9 @@ h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-mediu
 .catmain { flex: 1; min-height: 52px; display: flex; align-items: center; gap: 10px; text-align: left; min-width: 0; }
 .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; }
 .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--md-sys-typescale-body-large); }
+/* Left-handed mode (phone): the switch or trailing control at the left start of the row, the label after it. */
+@media (max-width: 767.98px) {
+  html[data-hand='left'] .row:not(.col, .link) { flex-direction: row-reverse; }
+  html[data-hand='left'] .cat { flex-direction: row-reverse; padding: 0 16px 0 8px; }
+}
 </style>

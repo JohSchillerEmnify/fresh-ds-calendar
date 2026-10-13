@@ -85,7 +85,7 @@ function toggleFold(id: string) {
     >
       <span class="chip" :class="{ none: !lists.count }" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}</span>
       <span v-if="lists.nextTask && !expanded && isPhone" class="peek">Next: {{ lists.nextTask.item.title }}</span>
-      <IconExpand class="chev" aria-hidden="true" />
+      <IconExpand class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
     </button>
     <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
@@ -145,5 +145,12 @@ function toggleFold(id: string) {
   .bar { cursor: default; padding-right: 12px; }
   .chev { display: none; }
   .list { flex: 1; min-height: 0; max-height: none; }
+}
+/* Left-handed mode (phone): the toggle chevron sits at the left, right of the "+" button's clearance; the fold toggle too. */
+@media (max-width: 767.98px) {
+  html[data-hand='left'] .bar { padding: 0 16px 0 88px; }
+  html[data-hand='left'] .chev { order: -1; margin-left: 0; }
+  html[data-hand='left'] .head { padding: 0 12px 0 0; }
+  html[data-hand='left'] .mv { order: -1; }
 }
 </style>

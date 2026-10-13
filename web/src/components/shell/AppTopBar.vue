@@ -89,4 +89,11 @@ function toggleFilters() {
   .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
   .title { font-size: 24px; }
 }
+/* Left-handed mode (phone): the settings group and the leading widgets sit at the left, title and navigation at the right. */
+@media (max-width: 767.98px) {
+  html[data-hand='left'] .grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'actions title' 'widgets nav'; padding: 2px 8px 2px 4px; }
+  html[data-hand='left'] .actions { flex-direction: row-reverse; }
+  html[data-hand='left'] .widgets { justify-content: flex-start; }
+  html[data-hand='left'] .nav { justify-self: end; }
+}
 </style>
