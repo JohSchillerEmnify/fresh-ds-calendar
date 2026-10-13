@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "calendar-theme/1",
+  "title": "Calendar theme document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "name"
+  ],
+  "properties": {
+    "schema": {
+      "const": "calendar-theme/1",
+      "description": "Always the text calendar-theme/1."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "description": "Short theme name shown in the gallery."
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "mode": {
+      "enum": [
+        "follow",
+        "light",
+        "dark"
+      ],
+      "default": "follow",
+      "description": "follow = the person's own light/dark setting; light or dark forces that mode."
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "seed generates the whole Material 3 colour scheme; light and dark replace single roles of it (always give both when you set roles, and keep text readable: contrast of every on-* role against its background at least 4.5:1).",
+      "properties": {
+        "seed": {
+          "$ref": "#/$defs/hex"
+        },
+        "light": {
+          "type": "object",
+          "description": "Role colours for light mode.",
+          "additionalProperties": false,
+          "properties": {
+            "background": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-background": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-bright": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-lowest": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-low": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-high": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-highest": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-surface-variant": {
+              "$ref": "#/$defs/hex"
+            },
+            "outline": {
+              "$ref": "#/$defs/hex"
+            },
+            "outline-variant": {
+              "$ref": "#/$defs/hex"
+            },
+            "inverse-surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "inverse-on-surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "inverse-primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "primary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-primary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "secondary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-secondary": {
+              "$ref": "#/$defs/hex"
+            },
+            "secondary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-secondary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "tertiary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-tertiary": {
+              "$ref": "#/$defs/hex"
+            },
+            "tertiary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-tertiary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "error": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-error": {
+              "$ref": "#/$defs/hex"
+            },
+            "error-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-error-container": {
+              "$ref": "#/$defs/hex"
+            }
+          }
+        },
+        "dark": {
+          "type": "object",
+          "description": "Role colours for dark mode.",
+          "additionalProperties": false,
+          "properties": {
+            "background": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-background": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-bright": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-lowest": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-low": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-high": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface-container-highest": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-surface-variant": {
+              "$ref": "#/$defs/hex"
+            },
+            "outline": {
+              "$ref": "#/$defs/hex"
+            },
+            "outline-variant": {
+              "$ref": "#/$defs/hex"
+            },
+            "inverse-surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "inverse-on-surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "inverse-primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "primary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-primary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "secondary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-secondary": {
+              "$ref": "#/$defs/hex"
+            },
+            "secondary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-secondary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "tertiary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-tertiary": {
+              "$ref": "#/$defs/hex"
+            },
+            "tertiary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-tertiary-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "error": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-error": {
+              "$ref": "#/$defs/hex"
+            },
+            "error-container": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-error-container": {
+              "$ref": "#/$defs/hex"
+            }
+          }
+        }
+      }
+    },
+    "glow": {
+      "enum": [
+        "off",
+        "soft",
+        "neon"
+      ],
+      "default": "off",
+      "description": "Glow around entries."
+    },
+    "entries": {
+      "enum": [
+        "solid",
+        "tinted",
+        "outline"
+      ],
+      "default": "solid",
+      "description": "How calendar entries are drawn."
+    },
+    "corners": {
+      "enum": [
+        "square",
+        "round",
+        "pill"
+      ],
+      "default": "round",
+      "description": "Corner shape of chips, cards and dialogs."
+    },
+    "font": {
+      "enum": [
+        "system",
+        "serif",
+        "rounded",
+        "mono"
+      ],
+      "default": "system",
+      "description": "Curated font family."
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The picture in the top bar: either one of the built-in scenes or your own SVG (one of builtin or svg).",
+      "properties": {
+        "builtin": {
+          "enum": [
+            "none",
+            "sunflowers",
+            "mordor",
+            "spring",
+            "summer",
+            "fall",
+            "winter",
+            "halloween"
+          ]
+        },
+        "svg": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Own picture as SVG text, drawn wide and low (about 1200x120, preserveAspectRatio slice). It shows only as an image: no script, no foreignObject, no image element, no style element, no event attributes, no external links (only #fragment references). Use its own colours; dark falls back to light.",
+          "properties": {
+            "light": {
+              "type": "string",
+              "maxLength": 102400
+            },
+            "dark": {
+              "type": "string",
+              "maxLength": 102400
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "x-hint": "a 6-digit hex colour like #1a73e8"
+    }
+  }
+}
