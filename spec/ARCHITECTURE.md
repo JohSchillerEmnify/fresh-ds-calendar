@@ -902,8 +902,38 @@ It never reloads by itself and never interrupts an open dialog.
   Mordor scene) does the same, and Mordor stays a scene choice. Gallery `theme-card` (`data-name`, `aria-pressed`), each
   card renders a real mini week (event chip + task list card) under that preset's attributes in a scoped container;
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
-  in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
-  checkbox. Picking applies at once and saves in the background.
+  in that style; the live preview (`theme-live-preview`, next section). Picking applies at once and saves in the
+  background.
+
+### Theme menu live preview (owner, 2026-10-13)
+
+The old "Preview" card scrolled away, which made the menu unusable. It is replaced by `ThemeLivePreview.vue`
+(`web/src/components/settings/`), a sticky mini calendar, so a person always sees what a choice does.
+
+- **Real components, sample data.** It renders `TopAppBar` with `TopBarScene` (the effective scene: seasons, holidays,
+  the drawn scene and an own SVG all show) with the app's `IconButton`s, a three-day week slice whose events are drawn by
+  `ItemView` (so by the registered `EventItem`, as a time-grid block), a task list drawn with `RewardCheckbox` rows (some
+  ticked), the `Fab` ("+") and the app icons. Nothing is a look-alike, so glow, entries style, tint, corner radius,
+  checkbox shape/fill/glyph, icon set, density and scene all follow without per-feature code. The data is a static
+  module (`themeLivePreviewSample.ts`): fixed far-future dates (never "today", so no dimming or ring), fixed colours, no
+  API call, no store write; nothing touches the person's real calendar.
+- **Live.** The preview sits under the same `<html>` theme attributes and custom properties as the app, and those
+  come from the theme store's `resolved`, which includes the slider path `theme.preview(...)` while a slider is
+  dragged. Nothing new is wired.
+- **Scaling.** The content is laid out at a fixed design width (420 px) and scaled with `transform: scale(k)`,
+  `k = container width / 420` (measured with `useElementSize`, capped at 1); the wrapper's height is the natural
+  height times `k`, capped at `34vh` on the phone. `pointer-events: none` and `inert` on the scaled content, and
+  `providePreview(true)` so the event renderer skips its drag handlers. Aria: the content is `aria-hidden`; the
+  region is labelled by the toggle.
+- **Placement.** Phone: first child of the menu content, `position: sticky` right under the menu header (header is
+  `safe-top + 64 px` tall). Desktop (>= 900 px): the menu content is a two-column grid, settings left, the preview
+  sticky on the right (A-110).
+- **Collapse.** The toggle (`theme-live-preview-toggle`) folds it to the top bar scene strip. The state (`data-collapsed`)
+  is kept per device in `localStorage` (`cal.themePreviewCollapsed`, every access in try/catch; unavailable storage
+  means expanded and no memory).
+- **Motion.** Scaled scene animations run only at the Full animation level; Reduced and Off pause every animation
+  and transition inside the preview (a static pose).
+- **Strings.** All new text goes through `t()` (`themePreview.*`, English and German; the fun languages fall back).
 
 ### Fine-tuning sliders, density and icon choices (owner, 2026-10-13)
 
