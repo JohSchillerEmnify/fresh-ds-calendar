@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue';
+import { t } from '@/i18n';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { useUiStore } from '@/stores/ui';
-import { t } from '@/i18n';
 
 const ui = useUiStore();
 const timers = new Map<number, Disposer>();

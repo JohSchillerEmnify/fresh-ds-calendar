@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { t } from '@/i18n';
 import type { ChangeKind, CheckInResult, Motivation } from './types';
 
 export interface StartOptions {
@@ -22,8 +23,8 @@ export function diffMotivation(prev: Motivation | null, next: Motivation): Chang
 /** Message for a check-in result, or null when nothing should be shown. Never shaming. */
 export function checkInMessage(prev: Motivation | null, r: CheckInResult): string | null {
   if (!r.newToday) return null;
-  if (r.current === 1 && prev?.streak.lastCheckIn) return 'Welcome back!';
-  return `Checked in, day ${r.current}`;
+  if (r.current === 1 && prev?.streak.lastCheckIn) return t('tasks.streak.welcomeBack');
+  return t('tasks.streak.checkedIn', { day: r.current });
 }
 
 export const useMotivationStore = defineStore('motivation', () => {

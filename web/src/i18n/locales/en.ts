@@ -8,9 +8,11 @@
  * vue-i18n's: `{name}` interpolates, `a | b` pluralises, and the characters `@`, `|`, `{` and `}` must be escaped.
  */
 import calendarEn from './en/calendar.ts';
+import tasksEn from './en/tasks.ts';
 
 export default {
   calendar: calendarEn,
+  tasks: tasksEn,
   views: {
     year: 'Year',
     month: 'Month',
@@ -23,17 +25,6 @@ export default {
   },
   nav: {
     views: 'Views',
-  },
-  tasks: {
-    tabs: { label: 'Tasks', open: 'Open', archive: 'Archive' },
-    archive: {
-      search: 'Search finished lists',
-      empty: 'No finished task lists yet.',
-      noMatch: 'No finished task list matches.',
-      useAsTemplate: 'Use as template',
-      templateCreated: 'Created an open copy of {title}',
-      templateFailed: "Couldn't create the copy.",
-    },
   },
   common: {
     off: 'Off',

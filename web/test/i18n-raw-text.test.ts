@@ -23,6 +23,21 @@ const MIGRATED = [
   'src/features/calendar/ResizeHandles.vue',
   'src/features/labs/approach/ApproachBar.vue', 'src/features/labs/clock/ClockView.vue', 'src/features/labs/strip/StripView.vue',
   'src/features/labs/timeline/TimelineView.vue',
+  'src/features/tasklists/TasksView.vue',
+  'src/features/tasklists/TaskListView.vue',
+  'src/features/tasklists/TaskListCard.vue',
+  'src/features/tasklists/ExpandedTaskList.vue',
+  'src/features/tasklists/TaskListDialog.vue',
+  'src/features/tasklists/TaskTray.vue',
+  'src/features/tasklists/StrikeLine.vue',
+  'src/features/motivation/PlantCard.vue',
+  'src/features/motivation/Plant.vue',
+  'src/features/motivation/LeadingWidgets.vue',
+  'src/features/motivation/StreakFlame.vue',
+  'src/features/motivation/StreakToast.vue',
+  'src/features/motivation/SunflowerField.vue',
+  'src/features/motivation/SupportCat.vue',
+  'src/features/motivation/DragCat.vue',
 ];
 /**
  * Strings that other feature branches added before the i18n slice landed. They move into the catalogue with their area

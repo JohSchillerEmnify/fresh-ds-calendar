@@ -11,6 +11,7 @@
  */
 import { api, ApiError, type RequestOptions } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
+import { t } from '@/i18n';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
@@ -39,7 +40,6 @@ const queues = new Map<string, Queue>();
 const keyOf = new Map<string, string>();
 let tmpSeq = 0;
 
-export const ROLLBACK_MESSAGE = "Couldn't save that change. It was undone.";
 
 function recount(tl: TaskList): TaskList {
   return { ...tl, doneCount: tl.items.filter((i) => i.done).length, totalCount: tl.items.length };
@@ -74,11 +74,11 @@ async function run(listId: string, q: Queue): Promise<void> {
             // The list was removed elsewhere: stop, drop it from the cache.
             q.ops.length = 0;
             items.remove(listId);
-            useUiStore().notify('This task list no longer exists.');
+            useUiStore().notify(t('tasks.list.gone'));
             break;
           }
         }
-        useUiStore().notify(ROLLBACK_MESSAGE, { testid: 'tasklist-rollback' });
+        useUiStore().notify(t('tasks.list.rollback'), { testid: 'tasklist-rollback' });
       }
       q.ops.shift();
       if (q.ops.length) render(q);

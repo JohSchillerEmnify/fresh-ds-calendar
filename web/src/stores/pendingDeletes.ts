@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
 import { ApiError } from '@/api/client';
+import { t } from '@/i18n';
 import type { CalendarEvent, TaskItem, TaskList } from '@/api/types';
 import { removeItem } from '@/features/tasklists/ops';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
 import { useThemeStore } from './theme';
 import { useUiStore } from './ui';
-import { t } from '@/i18n';
 
 /** How long a delete can be undone before its request is sent (ARCHITECTURE "Delete with undo"). */
 export const UNDO_MS = 6000;

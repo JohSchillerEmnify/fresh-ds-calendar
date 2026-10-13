@@ -1,21 +1,26 @@
 import { format } from 'date-fns';
 import type { TaskList } from '@/api/types';
+import { t } from '@/i18n';
+import { dateLocale, language } from '@/i18n/language';
 import { parseIsoDate } from '@/lib/dates';
 
 /** 45 -> "~45 min", 90 -> "~1 h 30 min", 120 -> "~2 h". */
 export function formatEstimate(min: number): string {
-  if (min < 60) return `~${min} min`;
-  const h = Math.floor(min / 60), m = min % 60;
-  return m ? `~${h} h ${m} min` : `~${h} h`;
+  if (min < 60) return t('tasks.card.estimateMin', { min });
+  const hours = Math.floor(min / 60), rest = min % 60;
+  return rest ? t('tasks.card.estimateHoursMin', { hours, min: rest }) : t('tasks.card.estimateHours', { hours });
 }
 
 /** "From Sat 10 Oct" (gentle wording, never "overdue"). */
 export function carriedLabel(date: string | null): string {
   const d = date ? parseIsoDate(date) : null;
-  return d ? `From ${format(d, 'EEE d MMM')}` : 'From earlier';
+  if (!d) return t('tasks.card.fromEarlier');
+  // English keeps its fixed date form; the other languages follow Intl (ARCHITECTURE "i18n" Formats)
+  const day = language.value === 'en' ? format(d, 'EEE d MMM') : new Intl.DateTimeFormat(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+  return t('tasks.card.from', { date: day });
 }
 
-export const itemsText = (tl: TaskList): string => (tl.items.length ? tl.items.map((i) => i.title).join(', ') : 'No items');
+export const itemsText = (tl: TaskList): string => (tl.items.length ? tl.items.map((i) => i.title).join(', ') : t('tasks.card.noItems'));
 export const firstOpenItem = (tl: TaskList) => tl.items.find((i) => !i.done) ?? null;
 
 /** All items ticked (an empty list is not "done"). */

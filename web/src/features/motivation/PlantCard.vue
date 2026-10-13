@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { t, type MessageKey } from '@/i18n';
 import { clampLeft } from '@/lib/clamp';
 import Plant from './Plant.vue';
 import type { ChangeKind, Motivation } from './types';
@@ -12,6 +13,10 @@ function place() {
   pos.value = { top: r ? r.bottom + 6 : 56, left: clampLeft(r ? r.left : 12, w, window.innerWidth) };
 }
 const emit = defineEmits<{ close: [] }>();
+
+/** Catalogue keys of the stage names and mood messages: the server's English text is not shown. */
+const STAGE_KEYS: MessageKey[] = ['tasks.plant.stage.seed', 'tasks.plant.stage.sprout', 'tasks.plant.stage.small', 'tasks.plant.stage.leafy', 'tasks.plant.stage.flowering'];
+const progressText = computed(() => (toNext.value === null ? t('tasks.plant.fullyGrown') : t('tasks.plant.toNext', { count: toNext.value })));
 
 const toNext = computed(() => (props.plant.nextStageAt === null ? null : Math.max(0, props.plant.nextStageAt - props.plant.growth)));
 const pct = computed(() => {
@@ -30,14 +35,14 @@ onBeforeUnmount(() => { document.removeEventListener('keydown', onKey); window.r
 <template>
   <Teleport to="body">
   <div class="pc-scrim" data-testid="plant-card-scrim" @click="emit('close')" />
-  <section class="pc" :style="{ top: pos.top + 'px', left: pos.left + 'px' }" data-testid="plant-card" role="dialog" aria-label="Your plant" :data-mood="plant.mood">
+  <section class="pc" :style="{ top: pos.top + 'px', left: pos.left + 'px' }" data-testid="plant-card" role="dialog" :aria-label="t('tasks.plant.label')" :data-mood="plant.mood">
     <Plant :stage="plant.stageIndex" :mood="plant.mood" :size="112" :change="change" />
-    <h3 class="pc-stage" data-testid="plant-card-stage">{{ plant.stage }}</h3>
-    <p class="pc-line" data-testid="plant-card-line">{{ plant.message }}</p>
-    <div class="pc-bar" role="progressbar" :aria-valuenow="pct" aria-valuemin="0" aria-valuemax="100" :aria-label="toNext === null ? 'Fully grown' : `${toNext} points to the next stage`">
+    <h3 class="pc-stage" data-testid="plant-card-stage">{{ t(STAGE_KEYS[plant.stageIndex]) }}</h3>
+    <p class="pc-line" data-testid="plant-card-line">{{ t(`tasks.plant.mood.${plant.mood}`) }}</p>
+    <div class="pc-bar" role="progressbar" :aria-valuenow="pct" aria-valuemin="0" aria-valuemax="100" :aria-label="progressText">
       <span :style="{ width: pct + '%' }" />
     </div>
-    <p class="pc-sub">{{ toNext === null ? 'Fully grown' : `${toNext} points to the next stage` }} · {{ plant.todayPoints }}/30 today</p>
+    <p class="pc-sub">{{ progressText }} · {{ t('tasks.plant.today', { points: plant.todayPoints }) }}</p>
   </section>
   </Teleport>
 </template>

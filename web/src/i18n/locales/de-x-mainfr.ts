@@ -5,8 +5,11 @@
 import type { PartialMessages } from '../schema';
 import calendarMainfr from './de-x-mainfr/calendar.ts';
 
+import tasksMainfr from './de-x-mainfr/tasks.ts';
+
 export default {
   calendar: calendarMainfr,
+  tasks: tasksMainfr,
   views: {
     year: 'Jahr',
     month: 'Monad',
@@ -16,10 +19,6 @@ export default {
   },
   nav: {
     views: 'Ansichdn',
-  },
-  tasks: {
-    tabs: { open: 'Offn', archive: 'Archiv' },
-    archive: { useAsTemplate: 'Als Vorlach nemma' },
   },
   common: {
     off: 'Aus',

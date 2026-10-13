@@ -5,7 +5,7 @@
  * items work as there; the title opens the task list dialog, and "Today" / "Tomorrow" give the list a date.
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
+import { t } from '@/i18n';
 import { ApiError } from '@/api/client';
 import type { TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
 import { IconSwapVert as IconSwap } from '@/components/icons';
@@ -28,7 +28,6 @@ import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
 
-const { t } = useI18n();
 const tasks = useTasksViewStore();
 const items = useItemsStore();
 const prefs = usePrefsStore();
@@ -38,13 +37,13 @@ const sync = useSyncStore();
 const ui = useUiStore();
 const filters = useFilters();
 
-const groupOptions: { value: TasksGroupBy; label: string }[] = [
-  { value: 'time', label: 'Time' }, { value: 'category', label: 'Category' }, { value: 'none', label: 'None' },
-];
-const sortOptions: { value: TasksSortBy; label: string }[] = [
-  { value: 'date', label: 'Date' }, { value: 'name', label: 'Name' }, { value: 'category', label: 'Category' },
-  { value: 'changed', label: 'Last changed' }, { value: 'progress', label: 'Progress' },
-];
+const groupOptions = computed<{ value: TasksGroupBy; label: string }[]>(() => [
+  { value: 'time', label: t('tasks.view.group.time') }, { value: 'category', label: t('tasks.view.group.category') }, { value: 'none', label: t('tasks.view.group.none') },
+]);
+const sortOptions = computed<{ value: TasksSortBy; label: string }[]>(() => [
+  { value: 'date', label: t('tasks.view.sort.date') }, { value: 'name', label: t('tasks.view.sort.name') }, { value: 'category', label: t('tasks.view.sort.category') },
+  { value: 'changed', label: t('tasks.view.sort.changed') }, { value: 'progress', label: t('tasks.view.sort.progress') },
+]);
 
 const shown = computed(() => filters.apply(tasks.lists) as TaskList[]);
 const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories, prefs.tasksSortDir));
@@ -79,13 +78,13 @@ onBeforeUnmount(() => stop?.());
 
 /** Saves a choice as the person's pref; the control shows it at once and snaps back when the server refuses. */
 function choose(p: { tasksGroupBy: TasksGroupBy } | { tasksSortBy: TasksSortBy } | { tasksSortDir: TasksSortDir }): void {
-  prefs.set(p).catch(() => ui.notify("Couldn't save that choice."));
+  prefs.set(p).catch(() => ui.notify(t('tasks.view.choiceNotSaved')));
 }
 async function setDate(l: TaskList, offsetDays: number): Promise<void> {
   try {
     await items.updateTaskList(l.id, { date: toIsoDate(addDays(clock.todayDate, offsetDays)) });
   } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : "Couldn't set the date.");
+    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.view.dateNotSet'));
   }
 }
 </script>
@@ -116,20 +115,20 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
     </div>
     <div v-if="tasks.tab === 'open'" class="controls">
       <SegmentedButton
-        :model-value="prefs.tasksGroupBy" :options="groupOptions" label="Group by" class="gby" data-testid="tasks-group-by"
+        :model-value="prefs.tasksGroupBy" :options="groupOptions" :label="t('tasks.view.groupBy')" class="gby" data-testid="tasks-group-by"
         @update:model-value="choose({ tasksGroupBy: $event })"
       />
       <Select
-        :model-value="prefs.tasksSortBy" :options="sortOptions" label="Sort by" class="sby" data-testid="tasks-sort-by"
+        :model-value="prefs.tasksSortBy" :options="sortOptions" :label="t('tasks.view.sortBy')" class="sby" data-testid="tasks-sort-by"
         @update:model-value="choose({ tasksSortBy: $event })"
       />
       <IconButton
-        :label="prefs.tasksSortDir === 'reversed' ? 'Sort order: reversed' : 'Sort order: default'" :pressed="prefs.tasksSortDir === 'reversed'"
+        :label="prefs.tasksSortDir === 'reversed' ? t('tasks.view.sortDirReversed') : t('tasks.view.sortDirDefault')" :pressed="prefs.tasksSortDir === 'reversed'"
         :data-dir="prefs.tasksSortDir" data-testid="tasks-sort-dir" @click="choose({ tasksSortDir: prefs.tasksSortDir === 'reversed' ? 'default' : 'reversed' })"
       ><IconSwap /></IconButton>
     </div>
     <div v-if="tasks.tab === 'open'" class="scroll">
-      <p v-if="!groups.length" class="empty" data-testid="tasks-empty">No open task lists. Tap + to add one.</p>
+      <p v-if="!groups.length" class="empty" data-testid="tasks-empty">{{ t('tasks.view.empty') }}</p>
       <section v-for="g in groups" :key="g.key" class="group" data-testid="tasks-group" :data-group="g.key">
         <h2 v-if="g.title" class="gt" data-testid="tasks-group-title">{{ g.title }}</h2>
         <ul class="list">
@@ -139,8 +138,8 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
           >
             <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" @completed="tasks.markFinished(l.id)" />
             <div v-if="isOpen(l)" class="quick">
-              <Button variant="tonal" data-testid="tasks-today" @click="setDate(l, 0)">Today</Button>
-              <Button variant="tonal" data-testid="tasks-tomorrow" @click="setDate(l, 1)">Tomorrow</Button>
+              <Button variant="tonal" data-testid="tasks-today" @click="setDate(l, 0)">{{ t('tasks.view.today') }}</Button>
+              <Button variant="tonal" data-testid="tasks-tomorrow" @click="setDate(l, 1)">{{ t('tasks.view.tomorrow') }}</Button>
             </div>
           </li>
         </ul>

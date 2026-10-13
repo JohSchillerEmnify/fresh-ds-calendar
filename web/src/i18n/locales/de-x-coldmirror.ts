@@ -5,17 +5,20 @@
 import type { Messages } from '../schema';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
 
+import tasksColdmirror from './de-x-coldmirror/tasks.ts';
+
 export default {
   calendar: calendarColdmirror,
+  tasks: tasksColdmirror,
   views: {
     year: 'Jahr, yo',
     month: 'Monat, yo',
     week: 'Woche, fresh',
     day: 'Tag, Digga',
+    tasks: 'Aufgaben, yo',
     clock: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
-    tasks: 'Aufgaben, Digga',
   },
   nav: {
     views: 'Ansichten, yo',

@@ -3,6 +3,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { TaskList } from '@/api/types';
+import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
@@ -34,11 +35,11 @@ const error = ref('');
 const conflict = ref(false);
 const saving = ref(false);
 
-function fill(t: TaskList) {
-  etag = t.etag;
+function fill(src: TaskList) {
+  etag = src.etag;
   Object.assign(form, {
-    title: t.title, date: t.date ?? '', noDate: t.date === null, time: t.time ?? '', estimate: t.estimateMinutes ? String(t.estimateMinutes) : '',
-    categoryId: t.categoryId ?? 'none',
+    title: src.title, date: src.date ?? '', noDate: src.date === null, time: src.time ?? '', estimate: src.estimateMinutes ? String(src.estimateMinutes) : '',
+    categoryId: src.categoryId ?? 'none',
   });
   original = JSON.stringify(form);
 }
@@ -47,15 +48,18 @@ onMounted(async () => {
   const cur = items.get(props.id!);
   if (cur?.kind === 'tasklist') return fill(cur);
   loading.value = true;
-  try { const t = await api.getTaskList(props.id!); items.upsert(t); fill(t); }
-  catch { ui.notify('This task list no longer exists.'); emit('close'); }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); }
+  catch { ui.notify(t('tasks.list.gone')); emit('close'); }
   finally { loading.value = false; }
 });
 
 const dirty = computed(() => JSON.stringify(form) !== original);
-const catOptions = computed(() => [{ value: 'none', label: 'No category' }, ...settings.categories.map((c) => ({ value: c.id, label: c.name }))]);
+const catOptions = computed(() => [{ value: 'none', label: t('tasks.noCategory') }, ...settings.categories.map((c) => ({ value: c.id, label: c.name }))]);
 const cat = computed(() => settings.categoryById(form.categoryId === 'none' ? null : form.categoryId));
-const repeatOptions = [{ value: '', label: 'Does not repeat' }, { value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }];
+const repeatOptions = computed(() => [
+  { value: '', label: t('tasks.dialog.repeatNone') }, { value: 'daily', label: t('tasks.dialog.daily') },
+  { value: 'weekly', label: t('tasks.dialog.weekly') }, { value: 'monthly', label: t('tasks.dialog.monthly') },
+]);
 
 /** "No date" on: the list will appear only in the Tasks view. Off: back to a date (today when none is set). */
 function toggleNoDate() {
@@ -88,14 +92,14 @@ async function save() {
   } catch (e) {
     saving.value = false;
     if (e instanceof ApiError) {
-      error.value = e.userMessage.replace('This event was', 'This task list was');
+      error.value = e.isConflict ? t('tasks.dialog.conflict') : e.userMessage;
       conflict.value = e.isConflict;
-    } else error.value = 'Something went wrong. Try again.';
+    } else error.value = t('tasks.dialog.failed');
   }
 }
 async function reload() {
-  try { const t = await api.getTaskList(props.id!); items.upsert(t); fill(t); error.value = ''; conflict.value = false; }
-  catch (e) { error.value = e instanceof ApiError ? e.userMessage : 'Could not reload.'; }
+  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); error.value = ''; conflict.value = false; }
+  catch (e) { error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.reloadFailed'); }
 }
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
 function remove() {
@@ -107,30 +111,30 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet open :label="editing ? 'Edit task list' : 'New task list'" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
+  <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" />
-      <h2 class="h">{{ editing ? 'Edit task list' : 'New task list' }}</h2>
+      <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
-      <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">Load latest version</Button></div>
-      <TextField v-model="form.title" label="Title" data-testid="tasklist-title" maxlength="200" autocomplete="off" />
+      <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">{{ t('tasks.dialog.loadLatest') }}</Button></div>
+      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" />
       <div class="two">
-        <TextField v-model="form.date" label="Date" type="date" :disabled="form.noDate" data-testid="tasklist-date" />
-        <TextField v-model="form.time" label="Time (optional)" type="time" :disabled="form.noDate" data-testid="tasklist-time" />
+        <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" :disabled="form.noDate" data-testid="tasklist-date" />
+        <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" :disabled="form.noDate" data-testid="tasklist-time" />
       </div>
-      <Button :variant="form.noDate ? 'tonal' : 'text'" class="nodate" :aria-pressed="form.noDate" data-testid="tasklist-no-date" @click="toggleNoDate">No date</Button>
-      <TextField v-model="form.estimate" label="Estimate in minutes (optional)" type="number" inputmode="numeric" min="5" max="720" step="5" data-testid="tasklist-estimate" />
+      <Button :variant="form.noDate ? 'tonal' : 'text'" class="nodate" :aria-pressed="form.noDate" data-testid="tasklist-no-date" @click="toggleNoDate">{{ t('tasks.dialog.noDate') }}</Button>
+      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" data-testid="tasklist-estimate" />
       <div class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
-        <Select v-model="form.categoryId" label="Category" :options="catOptions" class="grow" data-testid="tasklist-category" />
+        <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" class="grow" data-testid="tasklist-category" />
       </div>
-      <TextField v-if="!editing" v-model="form.items" label="Items (one per line)" multiline :rows="4" data-testid="tasklist-items" />
-      <Select v-if="!editing && !form.noDate" v-model="form.repeat" label="Repeat" :options="repeatOptions" data-testid="tasklist-repeat" />
+      <TextField v-if="!editing" v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
+      <Select v-if="!editing && !form.noDate" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div class="actions">
-        <Button v-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="remove">Delete</Button>
+        <Button v-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="remove">{{ t('tasks.dialog.delete') }}</Button>
         <span class="grow" />
-        <Button variant="text" data-testid="tasklist-cancel" @click="emit('close')">Cancel</Button>
-        <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">Save</Button>
+        <Button variant="text" data-testid="tasklist-cancel" @click="emit('close')">{{ t('tasks.dialog.cancel') }}</Button>
+        <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">{{ t('tasks.dialog.save') }}</Button>
       </div>
     </form>
   </AdaptiveSheet>

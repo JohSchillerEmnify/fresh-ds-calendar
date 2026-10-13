@@ -2,8 +2,11 @@
 import type { Messages } from '../schema';
 import calendarDe from './de/calendar.ts';
 
+import tasksDe from './de/tasks.ts';
+
 export default {
   calendar: calendarDe,
+  tasks: tasksDe,
   views: {
     year: 'Jahr',
     month: 'Monat',
@@ -16,17 +19,6 @@ export default {
   },
   nav: {
     views: 'Ansichten',
-  },
-  tasks: {
-    tabs: { label: 'Aufgaben', open: 'Offen', archive: 'Archiv' },
-    archive: {
-      search: 'Erledigte Listen durchsuchen',
-      empty: 'Noch keine erledigten Aufgabenlisten.',
-      noMatch: 'Keine erledigte Aufgabenliste passt.',
-      useAsTemplate: 'Als Vorlage verwenden',
-      templateCreated: 'Offene Kopie von {title} angelegt',
-      templateFailed: 'Die Kopie konnte nicht angelegt werden.',
-    },
   },
   common: {
     off: 'Aus',

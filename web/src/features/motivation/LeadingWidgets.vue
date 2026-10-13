@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { t } from '@/i18n';
 import Plant from './Plant.vue';
 import PlantCard from './PlantCard.vue';
 import StreakFlame from './StreakFlame.vue';
@@ -36,7 +37,7 @@ onBeforeUnmount(() => store.stop());
         :data-stage="plant.stage"
         :data-mood="plant.mood"
         :aria-expanded="cardOpen"
-        aria-label="Your plant"
+        :aria-label="t('tasks.plant.label')"
         @click="cardOpen = !cardOpen"
       >
         <Plant :stage="plant.stageIndex" :mood="plant.mood" :size="30" :change="store.change" />
