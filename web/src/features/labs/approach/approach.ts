@@ -1,5 +1,5 @@
 /** Pure math of the approach bar (Labs): which entries it shows, its time ticks and where the chips sit on the track. */
-import type { Segment } from '@/lib/items';
+import { taskListSpan, type Segment } from '@/lib/items';
 
 /** Tick steps in minutes, tried from the finest; the first whose labels do not collide wins. */
 export const TICK_STEPS = [15, 30, 60, 120, 180] as const;
@@ -9,16 +9,27 @@ export const MAX_ROWS = 2;
 export interface ApproachEntries { entries: Segment[]; atEnd: boolean }
 
 /**
- * All timed entries of today (events and task lists with a time) starting within `windowMin` after now, by start
+ * All timed entries of today (events and task lists with a time, carried-over ones included) starting within `windowMin` after now, by start
  * (owner, 2026-10-13: not only the next three). Entries already running stay (they slide out to the left). When none is within the window, the next timed entry of today is returned with `atEnd` (it waits at the right end
  * of the track).
  */
 export function approachEntries(daySegments: Segment[], nowMin: number, windowMin: number): ApproachEntries {
-  const timed = daySegments.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin);
+  const timed = daySegments.flatMap(timedToday).sort((a, b) => a.startMin - b.startMin);
   const ahead = timed.filter((s) => s.startMin > nowMin);
   const within = timed.filter((s) => s.endMin > nowMin && s.startMin <= nowMin + windowMin);
   if (within.length || !ahead.length) return { entries: within, atEnd: false };
   return { entries: [ahead[0]], atEnd: true };
+}
+
+/**
+ * The segment as it sits on the track, or none when it has no time today. A carried-over task list renders untimed on
+ * today but keeps its time, so on the track it sits at that time, as long as a timed task list lasts.
+ */
+function timedToday(s: Segment): Segment[] {
+  if (s.allDay) return [];
+  if (s.startTime !== null) return [s];
+  if (!s.carriedFrom || s.item.kind !== 'tasklist' || !s.item.time) return [];
+  return [{ ...s, startTime: s.item.time, ...taskListSpan(s.item.time, s.item.estimateMinutes) }];
 }
 
 export interface ApproachTick { min: number; x: number; label: string }
