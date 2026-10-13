@@ -362,8 +362,9 @@ otherwise; bundle budget §5a applies).
   3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
   4. *Focus & motivation*: transition warning, calm mode, streak flame, plant, sunflowers, best streak, support cat.
   5. *Motion & sound*: animations, ignore the device setting, sounds.
-  6. *Labs*: experimental views.
-  7. *Account & data*: sign out, demo data.
+  6. *Bedtime*: bedtime mode (see "Bedtime mode").
+  7. *Labs*: experimental views.
+  8. *Account & data*: sign out, demo data.
   Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
   rolled back with the error banner on failure).
 - **Tags shelved** (owner, 2026-10-13: purpose and flow unclear): no tag field in the forms, no tag chips in the
@@ -811,6 +812,57 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 - Strip: CSS scroll-snap columns, one per day, sharing ONE time scale (owner: aligned, like the week view): one hour
   gutter, one vertical scroll for all columns, all-day bands equally tall across columns; heights proportional to
   duration; extended in both directions as the user scrolls (virtualised).
+
+### Bedtime mode (owner, 2026-10-13)
+
+- **Setting**: a Settings section "Bedtime" (`settings-section` `data-section="bedtime"`) with the per-person pref
+  `bedtime` (server-whitelisted in `PATCH /api/prefs`, see API.md): `enabled` (default off), `mode` (`fixed` |
+  `dynamic`), fixed `bedtime` / `wake` (default 23:00 / 07:00), "Different on weekends" (`weekendDifferent`) with its
+  own `weekendBedtime` / `weekendWake` (default 00:00 / 09:00), dynamic `sleepMinutes` (default 480) and `leadMinutes`
+  (default 60), and `reminderMinutes` (default 30, 0 = no reminder). Testids `settings-bedtime-on`,
+  `settings-bedtime-mode` (segmented: `-fixed`, `-dynamic`), `settings-bedtime-time`, `settings-bedtime-wake`,
+  `settings-bedtime-weekend` (+ `-time`, `-wake`), `settings-bedtime-sleep`, `settings-bedtime-lead`,
+  `settings-bedtime-reminder`. Fields that do not apply to the chosen mode are hidden.
+- **The rule** (one pure module, `web/src/features/bedtime/bedtime.ts`; no view re-implements it):
+  `bedtimeWindows(range, prefs, items)` returns the night windows that touch `range` (`{ from, to }`, dates, `to`
+  exclusive). A night is named by its **wake-up day** W and spans `[W@wake - d, W@wake]` with `d = (wake - bedtime)
+  mod 24 h` (so `00:00` to `09:00` and `23:00` to `07:00` both work). The fixed pair of W is the main pair, or the
+  weekend pair when W is a Saturday or Sunday (the nights of Friday and Saturday).
+  - `fixed`: that pair.
+  - `dynamic`: wake-up = (first timed item of W) - `leadMinutes`, bedtime = wake-up - `sleepMinutes`. **Never later
+    than fixed**: when that bedtime is not earlier than the fixed bedtime, or W has no timed item, the whole fixed pair
+    is used. First item = the first segment on W that has a time and starts there (`first`, so no continuation of a
+    multi-day event), events and timed task lists, never all-day events or untimed / carried-over lists, hidden
+    calendars left out. `items` is anything with `get(date) -> Segment[]` (the items store's `byDate`).
+  - A window carries `wakeDate`, absolute `start` / `end` (minutes of wall-clock time since 1970-01-01, the same
+    wall-clock model as the segments), the `HH:MM` texts and its mode. `clipToDay(window, date)` gives the
+    `[startMin, endMin]` piece on one date (`1440` at the day's end), so a night over midnight is two pieces.
+- **Overlay**: one small component per view type, all fed by `useBedtimeWindows(range)` (store glue: prefs, items,
+  hidden calendars, and in dynamic mode a background `items.prefetch` of the day after the range so the next
+  morning's first item is known):
+  - `BedtimeColumn.vue` for every vertical day column (a registered grid layer for the Day and Week time grid, and a
+    direct insert in the Timeline day body and the Strip column);
+  - `BedtimeDial.vue` for the Clock (sector on the dial plate behind the arcs);
+  - `BedtimeTrack.vue` for the Approaching track.
+  Look: a dark translucent band (`color-mix` of the scrim token, so it works in light and dark themes), `pointer-events:
+  none` and below the event blocks (z-index 0, blocks start at 1), so events stay visible and interactive. A thin line
+  with a moon icon marks the bedtime edge and one with a sun icon the wake-up edge, only where the night really starts
+  or ends (the next day's piece of a night starts at 00:00 without an icon). Testids `bedtime-band` (grid, Timeline,
+  Strip, Clock) and `bedtime-track-band` (track); `bedtime-moon`, `bedtime-sun`. No animation anywhere (owner: reduced
+  motion), so there is nothing to switch off.
+- **Reminder** (`bedtimeReminder.ts`): driven by the shared clock tick like the transition warnings (no timer of its
+  own). When bedtime is on, `reminderMinutes` > 0 and now is within `reminderMinutes` before the start of tonight's
+  night, a snackbar `bedtime-reminder` says "Bedtime in N minutes" (N = minutes left). Once per night: the shown night is
+  remembered per device (`localStorage` `cal.bedtimeReminded` = the night's wake-up date, plus in memory). The clock tick
+  pauses while the app is hidden and the reminder is not raised while `document.hidden`; it shows when the app is visible
+  again if bedtime has not started. It uses the app clock only (test clock friendly).
+  **Push later**: the reminder goes out through a list of sinks (`reminderSinks`, the snackbar is the first one); a push
+  notification registers another sink without touching the schedule logic. No push is built now.
+- **Why** (alternatives weighed): one nested `bedtime` pref object instead of ten flat prefs (one validation, one
+  Settings group, one place to extend with push); naming the night by its wake-up day instead of its evening because the
+  dynamic rule and the weekend rule both start from the morning; the whole fixed pair when dynamic would be later
+  (instead of mixing a dynamic wake-up with a fixed bedtime) so the two times never contradict; a pure function plus
+  small overlay components (owner) instead of per-view logic, so a rule change is made once.
 
 ### New version notice (owner, 2026-10-12)
 
