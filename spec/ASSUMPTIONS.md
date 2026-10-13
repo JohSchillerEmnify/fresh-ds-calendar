@@ -184,8 +184,13 @@ spec files are named.
   form; an expanded form may come back as a later feature.
 - **A-69 One scene choice** (owner, 2026-10-13; wording of the migration inferred, flagged for confirmation): the old
   "Top bar scene" setting and the theme's "Scene" attribute become one theme attribute. On migration the scene that was
-  visible wins (the theme's if it was not None, else the old top bar setting). "Season" stores today's season scene, not
-  a standing "follow the season" value. (The garden-style gate for the Sunflower field is gone, see A-70.)
+  visible wins (the theme's if it was not None, else the old top bar setting). "Season" now is a standing "follow the
+  season" value (A-71). (The garden-style gate for the Sunflower field is gone, see A-70.)
+- **A-71 Season scene sentinel** (owner, 2026-10-13; the storage choice is my assumption, flagged): every scene can be
+  picked on its own. "Season" is stored as the value `season` and resolved by date; an explicit pick is stored as the
+  concrete scene. A person who earlier picked "Season" has today's concrete season scene stored, so after the change
+  that shows as an explicit pick of that scene (no data migration; picking "Season" again makes it automatic).
+  Automatic theme with no scene override shows "Season" as chosen.
 - **A-70 Scene and plant are separate** (owner, 2026-10-13): "scene" is the top bar background, "plant" the motivation
   widget; the term "garden style" is removed. The Sunflower field shows whenever it is the chosen scene. Reason: one
   setting (garden style) mixed a widget and a background, so choosing the Sunflower field scene could show nothing

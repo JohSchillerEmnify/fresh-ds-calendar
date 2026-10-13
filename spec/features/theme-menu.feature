@@ -1,8 +1,8 @@
 @themes @id:theme-menu
 Feature: Choosing and fine-tuning a theme
   A theme menu has three sections, in this order. "Presets" is a gallery of ready themes, each card drawn as a small
-  week in that theme's real look. "Scene" is the top app bar background (one choice: Season, Sunflower field, Mordor
-  or None). "Fine-tuning" is where every option shows itself as a small sample before it is picked: theme mode, seed
+  week in that theme's real look. "Scene" is the top app bar background (one choice: Season, which is automatic, or
+  any single scene: Spring, Summer, Fall, Halloween, Winter, Sunflower field, Mordor or None). "Fine-tuning" is where every option shows itself as a small sample before it is picked: theme mode, seed
   colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square, round, pill). There is no
   separate Mordor button; the Mordor preset does the same. A live preview with a
   real event, task list and checkbox follows every change, and so does the calendar, without a save button. Ready
@@ -59,7 +59,22 @@ Feature: Choosing and fine-tuning a theme
   Scenario: The scene has its own section with one choice
     When I open the week view for 2026-10-12
     And I open the theme menu
-    Then the scene choices are "Season", "Sunflower field", "Mordor" and "None"
+    Then the scene choices are "Season, Spring, Summer, Fall, Halloween, Winter, Sunflower field, Mordor, None"
+
+  Scenario: I can pick the Halloween scene in spring
+    Given today is 2026-04-12
+    When I open the week view for 2026-04-12
+    And I open the theme menu
+    And I pick "Halloween" for "Scene"
+    Then the top bar shows the "halloween" scene
+
+  Scenario: Season stays the automatic choice
+    Given today is 2026-04-12
+    When I open the week view for 2026-04-12
+    And I open the theme menu
+    And I pick "Halloween" for "Scene"
+    And I pick "Season" for "Scene"
+    Then the top bar shows the "spring" scene
 
   Scenario: The Mordor preset replaces the old Mordor button
     When I open the week view for 2026-10-12
