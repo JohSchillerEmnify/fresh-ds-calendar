@@ -35,12 +35,9 @@ export default {
     sortDirDefault: 'Reihenfolge: Standard, Digga',
     timeGroup: { overdue: 'Überfällig, du Oberpflaume', today: 'Heute, yo', week: 'Diese Woche, fresh', later: 'Später, Digga', nodate: 'Ohne Datum, yo' },
     empty: 'Keine offenen Aufgabenlisten, Schinken! Tipp auf +, Fresh D. sagt: mach mal eine.',
-    today: 'Heute, yo',
-    tomorrow: 'Morgen, fresh',
     collapseAll: 'Alle zuklappen, Digga',
     expandAll: 'Alle aufklappen, Digga',
     choiceNotSaved: 'Ey Mann, wo\'s mein Hörgerät? Die Auswahl wurde nicht gespeichert.',
-    dateNotSet: 'Das Datum hat nicht geklappt, Digga.',
   },
   tray: {
     open: '{count} offen, yo',

@@ -32,12 +32,9 @@ export default {
     sortDirDefault: 'Sortierung: Standard',
     timeGroup: { overdue: 'Überfällig', today: 'Heute', week: 'Diese Woche', later: 'Später', nodate: 'Ohne Datum' },
     empty: 'Keine offenen Aufgabenlisten. Tippe auf +, um eine anzulegen.',
-    today: 'Heute',
-    tomorrow: 'Morgen',
     collapseAll: 'Alle einklappen',
     expandAll: 'Alle aufklappen',
     choiceNotSaved: 'Die Auswahl konnte nicht gespeichert werden.',
-    dateNotSet: 'Das Datum konnte nicht gesetzt werden.',
   },
   tray: {
     open: '{count} offen',

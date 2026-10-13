@@ -1239,7 +1239,6 @@ my own theme {string} has {string} set to {string}
 the calendar contains an undated task list {string} with items:
 I open the Tasks view
 I create the task list {string} in the Tasks view
-I choose {string} for the task list {string} in the Tasks view
 I remove the date of the task list {string} in the Tasks view
 I group the Tasks view by {string}
 I sort the Tasks view by {string}
@@ -1278,8 +1277,6 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
 - "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
   without a date), type T into `tasklist-title`, `tasklist-save`.
-- "I choose X for the task list L": clicks `tasks-today` / `tasks-tomorrow` (X = `Today` / `Tomorrow`) in the
-  `tasks-item` with `data-title` L and waits for the `PATCH /api/tasklists/:id` response.
 - "I remove the date of the task list L": taps `tasklist-expanded-title` of L's `tasks-item` (opens the task list
   dialog), clicks `tasklist-no-date`, `tasklist-save`.
 - "I group … by G" clicks the `tasks-group-by` option with that label (`Time`, `Category`, `None`); "I sort … by S"

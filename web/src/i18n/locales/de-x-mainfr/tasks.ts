@@ -32,12 +32,9 @@ export default {
     sortDirDefault: 'Sortiern: normal',
     timeGroup: { overdue: 'Überfällig', today: 'Heid', week: 'Diese Woche', later: 'Schpäter', nodate: 'Ohne Datum' },
     empty: 'Kane offenen Aufgabnlisdn. Tipp auf +, wenns de a neue anlegn willsd.',
-    today: 'Heid',
-    tomorrow: 'Morgn',
     collapseAll: 'Alle eiklappn',
     expandAll: 'Alle aufklappn',
     choiceNotSaved: 'Des konnd ned gspeichert wern.',
-    dateNotSet: 'S Datum konnd ned gsetzt wern.',
   },
   tray: {
     open: '{count} offen',

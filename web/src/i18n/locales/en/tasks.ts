@@ -34,12 +34,9 @@ export default {
     sortDirDefault: 'Sort order: default',
     timeGroup: { overdue: 'Overdue', today: 'Today', week: 'This week', later: 'Later', nodate: 'No date' },
     empty: 'No open task lists. Tap + to add one.',
-    today: 'Today',
-    tomorrow: 'Tomorrow',
     collapseAll: 'Collapse all',
     expandAll: 'Expand all',
     choiceNotSaved: "Couldn't save that choice.",
-    dateNotSet: "Couldn't set the date.",
   },
   tray: {
     open: '{count} open',

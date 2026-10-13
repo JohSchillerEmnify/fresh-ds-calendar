@@ -45,13 +45,6 @@ When('I create the task list {string} in the Tasks view', async function (this: 
   expect((await saved).status(), 'task list saved').toBe(201);
 });
 
-When('I choose {string} for the task list {string} in the Tasks view', async function (this: World, choice: string, title: string) {
-  await openTasksView(this);
-  const saved = this.page.waitForResponse(isTasklistWrite('PATCH'));
-  await item(this, title).getByTestId(choice === 'Today' ? 'tasks-today' : 'tasks-tomorrow').click();
-  expect((await saved).status(), 'date saved').toBe(200);
-});
-
 When('I remove the date of the task list {string} in the Tasks view', async function (this: World, title: string) {
   await openTasksView(this);
   await item(this, title).getByTestId('tasklist-expanded-title').click();

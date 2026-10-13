@@ -16,14 +16,6 @@ Feature: The Tasks view lists every open task list
     Then the Tasks view lists "Taxes" under "No date"
     And neither the calendar on 2026-10-12 nor the open tasks tray shows the task list "Taxes"
 
-  Scenario: Today gives an undated list a date in the calendar
-    Given the calendar contains an undated task list "Taxes" with items:
-      | item | done |
-      | Form | no   |
-    When I choose "Today" for the task list "Taxes" in the Tasks view
-    Then the Tasks view lists "Taxes" under "Today"
-    And the calendar shows the task list "Taxes" on 2026-10-12
-
   Scenario: Removing the date takes a list out of the calendar
     Given the calendar contains a task list "Taxes" on 2026-10-12 with items:
       | item | done |

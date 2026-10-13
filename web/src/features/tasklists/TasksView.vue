@@ -11,7 +11,6 @@ import type { TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
-import { addDays, toIsoDate } from '@/lib/dates';
 import { displayTitle } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -73,13 +72,6 @@ onMounted(() => {
 });
 onBeforeUnmount(() => stop?.());
 
-async function setDate(l: TaskList, offsetDays: number): Promise<void> {
-  try {
-    await items.updateTaskList(l.id, { date: toIsoDate(addDays(clock.todayDate, offsetDays)) });
-  } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.view.dateNotSet'));
-  }
-}
 </script>
 
 <template>
@@ -118,10 +110,6 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
             :data-date="l.date ?? ''" :style="{ '--c': l.color }"
           >
             <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" @completed="tasks.markFinished(l.id)" />
-            <div v-if="isOpen(l)" class="quick">
-              <Button variant="tonal" data-testid="tasks-today" @click="setDate(l, 0)">{{ t('tasks.view.today') }}</Button>
-              <Button variant="tonal" data-testid="tasks-tomorrow" @click="setDate(l, 1)">{{ t('tasks.view.tomorrow') }}</Button>
-            </div>
           </li>
         </ul>
       </section>
