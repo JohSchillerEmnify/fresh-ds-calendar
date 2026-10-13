@@ -367,7 +367,7 @@ web app groups and sorts. Errors: 400, 502, 503. Undated lists are returned only
 ### Prefs: Tasks view
 
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
-`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); any other value is `400`.
+`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`.
 
 ### Motivation: check-in streak and plant
 

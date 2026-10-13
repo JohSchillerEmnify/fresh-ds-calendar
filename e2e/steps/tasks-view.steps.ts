@@ -80,6 +80,23 @@ When('I sort the Tasks view by {string}', async function (this: World, label: st
   expect((await saved).status(), 'sorting saved').toBe(200);
 });
 
+When('I sort the Tasks view by {string} in reversed order', async function (this: World, label: string) {
+  await openTasksView(this);
+  const control = this.page.getByTestId('tasks-sort-by');
+  if ((await selectedLabel(control)) !== label) {
+    const saved = this.page.waitForResponse(isPrefsPatch);
+    await chooseOption(control, label);
+    expect((await saved).status(), 'sorting saved').toBe(200);
+  }
+  const dir = this.page.getByTestId('tasks-sort-dir');
+  if ((await dir.getAttribute('aria-pressed')) !== 'true') {
+    const saved = this.page.waitForResponse(isPrefsPatch);
+    await dir.click();
+    expect((await saved).status(), 'sort order saved').toBe(200);
+  }
+  await expect(dir).toHaveAttribute('aria-pressed', 'true');
+});
+
 When('I tick the item {string} of the task list {string} in the Tasks view', async function (this: World, itemTitle: string, title: string) {
   await openTasksView(this);
   const row = item(this, title).getByTestId('tasklist-item').and(this.page.locator(attr('data-title', itemTitle)));

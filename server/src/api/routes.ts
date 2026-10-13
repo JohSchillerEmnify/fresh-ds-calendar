@@ -14,7 +14,7 @@ import {
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy,
+  isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -142,6 +142,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b.tasksSortBy !== undefined) {
       if (!TASKS_SORT_BY_VALUES.includes(b.tasksSortBy as TasksSortBy)) throw validation('Invalid tasksSortBy', 'tasksSortBy');
       patch.tasksSortBy = b.tasksSortBy as TasksSortBy;
+    }
+    if (b.tasksSortDir !== undefined) {
+      if (!TASKS_SORT_DIR_VALUES.includes(b.tasksSortDir as TasksSortDir)) throw validation('Invalid tasksSortDir', 'tasksSortDir');
+      patch.tasksSortDir = b.tasksSortDir as TasksSortDir;
     }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);

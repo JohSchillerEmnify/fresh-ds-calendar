@@ -56,6 +56,18 @@ Feature: The Tasks view lists every open task list
     When I sort the Tasks view by "Progress"
     Then the Tasks view lists "Packing, Trip, Garage"
 
+  Scenario: Sorting by progress can be reversed
+    Given the calendar contains an undated task list "Garage" with items:
+      | item  | done |
+      | Sweep | no   |
+      | Paint | no   |
+    And the calendar contains an undated task list "Packing" with items:
+      | item     | done |
+      | Passport | yes  |
+      | Charger  | no   |
+    When I sort the Tasks view by "Progress" in reversed order
+    Then the Tasks view lists "Garage, Packing"
+
   Scenario: The grouping choice follows the person to another device
     Given I group the Tasks view by "Category"
     When I switch to another device

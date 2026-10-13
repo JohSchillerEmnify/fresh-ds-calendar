@@ -72,6 +72,19 @@ describe('sorting', () => {
     ];
     expect(titles(sortLists(l, 'progress', cats))).toEqual(['half', 'third', 'quarter', 'empty', 'zero']);
   });
+  it('reverses the default direction of every key, keeping the tie-break', () => {
+    const l = [tl('a', { date: '2026-10-13', doneCount: 1, totalCount: 2, updated: '2026-10-01T10:00:00+02:00', categoryId: 'shopping' }),
+      tl('b', { date: '2026-10-14', doneCount: 0, totalCount: 2, updated: '2026-10-02T10:00:00+02:00', categoryId: 'work' }), tl('c')];
+    const order = (k: Parameters<typeof sortLists>[1]) => [titles(sortLists(l, k, cats)), titles(sortLists(l, k, cats, 'reversed'))];
+    expect(order('date')).toEqual([['a', 'b', 'c'], ['c', 'b', 'a']]);
+    expect(order('name')).toEqual([['a', 'b', 'c'], ['c', 'b', 'a']]);
+    expect(order('category')).toEqual([['a', 'b', 'c'], ['c', 'b', 'a']]);
+    expect(order('changed')).toEqual([['b', 'a', 'c'], ['a', 'c', 'b']]);
+    expect(order('progress')).toEqual([['a', 'b', 'c'], ['b', 'c', 'a']]);
+    // equal keys keep date, then name order even when reversed
+    const same = [tl('y', { date: '2026-10-14' }), tl('x', { date: '2026-10-14' })];
+    expect(titles(sortLists(same, 'progress', cats, 'reversed'))).toEqual(['x', 'y']);
+  });
   it('does not change the input', () => {
     const l = [tl('b'), tl('a')];
     sortLists(l, 'name', cats);

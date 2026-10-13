@@ -25,6 +25,10 @@ export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category
 export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export const TASKS_SORT_BY_VALUES: readonly TasksSortBy[] = ['date', 'name', 'category', 'changed', 'progress'];
 
+/** Sort direction relative to the sort key's own default (A-80). */
+export type TasksSortDir = 'default' | 'reversed';
+export const TASKS_SORT_DIR_VALUES: readonly TasksSortDir[] = ['default', 'reversed'];
+
 /** How far ahead the approach bar reaches, in whole hours (ARCHITECTURE "Labs"): 3, 6, 12 or any custom value. */
 export const APPROACH_WINDOW_MIN = 1;
 export const APPROACH_WINDOW_MAX = 24;
@@ -52,6 +56,7 @@ export interface Prefs {
   tasksSortBy: TasksSortBy;
   /** Labs: the AI prompt and the import in the theme menu (saved own themes show either way). */
   labsOwnThemes: boolean;
+  tasksSortDir: TasksSortDir;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -87,6 +92,7 @@ export class PrefsStore {
       tasksGroupBy: TASKS_GROUP_BY_VALUES.includes(p?.tasksGroupBy as TasksGroupBy) ? (p!.tasksGroupBy as TasksGroupBy) : 'time',
       tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
       labsOwnThemes: p?.labsOwnThemes === true,
+      tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
     };
   }
 
@@ -161,8 +167,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir };
   }
 
   /**

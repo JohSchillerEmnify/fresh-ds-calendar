@@ -226,6 +226,11 @@ spec files are named.
   chosen sort applies. Groups: Time in the order Overdue, Today, This week, Later, No date; Category in the settings
   order, then "No category"; None = one group. Empty groups are not shown. "This week" = tomorrow until the coming
   Sunday (weeks start on Monday); on a Sunday it is empty.
+- **A-80 Sort direction** (owner decision, 2026-10-13; storage form is my choice, recommended by the coordinator): the pref
+  `tasksSortDir` is `default` | `reversed` and is **relative to each sort key's own default direction** (A-72), not
+  absolute, because the defaults differ per key (date earliest first, last changed newest first, ...). `reversed`
+  flips the chosen key for every key; the tie-break (date, then name) keeps its direction. Group order is not
+  affected. Default `default`. The toggle `tasks-sort-dir` sits next to the sort control.
 - **A-73 Dating through the dialog** (assumption): the task list dialog gets a "No date" toggle beside the date field
   (also when creating from a calendar view); with it on the date and time are empty and the list is saved undated.
   Clearing the date field by hand without the toggle still fails with "Pick a date". An undated list has no time, no

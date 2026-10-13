@@ -6,8 +6,10 @@
  */
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ApiError } from '@/api/client';
-import type { TaskList, TasksGroupBy, TasksSortBy } from '@/api/types';
+import type { TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
+import IconSwap from '~icons/material-symbols/swap-vert';
 import Button from '@/components/m3/Button.vue';
+import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Select from '@/components/m3/Select.vue';
 import { useFilters } from '@/composables/useFilters';
@@ -41,7 +43,7 @@ const sortOptions: { value: TasksSortBy; label: string }[] = [
 ];
 
 const shown = computed(() => filters.apply(tasks.lists) as TaskList[]);
-const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories));
+const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories, prefs.tasksSortDir));
 
 let stop: (() => void) | null = null;
 onMounted(() => {
@@ -52,7 +54,7 @@ onMounted(() => {
 onBeforeUnmount(() => stop?.());
 
 /** Saves a choice as the person's pref; the control shows it at once and snaps back when the server refuses. */
-function choose(p: { tasksGroupBy: TasksGroupBy } | { tasksSortBy: TasksSortBy }): void {
+function choose(p: { tasksGroupBy: TasksGroupBy } | { tasksSortBy: TasksSortBy } | { tasksSortDir: TasksSortDir }): void {
   prefs.set(p).catch(() => ui.notify("Couldn't save that choice."));
 }
 async function setDate(l: TaskList, offsetDays: number): Promise<void> {
@@ -65,7 +67,7 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
 </script>
 
 <template>
-  <section class="tv" data-testid="tasks-view" :data-group-by="prefs.tasksGroupBy" :data-sort-by="prefs.tasksSortBy">
+  <section class="tv" data-testid="tasks-view" :data-group-by="prefs.tasksGroupBy" :data-sort-by="prefs.tasksSortBy" :data-sort-dir="prefs.tasksSortDir">
     <div class="controls">
       <SegmentedButton
         :model-value="prefs.tasksGroupBy" :options="groupOptions" label="Group by" class="gby" data-testid="tasks-group-by"
@@ -75,6 +77,10 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
         :model-value="prefs.tasksSortBy" :options="sortOptions" label="Sort by" class="sby" data-testid="tasks-sort-by"
         @update:model-value="choose({ tasksSortBy: $event })"
       />
+      <IconButton
+        :label="prefs.tasksSortDir === 'reversed' ? 'Sort order: reversed' : 'Sort order: default'" :pressed="prefs.tasksSortDir === 'reversed'"
+        :data-dir="prefs.tasksSortDir" data-testid="tasks-sort-dir" @click="choose({ tasksSortDir: prefs.tasksSortDir === 'reversed' ? 'default' : 'reversed' })"
+      ><IconSwap /></IconButton>
     </div>
     <div class="scroll">
       <p v-if="!groups.length" class="empty" data-testid="tasks-empty">No open task lists. Tap + to add one.</p>

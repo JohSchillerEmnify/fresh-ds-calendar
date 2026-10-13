@@ -591,6 +591,7 @@ Rules for implementers:
 | `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
 | `tasks-group-by` | segmented button, options `data-value="time\|category\|none"`, labels Time/Category/None, `aria-pressed` |
 | `tasks-sort-by` | select, labels Date/Name/Category/Last changed/Progress |
+| `tasks-sort-dir` | toggle button next to it, `aria-pressed="true"` when reversed, `data-dir="default\|reversed"` |
 | `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
 | `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
 | `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
@@ -928,7 +929,7 @@ A task list may have no date. It is stored in the same place as every other list
   existing optimistic ones.
 - **Grouping** (`tasks-group-by`: Time, Category, None; default Time) and **sorting** (`tasks-sort-by`: Date, Name,
   Category, Last changed, Progress; default Date) are person prefs `tasksGroupBy` (`time|category|none`) and
-  `tasksSortBy` (`date|name|category|changed|progress`), whitelisted by `PATCH /api/prefs` (invalid value: 400) and
+  `tasksSortBy` (`date|name|category|changed|progress`) and `tasksSortDir` (`default|reversed`, A-80), whitelisted by `PATCH /api/prefs` (invalid value: 400) and
   returned by `GET /api/prefs`. Grouping and sorting are pure functions in `features/tasklists/tasksView.ts`
   (details and directions: A-72). Why prefs and not the URL: the choice should follow the person to other devices
   (owner), like `versionInCorner`.
