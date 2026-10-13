@@ -5,6 +5,7 @@
  *  useDraggable(elRef, opts)       Vue wrapper, cleans up on scope dispose / element change
  *  createSlotGrid / createCellGrid hit-test factories (15-minute slots, day cells)
  *  useDropGrid(opts)               wrapper returning { hitTest }
+ *  watchDrags(fn)                  read-only per-frame drag state for passive followers (drag helper cat)
  *
  * State machine:  idle -> pending (touch long-press / mouse slop) -> dragging -> dropping -> idle
  *                 pending --move>slop (touch)--> idle (scroll wins)     dragging --Escape/cancel--> returning -> idle
@@ -66,6 +67,42 @@ export function isGestureClaimed(): boolean {
 }
 export const GESTURE_CLAIM_EVENT = 'gesture-claim';
 
+// ---------------------------------------------------------------- read-only drag watch (drag helper cat)
+
+/** One frame of the active drag as drawn, for passive followers (the drag helper cat). */
+export interface DragFrame {
+  /** `start` on pick-up, `move` on every drag frame, `end` once on drop or cancel. */
+  phase: 'start' | 'move' | 'end';
+  /** Viewport rect of the lifted card as drawn now (pick-up rect plus the follow offset; scale and tilt ignored). */
+  rect: { left: number; top: number; width: number; height: number };
+  /** Displacement of the drawn card from where it was picked up (px, viewport). */
+  dx: number;
+  dy: number;
+  /** Pointer velocity (px/s) over the last moves; it keeps its last value while the pointer rests. */
+  vx: number;
+  vy: number;
+  /** How long the pointer has rested (moved ≤ 3 px), in ms of frame time. */
+  stillMs: number;
+}
+export type DragWatcher = (f: DragFrame) => void;
+const watchers = new Set<DragWatcher>();
+/** Pointer movement (px) that still counts as resting for `stillMs`. */
+const STILL_SLOP = 3;
+
+/**
+ * Follow every drag passively: called synchronously from the drag's own rAF loop (no second loop, no pointer events).
+ * Returns the unsubscribe function. Watchers must be cheap and must never throw into the drag.
+ */
+export function watchDrags(fn: DragWatcher): () => void {
+  watchers.add(fn);
+  return () => { watchers.delete(fn); };
+}
+function emitDrag(f: DragFrame) {
+  for (const w of watchers) {
+    try { w(f); } catch { /* a follower never breaks the drag */ }
+  }
+}
+
 const MAX_TILT = 6;
 /** How long the pointer must rest in an edge zone before the scroll container starts to auto-scroll. */
 const EDGE_DWELL_MS = 400;
@@ -107,10 +144,19 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const sy = new Spring1D(springs.follow);
   const tilt = new Spring1D({ stiffness: 300, damping: 0.7 });
   const vt = createVelocityTracker(90);
+  /** Drag watch: last emitted frame (re-sent as `end`), where the pointer last rested and since when (frame time). */
+  let lastFrame: DragFrame | null = null;
+  let stillAt: Point = { x: 0, y: 0 };
+  let stillSince = 0;
 
   const setState = (s: DragState) => {
     if (state === s) return;
+    const was = state;
     state = s;
+    if (was === 'dragging' && lastFrame) {
+      emitDrag({ ...lastFrame, phase: 'end' });
+      lastFrame = null;
+    }
     if (s === 'idle') delete el.dataset.dragging;
     opts.onStateChange?.(s);
   };
@@ -259,6 +305,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     sx.snap(0); sy.snap(0); tilt.snap(0);
     haptic(10);
     setState('dragging');
+    stillAt = { ...cur };
+    stillSince = performance.now();
+    watchFrame('start', stillSince);
     if (getMotionLevel() === 'full') {
       // small wiggle on the independent `rotate` property so it composes with the follow transform
       const a = el.animate?.(
@@ -385,7 +434,25 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       sx.snap(o.x); sy.snap(o.y); tilt.snap(0);
     }
     paint();
+    watchFrame('move', t);
     raf = requestAnimationFrame(frame);
+  }
+
+  /** Tells drag watchers where the card is drawn now; skipped entirely while nobody watches. */
+  function watchFrame(phase: 'start' | 'move', t: number) {
+    if (!watchers.size || !ctx) return;
+    if (Math.hypot(cur.x - stillAt.x, cur.y - stillAt.y) > STILL_SLOP) {
+      stillAt = { ...cur };
+      stillSince = t;
+    }
+    // the drawn card = pick-up rect + spring offset - scroll since pick-up (the layout box moved with the scroll)
+    const s = scrollShift();
+    const dx = sx.x - s.x;
+    const dy = sy.x - s.y;
+    const r = ctx.originRect;
+    const { vx, vy } = vt.velocity();
+    lastFrame = { phase, rect: { left: r.left + dx, top: r.top + dy, width: r.width, height: r.height }, dx, dy, vx, vy, stillMs: Math.max(0, t - stillSince) };
+    emitDrag(lastFrame);
   }
 
   function currentOffset() {

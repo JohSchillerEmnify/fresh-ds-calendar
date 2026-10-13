@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope } from 'vue';
-import { createDragController, createCellGrid, createSlotGrid, isGestureClaimed, useDraggable } from '@/motion/drag';
+import { createDragController, createCellGrid, createSlotGrid, isGestureClaimed, useDraggable, watchDrags, type DragFrame } from '@/motion/drag';
 import { setAnimationSetting, __setSystemReducedForTest } from '@/motion/level';
 import { clearEffects } from '@/motion/effects';
 import { installWaapi, removeWaapi, finishAll, pe, flush } from './helpers';
@@ -324,6 +324,56 @@ describe('drag inside a scroll container', () => {
     const n = targets.length;
     sc.scrollTop = 100; sc.dispatchEvent(new Event('scroll'));
     expect(targets.length).toBe(n);
+  });
+});
+
+describe('drag watch (read-only state for the drag helper cat)', () => {
+  it('reports start, the drawn rect and displacement per frame, rest time, and one end on drop', async () => {
+    setAnimationSetting('reduced'); // the card snaps to the target, so the drawn rect is exact
+    const frames: DragFrame[] = [];
+    const stop = watchDrags((f) => frames.push(f));
+    const { c } = make({ hitTest: () => ({ key: 'slot', dx: 0, dy: 96 }) });
+    down('mouse', 50, 50); move(50, 146, 'mouse');
+    expect(frames[0]).toMatchObject({ phase: 'start', rect: { left: 40, top: 40, width: 100, height: 40 } });
+    vi.advanceTimersByTime(40);
+    const last = frames.at(-1)!;
+    expect(last).toMatchObject({ phase: 'move', dx: 0, dy: 96, rect: { left: 40, top: 136 } });
+    expect(last.stillMs).toBeLessThan(100);
+    // the pointer rests: stillMs grows with frame time
+    vi.advanceTimersByTime(600);
+    expect(frames.at(-1)!.stillMs).toBeGreaterThan(500);
+    up(50, 146, 'mouse');
+    expect(frames.filter((f) => f.phase === 'end')).toHaveLength(1);
+    expect(frames.at(-1)).toMatchObject({ phase: 'end', dy: 96 });
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(frames.filter((f) => f.phase === 'end')).toHaveLength(1);
+    stop();
+  });
+
+  it('reports end on cancel, nothing for a press that never picks up, and nothing after unsubscribing', () => {
+    const frames: DragFrame[] = [];
+    const stop = watchDrags((f) => frames.push(f));
+    const { c } = make();
+    down('mouse', 50, 50); up(50, 50, 'mouse');
+    expect(frames).toEqual([]);
+    down('mouse', 50, 50); move(80, 90, 'mouse'); vi.advanceTimersByTime(40);
+    c.cancel();
+    expect(frames.map((f) => f.phase).filter((p) => p !== 'move')).toEqual(['start', 'end']);
+    finishAll();
+    stop();
+    const n = frames.length;
+    down('mouse', 50, 50); move(80, 90, 'mouse'); vi.advanceTimersByTime(40); c.cancel(); finishAll();
+    expect(frames.length).toBe(n);
+  });
+
+  it('a throwing watcher never breaks the drag', () => {
+    const stop = watchDrags(() => { throw new Error('boom'); });
+    const { c } = make();
+    down('mouse', 50, 50); move(80, 90, 'mouse'); vi.advanceTimersByTime(40);
+    expect(c.state).toBe('dragging');
+    c.cancel(); finishAll();
+    stop();
   });
 });
 
