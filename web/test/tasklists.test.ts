@@ -19,7 +19,7 @@ import { setAnimationSetting } from '@/motion/level';
 import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
 import { useTaskListsStore } from '@/features/tasklists/store';
 import { catSwipe } from '@/features/motivation/supportCat';
-import { parseTags, validateForm } from '@/features/tasklists/validate';
+import { validateForm } from '@/features/tasklists/validate';
 import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const celebrate = vi.fn();
@@ -466,7 +466,7 @@ describe('dialog', () => {
     expect(w.emitted('close')).toBeUndefined();
     expect(m.calls.some((c) => c.method === 'POST')).toBe(false);
   });
-  it('creates with items, tags, category, estimate and closes', async () => {
+  it('creates with items, category, estimate and closes (no tag field: tags are shelved)', async () => {
     const created: unknown[] = [];
     const { pinia } = await setup({ 'POST /api/tasklists': ({ body }) => { created.push(body); return { status: 201, body: tl('new', { title: body.title }) }; } });
     const w = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
@@ -474,13 +474,13 @@ describe('dialog', () => {
     await w.get(tid('tasklist-time')).setValue('18:00');
     await w.get(tid('tasklist-estimate')).setValue('45');
     await w.get(tid('tasklist-category')).setValue('shopping');
-    await w.get(tid('tasklist-tags')).setValue('weekend, Urgent, weekend');
+    expect(w.find(tid('tasklist-tags')).exists()).toBe(false);
     await w.get(tid('tasklist-items')).setValue('Milk\n\n  Eggs \n');
     await w.get(tid('tasklist-repeat')).setValue('weekly');
     await w.get('form').trigger('submit');
     await flushPromises();
     expect(created[0]).toEqual({
-      title: 'Groceries', date: '2026-10-14', time: '18:00', estimateMinutes: 45, categoryId: 'shopping', tags: ['weekend', 'Urgent'],
+      title: 'Groceries', date: '2026-10-14', time: '18:00', estimateMinutes: 45, categoryId: 'shopping',
       items: [{ title: 'Milk' }, { title: 'Eggs' }], recurrence: 'weekly',
     });
     expect(w.emitted('close')).toHaveLength(1);
@@ -503,6 +503,19 @@ describe('dialog', () => {
     const v = mountIn(TaskListDialog, { mode: 'create', date: '2026-10-14' }, pinia);
     expect((v.get(tid('tasklist-time')).element as HTMLInputElement).value).toBe('');
   });
+  it('editing sends no tags, so the stored tags are kept', async () => {
+    const patches: Record<string, unknown>[] = [];
+    const list = tl('G', { tags: ['weekend'] });
+    const { pinia } = await setup({ 'PATCH /api/tasklists/G': ({ body }) => { patches.push(body); return { ...list, title: 'Mine' }; } });
+    useItemsStore().upsert(list);
+    const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
+    await flushPromises();
+    expect(w.find(tid('tasklist-tags')).exists()).toBe(false);
+    await fill(w, 'Mine');
+    expect(patches).toHaveLength(1);
+    expect(patches[0]).not.toHaveProperty('tags');
+    expect(w.emitted('close')).toHaveLength(1);
+  });
   it('shows a conflict message on 412 with a reload button', async () => {
     const list = tl('G');
     const { pinia } = await setup({
@@ -518,8 +531,8 @@ describe('dialog', () => {
     await flushPromises();
     expect((w.get(tid('tasklist-title')).element as HTMLInputElement).value).toBe('Fresh');
   });
-  it('validateForm and parseTags', () => {
-    const base = { title: 'x', date: '2026-10-14', time: '', estimate: '', categoryId: 'none', tags: '', items: '', repeat: '' as const };
+  it('validateForm', () => {
+    const base = { title: 'x', date: '2026-10-14', time: '', estimate: '', categoryId: 'none', items: '', repeat: '' as const };
     expect(validateForm(base)).toBeNull();
     expect(validateForm({ ...base, title: ' ' })).toBe('Add a title or an item');
     expect(validateForm({ ...base, title: ' ', items: 'Milk\n' })).toBeNull();
@@ -527,8 +540,6 @@ describe('dialog', () => {
     expect(validateForm({ ...base, date: '2026-02-30' })).toBe('Pick a date');
     expect(validateForm({ ...base, estimate: '3' })).toMatch(/Estimate/);
     expect(validateForm({ ...base, estimate: '45.5' })).toMatch(/Estimate/);
-    expect(validateForm({ ...base, tags: Array.from({ length: 11 }, (_, i) => `t${i}`).join(',') })).toBe('Use at most 10 tags');
-    expect(parseTags(' a, B ,a,, ')).toEqual(['a', 'B']);
   });
 });
 

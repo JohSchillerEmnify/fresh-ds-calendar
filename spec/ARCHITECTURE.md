@@ -313,14 +313,22 @@ otherwise; bundle budget §5a applies).
 
 - **Settings** (`/settings`, `settings-button` in the top app bar; full-screen page on phones, centered page on
   desktop) with M3 list sections:
-  1. *Appearance*: theme mode as a segmented button (System / Light / Dark); seed color as 8 preset swatches (Blue,
-     Purple, Teal, Green, Orange, Red, Pink, Slate; shown as round color buttons with check mark) plus "Custom" with a hex
-     text field (and native color input). Changes apply immediately (preview = the real UI) and are saved at once.
-  2. *Calendar*: default view (Month/Week/Day), default event color (Calendar color + 11 Google colors).
-  3. *Task list categories*: list with color dot, icon and name; tap opens the category dialog (name, color presets
-     from the Google palette + custom hex, emoji icon field, delete); "Add category" button.
+  Sections (owner, 2026-10-13: deduplicated, proper sections; each a card with a heading, on desktop with a section
+  list on the left; every setting exists exactly once):
+  1. *Appearance*: one row "Theme" showing the chosen theme, opening the theme menu (`settings-theme`). Theme mode
+     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), top
+     bar scene and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
+  2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.
+  3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
+  4. *Focus & motivation*: transition warning, calm mode, streak flame, garden, best streak, support cat.
+  5. *Motion & sound*: animations, ignore the device setting, sounds.
+  6. *Labs*: experimental views.
+  7. *Account & data*: sign out, demo data.
   Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
   rolled back with the error banner on failure).
+- **Tags shelved** (owner, 2026-10-13: purpose and flow unclear): no tag field in the forms, no tag chips in the
+  expanded view or cards, no tag filter. Stored tags (`extendedProperties.private.tags`) are kept untouched and still
+  round-trip, so nothing is lost if tags return. The rest of this section describes them for later.
 - **Task list form**: adds `category` (select: categories + "No category"; default "No category") and `tags`
   (comma-separated text field; shown as input chips).
 - **Collapsed task list card**: background/accent from the category color, category emoji before the title, done
@@ -733,6 +741,20 @@ The server reports its build version (`APP_VERSION`, else the git sha at build t
 back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
 "Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load.
 It never reloads by itself and never interrupts an open dialog.
+
+### Version numbers (owner, 2026-10-13)
+
+- Semantic versions, counted automatically on every deploy from master: since the last tag `vX.Y.Z`, a commit
+  subject starting `feat` raises the minor version, otherwise (fix, test, chore, spec, …) the patch version; a
+  `BREAKING` marker raises the major version — but while the major is 0 (until the public VPS instance with Google
+  sign-in goes live, then 1.0.0 by hand) it raises the minor instead. The first tag is `v0.1.0`. `scripts/version.sh`
+  computes it; `deploy.sh` tags master locally (no remote) and builds with `APP_VERSION=X.Y.Z+<sha>`; previews build
+  with `<last tag>-preview+<sha>`. Alternative weighed: a hand-kept version in package.json — rejected (owner: automatic).
+- The update notice keeps comparing the full build version, so every deploy is noticed.
+- Settings → Account & data shows "Version X.Y.Z" with the sha in small print (`settings-version`). A switch "Show
+  version in the corner" (`settings-version-corner`, per device in `localStorage`, default off) shows a small label
+  `app-version` ("0.4.2") in the bottom-left corner of the main UI (above the safe area, below dialogs, never covering
+  the bottom bar or the FAB).
 
 ### Themes
 

@@ -2,17 +2,27 @@
 /**
  * Theme menu (`/settings/theme`): a gallery of ready themes (each a real mini week under that theme's attributes),
  * fine-tuning options that each show a sample of their look, and a live preview. Picking applies at once and is
- * saved in the background by the theme store; there is no save button.
+ * saved in the background by the theme store; there is no save button. Theme mode, seed colour, top bar scene and
+ * the Mordor shortcut are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
  */
-import { computed, onMounted, shallowRef } from 'vue';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
+import { ApiError } from '@/api/client';
+import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
+import type { SceneName, ThemeMode } from '@/api/types';
+import Button from '@/components/m3/Button.vue';
+import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
+import SegmentedButton from '@/components/m3/SegmentedButton.vue';
+import TextField from '@/components/m3/TextField.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
+import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
+import { useUiStore } from '@/stores/ui';
 import { resolveTheme as resolveMode } from '@/theme';
 import { PRESET_NAMES, presetFor, type PresetName, type ThemeAttrs } from '@/theme/presets';
 
@@ -59,6 +69,44 @@ function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, s
   return a;
 }
 const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
+
+// --- mode, seed colour, top bar scene, Mordor (settings, not theme prefs) ---------------------------
+const sync = useSyncStore();
+const ui = useUiStore();
+const s = computed(() => settings.settings);
+/** Persist a patch; failures roll back in the store and surface as the banner or a snackbar. */
+async function save(p: Parameters<typeof settings.patch>[0]) {
+  try {
+    await settings.patch(p);
+  } catch (e) {
+    if (e instanceof ApiError && e.isUnavailable) sync.reportError(e);
+    else ui.notify(e instanceof ApiError ? e.userMessage : 'Could not save settings');
+  }
+}
+const modes = [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }] as const;
+const seed = computed(() => s.value.seedColor.toLowerCase());
+const presetNames = SEED_PRESETS.map((p) => p.hex);
+const isMordor = computed(() => seed.value === MORDOR_SEED);
+const isCustom = computed(() => !presetNames.includes(seed.value) && !isMordor.value);
+const swatches = computed(() => [
+  ...SEED_PRESETS.map((p) => ({ value: p.hex, name: p.name, color: p.hex, testid: 'settings-seed-preset' })),
+  { value: 'custom', name: 'Custom', color: isCustom.value ? seed.value : '#9e9e9e', testid: 'settings-seed-preset' },
+]);
+const swatchValue = computed(() => (isCustom.value ? 'custom' : isMordor.value ? null : seed.value));
+const hex = ref(seed.value);
+const hexError = ref('');
+watch(seed, (v) => { hex.value = v; hexError.value = ''; });
+function pickSwatch(v: string) {
+  if (v === 'custom') { document.querySelector<HTMLInputElement>('[data-testid="settings-seed-custom"]')?.focus(); return; }
+  void save({ seedColor: v });
+}
+function commitHex() {
+  const v = hex.value.trim();
+  if (!isHexColor(v)) { hexError.value = MSG_INVALID_COLOR; return; }
+  hexError.value = '';
+  if (v.toLowerCase() !== seed.value) void save({ seedColor: v.toLowerCase() });
+}
+const scenes = [{ value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] as const;
 
 function back() {
   if (window.history.state?.back) router.back();
@@ -109,6 +157,15 @@ function back() {
 
       <section class="card" aria-labelledby="h-fine">
         <h2 id="h-fine">Fine-tuning</h2>
+        <div class="group">
+          <span class="lab">Theme mode</span>
+          <SegmentedButton :model-value="s.themeMode" :options="[...modes]" label="Theme mode" data-testid="settings-theme-mode" @update:model-value="save({ themeMode: $event as ThemeMode })" />
+        </div>
+        <div class="group">
+          <span class="lab">Seed color</span>
+          <ColorSwatchPicker :swatches="swatches" :model-value="swatchValue" label="Seed color" @update:model-value="pickSwatch" />
+          <TextField v-model="hex" class="hex" label="Custom color (hex)" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
+        </div>
         <div v-for="g in groups" :key="g.setting" class="group" role="group" :aria-label="g.label">
           <span class="lab">{{ g.label }}</span>
           <div class="opts">
@@ -124,6 +181,16 @@ function back() {
               <span class="ol">{{ o.label }}</span>
             </button>
           </div>
+        </div>
+        <div class="group">
+          <span class="lab">Top bar scene</span>
+          <SegmentedButton :model-value="settings.scene" :options="[...scenes]" label="Top bar scene" data-testid="settings-scene" @update:model-value="save({ scene: $event as SceneName })" />
+        </div>
+        <div class="group mordor">
+          <span class="grow"><span class="lab">Mordor</span><span class="sub">Ember seed, dark mode and the Mordor scene</span></span>
+          <Button :variant="isMordor && s.themeMode === 'dark' ? 'filled' : 'tonal'" data-testid="settings-theme-mordor" :aria-pressed="isMordor" data-name="Mordor" :data-color="MORDOR_SEED" @click="settings.applyMordor().catch((e) => sync.reportError(e))">
+            {{ isMordor ? 'Active' : 'Use Mordor' }}
+          </Button>
         </div>
       </section>
     </div>
@@ -169,4 +236,8 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .b-mordor { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); }
 .scenebox :deep(.s-ev) { position: relative; }
 .ol { font: var(--md-sys-typescale-label-large); }
+.hex { margin-top: 10px; }
+.mordor { display: flex; align-items: center; gap: 12px; }
+.grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); padding: 0 4px; }
 </style>

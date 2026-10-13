@@ -3,7 +3,8 @@ Feature: Task list categories, tags and filters
   Categories are user-defined (name, color, optional emoji icon) and managed in Settings.
   First run ships Shopping 🛒 (#0b8043), To-do ✅ (#3f51b5), Work 💼 (#8e24aa) and Home 🏠 (#f4511e)
   with the fixed ids shopping, todo, work and home.
-  A task list has at most one category (its color source) and optional free tags.
+  A task list has at most one category (its color source). Free tags are shelved (owner, 2026-10-13: their purpose
+  and flow are unclear): no tag input, display or filter; tag scenarios are @backlog.
   A task list without a category uses the color of its calendar.
   Filter chips limit the task lists shown; events are never hidden by these filters.
 
@@ -70,22 +71,18 @@ Feature: Task list categories, tags and filters
 
   # --- Category and tags on task lists ------------------------------------
 
-  Scenario: Create a task list with a category and tags
+  Scenario: Create a task list with a category
     When I open the week view for 2026-10-12
     And I start creating a task list
     And I fill in the task list form with:
       | title    | Groceries        |
       | date     | 2026-10-14       |
       | category | Shopping         |
-      | tags     | weekend, urgent  |
       | items    | Milk; Eggs       |
     And I save the task list
     Then the task list "Groceries" has the color "#0b8043"
     And the task list "Groceries" shows the icon "🛒"
-    When I expand the task list "Groceries"
-    Then the expanded task list shows the tags "weekend, urgent"
     And the Google event for the task list "Groceries" has the private extended property "categoryId" set to "shopping"
-    And the Google event for the task list "Groceries" stores the tags "weekend, urgent"
     And the Google event for the task list "Groceries" has the color ID "10"
 
   Scenario: A task list without a category uses the calendar color
@@ -111,18 +108,15 @@ Feature: Task list categories, tags and filters
     And the task list "Groceries" shows the icon "🏠"
     And the Google event for the task list "Groceries" has the color ID "6"
 
-  Scenario: Remove the category and tags from a task list
-    Given the calendar contains a task list "Groceries" in the category "Shopping" with the tags "weekend" on 2026-10-14
+  Scenario: Remove the category from a task list
+    Given the calendar contains a task list "Groceries" in the category "Shopping" on 2026-10-14
     When I open the week view for 2026-10-12
     And I expand the task list "Groceries"
     And I edit the task list details
     And I fill in the task list form with:
       | category | No category |
-      | tags     |             |
     And I save the task list
     Then the task list "Groceries" has the color "#039be5"
-    When I expand the task list "Groceries"
-    Then the expanded task list shows the tags ""
 
   @google
   Scenario Outline: Category colors map to the nearest Google event color
@@ -184,6 +178,7 @@ Feature: Task list categories, tags and filters
     Then I see the task list "Ideas" on 2026-10-15
     And I do not see the task list "Groceries"
 
+  @backlog
   Scenario: Filter by tag, and combine a tag with a category
     Given the calendar contains a task list "Groceries" in the category "Shopping" with the tags "weekend" on 2026-10-14
     And the calendar contains a task list "Hardware" in the category "Shopping" with the tags "diy" on 2026-10-15
@@ -219,6 +214,7 @@ Feature: Task list categories, tags and filters
     And I do not see the task list "Laundry"
     And the URL query is "categories=work"
 
+  @backlog
   Scenario: The tag filter offers only tags that are in use
     Given the calendar contains a task list "Groceries" in the category "Shopping" with the tags "weekend, urgent" on 2026-10-14
     And the calendar contains a task list "Garage" in the category "Home" with the tags "weekend" on 2026-10-16
@@ -226,7 +222,7 @@ Feature: Task list categories, tags and filters
     And I show the filters
     Then the tag filters are "urgent, weekend"
 
-  @mobile
+  @mobile @backlog
   Scenario: The filter chip row scrolls on its own on a phone
     Given I am using a phone
     And the calendar contains a task list "Groceries" in the category "Shopping" with the tags "weekend, urgent, birthday, holiday, garden" on 2026-10-14
