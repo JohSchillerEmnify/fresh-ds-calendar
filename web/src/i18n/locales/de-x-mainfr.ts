@@ -2,9 +2,9 @@
  * Light Mainfränkisch ("Fränggisch"). Partial: whatever is missing falls back to `de`, then `en`.
  * Moderate spellings only (des, ned, bassd, etz, amal, gud), readable for non-Franconians.
  */
-import type { PartialMessages } from './en';
+import type { PartialMessages } from '../schema';
 
-export const deXMainfr: PartialMessages = {
+export default {
   views: {
     year: 'Jahr',
     month: 'Monad',
@@ -69,4 +69,4 @@ export const deXMainfr: PartialMessages = {
       resetDemo: { done: 'Demodaden sin widda da' },
     },
   },
-};
+} satisfies PartialMessages;

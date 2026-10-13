@@ -5,7 +5,8 @@
  * {@link applyLanguage}. UI code imports `t` from here, never from vue-i18n, so key names are type-checked.
  */
 import { createI18n } from 'vue-i18n';
-import { en, type Messages, type PartialMessages } from './locales/en';
+import en from './locales/en';
+import type { Messages, PartialMessages } from './schema';
 import { htmlLang, isLanguagePref, language, resolveLanguage, type Language, type LanguagePref } from './language';
 
 export type { Messages };
@@ -18,9 +19,9 @@ export type MessageKey = Paths<Messages>;
 
 /** The lazy catalogues; the fun languages fall back to `de`, so applying them loads `de` too. */
 const loaders: Record<Exclude<Language, 'en'>, () => Promise<PartialMessages>> = {
-  de: () => import('./locales/de').then((m) => m.de),
-  'de-x-mainfr': () => import('./locales/de-x-mainfr').then((m) => m.deXMainfr),
-  'de-x-coldmirror': () => import('./locales/de-x-coldmirror').then((m) => m.deXColdmirror),
+  de: () => import('./locales/de').then((m) => m.default),
+  'de-x-mainfr': () => import('./locales/de-x-mainfr').then((m) => m.default),
+  'de-x-coldmirror': () => import('./locales/de-x-coldmirror').then((m) => m.default),
 };
 
 /** The vue-i18n instance (`legacy: false`); install it with `app.use(i18n)` only if components need `useI18n`. */

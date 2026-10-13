@@ -1,11 +1,13 @@
 /**
  * English message catalogue: the source of truth for the message schema (ARCHITECTURE "i18n").
  *
+ * Default export so `@intlify/unplugin-vue-i18n` can precompile it at build time (no message compiler ships).
+ *
  * Keys are nested and named by meaning, not by text. Every other catalogue is checked against the shape of this
  * object, so a key missing in `de.ts` is a type error and `t()` only accepts keys that exist here. Message syntax is
  * vue-i18n's: `{name}` interpolates, `a | b` pluralises, and the characters `@`, `|`, `{` and `}` must be escaped.
  */
-export const en = {
+export default {
   views: {
     year: 'Year',
     month: 'Month',
@@ -118,10 +120,3 @@ export const en = {
     },
   },
 };
-
-/** The message schema: the shape of {@link en} with every message widened to `string`. */
-export type Messages = Widen<typeof en>;
-type Widen<T> = T extends string ? string : { [K in keyof T]: Widen<T[K]> };
-/** A catalogue that may leave messages out (the fun languages). */
-export type PartialMessages = DeepPartial<Messages>;
-type DeepPartial<T> = T extends string ? string : { [K in keyof T]?: DeepPartial<T[K]> };

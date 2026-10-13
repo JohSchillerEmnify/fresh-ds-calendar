@@ -4,10 +4,10 @@
  * Missing keys in `de` are errors (exit 1); missing keys in the fun languages are reported as info, because they
  * fall back to German and may stay partial. Run with Node's built-in TypeScript support.
  */
-import { de } from '../src/i18n/locales/de.ts';
-import { deXColdmirror } from '../src/i18n/locales/de-x-coldmirror.ts';
-import { deXMainfr } from '../src/i18n/locales/de-x-mainfr.ts';
-import { en } from '../src/i18n/locales/en.ts';
+import de from '../src/i18n/locales/de.ts';
+import deXColdmirror from '../src/i18n/locales/de-x-coldmirror.ts';
+import deXMainfr from '../src/i18n/locales/de-x-mainfr.ts';
+import en from '../src/i18n/locales/en.ts';
 import { flattenKeys, missingKeys } from '../src/i18n/keys.ts';
 
 const total = flattenKeys(en).length;

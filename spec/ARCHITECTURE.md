@@ -231,7 +231,12 @@ Web (`stores/sync.ts`, `stores/items.ts`):
     shape, `MessageKey` the union of its dotted paths, so a missing or misspelt key is a type error. `de.ts` is typed
     `Messages` (complete: a new `en` key without a German one fails the type check, `pnpm i18n:check` and a unit
     test); the fun languages are `PartialMessages`, and `pnpm i18n:check` reports their gaps as info. `en` is bundled;
-    the others are lazy chunks, loaded when the language is applied (`de` first for the fun ones).
+    the others are lazy chunks, loaded when the language is applied (`de` first for the fun ones). Each catalogue is a
+    default-exported object literal (`satisfies` the schema, which lives in `i18n/schema.ts`) so the build can
+    precompile it.
+  - **Precompiled, runtime-only** (owner, 2026-10-13): `@intlify/unplugin-vue-i18n` compiles all catalogues at build
+    time and vue-i18n ships without its message compiler, so every message must be a catalogue entry (no runtime
+    strings from the API are compiled; server text is shown as plain text). Details and measured sizes: A-91.
   - **Choice**: the person pref `language` (`auto` | `en` | `de` | `de-x-mainfr` | `de-x-coldmirror`, default `auto`,
     in `Prefs`, `GET/PATCH /api/prefs`, validated by a whitelist). `auto` follows the device: the first entry of
     `navigator.languages` being `de` or `de-*` gives `de`, anything else `en`. Settings → Appearance has the select

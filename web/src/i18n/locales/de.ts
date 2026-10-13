@@ -1,7 +1,7 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
-import type { Messages } from './en';
+import type { Messages } from '../schema';
 
-export const de: Messages = {
+export default {
   views: {
     year: 'Jahr',
     month: 'Monat',
@@ -113,4 +113,4 @@ export const de: Messages = {
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label unten links' },
     },
   },
-};
+} satisfies Messages;

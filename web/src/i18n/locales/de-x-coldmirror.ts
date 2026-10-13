@@ -2,9 +2,9 @@
  * Coldmirror slang. Partial and deliberately small: whatever is missing falls back to `de`, then `en`.
  * Never "Ich bin voll geil" (owner).
  */
-import type { PartialMessages } from './en';
+import type { PartialMessages } from '../schema';
 
-export const deXColdmirror: PartialMessages = {
+export default {
   errors: {
     saveUnavailable: 'Schinken! Google Kalender ist gerade nicht da.',
     conflict: 'Was ist das für 1 Termin? Der wurde woanders geändert, du Oberpflaume. Lad ihn neu.',
@@ -26,4 +26,4 @@ export const deXColdmirror: PartialMessages = {
       resetDemo: { done: 'BÄMbus! Die Demodaten sind wieder da.' },
     },
   },
-};
+} satisfies PartialMessages;

@@ -187,8 +187,10 @@ spec files are named.
   style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
 - **A-81 Library and version** (owner decision 1, 2026-10-13): vue-i18n 11.4.12 (exact pin, released 2026-09-16, the
   newest release at least two weeks old; 11.4.13/14 and 12.0.0-alpha are newer), Composition API (`legacy: false`),
-  with the build flags `__VUE_I18N_LEGACY_API__`, `__VUE_I18N_FULL_INSTALL__` and `__INTLIFY_PROD_DEVTOOLS__` off
-  (vue-i18n's own optimisation advice). The plugin is not installed on the Vue app: UI code uses our typed `t()`.
+  built runtime-only without the message compiler (A-91), with the build flags `__VUE_I18N_LEGACY_API__`,
+  `__VUE_I18N_FULL_INSTALL__` and `__INTLIFY_PROD_DEVTOOLS__` off. `@intlify/unplugin-vue-i18n` 11.2.5 (exact pin,
+  released 2026-08-14) precompiles the catalogues. The vue-i18n plugin is not installed on the Vue app: UI code uses
+  our typed `t()`.
 - **A-82 Locale codes** (picked, logged as asked): `en`, `de`, `de-x-mainfr`, `de-x-coldmirror`. The owner named the
   last one, but BCP 47 private-use subtags have at most eight characters, so it is not a valid tag: it stays the
   internal id (pref value, catalogue file) and is never passed to `Intl`; `<html lang>` gets `de-x-coldmir`.
@@ -218,9 +220,17 @@ spec files are named.
   Oberpflaume", "Eulen. Eulen everywhere." and never "Ich bin voll geil". Both are partial on purpose.
 - **A-90 Settings row**: "Language" sits at the end of Appearance (below Theme). The Automatic option is translated;
   the language names are not (each in its own name). Choosing saves through `PATCH /api/prefs` like the other prefs.
-- **A-91 First-load size**: vue-i18n adds about 18 kB gzip to a shared chunk that the first load preloads. The
-  size-limit "initial JS" check measures only `index-*.js` and stays at 64 kB of 75; "all JS" was already above its
-  152 kB limit before this slice. Possible later saving: pre-compile messages and use the runtime-only build.
+- **A-91 First-load size** (owner decision, 2026-10-13: precompile and ship runtime-only): the catalogues are
+  precompiled at build time by `@intlify/unplugin-vue-i18n` (`include` = `web/src/i18n/locales/*.ts`, so the lazy
+  chunks too; each locale file therefore has a default export), and vue-i18n is built runtime-only. In vue-i18n 11.4.12
+  the runtime build still registers the message compiler unconditionally, so a small Vite hook in `vite.config.ts`
+  removes that one call and the compiler tree-shakes away; the prebuilt `runtime.esm-browser.prod.js` was tried and is
+  larger (141 kB first-load). Unit tests (`VITEST`) skip both, so they read the raw strings with the full build.
+  Measured first-load JS (gzip -9 of the chunks `index.html` loads: `index`, `clock`, `items`, `_plugin-vue_export-helper`,
+  `spring`): master 114,791 B; with i18n and the runtime compiler 132,005 B; precompiled and runtime-only 128,642 B
+  (+13.9 kB over master). The remaining cost is vue-i18n's composer and core runtime. size-limit "initial JS"
+  (`index-*.js` only) is 64.06 kB of 75; "all JS" was already over its limit (183.6 kB before, 200.6 kB now).
+  Not verified in a browser in this slice (no e2e): the language scenarios exercise the precompiled path.
 - **A-92 Test step "the browser language is"**: an init script on the current context overrides `navigator.language`
   and `navigator.languages` (a Playwright context cannot change its `locale` after creation). New "another device"
   contexts keep the project locale `en-GB`, which is what the "follows the person" scenario needs.

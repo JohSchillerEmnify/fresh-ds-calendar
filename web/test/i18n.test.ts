@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ApiError } from '@/api/client';
 import { applyLanguage, hasKey, htmlLang, resolveLanguage, t, language, LANGUAGES } from '@/i18n';
 import { flattenKeys, missingKeys } from '@/i18n/keys';
-import { de } from '@/i18n/locales/de';
-import { deXColdmirror } from '@/i18n/locales/de-x-coldmirror';
-import { deXMainfr } from '@/i18n/locales/de-x-mainfr';
-import { en } from '@/i18n/locales/en';
+import de from '@/i18n/locales/de';
+import deXColdmirror from '@/i18n/locales/de-x-coldmirror';
+import deXMainfr from '@/i18n/locales/de-x-mainfr';
+import en from '@/i18n/locales/en';
 import { monthNames, parseParam, periodTitle, weekdayLabels } from '@/lib/dates';
 
 afterEach(async () => { await applyLanguage('en'); });
