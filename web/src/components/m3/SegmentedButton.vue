@@ -23,7 +23,9 @@ defineEmits<{ 'update:modelValue': [v: T] }>();
 .seg { display: flex; border: 1px solid var(--md-sys-color-outline); border-radius: var(--md-sys-shape-corner-full); overflow: hidden; max-width: 100%; }
 .opt {
   flex: 1; min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-on-surface); white-space: nowrap;
+  font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-on-surface);
+  /* long labels (translations) wrap inside their segment instead of spilling into the next one */
+  min-width: 0; text-align: center; overflow-wrap: anywhere; padding-block: 6px;
 }
 .opt + .opt { border-left: 1px solid var(--md-sys-color-outline); }
 .opt.on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
