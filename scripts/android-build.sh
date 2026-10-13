@@ -21,8 +21,7 @@ if [[ ! -f "$CAL_ANDROID_KEYSTORE_PROPS" ]]; then
   PASS="$(openssl rand -hex 16)"
   keytool -genkeypair -keystore "$KEY_DIR/release.jks" -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" \
     -alias calendar -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Calendar, O=mordor.lan"
-  umask 077
-  printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=calendar\nkeyPassword=%s\n' "$KEY_DIR/release.jks" "$PASS" "$PASS" > "$CAL_ANDROID_KEYSTORE_PROPS"
+  (umask 077; printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=calendar\nkeyPassword=%s\n' "$KEY_DIR/release.jks" "$PASS" "$PASS" > "$CAL_ANDROID_KEYSTORE_PROPS")
 fi
 
 cd "$REPO"
@@ -34,12 +33,14 @@ echo "==> gradle assembleRelease"
 (cd android && ./gradlew assembleRelease)
 
 APK="$REPO/android/app/build/outputs/apk/release/app-release.apk"
-"$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$APK" | head -3
+APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+"$APKSIGNER" verify --print-certs "$APK" | head -2
 echo "APK: $APK ($(du -h "$APK" | cut -f1))"
 
 if [[ "${1:-}" == "--no-publish" ]]; then exit 0; fi
 
 echo "==> publishing to $SAURON:$REMOTE_DIR/app.apk"
+chmod 644 "$APK"
 ssh "$SAURON" "mkdir -p '$REMOTE_DIR'"
 scp -q "$APK" "$SAURON:$REMOTE_DIR/app.apk.part"
 ssh "$SAURON" "mv '$REMOTE_DIR/app.apk.part' '$REMOTE_DIR/app.apk'"
