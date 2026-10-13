@@ -13,6 +13,7 @@ export default {
     clock: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
+    tasks: 'Aufgaben, Digga',
   },
   nav: {
     views: 'Ansichten, yo',
@@ -54,7 +55,6 @@ export default {
     theme: {
       label: 'Bling-Bling',
       hint: 'Modus, Farbe, Glow, Einträge, Ecken und Szene. Check mal aus, alles fresh.',
-      automatic: 'Automatisch · {name}, yo',
     },
     language: {
       label: 'Sprache, du Oberpflaume',
@@ -88,9 +88,6 @@ export default {
       minutes: '{count} Min., yo',
       calmMode: { label: 'Chill-Modus', hint: 'Weniger Details, ruhigere Farben, weniger Bewegung, wie Fresh D. am Nachmittag' },
       streakFlame: 'Serien-Flamme, krass',
-      garden: 'Garten, yo',
-      gardenPlant: 'Einzelne Pflanze (Boah, \'ne Taube.)',
-      gardenSunflowers: 'Sonnenblumen-Feld',
       currentStreak: 'Aktuelle Serie, yo',
       bestStreak: 'Beste Serie, krass',
       supportCat: 'Trostkatze (Eulen. Eulen everywhere.)',
