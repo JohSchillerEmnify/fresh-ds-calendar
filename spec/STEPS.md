@@ -361,8 +361,8 @@ at most {int} requests to {string} were counted
 at least {int} requests to {string} were counted
 the JavaScript downloaded for the first load is at most {int} KB compressed
 the month view was rendered within {int} ms of navigation start
-I run a phone performance audit of the app
-the performance score is at least {int}
+I run a phone performance audit of the app {int} times
+the median performance score is at least {int}
 I request {string} on a fresh server
 the server resident memory is below {int} MB
 I send {int} warm-up requests to {string}
@@ -389,7 +389,7 @@ the server memory has grown by less than {int} MB since the recording
 - "rendered within N ms": `performance.now()` when the first `month-cell` is visible (measured by a `MutationObserver`
   init script), relative to navigation start.
 - "phone performance audit": Lighthouse (mobile preset, simulated throttling) against the base URL; score = performance
-  category × 100. Runs in the Playwright container on Chromium with `--remote-debugging-port`.
+  category × 100, run N times one after the other; the scenario judges the median (A-159). Runs in the Playwright container on Chromium with `--remote-debugging-port`.
 - "I request "METHOD /path" on a fresh server": starts its own server process (`node --expose-gc server/dist/index.js`, the
   same `TEST_MODE` env as `e2e/run.sh`: `PROVIDER=mock`, `SEED=false`, `POLL_INTERVAL_MS=30000`, `NODE_ENV=production`, but a free
   loopback port and an empty temporary `DATA_DIR`), waits for `GET /api/health`, performs the request there (stored as the

@@ -80,7 +80,7 @@ spec files are named.
 - **A-30 One worker**: e2e runs serially (`workers: 1`) because all scenarios share one mock backend; each scenario
   starts with `POST /api/__test/reset`.
 - **A-31 Data fixtures** are created through the public API, not by writing the JSON file.
-- **A-32 Budgets** (owner update): initial JS ≤ 150 kB compressed, month view rendered ≤ 2 s, Lighthouse mobile ≥ 90
+- **A-32 Budgets** (owner update): initial JS ≤ 150 kB compressed, month view rendered ≤ 2 s, Lighthouse mobile median of 3 runs ≥ 70 (A-159)
   on localhost, idle server RSS ≤ 80 MB, < 20 MB RSS growth under a 5 000-request soak, < 10 % frontend heap/DOM/listener
   growth after 50× navigation and dialog cycles. Memory is measured in Chromium only (DevTools protocol); Safari is not
   measured.
@@ -536,3 +536,7 @@ spec files are named.
 - **A-146 Sort label** (owner example "Category · Date ↓"; my reading): the label is "Group · Sort"; the direction is shown only
   when the order is reversed (" ↕"), because the default direction differs per sort key (date earliest first, last changed newest
   first), so a fixed arrow would be wrong for some keys.
+- **A-159 Lighthouse budget** (owner: median of 3 runs, floor 70): the former single run ≥ 90 was not reachable and was
+  not stable. On the shared host the identical build scored 0.64-0.84, with TBT between 384 and 1430 ms from host load alone, and
+  the first-load work (mount, re-render when items arrive) leaves TBT above what 90 needs. The JS budget stays 150 KB; it is
+  measured as Chromium negotiates it (Brotli on localhost/HTTPS, served from the precompressed files; over plain HTTP gzip-9, about 151 KB).
