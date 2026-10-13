@@ -13,7 +13,7 @@ import { appTimeout, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import { useUiStore } from '@/stores/ui';
-import { useTaskListsStore } from './store';
+import { compareOpen, useTaskListsStore } from './store';
 import TaskListView from './TaskListView.vue';
 
 const route = useRoute();
@@ -23,20 +23,24 @@ const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
 const root = ref<HTMLElement | null>(null);
 const countText = computed(() => (lists.count ? `${lists.count} open` : 'No open tasks'));
-/** Lists just finished here stay open (celebration and "All done!" visible) for this long before folding. */
+/**
+ * Lists just finished here stay open (celebration and "All done!" visible) for this long before folding, or until the
+ * support cat's visit ends if it came (`catMs`), so the cat keeps its card.
+ */
 const LINGER_MS = 2000;
 const lingering = reactive(new Set<string>());
 const lingerStops = new Map<string, Disposer>();
-function linger(id: string) {
+function linger(id: string, catMs = 0) {
   lingerStops.get(id)?.();
   lingering.add(id);
-  lingerStops.set(id, appTimeout(() => { lingering.delete(id); lingerStops.delete(id); }, LINGER_MS));
+  lingerStops.set(id, appTimeout(() => { lingering.delete(id); lingerStops.delete(id); }, Math.max(LINGER_MS, catMs)));
 }
-/** Open lists (plus lingering just-finished ones), then lists finished today (folded unless unfolded). */
+/** Open lists (plus lingering just-finished ones, in their place), then lists finished today (folded unless unfolded). */
 const rows = computed(() => {
   const fin = lists.finished.filter((l) => !lingering.has(l.id));
   const linger = lists.finished.filter((l) => lingering.has(l.id));
-  return [...lists.tray, ...linger].map((l) => ({ list: l, fin: false })).concat(fin.map((l) => ({ list: l, fin: true })));
+  const open = linger.length ? [...lists.tray, ...linger].sort(compareOpen) : lists.tray;
+  return open.map((l) => ({ list: l, fin: false })).concat(fin.map((l) => ({ list: l, fin: true })));
 });
 
 let ro: ResizeObserver | null = null;
@@ -96,7 +100,7 @@ function toggleFold(id: string) {
             :aria-label="unfolded.has(r.list.id) ? `Fold ${displayTitle(r.list)}` : `Show items of ${displayTitle(r.list)}`" @click="toggleFold(r.list.id)"
           ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></button>
         </div>
-        <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="linger(r.list.id)" />
+        <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="(catMs) => linger(r.list.id, catMs)" />
       </li>
       <li v-if="!lists.count" key="empty" class="empty">Nothing waiting. Nice.</li>
     </TransitionGroup>

@@ -168,9 +168,11 @@ export class ApiClient {
   }
 
   // --- items ----------------------------------------------------------------
-  items(from: LocalDate, to: LocalDate, calendarIds?: string[], o?: RequestOptions) {
+  /** `also` adds one extra range's items to the same response (API.md `GET /api/items`). */
+  items(from: LocalDate, to: LocalDate, calendarIds?: string[], o?: RequestOptions, also?: { from: LocalDate; to: LocalDate }) {
     const q = new URLSearchParams({ from, to });
     if (calendarIds?.length) q.set('calendarIds', calendarIds.join(','));
+    if (also) q.set('also', `${also.from}..${also.to}`);
     return this.request<ItemsResponse>('GET', `/api/items?${q}`, undefined, o);
   }
   summary(from: LocalDate, to: LocalDate, o?: RequestOptions) {

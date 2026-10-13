@@ -51,7 +51,7 @@ const groups: { setting: keyof ThemeAttrs; label: string; options: { value: stri
   { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
   { setting: 'scene', label: 'Scene', options: [{ value: 'none', label: 'None' }, { value: 'mordor', label: 'Mordor' }, { value: 'season', label: 'Season' }] },
 ];
-const SEASONS = ['spring', 'summer', 'fall', 'winter'];
+const SEASONS = ['spring', 'summer', 'fall', 'winter', 'halloween'];
 const isSeason = (s: string) => SEASONS.includes(s);
 
 function pressed(setting: keyof ThemeAttrs, value: string): boolean {

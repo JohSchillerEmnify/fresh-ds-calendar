@@ -3,7 +3,8 @@ Feature: Season themes keep my light or dark choice and bring their own scene
   The season themes (Spring, Summer, Fall, Winter and so Automatic) change colours, shapes and the top bar scene but
   never my choice of System, Light or Dark (owner, 2026-10-13); only Neon and Mordor are dark by design. Each season
   has a lively scene in the top bar: spring with sprouting trees and the first flowers such as lily of the valley,
-  summer with sunflowers and a small sun. Butterflies and a cat live in every scene.
+  summer with sunflowers and a small sun; Halloween with a moon, bare trees, glowing jack-o'-lanterns, bats and now
+  and then a little ghost (owner, 2026-10-13). Butterflies (bats at Halloween) and a cat live in every scene.
 
   Background:
     Given the calendar is empty
@@ -29,3 +30,4 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       | theme  | parts                                                      |
       | Spring | "sprouting tree", "lily of the valley", "butterfly" and "cat" |
       | Summer | "sunflower", "sun", "butterfly" and "cat"                     |
+      | Halloween | "jack-o-lantern", "bat", "moon" and "cat"                  |

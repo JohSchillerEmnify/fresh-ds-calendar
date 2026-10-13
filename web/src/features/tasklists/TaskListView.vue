@@ -3,7 +3,8 @@
  * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head, "All done" /
  * next task, item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
  * open tasks tray (one per list). All item changes go through `ops.ts` (optimistic, queued, rolled back with a
- * snackbar on failure); the tick logic (flash, celebration, support cat, markFinished) lives only here.
+ * snackbar on failure); the tick logic (flash, celebration, support cat, markFinished) lives only here. A complete list's title is struck through
+ * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import IconClose from '~icons/material-symbols/close';
@@ -19,7 +20,7 @@ import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import SupportCat from '@/features/motivation/SupportCat.vue';
-import { catComes, takeForcedCat } from '@/features/motivation/supportCat';
+import { catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
 import { displayTitle } from '@/lib/items';
 import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
@@ -31,6 +32,7 @@ import { useUiStore } from '@/stores/ui';
 import { carriedLabel, firstOpenItem } from './format';
 import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
 import { useTaskListsStore } from './store';
+import StrikeLine from './StrikeLine.vue';
 
 const props = defineProps<{
   id: string;
@@ -43,8 +45,8 @@ const emit = defineEmits<{
   close: [];
   /** The list was deleted. */
   deleted: [];
-  /** A tick finished the list (the celebration is playing). */
-  completed: [];
+  /** A tick finished the list (the celebration is playing); `catMs` is the support cat's visit length (0 = no visit). */
+  completed: [catMs: number];
 }>();
 const items = useItemsStore();
 const pendingDeletes = usePendingDeletesStore();
@@ -93,21 +95,27 @@ function tick(item: TaskItem, done: boolean) {
     flashStop = appTimeout(() => { flashId.value = null; flashStop = null; }, 700);
   }
   const willComplete = done && !complete.value && t.items.every((i) => i.id === item.id || i.done);
+  // a new completion strikes the title through at once unless the cat comes to do it
+  strikeDraw.value = null;
   patchItem(props.id, item.id, { done });
   if (!willComplete) return;
   celebrate();
   maybeCat();
   lists.markFinished(props.id);
-  emit('completed');
+  emit('completed', cat.value ? catDuration(cat.value.level) : 0);
 }
 
 /** The emotional support cat: rolled once per finished list (about one in ten, every time with "Every time"), never at level Off or set to Off. */
-const cat = ref<{ card: DOMRect; level: 'full' | 'reduced' } | null>(null);
+const cat = ref<{ card: DOMRect; title: DOMRect | null; level: 'full' | 'reduced' } | null>(null);
+/** The title's strike line draws itself in step with the cat's paw swipe; it stays (drawn) after the visit. */
+const strikeDraw = ref<{ delay: number; duration: number } | null>(null);
 function maybeCat() {
   const level = getMotionLevel();
   const forced = takeForcedCat(clock.config.testMode);
   if (!root.value || level === 'off' || !catComes({ level, setting: prefs.supportCat, forced, random: Math.random() })) return;
-  cat.value = { card: root.value.getBoundingClientRect(), level };
+  const title = root.value.querySelector('[data-testid="tasklist-expanded-title"] .tx')?.getBoundingClientRect() ?? null;
+  cat.value = { card: root.value.getBoundingClientRect(), title, level };
+  strikeDraw.value = catSwipe(level);
 }
 
 // --- inline editing ---------------------------------------------------------------------------------------------
@@ -209,8 +217,8 @@ defineExpose({ root, busy });
           v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" maxlength="200" aria-label="Task list title"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
-        <button v-else class="name" type="button" data-testid="tasklist-expanded-title" @click="startRename">
-          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span>{{ displayTitle(tl) }}
+        <button v-else class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="startRename">
+          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
         </button>
         <p class="sub">
           <span :key="tl.doneCount" class="cnt" data-testid="tasklist-expanded-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
@@ -255,7 +263,7 @@ defineExpose({ root, busy });
       <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>Edit</Button>
       <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>Delete</Button>
     </footer>
-    <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :level="cat.level" @done="cat = null" /></Teleport>
+    <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :title="cat.title" :level="cat.level" @done="cat = null" /></Teleport>
   </section>
 </template>
 
@@ -269,6 +277,8 @@ defineExpose({ root, busy });
 }
 .name-in:focus, .item-in:focus, .new:focus { outline: 2px solid var(--md-sys-color-primary); }
 .emoji { margin-right: 6px; }
+/* done state: the hand-drawn strike line over the title text (drawn by the support cat's paw when it comes) */
+.tx { position: relative; --strike-w: 2.400px; }
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }

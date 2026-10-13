@@ -3,7 +3,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
-import type { World } from './support/world.js';
+import { tid, type World } from './support/world.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
   world.colorScheme = scheme;
@@ -130,13 +130,12 @@ async function openMenu(world: World) {
 
 /** The theme menu is a page over the calendar: leave it through the browser history to see the calendar again. */
 async function backToCalendar(world: World) {
+  const menu = world.page.getByTestId('theme-view').or(world.page.getByTestId('settings-view'));
+  // right after a reload the page may not be rendered yet: wait for it, or the menu is mistaken for already left
+  await expect(menu.or(world.page.locator(['month-view', 'week-view', 'day-view', 'year-view'].map(tid).join(', '))).first()).toBeVisible();
   // menu -> settings -> calendar
-  const page = world.page;
-  const overlay = page.getByTestId('theme-view').or(page.getByTestId('settings-view'));
-  // After a reload nothing is rendered yet, so wait for the app to show either a page or the calendar first.
-  await expect(overlay.or(page.getByTestId('month-view')).or(page.getByTestId('week-view')).or(page.getByTestId('day-view')).or(page.getByTestId('year-view')).first()).toBeVisible();
-  for (let i = 0; i < 2 && (await overlay.isVisible()); i++) {
-    await page.goBack();
+  for (let i = 0; i < 2 && (await menu.isVisible()); i++) {
+    await world.page.goBack();
   }
   await world.calendarShown();
 }
@@ -283,15 +282,13 @@ Given('{string} may use the calendar', async function (this: World, email: strin
 // ---- Scenes (STEPS.md "Scenes and the support cat") ----
 
 Then('the top bar scene shows {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
-  // butterflies only visit now and then: the test hook starts a visit at once (STEPS.md scene notes)
-  if ([a, b, c, d].some((n) => n.trim().toLowerCase() === 'butterfly')) {
+  // butterflies (bats at Halloween) only visit now and then: the test hook starts a visit at once (STEPS.md scene notes)
+  const parts = [a, b, c, d].map((n) => n.trim().toLowerCase().replace(/['’]/g, '').replace(/\s+/g, '-'));
+  if (parts.some((p) => p === 'butterfly' || p === 'bat')) {
     await this.context.addInitScript(() => { (window as unknown as { __butterflyNow?: boolean }).__butterflyNow = true; });
     await this.page.reload();
   }
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
-  for (const name of [a, b, c, d]) {
-    const part = name.trim().toLowerCase().replace(/\s+/g, '-');
-    await expect(scene.locator(`[data-part="${part}"]`).first(), name).toBeVisible();
-  }
+  for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
 });
