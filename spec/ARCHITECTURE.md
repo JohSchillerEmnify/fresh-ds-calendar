@@ -788,7 +788,8 @@ It never reloads by itself and never interrupts an open dialog.
   Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
 - **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
-  The theme menu offers one "Scene" selector, in this order: Season, Spring, Summer, Fall, Halloween, Winter, Sunflower
+  The theme menu offers one "Scene" selector, in this order: Season, Spring, Easter, Summer, Summer holidays, Fall,
+  Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower
   field (`sunflowers`), Mordor, None (owner 2026-10-13: every scene can be picked on its own). "Season" is the
   automatic choice and is stored as the sentinel `season`; the shell resolves it by date to today's season scene
   (Halloween in October). An explicit pick (e.g. Halloween in spring) is stored as that scene and shows only its own
@@ -814,8 +815,9 @@ It never reloads by itself and never interrupts an open dialog.
   changes; for themes without a seed the setting stays the base). **Theme mode stays a setting** (`themeMode`): the
   owner decided that season presets keep the person's System/Light/Dark and only Neon and Mordor are dark by design,
   so a mode pick must survive choosing another theme, which an override (cleared on choose) would break.
-- The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <resolved preset>", e.g.
-  "Automatic · Fall" (and "Automatic · Halloween" once that theme exists).
+- The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <the calendar's preset of
+  today>", e.g. "Automatic · Fall", "Automatic · Halloween", "Automatic · Christmas"; with "Scene only" or "Colours only"
+  (below) it reads "Automatic (scene) · Christmas" or "Automatic (colours) · Christmas".
 - Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
   halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
@@ -836,6 +838,38 @@ It never reloads by itself and never interrupts an open dialog.
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
+
+### Holiday themes and "Automatic follows" (owner, 2026-10-13)
+
+- **Calendar mapping** (pure functions in `web/src/theme/holidays.ts`, unit-tested; `presets.ts` builds on them).
+  `automaticPreset(date)` priority: New Year's Eve (31 Dec), New Year (1 Jan only), Christmas (1st Advent Sunday to
+  30 Dec; the 1st Advent is the 4th Sunday before 25 Dec), Easter (Easter Sunday −7 to +6 days; Easter by the anonymous
+  Gregorian Meeus/Jones/Butcher algorithm), Halloween (all of October), then the season. Summer holidays is never
+  picked, it is hand-picked only. The `season` scene sentinel resolves through the same mapping. Alternatives weighed
+  for the Easter algorithm: a lookup table of years (rejected: runs out) and Date libraries (rejected: nothing to add).
+  Christmas state for a date: Advent (1st Advent .. 23 Dec) = tree lights off and 1 + whole weeks since the 1st Advent
+  candles lit (max 4); every other date, which includes 24-30 Dec and a hand-picked Christmas scene in April = lights on,
+  4 candles. One scene whose state depends on the date was chosen over separate Advent and Christmas scenes (owner).
+- **Presets and scenes**: Easter, Summer holidays, Christmas, New Year's Eve, New Year, each a preset (seed colour, glow,
+  entries, corners, scene; all keep the person's mode) and a scene (`easter`, `summerholidays`, `christmas`,
+  `newyearseve`, `newyear`) in the registry of `scenes.ts`, built like Halloween: a backdrop in `SeasonScene` (gradient
+  and drifting particles, also used by the sample cards) and a living layer in `SceneLife` with `data-part`s. Easter:
+  spring meadow with first flowers, painted eggs and a hare. Summer holidays: sun, sea with waves, sand and a beach
+  umbrella. Christmas: a tree on the LEFT (`xmas-tree`, `data-lights` on/off) and an Advent wreath with four
+  `advent-candle`s (`data-lit`); the date comes from the app clock. New Year's Eve: night sky, stars, skyline and
+  fireworks. New Year: sunrise over a hill with falling confetti. Preset order in the gallery follows the Scene card.
+  Motion: CSS transforms and opacity only; fireworks, candle flicker, tree twinkle, waves and confetti run only at Full
+  (`html[data-motion='full']`), at Reduced and Off everything stands still; paused while the page is hidden is inherited
+  from the animation level handling like the other scenes.
+- **Automatic follows** (`theme.pref.automatic`, `both` | `scene` | `colors`, default `both`; plus `automaticBase` for
+  `scene`). Shown in the Presets section as the segmented button `theme-automatic-follows` while Automatic is the
+  chosen preset. `both`: as before. `scene`: colours, glow, entries and corners come from the base theme the person
+  picks in the select `theme-automatic-base` (Default, Neon, Mordor and their own themes; default Default), only the
+  scene follows the calendar. `colors`: the calendar's preset colours apply and the scene is the person's own pick
+  from the Scene card (default None). Fine-tuning overrides apply on top in all modes. Both fields are stored in the
+  theme pref (`GET/PATCH /api/prefs/theme`), kept when another theme is chosen, and validated by the server.
+  Alternatives weighed: separate presets "Automatic scene"/"Automatic colours" (rejected: the owner asked for a switch
+  under the gallery) and storing the base as an override (rejected: choosing a theme clears overrides).
 
 ### Season scenes and the support cat (owner, 2026-10-13)
 
