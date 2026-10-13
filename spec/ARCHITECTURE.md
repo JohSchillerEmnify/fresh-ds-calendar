@@ -368,7 +368,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   the tray list scrolls instead of hiding items. Lists from `finishedToday` follow the open ones, collapsed to their
   struck-through title (`task-tray-title`, row `data-finished="true"`); `task-tray-unfold` shows their task list view
   in place (UI-only state). A list ticked complete in the tray keeps its view open for 2 s (celebration and
-  "All done! 🎉" visible), then moves to the finished rows with a move animation (the store moves it from open to
+  "All done! 🎉" visible) — or until the support cat has finished its visit if it came (owner, 2026-10-13: the cat
+  must not lose its card); the tray itself stays open meanwhile — then moves to the finished rows with a move animation (the store moves it from open to
   finished locally, the next refresh confirms it). The count counts open lists only. On phones the tray's expanded
   state lives in the `ui` store (`trayExpanded`), the opened tray is as tall as the expanded list's bottom sheet
   (desktop: the side panel is 380 px wide, like the expanded list's panel, and the FAB sits left of it via
@@ -677,7 +678,9 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
-- Clock: SVG 24-hour circle, events as arcs labelled with their titles, task lists as dots, hand at the app clock
+- Clock: SVG 24-hour circle as large as the view allows (owner, 2026-10-13), events as arcs labelled with their
+  titles, timed task lists as arcs too (estimate, else 30 min; thinner or dashed, labelled "title done/total"),
+  untimed task lists listed under the time in the middle (tap opens them), hand at the app clock
   (`clock` store), progress ring.
 - Approach bar (owner v3, 2026-10-13: "the next-event element becomes the timeline", then absolute and configurable):
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
@@ -721,10 +724,10 @@ It never reloads by itself and never interrupts an open dialog.
 - A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
-  Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
-  Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
+  halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
+  Winter, Mordor and Automatic (resolves to the season by date; Halloween for all of October, owner 2026-10-13: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
-- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Halloween" for Automatic in October),
   `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
   Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows
   but stop animated ones.
@@ -738,6 +741,12 @@ It never reloads by itself and never interrupts an open dialog.
 
 ### Season scenes and the support cat (owner, 2026-10-13)
 
+- Halloween (owner, 2026-10-13): pumpkin-orange seed, follows the person's light/dark setting (light = dusk,
+  dark = night). Scene: a moon behind thin clouds, bare gnarled trees, jack-o'-lanterns on the ground whose candle
+  light flickers softly, the cat sitting next to a pumpkin and blinking, bats instead of butterflies (same visiting
+  rhythm and hook), and now and then (every 8–12 min, about 8 s) a small friendly ghost floating past. Parts
+  `moon`, `bare-tree`, `jack-o-lantern`, `bat`, `ghost`, `cat`. Same rules: theme tokens, animation levels.
+
 - Every scene works in light and dark (its colours come from the theme tokens, not fixed hex), so a season theme never
   needs a mode. Scenes are SVG compositions in the existing `TopBarScene`/`SeasonScene` family under
   `web/src/features/motivation/`, built from small reusable parts with `data-part`: spring = sprouting trees (buds
@@ -750,12 +759,28 @@ It never reloads by itself and never interrupts an open dialog.
   follows the animation level (Off: still picture).
 - The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
   with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
-  card, paw on the card (the tick already happened, the paw is decoration), looks at the viewer, grins, fades out. It
+  card, swipes its paw across the list's title and a hand-drawn line strikes the title through (owner, 2026-10-13: the
+  cat "checks off the list"), looks at the viewer, grins, fades out. The struck-through title stays while the list is
+  complete (it is the done state of a list, with or without the cat; unticking an item removes it). It
   never captures pointer events and is skipped at animation level Off. Setting "Support cat" (`settings-support-cat`:
   Off / Sometimes / Every time, values `off|sometimes|always`, default `sometimes`) in the Focus & motivation part of
   the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
   (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
   support cat share one cat drawing (`CatFigure`), posed differently.
+- Drag helper (owner, 2026-10-13): when the person picks up an event or task list, the cat may come to "help" — same
+  setting as the support cat (Off / Sometimes ≈ every 5th drag / Every time). It follows the dragged card: moving
+  later/down → it pushes from above, earlier/up → it pulls from below, to another day → it pushes from the side;
+  when the pointer rests > 0.5 s it sits beside the card with a paw on it and looks at the person questioningly; on
+  drop or cancel it hops away (≤ 1.5 s). It reads the drag state from `motion/drag.ts` (no second drag logic),
+  never takes pointer events and must not slow the drag (transform-only, one rAF loop shared with the drag).
+- Cat look (owner, 2026-10-13, two reference pictures; the second one wins where they differ): a black cat in a
+  flat paper-cut style with a subtle paper/fur texture, no outlines, no cartoon mouth or cheeks: tall narrow body
+  that flows into a small head without a neck, seen from the front; two sharp triangle ears with pink insides; big
+  round eyes as yellow rings around black pupils, set close together; a tiny grey triangle nose; long thin light
+  whiskers reaching far out; two front legs showing at the bottom; the tail rising straight up behind the body with
+  a hook at the tip (sitting/napping poses may curl it). Our own drawing in that style, not a copy. On dark themes a
+  soft rim light keeps the black body readable. Expressive through eyes, ears, tail and head only: pupils look
+  around, slow blinks, ear twitches, tail-tip flicks, head tilt; "grin" = happy squinted eye arcs.
 
 ### Untitled task lists (owner, 2026-10-12)
 

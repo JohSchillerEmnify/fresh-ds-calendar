@@ -282,15 +282,13 @@ Given('{string} may use the calendar', async function (this: World, email: strin
 // ---- Scenes (STEPS.md "Scenes and the support cat") ----
 
 Then('the top bar scene shows {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
-  // butterflies only visit now and then: the test hook starts a visit at once (STEPS.md scene notes)
-  if ([a, b, c, d].some((n) => n.trim().toLowerCase() === 'butterfly')) {
+  // butterflies (bats at Halloween) only visit now and then: the test hook starts a visit at once (STEPS.md scene notes)
+  const parts = [a, b, c, d].map((n) => n.trim().toLowerCase().replace(/['’]/g, '').replace(/\s+/g, '-'));
+  if (parts.some((p) => p === 'butterfly' || p === 'bat')) {
     await this.context.addInitScript(() => { (window as unknown as { __butterflyNow?: boolean }).__butterflyNow = true; });
     await this.page.reload();
   }
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
-  for (const name of [a, b, c, d]) {
-    const part = name.trim().toLowerCase().replace(/\s+/g, '-');
-    await expect(scene.locator(`[data-part="${part}"]`).first(), name).toBeVisible();
-  }
+  for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
 });

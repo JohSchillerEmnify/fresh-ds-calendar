@@ -13,10 +13,10 @@ export function useNav() {
   const clock = useClockStore();
   const ui = useUiStore();
 
-  const go = (view: ViewKind, d: Date) => {
+  const go = (view: ViewKind, d: Date, stayInLab = true) => {
     const q = { ...route.query };
-    // On a Labs view, moving through time stays on that view.
-    const lab = route.meta.lab as string | undefined;
+    // On a Labs view, moving through time stays on that view; an explicit view switch leaves it.
+    const lab = stayInLab ? (route.meta.lab as string | undefined) : undefined;
     const path = lab && view === 'day' ? labPath(lab, d) : routePath(view, d);
     return router.push({ path, query: q });
   };
@@ -29,7 +29,7 @@ export function useNav() {
       return go(cal.view, clock.todayDate);
     },
     switchView: (v: ViewKind | 'clock' | 'timeline' | 'strip') =>
-      v === 'clock' || v === 'timeline' || v === 'strip' ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v, cal.focusDate),
+      v === 'clock' || v === 'timeline' || v === 'strip' ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v, cal.focusDate, false),
     /** Pick a date (month picker): focus it and jump the current view (the year view opens that month). */
     pickDay: (d: Date) => {
       cal.setFocus(d);
