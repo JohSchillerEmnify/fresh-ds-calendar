@@ -497,3 +497,11 @@ spec files are named.
   the body in and out (opacity), Reduced and Off do not.
 - **A-158 Translations** (owner): `tasks.list.collapse`, `tasks.list.expand`, `tasks.view.collapseAll`,
   `tasks.view.expandAll` in `locales/<lang>/tasks.ts` for `en`, `de`, `de-x-mainfr` and `de-x-coldmirror`.
+- **A-144 Toolbar buttons per tab** (owner: "decide and log it"): Group/Sort and collapse-all are disabled on Canvas and
+  Archive: the Canvas is a free layout without groups, and the Archive's order is fixed (newest finished first) and never
+  grouped, so the buttons would do nothing there. The filter button works on all three.
+- **A-145 Sheets stay open while choosing** (my choice): the filter sheet is multi-select, so a chip click saves and leaves
+  the sheet open; "Done" (or the scrim, Escape, back) closes it. The sort sheet does the same.
+- **A-146 Sort label** (owner example "Category · Date ↓"; my reading): the label is "Group · Sort"; the direction is shown only
+  when the order is reversed (" ↕"), because the default direction differs per sort key (date earliest first, last changed newest
+  first), so a fixed arrow would be wrong for some keys.

@@ -20,7 +20,7 @@ Feature: One filter for the whole Tasks view
     And the Archive lists "Old milk"
     When I clear the Tasks view filters
     Then the Archive lists "Old report, Old milk"
-    And the Tasks view lists "Report, Milk"
+    And the Open tab lists "Report, Milk"
 
   Scenario: The canvas dims notes that don't match
     Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
@@ -43,6 +43,24 @@ Feature: One filter for the whole Tasks view
       | Read | no   |
     When I choose "Overdue" as the Tasks view When filter
     Then the Tasks view lists "Late"
+
+  Scenario: An active filter shows as a removable chip
+    Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
+    And the calendar contains a task list "Report" in the category "Work" on 2026-10-13
+    When I filter the Tasks view by the category "Shopping"
+    And I choose "This week" as the Tasks view When filter
+    Then the Tasks view shows the active filters "Shopping, This week"
+    When I remove the active filter "Shopping"
+    Then the Tasks view shows the active filters "This week"
+    And the Tasks view lists "Report, Milk"
+
+  @mobile
+  Scenario: The add button never covers the filter or sort sheet
+    When I open the Tasks view filter sheet
+    Then the add button covers no control of the "filter sheet"
+    When I close the Tasks view sheet
+    And I open the Tasks view sort sheet
+    Then the add button covers no control of the "sort sheet"
 
   Scenario: The filter follows me to another device
     Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14

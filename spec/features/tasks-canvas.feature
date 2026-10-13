@@ -134,7 +134,7 @@ Feature: The Canvas places task lists as sticky notes
   Scenario: The add button never covers the area editor
     When I open the Canvas
     And I add an area on the Canvas
-    Then the add button covers no control of the area editor
+    Then the add button covers no control of the "area editor"
 
   @desktop
   Scenario: Zoom with Ctrl+wheel, pan the background and keep the view

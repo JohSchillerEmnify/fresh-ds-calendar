@@ -1267,11 +1267,25 @@ not offered on `/tasks` (the calendar views keep them).
   unique strings of 1-64 characters; anything else is `400`. Why a pref and not the URL (the old chips): the choice follows
   the person to other devices, like grouping and sorting. An id of a deleted category matches nothing and can be removed
   with "Clear filters".
-- **UI.** One compact row: the **When chip** (`tasks-filter-when`, `data-value`; it shows "When" or the chosen value, selected
-  while not `all`) opens a small menu (`tasks-filter-when-option`, `data-value`), then, while any filter is on, **Clear
-  filters** (`tasks-filter-clear`), then the category chips in a horizontally scrolling strip. The When chip and Clear sit
-  outside the scrolling strip so the menu is not clipped by its overflow. Why a menu for When and not seven chips: seven
-  chips plus the categories would not fit one phone row, and only one value can be on at a time anyway. Texts: `tasks.filter.*`.
+- **UI** (owner layout, 2026-10-13: four rows of controls looked messy). Under the tabs `[ Open | Canvas | Archive ]` sits ONE
+  toolbar row of compact buttons, the same on all three tabs, then the active-filter chips:
+  `[Filter (n)] [Group · Sort] [unfold]`, and below it, only while a filter is on, one removable chip per active filter.
+  - **Filter button** (`tasks-filter-open`, count badge `tasks-filter-count` while any filter is on) opens a bottom sheet
+    (`tasks-filter-sheet`, an `AdaptiveSheet`) with the category chips (`tasks-filter-category`, multi-select, plus "No category"),
+    When as a group of chips (`tasks-filter-when`, `data-value`; options `tasks-filter-when-option`), `tasks-filter-clear` while a
+    filter is on, and Done (`tasks-sheet-done`). Choices save at once and stay open (multi-select), Done closes.
+  - **Group/Sort button** (`tasks-sort-open`) shows the state as its label, "Category · Date", with " ↕" while the order is reversed;
+    it opens `tasks-sort-sheet` with Group by (`tasks-group-by`), Sort by (`tasks-sort-by`) and the direction (`tasks-sort-dir`).
+  - **Collapse/expand all** (`tasks-collapse-all`, from the compact task list cards) is an icon button with an `aria-label`
+    ("Collapse all" / "Expand all"), `aria-pressed` while all are collapsed.
+  - **Active-filter chips** (`tasks-filter-active`, `data-key` = `category:<id>` or `when`): tapping one removes that filter.
+  - **Disabled where it does not apply** (A-144): grouping/sorting and collapse-all only exist in Open, so on Canvas and Archive
+    the Group/Sort and collapse buttons are disabled (the Canvas has no groups; the Archive's order is fixed, newest finished first);
+    the filter applies on all three.
+  - The phone's create button slides away (`ui.panelOpen`, one set of names so several panels can be open) while either sheet or
+    the Canvas's area editor is open, so it never covers a sheet's buttons.
+  Texts: `tasks.filter.*`, `tasks.view.sortTitle`. Why sheets and not inline controls: four stacked rows (tabs, filter chips,
+  group/sort/direction, collapse) left little room for the lists on a phone; the sheets cost one tap and keep every control.
 
 ### Untitled task lists (owner, 2026-10-12)
 

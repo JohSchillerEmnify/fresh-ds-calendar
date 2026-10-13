@@ -32,7 +32,7 @@ const MIGRATED = [
   'src/features/tasklists/TaskTray.vue',
   'src/features/tasklists/StrikeLine.vue',
   'src/features/tasklists/TasksCanvas.vue',
-  'src/features/tasklists/TasksFilterBar.vue',
+  'src/features/tasklists/TasksToolbar.vue',
   'src/features/tasklists/CanvasNote.vue',
   'src/features/tasklists/CanvasArea.vue',
   'src/features/motivation/PlantCard.vue',
