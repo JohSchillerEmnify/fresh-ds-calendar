@@ -28,6 +28,20 @@
 [data-corners='pill'] { --r-chip: 999px; --r-block: 16px; }
 
 /*
+ * Checkbox choices (`data-checkbox`, `data-check`): the box radius for HTML boxes (`--cb-r`) and SVG rects (`--cb-rx`), and
+ * which of the glyphs the checkbox draws (all four are in the markup, the others are hidden). Rounded and tick are the
+ * defaults, also before the first apply.
+ */
+:root { --cb-r: 28%; --cb-rx: 5.5px; }
+[data-checkbox='round'] { --cb-r: 50%; --cb-rx: 9px; }
+[data-checkbox='square'] { --cb-r: 8%; --cb-rx: 1.5px; }
+[data-checkbox='rounded'] { --cb-r: 28%; --cb-rx: 5.5px; }
+.rcb-check { display: none; }
+html:not([data-check]) .rcb-check[data-glyph='tick'], html[data-check='tick'] .rcb-check[data-glyph='tick'],
+html[data-check='bold'] .rcb-check[data-glyph='bold'], html[data-check='cross'] .rcb-check[data-glyph='cross'],
+html[data-check='dot'] .rcb-check[data-glyph='dot'] { display: inline; }
+
+/*
  * The one snackbar look (ARCHITECTURE "Snackbars and toasts follow the theme"): snackbars, the sync error banner and
  * the check-in toast. Theme tokens only, so a theme or season change restyles them; action colour: --snack-action.
  */

@@ -1,0 +1,23 @@
+{
+  "schema": "calendar-theme/2",
+  "name": "Ocean",
+  "author": "Fixture",
+  "description": "Deep blue sea with waves in the top bar.",
+  "mode": "follow",
+  "colors": {
+    "seed": "#0b6e99"
+  },
+  "glow": "soft",
+  "entries": "tinted",
+  "corners": "round",
+  "font": "rounded",
+  "scene": {
+    "gradient": [
+      "#8fd3f0",
+      "#2b8fb8",
+      "#0b6e99"
+    ],
+    "decor": "waves",
+    "density": "medium"
+  }
+}

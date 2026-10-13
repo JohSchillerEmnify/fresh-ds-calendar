@@ -28,6 +28,13 @@ export function rememberNewKind(k: NewKind): void {
   try { localStorage.setItem(KIND_KEY, k); } catch { /* storage unavailable: the choice just is not remembered */ }
 }
 
+/** Opens the task list dialog for a list without a date (the "+" of the Tasks view); no Event / Task list switch. */
+export function openNewUndated(): void {
+  const ui = useUiStore();
+  if (dialogs.tasklist) ui.openDialog('tasklist', { mode: 'create', date: null });
+  else ui.notify('The editor is not available yet');
+}
+
 /**
  * Opens the one "new" dialog (FAB, empty slot) as the remembered kind, prefilled with the slot's date/time.
  * `time` is passed only when a slot gave one: the event form fills its own default, the task list form stays untimed.

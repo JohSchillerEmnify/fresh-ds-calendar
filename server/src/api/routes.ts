@@ -7,11 +7,15 @@ import { isLocalDate, formatInZone } from '../lib/time.js';
 import { dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
+import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
+import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
+import {
+  isApproachWindow, isLanguagePref, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir,
+} from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -119,10 +123,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible', 'versionInCorner'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'versionInCorner'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'versionInCorner', 'labsOwnThemes', 'leftHanded'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.approachWindowHours !== undefined) {
       if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
       patch.approachWindowHours = b.approachWindowHours;
@@ -131,6 +135,22 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
       patch.supportCat = b.supportCat as SupportCat;
     }
+    if (b.tasksGroupBy !== undefined) {
+      if (!TASKS_GROUP_BY_VALUES.includes(b.tasksGroupBy as TasksGroupBy)) throw validation('Invalid tasksGroupBy', 'tasksGroupBy');
+      patch.tasksGroupBy = b.tasksGroupBy as TasksGroupBy;
+    }
+    if (b.tasksSortBy !== undefined) {
+      if (!TASKS_SORT_BY_VALUES.includes(b.tasksSortBy as TasksSortBy)) throw validation('Invalid tasksSortBy', 'tasksSortBy');
+      patch.tasksSortBy = b.tasksSortBy as TasksSortBy;
+    }
+    if (b.tasksSortDir !== undefined) {
+      if (!TASKS_SORT_DIR_VALUES.includes(b.tasksSortDir as TasksSortDir)) throw validation('Invalid tasksSortDir', 'tasksSortDir');
+      patch.tasksSortDir = b.tasksSortDir as TasksSortDir;
+    }
+    if (b.language !== undefined) {
+      if (!isLanguagePref(b.language)) throw validation('Invalid language', 'language');
+      patch.language = b.language;
+    }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
     return c.json(ctx.prefs.setLabs(person(c), patch));
@@ -138,9 +158,40 @@ export function apiRoutes(ctx: Ctx): Hono {
   // ---- per-person theme ----
   r.get('/prefs/theme', (c) => {
     ctx.prefs.migrateScene(person(c), settings.legacyTopBarScene());
+    ctx.prefs.migrateGarden(person(c), settings.legacyGarden());
     return c.json(ctx.prefs.theme(person(c)));
   });
   r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));
+
+  // ---- imported themes ----
+  r.get('/themes', (c) => c.json({ themes: ctx.themes.list(person(c)).map(({ id, doc, picture }) => ({ id, doc, ...(picture ? { picture } : {}) })) }));
+  r.post('/themes', async (c) => {
+    const b = await body(c);
+    const fail = (errors: string[]) => new ApiException('VALIDATION_ERROR', 400, errors[0]!, errors.map((issue) => ({ issue })));
+    if (typeof b !== 'object' || b === null || Array.isArray(b)) throw fail(['Request body must be a JSON object']);
+    const unknown = Object.keys(b).filter((k) => k !== 'theme' && k !== 'picture');
+    if (unknown.length) throw fail(unknown.map((k) => `${k} is not a known field`));
+    const { theme, picture } = b as { theme?: unknown; picture?: unknown };
+    const doc = validateTheme(theme);
+    if (!doc.ok) throw fail(doc.errors);
+    let clean: ThemePicture | undefined;
+    let removed = false;
+    if (picture !== undefined) {
+      const valid = validatePicture(picture);
+      if (!valid.ok) throw fail(valid.errors);
+      // the sanitiser (jsdom) is only loaded for a theme that brings a picture
+      const safe = sanitizePicture(await loadSvgSanitizer(), valid.picture);
+      if (!safe.ok) throw fail(safe.errors);
+      clean = safe.picture;
+      removed = safe.removed;
+    }
+    const saved = ctx.themes.add(person(c), doc.doc, clean);
+    return c.json({ id: saved.id, doc: saved.doc, ...(clean ? { picture: clean } : {}), sanitized: removed }, 201);
+  });
+  r.delete('/themes/:id', (c) => {
+    if (!ctx.themes.remove(person(c), c.req.param('id'))) throw notFound('Theme not found');
+    return c.body(null, 204);
+  });
 
   // ---- items ----
   r.get('/items', async (c) => {
@@ -173,6 +224,11 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!Number.isInteger(days) || days < 0 || days > 90) throw validation('days must be 0-90', 'days');
     return c.json(await cal(c).openTaskLists(today, days));
   });
+  r.get('/tasklists/all-open', async (c) => {
+    const today = c.req.query('today') ?? ctx.motivation.today();
+    if (!isLocalDate(today)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
+    return c.json(await cal(c).allOpenTaskLists(today));
+  });
   r.post('/tasklists', async (c) => c.json(await cal(c).createTaskList(parse(createTaskListSchema, await body(c))), 201));
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
   r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'))));
@@ -203,7 +259,7 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   const uniqueName = (cats: Category[], name: string, exceptId?: string) => {
     if (cats.some((x) => x.id !== exceptId && x.name.toLowerCase() === name.toLowerCase())) {
-      throw validation('A category with this name already exists', 'name');
+      throw validation('A category with this name already exists', 'name', 'category.nameExists');
     }
   };
 

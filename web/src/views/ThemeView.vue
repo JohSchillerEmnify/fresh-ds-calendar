@@ -1,80 +1,147 @@
 <script setup lang="ts">
 /**
- * Theme menu (`/settings/theme`): a gallery of ready themes (each a real mini week under that theme's attributes),
- * fine-tuning options that each show a sample of their look, and a live preview. Picking applies at once and is
- * saved in the background by the theme store; there is no save button. The one Scene choice is a theme attribute. Theme
- * mode, seed colour and the Mordor shortcut are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
+ * Theme menu (`/settings/theme`): a live preview and three sections, in this order: Presets (a gallery of ready
+ * themes, each a real mini week under that theme's attributes), Scene (the top bar background, one choice) and
+ * Fine-tuning (theme mode, seed colour, options that each show a sample of their look, a slider for the values between
+ * the glow, corner and tint steps, density and the checkbox choices). Picking applies at once
+ * and is saved in the background by the theme store; there is no save button. The scene is a theme attribute. Theme
+ * mode and seed colour are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
  */
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { createReusableTemplate } from '@vueuse/core';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import IconBack from '~icons/material-symbols/arrow-back';
-import { ApiError } from '@/api/client';
+import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
+import { ApiError, type StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
+import Slider from '@/components/m3/Slider.vue';
 import TextField from '@/components/m3/TextField.vue';
+import ThemeCard from '@/components/settings/ThemeCard.vue';
+import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
+import ThemeImport from '@/components/settings/ThemeImport.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
+import RewardCheckbox from '@/motion/RewardCheckbox.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
+import { BACKDROP_SCENES } from '@/features/motivation/types';
 import { useClockStore } from '@/stores/clock';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
-import { resolveTheme as resolveMode } from '@/theme';
-import { PRESET_NAMES, presetFor, type PresetName, type ThemeAttrs } from '@/theme/presets';
+import {
+  CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES, sliderText,
+} from '@/theme/fine';
+import { automaticPreset, docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type Seasonal, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
 const theme = useThemeStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
+const pending = usePendingDeletesStore();
+const prefs = usePrefsStore();
+const savingOwn = ref(false);
 const attrs = computed(() => theme.resolved.attrs);
-const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-/** The color library loads lazily; until then the cards show the current palette. */
-const scheme = shallowRef<typeof import('@/theme/scheme') | null>(null);
-onMounted(async () => { scheme.value = await import('@/theme/scheme'); });
+/** Every preset as the gallery shows it: its own look, whatever the seasons & holidays setting is. */
+const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {}, seasonal: 'off' }, clock.today)])) as Record<PresetName, ResolvedTheme>);
 
-/** Color roles of a preset, applied to its gallery card only. */
-function cardStyle(name: PresetName): Record<string, string> {
-  const p = presetFor(name, clock.today);
-  const dark = resolveMode(p.mode ?? settings.settings.themeMode) === 'dark';
-  if (!scheme.value) return {};
-  return { ...scheme.value.schemeVars(p.seed ?? settings.settings.seedColor, dark), colorScheme: dark ? 'dark' : 'light' };
+/** Downloads a theme's document as a `.json` file. */
+function exportTheme(t: StoredTheme) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(t.doc, null, 2)], { type: 'application/json' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `${t.doc.name.replace(/[^\w-]+/g, '-')}.theme.json` });
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 const groups: { setting: keyof ThemeAttrs; label: string; options: { value: string; label: string }[] }[] = [
   { setting: 'glow', label: 'Glow', options: [{ value: 'off', label: 'Off' }, { value: 'soft', label: 'Soft' }, { value: 'neon', label: 'Neon' }] },
   { setting: 'entries', label: 'Entries', options: [{ value: 'solid', label: 'Solid' }, { value: 'tinted', label: 'Tinted' }, { value: 'outline', label: 'Outline' }] },
   { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
-  { setting: 'scene', label: 'Scene', options: [{ value: 'season', label: 'Season' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] },
 ];
-const SEASONS = ['spring', 'summer', 'fall', 'winter', 'halloween'];
-const isSeason = (s: string) => SEASONS.includes(s);
+/** The Scene choice has its own section; its options look and behave like the fine-tuning ones. */
+const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', options: [
+  { value: 'spring', label: 'Spring' }, { value: 'easter', label: 'Easter' }, { value: 'summer', label: 'Summer' },
+  { value: 'summerholidays', label: 'Summer holidays' }, { value: 'fall', label: 'Fall' }, { value: 'halloween', label: 'Halloween' },
+  { value: 'christmas', label: 'Christmas' }, { value: 'newyearseve', label: 'New Year\'s Eve' }, { value: 'newyear', label: 'New Year' },
+  { value: 'winter', label: 'Winter' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' },
+] };
+/** One option group (label + option cards) is drawn in two sections, so its template is defined once. */
+const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
+const isSeason = (s: string) => (BACKDROP_SCENES as readonly string[]).includes(s);
 
+// --- Seasons & holidays (one setting for all of them) ----------------------------------------------------------------
+const seasonalOptions: { value: Seasonal; label: string }[] = [{ value: 'off', label: 'Off' }, { value: 'header', label: 'Header only' }, { value: 'all', label: 'Header + colours' }];
+/** What applies today, in words: the calendar's theme and which parts of it. */
+const seasonalToday = computed(() => {
+  const today = automaticPreset(clock.today);
+  return theme.pref.seasonal === 'all' ? `Today: ${today} header & colours` : theme.pref.seasonal === 'header' ? `Today: ${today} header` : 'Today: nothing changes automatically';
+});
+/** The scene option shown as pressed: the person's pick, or the theme's own scene while the calendar is off (none while it drives the header). */
+const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.seasonal === 'off' ? attrs.value.scene : null));
+/** Glow and corners are a step and a slider value in one: a step is pressed only while the slider is exactly on its value. */
+const STEP_VALUES = { glow: GLOW_STEPS, corners: RADIUS_STEPS } as Record<string, Record<string, number>>;
+const STEP_FIELD = { glow: 'glowStrength', corners: 'radius' } as const;
+const fine = computed(() => theme.resolved.fine);
+/** The slider values in use: the fine-tuned number, else the chosen step's value (tint: the default). */
+const values = computed(() => ({
+  glowStrength: fine.value.glowStrength ?? GLOW_STEPS[attrs.value.glow],
+  radius: fine.value.radius ?? RADIUS_STEPS[attrs.value.corners],
+  tint: fine.value.tint ?? DEFAULT_TINT,
+}));
 function pressed(setting: keyof ThemeAttrs, value: string): boolean {
-  const cur = attrs.value[setting];
-  return setting === 'scene' && value === 'season' ? isSeason(cur) : cur === value;
+  if (setting === 'scene') return sceneChoice.value === value;
+  const steps = STEP_VALUES[setting];
+  return steps ? values.value[STEP_FIELD[setting as 'glow' | 'corners']] === steps[value] : attrs.value[setting] === value;
 }
 function pickOption(setting: keyof ThemeAttrs, value: string) {
-  if (setting === 'scene') void theme.pick('scene', (value === 'season' ? theme.todaysSeasonScene : value) as ThemeAttrs['scene']);
+  const steps = STEP_VALUES[setting];
+  // a step also sets its slider value, so the number of an earlier slider move does not outlive the pick
+  if (steps) void theme.pickMany({ [setting]: value, [STEP_FIELD[setting as 'glow' | 'corners']]: steps[value] } as never);
   else void theme.pick(setting, value as never);
 }
+
+// --- sliders (live while moving, saved when the move ends) and the other fine-tuning choices ---------------------------
+type SliderKey = 'glowStrength' | 'radius' | 'tint';
+const sliders: Record<string, { key: SliderKey; label: string; testid: string }> = {
+  glow: { key: 'glowStrength', label: 'Glow strength', testid: 'theme-slider-glow' },
+  corners: { key: 'radius', label: 'Corner radius', testid: 'theme-slider-radius' },
+  entries: { key: 'tint', label: 'Entry tint', testid: 'theme-slider-tint' },
+};
+const live = (key: SliderKey, v: number) => theme.preview({ [key]: v });
+const commit = (key: SliderKey, v: number) => theme.pickMany({ [key]: v });
+/** The tint is only used by tinted entries, so the other styles disable its slider. */
+const tintOff = computed(() => attrs.value.entries !== 'tinted');
+const choices: { key: 'density' | 'checkbox' | 'checkFill' | 'check' | 'icons'; label: string; testid: string; options: { value: string; label: string }[]; fallback: string }[] = [
+  { key: 'density', label: 'Density', testid: 'theme-density', fallback: 'comfortable', options: DENSITIES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'checkbox', label: 'Checkbox shape', testid: 'theme-checkbox-shape', fallback: 'rounded', options: CHECKBOXES.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'checkFill', label: 'Checkbox fill', testid: 'theme-check-fill', fallback: 'filled', options: CHECK_FILLS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'check', label: 'Check mark', testid: 'theme-check-glyph', fallback: 'tick', options: CHECK_GLYPHS.map((v) => ({ value: v, label: v === 'bold' ? 'Bold tick' : v[0].toUpperCase() + v.slice(1) })) },
+  { key: 'icons', label: 'Icon set', testid: 'theme-icon-set', fallback: 'outlined', options: ICON_SETS.map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) })) },
+];
+/** The sample icons shown in each option of the icon set control, drawn in that option's own set. */
+const SAMPLE_ICONS = [IconSettingsOutline, IconEditOutline, IconClose];
+const choiceValue = (c: (typeof choices)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
+/** The preview's two checkboxes are real ones that can be played with. */
+const tickedA = ref(true);
+const tickedB = ref(false);
 /** Attributes for an option's sample: the current look with this one option swapped in. */
 function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, string> {
   const a: Record<string, string> = { 'data-glow': attrs.value.glow, 'data-entries': attrs.value.entries, 'data-corners': attrs.value.corners };
   if (setting !== 'scene') a[`data-${setting}`] = value;
   return a;
 }
-const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
 
-// --- mode, seed colour, Mordor (settings, not theme prefs) ---------------------------
+// --- mode (a setting) and seed colour (fine-tuning on top of the chosen theme, like the other options) ----------------
 const sync = useSyncStore();
 const ui = useUiStore();
 const s = computed(() => settings.settings);
-/** Persist a patch; failures roll back in the store and surface as the banner or a snackbar. */
+/** Persist a settings patch; failures roll back in the store and surface as the banner or a snackbar. */
 async function save(p: Parameters<typeof settings.patch>[0]) {
   try {
     await settings.patch(p);
@@ -84,7 +151,7 @@ async function save(p: Parameters<typeof settings.patch>[0]) {
   }
 }
 const modes = [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }] as const;
-const seed = computed(() => s.value.seedColor.toLowerCase());
+const seed = computed(() => (theme.resolved.seed ?? s.value.seedColor).toLowerCase());
 const presetNames = SEED_PRESETS.map((p) => p.hex);
 const isMordor = computed(() => seed.value === MORDOR_SEED);
 const isCustom = computed(() => !presetNames.includes(seed.value) && !isMordor.value);
@@ -98,13 +165,13 @@ const hexError = ref('');
 watch(seed, (v) => { hex.value = v; hexError.value = ''; });
 function pickSwatch(v: string) {
   if (v === 'custom') { document.querySelector<HTMLInputElement>('[data-testid="settings-seed-custom"]')?.focus(); return; }
-  void save({ seedColor: v });
+  void theme.pick('seed', v);
 }
 function commitHex() {
   const v = hex.value.trim();
   if (!isHexColor(v)) { hexError.value = MSG_INVALID_COLOR; return; }
   hexError.value = '';
-  if (v.toLowerCase() !== seed.value) void save({ seedColor: v.toLowerCase() });
+  if (v.toLowerCase() !== seed.value) void theme.pick('seed', v.toLowerCase());
 }
 
 function back() {
@@ -120,41 +187,62 @@ function back() {
       <h1>Theme</h1>
     </header>
     <div class="content">
+      <DefineGroup v-slot="{ g }">
+        <div class="group" role="group" :aria-label="g.label">
+          <span class="lab">{{ g.label }}</span>
+          <div class="opts">
+            <button
+              v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
+              :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
+            >
+              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
+              <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
+                <span class="back" :class="[`b-${o.value}`]"><SeasonScene v-if="isSeason(o.value)" :season="o.value as 'spring'" /></span>
+                <ThemeSample kind="event" title="Dentist" />
+              </span>
+              <span class="ol">{{ o.label }}</span>
+            </button>
+          </div>
+        </div>
+      </DefineGroup>
       <section class="card preview" aria-labelledby="h-prev" data-testid="theme-preview">
         <h2 id="h-prev">Preview</h2>
         <div class="stage">
           <div class="pv"><ThemeSample kind="event" title="Dentist" data-testid="theme-preview-event" /></div>
           <div class="pv"><ThemeSample kind="tasklist" color="#0b8043" title="Groceries" /></div>
-          <div class="pv cbs"><ThemeSample kind="checkbox" color="#3f51b5" checked /><ThemeSample kind="checkbox" color="#3f51b5" /></div>
+          <div class="pv cbs"><RewardCheckbox v-model="tickedA" label="Done" /><RewardCheckbox v-model="tickedB" label="To do" /></div>
         </div>
       </section>
 
-      <section class="card" aria-labelledby="h-gal">
-        <h2 id="h-gal">Themes</h2>
+      <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
+        <h2 id="h-cal">Seasons &amp; holidays</h2>
+        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" label="Seasons & holidays" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
+        <p class="today" data-testid="theme-seasonal-today">{{ seasonalToday }}</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-gal" data-testid="theme-section" data-section="presets">
+        <h2 id="h-gal">Presets</h2>
         <div class="gallery">
-          <button
-            v-for="n in PRESET_NAMES" :key="n" type="button" class="tcard" data-testid="theme-card" :data-name="n" :aria-pressed="theme.pref.preset === n"
-            @click="theme.choose(n)"
-          >
-            <span
-              class="scope" :style="cardStyle(n)" :data-glow="presetFor(n, clock.today).attrs.glow" :data-entries="presetFor(n, clock.today).attrs.entries"
-              :data-corners="presetFor(n, clock.today).attrs.corners" :data-scene="presetFor(n, clock.today).attrs.scene" aria-hidden="true"
-            >
-              <span class="hdr" :class="{ ember: presetFor(n, clock.today).attrs.scene === 'mordor' }">
-                <SeasonScene v-if="isSeason(presetFor(n, clock.today).attrs.scene)" :season="presetFor(n, clock.today).attrs.scene as 'spring'" />
-                <span v-for="(d, i) in DAYS" :key="i" class="day">{{ d }}</span>
-              </span>
-              <span class="mini">
-                <ThemeSample kind="event" color="var(--md-sys-color-primary)" on="var(--md-sys-color-on-primary)" title="Meet" class="m1" />
-                <ThemeSample kind="tasklist" color="var(--md-sys-color-tertiary)" on="var(--md-sys-color-on-tertiary)" title="To-do" class="m2" />
-              </span>
-            </span>
-            <span class="nm">{{ n }}<small v-if="n === 'Automatic'"> · {{ presetFor(n, clock.today).name }}</small></span>
-          </button>
+          <ThemeCard
+            v-for="n in PRESET_NAMES" :key="n" :name="n" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
+            @choose="theme.choose(n)"
+          />
+          <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc, t.picture)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
+            <template #actions>
+              <IconButton label="Export theme" data-testid="theme-export" @click="exportTheme(t)"><IconExport /></IconButton>
+              <IconButton label="Delete theme" data-testid="theme-delete" @click="pending.deleteTheme(t.id, t.doc.name)"><IconDelete /></IconButton>
+            </template>
+          </ThemeCard>
         </div>
+        <ThemeImport v-if="prefs.labsOwnThemes" />
       </section>
 
-      <section class="card" aria-labelledby="h-fine">
+      <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
+        <h2 id="h-scene">Scene</h2>
+        <ReuseGroup :g="sceneGroup" />
+      </section>
+
+      <section class="card" aria-labelledby="h-fine" data-testid="theme-section" data-section="fine-tuning">
         <h2 id="h-fine">Fine-tuning</h2>
         <div class="group">
           <span class="lab">Theme mode</span>
@@ -165,29 +253,31 @@ function back() {
           <ColorSwatchPicker :swatches="swatches" :model-value="swatchValue" label="Seed color" @update:model-value="pickSwatch" />
           <TextField v-model="hex" class="hex" label="Custom color (hex)" data-testid="settings-seed-custom" :error="hexError" error-testid="settings-seed-error" autocomplete="off" autocapitalize="off" @commit="commitHex" />
         </div>
-        <div v-for="g in groups" :key="g.setting" class="group" role="group" :aria-label="g.label">
-          <span class="lab">{{ g.label }}</span>
-          <div class="opts">
-            <button
-              v-for="o in g.options" :key="o.value" type="button" class="opt" data-testid="theme-option" :data-setting="g.setting" :data-value="o.value"
-              :aria-pressed="pressed(g.setting, o.value)" @click="pickOption(g.setting, o.value)"
-            >
-              <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
-              <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
-                <span class="back" :class="[`b-${sceneOf(o.value)}`]"><SeasonScene v-if="isSeason(sceneOf(o.value))" :season="sceneOf(o.value) as 'spring'" /></span>
-                <ThemeSample kind="event" title="Dentist" />
-              </span>
-              <span class="ol">{{ o.label }}</span>
-            </button>
+        <template v-for="g in groups" :key="g.setting">
+          <ReuseGroup :g="g" />
+          <div v-if="sliders[g.setting]" class="group">
+            <Slider
+              :model-value="values[sliders[g.setting].key]" :min="RANGES[sliders[g.setting].key][0]" :max="RANGES[sliders[g.setting].key][1]"
+              :label="sliders[g.setting].label" :value-text="sliderText(sliders[g.setting].key, values[sliders[g.setting].key])"
+              :testid="sliders[g.setting].testid" :disabled="sliders[g.setting].key === 'tint' && tintOff"
+              @update:model-value="live(sliders[g.setting].key, $event)" @commit="commit(sliders[g.setting].key, $event)"
+            />
+            <span v-if="sliders[g.setting].key === 'tint' && tintOff" class="sub">Only used by Tinted entries.</span>
           </div>
+        </template>
+        <div v-for="c in choices" :key="c.key" class="group">
+          <span class="lab">{{ c.label }}</span>
+          <SegmentedButton :model-value="choiceValue(c)" :options="c.options" :label="c.label" :data-testid="c.testid" @update:model-value="theme.pick(c.key, $event as never)">
+            <template v-if="c.key === 'icons'" #option="{ option }">
+              <span class="isamp" aria-hidden="true"><component :is="ic.variants[option.value as 'sharp']" v-for="(ic, n) in SAMPLE_ICONS" :key="n" /></span>
+            </template>
+          </SegmentedButton>
         </div>
-        <div class="group mordor">
-          <span class="grow"><span class="lab">Mordor</span><span class="sub">Ember seed, dark mode and the Mordor scene</span></span>
-          <Button :variant="isMordor && s.themeMode === 'dark' ? 'filled' : 'tonal'" data-testid="settings-theme-mordor" :aria-pressed="isMordor" data-name="Mordor" :data-color="MORDOR_SEED" @click="settings.applyMordor().catch((e) => sync.reportError(e))">
-            {{ isMordor ? 'Active' : 'Use Mordor' }}
-          </Button>
+        <div class="group">
+          <Button variant="tonal" data-testid="theme-save-own" @click="savingOwn = true">Save as my theme</Button>
         </div>
       </section>
+      <SaveThemeDialog v-if="savingOwn" @close="savingOwn = false" />
     </div>
   </section>
 </template>
@@ -205,19 +295,6 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 
 .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 @media (min-width: 560px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
-.tcard { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 6px; border-radius: var(--md-sys-shape-corner-large); border: 2px solid transparent; background: var(--md-sys-color-surface-container); transition: border-color 150ms, transform 150ms var(--md-sys-motion-spring), box-shadow 150ms; }
-.tcard:hover { transform: translateY(-1px); }
-.tcard[aria-pressed='true'] { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent); }
-.scope { display: flex; flex-direction: column; border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); height: 104px; }
-.hdr { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px 4px 3px; font-size: 9px; text-align: center; background: var(--md-sys-color-surface-container-high); overflow: hidden; }
-.hdr.ember { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); color: #ffd7b0; }
-.day { position: relative; }
-.mini { position: relative; flex: 1; display: flex; flex-direction: column; gap: 5px; padding: 7px 6px; min-height: 0; }
-.mini .m1 { width: 62%; margin-left: 14%; font-size: 10px; }
-.mini .m2 { width: 66%; margin-left: 30%; }
-.mini .m2 :deep(.it:nth-of-type(n + 3)) { display: none; }
-.nm { font: var(--md-sys-typescale-label-large); padding: 0 4px 2px; }
-.nm small { font-weight: 400; color: var(--md-sys-color-on-surface-variant); }
 
 .group { padding: 4px 0 8px; }
 .lab { display: block; font: var(--md-sys-typescale-body-large); padding: 4px 4px 6px; }
@@ -229,10 +306,13 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .scenebox { position: relative; }
 .back { position: absolute; inset: 0; overflow: hidden; }
 .b-mordor { background: linear-gradient(90deg, #3b0d00, #c43e00 60%, #ff8f00); }
+.b-sunflowers { background: linear-gradient(180deg, color-mix(in srgb, #8ec9f2 40%, transparent) 55%, color-mix(in srgb, #7fbf6a 45%, transparent) 55%); }
 .scenebox :deep(.s-ev) { position: relative; }
 .ol { font: var(--md-sys-typescale-label-large); }
 .hex { margin-top: 10px; }
-.mordor { display: flex; align-items: center; gap: 12px; }
-.grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); padding: 0 4px; }
+.isamp { display: inline-flex; gap: 2px; }
+.isamp :deep(svg) { width: 16px; height: 16px; }
+
+.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
+.today { margin: 8px 4px 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 </style>

@@ -6,10 +6,12 @@ FROM ${NODE_IMAGE} AS build
 RUN npm i -g pnpm@12.11.2 --no-fund --no-audit
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY shared/package.json shared/
 COPY server/package.json server/
 COPY web/package.json web/
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter @calendar/server --filter @calendar/web
+    pnpm install --frozen-lockfile --filter @calendar/shared --filter @calendar/server --filter @calendar/web
+COPY shared shared
 COPY server server
 COPY web web
 # Build version (X.Y.Z+<sha>, scripts/version.sh) shared by the web bundle and the server so the app can detect a newer deploy.

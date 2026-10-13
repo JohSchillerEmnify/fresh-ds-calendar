@@ -2,10 +2,10 @@ import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { Category, Settings, SettingsPatch } from '@/api/types';
-import { MORDOR_SEED } from '@/api/colors';
-import { applySeed, applyThemeMode, DEFAULT_SEED } from '@/theme';
+import { applyTheme, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
+import { usePrefsStore } from './prefs';
 import { useThemeStore } from './theme';
 
 export const DEFAULT_CATEGORIES: Category[] = [
@@ -18,7 +18,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 export const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system', seedColor: DEFAULT_SEED, defaultView: 'month', defaultEventColorId: null,
   animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false, transitionWarningMinutes: 10,
-  streakFlame: true, garden: 'plant', categories: DEFAULT_CATEGORIES,
+  streakFlame: true, plant: true, sunflowers: 'grow', categories: DEFAULT_CATEGORIES,
   updated: '', version: 0,
 };
 
@@ -30,14 +30,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const categories = computed(() => s.value.categories);
   const categoryById = (id: string | null | undefined) => categories.value.find((c) => c.id === id);
-  /**
-   * Scene the top bar actually shows (API.md "Scenes"): the theme's scene, where sunflowers only show with garden
-   * 'sunflowers'; every other scene shows regardless of garden, none = nothing.
-   */
-  const effectiveScene = computed<ShownScene>(() => {
-    const themed = useThemeStore().resolved.attrs.scene;
-    return themed === 'sunflowers' && s.value.garden !== 'sunflowers' ? 'none' : themed;
-  });
+  /** Scene the top bar shows (API.md "Scenes"): the theme's scene, whatever the plant setting; none = nothing. */
+  const effectiveScene = computed<ShownScene>(() => useThemeStore().resolved.attrs.scene);
 
   async function load(signal?: AbortSignal): Promise<void> {
     const next = await api.settings({ signal });
@@ -97,12 +91,6 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  /** The "Mordor" shortcut: seed #c43e00 + dark mode (settings) + the Mordor scene (theme). */
-  async function applyMordor(): Promise<void> {
-    await patch({ seedColor: MORDOR_SEED, themeMode: 'dark' });
-    await useThemeStore().pick('scene', 'mordor');
-  }
-
   // --- DOM side effects ---------------------------------------------------------
   const bag = new DisposerBag();
   let stopWatch: (() => void) | null = null;
@@ -121,16 +109,14 @@ export const useSettingsStore = defineStore('settings', () => {
     stopAppearance();
     const root = document.documentElement;
     const theme = useThemeStore();
-    const stopTheme = theme.install();
     if (typeof matchMedia === 'function') {
       bag.add(listen(matchMedia('(prefers-color-scheme: dark)'), 'change', () => { applyThemeMode(theme.resolved.mode ?? s.value.themeMode); syncMeta(); }));
     }
     stopWatch = watch(
-      // a theme preset's seed/mode replace the person's own while it is chosen
-      () => [theme.resolved.mode ?? s.value.themeMode, theme.resolved.seed ?? s.value.seedColor] as const,
-      async ([mode, seed]) => {
-        applyThemeMode(mode);
-        await applySeed(seed);
+      // a theme's seed/mode replace the person's own while it is chosen
+      () => [theme.resolved, s.value.themeMode, s.value.seedColor] as const,
+      async ([resolved, mode, seed]) => {
+        await applyTheme(resolved, { mode, seed });
         syncMeta();
       },
       { immediate: true },
@@ -140,7 +126,13 @@ export const useSettingsStore = defineStore('settings', () => {
       if (s.value.calmMode) root.dataset.calm = 'true';
       else delete root.dataset.calm;
     }, { immediate: true });
-    return () => { stop2(); stopTheme(); stopAppearance(); };
+    // html[data-hand="left"] mirrors the phone layout (left-handed mode, a person pref; CSS scopes it to the phone)
+    const prefs = usePrefsStore();
+    const stop3 = watch(() => prefs.leftHanded, (on) => {
+      if (on) root.dataset.hand = 'left';
+      else delete root.dataset.hand;
+    }, { immediate: true });
+    return () => { stop2(); stop3(); stopAppearance(); };
   }
   function stopAppearance() {
     stopWatch?.();
@@ -150,6 +142,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     settings: s, loaded, saveError, categories, categoryById, effectiveScene,
-    load, patch, addCategory, updateCategory, deleteCategory, moveCategory, applyMordor, installAppearance, stopAppearance,
+    load, patch, addCategory, updateCategory, deleteCategory, moveCategory, installAppearance, stopAppearance,
   };
 });

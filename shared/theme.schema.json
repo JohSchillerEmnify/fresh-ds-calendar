@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "calendar-theme/2",
+  "title": "Calendar theme document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "name"
+  ],
+  "properties": {
+    "schema": {
+      "const": "calendar-theme/2",
+      "description": "Always the text calendar-theme/2."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "description": "Short theme name."
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "mode": {
+      "enum": [
+        "follow",
+        "light",
+        "dark"
+      ],
+      "default": "follow",
+      "description": "follow = the person's own light/dark setting."
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "seed generates the whole colour scheme for light and dark. light/dark optionally replace single roles (set both together).",
+      "properties": {
+        "seed": {
+          "$ref": "#/$defs/hex"
+        },
+        "light": {
+          "type": "object",
+          "description": "Role colours for light mode.",
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "secondary": {
+              "$ref": "#/$defs/hex"
+            },
+            "tertiary": {
+              "$ref": "#/$defs/hex"
+            },
+            "background": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-background": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-surface": {
+              "$ref": "#/$defs/hex"
+            }
+          }
+        },
+        "dark": {
+          "type": "object",
+          "description": "Role colours for dark mode.",
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-primary": {
+              "$ref": "#/$defs/hex"
+            },
+            "secondary": {
+              "$ref": "#/$defs/hex"
+            },
+            "tertiary": {
+              "$ref": "#/$defs/hex"
+            },
+            "background": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-background": {
+              "$ref": "#/$defs/hex"
+            },
+            "surface": {
+              "$ref": "#/$defs/hex"
+            },
+            "on-surface": {
+              "$ref": "#/$defs/hex"
+            }
+          }
+        }
+      }
+    },
+    "glow": {
+      "enum": [
+        "off",
+        "soft",
+        "neon"
+      ],
+      "default": "off"
+    },
+    "entries": {
+      "enum": [
+        "solid",
+        "tinted",
+        "outline"
+      ],
+      "default": "solid"
+    },
+    "corners": {
+      "enum": [
+        "square",
+        "round",
+        "pill"
+      ],
+      "default": "round"
+    },
+    "glowStrength": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150,
+      "description": "Glow strength 0..150 (off 0, soft 40, neon 100); replaces the glow step's value."
+    },
+    "radius": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 28,
+      "description": "Corner radius in px, 0..28 (square 2, round 6, pill 28 = fully round); replaces the corners step's value."
+    },
+    "tint": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 60,
+      "description": "Fill strength in percent of tinted entries (default 24); used with entries tinted."
+    },
+    "density": {
+      "enum": [
+        "compact",
+        "comfortable",
+        "airy"
+      ],
+      "default": "comfortable",
+      "description": "Size of text and list rows."
+    },
+    "checkbox": {
+      "enum": [
+        "round",
+        "square",
+        "rounded"
+      ],
+      "default": "rounded",
+      "description": "Shape of task item checkboxes."
+    },
+    "checkFill": {
+      "enum": [
+        "filled",
+        "outline"
+      ],
+      "default": "filled",
+      "description": "Whether a ticked checkbox is filled or only outlined."
+    },
+    "check": {
+      "enum": [
+        "tick",
+        "bold",
+        "cross",
+        "dot"
+      ],
+      "default": "tick",
+      "description": "The mark in a ticked checkbox."
+    },
+    "font": {
+      "enum": [
+        "system",
+        "serif",
+        "rounded",
+        "mono"
+      ],
+      "default": "system"
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The top bar picture the app draws: either builtin, or gradient (+ decor, density). Exactly one of builtin or gradient.",
+      "properties": {
+        "builtin": {
+          "enum": [
+            "none",
+            "sunflowers",
+            "mordor",
+            "spring",
+            "easter",
+            "summer",
+            "summerholidays",
+            "fall",
+            "halloween",
+            "christmas",
+            "newyearseve",
+            "newyear",
+            "winter"
+          ]
+        },
+        "gradient": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/hex"
+          },
+          "description": "2 or 3 colours, top to bottom (light mode; the app dims them in dark mode)."
+        },
+        "decor": {
+          "enum": [
+            "stars",
+            "sparkles",
+            "waves",
+            "hills",
+            "hearts",
+            "clouds",
+            "confetti",
+            "bubbles"
+          ],
+          "description": "Shapes drawn over the gradient."
+        },
+        "density": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "medium",
+          "description": "How much decor."
+        }
+      }
+    },
+    "icons": {
+      "enum": [
+        "outlined",
+        "rounded",
+        "sharp"
+      ],
+      "default": "outlined",
+      "description": "Style of the app's icons."
+    }
+  },
+  "$defs": {
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "x-hint": "a 6-digit hex colour like #1a73e8"
+    }
+  }
+}

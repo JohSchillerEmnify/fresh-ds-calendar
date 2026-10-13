@@ -68,6 +68,9 @@ describe('events CRUD', () => {
       expect(r.body.error.code).toBe('VALIDATION_ERROR');
       expect(r.body.error.message).toBe(msg);
     }
+    // user-facing validation messages carry a key the web app translates
+    const end = await t.json('POST', '/api/events', { ...timed, end: timed.start });
+    expect(end.body.error).toMatchObject({ message: 'End must be after start', key: 'errors.validation.endAfterStart' });
     expect((await t.json('POST', '/api/events', { ...timed, bogus: 1 })).status).toBe(400);
     expect((await t.json('POST', '/api/events', { ...timed, allDay: true })).status).toBe(400);
     expect((await t.json('POST', '/api/events', { title: 'x', allDay: true, start: '2026-01-01', end: '2027-02-01' })).status).toBe(400);

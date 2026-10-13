@@ -363,6 +363,7 @@ the JavaScript downloaded for the first load is at most {int} KB compressed
 the month view was rendered within {int} ms of navigation start
 I run a phone performance audit of the app
 the performance score is at least {int}
+I request {string} on a fresh server
 the server resident memory is below {int} MB
 I send {int} warm-up requests to {string}
 I send {int} requests to {string}
@@ -389,7 +390,12 @@ the server memory has grown by less than {int} MB since the recording
   init script), relative to navigation start.
 - "phone performance audit": Lighthouse (mobile preset, simulated throttling) against the base URL; score = performance
   category × 100. Runs in the Playwright container on Chromium with `--remote-debugging-port`.
-- "the server resident memory is below N MB": `rss` from the last `GET /api/__test/memory?gc=true` response.
+- "I request "METHOD /path" on a fresh server": starts its own server process (`node --expose-gc server/dist/index.js`, the
+  same `TEST_MODE` env as `e2e/run.sh`: `PROVIDER=mock`, `SEED=false`, `POLL_INTERVAL_MS=30000`, `NODE_ENV=production`, but a free
+  loopback port and an empty temporary `DATA_DIR`), waits for `GET /api/health`, performs the request there (stored as the
+  last response like `I request {string}`), then stops the process and deletes its data directory (A-102).
+- "the server resident memory is below N MB": `rss` from the last response, here the `GET /api/__test/memory?gc=true`
+  response of the fresh server.
 - "send N requests to "METHOD /path"": sequential with concurrency 10 via Playwright `request`. The PATCH variant
   alternates `{done:true}` / `{done:false}` on `/api/tasklists/:id/items/:itemId`.
 - "record the server memory" / "has grown": `GET /api/__test/memory?gc=true`, compares `rss`.
@@ -448,8 +454,10 @@ the settings are changed elsewhere to the theme mode {string}
 
 - `I open the settings` clicks `settings-button` in the top app bar; `I leave the settings` clicks `settings-back`
   (returns to the previous calendar URL, or `/` if none).
-- Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing.
-  A rejected custom color does not send a request.
+- Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing,
+  except the seed colour steps (`I choose the seed color preset`, `I enter the custom seed color`): the seed colour is
+  fine-tuning of the chosen theme, so these wait for the `PATCH /api/prefs/theme` response (status 200) instead
+  (ARCHITECTURE "Themes", owner 2026-10-13). A rejected custom color does not send a request.
 - Theme modes are the labels `System`, `Light`, `Dark`. Seed presets are the labels `Blue`, `Purple`, `Teal`, `Green`,
   `Orange`, `Red`, `Pink`, `Slate`; a custom color is shown as `Custom`.
 - Hue check: computes the HCT hue (Material color science) of the computed `--md-sys-color-<role>` and of the hex value
@@ -457,6 +465,31 @@ the settings are changed elsewhere to the theme mode {string}
 - `I switch to another device` creates a new browser context with the same project options (no shared storage) and
   a new page; all following steps act on it.
 - `the settings are changed elsewhere to ...` sends `PATCH /api/settings` directly through the API.
+
+## Language (`@i18n`)
+
+```
+the browser language is {string}
+the view switcher shows {string}
+the page language is {string}
+I choose {string} as the language
+the language {string} is selected
+the page was not reloaded
+```
+
+- `the browser language is "de-DE"` (Given) makes `navigator.language` / `navigator.languages` report that language
+  for every page of the current context, with a context init script (a Playwright context's `locale` cannot change after
+  creation). The context option `locale: 'en-GB'` stays, so numbers and `Intl` defaults are unaffected. Steps that open
+  "another device" create a fresh context with the project locale, i.e. an English browser.
+- `the view switcher shows "A, B, C, D"` compares the texts of the `tab`s inside `view-switcher` (bottom bar or rail,
+  in DOM order, joined with `", "`). With Labs on, the experimental views are part of the list.
+- `the page language is X` = the `lang` attribute of `<html>` (`en`, `de`, `de-x-mainfr`, `de-x-coldmir`).
+- `I choose "L" as the language` selects the option labelled L in `settings-language` (a select) and waits for the
+  `PATCH /api/prefs` response (status 200) when the value changes. Before choosing it sets a marker on `window`, which
+  `the page was not reloaded` looks for (a reload would lose it); the options are `Automatisch`/`Automatic` (follows
+  the device, translated), `English`, `Deutsch`, `Fränggisch`, `Coldmirror` (each in its own name, never translated).
+- `the language "L" is selected` = the selected option label of `settings-language`.
+- The existing `the settings sections are`, `the period title is` and `the weekday headers are` steps are reused.
 
 ## Categories, tags and filters (`@categories`)
 
@@ -732,8 +765,13 @@ the plant card shows {string}
 
 ```
 I turn the streak flame {string}
-I choose {string} as the garden style
-the garden style is {string}
+I turn the plant {string}
+I choose {string} for the sunflowers
+the scene is {string}
+the sunflowers are set to {string}
+the sunflowers setting is active
+the sunflowers setting is inactive
+the sunflowers hint says {string}
 I see the sunflower field
 I do not see the sunflower field
 the sunflower field shows {int} flower(s)
@@ -743,9 +781,14 @@ the sunflowers are not swaying
 the sunflowers look {string}
 ```
 
-- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state. Garden styles are the
-  labels `Single plant`, `Sunflower field` and `Off` of `settings-garden`. `the garden style is X` (Given) uses
-  `PATCH /api/settings`.
+- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state; `I turn the plant
+  "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
+  label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
+  (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`.
+- `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
+  `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
+  global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
 - `sunflower-field` (in the top app bar background) has `aria-label` = the label and contains one `sunflower` element
   per **visible** flower ("shows N flowers" counts them). Swaying = computed `animation-name` of `sunflower` is not
   `none` and `animation-play-state` is `running`. "look X" = `data-mood` on `sunflower-field`.
@@ -908,29 +951,88 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
-the scene choices are {string}, {string}, {string} and {string}
+the theme menu sections are {string}, {string}, {string} and {string}
+the scene choices are {string}
+the theme menu has no Mordor button
 the top bar shows the {string} scene
 the top bar shows no scene
 the settings show the theme {string}
+I set the seasons and holidays to {string}
+the seasons and holidays are off
+the seasons and holidays are set to {string}
+the advent timeline shows {int} lit candle(s)
+the Christmas tree lights are on
+the Christmas tree lights are off
 the preview event is drawn as an outline
 the event {string} is drawn as an outline
 the event {string} glows
+the event {string} does not glow
 {string} may use the calendar
+I set the {string} slider to {int}
+the {string} slider shows {string}
+no option for {string} is pressed
+the option {string} for {string} is pressed
+the event {string} has a corner radius of {int} px
+the event {string} glows with a blur between {int} and {int} px
+the entry tint is {int} %
+I choose {string} for the {string} setting
+the app text is {float} px
+the task item checkboxes are drawn as {string} with a {string} mark
+the app uses the {string} icon set
+every option of the {string} setting shows a sample icon
 ```
+
+- Fine-tuning sliders (owner 2026-10-13): "I set the X slider to N" finds the native `input[type=range]` by its label (`Glow strength` =
+  `theme-slider-glow`, `Corner radius` = `theme-slider-radius`, `Entry tint` = `theme-slider-tint`), opens the theme menu
+  when needed, sets the value the way a keyboard or pointer would (fires `input`) and waits for the save
+  (`PATCH /api/prefs/theme`). "the X slider shows T": the visible value text next to it (`<testid>-value`), e.g. `4 px`, `30 %`,
+  `40` (glow strength has no unit).
+- "no option for Y is pressed" / "the option V for Y is pressed": the `theme-option` buttons of that `data-setting`
+  (`glow`, `corners`) and their `aria-pressed`.
+- "has a corner radius of N px": the computed `border-top-left-radius` of the event as the week view draws it (a timed
+  block, whose radius follows the slider as `--r-block`: slider 4 px = 5 px, Round 6 px = 8 px, Pill = 16 px). "glows with a blur
+  between A and B px": the largest blur radius of the chip's coloured `box-shadow` is within A..B. "does not glow": no
+  coloured shadow with a blur. "the entry tint is N %": the computed `--e-fill` on `<html>` is `N%`.
+- "I choose V for the S setting": segmented controls of the menu by label (`Density` = `theme-density`, `Checkbox shape` =
+  `theme-checkbox-shape`, `Checkbox fill` = `theme-check-fill`, `Check mark` = `theme-check-glyph`, `Icon set` = `theme-icon-set`); the option is the button
+  with that label inside; waits for the save. "the app text is N px": computed `font-size` of `<body>` (the body text size;
+  14 px at Comfortable, 12.6 px Compact, 15.68 px Airy).
+- "the app uses the X icon set": `<html data-icons>` equals X (`outlined`, `rounded`, `sharp`) and the back
+  icon of the menu (`theme-back`) is drawn in that set (its `svg` has `data-icon-set` X; every app icon carries it). "every option of
+  the S setting shows a sample icon": each button of that control contains an `svg`.
+- "the task item checkboxes are drawn as S with a G mark": `<html data-checkbox>` equals S (`round`, `square`, `rounded`) and
+  `data-check` equals G (`tick`, `bold`, `cross`, `dot`), and in the expanded task list every `tasklist-item-checkbox` shows
+  only that glyph (`[data-glyph]` with a non-`none` display).
 
 - "glows": the event chip has a visible glow (a non-`none` `box-shadow` or `filter: drop-shadow` in the item colour).
 - "drawn as an outline": transparent or surface fill with a 1.5 px or wider border in the item colour.
 - "every option ... shows a sample": each option of that setting contains a sample event chip drawn in that style.
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
-- "the theme X is in use": `<html data-theme-name>` equals X.
+- "the theme X is in use": `<html data-theme-name>` equals X (with Header + colours, the calendar's theme for today).
 - "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
-  menu is opened first when it is not open. Scene options, in order: "Season", "Sunflower field", "Mordor", "None"
-  (`data-value` `season`, `sunflowers`, `mordor`, `none`); "the scene choices are" compares their labels and checks
-  that `settings-scene` (the retired second control) is absent.
+  menu is opened first when it is not open. Scene options, in order: "Spring", "Summer", "Fall", "Halloween", "Winter", "Sunflower field", "Mordor",
+  "None" (`data-value` `spring`, `summer`, `fall`, `halloween`, `winter`, `sunflowers`, `mordor`, `none`);
+  the holiday scenes sit in the order Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas,
+  New Year's Eve, New Year, Winter, Sunflower field, Mordor, None (`data-value` `easter`, `summerholidays`,
+  `christmas`, `newyearseve`, `newyear`; the top bar's `data-scene` is the same value);
+  "the scene choices are" takes the labels as one comma-separated string, compares them in order, checks that
+  they sit in the `scene` section (not in fine-tuning) and that `settings-scene` (the retired second control) is absent.
+- "the theme menu sections are": the headings of the `theme-section` elements (`data-section` `calendar`, `presets`, `scene`,
+  `fine-tuning`; the live preview card above them is not a section), in page order. "has no Mordor button":
+  `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
-- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
+- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Halloween", "Neon · Halloween header", "Neon").
+- "I set the seasons and holidays to X": opens the theme menu when needed, clicks the option with that label ("Off",
+  "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
+  "Seasons & holidays" section and waits for the save. "the seasons and holidays are set to X": that option has
+  `aria-pressed` `true`. A new person has "Header + colours", so scenarios that want a plain look set "Off" first.
+  "the seasons and holidays are off" (Given, for Backgrounds): `PATCH /api/prefs/theme { seasonal: 'off' }` directly, without the
+  theme menu and before or after the page loads (a later load reads it).
+- "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
+  `data-part`), in timeline order left to right, exactly the first N with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
+  has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.
 - New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
@@ -959,7 +1061,10 @@ the support cat is gone within {int} ms
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
   "butterfly" part is present for the check.
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
-  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`); the step lowercases and
+  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`; the holiday scenes have `easter-egg`,
+  `hare`, `first-flower`, `sea`, `beach-umbrella`, `advent-candle`, `xmas-tree`, `snow`, `firework`, `skyline`,
+  `star`, `sunrise`, `confetti`, `hill`; the sunflower field scene also has
+  `sky`, `hills`, `cloud` and `bee`); the step lowercases and
   hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
@@ -997,6 +1102,13 @@ Google shows the calendar {string}
 - Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
   (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
   for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.
+- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
+  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
+  element over it).
+- Drag helper cat: `[data-testid="support-cat"][data-role="drag"]` with `data-pose` = `push-down` (above the card),
+  `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
+  "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
+  … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
 - Pinch: two CDP touch points on `time-grid` moving apart until their distance doubles (≥ 300 ms). "one hour … tall"
   reads `data-hour-height` of `time-grid` (± 10 %) compared with the value captured before the pinch / at page open.
 - "drawn a quarter as tall": block heights of the task list card and the event chip, ratio 0.25 ± 0.05 (both at the
@@ -1009,10 +1121,129 @@ Google shows the calendar {string}
 - Version: "the server reports the build version V" uses the existing `POST /api/__test/version { version }` and
   reloads; `settings-version` text starts with "Version 0.4.2"; `app-version` text equals "0.4.2". The corner switch
   goes through the generic `I turn on {string} in the settings` step.
-- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
-  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
-  element over it).
-- Drag helper cat: `[data-testid="support-cat"][data-role="drag"]` with `data-pose` = `push-down` (above the card),
-  `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
-  "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
-  … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
+
+## Left-handed mode (`@left-hand`)
+
+```
+left-handed mode is on
+the {string} is on the {string} side of the screen
+the switches in the settings are on the {string} side of the screen
+the support cat walks in from the {string}
+```
+
+- "left-handed mode is on" sets the person pref with `PATCH /api/prefs { "leftHanded": true }` through the API before the
+  page is opened (the switch itself is exercised through the generic `I turn on {string} in the settings` step with the
+  label "Left-handed mode", switch testid `settings-left-handed`).
+- "the X is on the S side of the screen" (S = `left` | `right`): the centre x of the element's bounding box is left
+  / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
+  `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
+  `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
+  `time-grid`).
+- "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
+- "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
+  side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
+
+## Theme import (`@theme-import`)
+
+```
+own themes are turned on in Labs
+I turn on own themes in the settings
+the theme menu has no block for creating own themes
+the theme menu has a block for creating own themes
+I choose "Create with AI"
+I see a prompt that describes the theme file {string}
+I can copy the prompt
+I import the theme file {string}
+I paste the theme text {string}
+I paste the AI answer {string}
+I upload the picture file {string}
+the import preview shows the theme {string}
+I save the imported theme
+the gallery offers the theme {string}
+the gallery does not offer the theme {string}
+the import says {string}
+I can copy the repair prompt
+I cannot save the imported theme
+the import notes that unsafe content was removed
+no script from the theme runs
+the top bar draws the decor {string}
+the top bar shows the picture of the theme
+{string} imported the theme file {string}
+{string} uses the imported theme {string}
+I delete the theme {string}
+I save my look as my own theme named {string}
+my own theme {string} has {string} set to {string}
+```
+
+- Fixture files live in `e2e/fixtures/themes/`: `ocean.json` (valid `calendar-theme/2`, drawn scene: gradient with the
+  decor `waves`), `gemini-answer.txt` (an AI chat answer as pasted: text around a ```` ```json ```` fence, the theme
+  "Lagoon", and a URL in its description written as a Markdown link `[http://…](http://…)`), `sneaky.svg` (a picture
+  with a `<script>`, an `onload` attribute and an external `href`, which sets `window.__pwned = true` if it ever runs).
+- "own themes are turned on in Labs" sets `labsOwnThemes` through `PATCH /api/prefs` for the person who is using the
+  app at that moment (before sign-in: the signed-out person); "I turn on own themes in the settings" opens the
+  settings and flips `settings-labs-own-themes` (waits for the save), as the Labs steps do. The block with the AI prompt and
+  the import is `theme-own`.
+- "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
+  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text.
+- "import the theme file" uploads through `theme-import-file`; "paste" fills `theme-import-text` and submits.
+  Preview = `theme-import-preview` (`data-name`); errors = `theme-import-error` items (exact text of one of them);
+  "cannot save" = `theme-import-save` disabled; "unsafe content was removed" = `theme-import-sanitized` visible;
+  "no script runs" = `window.__pwned` is undefined after 1 s and no `<script>` inside the scene.
+- "imported the theme file" = `POST /api/themes` with the fixture as that person. "delete" = the theme card's
+  `theme-delete` (with undo snackbar like other deletes; the step waits until it is gone).
+## Tasks view (`@tasks-view`)
+
+```
+the calendar contains an undated task list {string} with items:
+I open the Tasks view
+I create the task list {string} in the Tasks view
+I choose {string} for the task list {string} in the Tasks view
+I remove the date of the task list {string} in the Tasks view
+I group the Tasks view by {string}
+I sort the Tasks view by {string}
+I sort the Tasks view by {string} in reversed order
+I tick the item {string} of the task list {string} in the Tasks view
+the Tasks view lists {string} under {string}
+the Tasks view lists {string}
+the Tasks view groups are {string}
+the Tasks view is grouped by {string}
+the calendar shows the task list {string} on {date}
+neither the calendar on {date} nor the open tasks tray shows the task list {string}
+```
+
+- Steps that act in the Tasks view open it first (`/tasks`, via `view-switch-tasks`) when it is not shown.
+- "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
+- "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
+  without a date), type T into `tasklist-title`, `tasklist-save`.
+- "I choose X for the task list L": clicks `tasks-today` / `tasks-tomorrow` (X = `Today` / `Tomorrow`) in the
+  `tasks-item` with `data-title` L and waits for the `PATCH /api/tasklists/:id` response.
+- "I remove the date of the task list L": taps `tasklist-expanded-title` of L's `tasks-item` (opens the task list
+  dialog), clicks `tasklist-no-date`, `tasklist-save`.
+- "I group … by G" clicks the `tasks-group-by` option with that label (`Time`, `Category`, `None`); "I sort … by S"
+  picks the label in the `tasks-sort-by` select (`Date`, `Name`, `Category`, `Last changed`, `Progress`). Both wait for
+  the `PATCH /api/prefs` response. "... in reversed order" also sets the `tasks-sort-dir` toggle to reversed
+  (`aria-pressed="true"`, clicking it only when it is not yet) and waits for that save too. "is grouped by G" = `aria-pressed="true"` on that `tasks-group-by` option.
+- "lists T under G": the `tasks-item` with `data-title` T lies inside the `tasks-group` whose `tasks-group-title` text
+  is G. "lists A, B, C" = all `tasks-item` titles in DOM order, joined `", "`. "groups are" = the `tasks-group-title`
+  texts in DOM order, joined `", "`. When grouped by None there is one group without a title.
+- "I tick the item I of the task list L": ticks `tasklist-item-checkbox` of the item inside L's `tasks-item`
+  (a `tasklist-view`, the tray's own item component).
+- "the calendar shows L on D" opens the day view for D and expects the `tasklist-card` L there. "neither … nor …"
+  opens the day view for D and expects no `tasklist-card` L, opens the open tasks tray and expects it not to list L.
+
+  `theme-ai-copy` and checks the clipboard equals the prompt text. "copy the repair prompt" clicks `theme-repair-copy`
+  and checks the clipboard equals `theme-repair-prompt`.
+- "import the theme file" uploads through `theme-import-file`; "paste the theme text" fills `theme-import-text` and
+  submits (`theme-import-submit`); "paste the AI answer" does the same with the text of the fixture file; "upload the
+  picture file" uploads through `theme-picture-file` (and checks again). Preview = `theme-import-preview`
+  (`data-name`); errors = `theme-import-error` items (exact text of one of them); "cannot save" = `theme-import-save`
+  disabled; "unsafe content was removed" = `theme-import-sanitized` visible; "no script runs" = `window.__pwned` is
+  undefined after 1 s and no `<script>` inside the preview or the top bar scene.
+- "the top bar draws the decor" = `top-bar-scene` contains `drawn-scene` with that `data-decor`; "shows the picture of
+  the theme" = it contains `scene-image` and no `drawn-scene`. Both go back to the calendar first.
+- "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
+  theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
+  snackbar like other deletes; the step waits until it is gone).
+- "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
+  `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
+  "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.

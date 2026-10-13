@@ -7,13 +7,7 @@
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
-import IconClose from '~icons/material-symbols/close';
-import IconUp from '~icons/material-symbols/keyboard-arrow-up';
-import IconDown from '~icons/material-symbols/keyboard-arrow-down';
-import IconDelete from '~icons/material-symbols/delete-outline';
-import IconEdit from '~icons/material-symbols/edit-outline';
-import IconToday from '~icons/material-symbols/today-outline';
-import IconAdd from '~icons/material-symbols/add';
+import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconTodayOutline as IconToday, IconAdd } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
@@ -40,6 +34,8 @@ const props = defineProps<{
   list?: TaskList;
   /** Show the close button (the expanded list's sheet). */
   closable?: boolean;
+  /** Tapping the title opens the task list dialog instead of renaming in place (the Tasks view). */
+  titleOpensDialog?: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -217,7 +213,7 @@ defineExpose({ root, busy });
           v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" maxlength="200" aria-label="Task list title"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
-        <button v-else class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="startRename">
+        <button v-else class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
           <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
         </button>
         <p class="sub">
@@ -285,7 +281,7 @@ defineExpose({ root, busy });
 .next { margin: 4px 0 4px; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); font: var(--md-sys-typescale-body-medium); overflow: hidden; text-overflow: ellipsis; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
 .list { list-style: none; margin: 4px 0 0; padding: 0; }
-.row { display: flex; align-items: center; gap: 4px; min-height: 48px; border-radius: 12px; transition: background 400ms; }
+.row { display: flex; align-items: center; gap: 4px; min-height: max(44px, calc(48px * var(--dz, 1))); border-radius: 12px; transition: background 400ms; }
 html:not([data-motion='off']) .row.flash { animation: tickflash 700ms ease-out; }
 .ititle {
   flex: 1; min-width: 0; text-align: left; min-height: 44px; padding: 0 4px; overflow-wrap: anywhere; font: var(--md-sys-typescale-body-large);

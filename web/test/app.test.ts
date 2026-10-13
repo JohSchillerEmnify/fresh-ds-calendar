@@ -40,7 +40,7 @@ async function mountAt(path: string, extra: Record<string, () => unknown> = {}, 
 const tid = (id: string) => `[data-testid="${id}"]`;
 const wait = async (fn: () => void) => { await vi.waitFor(fn); await flushPromises(); };
 
-beforeEach(() => { document.body.innerHTML = ''; });
+beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); });
 afterEach(() => { wrapper?.unmount(); wrapper = null; });
 
 describe('routing', () => {
@@ -193,8 +193,7 @@ describe('shell navigation', () => {
   });
   it('mounts the real TopBarScene in the background slot with the effective scene', async () => {
     const { w } = await mountAt('/month/2026-10');
-    const s = useSettingsStore();
-    await s.applyMordor();
+    await useThemeStore().pick('scene', 'mordor');
     await flushPromises();
     await wait(() => expect(w.find(`${tid('top-bar-background')} [data-testid="scene-mordor"]`).exists()).toBe(true));
   });
@@ -314,6 +313,8 @@ describe('settings', () => {
   it('has seven sections, each setting once; theme controls only in the theme menu', async () => {
     const { w, router } = await mountAt('/settings');
     await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
+    useThemeStore().pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
+    await w.vm.$nextTick();
     const sections = w.findAll(tid('settings-section'));
     expect(sections.map((x) => x.attributes('data-section'))).toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'labs', 'account']);
     expect(sections.map((x) => x.get('h2').text())).toEqual(['Appearance', 'Calendar', 'Task lists', 'Focus & motivation', 'Motion & sound', 'Labs', 'Account & data']);
@@ -323,14 +324,36 @@ describe('settings', () => {
     await w.get(tid('settings-theme')).trigger('click');
     await wait(() => expect(router.currentRoute.value.path).toBe('/settings/theme'));
   });
+  it('motivation: the Plant switch and the Sunflowers choice replace the garden style', async () => {
+    const { w, m } = await mountAt('/settings');
+    await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
+    expect(w.find(tid('settings-garden')).exists()).toBe(false);
+    // without the Sunflower field scene the setting is shown but inactive, with a hint
+    expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeDefined();
+    expect(w.get(tid('settings-sunflowers-hint')).text()).toBe('Applies to the Sunflower field scene');
+    await useThemeStore().pick('scene', 'sunflowers');
+    await wait(() => expect(w.find(tid('settings-sunflowers-hint')).exists()).toBe(false));
+    expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeUndefined();
+    expect(w.get(tid('settings-plant')).attributes('aria-checked')).toBe('true');
+    expect(w.get('[data-testid="settings-sunflowers"] [aria-pressed="true"]').attributes('data-value')).toBe('grow');
+    expect(w.findAll('[data-testid="settings-sunflowers"] button').map((b) => b.text())).toEqual(['Grow with points', 'Full field']);
+    await w.get(tid('settings-plant')).trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ plant: false }));
+    await w.get('[data-testid="settings-sunflowers"] [data-value="full"]').trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ sunflowers: 'full' }));
+  });
   it('theme menu: saves theme mode and presets, validates the custom seed, applies the theme', async () => {
     const { w, m } = await mountAt('/settings/theme');
     await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
+    useThemeStore().pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
+    await w.vm.$nextTick();
     expect(w.get('[data-testid="settings-theme-mode"] [aria-pressed="true"]').attributes('data-value')).toBe('system');
     expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Blue');
     await w.get('[data-testid="settings-theme-mode"] [data-value="dark"]').trigger('click');
     await wait(() => expect(document.documentElement.dataset.theme).toBe('dark') as never).catch(() => undefined);
     expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ themeMode: 'dark' });
+    // the seed colour is fine-tuning of the chosen theme (theme pref override), not a setting
+    const patched = () => m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body;
     await w.get('[data-testid="settings-seed-preset"][data-name="Green"]').trigger('click');
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Green'));
     // invalid custom color: error, no request
@@ -343,23 +366,67 @@ describe('settings', () => {
     await field.setValue('#8e24aa');
     await field.trigger('blur');
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Custom'));
-    expect(m.calls.at(-1)!.body).toEqual({ seedColor: '#8e24aa' });
+    expect(patched()).toEqual({ preset: 'Default', overrides: { seed: '#8e24aa' }, seasonal: 'off' });
   });
-  it('Mordor shortcut (theme menu) sets seed and dark mode, and the theme scene', async () => {
+  it('theme menu: Seasons & holidays, Presets, Scene and Fine-tuning sections in that order, the scene choice only in its own, no Mordor button', async () => {
     const { w, m } = await mountAt('/settings/theme');
-    await wait(() => expect(w.find(tid('settings-theme-mordor')).exists()).toBe(true));
-    await w.get(tid('settings-theme-mordor')).trigger('click');
-    await wait(() => expect(m.calls.some((c) => c.method === 'PATCH')).toBe(true));
-    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/settings')!.body).toEqual({ seedColor: '#c43e00', themeMode: 'dark' });
-    await wait(() => expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')).toBe(true));
+    await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
+    // the color library loads lazily; let it finish so the test does not end while it imports
+    await wait(() => expect(w.get('[data-testid="theme-card"] .scope').attributes('style')).toBeTruthy());
+    const sections = w.findAll(tid('theme-section'));
+    expect(sections.map((x) => [x.attributes('data-section'), x.get('h2').text()])).toEqual([['calendar', 'Seasons & holidays'], ['presets', 'Presets'], ['scene', 'Scene'], ['fine-tuning', 'Fine-tuning']]);
+    const values = (el: typeof w) => el.findAll(tid('theme-option')).map((o) => `${o.attributes('data-setting')}:${o.attributes('data-value')}`);
+    expect(values(sections[2] as never)).toEqual(['spring', 'easter', 'summer', 'summerholidays', 'fall', 'halloween', 'christmas', 'newyearseve', 'newyear', 'winter', 'sunflowers', 'mordor', 'none'].map((v) => `scene:${v}`));
+    // an explicit scene is pressed on its own and sets seasons & holidays to off
+    const pressedScene = () => sections[2]!.findAll('[aria-pressed="true"]').map((o) => o.attributes('data-value'));
+    await sections[2]!.get('[data-value="halloween"]').trigger('click');
+    await wait(() => expect(pressedScene()).toEqual(['halloween']));
+    expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ overrides: { scene: 'halloween' }, seasonal: 'off' });
+    expect(values(sections[3] as never).filter((v) => v.startsWith('scene:'))).toEqual([]);
+    expect(values(sections[3] as never)).toHaveLength(9);
+    expect(w.find(tid('settings-theme-mordor')).exists()).toBe(false);
+    // the Mordor preset replaces the old button
+    await w.get('[data-testid="theme-card"][data-name="Mordor"]').trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ preset: 'Mordor' }));
   });
-  it('the Theme row shows the seasonal theme in use for Automatic and the preset name otherwise', async () => {
+  it('theme menu: Seasons & holidays comes first; an explicit preset or scene pick steps it down', async () => {
+    const { w, m } = await mountAt('/settings/theme');
+    await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
+    const theme = useThemeStore();
+    const lastPatch = () => m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body;
+    const pressed = () => w.findAll(`${tid('theme-seasonal')} [aria-pressed="true"]`).map((b) => b.attributes('data-value'));
+    expect(w.findAll(tid('theme-section')).map((x) => x.get('h2').text())).toEqual(['Seasons & holidays', 'Presets', 'Scene', 'Fine-tuning']);
+    expect(w.findAll(`${tid('theme-seasonal')} button`).map((b) => b.text())).toEqual(['Off', 'Header only', 'Header + colours']);
+    expect(w.find(tid('theme-scene-follows')).exists()).toBe(false);
+    theme.pref = { preset: 'Default', overrides: {}, seasonal: 'all' };
+    await wait(() => expect(pressed()).toEqual(['all']));
+    expect(w.get(tid('theme-seasonal-today')).text()).toMatch(/^Today: .+ header & colours$/);
+    // choosing a preset steps all down to header; picking a scene turns it off
+    await w.get('[data-testid="theme-card"][data-name="Neon"]').trigger('click');
+    await wait(() => expect(lastPatch()).toEqual({ preset: 'Neon', overrides: {}, seasonal: 'header' }));
+    expect(w.get(tid('theme-seasonal-today')).text()).toMatch(/^Today: .+ header$/);
+    await w.get('[data-section="scene"] [data-value="mordor"]').trigger('click');
+    await wait(() => expect(lastPatch()).toEqual({ preset: 'Neon', overrides: { scene: 'mordor' }, seasonal: 'off' }));
+    await wait(() => expect(pressed()).toEqual(['off']));
+    expect(w.get(tid('theme-seasonal-today')).text()).toBe('Today: nothing changes automatically');
+    // back to header + colours: everything is seasonal again, the picked scene is dropped
+    await w.get(`${tid('theme-seasonal')} [data-value="all"]`).trigger('click');
+    await wait(() => expect(lastPatch()).toEqual({ preset: 'Neon', overrides: {}, seasonal: 'all' }));
+    // a preset keeps header only and off as they are
+    await w.get(`${tid('theme-seasonal')} [data-value="off"]`).trigger('click');
+    await w.get('[data-testid="theme-card"][data-name="Mordor"]').trigger('click');
+    await wait(() => expect(lastPatch()).toEqual({ preset: 'Mordor', overrides: {}, seasonal: 'off' }));
+  });
+  it('the Theme row shows the calendar\'s theme, the base plus the header, or the base alone', async () => {
     const { w } = await mountAt('/settings');
     const theme = useThemeStore();
-    theme.pref = { preset: 'Automatic', overrides: {} };
-    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic · (Spring|Summer|Fall|Halloween|Winter)$/)); // depends on today's season
-    theme.pref = { preset: 'Neon', overrides: {} };
-    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Neon'));
+    const row = () => w.get(tid('settings-theme-name')).text();
+    theme.pref = { preset: 'Neon', overrides: {}, seasonal: 'all' };
+    await wait(() => expect(row()).toMatch(/^(Spring|Summer|Fall|Halloween|Winter|Easter|Christmas|New Year's Eve|New Year)$/)); // depends on today's date
+    theme.pref = { preset: 'Neon', overrides: {}, seasonal: 'header' };
+    await wait(() => expect(row()).toMatch(/^Neon · (Spring|Summer|Fall|Halloween|Winter|Easter|Christmas|New Year's Eve|New Year) header$/));
+    theme.pref = { preset: 'Neon', overrides: {}, seasonal: 'off' };
+    await wait(() => expect(row()).toBe('Neon'));
   });
   it('persists motivation toggles, shows the best streak and the demo reset only in mock mode', async () => {
     const { w, m } = await mountAt('/settings');
@@ -375,6 +442,19 @@ describe('settings', () => {
     expect(bodies).toContainEqual({ transitionWarningMinutes: 5 });
     expect(document.documentElement.dataset.calm).toBe('true');
     expect(w.find(tid('settings-reset-demo')).exists()).toBe(true);
+    stop();
+  });
+  it('saves left-handed mode as a person pref and mirrors the layout with html[data-hand]', async () => {
+    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': () => ({}) });
+    const stop = useSettingsStore().installAppearance();
+    expect(document.documentElement.dataset.hand).toBeUndefined();
+    await w.get(tid('settings-left-handed')).trigger('click');
+    await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').map((c) => c.body)).toContainEqual({ leftHanded: true });
+    expect(document.documentElement.dataset.hand).toBe('left');
+    await w.get(tid('settings-left-handed')).trigger('click');
+    await flushPromises();
+    expect(document.documentElement.dataset.hand).toBeUndefined();
     stop();
   });
   it('adds a category through the dialog and validates it', async () => {

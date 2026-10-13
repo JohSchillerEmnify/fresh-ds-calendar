@@ -1,9 +1,12 @@
 /** Material 3 theme steps (STEPS.md "Theme"). */
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
-import { tid, type World } from './support/world.js';
+import { turnOnLabsSwitch } from './support/ui.js';
+import { exactText, tid, type World } from './support/world.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
   world.colorScheme = scheme;
@@ -150,10 +153,6 @@ async function chooseTheme(world: World, name: string) {
   await saved;
 }
 
-When('I open the theme menu', async function (this: World) {
-  await openMenu(this);
-});
-
 /** The theme menu is open; from the settings screen, or from the week view for today when nothing is open yet. */
 async function ensureMenu(world: World) {
   if (await world.page.getByTestId('theme-view').isVisible()) return;
@@ -171,6 +170,10 @@ async function ensureMenu(world: World) {
   }
   await openMenu(world);
 }
+
+When('I open the theme menu', async function (this: World) {
+  await ensureMenu(this);
+});
 
 When('I choose the theme {string}', async function (this: World, name: string) {
   await ensureMenu(this);
@@ -296,8 +299,19 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
 });
 
-Then('the scene choices are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
-  await expect(this.page.locator('[data-testid="theme-option"][data-setting="scene"] .ol')).toHaveText([a, b, c, d]);
+Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
+  await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c, d]);
+});
+
+Then('the theme menu has no Mordor button', async function (this: World) {
+  await expect(this.page.getByTestId('theme-view')).toBeVisible();
+  await expect(this.page.getByTestId('settings-theme-mordor')).toHaveCount(0);
+});
+
+Then('the scene choices are {string}', async function (this: World, list: string) {
+  // the choices live in their own "Scene" section, not in the fine-tuning one
+  await expect(this.page.locator('[data-testid="theme-section"][data-section="scene"] [data-testid="theme-option"] .ol')).toHaveText(list.split(', '));
+  await expect(this.page.locator('[data-testid="theme-section"][data-section="fine-tuning"] [data-testid="theme-option"][data-setting="scene"]')).toHaveCount(0);
   // the old second control is gone
   await expect(this.page.getByTestId('settings-scene')).toHaveCount(0);
 });
@@ -314,4 +328,307 @@ Then('the top bar shows no scene', async function (this: World) {
 
 Then('the settings show the theme {string}', async function (this: World, text: string) {
   await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
+});
+
+When('I set the seasons and holidays to {string}', async function (this: World, label: string) {
+  await ensureMenu(this);
+  const o = this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true });
+  if ((await o.getAttribute('aria-pressed')) !== 'true') {
+    const saved = this.page.waitForResponse(isSaved);
+    await o.click();
+    await saved;
+  }
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
+});
+
+Given('the seasons and holidays are off', async function (this: World) {
+  // the current session's person (the page may be signed in as someone else), so not this.api
+  const res = await this.page.request.patch('/api/prefs/theme', { data: { seasonal: 'off' } });
+  expect(res.ok(), await res.text()).toBe(true);
+});
+
+Then('the seasons and holidays are set to {string}', async function (this: World, label: string) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+Then('the advent timeline shows {int} lit candle(s)', async function (this: World, n: number) {
+  await backToCalendar(this);
+  const scene = this.page.getByTestId('top-bar-scene');
+  await expect(scene.getByTestId('advent-candle')).toHaveCount(4);
+  await expect(scene.locator('[data-testid="advent-candle"][data-lit="true"]')).toHaveCount(n);
+});
+
+async function treeLights(world: World, state: 'on' | 'off') {
+  await backToCalendar(world);
+  const tree = world.page.getByTestId('top-bar-scene').getByTestId('xmas-tree');
+  await expect(tree).toHaveAttribute('data-lights', state);
+  // the tree ends the timeline: it stands right of the fourth candle
+  const [t, c] = await Promise.all([tree.boundingBox(), world.page.getByTestId('top-bar-scene').getByTestId('advent-candle').nth(3).boundingBox()]);
+  expect(t!.x).toBeGreaterThan(c!.x + c!.width);
+}
+Then('the Christmas tree lights are on', async function (this: World) { await treeLights(this, 'on'); });
+Then('the Christmas tree lights are off', async function (this: World) { await treeLights(this, 'off'); });
+
+// ---- Theme import (STEPS.md "Theme import (`@theme-import`)") ----
+
+const themeFile = (name: string) => path.join(import.meta.dirname, '../fixtures/themes', name);
+const preview = (world: World) => world.page.getByTestId('theme-import-preview');
+
+When('I choose "Create with AI"', async function (this: World) {
+  await this.page.getByTestId('theme-ai').click();
+});
+
+Then('I see a prompt that describes the theme file {string}', async function (this: World, schema: string) {
+  const prompt = this.page.getByTestId('theme-ai-prompt');
+  await expect(prompt).toBeVisible();
+  expect(await prompt.inputValue()).toContain(schema);
+});
+
+Then('I can copy the prompt', async function (this: World) {
+  await this.context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  // the app is served over plain http on the LAN: copy as an insecure context would (no async Clipboard API)
+  await this.page.evaluate(() => Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true }));
+  await this.page.getByTestId('theme-ai-copy').click();
+  const shown = await this.page.getByTestId('theme-ai-prompt').inputValue();
+  await expect.poll(() => this.page.evaluate(() => navigator.clipboard.readText())).toBe(shown);
+});
+
+When('I import the theme file {string}', async function (this: World, name: string) {
+  await this.page.getByTestId('theme-import-file').setInputFiles(themeFile(name));
+});
+
+When('I paste the theme text {string}', async function (this: World, text: string) {
+  await this.page.getByTestId('theme-import-text').fill(text);
+  await this.page.getByTestId('theme-import-submit').click();
+});
+
+When('I paste the AI answer {string}', async function (this: World, name: string) {
+  await this.page.getByTestId('theme-import-text').fill(fs.readFileSync(themeFile(name), 'utf8'));
+  await this.page.getByTestId('theme-import-submit').click();
+});
+
+When('I upload the picture file {string}', async function (this: World, name: string) {
+  await this.page.getByTestId('theme-picture-file').setInputFiles(themeFile(name));
+});
+
+Then('I can copy the repair prompt', async function (this: World) {
+  await this.context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await this.page.evaluate(() => Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true }));
+  await this.page.getByTestId('theme-repair-copy').click();
+  const shown = await this.page.getByTestId('theme-repair-prompt').inputValue();
+  await expect.poll(() => this.page.evaluate(() => navigator.clipboard.readText())).toBe(shown);
+});
+
+Then('the import preview shows the theme {string}', async function (this: World, name: string) {
+  await expect(preview(this)).toHaveAttribute('data-name', name);
+});
+
+When('I save the imported theme', async function (this: World) {
+  // saving stores the theme, then chooses it: wait for both requests
+  const stored = this.page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/themes'));
+  const chosen = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId('theme-import-save').click();
+  expect((await stored).status()).toBe(201);
+  await chosen;
+});
+
+Then('the gallery offers the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await expect(card(this, name)).toBeVisible();
+});
+
+Then('the gallery does not offer the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await expect(card(this, name)).toHaveCount(0);
+});
+
+Then('the import says {string}', async function (this: World, message: string) {
+  await expect(this.page.getByTestId('theme-import-error').filter({ hasText: exactText(message) })).toHaveCount(1);
+});
+
+Then('I cannot save the imported theme', async function (this: World) {
+  await expect(this.page.getByTestId('theme-import-save')).toBeDisabled();
+});
+
+Then('the import notes that unsafe content was removed', async function (this: World) {
+  await expect(this.page.getByTestId('theme-import-sanitized')).toBeVisible();
+});
+
+Then('no script from the theme runs', async function (this: World) {
+  // the picture is only an image: give a script that slipped through a second to run, then look for its mark
+  await this.page.waitForTimeout(1000);
+  expect(await this.page.evaluate(() => (window as unknown as { __pwned?: boolean }).__pwned)).toBeUndefined();
+  await expect(preview(this).locator('script')).toHaveCount(0);
+  await expect(this.page.getByTestId('top-bar-scene').locator('script')).toHaveCount(0);
+});
+
+Given('{string} imported the theme file {string}', async function (this: World, email: string, name: string) {
+  await signInAs(this, email);
+  const res = await this.page.request.post('/api/themes', { data: { theme: JSON.parse(fs.readFileSync(themeFile(name), 'utf8')) } });
+  expect(res.status(), await res.text()).toBe(201);
+});
+
+When('I delete the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await this.page.locator(`[data-testid="theme-item"][data-name="${name}"]`).getByTestId('theme-delete').click();
+  await expect(card(this, name)).toHaveCount(0);
+});
+
+// ---- Labs switch for the AI part, drawn scene, own picture, Save as my theme ----
+
+Given('own themes are turned on in Labs', async function (this: World) {
+  await this.api.patch('/api/prefs', { labsOwnThemes: true });
+});
+
+When('I turn on own themes in the settings', async function (this: World) {
+  await turnOnLabsSwitch(this.page, 'settings-labs-own-themes');
+});
+
+Then('the theme menu has no block for creating own themes', async function (this: World) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-own')).toHaveCount(0);
+});
+
+Then('the theme menu has a block for creating own themes', async function (this: World) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-own')).toBeVisible();
+});
+
+Then('the top bar draws the decor {string}', async function (this: World, decor: string) {
+  await backToCalendar(this);
+  await expect(this.page.getByTestId('top-bar-scene').getByTestId('drawn-scene')).toHaveAttribute('data-decor', decor);
+});
+
+Then('the top bar shows the picture of the theme', async function (this: World) {
+  await backToCalendar(this);
+  const scene = this.page.getByTestId('top-bar-scene');
+  await expect(scene.getByTestId('scene-image')).toBeVisible();
+  await expect(scene.getByTestId('drawn-scene')).toHaveCount(0);
+});
+
+Given('{string} uses the imported theme {string}', async function (this: World, _email: string, name: string) {
+  const { themes } = (await (await this.page.request.get('/api/themes')).json()) as { themes: { id: string; doc: { name: string } }[] };
+  const found = themes.find((t) => t.doc.name === name);
+  expect(found, `imported theme ${name}`).toBeTruthy();
+  const res = await this.page.request.patch('/api/prefs/theme', { data: { preset: `theme:${found!.id}` } });
+  expect(res.ok()).toBe(true);
+});
+
+When('I save my look as my own theme named {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await this.page.getByTestId('theme-save-own').click();
+  await this.page.getByTestId('theme-save-name').fill(name);
+  // saving stores the theme, then chooses it: wait for both requests
+  const stored = this.page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/themes'));
+  const chosen = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId('theme-save-confirm').click();
+  expect((await stored).status()).toBe(201);
+  await chosen;
+  await expect(this.page.getByTestId('theme-save-dialog')).toHaveCount(0);
+});
+
+Then('my own theme {string} has {string} set to {string}', async function (this: World, name: string, key: string, value: string) {
+  const { themes } = (await (await this.page.request.get('/api/themes')).json()) as { themes: { doc: Record<string, unknown> }[] };
+  const found = themes.find((t) => t.doc.name === name);
+  expect(found, `own theme ${name}`).toBeTruthy();
+  expect(String(found!.doc[key])).toBe(value);
+});
+
+// --- Fine-tuning: sliders, density, checkbox choices (STEPS.md "Fine-tuning sliders") ---------------------------------
+const SLIDERS: Record<string, string> = { 'Glow strength': 'theme-slider-glow', 'Corner radius': 'theme-slider-radius', 'Entry tint': 'theme-slider-tint' };
+const CHOICES: Record<string, string> = { Density: 'theme-density', 'Checkbox shape': 'theme-checkbox-shape', 'Checkbox fill': 'theme-check-fill', 'Check mark': 'theme-check-glyph', 'Icon set': 'theme-icon-set' };
+
+When('I set the {string} slider to {int}', async function (this: World, label: string, value: number) {
+  await ensureMenu(this);
+  const saved = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId(SLIDERS[label]!).fill(String(value));
+  await saved;
+});
+
+Then('the {string} slider shows {string}', async function (this: World, label: string, text: string) {
+  await expect(this.page.getByTestId(`${SLIDERS[label]!}-value`)).toHaveText(text);
+});
+
+Then('no option for {string} is pressed', async function (this: World, label: string) {
+  await expect(this.page.locator(`[data-testid="theme-option"][data-setting="${label.toLowerCase()}"][aria-pressed="true"]`)).toHaveCount(0);
+});
+
+Then('the option {string} for {string} is pressed', async function (this: World, value: string, label: string) {
+  await expect(option(this, label, value)).toHaveAttribute('aria-pressed', 'true');
+});
+
+When('I choose {string} for the {string} setting', async function (this: World, value: string, label: string) {
+  await ensureMenu(this);
+  const saved = this.page.waitForResponse(isSaved);
+  const o = this.page.getByTestId(CHOICES[label]!).getByRole('button', { name: value, exact: true });
+  await o.click();
+  await expect(o).toHaveAttribute('aria-pressed', 'true');
+  await saved;
+});
+
+Then('the event {string} has a corner radius of {int} px', async function (this: World, name: string, px: number) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect.poll(() => chip.evaluate((n) => parseFloat(getComputedStyle(n).borderTopLeftRadius))).toBe(px);
+});
+
+/** Blur radii (px) of the coloured shadows of an element: the glow, not the black elevation shadows. */
+async function glowBlurs(chip: Locator): Promise<number[]> {
+  const shadow = await chip.evaluate((n) => getComputedStyle(n).boxShadow);
+  return shadow.split(/,(?![^(]*\))/).flatMap((p) => {
+    const colour = /(rgba?|color)\([^)]*\)/.exec(p)?.[0] ?? '';
+    const alpha = Number(/\/\s*([\d.]+)\s*\)/.exec(colour)?.[1] ?? /rgba?\([^)]*?,\s*([\d.]+)\)/.exec(colour)?.[1] ?? '1');
+    const black = /^(rgba?\(\s*0,\s*0,\s*0|color\(srgb 0 0 0)/.test(colour);
+    const blur = parseFloat(p.replace(colour, '').match(/-?[\d.]+px/g)?.[2] ?? '0');
+    return alpha > 0 && !black && blur > 0 ? [blur] : [];
+  });
+}
+
+Then('the event {string} glows with a blur between {int} and {int} px', async function (this: World, name: string, min: number, max: number) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect.poll(async () => Math.max(0, ...(await glowBlurs(chip)))).toBeGreaterThanOrEqual(min);
+  expect(Math.max(...(await glowBlurs(chip)))).toBeLessThanOrEqual(max);
+});
+
+Then('the event {string} does not glow', async function (this: World, name: string) {
+  await backToCalendar(this);
+  const chip = this.eventChip(name);
+  await expect(chip).toBeVisible();
+  await expect.poll(() => glowBlurs(chip)).toEqual([]);
+});
+
+Then('the entry tint is {int} %', async function (this: World, pct: number) {
+  await expect.poll(() => this.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--e-fill').trim())).toBe(`${pct}%`);
+});
+
+Then('the app text is {float} px', async function (this: World, px: number) {
+  await expect.poll(() => this.page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize))).toBeCloseTo(px, 2);
+});
+
+Then('the task item checkboxes are drawn as {string} with a {string} mark', async function (this: World, shape: string, glyph: string) {
+  const html = this.page.locator('html');
+  await expect(html).toHaveAttribute('data-checkbox', shape);
+  await expect(html).toHaveAttribute('data-check', glyph);
+  const boxes = this.page.getByTestId('tasklist-item-checkbox');
+  await expect(boxes.first()).toBeVisible();
+  // only the chosen glyph is drawn; the other three are display: none
+  const shown = await boxes.first().locator('.rcb-check').evaluateAll((els) => els.filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.getAttribute('data-glyph')));
+  expect(shown).toEqual([glyph]);
+});
+
+Then('the app uses the {string} icon set', async function (this: World, set: string) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-icons', set);
+  // the icons of the menu itself are drawn in that set too
+  await expect(this.page.getByTestId('theme-back').locator('svg').first()).toHaveAttribute('data-icon-set', set);
+});
+
+Then('every option of the {string} setting shows a sample icon', async function (this: World, label: string) {
+  const options = this.page.getByTestId(CHOICES[label]!).getByRole('button');
+  const n = await options.count();
+  expect(n).toBeGreaterThan(1);
+  for (let i = 0; i < n; i++) await expect(options.nth(i).locator('.isamp svg').first()).toBeVisible();
 });

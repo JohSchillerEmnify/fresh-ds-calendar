@@ -29,6 +29,7 @@ interface ApiError {
   error: {
     code: ErrorCode;
     message: string;              // English, may be shown to the user
+    key?: string;                 // message key (web catalogue path), set for user-facing validation errors
     details?: { field?: string; issue?: string }[];
   };
 }
@@ -41,6 +42,8 @@ type ErrorCode =
   | 'INTERNAL';             // 500
 ```
 
+`key`, when present, names a message of the web catalogue (for example `errors.validation.endAfterStart`); the web
+app shows that message in the person's language and falls back to the English `message` for unknown keys.
 Validation messages are the exact UI strings where one exists: `Title is required`, `Add a title or an item`,
 `Title must be at most 200 characters`, `End must be after start`.
 The web app maps `PROVIDER_UNAVAILABLE` / network failure to `Could not save: Google Calendar is unavailable` and
@@ -88,7 +91,7 @@ interface TaskList {
   id: string;              // the Google event id
   calendarId: string;
   title: string;           // 1–200 chars after trim
-  date: LocalDate;
+  date: LocalDate | null;  // null = undated (ARCHITECTURE "Undated task lists"); then time is null too
   time: LocalTime | null;  // null = no time (all-day Google event)
   items: TaskItem[];       // max 200, in display order
   doneCount: number;
@@ -128,7 +131,8 @@ interface Settings {
   calmMode: boolean;                  // default false
   transitionWarningMinutes: 0 | 5 | 10 | 15;     // default 10; 0 = off
   streakFlame: boolean;               // default true: show the streak flame
-  garden: 'plant' | 'sunflowers' | 'off';  // default 'plant'
+  plant: boolean;                     // default true: show the plant widget in the top bar (independent of the scene)
+  sunflowers: 'grow' | 'full';        // default 'grow': how many flowers the Sunflower field scene shows
   categories: Category[];            // display order
   updated: DateTime;
   version: number;                   // increments on every change
@@ -147,15 +151,33 @@ Slate #4f6170, Mordor #c43e00 (preset id `mordor`).
 Selecting the Mordor preset in the UI also sets `themeMode: 'dark'` and the scene "Mordor" (a theme preference, see
 ARCHITECTURE "Themes"). The server only stores the values, and the user can change each one afterwards.
 **Scenes** (owner 2026-10-13): the top app bar background is not a setting any more. There is one "Scene" choice
-(Season, Sunflower field, Mordor, None), stored as the `scene` attribute of the person's theme
-(`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"). `PATCH /api/settings` rejects a `scene` field and
-`GET /api/settings` no longer returns one. The sunflower field still shows only when `garden === 'sunflowers'`, as
-before; Mordor shows whatever `garden` is, the eye-open effect replaces the butterfly, and the single plant and the
-flame still show as widgets.
+(Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
+(`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"; `seasonal` is `off`, `header` or `all`, see there). `PATCH /api/settings` rejects a `scene` field and
+`GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
+depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
+**Garden style is gone** (owner 2026-10-13): `Settings.garden` was removed, `PATCH /api/settings` rejects a `garden`
+field (400 `VALIDATION_ERROR`), and `plant` (switch) and `sunflowers` (grow / full) replaced it.
+*Migration of stored settings* (once, when the server loads a `settings.json` that has `garden` and no `plant`):
+`plant = (garden === 'plant')`; the old `garden` key stays in the file (not served) so each person's theme can still
+absorb it. When a person's theme is first served after the change (marker `gardenMigrated` in the stored theme):
+for `garden === 'sunflowers'` and a Default or Neon preset without a scene override, the override becomes
+`sunflowers` (the field they saw); for `plant` or `off`, an override `sunflowers` becomes `none` (they did not see
+the field). Other presets and overrides stay as they were. The Default and Neon presets start with scene `none`.
+**Prefs** (`GET/PATCH /api/prefs`): besides the Labs switches, `approachingCard`, `approachBar`, `approachWindowHours`,
+`tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `leftHanded` (boolean, default `false`; a
+non-boolean is a 400) turns on the mirrored phone layout (ARCHITECTURE "Left-handed mode").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 
 ## Endpoints
+
+### `GET /api/prefs` → 200, `PATCH /api/prefs` → 200
+
+Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
+`tasksCalendarVisible`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
+`'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, ARCHITECTURE
+"i18n"). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
+for an unknown value; it returns the full preferences.
 
 ### `GET /api/health` → 200
 
@@ -245,6 +267,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 | Method | Path | Body | Success |
 |---|---|---|---|
 | `POST` | `/api/tasklists` | `CreateTaskListInput` | `201` `TaskList` |
+| `GET` | `/api/tasklists/all-open?today=YYYY-MM-DD` | – | `200` `{ items: TaskList[] }` |
 | `GET` | `/api/tasklists/:id` | – | `200` `TaskList` |
 | `PATCH` | `/api/tasklists/:id` | `UpdateTaskListInput` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
@@ -257,7 +280,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 interface CreateTaskListInput {
   // no calendarId: task lists always go to the person's tasks calendar (ARCHITECTURE §3)
   title: string;          // may be empty/blank (stored as "") when at least one non-blank item is given
-  date: LocalDate;
+  date: LocalDate | null; // required key; null creates an undated list (no time, no recurrence)
   time?: LocalTime | null;
   items?: { title: string; done?: boolean }[];   // blank titles are dropped
   categoryId?: string | null;   // must exist in settings, else 400
@@ -267,7 +290,7 @@ interface CreateTaskListInput {
 }
 interface UpdateTaskListInput {
   title?: string;
-  date?: LocalDate;
+  date?: LocalDate | null; // a date makes the list appear in the calendar; null makes it undated (drops the time)
   time?: LocalTime | null; // null removes the time
   items?: { id?: string; title: string; done: boolean }[];  // full replacement (used by fixtures)
   categoryId?: string | null;
@@ -305,6 +328,31 @@ in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `t
 `/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
 AND-ed. Events are never filtered.
 
+`PATCH /api/prefs/theme` `overrides` also takes the fine-tuning fields (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): `glowStrength` (integer 0..150), `radius` (integer 0..28), `tint` (integer 5..60), `density` (`compact|comfortable|airy`), `checkbox` (`round|square|rounded`), `checkFill` (`filled|outline`), `check` (`tick|bold|cross|dot`), `icons` (`outlined|rounded|sharp`). Out-of-range or unknown values answer `400`. The same optional fields exist in `calendar-theme/2`.
+
+### Imported themes (`/api/themes`)
+
+Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE
+"Theme engine and AI themes"). A theme is a `calendar-theme/2` document (`shared/theme.schema.json`, no SVG in it) plus
+an optional own top bar picture kept next to it.
+
+```ts
+type Picture = { light?: string; dark?: string };   // SVG text, each ≤ 100 KB, at least one
+```
+- `GET /api/themes` → `200` `{ themes: { id: string; doc: ThemeDoc; picture?: Picture }[] }`, oldest first.
+- `POST /api/themes` with `{ theme: ThemeDoc; picture?: Picture }` → `201` `{ id; doc; picture?; sanitized: boolean }`.
+  The server validates the document and the picture and sanitises the picture's SVG again (what is stored is the
+  sanitised picture); `sanitized` is true when something unsafe was removed. `400 VALIDATION_ERROR` with the first
+  problem as `message` and every problem in `details[].issue`, in plain words (`glow must be one of off, soft, neon`;
+  `picture.light must be an SVG picture (starting with <svg)`). Also `400` when the person already has 20 themes
+  (`You can keep at most 20 themes. Delete one first.`).
+- `DELETE /api/themes/:id` → `204`; `404` for an unknown id.
+
+A person chooses an imported theme with `PATCH /api/prefs/theme` `{ preset: "theme:<id>" }` (a preset name or `theme:<id>`).
+`GET/PATCH /api/prefs` has the Labs switch `labsOwnThemes: boolean` (default `false`) for showing the AI prompt and
+the import in the theme menu; it does not affect themes, which the server stores and lists regardless. `POST /api/__test/reset` forgets
+every person's imported themes.
+
 ### Summary (year view, month picker dots)
 
 `GET /api/summary?from=YYYY-MM-DD&to=YYYY-MM-DD` (to exclusive, max 400 days) → `200`
@@ -322,6 +370,18 @@ in the same date window with `completedOn = today` (finished today, shown struck
 date ascending, then untimed before timed, then time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
 date); lists with no open items are never carried. `days` max 90, default 30.
 
+### All open task lists (Tasks view)
+
+`GET /api/tasklists/all-open?today=YYYY-MM-DD` → `200 { items: TaskList[] }`: every task list that is not complete
+(a list without items counts as open), undated lists and lists dated in `[today − 365, today + 365]`. Unordered; the
+web app groups and sorts. Errors: 400, 502, 503. Undated lists are returned only here and by `GET /api/tasklists/:id`;
+`/api/items`, `/api/summary` and `/api/tasklists/open` never return them.
+
+### Prefs: Tasks view
+
+`GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
+`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`.
+
 ### Motivation: check-in streak and plant
 
 Stored server-side in `DATA_DIR/motivation.json` (single user, synced across devices). Dates are local dates of the
@@ -337,7 +397,7 @@ interface Motivation {
     nextStageAt: number | null;
     todayPoints: number;       // points earned today (0–30)
     lastWatered: LocalDate | null;
-    flowers: number;           // sunflower count, 0–24
+    flowers: number;           // sunflower count, 0–30
     vitality: 100 | 75 | 50 | 25;
     mood: 'happy' | 'thirsty' | 'dry' | 'droopy';
     message: string;
@@ -370,11 +430,13 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   ≥ 4 → droopy (25, the floor). No `lastWatered` → happy. Growth never decreases; the plant never dies.
 - Messages (exact): happy "Your plant is happy", thirsty "Your plant is a little thirsty", dry "Your plant could use
   some water", droopy "Your plant is resting. Anything you do will perk it up."
-- Streak and plant points are recorded regardless of `streakFlame` / `garden` (these settings only change what is shown).
-- **Sunflower field** (garden style `sunflowers`) uses the same points and mood: `plant.flowers = min(24,
-  floor(growth / 40))`. Flowers never decrease. The UI shows at most 12 on viewports < 600 px wide and up to 24 above
-  that; the accessible label always states the full count ("Sunflower field: 5 flowers", singular "1 flower").
-  A newly earned flower (the count went up since the last `Motivation` the client saw) plays the `bloom` effect.
+- Streak and plant points are recorded regardless of `streakFlame` / `plant` (these settings only change what is shown).
+- **Sunflower field** (the scene of that name) uses the same points and mood: `plant.flowers = min(30,
+  floor(growth / 40))`. Flowers never decrease. With `Settings.sunflowers = 'grow'` the field shows `plant.flowers`;
+  with `'full'` it shows a fixed 30 and never grows (no `bloom`). The UI shows at most 15 on viewports < 600 px wide
+  and up to 30 above that; the accessible label always states the count of the mode ("Sunflower field: 5 flowers",
+  singular "1 flower", "Sunflower field: 30 flowers" for the full field). In `grow` mode a newly earned flower (the
+  count went up since the last `Motivation` the client saw) plays the `bloom` effect.
 - Server-side awarding hooks: the event/task list/item handlers call `MotivationService.award(kind, key)`. Mutation
   responses carry the header `X-Motivation-Changed: 1` when points were awarded, and the web app then refetches
   `/api/motivation`.
@@ -427,8 +489,8 @@ The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
 | Code | When |
 |---|---|
 | 200 | reads, updates, item ops, test endpoints |
-| 201 | create event / task list / item, remote insert |
-| 204 | delete event / task list, remote delete |
+| 201 | create event / task list / item / imported theme, remote insert |
+| 204 | delete event / task list / imported theme, remote delete |
 | 400 | validation |
 | 404 | unknown id / route; test routes when `TEST_MODE` is off |
 | 412 | stale `If-Match` |

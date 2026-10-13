@@ -37,6 +37,8 @@ export const useItemsStore = defineStore('items', () => {
   const pending = new Set<string>();
   /** Open task lists outside the visible ranges that are carried over to today (kept by gc). */
   const carriedIds = new Set<string>();
+  /** Task lists the Tasks view lists (undated ones are in no range): kept by gc. */
+  const keptIds = new Set<string>();
   /**
    * Ids deleted in this session or hidden while their delete waits for the undo time (`pendingDeletes` store):
    * no response may (re-)add them. Holds task list item ids too; those are stripped from their list.
@@ -71,7 +73,7 @@ export const useItemsStore = defineStore('items', () => {
     const keep = new Set<string>();
     for (const r of Object.values(ranges.value)) r.ids.forEach((i) => keep.add(i));
     const next: Record<string, CalendarItem> = {};
-    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id)) next[id] = it;
+    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id) || keptIds.has(id)) next[id] = it;
     byId.value = next;
   }
 
@@ -95,15 +97,6 @@ export const useItemsStore = defineStore('items', () => {
     applyResponse(from, to, res.items, res.syncedAt);
   }
 
-  const prefetching = new Set<string>();
-  /** Load `[from, to)` into the cache in the background unless it is cached or already loading (swipe neighbour). Errors are ignored: the route change reports its own. */
-  function prefetch(from: LocalDate, to: LocalDate): void {
-    const key = rangeKey(from, to);
-    if (ranges.value[key] || prefetching.has(key)) return;
-    prefetching.add(key);
-    fetchRange(from, to).catch(() => {}).finally(() => prefetching.delete(key));
-  }
-
   /** One request for `[from, to)` plus the `also` range; the merged response is split back into both cached ranges. */
   async function fetchWithAlso(from: LocalDate, to: LocalDate, also: { from: LocalDate; to: LocalDate }, signal?: AbortSignal): Promise<void> {
     const res = await api.items(from, to, undefined, { signal }, also);
@@ -113,6 +106,15 @@ export const useItemsStore = defineStore('items', () => {
     const inMain = res.items.filter((it) => overlaps(it, { from, to, ids: [], syncedAt: '' }) || !inAlso.includes(it));
     applyResponse(also.from, also.to, inAlso, res.syncedAt);
     applyResponse(from, to, inMain, res.syncedAt);
+  }
+
+  const prefetching = new Set<string>();
+  /** Load `[from, to)` into the cache in the background unless it is cached or already loading (swipe neighbour). Errors are ignored: the route change reports its own. */
+  function prefetch(from: LocalDate, to: LocalDate): void {
+    const key = rangeKey(from, to);
+    if (ranges.value[key] || prefetching.has(key)) return;
+    prefetching.add(key);
+    fetchRange(from, to).catch(() => {}).finally(() => prefetching.delete(key));
   }
 
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
@@ -154,6 +156,8 @@ export const useItemsStore = defineStore('items', () => {
   function upsert(item: CalendarItem): void {
     if (deleted.has(item.id)) return; // e.g. a task list op finishing while its list waits for its delete
     const it = strip(item);
+    // an undated list is in no range, so nothing else would keep it in the cache
+    if (it.kind === 'tasklist' && it.date === null) keptIds.add(it.id);
     byId.value = { ...byId.value, [it.id]: it };
     const next = { ...ranges.value };
     for (const [k, r] of Object.entries(next)) {
@@ -178,8 +182,20 @@ export const useItemsStore = defineStore('items', () => {
     byId.value = next;
     gc();
   }
+  /** Keep exactly these task lists (the Tasks view's) in the cache, even when no range holds them. */
+  function setKept(lists: TaskList[]): void {
+    keptIds.clear();
+    const next = { ...byId.value };
+    for (const l of lists) {
+      keptIds.add(l.id);
+      if (!pending.has(l.id) && !deleted.has(l.id)) next[l.id] = strip(l);
+    }
+    byId.value = next;
+    gc();
+  }
   function remove(id: string): void {
     carriedIds.delete(id);
+    keptIds.delete(id);
     const { [id]: _gone, ...rest } = byId.value;
     byId.value = rest;
     const next = { ...ranges.value };
@@ -189,10 +205,11 @@ export const useItemsStore = defineStore('items', () => {
 
   /** Hide an event or task list until `unhide` (deferred delete). Keeps a carried-over list carried for an undo. */
   function hide(id: string): void {
-    const carried = carriedIds.has(id);
+    const carried = carriedIds.has(id), kept = keptIds.has(id);
     deleted.add(id);
     remove(id);
     if (carried) carriedIds.add(id);
+    if (kept) keptIds.add(id);
   }
   /** Undo `hide`: show `it` (the item as it was when hidden) again. */
   function unhide(it: CalendarItem): void {
@@ -350,6 +367,7 @@ export const useItemsStore = defineStore('items', () => {
     visible.value = null;
     pending.clear();
     carriedIds.clear();
+    keptIds.clear();
     summaryByKey.clear();
     summaryKeys.value = [];
     summary.value = {};
@@ -357,7 +375,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
-    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, upsert, remove, beginPending, endPending, setCarried,
+    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, upsert, remove, beginPending, endPending, setCarried, setKept,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };

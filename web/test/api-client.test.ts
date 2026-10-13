@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ApiClient, ApiError, MSG_CONFLICT, MSG_UNAVAILABLE } from '@/api/client';
+import { ApiClient, ApiError } from '@/api/client';
 import { nearestGoogleColorId } from '@/api/colors';
 import { apiError, mockFetch } from './helpers';
 
@@ -22,11 +22,11 @@ describe('ApiClient', () => {
     const c = await api.updateEvent('1', {}).catch((e) => e);
     expect(c).toBeInstanceOf(ApiError);
     expect(c.isConflict).toBe(true);
-    expect(c.userMessage).toBe(MSG_CONFLICT);
+    expect(c.userMessage).toBe('This event was changed elsewhere. Reload it and try again.');
     const v = await api.createEvent({ title: '', allDay: false, start: 'a', end: 'b' }).catch((e) => e);
     expect(v.isValidation && v.userMessage).toBe('Title is required');
     const u = await api.items('2026-10-01', '2026-10-02').catch((e) => e);
-    expect(u.isUnavailable && u.userMessage).toBe(MSG_UNAVAILABLE);
+    expect(u.isUnavailable && u.userMessage).toBe('Could not save: Google Calendar is unavailable');
   });
   it('turns network failures into NETWORK errors and handles 204', async () => {
     const c = new ApiClient({ fetch: (async () => { throw new TypeError('x'); }) as unknown as typeof fetch });

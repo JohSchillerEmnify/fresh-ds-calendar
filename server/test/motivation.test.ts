@@ -143,7 +143,7 @@ describe('plant points', () => {
 });
 
 describe('sunflowers', () => {
-  it.each([[0, 0], [39, 0], [40, 1], [200, 5], [959, 23], [960, 24], [2000, 24]])('growth %i gives %i flowers', async (growth, flowers) => {
+  it.each([[0, 0], [39, 0], [40, 1], [200, 5], [959, 23], [1199, 29], [1200, 30], [2000, 30]])('growth %i gives %i flowers', async (growth, flowers) => {
     const r = await t.json('POST', '/api/__test/motivation', { plant: { growth, lastWatered: '2026-10-12' } });
     expect(r.body.plant.flowers).toBe(flowers);
   });

@@ -141,6 +141,7 @@ option A of two — B, server storage with Drive backup, may follow in the VPS t
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
 | `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |
 | `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
 | `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
 | color in Google | `colorId` = nearest Google color to the category color; no category → `colorId` removed (calendar color) |
@@ -218,11 +219,48 @@ Web (`stores/sync.ts`, `stores/items.ts`):
 - **Defaults for new event**: date = focus date; if that is today, the next full hour after now (capped at 23:00),
   else 09:00; duration 1 h; calendar primary. Changing the start keeps the duration.
 - **Clock**: `useClock()` (see API.md `/api/config`).
-- **i18n**: English, 24 h, `en-GB` formats, week starts Monday everywhere. German comes later (owner, 2026-10-13), so
-  every user-visible string (labels, buttons, placeholders such as "List", validation messages, snackbars) lives in one
-  message catalogue (`web/src/i18n/en.ts`, keyed, read via `t('key')`); server validation messages are returned as
-  keys plus the English text. New and touched code uses the catalogue; no new hard-coded UI strings. Dates and times
-  are formatted with `Intl` from one locale setting. Moving the remaining existing strings is its own slice.
+- **i18n** (owner, 2026-10-13): translated through a token system, `web/src/i18n/`.
+  - **Library**: vue-i18n 11 in Composition API mode (`legacy: false`), behind our own typed `t()`; UI code imports
+    `t` from `@/i18n`, never from vue-i18n. Templates and scripts call `t('settings.language.label')`; with
+    values `t('settings.tasklists.moveUp', { name })`, with a count `t(key, { count }, count)` for `a | b` plurals.
+  - **Languages**: `en` (default and last fallback), `de`, and two fun languages, `de-x-mainfr` ("Fränggisch", light
+    Mainfränkisch, readable) and `de-x-coldmirror` ("Coldmirror" slang). The fun ones may be partial and fall back to
+    `de`, then `en`. The ids are internal; `<html lang>` gets a valid BCP 47 tag (`de-x-coldmir` for Coldmirror, since
+    private-use subtags have at most eight characters) and `Intl` always gets `en-GB` or `de-DE`.
+  - **Catalogues**: `web/src/i18n/locales/{en,de,de-x-mainfr,de-x-coldmirror}.ts`, keyed, nested, named by meaning
+    (`tasks.empty`, `settings.language.label`), never by text. `en.ts` is the source of truth: `type Messages` is its
+    shape, `MessageKey` the union of its dotted paths, so a missing or misspelt key is a type error. `de.ts` is typed
+    `Messages` (complete: a new `en` key without a German one fails the type check, `pnpm i18n:check` and a unit
+    test); the fun languages are `PartialMessages`, and `pnpm i18n:check` reports their gaps as info. `en` is bundled;
+    the others are lazy chunks, loaded when the language is applied (`de` first for the fun ones). Each catalogue is a
+    default-exported object literal (`satisfies` the schema, which lives in `i18n/schema.ts`).
+  - **Runtime compiling** (owner, 2026-10-13): vue-i18n compiles the message strings in the browser. Precompiling
+    (`@intlify/unplugin-vue-i18n`, runtime-only) was tried and made the first load 1.7 kB bigger, and removing the
+    compiler by patching vue-i18n broke the app, so neither is used. Numbers and reasons: A-91.
+  - **Choice**: the person pref `language` (`auto` | `en` | `de` | `de-x-mainfr` | `de-x-coldmirror`, default `auto`,
+    in `Prefs`, `GET/PATCH /api/prefs`, validated by a whitelist). `auto` follows the device: the first entry of
+    `navigator.languages` being `de` or `de-*` gives `de`, anything else `en`. Settings → Appearance has the select
+    "Language" (`settings-language`) with the options Automatic (translated), English, Deutsch, Fränggisch, Coldmirror
+    (each in its own name). Changing it applies at once, without a reload (`applyLanguage`, run from the shell when
+    `prefs.language` changes, also when it arrives from another device). The last pref is cached in `localStorage`
+    (`language`) so the first paint of the next visit already uses it; the server value wins once loaded.
+  - **Formats**: 24 h and Monday as the first day stay in every language. Dates follow the language: English keeps its
+    en-GB forms (`lib/dates.ts`, date-fns), all other languages use `Intl` with `de-DE` ("Dienstag, 13. Oktober 2026",
+    weekday headers "Mo".."So", month names). `weekdayLabels()` / `monthNames()` replace the former constants.
+  - **Server messages** stay English; user-facing validation errors also carry `error.key` (API.md "Error format"),
+    equal to a catalogue key. `ApiError.userMessage` translates a known key and otherwise shows the server's English.
+  - **Rules for new code**: all new UI text goes through `t()`; no hard-coded strings in templates or scripts, new
+    keys go into `en.ts` and `de.ts` together (the fun languages when there is a good joke). A unit test
+    (`i18n-raw-text`) rejects hard-coded text and static `label`/`aria-label`/`title`/`placeholder` attributes in
+    the templates of the components listed in it; a component is added to the list when its area is migrated. No
+    eslint dependency for this (owner: only if lightweight).
+  - **Migrated in this slice**: the former `en.ts` keys, the Settings page and the view switcher labels (navigation
+    bar and rail). **Moving the remaining strings: per area** — calendar views, task lists/tray, Tasks view, dialogs,
+    theme menu, motivation, labs — one area per slice, after the open feature branches are merged (many are in flight
+    and would conflict); each slice moves its strings and adds its components to the raw-text test.
+  - **Alternatives weighed**: own typed `t()` wrapper over vue-i18n's `DefineLocaleMessage` typing (chosen: key
+    errors are real compile errors and the surface stays small); `<i18n>` blocks / JSON catalogues (rejected: TypeScript
+    catalogues give the schema type for free); a Settings-only language (rejected: owner wants a device default).
 
 ### Mobile-first UX (primary target 375–430 px portrait)
 
@@ -315,13 +353,13 @@ otherwise; bundle budget §5a applies).
   desktop) with M3 list sections:
   Sections (owner, 2026-10-13: deduplicated, proper sections; each a card with a heading, on desktop with a section
   list on the left; every setting exists exactly once):
-  1. *Appearance*: one row "Theme" showing the chosen theme (for Automatic "Automatic · <the seasonal theme in use>", e.g.
-     "Automatic · Halloween" in October; owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
-     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), the
-     Scene choice and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
+  1. *Appearance*: one row "Theme" showing the chosen theme (the calendar's theme for Header + colours, "<theme> · <calendar theme> header" for Header only, the theme name for Off;
+     owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
+     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`) and
+     the Scene choice live only in the theme menu, no longer on the settings page.
   2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.
   3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
-  4. *Focus & motivation*: transition warning, calm mode, streak flame, garden, best streak, support cat.
+  4. *Focus & motivation*: transition warning, calm mode, streak flame, plant, sunflowers, best streak, support cat.
   5. *Motion & sound*: animations, ignore the device setting, sounds.
   6. *Labs*: experimental views.
   7. *Account & data*: sign out, demo data.
@@ -469,13 +507,20 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   - Swipe: `bindSwipe` is disabled while `ui.resizing` is set (`disabled()` is read at touchstart, and handles are
     already visible then), so dragging a handle on a phone never changes the period.
 - **Streak flame** (`streak-flame`, text = current count) and **plant** (`plant-button`, `data-stage`, `data-mood`) in
-  the top app bar, shown per the settings `streakFlame` and `garden`. `streak-message` is a small toast ("Checked in, day 4" /
+  the top app bar, shown per the settings `streakFlame` and `plant`. `streak-message` is a small toast ("Checked in, day 4" /
   "Welcome back!") that auto-hides after 4 s and never blocks input. The plant card (`plant-card`, `plant-card-stage`,
   `plant-card-line`) is a small popover or sheet with the larger SVG plant.
   - Plant art: 5 stage SVGs (≤ 3 kB each, inline, M3 tones of the seed colour). Wilting is drawn as a droop transform
     plus reduced saturation by mood. It is never brown or dead.
   - Best streak shows in Settings (`settings-best-streak`).
-- **Sunflower field** (`sunflower-field`, `aria-label` "Sunflower field: N flowers", `data-mood`; children `sunflower`):
+- **Sunflower field** (`sunflower-field`, `aria-label` "Sunflower field: N flowers", `data-mood`; children `sunflower`).
+  It is the front of the Sunflower field *scene* (below) and shows whenever that scene is chosen:
+  - Count: `Settings.sunflowers` = `grow` (default) shows `plant.flowers` (one per 40 points, at most 30, with the
+    `bloom` effect); `full` shows a fixed full field (30, no growth, no bloom). Phones (< 600 px) show at most 15 of
+    either; the label states the mode's count (the full count, not the visible one). The setting is global but
+    inactive (shown, options disabled) with the hint "Applies to the Sunflower field scene" (`settings-sunflowers-hint`)
+    while the person's scene is another one. Wording and code stay open for a later general flower field with
+    several flower styles; nothing is built for that now.
   - Drawn in the background layer of the top app bar, behind the title and buttons. Low contrast: the flowers use
     `--md-sys-color-surface-container-highest` and tertiary tones at ≤ 35 % opacity in both themes. Text contrast
     stays ≥ 4.5:1.
@@ -485,6 +530,15 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
     `animation-play-state` when hidden or when the motion level is not Full. No per-frame JS.
   - Moods: droop (rotate down) and fade (lower opacity and saturation) by plant mood. Flowers are never removed. A new
     flower grows in (`bloom` effect).
+  - Cost (30 flowers): one CSS animation per flower on the compositor-friendly `rotate` property of its wrapper (no
+    per-frame JS, no filters on the flowers), so at most 30 composited layers plus the landscape's few animations
+    (3 clouds, 2 bees). All animations run only at motion Full while the page is visible.
+- **Sunflower field scene** (`SunflowerScene`, `top-bar-scene[data-scene="sunflowers"]`): a subtle landscape behind
+  the field, built like the season scenes (`SunflowerLandscape.vue`, a `SeasonScene` sibling): a sky gradient (`sky`),
+  soft rolling hills (`hills`), 2–3 slowly drifting clouds (`cloud`) and a couple of bees (`bee`) that cross now and
+  then (one pass every 20–30 s, mostly absent). Light and dark variants from the theme tokens (a pale blue sky into
+  warm haze by day, deep blue into a soft glow by night), low contrast so the title keeps ≥ 4.5:1. Drift and bees run
+  only at Full; Reduced and Off show a still picture. The once-per-session butterfly stays.
 - **Butterfly** (`reward-effect[data-kind="butterfly"]`): once per session (`sessionStorage` flag), on app open,
   only if `flowers ≥ 1` and the motion level is Full. A small SVG butterfly flies in, lands on a random visible
   sunflower, flaps (CSS keyframes on two wing paths), flies away and is removed after ≤ 4 500 ms. It has
@@ -504,7 +558,7 @@ Budgets (verified by `@perf` scenarios and build checks, ACCEPTANCE AC-55 … AC
 | Frontend heap growth after 50× view cycles + 50× dialog open/close + 50× task list expand/collapse (after GC) | < 10 % |
 | DOM nodes and JS event listeners growth, same workload | < 10 % |
 | Detached DOM from closed dialogs/sheets | none retained |
-| Server RSS idle (after start + GC) | ≤ 80 MB |
+| Server RSS idle (after start + GC) | ≤ 100 MB (owner 2026-10-13: bare node alone idles at ~46 MB on the host) |
 | Server RSS growth over 5 000 reads + 500 item writes (after GC) | < 20 MB |
 | Container image size | ≤ 200 MB (target, not a test gate) |
 
@@ -546,7 +600,7 @@ Rules for implementers:
 | `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
 | `reward-effect` (`data-kind`) | effect overlay elements |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
-| `settings-animation-level` (options Full/Reduced/Off), `settings-sounds`, `settings-calm-mode`, `settings-transition-warning` (Off/5 min/10 min/15 min), `settings-streak-flame` (switch), `settings-garden` (Single plant/Sunflower field/Off) | settings additions |
+| `settings-animation-level` (options Full/Reduced/Off), `settings-sounds`, `settings-calm-mode`, `settings-transition-warning` (Off/5 min/10 min/15 min), `settings-streak-flame` (switch), `settings-plant` (switch, default on), `settings-sunflowers` (Grow with points/Full field) | settings additions |
 | `filter-bar` | `filter-chip-category` (`data-name`, `data-category-id`, `aria-pressed`), `filter-chip-tag` (`data-name`, `aria-pressed`), `filter-clear` |
 | `period-title` | text per §5 |
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
@@ -571,6 +625,13 @@ Rules for implementers:
 | `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("+ Add item" button, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
+| `tasks-group-by` | segmented button, options `data-value="time\|category\|none"`, labels Time/Category/None, `aria-pressed` |
+| `tasks-sort-by` | select, labels Date/Name/Category/Last changed/Progress |
+| `tasks-sort-dir` | toggle button next to it, `aria-pressed="true"` when reversed, `data-dir="default\|reversed"` |
+| `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
+| `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
+| `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
 | `sync-status` | `data-state`, `data-last-sync` |
 | `sync-error-banner`, `sync-retry` | error strip |
@@ -697,7 +758,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 - Settings get a Labs section: `labs` (experimental views on/off); `approachBar` (on/off, default on since
   2026-10-13, now in the Calendar section next to the window, no longer Labs), stored per person in
   `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
-  `settings-approach-bar`.
+  `settings-approach-bar`. `labsOwnThemes` (default off) shows the own-theme part of the theme menu (see "Theme engine
+  and AI themes").
 - Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
   flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
@@ -754,45 +816,184 @@ It never reloads by itself and never interrupts an open dialog.
 - The update notice keeps comparing the full build version, so every deploy is noticed.
 - Settings → Account & data shows "Version X.Y.Z" with the sha in small print (`settings-version`). A switch "Show
   version in the corner" (`settings-version-corner`, a person pref `versionInCorner` in `Prefs`, default off) shows a small label
-  `app-version` ("0.4.2") in the bottom-left corner of the main UI (above the safe area, below dialogs, never covering
+  `app-version` ("0.4.2") in the bottom-left corner of the main UI (bottom right in left-handed mode on the phone; above the safe area, below dialogs, never covering
   the bottom bar or the FAB).
+
+### Left-handed mode (owner, 2026-10-13)
+
+- A switch "Left-handed mode" (`settings-left-handed`, Settings → Calendar; person pref `leftHanded` in `Prefs`,
+  default off) mirrors the **phone layout** (< 768 px) so the main controls sit under the left thumb. The desktop layout
+  never changes. The pref follows the person to every device.
+- Mechanism: the settings store sets `html[data-hand="left"]` from the pref (like `data-calm`; prefs load after mount).
+  Components carry their own `html[data-hand='left']` overrides inside the phone media query (`max-width: 767.98px`,
+  the same as `isPhone`); positions computed in JS (the cats) read `useLeftHand()` (pref and phone layout).
+  Alternatives weighed: `dir="rtl"` (rejected: it would also flip text, the time gutter, swipe and grid order);
+  a second set of components (rejected: duplication).
+- Mirrored: the "+" button (and its menu, and the side it slides away to), the open tasks tray (chevron, FAB clearance,
+  fold toggle of finished lists), snackbar buttons, the action bars of the confirm, event, category and task list
+  dialogs (primary action bottom left), the version label (bottom right, clear of the mirrored "+"), the top bar (the
+  settings group on the left, the title to its right; the Previous/Today/Next group on the right, the leading widgets
+  on the left; the arrows keep their meaning: left = previous), the rows of the settings and the theme menu (switch,
+  segmented button or trailing control at the left start, label after it), the support cat (walks in from the left,
+  drawn mirrored; `data-from="left"`) and the drag helper cat (its default side, the hop away and the ask mark).
+- Not mirrored: the time gutter and grid, month/week/year order, swipe directions, the approaching card track, resize
+  handles, the now marker, text alignment.
 
 ### Themes
 
-- A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
+- **Terms** (owner 2026-10-13). **Scene** = the top app bar background (Season, a single season scene, Sunflower field, Mordor or None),
+  chosen in the theme menu. **Plant** = the motivation widget in the top bar (the small growing plant); it is
+  independent of the scene and is switched in Settings → Motivation. "Garden style" is no longer a term: it is
+  removed from the spec, the UI, the code and the API. If more plant kinds come later they would be a "plant style";
+  nothing is built for that now.
+- A theme is a preset of: seed colour (existing scheme generation), mode (only Neon, Mordor and New Year's Eve force dark — New Year's Eve since 2026-10-13, owner: fireworks need the night; the season
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
+  `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
+  halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
+  Winter, Mordor and Automatic (resolves to the season by date; Halloween for all of October, owner 2026-10-13: spring from 1 March, summer from 1 June, fall from
+  1 September, winter from 1 December).
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Halloween" for Automatic in October),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|sunflowers|mordor|spring|summer|fall|winter;
   Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
-  Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
-  1 September, winter from 1 December).
+  Winter and Mordor (the calendar's theme for a day is in "Holiday themes and Seasons & holidays" below).
 - **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
-  The theme menu offers one "Scene" selector: Season, Sunflower field (`sunflowers`), Mordor, None. "Season" stores
-  the season's scene for today (spring..winter), so it is not a separate stored value. Default and Neon start with
-  `sunflowers`; the sunflower field still shows only with garden "Sunflower field" (API.md "Scenes"). Alternatives
+  The theme menu's Scene card has the scene options, in this order: Spring, Easter, Summer, Summer holidays, Fall,
+  Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field (`sunflowers`), Mordor, None (owner
+  2026-10-13: every scene can be picked on its own). An explicit pick is stored as that scene, sets "Seasons &
+  holidays" to Off and shows only its own option as pressed. The former `season` sentinel and "Season" option are
+  gone, replaced by that setting. Default and Neon start with
+  `none`; every scene, the Sunflower field included, shows whenever it is chosen (API.md "Scenes"). Alternatives
   weighed: keeping the old `Settings.scene` and hiding the theme one (rejected: two stored values and a precedence
   rule nobody could see) and moving everything into settings (rejected: presets need to carry a scene).
   Migration (once per person, when the server first serves the theme after the change, marker `sceneUnified` in the
   stored theme): the scene that was visible wins. If the preset or override scene was not `none`, it already is the
   value and stays; if it was `none`, the old top bar setting (`sunflowers`, `mordor` or `none`) becomes the override.
   The old `scene` key stays in `settings.json` (read-only, unused) so other people can still migrate.
-- The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <resolved preset>", e.g.
-  "Automatic · Fall" (and "Automatic · Halloween" once that theme exists).
+- **Fine-tuning sits on top of the chosen theme, the seed colour included** (owner bug, 2026-10-13). Cause found: the
+  theme's own seed always won over the person's `seedColor` setting (`theme.seed ?? settings.seedColor`), while the
+  swatches only wrote the setting, so on Neon, Halloween or any preset with a seed the colour pick changed nothing.
+  Now the seed colour is one more override of the theme pref (`overrides.seed`, `#rrggbb`, next to `glow`, `entries`,
+  `corners`, `scene`): colour in use = override, else the theme's seed, else the person's base setting `seedColor`
+  (which stays as the base for themes without a seed, and is not written by the menu any more). Choosing a theme (also
+  the one already chosen) clears all overrides, so the card resets it to its own look; "Save as my theme" then
+  captures the preset plus the overrides. Alternatives weighed: (a) making the person's setting win over every
+  preset (rejected: presets could not bring their colour, and a pick could never be reset); (b) a migration of the
+  stored setting into the overrides (not needed: until now a preset's seed won over the setting, so nothing visible
+  changes; for themes without a seed the setting stays the base). **Theme mode stays a setting** (`themeMode`): the
+  owner decided that season presets keep the person's System/Light/Dark and only Neon and Mordor are dark by design,
+  so a mode pick must survive choosing another theme, which an override (cleared on choose) would break.
+- The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <the calendar's preset of
+  today>", e.g. "Automatic · Fall", "Automatic · Halloween", "Automatic · Christmas"; with "Scene only" or "Colours only"
+  (below) it reads "Automatic (scene) · Christmas" or "Automatic (colours) · Christmas".
 - Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
-  `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
-  halloween). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall, Halloween,
-  Winter, Mordor and Automatic (resolves to the season by date; Halloween for all of October, owner 2026-10-13: spring from 1 March, summer from 1 June, fall from
-  1 September, winter from 1 December).
-- Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Halloween" for Automatic in October),
+- The settings page's Theme row shows the calendar's theme alone for Header + colours (e.g. "Halloween"), "<theme> ·
+  <calendar theme> header" for Header only (e.g. "Neon · Halloween header") and the chosen theme's name for Off.
+- Applied as attributes on `<html>`: `data-theme-name` (the resolved theme: with Header + colours the calendar's theme, e.g. "Halloween" in October, else the chosen preset),
   `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
   Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows
   but stop animated ones.
-- Stored per person in `DATA_DIR/users/<sub>/prefs.json` (`theme: { preset, overrides }`, same store as hidden
+- Stored per person in `DATA_DIR/users/<sub>/prefs.json` (`theme: { preset, overrides, seasonal }`, same store as hidden
   calendars); `GET/PATCH /api/prefs/theme`. Cached in `localStorage` and applied before mount to avoid a flash.
-- Theme menu (`/settings/theme`, entry `settings-theme`): gallery `theme-card` (`data-name`, `aria-pressed`), each
+- Theme menu (`/settings/theme`, entry `settings-theme`): below the live preview, four sections in this order
+  (`theme-section`, `data-section`): **Seasons & holidays** (`calendar`, the segmented button `theme-seasonal` and a line
+  `theme-seasonal-today` saying what applies today), **Presets** (`presets`, the gallery), **Scene** (`scene`, its own card with the
+  scene choices) and **Fine-tuning** (`fine-tuning`: theme mode, seed colour, glow, entries, corners). There is no
+  separate Mordor row or button (`settings-theme-mordor` is removed): the Mordor preset (seed #c43e00, dark mode,
+  Mordor scene) does the same, and Mordor stays a scene choice. Gallery `theme-card` (`data-name`, `aria-pressed`), each
   card renders a real mini week (event chip + task list card) under that preset's attributes in a scoped container;
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
+
+### Fine-tuning sliders, density and icon choices (owner, 2026-10-13)
+
+The Fine-tuning card gets live controls on top of the step choices. Every control changes the Preview block and the whole
+app at once and is a **theme override** (reset by choosing a preset, captured by "Save as my theme").
+
+| Field (override and `calendar-theme/2`) | Control (testid) | Values | Applied as |
+|---|---|---|---|
+| `glowStrength` | slider `theme-slider-glow` | integer 0..150 (Off 0, Soft 40, Neon 100) | `--glow-r/-s/-a` interpolated between the anchors; `--glow-anim` is `neon-pulse` from 100 up |
+| `radius` | slider `theme-slider-radius` | integer 0..28 px (Square 2, Round 6, Pill 28 = pill) | `--r-chip` = value (28 = 999 px); `--r-block` interpolated 0/2/6/28 px to 0/2/8/16 px |
+| `tint` | slider `theme-slider-tint` | integer 5..60 % (default 24) | `--e-fill` while entries are Tinted |
+| `density` | segmented `theme-density` | `compact` / `comfortable` / `airy` | `--dz` 0.9 / 1 / 1.12: scales the font size of the type scale and the task list row height |
+| `checkbox` | segmented `theme-checkbox-shape` | `round` / `square` / `rounded` (default) | `<html data-checkbox>`, read by the task item checkbox and the preview; the task list card's tiny box takes the shape only |
+| `checkFill` | segmented `theme-check-fill` | `filled` (default) / `outline` | `<html data-checkfill>` |
+| `icons` | segmented `theme-icon-set` (a sample icon per option) | `outlined` (default, today's look) / `rounded` / `sharp` | `<html data-icons>` and the reactive `iconSet`; every app icon is an `AppIcon` that draws the chosen variant |
+| `check` | segmented `theme-check-glyph` | `tick` (default) / `bold` / `cross` / `dot` | `<html data-check>`; one SVG glyph per value, the others hidden by CSS |
+
+- **Steps and sliders are one value.** The step buttons stay as quick picks: choosing a step stores the step and its value
+  (`glow: soft` + `glowStrength: 40`; `corners` + `radius`), and the slider shows it. Moving a slider stores only the number;
+  the step then shows as pressed only while the effective value equals the step's value, so between steps **no step is
+  pressed** (alternative weighed: marking the nearest step with a "custom" state; rejected: a pressed step must always
+  mean exactly that value). The step attribute (`data-glow`, `data-corners`) stays the preset's or the person's last pick
+  and is what the gallery samples use; the custom value is applied as inline custom properties on `<html>` by
+  `applyAttrs` (`web/src/theme/fine.ts` maps value to properties, pure), cached with the attributes for the first paint.
+- **On top of Seasons & holidays.** The fine-tuning fields are overrides like `seed`, so they stay in every mode (Off, Header only, Header + colours); choosing a preset clears them (and steps `all` down to `header`, see below). While `all` is on, the calendar's glow, entries and corners replace the chosen theme's own, and the theme's own `glowStrength`/`radius` numbers go with them; the person's overrides still win.
+- **Tint** applies to the Tinted entries style only; Solid is fully filled and Outline has no fill by definition, so the
+  slider is disabled with a hint unless entries are Tinted (the value is kept).
+- **Density** scales font sizes, not line heights, so fixed-height chips and the month cell line budgets are unaffected;
+  the time grid's hour height (`useHourHeight`, the zoom feature) is independent and untouched. Task list rows grow with
+  `--dz` but never below the 44 px touch target. Steps rather than a slider: three named looks are enough and give testable values.
+- **Document and validation.** The same fields are optional in `shared/theme.schema.json` (so own and imported themes carry
+  them) and the validator checks type and range (integer `minimum`/`maximum` support was added); the server accepts them in
+  `PATCH /api/prefs/theme` overrides with the same ranges; the web drops invalid stored values (`sanitizeFine`). The AI
+  prompt embeds the shared schema, so it picks the fields up without a prompt change.
+- **Accessibility.** Sliders are native `input[type=range]` (keyboard: arrows, Home/End, PageUp/PageDown) with a visible
+  label and value text (`aria-valuetext` carries the unit). Reduced motion: slider and checkbox transitions are off at the
+  Reduced and Off animation levels (`html[data-motion]`), the neon pulse already runs only at Full.
+- **Whole-app icon set** (owner confirmed option (a), 2026-10-13). Icons stay compile-time inline SVG from
+  `@iconify-json/material-symbols` through `unplugin-icons`; `web/src/components/icons.ts` imports the three variants of
+  each of the 24 icons in use (`<name>`, `<name>-rounded`, `<name>-sharp`; where the set has no sharp or rounded drawing the
+  alias is the same shape) and exports one component per icon (`IconAdd`, ...) that renders the variant of the current set.
+  The set lives in a module-level reactive value (`web/src/theme/iconSet.ts`), written by `applyAttrs` together with
+  `<html data-icons>`, so leaf components need no store. Alternative weighed: reading `data-icons` from the DOM (rejected: not
+  reactive, so every icon would need a MutationObserver or a re-render hook). The default `outlined` is the base name, i.e.
+  today's look; the first value is read from the cached attributes so there is no flash. Cost: the two extra variants are
+  bundled (bundle delta in the slice report), not lazily loaded, so a switch is instant and offline-safe.
+
+### Holiday themes and "Seasons & holidays" (owner, 2026-10-13)
+
+- **Calendar mapping** (pure functions in `web/src/theme/holidays.ts`, unit-tested; `presets.ts` builds on them).
+  `automaticPreset(date)` (the calendar's theme for a date) priority: New Year's Eve (31 Dec), New Year (1 Jan only), Christmas (1st Advent Sunday to
+  30 Dec; the 1st Advent is the 4th Sunday before 25 Dec), Easter (Easter Sunday −7 to +6 days; Easter by the anonymous
+  Gregorian Meeus/Jones/Butcher algorithm), Halloween (all of October), then the season. Summer holidays is never
+  picked, it is hand-picked only. Alternatives weighed
+  for the Easter algorithm: a lookup table of years (rejected: runs out) and Date libraries (rejected: nothing to add).
+  Christmas state for a date: Advent (1st Advent .. 23 Dec) = tree lights off and 1 + whole weeks since the 1st Advent
+  candles lit (max 4); every other date, which includes 24-30 Dec and a hand-picked Christmas scene in April = lights on,
+  4 candles. One scene whose state depends on the date was chosen over separate Advent and Christmas scenes (owner).
+- **Presets and scenes**: Easter, Summer holidays, Christmas, New Year's Eve, New Year, each a preset (seed colour, glow,
+  entries, corners, scene; all keep the person's mode) and a scene (`easter`, `summerholidays`, `christmas`,
+  `newyearseve`, `newyear`) in the registry of `scenes.ts`, built like Halloween: a backdrop in `SeasonScene` (gradient
+  and drifting particles, also used by the sample cards) and a living layer in `SceneLife` with `data-part`s. Easter:
+  spring meadow with first flowers, painted eggs and a hare. Summer holidays: sun, sea with waves, sand and a beach
+  umbrella. Christmas: a timeline across the full bar (owner feedback): four big `advent-candle`s (`data-lit`) at about
+  7 / 25 / 50 / 70 % and the tree (`xmas-tree`, `data-lights` on/off) at about 87 % as its end point; unlit candles stay
+  visible but dark, lit ones get a flame with a soft glow; low opacity keeps the bar's title and buttons legible; the
+  date comes from the app clock. New Year's Eve: night sky, stars, skyline and
+  fireworks. New Year: sunrise over a hill with falling confetti. Preset order in the gallery follows the Scene card.
+  Motion: CSS transforms and opacity only; fireworks, candle flicker, tree twinkle, waves and confetti run only at Full
+  (`html[data-motion='full']`), at Reduced and Off everything stands still; paused while the page is hidden is inherited
+  from the animation level handling like the other scenes.
+- **Seasons & holidays** (owner decision after a journey walk-through; replaces the preset Automatic and two earlier
+  controls that never reached master). One setting for all seasons and holidays, `seasonal: 'off' | 'header' |
+  'all'` in the theme pref, shown as the segmented button `theme-seasonal` (Off · Header only · Header + colours) at the
+  top of the theme menu with a line `theme-seasonal-today`: "Today: <calendar theme> header & colours", "Today:
+  <calendar theme> header" or "Today: nothing changes automatically". `all`: colours and style (seed, mode rule, glow,
+  entries, corners, an imported theme's role colours) come from the calendar's theme for today (`automaticPreset`) and
+  the scene from `seasonScene`; New Year's Eve is therefore dark whenever its colours apply, as base or through this.
+  `header`: colours from the chosen preset, scene from the calendar. `off`: the chosen preset and the person's scene
+  pick (or the preset's own scene). Fine-tuning overrides always sit on top; an explicit scene override wins over the
+  calendar's scene. New people start with `all` on base Default. **An explicit pick wins and steps the setting down**:
+  choosing a preset turns `all` into `header` (the header stays seasonal, the colours are the person's; `header` and
+  `off` stay) and resets the overrides; picking a scene stores it and sets `off`; setting `header` or `all` again drops
+  the scene override so the calendar shows. The `season` scene sentinel is gone: the header mode resolves the calendar's
+  scene directly, so nothing needs a sentinel. Migration on read (server, marker `seasonalMigrated` in the stored theme;
+  the web cache applies the same rule): a stored preset Automatic becomes Default with `all`; a stored scene override
+  `season` becomes `header` with the override removed; everything else becomes `off`, so nobody's look changes.
+  Alternatives weighed: a switch pair (rejected by the owner: four combinations, two of them confusing), keeping
+  Automatic as a preset (rejected: it hid the idea in one card), and a separate setting per season/holiday (rejected:
+  one rule for all, as asked).
 
 ### Season scenes and the support cat (owner, 2026-10-13)
 
@@ -837,6 +1038,52 @@ It never reloads by itself and never interrupts an open dialog.
   soft rim light keeps the black body readable. Expressive through eyes, ears, tail and head only: pupils look
   around, slow blinks, ear twitches, tail-tip flicks, head tilt; "grin" = happy squinted eye arcs.
 
+### Undated task lists (owner, 2026-10-13)
+
+A task list may have no date. It is stored in the same place as every other list, the person's tasks calendar, as an
+**all-day event on the fixed anchor date `2099-12-31`** with `extendedProperties.private.undated = "1"`. The API shows
+`date: null` and `time: null` for it.
+
+- **Reading**: undated lists are fetched with Google's filter `privateExtendedProperty=undated=1` on `events.list`
+  (no time range; the filter is `ListEventsParams.privateExtendedProperty`, which both providers support, and
+  `timeMin`/`timeMax` are optional now). Date-range reads (`/api/items`, `/api/summary`, `/api/tasklists/open`) never
+  return them, even when the range reaches the anchor date: events with `undated = "1"` are dropped. So an undated
+  list never shows in Year, Month, Week, Day or the Labs views, in the month picker counts or in the open tasks tray.
+- **Dating** = moving the event: `PATCH /api/tasklists/:id { date: "YYYY-MM-DD" }` rewrites `start`/`end` and removes
+  `undated`. **Undating** = `PATCH { date: null }`: the event moves to the anchor date, `undated = "1"` is set and the
+  time is dropped.
+- **Completion**: a write that ticks the last open item of an undated list dates it to the app-clock day (all-day) and
+  sets `completedOn` to the same day, so it shows in the calendar where it was finished (assumption A-75). The Archive
+  slice will add a setting to switch this; it is not built yet.
+- **Why this way** (owner decision). Alternatives weighed: (a) a separate store (server file or a second calendar)
+  for undated lists; (b) a flag with a real but ordinary date. Chosen: one store, so the same sync, backup, etag and
+  conflict handling cover undated lists too, and "giving a date" is just moving the event instead of moving data
+  between stores. The price: people who show the tasks calendar in Google (setting "Show tasks calendar in Google")
+  see these events in the year 2099.
+- An undated list cannot repeat and has no time (`400` otherwise).
+
+### Tasks view (owner, 2026-10-13, slice 1 of the task management feature)
+
+- **Route and navigation**: `/tasks` (`meta.tasks`), a destination after Day in the phone navigation bar and the
+  desktop rail: Year, Month, Week, Day, Tasks (`view-switch-tasks`; Labs views follow when on). It is not a calendar
+  view: no period, no swipe, no open tasks tray (it is the tray's bigger sibling). The top bar shows "Tasks", sync
+  status, filter button and settings button (A-78). The create button ("+") opens the task list dialog without a date.
+- **Content**: all open lists (A-94), dated and undated, from `GET /api/tasklists/all-open?today=` (API.md). Each list is
+  a `tasks-item` containing the tray's own item component, the **task list view**, so ticking, adding, reordering and
+  deleting items work as in the tray; the one difference is that tapping the title opens the task list dialog
+  instead of renaming in place. Each `tasks-item` also has the quick actions `tasks-today` and `tasks-tomorrow`.
+  The lists live in the items store (kept in the cache while the Tasks view lists them), so item operations are the
+  existing optimistic ones.
+- **Grouping** (`tasks-group-by`: Time, Category, None; default Time) and **sorting** (`tasks-sort-by`: Date, Name,
+  Category, Last changed, Progress; default Date) are person prefs `tasksGroupBy` (`time|category|none`) and
+  `tasksSortBy` (`date|name|category|changed|progress`) and `tasksSortDir` (`default|reversed`, A-80), whitelisted by `PATCH /api/prefs` (invalid value: 400) and
+  returned by `GET /api/prefs`. Grouping and sorting are pure functions in `features/tasklists/tasksView.ts`
+  (details and directions: A-72). Why prefs and not the URL: the choice should follow the person to other devices
+  (owner), like `versionInCorner`.
+- **Filters**: the category chips of the calendar filter the lists (A-77).
+- **Dating**: the task list dialog has a "No date" toggle (`tasklist-no-date`, A-73); the quick actions set today
+  or tomorrow (A-74).
+
 ### Untitled task lists (owner, 2026-10-12)
 
 A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
@@ -855,6 +1102,60 @@ bodies, sharing the prefilled date/time so switching keeps them. No create menu.
 Text fields, selects and text areas are fully rounded (radius follows the theme's corner setting, ~12 px by default),
 softly filled, with no bottom indicator line; focus shows a 2 px primary outline. Buttons, chips, cards and dialogs use
 the same corner scale so shapes look consistent.
+
+### Theme engine and AI themes (owner, 2026-10-13)
+
+- **One theme document format**, `calendar-theme/2` (JSON, schema in `shared/theme.schema.json`, used by server and
+  web): only simple fields, so an AI cannot easily break it: `{ schema, name, author?, description?, mode: "follow"|
+  "light"|"dark", colors?: { seed?: hex, light?: {role: hex}, dark?: {role: hex} }, glow, entries, corners, font?,
+  scene? }`. `seed` generates the whole colour scheme; the optional role overrides are few (`primary`, `on-primary`,
+  `secondary`, `tertiary`, `background`, `on-background`, `surface`, `on-surface`) and replace single roles of it.
+  `font` is a curated list (`system`, `serif`, `rounded`, `mono`). `scene` is `{ builtin: name }` or `{ gradient: [2–3
+  hex colours], decor?: stars|sparkles|waves|hills|hearts|clouds|confetti|bubbles, density?: low|medium|high }`
+  (density defaults to medium; no decor = the plain gradient). **The document never contains SVG** (owner, after real
+  AIs broke raw SVG inside JSON: unescaped quotes, chat UIs turning URLs into markdown links, missing closing tags);
+  this replaces the earlier `calendar-theme/1` with an SVG scene (never released). The built-in presets are expressed
+  as such documents too, so there is a single apply path (`applyTheme(resolved)` → html attributes + CSS custom
+  properties); fine-tuning overrides stay on top of a document as before.
+- **The app draws the gradient scene** (`DrawnScene`): a vertical gradient of the given colours with the decor drawn
+  by the app (own SVG shapes, not user markup) in a fixed pseudo-random layout per decor; `density` = number of shapes
+  (low 8, medium 16, high 28; for `waves` and `hills` the number of layers 1, 2, 3). In dark mode the gradient is
+  dimmed. The decor moves subtly (twinkle, drift, sway) only at the Full animation level. Testids: `top-bar-scene`
+  `data-scene="custom"` containing `drawn-scene` with `data-decor`.
+- **Own top bar picture (SVG), separate from the document** (optional): a light SVG and an optional dark one, pasted
+  (`theme-picture-text`, `theme-picture-dark-text`) or uploaded (`theme-picture-file`, `theme-picture-dark-file`,
+  `.svg`, ≤ 100 KB). It overrides whatever scene the document has. The server stores it next to the document
+  (`POST /api/themes { theme, picture }`). Safety: sanitised on the server and again in the browser with an SVG
+  allow-list (DOMPurify SVG profile): no `script`, `foreignObject`, `style`, `use`, animation or event-handler
+  attributes, external `href`/`url()` (only `#fragment` refs), no `<image>`; ≤ 100 KB per variant. Rendered only as an
+  image (`<img src="data:image/svg+xml;…">`), never inlined, so even a sanitiser gap cannot run code; it carries its own
+  colours (missing dark → light). Whatever was removed is reported (`theme-import-sanitized`). Alternative weighed:
+  inlining (could use theme tokens) — rejected for safety.
+- **Create with AI**: `theme-ai` shows a short generated prompt (`theme-ai-prompt`, read-only, copied with
+  `theme-ai-copy`): what the app is, "answer with only the JSON in one code block, no SVG", the full JSON Schema, the
+  decor options, the contrast rule (light and dark), one complete example, and a slot for my wishes. No AI is called.
+- **Import** is forgiving: paste (`theme-import-text`) or file (`theme-import-file`, `.json`/`.txt`, ≤ 200 KB). Before
+  parsing, a Markdown code fence (```` ```json … ``` ````) is stripped, text outside the outermost `{ … }` is dropped
+  and Markdown links `[x](y)` are turned back into the URL (`y`). Invalid JSON shows the hint "This is not valid JSON.
+  Ask the AI to answer with only the JSON in one code block." (plus the parser's message); a schema problem shows
+  readable messages (field + rule, e.g. "glow must be one of off, soft, neon"). With any error, `Copy repair prompt`
+  (`theme-repair-copy`, text in `theme-repair-prompt`) copies a prompt with the error list and my text that asks the AI
+  to fix its JSON. Valid → preview (gallery card) → save. Copying works over plain http (`copyText`).
+- **Stored** per person on the server: `DATA_DIR/users/<sub>/themes/`, `GET/POST/DELETE /api/themes` (max 20 themes;
+  the server validates and sanitises again). Imported themes appear in the gallery with export (download the
+  document) and delete (undo snackbar).
+- **Behind a Labs switch for now** (owner): only the AI part, "Create with AI" and the import (paste, file, own
+  picture; testid `theme-own`), shows with the person's pref `labsOwnThemes` (default off, settings switch
+  `settings-labs-own-themes`, "Own themes (AI and import)", subtitle says it is experimental). Saved own themes (imported
+  or saved from the menu) always show in the gallery with export and delete, and a chosen one always applies, whatever
+  the switch says; the switch hides no data.
+- **Save as my theme** (not under Labs): `theme-save-own`, the last control of Fine-tuning, turns the look in use
+  into an own theme: the chosen preset or theme plus every fine-tuning choice (mode, seed colour, glow, entries,
+  corners, font, role colours) and the scene in use (built-in, drawn blocks, or the own picture, which is saved as the
+  picture) become a `calendar-theme/2` document, saved with `POST /api/themes`. A small dialog (`theme-save-dialog`)
+  asks for a name (`theme-save-name`, default "My theme", at most 40 characters, not empty; a name already in use gets
+  a number: "My theme 2"); `theme-save-confirm` saves, and the new theme becomes the chosen one (its fine-tuning is
+  now part of it, so the overrides are cleared).
 
 ## 8. Configuration (env)
 

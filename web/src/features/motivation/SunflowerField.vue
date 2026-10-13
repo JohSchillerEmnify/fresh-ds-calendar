@@ -5,7 +5,7 @@ import { animate } from '@/motion/animate';
 import { spawnSparkle } from '@/motion/effects';
 import { useAnimationLevel } from '@/motion/level';
 import { springs } from '@/motion/spring';
-import type { ChangeKind, Mood } from './types';
+import { SUNFLOWER_MAX, SUNFLOWER_MAX_PHONE, type ChangeKind, type Mood } from './types';
 
 /**
  * Row of small sunflowers for the top bar background. One shared <symbol>, one <use> per flower.
@@ -25,7 +25,7 @@ onBeforeUnmount(() => {
   anims.forEach((a) => a.cancel());
 });
 
-const MAX = computed(() => (phone.value ? 12 : 24));
+const MAX = computed(() => (phone.value ? SUNFLOWER_MAX_PHONE : SUNFLOWER_MAX));
 const shown = computed(() => Math.min(props.flowers, MAX.value));
 const swaying = computed(() => level.value === 'full' && visible.value);
 const label = computed(() => `Sunflower field: ${props.flowers} ${props.flowers === 1 ? 'flower' : 'flowers'}`);

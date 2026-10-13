@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
-import { useRouter } from 'vue-router';
-import IconPrev from '~icons/material-symbols/chevron-left';
-import IconNext from '~icons/material-symbols/chevron-right';
-import IconExpand from '~icons/material-symbols/expand-more';
-import IconFilter from '~icons/material-symbols/filter-list';
-import IconSettings from '~icons/material-symbols/settings-outline';
+import { useRoute, useRouter } from 'vue-router';
+import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';
@@ -28,6 +24,7 @@ const settings = useSettingsStore();
 const nav = useNav();
 const clock = useClockStore();
 const router = useRouter();
+const route = useRoute();
 const filters = useFilters();
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
 
@@ -39,19 +36,20 @@ function toggleFilters() {
 
 <template>
   <TopAppBar>
-    <template #background><TopBarScene :scene="settings.effectiveScene" /></template>
+    <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
-      <button class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
+      <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">Tasks</span></h1>
+      <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>
-      <div class="nav">
+      <div v-if="!route.meta.tasks" class="nav">
         <IconButton label="Previous period" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
         <Button variant="tonal" class="today" data-testid="nav-today" @click="nav.today()">Today</Button>
         <IconButton label="Next period" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
         <slot name="leading-widgets">
-          <LeadingWidgets :streak-flame="settings.settings.streakFlame" :garden="settings.settings.garden" :today="() => clock.today" />
+          <LeadingWidgets :streak-flame="settings.settings.streakFlame" :show-plant="settings.settings.plant" :today="() => clock.today" />
           <component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" />
         </slot>
         <slot name="trailing-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.trailing" :key="'t' + i" /></slot>
@@ -66,7 +64,7 @@ function toggleFilters() {
         <IconButton label="Settings" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
-    <MonthPicker v-if="ui.pickerOpen" />
+    <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks" />
   </TopAppBar>
 </template>
 
@@ -75,7 +73,7 @@ function toggleFilters() {
   display: grid; align-items: center; column-gap: 4px; padding: 2px 4px 2px 8px;
   grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title actions' 'nav widgets';
 }
-.title { grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
+.title { margin: 0; grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
 .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .chev.up { transform: rotate(180deg); }
@@ -88,5 +86,12 @@ function toggleFilters() {
 @media (min-width: 768px) {
   .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
   .title { font-size: 24px; }
+}
+/* Left-handed mode (phone): the settings group and the leading widgets sit at the left, title and navigation at the right. */
+@media (max-width: 767.98px) {
+  html[data-hand='left'] .grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'actions title' 'widgets nav'; padding: 2px 8px 2px 4px; }
+  html[data-hand='left'] .actions { flex-direction: row-reverse; }
+  html[data-hand='left'] .widgets { justify-content: flex-start; }
+  html[data-hand='left'] .nav { justify-self: end; }
 }
 </style>

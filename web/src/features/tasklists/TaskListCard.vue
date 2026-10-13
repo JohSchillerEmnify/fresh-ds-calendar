@@ -155,7 +155,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion-spring) both; }
 
 /* task marker: tiny checkbox in the category colour, empty / partly filled / checked */
-.cb { position: relative; flex: none; box-sizing: border-box; width: 11px; height: 11px; border: 1.5px solid var(--on); border-radius: 3px; background: transparent; }
+.cb { position: relative; flex: none; box-sizing: border-box; width: 11px; height: 11px; border: 1.5px solid var(--on); border-radius: var(--cb-r, 3px); background: transparent; }
 .cb[data-state='partial'] { background: linear-gradient(to top, var(--on) var(--fill), transparent var(--fill)); }
 .cb[data-state='done'] { background: var(--on); }
 .cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--e-mark, var(--c)); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
@@ -223,7 +223,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini { padding: 1px 2px 2px 3px; }
 .mini .row { gap: 2px; min-height: 14px; }
 .mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
-.mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: 2.5px; }
+.mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: var(--cb-r, 2.5px); }
 .mini .cb[data-state='done']::after { left: 1.7px; top: -0.5px; width: 2.4px; height: 5px; border-width: 0 1.2px 1.2px 0; }
 .mini .items, .mini .it { line-height: 11px; }
 .mini .it { padding-left: 8px; }

@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import IconYear from '~icons/material-symbols/calendar-month';
-import IconMonth from '~icons/material-symbols/calendar-view-month';
-import IconWeek from '~icons/material-symbols/calendar-view-week';
-import IconDay from '~icons/material-symbols/calendar-view-day';
-import IconLab from '~icons/material-symbols/science';
+import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconChecklist as IconTasks, IconScience as IconLab } from '@/components/icons';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
@@ -19,6 +15,7 @@ import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
 import Snackbar from '@/components/m3/Snackbar.vue';
 import type { NavItem } from '@/components/m3/types';
+import { applyLanguage, t } from '@/i18n';
 import { acquireViewport, isPhone } from '@/composables/useViewport';
 import { useNav } from '@/composables/useNav';
 import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry';
@@ -51,21 +48,26 @@ const settings = useSettingsStore();
 const motivation = useMotivationStore();
 const labs = usePrefsStore();
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
+// the person's language choice (also arriving from another device) switches the UI at once, without a reload
+watch(() => labs.language, (pref) => { void applyLanguage(pref); });
 watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });
 
 const isCalendar = computed(() => !!route.meta.view || !!route.meta.lab);
-const activeView = computed(() => (route.meta.lab as string | undefined) ?? cal.view);
-const baseItems: NavItem[] = [
-  { id: 'year', label: 'Year', icon: IconYear, testid: 'view-switch-year' },
-  { id: 'month', label: 'Month', icon: IconMonth, testid: 'view-switch-month' },
-  { id: 'week', label: 'Week', icon: IconWeek, testid: 'view-switch-week' },
-  { id: 'day', label: 'Day', icon: IconDay, testid: 'view-switch-day' },
-];
+/** Calendar views and the Tasks view share the shell: top bar, navigation, create button. */
+const hasShell = computed(() => isCalendar.value || !!route.meta.tasks);
+const activeView = computed(() => (route.meta.tasks ? 'tasks' : (route.meta.lab as string | undefined) ?? cal.view));
+const baseItems = computed<NavItem[]>(() => [
+  { id: 'year', label: t('views.year'), icon: IconYear, testid: 'view-switch-year' },
+  { id: 'month', label: t('views.month'), icon: IconMonth, testid: 'view-switch-month' },
+  { id: 'week', label: t('views.week'), icon: IconWeek, testid: 'view-switch-week' },
+  { id: 'day', label: t('views.day'), icon: IconDay, testid: 'view-switch-day' },
+  { id: 'tasks', label: t('views.tasks'), icon: IconTasks, testid: 'view-switch-tasks' },
+]);
 // Labs views are offered only with the Labs switch on, marked as experimental.
 const items = computed<NavItem[]>(() => labs.labs
-  ? [...baseItems, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: id[0].toUpperCase() + id.slice(1), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
-  : baseItems);
-const filterShown = computed(() => isCalendar.value && (ui.filtersShown || filters.active.value));
+  ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
+  : baseItems.value);
+const filterShown = computed(() => hasShell.value && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
 /** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, and outside the calendar. */
@@ -97,7 +99,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
 
 <template>
   <div class="shell" data-testid="app-shell" :data-view="cal.view">
-    <template v-if="isCalendar">
+    <template v-if="hasShell">
       <AppTopBar />
       <InstallPrompts part="hint" />
     </template>
@@ -105,7 +107,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
     <SyncErrorBanner />
     <FilterBar v-if="filterShown" />
     <div class="body">
-      <NavigationRail v-if="isCalendar && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
+      <NavigationRail v-if="hasShell && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind | 'tasks')" />
       <div class="col">
         <SwipeCarousel :disabled="swipeDisabled">
           <template v-if="route.meta.view"><template v-for="(h, i) in calendarHeaders" :key="i"><component :is="h.component" v-if="h.shown()" /></template></template>
@@ -113,10 +115,10 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
         <component :is="t" v-for="(t, i) in trayComponents" :key="i" />
       </div>
     </div>
-    <CreateFab v-if="isCalendar" />
-    <NavigationBar v-if="isCalendar && isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind)" />
+    <CreateFab v-if="hasShell" />
+    <NavigationBar v-if="hasShell && isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind | 'tasks')" />
     <component :is="dialogComp" v-if="dialogComp && ui.dialog" v-bind="ui.dialog.props" @close="ui.closeDialog()" />
-    <VersionLabel v-if="isCalendar && labs.versionInCorner" :raised="isPhone" />
+    <VersionLabel v-if="hasShell && labs.versionInCorner" :raised="isPhone" />
     <Snackbar />
     <DragCat />
   </div>

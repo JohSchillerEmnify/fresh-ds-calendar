@@ -2,9 +2,14 @@
 import { useClockStore } from '@/stores/clock';
 import { BUTTERFLY_RHYTHM, butterflyFlight, forcedButterfly } from './butterflyVisits';
 import BatWings from './BatWings.vue';
+import BeachScene from './BeachScene.vue';
+import ChristmasNight from './ChristmasNight.vue';
+import EasterScene from './EasterScene.vue';
 import ButterflyWings from './ButterflyWings.vue';
 import HalloweenNight from './HalloweenNight.vue';
 import LilyOfTheValley from './LilyOfTheValley.vue';
+import NewYearMorning from './NewYearMorning.vue';
+import NewYearsEveNight from './NewYearsEveNight.vue';
 import SceneCat from './SceneCat.vue';
 import SceneSun from './SceneSun.vue';
 import SpringMeadow from './SpringMeadow.vue';
@@ -16,10 +21,12 @@ import { useSceneVisits } from './useSceneVisits';
  * The living layer of a themed top bar scene (ARCHITECTURE "Season scenes and the support cat"), drawn over the
  * scene's own backdrop: spring brings sprouting trees, lily of the valley and the first flowers in the grass, summer
  * a few sunflowers and a small sun, Halloween its night (moon, bare trees, jack-o'-lanterns, a ghost now and then);
- * every scene has one small cat and, now and then, a visiting butterfly (a bat at Halloween). Parts carry `data-part`.
+ * the holiday scenes bring eggs and a hare (Easter), sea and umbrella (Summer holidays), an Advent candle timeline ending in the tree
+ * (Christmas), fireworks (New Year's Eve) and a sunrise (New Year). Every scene has one small cat and, now and then, a
+ * visiting butterfly (a bat at Halloween; none at Christmas, New Year's Eve and New Year). Parts carry `data-part`.
  * Sizes follow the bar height (container units), colours the theme tokens; motion follows `html[data-motion]`.
  */
-type LifeScene = 'spring' | 'summer' | 'fall' | 'winter' | 'mordor' | 'halloween';
+type LifeScene = 'spring' | 'summer' | 'fall' | 'winter' | 'mordor' | 'halloween' | 'easter' | 'summerholidays' | 'christmas' | 'newyearseve' | 'newyear';
 const props = defineProps<{ scene: LifeScene }>();
 
 /** Summer is theme decoration, not the garden: a fixed handful of sunflowers whatever the motivation state. */
@@ -28,14 +35,17 @@ const SUMMER_SUNFLOWERS = 7;
 const CAT: Record<LifeScene, { left: number; delay: number }> = {
   spring: { left: 44, delay: 0 }, summer: { left: 33, delay: 6 }, fall: { left: 56, delay: 11 }, winter: { left: 40, delay: 15 },
   mordor: { left: 47, delay: 20 }, halloween: { left: 45, delay: 3 },
+  easter: { left: 40, delay: 8 }, summerholidays: { left: 50, delay: 13 }, christmas: { left: 60, delay: 5 }, newyearseve: { left: 52, delay: 9 }, newyear: { left: 30, delay: 17 },
 };
 
+/** The scenes without a visiting butterfly: the winter holidays (snow, night, early morning). */
+const NO_FLYER: LifeScene[] = ['christmas', 'newyearseve', 'newyear'];
 const clock = useClockStore();
 /** The butterfly (or bat) currently visiting, one at a time, or null between visits. */
 const visit = useSceneVisits(
   BUTTERFLY_RHYTHM,
   (level) => {
-    const flight = butterflyFlight(level, Math.random());
+    const flight = NO_FLYER.includes(props.scene) ? null : butterflyFlight(level, Math.random());
     return flight && { flight, restX: Math.round(15 + Math.random() * 65), tint: Math.random() < 0.5 ? ('a' as const) : ('b' as const) };
   },
   () => forcedButterfly(clock.config.testMode),
@@ -58,6 +68,11 @@ const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
       <SunflowerField :flowers="SUMMER_SUNFLOWERS" />
     </template>
     <HalloweenNight v-else-if="scene === 'halloween'" :cat-left="CAT.halloween.left" />
+    <EasterScene v-else-if="scene === 'easter'" />
+    <BeachScene v-else-if="scene === 'summerholidays'" />
+    <ChristmasNight v-else-if="scene === 'christmas'" />
+    <NewYearsEveNight v-else-if="scene === 'newyearseve'" />
+    <NewYearMorning v-else-if="scene === 'newyear'" />
     <span v-if="visit" class="flutter" :class="[visit.tint, visit.flight, flyer]" :data-part="flyer" :style="{ '--rest-x': `${visit.restX}cqw` }">
       <span class="bob"><BatWings v-if="flyer === 'bat'" /><ButterflyWings v-else /></span>
     </span>

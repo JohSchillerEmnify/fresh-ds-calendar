@@ -2,6 +2,7 @@ import {
   addDays, addMonths, addWeeks, addYears, differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek,
   format, isValid, parse, startOfMonth, startOfWeek,
 } from 'date-fns';
+import { dateLocale, language } from '@/i18n/language';
 
 /** Week starts Monday everywhere (BRIEF). All date-only math uses local `Date`s at 00:00 (no time zone surprises). */
 export const WEEK_OPTS = { weekStartsOn: 1 as const };
@@ -10,8 +11,26 @@ export type ViewKind = 'year' | 'month' | 'week' | 'day';
 export const VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
 export const VIEW_LABEL: Record<ViewKind, string> = { year: 'Year', month: 'Month', week: 'Week', day: 'Day' };
 
-export const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-export const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** An `Intl` formatter for the active language's date locale (de-DE for German and the fun languages). */
+const intl = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(dateLocale(), o);
+
+/** Short weekday labels Monday..Sunday in the active language (English keeps its fixed three-letter forms). */
+export function weekdayLabels(): string[] {
+  if (language.value === 'en') return EN_WEEKDAYS;
+  const f = intl({ weekday: 'short' });
+  // 2024-01-01 was a Monday
+  return Array.from({ length: 7 }, (_, i) => f.format(new Date(2024, 0, 1 + i)));
+}
+
+/** Month names January..December in the active language. */
+export function monthNames(): string[] {
+  if (language.value === 'en') return EN_MONTHS;
+  const f = intl({ month: 'long' });
+  return Array.from({ length: 12 }, (_, i) => f.format(new Date(2024, i, 1)));
+}
 
 export function toIsoDate(d: Date): string {
   return format(d, 'yyyy-MM-dd');
@@ -79,8 +98,9 @@ export function shiftPeriod(view: ViewKind, anchor: Date, dir: 1 | -1): Date {
   return addDays(anchor, dir);
 }
 
-/** Period title, en-GB (ARCHITECTURE §5). */
+/** Period title in the active language: en-GB for English, `Intl` de-DE otherwise (ARCHITECTURE §5 and "i18n"). */
 export function periodTitle(view: ViewKind, anchor: Date): string {
+  if (language.value !== 'en') return localizedPeriodTitle(view, anchor);
   if (view === 'year') return format(anchor, 'yyyy');
   if (view === 'month') return format(anchor, 'MMMM yyyy');
   if (view === 'day') return format(anchor, 'EEEE, d MMMM yyyy');
@@ -89,6 +109,21 @@ export function periodTitle(view: ViewKind, anchor: Date): string {
   if (a.getFullYear() !== b.getFullYear()) return `${format(a, 'd MMM yyyy')} – ${format(b, 'd MMM yyyy')}`;
   if (a.getMonth() !== b.getMonth()) return `${format(a, 'd MMM')} – ${format(b, 'd MMM yyyy')}`;
   return `${format(a, 'd')} – ${format(b, 'd MMM yyyy')}`;
+}
+
+/** The period title through `Intl` (German and the fun languages). */
+function localizedPeriodTitle(view: ViewKind, anchor: Date): string {
+  if (view === 'year') return String(anchor.getFullYear());
+  if (view === 'month') return intl({ month: 'long', year: 'numeric' }).format(anchor);
+  if (view === 'day') return intl({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(anchor);
+  const days = weekDays(anchor);
+  const [a, b] = [days[0], days[6]];
+  const dayMonth = intl({ day: 'numeric', month: 'short' });
+  const full = intl({ day: 'numeric', month: 'short', year: 'numeric' });
+  if (a.getFullYear() !== b.getFullYear()) return `${full.format(a)} – ${full.format(b)}`;
+  if (a.getMonth() !== b.getMonth()) return `${dayMonth.format(a)} – ${full.format(b)}`;
+  // German writes the day number with a dot: 12. – 18. Okt. 2026
+  return `${a.getDate()}. – ${full.format(b)}`;
 }
 
 /** First and last (inclusive) day of the period the view shows. */

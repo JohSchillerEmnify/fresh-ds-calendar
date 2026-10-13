@@ -70,4 +70,11 @@ describe('drag helper cat pose', () => {
     expect(dragCatSide(-120, 'push-side')).toBe('right');
     expect(dragCatSide(120, 'push-down')).toBe('right');
   });
+
+  it('left-handed: the default side is the left, pushing sideways still stands behind the movement', () => {
+    expect(dragCatSide(0, 'push-down', true)).toBe('left');
+    expect(dragCatSide(0, 'push-side', true)).toBe('left');
+    expect(dragCatSide(120, 'push-side', true)).toBe('left');
+    expect(dragCatSide(-120, 'push-side', true)).toBe('right');
+  });
 });

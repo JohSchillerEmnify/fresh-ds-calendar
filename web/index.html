@@ -21,7 +21,9 @@
         var c = localStorage.getItem('cal.themeCss');
         if (c) { var s = document.createElement('style'); s.id = 'm3-dynamic-theme'; s.textContent = c; document.head.appendChild(s); }
         var a = JSON.parse(localStorage.getItem('cal.themeAttrs') || 'null'), r = document.documentElement;
-        if (a) { r.setAttribute('data-theme-name', a.name); r.setAttribute('data-glow', a.glow); r.setAttribute('data-entries', a.entries); r.setAttribute('data-corners', a.corners); r.setAttribute('data-scene', a.scene); }
+        if (a) { r.setAttribute('data-theme-name', a.name); r.setAttribute('data-glow', a.glow); r.setAttribute('data-entries', a.entries); r.setAttribute('data-corners', a.corners); r.setAttribute('data-scene', a.scene); r.setAttribute('data-checkbox', a.checkbox || 'rounded'); r.setAttribute('data-checkfill', a.checkFill || 'filled'); r.setAttribute('data-check', a.check || 'tick'); r.setAttribute('data-icons', a.icons || 'outlined'); }
+        var f = localStorage.getItem('cal.themeFine');
+        if (f) r.style.cssText = f;
       } catch (e) {}
     </script>
     <title>Calendar</title>

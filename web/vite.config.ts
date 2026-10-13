@@ -8,7 +8,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 const APP_VERSION = process.env.APP_VERSION ?? '0.1.0';
 
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+    // vue-i18n feature flags (docs "Optimization"): Composition API only, no plugin install, no devtools hooks
+    __VUE_I18N_FULL_INSTALL__: false,
+    __VUE_I18N_LEGACY_API__: false,
+    __INTLIFY_PROD_DEVTOOLS__: false,
+  },
   plugins: [
     vue(),
     // <html data-app-version> carries the build version (e2e reads it after a reload).

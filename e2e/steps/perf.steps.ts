@@ -1,4 +1,9 @@
 /** @perf steps (STEPS.md "Performance"): browser memory via CDP, request counting, budgets, Lighthouse, server RSS. */
+import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { expect, chromium } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { detachedNodes, measureMemory } from './support/cdp.js';
@@ -179,6 +184,57 @@ Then('the server resident memory is below {int} MB', async function (this: World
   if (typeof rss !== 'number') throw new Error('The last response has no "rss" field');
   this.testInfo.annotations.push({ type: 'server rss', description: `${(rss / MB).toFixed(1)} MB` });
   expect(rss / MB).toBeLessThan(mb);
+});
+
+/** Free loopback port, as e2e/run.sh picks it. */
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address() as { port: number };
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+// Idle RSS is measured on a server of its own: the shared one has served the whole suite by now (A-102).
+When('I request {string} on a fresh server', async function (this: World, spec: string) {
+  this.extendTimeout(60_000);
+  const [method, ...rest] = spec.trim().split(/\s+/);
+  const path = rest.join(' ');
+  const port = await freePort();
+  const dataDir = mkdtempSync(join(tmpdir(), 'calendar-e2e-fresh-'));
+  // same env as e2e/run.sh start_server, only port and DATA_DIR differ
+  const child = spawn('node', ['--expose-gc', resolve(process.cwd(), '../server/dist/index.js')], {
+    env: {
+      ...process.env,
+      HOST: '127.0.0.1', PORT: String(port), TEST_MODE: 'true', PROVIDER: 'mock', SEED: 'false', DATA_DIR: dataDir,
+      POLL_INTERVAL_MS: '30000', TZ: 'Europe/Berlin', NODE_ENV: 'production',
+    },
+    stdio: 'ignore',
+  });
+  const exited = new Promise<void>((r) => child.once('exit', () => r()));
+  try {
+    const base = `http://127.0.0.1:${port}`;
+    const deadline = Date.now() + 30_000;
+    for (;;) {
+      if (child.exitCode !== null) throw new Error('The fresh server exited before it became healthy');
+      if (Date.now() > deadline) throw new Error('The fresh server did not become healthy within 30 s');
+      const ok = await fetch(`${base}/api/health`).then((r) => r.ok, () => false);
+      if (ok) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    const res = await fetch(base + path, { method });
+    const body = await res.text();
+    let json: unknown;
+    try { json = JSON.parse(body); } catch { json = undefined; }
+    this.lastResponse = { status: res.status, json, url: res.url };
+  } finally {
+    child.kill();
+    await exited;
+    rmSync(dataDir, { recursive: true, force: true });
+  }
 });
 
 /** Run `n` jobs sequentially per lane with concurrency 10. */

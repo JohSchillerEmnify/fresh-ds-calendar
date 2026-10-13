@@ -56,4 +56,5 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
 }
 .item :deep(svg) { width: 22px; height: 22px; }
 @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(0.9); } }
+@media (max-width: 767.98px) { html[data-hand='left'] .menu { align-items: flex-start; } }
 </style>

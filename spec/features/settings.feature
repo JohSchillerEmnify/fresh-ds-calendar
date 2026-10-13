@@ -8,6 +8,7 @@ Feature: Settings
   Background:
     Given the calendar is empty
     And today is 2026-10-12
+    And the seasons and holidays are off
 
   Scenario: The settings screen is reachable from the top app bar
     When I open the week view for 2026-10-12
@@ -82,7 +83,7 @@ Feature: Settings
       | blue    |
       | #gg0000 |
 
-  Scenario: Settings are stored on the server and apply on another device
+  Scenario: Theme mode and seed colour are stored on the server and apply on another device
     When I open the path "/settings"
     And I choose the theme mode "Dark"
     And I choose the seed color preset "Green"
@@ -92,7 +93,8 @@ Feature: Settings
     And the color role "primary" has a hue within 15 degrees of "#386a20"
     When I request "GET /api/settings"
     Then the response JSON field "themeMode" equals "dark"
-    And the response JSON field "seedColor" equals "#386a20"
+    When I request "GET /api/prefs/theme"
+    Then the response JSON field "overrides.seed" equals "#386a20"
 
   Scenario Outline: The default view decides where the app opens
     When I open the path "/settings"

@@ -1,0 +1,26 @@
+Sure! Here is your theme as JSON:
+
+```json
+{
+  "schema": "calendar-theme/2",
+  "name": "Lagoon",
+  "description": "Turquoise lagoon, see [http://example.com/lagoon](http://example.com/lagoon)",
+  "mode": "light",
+  "colors": {
+    "seed": "#00897b"
+  },
+  "glow": "off",
+  "entries": "solid",
+  "corners": "pill",
+  "scene": {
+    "gradient": [
+      "#b2ebf2",
+      "#4db6ac"
+    ],
+    "decor": "bubbles",
+    "density": "low"
+  }
+}
+```
+
+Let me know if you want changes!
