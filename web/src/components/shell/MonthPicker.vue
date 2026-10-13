@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { addMonths, format, isSameDay, isSameMonth } from 'date-fns';
+import { addMonths, isSameDay, isSameMonth } from 'date-fns';
 import { IconChevronLeft as IconPrev, IconChevronRight as IconNext } from '@/components/icons';
 import IconButton from '@/components/m3/IconButton.vue';
 import { useNav } from '@/composables/useNav';
 import { bindSwipe } from '@/composables/useSwipe';
-import { monthGrid, toIsoDate, weekdayLabels } from '@/lib/dates';
+import { formatDate, monthGrid, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { listen, type Disposer } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -28,7 +28,7 @@ function startMonth(): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 const weeks = computed(() => monthGrid(shown.value));
-const title = computed(() => format(shown.value, 'MMMM yyyy'));
+const title = computed(() => formatDate(shown.value, 'monthYear'));
 const grid = ref<HTMLElement | null>(null);
 
 function load() {
@@ -84,7 +84,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
           <button
             v-for="d in week" :key="toIsoDate(d)" type="button" class="day" data-testid="picker-day"
             :class="{ out: !isSameMonth(d, shown), sel: selected(d), today: toIsoDate(d) === clock.today }"
-            :data-date="toIsoDate(d)" :aria-selected="selected(d)" :aria-label="format(d, 'EEEE d MMMM yyyy')" :data-has-items="hasItems(d)"
+            :data-date="toIsoDate(d)" :aria-selected="selected(d)" :aria-label="formatDate(d, 'full')" :data-has-items="hasItems(d)"
             @click="nav.pickDay(d)"
           >
             <span class="n">{{ d.getDate() }}</span>

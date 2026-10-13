@@ -32,6 +32,23 @@ export function monthNames(): string[] {
   return Array.from({ length: 12 }, (_, i) => f.format(new Date(2024, i, 1)));
 }
 
+/** Display date shapes; each maps to a date-fns pattern (English, kept as before) and `Intl` options (other languages). */
+const DATE_FORMATS = {
+  weekday: { en: 'EEE', intl: { weekday: 'short' } },
+  dayMonthShort: { en: 'd MMM', intl: { day: 'numeric', month: 'short' } },
+  weekdayDayMonth: { en: 'EEE d MMM', intl: { weekday: 'short', day: 'numeric', month: 'short' } },
+  weekdayDayMonthLong: { en: 'EEEE d MMMM', intl: { weekday: 'long', day: 'numeric', month: 'long' } },
+  monthYear: { en: 'MMMM yyyy', intl: { month: 'long', year: 'numeric' } },
+  full: { en: 'EEEE d MMMM yyyy', intl: { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } },
+} as const satisfies Record<string, { en: string; intl: Intl.DateTimeFormatOptions }>;
+export type DateFormatKind = keyof typeof DATE_FORMATS;
+
+/** Formats a date for display in the active language: date-fns for English (A-85), `Intl` de-DE otherwise. */
+export function formatDate(d: Date, kind: DateFormatKind): string {
+  const spec = DATE_FORMATS[kind];
+  return language.value === 'en' ? format(d, spec.en) : intl(spec.intl).format(d);
+}
+
 export function toIsoDate(d: Date): string {
   return format(d, 'yyyy-MM-dd');
 }

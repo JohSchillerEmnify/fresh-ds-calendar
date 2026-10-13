@@ -47,6 +47,11 @@ export const MAX_THEMES: number;
 export const MAX_THEME_BYTES: number;
 export const MAX_PICTURE_BYTES: number;
 
+/** One validation problem: a code and params for translating it, and the English message (used by the AI repair prompt). */
+export interface ValidationIssue { code: string; params: Record<string, string | number>; message: string }
+export function validateThemeIssues(input: unknown): { ok: true; doc: ThemeDoc } | { ok: false; issues: ValidationIssue[] };
+export function validatePictureIssues(input: unknown): { ok: true; picture: ThemePicture } | { ok: false; issues: ValidationIssue[] };
+export function sanitizePictureIssues(sanitize: SvgSanitizer, picture: ThemePicture): { ok: true; picture: ThemePicture; removed: boolean } | { ok: false; issues: ValidationIssue[] };
 export function validateTheme(input: unknown): { ok: true; doc: ThemeDoc } | { ok: false; errors: string[] };
 
 /** The subset of DOMPurify the sanitiser needs. */
