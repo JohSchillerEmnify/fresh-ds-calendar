@@ -1,6 +1,6 @@
 import {
   addDays, addMonths, addWeeks, addYears, differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek,
-  format, isValid, parse, startOfMonth, startOfWeek,
+  format, startOfMonth, startOfWeek,
 } from 'date-fns';
 import { dateLocale, language } from '@/i18n/language';
 
@@ -39,17 +39,23 @@ export function toIsoMonth(d: Date): string {
   return format(d, 'yyyy-MM');
 }
 
-const REF = new Date(2000, 0, 1);
-/** Strict `yyyy-MM-dd` parser; null for anything invalid (e.g. 2026-02-30). */
+/** The local date `y-m-d` at 00:00, or null when it does not exist (month 13, 30 February, year 0). */
+function localDate(y: number, m: number, d: number): Date | null {
+  if (y < 1) return null;
+  const date = new Date(y, m - 1, d);
+  // years 0-99 would otherwise map to 1900-1999
+  date.setFullYear(y);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+}
+
+/** Strict `yyyy-MM-dd` parser; null for anything invalid (e.g. 2026-02-30). (No date-fns `parse`: it is ~11 KB gzipped.) */
 export function parseIsoDate(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-  const d = parse(s, 'yyyy-MM-dd', REF);
-  return isValid(d) ? d : null;
+  return localDate(Number(s.slice(0, 4)), Number(s.slice(5, 7)), Number(s.slice(8, 10)));
 }
 export function parseIsoMonth(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}-\d{2}$/.test(s)) return null;
-  const d = parse(s, 'yyyy-MM', REF);
-  return isValid(d) ? d : null;
+  return localDate(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 1);
 }
 export function parseYear(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}$/.test(s)) return null;
