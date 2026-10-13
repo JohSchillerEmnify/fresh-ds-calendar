@@ -1172,7 +1172,7 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
   pair that is not two integers in range. The API shows `canvas: { x, y } | null` on a `TaskList` and takes
   `canvas?: { x, y } | null` in `PATCH /api/tasklists/:id` (null clears the place: the list goes back to Unsorted).
   `encodePrivate` writes `cx` / `cy` (null removes them), so every other write of the list keeps the place. The web app
-  clamps a dropped note to the board (`0 .. WORLD - NOTE_W`, `0 .. WORLD_H - 40`) before it saves.
+  clamps a dropped note to the board (`0 .. WORLD - NOTE_W`, `0 .. WORLD_H - 24`) before it saves.
   *Why two integer properties and not one JSON value*: like `estimate`, they are tiny (about 12 bytes against the 32 kB
   budget), readable in Google's raw event, and `privateExtendedProperty=cx=100` stays queryable. *Why the server limit
   (10000) is larger than the board*: the board can grow later without a data migration. *Why integers*: a position needs
@@ -1196,7 +1196,7 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
   handle), and the plain mouse wheel / trackpad scroll. Zoom: pinch and Ctrl+wheel (the same gesture rate as the time
   grid, `wheelZoomFactor`), about the pointer or pinch centre, within `0.3 .. 2`. The pan is clamped so that at least
   `120` px of the board stay in view. The view `{ x, y, zoom }` is remembered **per device** in `localStorage`
-  (`cal.canvasView`, every access in try/catch; unusable values give the default zoom 1, pan 0, 0); it is never sent to
+  (`cal.canvasView`, written 250 ms after the last change and on `pagehide`, every access in try/catch; unusable values give the default zoom 1, pan 0, 0); it is never sent to
   the server.
 - **Areas** (`canvas-area`). A labelled rectangle (name, colour, position, size) that collects notes. It is created with
   `canvas-area-add` (centred in the view, `320 x 240`, named "Area", colour from a palette), moved by dragging its header,

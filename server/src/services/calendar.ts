@@ -106,7 +106,7 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
-      tags: d.tags, color: cat ? cat.color : calColor, completedOn: d.completedOn, etag: ev.etag, updated: ev.updated,
+      tags: d.tags, color: cat ? cat.color : calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
     };
   }
 
@@ -278,6 +278,7 @@ export class CalendarService {
       title: input.title, date: input.date, time: input.date === null ? null : input.time ?? null,
       items: (input.items ?? []).filter((i) => i.title.trim()).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done })),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
+      canvas: null,
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
     };
     this.checkTaskData(d);
@@ -326,6 +327,7 @@ export class CalendarService {
       if (input.categoryId !== undefined) next.categoryId = input.categoryId;
       if (input.tags !== undefined) next.tags = input.tags;
       if (input.estimateMinutes !== undefined) next.estimateMinutes = input.estimateMinutes;
+      if (input.canvas !== undefined) next.canvas = input.canvas;
       if (input.items !== undefined) {
         next.items = input.items.filter((i) => i.title.trim()).map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done }));
       }

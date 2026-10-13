@@ -80,8 +80,16 @@ export interface TaskList {
   color: string;
   /** Date the last open item was ticked (server, app clock); null/absent while an item is open. */
   completedOn?: LocalDate | null;
+  /** Place on the Tasks view's Canvas (canvas units); null/absent = no place yet (Unsorted). */
+  canvas?: CanvasPlace | null;
   etag: string;
   updated: DateTime;
+}
+
+/** A note's top-left corner on the Canvas, in canvas units (ARCHITECTURE "Canvas"). */
+export interface CanvasPlace {
+  x: number;
+  y: number;
 }
 
 export type CalendarItem = CalendarEvent | TaskList;
@@ -225,6 +233,25 @@ export interface UpdateTaskListInput {
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
+  /** Integers 0-10000; null clears the place. */
+  canvas?: CanvasPlace | null;
+}
+
+/** One labelled rectangle on the Canvas (API.md "Canvas"). */
+export interface CanvasArea {
+  id: string;
+  name: string;
+  color: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** A person's Canvas document (`GET/PUT /api/canvas`). */
+export interface CanvasDoc {
+  version: 1;
+  areas: CanvasArea[];
 }
 
 export type Density = 0 | 1 | 2 | 3;

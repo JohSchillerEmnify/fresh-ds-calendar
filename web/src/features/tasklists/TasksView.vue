@@ -27,6 +27,7 @@ import { matchesSearch, sortArchive, templateOf } from './archive';
 import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
+import TasksCanvas from './TasksCanvas.vue';
 
 const tasks = useTasksViewStore();
 const items = useItemsStore();
@@ -50,6 +51,7 @@ const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.
 
 const tabOptions = computed(() => [
   { value: 'open' as TasksTab, label: t('tasks.tabs.open'), testid: 'tasks-tab-open' },
+  { value: 'canvas' as TasksTab, label: t('canvas.tab'), testid: 'tasks-tab-canvas' },
   { value: 'archive' as TasksTab, label: t('tasks.tabs.archive'), testid: 'tasks-tab-archive' },
 ]);
 const search = ref('');
@@ -94,6 +96,7 @@ async function setDate(l: TaskList, offsetDays: number): Promise<void> {
     <div class="controls">
       <SegmentedButton :model-value="tasks.tab" :options="tabOptions" :label="t('tasks.tabs.label')" class="tabs" @update:model-value="chooseTab" />
     </div>
+    <TasksCanvas v-if="tasks.tab === 'canvas'" />
     <div v-if="tasks.tab === 'archive'" class="archive" data-testid="tasks-archive">
       <div class="controls">
         <TextField v-model="search" :label="t('tasks.archive.search')" type="search" class="search" data-testid="tasks-archive-search" />

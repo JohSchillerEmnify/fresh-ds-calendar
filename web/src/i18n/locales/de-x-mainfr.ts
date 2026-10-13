@@ -4,12 +4,14 @@
  */
 import type { PartialMessages } from '../schema';
 import calendarMainfr from './de-x-mainfr/calendar.ts';
+import canvasMainfr from './de-x-mainfr/canvas.ts';
 
 import tasksMainfr from './de-x-mainfr/tasks.ts';
 import themeMainfr from './de-x-mainfr/theme.ts';
 
 export default {
   calendar: calendarMainfr,
+  canvas: canvasMainfr,
   tasks: tasksMainfr,
   views: {
     year: 'Jahr',

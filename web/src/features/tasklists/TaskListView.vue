@@ -37,6 +37,8 @@ const props = defineProps<{
   closable?: boolean;
   /** Tapping the title opens the task list dialog instead of renaming in place (the Tasks view). */
   titleOpensDialog?: boolean;
+  /** A sticky note on the Canvas: head, celebration and the item rows only (no next-task hint, row buttons, add field or footer). */
+  compact?: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -226,7 +228,7 @@ defineExpose({ root, busy });
     </header>
 
     <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">{{ t('tasks.list.allDone') }}</p>
-    <p v-else-if="next" class="next" data-testid="tasklist-next-task">{{ t('tasks.list.nextTask') }} <strong>{{ next.title }}</strong></p>
+    <p v-else-if="next && !compact" class="next" data-testid="tasklist-next-task">{{ t('tasks.list.nextTask') }} <strong>{{ next.title }}</strong></p>
 
     <ul class="list">
       <li
@@ -239,22 +241,22 @@ defineExpose({ root, busy });
           @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
         />
         <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
-        <IconButton class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
-        <IconButton class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
-        <IconButton class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
+        <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
+        <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
+        <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
       </li>
     </ul>
     <p v-if="!tl.items.length" class="empty">{{ t('tasks.list.empty') }}</p>
 
-    <form v-if="adding" class="add" @submit.prevent="add">
+    <form v-if="adding && !compact" class="add" @submit.prevent="add">
       <input
         ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" maxlength="200"
         :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
       />
     </form>
-    <Button v-else variant="text" class="add-btn" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
+    <Button v-else-if="!compact" variant="text" class="add-btn" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
 
-    <footer class="foot">
+    <footer v-if="!compact" class="foot">
       <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>{{ t('tasks.list.moveToday') }}</Button>
       <span class="grow" />
       <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>

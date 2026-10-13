@@ -1345,5 +1345,6 @@ the Canvas zoom is above {float}
 - "the Canvas shows the area N": a `canvas-area` with `data-name` N is visible.
 - "I pan the Canvas by DX, DY pixels": a mouse drag on an empty spot of `canvas-viewport` (bottom right quarter) by DX, DY;
   "is panned to": `data-pan-x` and `data-pan-y` equal the numbers (zoom 1).
-- "I zoom the Canvas in with Ctrl+wheel": holds Control and turns the wheel up (`deltaY` -300) over the middle of
-  `canvas-viewport`. "the Canvas zoom is above Z": `data-zoom` greater than Z (waits).
+- "I zoom the Canvas in with Ctrl+wheel": dispatches a `wheel` event with `ctrlKey` and `deltaY` -300 over the middle of
+  `canvas-viewport` (as the time grid's zoom step does) and waits until `data-zoom` grew and `localStorage` `cal.canvasView`
+  holds the new zoom (the view is remembered a moment after the last change). "the Canvas zoom is above Z": `data-zoom` greater than Z (waits).

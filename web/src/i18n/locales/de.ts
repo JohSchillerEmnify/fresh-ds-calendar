@@ -1,12 +1,14 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
 import type { Messages } from '../schema';
 import calendarDe from './de/calendar.ts';
+import canvasDe from './de/canvas.ts';
 
 import tasksDe from './de/tasks.ts';
 import themeDe from './de/theme.ts';
 
 export default {
   calendar: calendarDe,
+  canvas: canvasDe,
   tasks: tasksDe,
   views: {
     year: 'Jahr',

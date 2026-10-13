@@ -4,12 +4,14 @@
  */
 import type { Messages } from '../schema';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
+import canvasColdmirror from './de-x-coldmirror/canvas.ts';
 
 import tasksColdmirror from './de-x-coldmirror/tasks.ts';
 import themeColdmirror from './de-x-coldmirror/theme.ts';
 
 export default {
   calendar: calendarColdmirror,
+  canvas: canvasColdmirror,
   tasks: tasksColdmirror,
   views: {
     year: 'Jahr, yo',
