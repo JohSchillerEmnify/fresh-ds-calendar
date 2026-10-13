@@ -122,6 +122,7 @@ export default {
       signOut: 'Schönen Day noch!',
       resetDemo: { label: 'Demodaten resetten, yo', hint: 'Ersetzt den Testkalender durch frische Demotermine. Kind auf die Türmatte, klingeln, wegrennen.', button: 'Hokus Pokus', done: 'Back from the Underground: Der Phönix ersteht aus seiner Asche, Demodaten sind da. Yo, vielen lieben thank und schönen day noch!', failed: 'Ich bin alt, ich bin bald tot, aus Grün wird Rot: Demodaten nicht resettet' },
       version: 'Version {version}, yo',
+      androidApp: { label: 'Android-App, fresh', hint: 'Fresh D. auf dein Handy, mit Wochen-Widget. Nur im Heim-WLAN, Digga', download: 'Runterladen, yo' },
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },
     leftHanded: { label: 'Linkshänder-Modus, yo', hint: 'Spiegelt das Handy-Layout, damit die wichtigen Knöpfe unter dem linken Daumen liegen. Fresh D. ist Linkshänder, Digga.' },
