@@ -574,6 +574,47 @@ Then('the event {string} has a corner radius of {int} px', async function (this:
   await expect.poll(() => chip.evaluate((n) => parseFloat(getComputedStyle(n).borderTopLeftRadius))).toBe(px);
 });
 
+Then('the preview event has a corner radius of {int} px', async function (this: World, px: number) {
+  const ev = this.page.getByTestId('theme-preview-event');
+  await expect(ev).toBeVisible();
+  await expect.poll(() => ev.evaluate((n) => parseFloat(getComputedStyle(n).borderTopLeftRadius))).toBe(px);
+});
+
+When('I scroll the theme menu to the {string} section', async function (this: World, heading: string) {
+  await ensureMenu(this);
+  const section = this.page.getByTestId('theme-section').filter({ has: this.page.getByRole('heading', { name: heading, exact: true }) });
+  await section.scrollIntoViewIfNeeded();
+  await expect(section).toBeInViewport();
+});
+
+Then('the live preview is pinned under the theme menu header', async function (this: World) {
+  const preview = this.page.getByTestId('theme-live-preview');
+  await expect(preview).toBeInViewport({ ratio: 1 });
+  const header = await this.page.getByTestId('theme-view').locator('header').first().boundingBox();
+  await expect.poll(async () => Math.abs(((await preview.boundingBox())?.y ?? -999) - (header!.y + header!.height))).toBeLessThanOrEqual(2);
+});
+
+const livePreviewToggle = (world: World) => world.page.getByTestId('theme-live-preview-toggle');
+const setLivePreviewCollapsed = async (world: World, want: boolean) => {
+  const preview = world.page.getByTestId('theme-live-preview');
+  await expect(preview).toBeVisible();
+  if ((await preview.getAttribute('data-collapsed')) !== String(want)) await livePreviewToggle(world).click();
+  await expect(preview).toHaveAttribute('data-collapsed', String(want));
+};
+
+When('I collapse the live preview', async function (this: World) {
+  await setLivePreviewCollapsed(this, true);
+});
+When('I expand the live preview', async function (this: World) {
+  await setLivePreviewCollapsed(this, false);
+});
+Then('the live preview is collapsed', async function (this: World) {
+  await expect(this.page.getByTestId('theme-live-preview')).toHaveAttribute('data-collapsed', 'true');
+});
+Then('the live preview is expanded', async function (this: World) {
+  await expect(this.page.getByTestId('theme-live-preview')).toHaveAttribute('data-collapsed', 'false');
+});
+
 /** Blur radii (px) of the coloured shadows of an element: the glow, not the black elevation shadows. */
 async function glowBlurs(chip: Locator): Promise<number[]> {
   const shadow = await chip.evaluate((n) => getComputedStyle(n).boxShadow);

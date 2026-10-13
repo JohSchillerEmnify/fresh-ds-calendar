@@ -21,10 +21,10 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Slider from '@/components/m3/Slider.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
+import ThemeLivePreview from '@/components/settings/ThemeLivePreview.vue';
 import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
 import ThemeImport from '@/components/settings/ThemeImport.vue';
 import ThemeSample from '@/components/settings/ThemeSample.vue';
-import RewardCheckbox from '@/motion/RewardCheckbox.vue';
 import SeasonScene from '@/features/motivation/SeasonScene.vue';
 import { BACKDROP_SCENES } from '@/features/motivation/types';
 import { useClockStore } from '@/stores/clock';
@@ -127,9 +127,6 @@ const choices: { key: 'density' | 'checkbox' | 'checkFill' | 'check' | 'icons'; 
 /** The sample icons shown in each option of the icon set control, drawn in that option's own set. */
 const SAMPLE_ICONS = [IconSettingsOutline, IconEditOutline, IconClose];
 const choiceValue = (c: (typeof choices)[number]) => (fine.value as Record<string, string | undefined>)[c.key] ?? c.fallback;
-/** The preview's two checkboxes are real ones that can be played with. */
-const tickedA = ref(true);
-const tickedB = ref(false);
 /** Attributes for an option's sample: the current look with this one option swapped in. */
 function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, string> {
   const a: Record<string, string> = { 'data-glow': attrs.value.glow, 'data-entries': attrs.value.entries, 'data-corners': attrs.value.corners };
@@ -205,14 +202,7 @@ function back() {
           </div>
         </div>
       </DefineGroup>
-      <section class="card preview" aria-labelledby="h-prev" data-testid="theme-preview">
-        <h2 id="h-prev">Preview</h2>
-        <div class="stage">
-          <div class="pv"><ThemeSample kind="event" title="Dentist" data-testid="theme-preview-event" /></div>
-          <div class="pv"><ThemeSample kind="tasklist" color="#0b8043" title="Groceries" /></div>
-          <div class="pv cbs"><RewardCheckbox v-model="tickedA" label="Done" /><RewardCheckbox v-model="tickedB" label="To do" /></div>
-        </div>
-      </section>
+      <ThemeLivePreview class="live-slot" />
 
       <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
         <h2 id="h-cal">Seasons &amp; holidays</h2>
@@ -289,9 +279,12 @@ h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 720px; margin: 0 auto; }
 .card { background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 12px 14px; }
 h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-primary); }
-.stage { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; padding: 14px; border-radius: var(--md-sys-shape-corner-large); background: var(--md-sys-color-surface); }
-.pv { display: flex; flex-direction: column; min-width: 0; }
-.cbs { flex-direction: row; gap: 12px; align-items: center; }
+/* desktop: settings left, the live preview sticky in a right column (it spans the four section rows) */
+@media (min-width: 900px) {
+  .content { display: grid; grid-template-columns: minmax(0, 1fr) 340px; column-gap: 16px; align-items: start; max-width: 1100px; }
+  .content > * { grid-column: 1; }
+  .content > .live-slot { grid-column: 2; grid-row: 1 / span 4; }
+}
 
 .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 @media (min-width: 560px) { .gallery { grid-template-columns: repeat(4, 1fr); } }

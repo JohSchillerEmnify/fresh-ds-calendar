@@ -973,6 +973,13 @@ the {string} slider shows {string}
 no option for {string} is pressed
 the option {string} for {string} is pressed
 the event {string} has a corner radius of {int} px
+I scroll the theme menu to the {string} section
+the live preview is pinned under the theme menu header
+the preview event has a corner radius of {int} px
+the live preview is expanded
+the live preview is collapsed
+I collapse the live preview
+I expand the live preview
 the event {string} glows with a blur between {int} and {int} px
 the entry tint is {int} %
 I choose {string} for the {string} setting
@@ -1023,6 +1030,15 @@ every option of the {string} setting shows a sample icon
   `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
+- Live preview (`theme-live-preview`, `data-collapsed` `true`|`false`; toggle `theme-live-preview-toggle`, `aria-expanded`):
+  "I scroll the theme menu to the X section" scrolls the `theme-section` whose heading is X into view inside the menu's
+  own scroll container (`theme-view`); "is pinned under the theme menu header" = after that scroll the preview is fully
+  inside the viewport and its top edge is within 2 px of the bottom edge of the menu header (`theme-view` > `header`).
+  "the preview event has a corner radius of N px" = the computed `border-top-left-radius` of `theme-preview-event` (the
+  first sample event of the preview, a timed block like the week view's, so the same numbers apply as in "the event X has
+  a corner radius of N px"); it does NOT leave the menu. "I collapse / expand the live preview" clicks the toggle when
+  the state differs; "is collapsed / expanded" reads `data-collapsed`. The sample events carry no `event-chip` testid, so
+  steps about the calendar's real events never meet them.
 - "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Halloween", "Neon · Halloween header", "Neon").
 - "I set the seasons and holidays to X": opens the theme menu when needed, clicks the option with that label ("Off",
   "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
