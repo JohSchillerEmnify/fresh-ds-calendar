@@ -430,3 +430,6 @@ spec files are named.
   Timeline and Strip views each day shows its own piece; the Timeline's all-day band is not covered.
 - **A-138 Bedtime strings** (owner): module `locales/*/bedtime.ts` in all four languages; Coldmirror in the Fresh
   Dumbledore voice, rude only about Harry Potter characters, never sexual and never slurs.
+- **A-139 Track without entries** (my reading): the Approaching track is also shown when nothing timed is ahead but a
+  night lies inside its window (otherwise the band would never show on a quiet day); it then replaces the "Nothing else
+  today" line, like entries do. With the track switched off there is no band on the card.

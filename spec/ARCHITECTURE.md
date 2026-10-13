@@ -361,8 +361,9 @@ otherwise; bundle budget §5a applies).
   3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
   4. *Focus & motivation*: transition warning, calm mode, streak flame, plant, sunflowers, best streak, support cat.
   5. *Motion & sound*: animations, ignore the device setting, sounds.
-  6. *Labs*: experimental views.
-  7. *Account & data*: sign out, demo data.
+  6. *Bedtime*: bedtime mode (see "Bedtime mode").
+  7. *Labs*: experimental views.
+  8. *Account & data*: sign out, demo data.
   Settings are loaded at startup together with `/api/config`, re-fetched on focus, and saved with `PATCH` (optimistic,
   rolled back with the error banner on failure).
 - **Tags shelved** (owner, 2026-10-13: purpose and flow unclear): no tag field in the forms, no tag chips in the
