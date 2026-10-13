@@ -24,6 +24,12 @@ describe('theme presets', () => {
     expect(r.attrs.entries).toBe('outline');
     expect(r.attrs.scene).toBe('spring');
   });
+  it('resolves the automatic Season scene by date and keeps an explicit scene as picked', () => {
+    expect(resolveTheme({ preset: 'Default', overrides: { scene: 'season' } }, '2026-04-10').attrs.scene).toBe('spring');
+    expect(resolveTheme({ preset: 'Default', overrides: { scene: 'season' } }, '2026-10-10').attrs.scene).toBe('halloween');
+    expect(resolveTheme({ preset: 'Default', overrides: { scene: 'halloween' } }, '2026-04-10').attrs.scene).toBe('halloween');
+    expect(resolveTheme({ preset: 'Spring', overrides: {} }, '2026-10-10').attrs.scene).toBe('spring');
+  });
   it('lets the season presets keep the person\'s mode; only Neon and Mordor force dark', () => {
     expect((['Spring', 'Summer', 'Fall', 'Halloween', 'Winter'] as const).map((n) => PRESETS[n].mode)).toEqual([null, null, null, null, null]);
     expect(resolveTheme({ preset: 'Automatic', overrides: {} }, '2026-01-10').mode).toBeNull();

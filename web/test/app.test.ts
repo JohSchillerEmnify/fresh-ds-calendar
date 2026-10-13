@@ -367,17 +367,25 @@ describe('settings', () => {
   it('theme menu: Presets, Scene and Fine-tuning sections in that order, the scene choice only in its own, no Mordor button', async () => {
     const { w, m } = await mountAt('/settings/theme');
     await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
+    // the color library loads lazily; let it finish so the test does not end while it imports
+    await wait(() => expect(w.get('[data-testid="theme-card"] .scope').attributes('style')).toBeTruthy());
     const sections = w.findAll(tid('theme-section'));
     expect(sections.map((x) => [x.attributes('data-section'), x.get('h2').text()])).toEqual([['presets', 'Presets'], ['scene', 'Scene'], ['fine-tuning', 'Fine-tuning']]);
     const values = (el: typeof w) => el.findAll(tid('theme-option')).map((o) => `${o.attributes('data-setting')}:${o.attributes('data-value')}`);
-    expect(values(sections[1] as never)).toEqual(['scene:season', 'scene:sunflowers', 'scene:mordor', 'scene:none']);
+    expect(values(sections[1] as never)).toEqual(['season', 'spring', 'summer', 'fall', 'halloween', 'winter', 'sunflowers', 'mordor', 'none'].map((v) => `scene:${v}`));
+    // an explicit season scene is pressed on its own; Season is the automatic choice
+    const pressedScene = () => sections[1]!.findAll('[aria-pressed="true"]').map((o) => o.attributes('data-value'));
+    await sections[1]!.get('[data-value="halloween"]').trigger('click');
+    await wait(() => expect(pressedScene()).toEqual(['halloween']));
+    await sections[1]!.get('[data-value="season"]').trigger('click');
+    await wait(() => expect(pressedScene()).toEqual(['season']));
+    expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ overrides: { scene: 'season' } });
     expect(values(sections[2] as never).filter((v) => v.startsWith('scene:'))).toEqual([]);
     expect(values(sections[2] as never)).toHaveLength(9);
     expect(w.find(tid('settings-theme-mordor')).exists()).toBe(false);
     // the Mordor preset replaces the old button
     await w.get('[data-testid="theme-card"][data-name="Mordor"]').trigger('click');
-    await wait(() => expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')).toBe(true));
-    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')!.body).toMatchObject({ preset: 'Mordor' });
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body).toMatchObject({ preset: 'Mordor' }));
   });
   it('the Theme row shows the seasonal theme in use for Automatic and the preset name otherwise', async () => {
     const { w } = await mountAt('/settings');

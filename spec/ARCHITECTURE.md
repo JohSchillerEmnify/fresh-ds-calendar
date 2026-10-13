@@ -776,7 +776,7 @@ It never reloads by itself and never interrupts an open dialog.
 
 ### Themes
 
-- **Terms** (owner 2026-10-13). **Scene** = the top app bar background (Season, Sunflower field, Mordor or None),
+- **Terms** (owner 2026-10-13). **Scene** = the top app bar background (Season, a single season scene, Sunflower field, Mordor or None),
   chosen in the theme menu. **Plant** = the motivation widget in the top bar (the small growing plant); it is
   independent of the scene and is switched in Settings → Motivation. "Garden style" is no longer a term: it is
   removed from the spec, the UI, the code and the API. If more plant kinds come later they would be a "plant style";
@@ -788,8 +788,12 @@ It never reloads by itself and never interrupts an open dialog.
   Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
 - **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
-  The theme menu offers one "Scene" selector: Season, Sunflower field (`sunflowers`), Mordor, None. "Season" stores
-  the season's scene for today (spring..winter), so it is not a separate stored value. Default and Neon start with
+  The theme menu offers one "Scene" selector, in this order: Season, Spring, Summer, Fall, Halloween, Winter, Sunflower
+  field (`sunflowers`), Mordor, None (owner 2026-10-13: every scene can be picked on its own). "Season" is the
+  automatic choice and is stored as the sentinel `season`; the shell resolves it by date to today's season scene
+  (Halloween in October). An explicit pick (e.g. Halloween in spring) is stored as that scene and shows only its own
+  option as pressed. Alternative weighed: keeping "Season" as today's concrete scene and also marking it pressed for
+  any season scene (rejected: an explicit pick and the automatic one could not be told apart). Default and Neon start with
   `none`; every scene, the Sunflower field included, shows whenever it is chosen (API.md "Scenes"). Alternatives
   weighed: keeping the old `Settings.scene` and hiding the theme one (rejected: two stored values and a precedence
   rule nobody could see) and moving everything into settings (rejected: presets need to carry a scene).
