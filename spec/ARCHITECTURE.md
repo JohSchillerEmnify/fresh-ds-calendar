@@ -1053,8 +1053,8 @@ A task list may have no date. It is stored in the same place as every other list
   `undated`. **Undating** = `PATCH { date: null }`: the event moves to the anchor date, `undated = "1"` is set and the
   time is dropped.
 - **Completion**: a write that ticks the last open item of an undated list dates it to the app-clock day (all-day) and
-  sets `completedOn` to the same day, so it shows in the calendar where it was finished (assumption A-75). The Archive
-  slice will add a setting to switch this; it is not built yet.
+  sets `completedOn` to the same day, so it shows in the calendar where it was finished (assumption A-75). The setting
+  `undatedDone` (see "Archive") switches this.
 - **Why this way** (owner decision). Alternatives weighed: (a) a separate store (server file or a second calendar)
   for undated lists; (b) a flag with a real but ordinary date. Chosen: one store, so the same sync, backup, etag and
   conflict handling cover undated lists too, and "giving a date" is just moving the event instead of moving data
@@ -1083,6 +1083,32 @@ A task list may have no date. It is stored in the same place as every other list
 - **Filters**: the category chips of the calendar filter the lists (A-77).
 - **Dating**: the task list dialog has a "No date" toggle (`tasklist-no-date`, A-73); the quick actions set today
   or tomorrow (A-74).
+
+### Archive (owner, 2026-10-13, slice 2 of the task management feature)
+
+- **Archived = complete.** A list with at least one item and every item ticked is archived automatically; unticking an
+  item (or adding an open one) makes it open again, and the existing server logic clears `completedOn`. No archive
+  button, no stored "archived" flag. Dated finished lists stay in the calendar on their day: the Archive is only a view.
+- **Tabs**: the Tasks view has two tabs `tasks-tab-open` (the existing view) and `tasks-tab-archive`. The Archive lists
+  finished lists in `tasks-archive-item` cards (the tray's `TaskListView`, so un-ticking works as everywhere), **newest
+  first by `completedOn`**; lists without `completedOn` (finished outside the app, e.g. edited in Google) come at the end,
+  ordered by their event date (newest first), then title (A-103). Pure functions in `features/tasklists/archive.ts`.
+- **Search** (`tasks-archive-search`): case-insensitive substring match on the list title and on every item title.
+- **Use as template** (`tasks-archive-duplicate`): `POST /api/tasklists` with the same title, category and tags, no date,
+  every item open (new ids), no recurrence or estimate. The copy appears in Open; the original stays archived.
+- **Setting** `undatedDone` ("Finished list without a date", Settings → Task lists, person pref): `calendar` (default) =
+  today's behaviour (A-75: the list is dated to the finish day); `archive` = the list stays undated, gets `completedOn`,
+  shows in no calendar view and no tray, only in the Archive. The server reads the pref on every completing write
+  (`CalendarService.modify`), so a changed setting applies to the next finish.
+- **Fetching finished lists across time** (owner: pick an efficient way). Options weighed: (a) a bounded date range only
+  (as `all-open`, +-365 days): cheap and needs no data change, but old lists vanish and undated "archive only" lists sit
+  on 2099-12-31 outside any range; (b) a private marker `done=1` written with every write that leaves the list finished
+  and read with Google's `privateExtendedProperty=done=1` (no time range): finds finished lists of any age and the
+  undated ones with one query, and Google filters server side so the response only holds archived lists. Chosen: **(b)
+  plus the (a) range as lazy backfill**: lists finished before this feature have no marker, so the archive also reads the
+  +-365-day range and keeps the complete lists (deduplicated by id); every later write of such a list adds the marker.
+  Older unmarked lists are not found until they are edited once (acceptable: pre-release, no migration job, A-103).
+  The marker is derived from the items on every write (`encodePrivate`), so it can never disagree with them.
 
 ### Untitled task lists (owner, 2026-10-12)
 
