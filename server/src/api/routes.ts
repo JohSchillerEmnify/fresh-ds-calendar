@@ -14,7 +14,7 @@ import {
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, LOCAL_PERSON, parseBedtimePatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isLanguagePref, LOCAL_PERSON, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -164,6 +164,11 @@ export function apiRoutes(ctx: Ctx): Hono {
       const parsed = parseBedtimePatch(b.bedtime);
       if (typeof parsed === 'string') throw validation(parsed, 'bedtime');
       patch.bedtime = { ...ctx.prefs.labsPrefs(person(c)).bedtime, ...parsed };
+    }
+    if (b.notify !== undefined) {
+      const parsed = parseNotifyPatch(b.notify);
+      if (typeof parsed === 'string') throw validation(parsed, 'notify');
+      patch.notify = { ...ctx.prefs.labsPrefs(person(c)).notify, ...parsed };
     }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);

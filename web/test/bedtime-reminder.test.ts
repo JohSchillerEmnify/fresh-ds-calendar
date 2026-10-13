@@ -122,6 +122,16 @@ describe('startBedtimeReminder', () => {
       stop();
     });
 
+    it('keeps the reminder in the app only when its notification is switched off', async () => {
+      setup('2026-10-14T12:00:00+02:00');
+      const stop = startBedtimeReminder();
+      expect(plugin.schedule).toHaveBeenCalledTimes(1);
+      usePrefsStore().notify = { ...usePrefsStore().notify, bedtime: false };
+      await nextTick();
+      expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_REMINDER_ID });
+      stop();
+    });
+
     it('cancels it when bedtime mode is switched off', async () => {
       setup('2026-10-14T12:00:00+02:00');
       const stop = startBedtimeReminder();

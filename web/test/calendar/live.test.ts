@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import NowMarker from '@/features/calendar/NowMarker.vue';
 import NowCard from '@/features/calendar/NowCard.vue';
-import { NATIVE_WARNING_PREFIX, startTransitionWarnings, stopTransitionWarnings, upcomingWarnings } from '@/features/calendar/transitionWarning';
+import { morningOverview, NATIVE_MORNING_ID, NATIVE_WARNING_PREFIX, startTransitionWarnings, stopTransitionWarnings, upcomingWarnings } from '@/features/calendar/transitionWarning';
 import { enableTimerCounting } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -203,5 +203,34 @@ describe('transition warnings as Android notifications', () => {
     items.applyResponse(D, '2026-10-13', [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's3');
     await nextTick();
     expect(plugin.cancel).toHaveBeenCalledWith({ id: expect.stringContaining('dentist') });
+  });
+
+  it('warns before timed task lists too when chosen, and builds the morning overview', async () => {
+    const { items } = await boot('09:00', false);
+    const list = { kind: 'tasklist', id: 'laundry', calendarId: 'tasks', title: 'Laundry', date: D, time: '18:00', items: [], doneCount: 0, totalCount: 1,
+      estimateMinutes: 60, categoryId: null, tags: [], color: '#0b8043', etag: 'e', updated: '' } as unknown as CalendarItem;
+    items.applyResponse(D, '2026-10-13', [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), list], 's4');
+    const today = items.byDate.get(D) ?? [];
+    expect(upcomingWarnings([today], 540, 10).map((w) => w.title)).toEqual(['Dentist']);
+    expect(upcomingWarnings([today], 540, 10, 8, { events: false, tasklists: true }).map((w) => [w.title, w.start])).toEqual([['Laundry', '18:00']]);
+    expect(morningOverview(today)).toEqual({ title: 'Your day', body: '1 appointment · 1 list · first: Dentist 10:40' });
+    expect(morningOverview([]).body).toBe('no appointments · no lists');
+  });
+
+  it('schedules the morning overview only when chosen, and nothing for switched-off kinds', async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    await boot('07:00', false);
+    useSettingsStore().settings = settingsFixture();
+    const prefs = usePrefsStore();
+    prefs.notify = { bedtime: true, events: false, tasklists: false, morning: true, morningTime: '07:30' };
+    startTransitionWarnings();
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.at, o.title])).toEqual([[NATIVE_MORNING_ID, at('07:30').getTime(), 'Your day']]);
+    prefs.notify = { ...prefs.notify, morning: false };
+    await nextTick();
+    expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_MORNING_ID });
   });
 });

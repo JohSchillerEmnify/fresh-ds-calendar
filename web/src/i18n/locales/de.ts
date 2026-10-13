@@ -59,6 +59,15 @@ export default {
       bedtime: 'Schlafenszeit',
       labs: 'Labor',
       account: 'Konto & Daten',
+      notifications: 'Benachrichtigungen',
+    },
+    notifications: {
+      hint: 'In der Android-App kommen diese Erinnerungen auch, wenn die App geschlossen ist. Im Browser erscheinen sie nur in der App (Benachrichtigungen brauchen dort die HTTPS-Adresse).',
+      bedtime: 'Erinnerung vor der Schlafenszeit',
+      events: { label: 'Vor Terminen', hint: 'So früh wie der Hinweis unter Fokus & Motivation' },
+      tasklists: 'Vor Aufgabenlisten mit Uhrzeit',
+      morning: { label: 'Tagesüberblick am Morgen', hint: 'Dein Tag auf einen Blick, zu einer Uhrzeit deiner Wahl', time: 'Uhrzeit des Überblicks' },
+      overview: { title: 'Dein Tag', appointments: 'keine Termine | 1 Termin | {count} Termine', lists: 'keine Listen | 1 Liste | {count} Listen', first: 'zuerst: {title} {time}' },
     },
     theme: {
       label: 'Design',

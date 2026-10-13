@@ -132,10 +132,11 @@ export function startBedtimeReminder(): () => void {
     if (!plugin) return;
     let sent = '';
     watch(
-      () => [clock.nowTick, prefs.bedtime, windows.value, language.value] as const,
+      () => [clock.nowTick, prefs.bedtime, prefs.notify.bedtime, windows.value, language.value] as const,
       () => {
         const nowAbs = absMinutes(clock.today, clock.minutesNow);
-        const next = upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes);
+        // Settings → Notifications can keep the reminder in the app only
+        const next = prefs.notify.bedtime ? upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes) : null;
         if (!next) {
           if (sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
           sent = 'none';

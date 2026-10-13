@@ -395,6 +395,13 @@ lists dated in `[today − 365, today + 365]` (lists written before the marker e
 (newest `completedOn` first, lists without `completedOn` last by date). Errors: 400, 502, 503. `all-open` never returns
 finished lists; the date-range endpoints are unchanged.
 
+### Prefs: notifications
+
+`GET/PATCH /api/prefs` also carry `notify: { bedtime: boolean; events: boolean; tasklists: boolean; morning: boolean;
+morningTime: 'HH:MM' }` (default `{ bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' }`):
+which reminders become system notifications (ARCHITECTURE "Notifications"). A `PATCH` may send part of it; it is merged.
+A non-boolean switch or a `morningTime` that is not `HH:MM` answers `400` (`field: notify`).
+
 ### Prefs: Tasks view
 
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and

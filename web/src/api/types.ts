@@ -156,6 +156,7 @@ export interface Prefs {
   language: LanguagePref;
   /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
   bedtime: BedtimePrefs;
+  notify: NotifyPrefs;
 }
 
 /** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */
@@ -174,6 +175,16 @@ export interface BedtimePrefs {
   leadMinutes: number;
   /** Minutes before bedtime for the in-app reminder; 0 = no reminder. */
   reminderMinutes: number;
+}
+
+/** Which reminders become system notifications (Android app; Web Push once HTTPS exists). In-app snackbars are separate. */
+export interface NotifyPrefs {
+  bedtime: boolean;
+  events: boolean;
+  tasklists: boolean;
+  /** A morning overview of the day at `morningTime` (`HH:MM`). */
+  morning: boolean;
+  morningTime: string;
 }
 
 export interface Settings {
