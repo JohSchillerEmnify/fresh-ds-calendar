@@ -113,4 +113,15 @@ export default {
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },
   },
+  themePreview: {
+    label: 'Live-Vorschau, fresh',
+    collapse: 'Vorschau einklappen, yo',
+    expand: 'Vorschau ausklappen, yo',
+    month: 'Januar 2030',
+    today: 'Heute, Digga',
+    sample: {
+      sync: 'Lehrerkonferenz', lunch: 'Mittag mit Hagrid', run: 'Vor Voldemort weglaufen', review: 'Rap-Battle', call: 'Eule an McGonagall',
+      groceries: 'Einkauf', milk: 'Kürbissaft', bread: 'Brot', eggs: 'Drachen-Eier',
+    },
+  },
 } satisfies Messages;
