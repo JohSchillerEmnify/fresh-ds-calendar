@@ -554,10 +554,11 @@ spec files are named.
   stored next to the refresh token. Tokens from before this feature have none, so everybody re-consents once. The
   re-consent is the ordinary consent (`prompt=consent` already asks again); no separate incremental-auth endpoint.
 - **A-185 Never in a backup**: `google-token.json` (secret) and `backup-state.json`. A restore never touches them either.
-- **A-186 Shared lists** (owner left it to me): included for **every member**, restored by overwriting. Reasoning: a list
-  must survive no matter whose backup is used; the cost is duplicates in a few bundles, which are small. The hook is
-  `registerSource({ prefix, collect(sub) })`.
-- **A-187 Global stores** (OPEN, for the owner): `settings.json` (categories) and `motivation.json` (streak, plant) are
+- **A-186 Shared lists** (coordinator rules, replacing my first "every member" idea): the owner's backup holds the lists
+  they own, a member's backup only the ids of their lists, a restore recreates what the restoring person owns. Reasoning:
+  one copy of each list, and a restore can never overwrite a list another person owns. Hook: `registerSource({ prefix,
+  collect, restore })`; the adapter is `sharedListsBackup.ts`.
+- **A-187 Global stores** (OPEN, for the owner): `settings.json` (categories), `motivation.json` (streak, plant), `people.json` and `shared/category-shares.json` are
   server-wide, not per person, so a per-person bundle cannot own them and a restore of one person could overwrite what
   another sees. They are **not** backed up in this slice. Options: include them in every bundle and restore them only on
   a server that has none (a "new server" case), or make them per person first (the "next slice" ARCHITECTURE "Sign-in"
@@ -566,7 +567,7 @@ spec files are named.
   version is chosen, so pressing the button again undoes the restore. The person's files under `users/<sub>/` are replaced
   (files not in the backup are deleted), then the page reloads.
 - **A-189 Auto restore**: only at sign-in, only when the server has no data of the person, the permission is granted and a
-  backup exists. When it fails, `restorePending` stops backups until a retry succeeds or finds nothing.
+  backup exists. When Drive cannot be asked, `restorePending` makes the next backup run retry the restore first; it ends when the retry succeeds, finds nothing, or the person has data again (new data then becomes one more version, the old versions stay).
 - **A-190 Upload size**: multipart upload only (limit 5 MB). A bigger bundle fails with an error; resumable upload would be
   the next step and is not needed for text bundles of a few kilobytes.
 - **A-191 Sign-in off**: backups need a Google account, so they are unavailable (`available: false`, no Settings block)

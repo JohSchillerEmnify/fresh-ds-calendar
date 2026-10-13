@@ -8,6 +8,11 @@ import { MotivationService } from './services/motivation.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
 import { SettingsStore } from './services/settingsStore.js';
 import { ThemeStore } from './services/themeStore.js';
+import { BackupService } from './services/backupService.js';
+import { hasDriveScope } from './auth/people.js';
+import type { DriveClient } from './providers/DriveClient.js';
+import { MockDrive } from './providers/mock/MockDrive.js';
+import path from 'node:path';
 import type { CalendarProvider } from './providers/CalendarProvider.js';
 import { MockGoogleProvider } from './providers/mock/MockGoogleProvider.js';
 import { seedDemo } from './seed.js';
@@ -23,6 +28,10 @@ export interface Ctx {
   prefs: PrefsStore;
   themes: ThemeStore;
   canvas: CanvasStore;
+  /** Backups of every person's server data to their hidden Drive app folder (ARCHITECTURE "Backups"). */
+  backup: BackupService;
+  /** Drive double (TEST_MODE / mock provider); null with the real Google provider. */
+  mockDrive: MockDrive | null;
   motivation: MotivationService;
   calendar: CalendarService;
   auth: AuthState;
@@ -41,7 +50,7 @@ export interface Ctx {
   close(): void;
 }
 
-export function createContext(config: AppConfig, provider?: CalendarProvider, clock = new Clock(), personProvider?: (sub: string) => CalendarProvider): Ctx {
+export function createContext(config: AppConfig, provider?: CalendarProvider, clock = new Clock(), personProvider?: (sub: string) => CalendarProvider, driveFor?: (sub: string) => DriveClient): Ctx {
   const mock = provider ? (provider instanceof MockGoogleProvider ? provider : null)
     : config.provider === 'mock' ? new MockGoogleProvider({ dataDir: config.dataDir, tz: config.tz, clock }) : null;
   const prov: CalendarProvider = provider ?? mock ?? (() => { throw new Error('Google provider must be passed in (see index.ts)'); })();
@@ -50,13 +59,20 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const themes = new ThemeStore(config.dataDir);
   const canvas = new CanvasStore(config.dataDir);
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
+  const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
+  const auth = new AuthState(config, () => clock.real());
+  const backup = new BackupService({
+    dataDir: config.dataDir, clock, appVersion: VERSION, isOn: () => auth.on, hasPermission: (sub) => hasDriveScope(config.dataDir, sub),
+    driveFor: (sub) => (driveFor ? driveFor(sub) : mockDrive?.forPerson(sub) ?? null),
+    log: (m) => { if (config.logLevel !== 'error') console.log(m); },
+  });
   const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON);
   if (mock) calendar.rawInsert = async (cal, ev) => mock.remote.insert(cal, ev);
   const mocks = new Map<string, MockGoogleProvider>();
   const people = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, prefs, themes, canvas, motivation, calendar, overrides: {}, health: null, personProvider,
-    auth: new AuthState(config, () => clock.real()),
+    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, mockDrive, motivation, calendar, overrides: {}, health: null, personProvider,
+    auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
@@ -81,6 +97,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
       await seedDemo(calendar, motivation, clock.nowMs(), config.tz);
     },
     close() {
+      backup.close();
       mock?.close();
     },
   };

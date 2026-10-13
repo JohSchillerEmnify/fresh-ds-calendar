@@ -14,7 +14,9 @@ import TextField from '@/components/m3/TextField.vue';
 import CategoryDialog from '@/components/settings/CategoryDialog.vue';
 import { StreakFlame } from '@/features/motivation';
 import { useMotivationStore } from '@/features/motivation/store';
+import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useBackupStore } from '@/stores/backup';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
@@ -152,6 +154,26 @@ onMounted(() => {
   api.motivation().then((m: Motivation) => { best.value = m.streak.best; }, () => { best.value = null; });
 });
 onBeforeUnmount(() => motivation.stop());
+// --- backup to Google Drive (ARCHITECTURE "Backups") ---------------------------------------------
+const backup = useBackupStore();
+const confirmRestore = ref(false);
+void backup.load();
+const backupText = computed(() => {
+  const s = backup.status;
+  if (!s) return '';
+  if (s.state === 'failed') return t('backup.status.failed', { reason: s.error ?? '' });
+  if (s.state === 'ok' && s.lastBackupAt) return t('backup.status.ok', { time: backup.formatTime(s.lastBackupAt, clock.timeZone) });
+  return t('backup.status.never');
+});
+async function runBackup() {
+  const r = await backup.backupNow();
+  ui.notify(r.ok ? t('backup.done') : t('backup.failed', { reason: r.message }));
+}
+async function runRestore() {
+  confirmRestore.value = false;
+  const r = await backup.restore();
+  if (!r.ok) ui.notify(r.message);
+}
 const isMock = computed(() => clock.config.provider === 'mock');
 const resetting = ref(false);
 async function resetDemo() {
@@ -271,6 +293,19 @@ async function resetDemo() {
         <section id="s-account" class="card" data-testid="settings-section" data-section="account" aria-labelledby="h-account">
           <h2 id="h-account">{{ title('account') }}</h2>
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
+          <template v-if="backup.status?.available">
+            <div v-if="backup.status.permission === 'missing'" class="row">
+              <div class="grow" data-testid="settings-backup-status" data-state="off"><span class="lab">{{ t('backup.allow.label') }}</span><span class="sub">{{ t('backup.allow.hint') }}</span></div>
+              <Button variant="outlined" data-testid="settings-backup-allow" @click="backup.allow()">{{ t('backup.allow.button') }}</Button>
+            </div>
+            <template v-else>
+              <div class="row"><div class="grow" data-testid="settings-backup-status" :data-state="backup.status.state" :data-last-backup="backup.status.lastBackupAt ?? ''"><span class="lab">{{ t('backup.label') }}</span><span class="sub">{{ backupText }}</span></div></div>
+              <div class="row">
+                <Button variant="outlined" :disabled="backup.busy !== null" data-testid="settings-backup-now" @click="runBackup">{{ t('backup.now') }}</Button>
+                <Button variant="outlined" :disabled="backup.busy !== null" data-testid="settings-backup-restore" @click="confirmRestore = true">{{ t('backup.restore') }}</Button>
+              </div>
+            </template>
+          </template>
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">{{ t('settings.account.resetDemo.label') }}</span><span class="sub">{{ t('settings.account.resetDemo.hint') }}</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
@@ -278,6 +313,7 @@ async function resetDemo() {
         </section>
       </div>
     </div>
+    <ConfirmDialog :open="confirmRestore" :title="t('backup.restoreDialog.title')" :message="t('backup.restoreDialog.message')" :ok-label="t('backup.restoreDialog.ok')" @ok="runRestore" @cancel="confirmRestore = false" />
     <CategoryDialog v-if="adding" @close="adding = false" />
     <CategoryDialog v-if="editing" :category="editing" @close="editing = null" />
   </section>

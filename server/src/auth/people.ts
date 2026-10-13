@@ -30,8 +30,18 @@ export function readUserToken(dataDir: string, sub: string): string | null {
   return readJson<{ refresh_token?: string }>(userTokenFile(dataDir, sub))?.refresh_token ?? null;
 }
 
-export function writeUserToken(dataDir: string, sub: string, refreshToken: string): void {
-  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken }, 0o600);
+/** The Google scope that lets the app use its own hidden Drive folder (backups, ARCHITECTURE "Backups"). */
+export const DRIVE_APPDATA_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+
+/** Stores the refresh token (0600) and, when known, the scope string Google granted with it. */
+export function writeUserToken(dataDir: string, sub: string, refreshToken: string, scope?: string | null): void {
+  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken, ...(scope ? { scope } : {}) }, 0o600);
+}
+
+/** Whether the person's token was granted the Drive app-folder scope; tokens stored before backups existed have none. */
+export function hasDriveScope(dataDir: string, sub: string): boolean {
+  const scope = readJson<{ scope?: string }>(userTokenFile(dataDir, sub))?.scope;
+  return typeof scope === 'string' && scope.split(/\s+/).includes(DRIVE_APPDATA_SCOPE);
 }
 
 /**

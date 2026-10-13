@@ -1,10 +1,10 @@
 import { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import type { OAuthBackend, OAuthResult } from '../../auth/oauth.js';
-import { readUserToken, writeUserToken } from '../../auth/people.js';
+import { DRIVE_APPDATA_SCOPE, readUserToken, writeUserToken } from '../../auth/people.js';
 
-/** One OAuth round trip signs in (`openid email`) and connects the calendar. */
-export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar'];
+/** One OAuth round trip signs in (`openid email`), connects the calendar and the hidden Drive app folder (backups). */
+export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar', DRIVE_APPDATA_SCOPE];
 type Cfg = Pick<AppConfig, 'dataDir' | 'google'>;
 
 const newClient = (config: Cfg) =>
@@ -26,8 +26,8 @@ export function getUserClient(config: Cfg, sub: string): OAuth2Client {
 }
 
 /** Stores a person's refresh token (0600) and drops the cached client so the next call uses it. */
-export function storeUserToken(config: Cfg, sub: string, refreshToken: string): void {
-  writeUserToken(config.dataDir, sub, refreshToken);
+export function storeUserToken(config: Cfg, sub: string, refreshToken: string, scope?: string | null): void {
+  writeUserToken(config.dataDir, sub, refreshToken, scope);
   clients.delete(`${config.dataDir}\u0000${sub}`);
 }
 
@@ -47,6 +47,6 @@ export class GoogleOAuth implements OAuthBackend {
     if (!tokens.id_token) throw new Error('Google did not return an id_token');
     const payload = (await client.verifyIdToken({ idToken: tokens.id_token, audience: this.config.google.clientId ?? undefined })).getPayload();
     if (!payload?.sub || !payload.email) throw new Error('Google id_token has no email');
-    return { sub: payload.sub, email: payload.email, emailVerified: payload.email_verified === true, name: payload.name ?? null, refreshToken: tokens.refresh_token ?? null };
+    return { sub: payload.sub, email: payload.email, emailVerified: payload.email_verified === true, name: payload.name ?? null, refreshToken: tokens.refresh_token ?? null, scope: tokens.scope ?? null };
   }
 }

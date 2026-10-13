@@ -4,6 +4,7 @@
  */
 import type { Messages } from '../schema';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
+import backupColdmirror from './de-x-coldmirror/backup.ts';
 import canvasColdmirror from './de-x-coldmirror/canvas.ts';
 import bedtimeColdmirror from './de-x-coldmirror/bedtime.ts';
 
@@ -12,6 +13,7 @@ import themeColdmirror from './de-x-coldmirror/theme.ts';
 
 export default {
   calendar: calendarColdmirror,
+  backup: backupColdmirror,
   canvas: canvasColdmirror,
   bedtime: bedtimeColdmirror,
   tasks: tasksColdmirror,

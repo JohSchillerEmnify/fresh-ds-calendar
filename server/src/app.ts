@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { sessionMiddleware } from './auth/middleware.js';
 import { ApiException } from './lib/errors.js';
@@ -10,6 +10,8 @@ import { authRoutes } from './api/authRoutes.js';
 import { createContext, type Ctx } from './context.js';
 import type { AppConfig } from './config.js';
 import type { Clock } from './lib/clock.js';
+import type { DriveClient } from './providers/DriveClient.js';
+import { backupRoutes } from './api/backupRoutes.js';
 import { staticRoutes } from './routes/static.js';
 
 export type App = Hono & { ctx: Ctx; close(): void };
@@ -19,6 +21,8 @@ export interface BuildOptions {
   clock?: Clock;
   /** PROVIDER=google: builds one person's provider. */
   personProvider?: (sub: string) => CalendarProvider;
+  /** PROVIDER=google: one person's hidden Drive app folder. */
+  driveFor?: (sub: string) => DriveClient;
 }
 
 /**
@@ -26,7 +30,7 @@ export interface BuildOptions {
  * lives only in index.ts. Seeding is the caller's job (see `startup()` in index.ts / `ctx.seed()`).
  */
 export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
-  const ctx = createContext(config, opts.provider, opts.clock, opts.personProvider);
+  const ctx = createContext(config, opts.provider, opts.clock, opts.personProvider, opts.driveFor);
   const app = new Hono() as App;
   app.ctx = ctx;
   app.close = () => ctx.close();
@@ -37,7 +41,19 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
 
   app.use('/api/*', sessionMiddleware(ctx));
 
+  // A successful write by a signed-in person may have changed their server data: schedule their backup. One place for
+  // every store, so a new per-person store needs no call (it is "a change" like any other write).
+  app.use('/api/*', async (c: Context, next) => {
+    await next();
+    const p = c.get('person') as { sub: string } | undefined;
+    const path = c.req.path;
+    if (!p || c.req.method === 'GET' || c.req.method === 'HEAD' || c.req.method === 'OPTIONS' || c.res.status >= 400) return;
+    if (path.startsWith('/api/backup') || path.startsWith('/api/auth/') || path.startsWith('/api/__test/')) return;
+    ctx.backup.touch(p.sub);
+  });
+
   const api = new Hono();
+  api.route('/', backupRoutes(ctx));
   api.route('/', apiRoutes(ctx));
   if (config.testMode && ctx.mock) api.route('/', testRoutes(ctx));
   api.route('/', authRoutes(ctx));

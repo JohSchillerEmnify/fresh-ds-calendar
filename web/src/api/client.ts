@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -142,6 +142,17 @@ export class ApiClient {
   }
   signOut(o?: RequestOptions) {
     return this.request<void>('POST', '/api/auth/signout', undefined, o);
+  }
+
+  // --- backups to Google Drive ---------------------------------------------------
+  backup(o?: RequestOptions) {
+    return this.request<BackupStatus>('GET', '/api/backup', undefined, o);
+  }
+  backupNow(o?: RequestOptions) {
+    return this.request<BackupStatus>('POST', '/api/backup', undefined, o);
+  }
+  backupRestore(o?: RequestOptions) {
+    return this.request<BackupStatus>('POST', '/api/backup/restore', undefined, o);
   }
 
   // --- health & config ----------------------------------------------------

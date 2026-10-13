@@ -1447,15 +1447,19 @@ restored from there. Owner decisions are final; the numbers and names are mine (
   Pictures are inline SVG text, so the document stays small (limit 5 MB, see below). Global stores (`settings.json`
   categories, `motivation.json` streak and plant) belong to no person in this version, so they are **not** in the
   backup (A-187).
-- **Registry hook for other stores.** `ctx.backup.registerSource({ prefix, collect(sub) })` adds files to every person's
-  bundle. `prefix` is the top-level folder under `DATA_DIR` the source owns (e.g. `shared`); `collect` returns
-  `{ 'shared/lists/<id>.json': content }` for the person. Restore writes back only paths under `users/<sub>/` or under a
-  registered prefix, so the bundle can never write elsewhere. **The shared-lists branch adds one line where it builds
-  its store** (in `createContext`): `backup.registerSource({ prefix: 'shared', collect: (sub) => sharedLists.filesOf(sub) })`.
-  Decision (A-186): a shared list is included in the bundle of **every member** (not only the owner), so it survives
-  whichever member's backup is restored, at the price of the same file in several bundles. A restore overwrites those
-  shared files with the backed-up state. Changes made by a member trigger only that member's backup; the daily backup
-  catches the others.
+- **Registry hook for other stores.** `ctx.backup.registerSource({ prefix, collect(sub), restore?(sub, files) })` adds
+  files to every person's bundle. `prefix` is the top-level folder under `DATA_DIR` the source owns (e.g. `shared`);
+  `collect` returns `{ 'shared/lists/<id>.json': content }` for the person. Restore writes back only paths under
+  `users/<sub>/` or under a registered prefix, so a bundle can never write elsewhere; a source with `restore` receives
+  its files instead of having them written verbatim.
+  **Shared lists** (coordinator, 2026-10-13): `server/src/services/sharedListsBackup.ts` is the ready adapter. The
+  shared-lists merge adds exactly one line where it builds its context: `registerSharedListsBackup(ctx.backup, config.dataDir);`.
+  Rules: the **owner's** bundle holds the lists they own (`shared/lists/<id>.json`); a **member's** bundle records only
+  the ids of the lists they belong to (`shared/memberships/<sub>.json`, `{ listIds }`); a **restore** recreates the lists
+  the restoring person owns (by the `owner` field) and does not act on the member record or touch others' lists. If the
+  store caches lists in memory it must re-read after a restore (the page reloads, the server does not restart).
+  `people.json` and `shared/category-shares.json` are server-wide, not per person, and are not in the backup (A-187).
+  Changes by a member trigger only that member's backup; the daily backup catches the owner's.
 - **Versions (owner).** Each backup is a new Drive file `backup-<sub>-<UTC timestamp>.json`; the last **7** versions
   (`BACKUP_KEEP`) are kept, older ones are deleted after a successful upload (a failed delete is logged, never fatal).
   The server logs the number at start (`backup: keeping the last 7 versions`). A person without data is not backed up
@@ -1475,8 +1479,8 @@ restored from there. Owner decisions are final; the numbers and names are mine (
   - *At sign-in:* after the callback stored the token, when the person has the permission, the server has **no data**
     for them (no file under `users/<sub>/` besides the two excluded ones) and a backup exists, the newest readable
     version is restored before the session is created, then sign-in goes on. A failure only logs (sign-in never
-    fails because of a backup) and sets `restorePending`, which stops backups until a later try (the next backup run or
-    daily check retries the restore first), so a failed restore cannot be overwritten by an almost empty backup.
+    fails because of a backup) and sets `restorePending`; the next backup run or daily check retries the restore first.
+    If the person has data again by then, the new data simply becomes one more version (the old versions stay).
   - *Manual:* "Restore from backup" asks for confirmation (it overwrites the person's server data), takes a **safety
     backup** of the current data first (if that fails, nothing is restored), picks the newest readable version as it was
     **before** the safety backup, deletes the person's files under `users/<sub>/` (except the two excluded ones) and writes

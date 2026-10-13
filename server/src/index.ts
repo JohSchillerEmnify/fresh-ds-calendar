@@ -11,12 +11,19 @@ if (config.provider === 'google') {
   // Lazy: the Google client libraries are only loaded when PROVIDER=google.
   const { createGoogleProvider } = await import('./providers/google/GoogleProvider.js');
   // The shared provider has no person behind it; every signed-in person gets their own (ctx.calendarFor).
-  opts = { provider: createGoogleProvider(config, 'anonymous'), personProvider: (sub: string) => createGoogleProvider(config, sub) };
+  const { GoogleDrive } = await import('./providers/google/GoogleDrive.js');
+  const { getUserClient } = await import('./providers/google/auth.js');
+  opts = {
+    provider: createGoogleProvider(config, 'anonymous'), personProvider: (sub: string) => createGoogleProvider(config, sub),
+    driveFor: (sub: string) => new GoogleDrive(getUserClient(config, sub)),
+  };
 }
 const app = buildApp(config, opts);
 if (config.provider === 'mock' && config.seed && !config.testMode && app.ctx.mock && !app.ctx.mock.loadedFromDisk) {
   await app.ctx.seed();
 }
+
+app.ctx.backup.start();
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   console.log(`calendar server listening on http://${info.address}:${info.port} (provider=${config.provider}${config.testMode ? ', TEST_MODE' : ''})`);

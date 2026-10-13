@@ -165,6 +165,9 @@ export type ErrorCode =
   | 'PRECONDITION_FAILED'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'
+  | 'DRIVE_PERMISSION_REQUIRED'
+  | 'NO_BACKUP'
+  | 'BACKUP_FAILED'
   | 'INTERNAL';
 
 export interface ApiError {

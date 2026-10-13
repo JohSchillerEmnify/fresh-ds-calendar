@@ -46,10 +46,12 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const refresh = who.refreshToken ?? claimed;
     if (!refresh) throw validation('Google did not return a refresh token (revoke access and retry)');
     if (ctx.config.provider === 'google') {
-      (await import('../providers/google/auth.js')).storeUserToken(ctx.config, who.sub, refresh);
+      (await import('../providers/google/auth.js')).storeUserToken(ctx.config, who.sub, refresh, who.scope);
     } else {
-      writeUserToken(ctx.config.dataDir, who.sub, refresh);
+      writeUserToken(ctx.config.dataDir, who.sub, refresh, who.scope);
     }
+    // a new or wiped server gets the person's data back from their Drive backup (never fails the sign-in)
+    await ctx.backup.restoreIfEmpty(who.sub);
     setSessionCookie(ctx, c, ctx.auth.sessions.create({ sub: who.sub, email: who.email.toLowerCase(), ...(who.name ? { name: who.name } : {}) }));
     return c.redirect('/', 302);
   });

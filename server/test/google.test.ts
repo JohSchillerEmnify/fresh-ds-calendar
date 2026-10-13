@@ -8,6 +8,7 @@ import { loadConfig } from '../src/config.js';
 import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError } from '../src/providers/CalendarProvider.js';
 import { createGoogleProvider, GoogleProvider, makeApi, mapGoogleError } from '../src/providers/google/GoogleProvider.js';
 import { GoogleOAuth } from '../src/providers/google/auth.js';
+import { hasDriveScope } from '../src/auth/people.js';
 
 interface Call { url: URL; method: string; headers: Headers; body: any }
 function setup(handler: (c: Call) => { status?: number; json?: unknown } | Promise<{ status?: number; json?: unknown }>) {
@@ -212,14 +213,29 @@ describe('Google OAuth routes', () => {
     const state = new URL(res.headers.get('location')!).searchParams.get('state')!;
     return { state, cookie: `cal_oauth_state=${state}` };
   };
-  const mockGoogle = (email: string, refreshToken: string | null = 'rt-1') =>
-    vi.spyOn(GoogleOAuth.prototype, 'exchange').mockResolvedValue({ sub: 'g-123', email, emailVerified: true, name: 'Jo', refreshToken });
+  const mockGoogle = (email: string, refreshToken: string | null = 'rt-1', scope: string | null = null) =>
+    vi.spyOn(GoogleOAuth.prototype, 'exchange').mockResolvedValue({ sub: 'g-123', email, emailVerified: true, name: 'Jo', refreshToken, scope });
 
   it('start asks for sign-in scopes and binds the state to a cookie', async () => {
     const { app } = mkApp(g);
     const res = await app.request('/api/auth/google/start');
-    expect(new URL(res.headers.get('location')!).searchParams.get('scope')).toBe('openid email https://www.googleapis.com/auth/calendar');
+    expect(new URL(res.headers.get('location')!).searchParams.get('scope')).toBe('openid email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.appdata');
     expect(res.headers.get('set-cookie')).toMatch(/cal_oauth_state=[0-9a-f]{32}.*HttpOnly.*SameSite=Lax/i);
+  });
+
+  it('callback keeps the granted scope, so a missing Drive permission can be told from a granted one', async () => {
+    const drive = 'https://www.googleapis.com/auth/drive.appdata';
+    const signIn = async (scope: string | null) => {
+      const { app, dir } = mkApp({ ...g, ALLOWED_EMAILS: 'jo@example.com' });
+      mockGoogle('jo@example.com', 'rt-1', scope);
+      const { state, cookie } = await startFlow(app);
+      await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } });
+      return { hasScope: hasDriveScope(dir, 'g-123') };
+    };
+    expect((await signIn(`openid email https://www.googleapis.com/auth/calendar ${drive}`)).hasScope).toBe(true);
+    // the person unticked the Drive box on the consent screen, or the token is from before backups existed
+    expect((await signIn('openid email https://www.googleapis.com/auth/calendar')).hasScope).toBe(false);
+    expect((await signIn(null)).hasScope).toBe(false);
   });
 
   it('callback rejects an invalid state or a state without the matching cookie', async () => {

@@ -16,10 +16,23 @@ export type ErrorCode =
   | 'PRECONDITION_FAILED'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'
+  | 'DRIVE_PERMISSION_REQUIRED'
+  | 'NO_BACKUP'
+  | 'BACKUP_FAILED'
   | 'INTERNAL';
 
 export interface ApiErrorBody {
   error: { code: ErrorCode; message: string; key?: string; details?: { field?: string; issue?: string }[] };
+}
+
+/** `GET /api/backup` (API.md "Backups"). */
+export interface BackupStatus {
+  available: boolean;
+  permission: 'granted' | 'missing';
+  state: 'off' | 'never' | 'ok' | 'failed';
+  lastBackupAt: DateTime | null;
+  error: string | null;
+  keep: number;
 }
 
 /** `/api/auth/me`: both null while sign-in is off. */
