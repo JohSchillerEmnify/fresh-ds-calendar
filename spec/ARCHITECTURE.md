@@ -923,11 +923,18 @@ the same corner scale so shapes look consistent.
 - **Stored** per person on the server: `DATA_DIR/users/<sub>/themes/`, `GET/POST/DELETE /api/themes` (max 20 themes;
   the server validates and sanitises again). Imported themes appear in the gallery with export (download the
   document) and delete (undo snackbar).
-- **Behind a Labs switch for now** (owner): the whole "own theme" part (Create with AI, import, own picture, and the
-  imported-theme cards in the gallery) shows only with the person's pref `labsOwnThemes` (default off, settings
-  switch `settings-labs-own-themes`, "Own themes (AI and import)", subtitle says it is experimental). Switch off:
-  `theme-own` block and imported cards are hidden, saved themes stay stored, and a chosen imported theme **keeps
-  applying** (only the UI is hidden, A-72).
+- **Behind a Labs switch for now** (owner): only the AI part, "Create with AI" and the import (paste, file, own
+  picture; testid `theme-own`), shows with the person's pref `labsOwnThemes` (default off, settings switch
+  `settings-labs-own-themes`, "Own themes (AI and import)", subtitle says it is experimental). Saved own themes (imported
+  or saved from the menu) always show in the gallery with export and delete, and a chosen one always applies, whatever
+  the switch says; the switch hides no data.
+- **Save as my theme** (not under Labs): `theme-save-own`, the last control of Fine-tuning, turns the look in use
+  into an own theme: the chosen preset or theme plus every fine-tuning choice (mode, seed colour, glow, entries,
+  corners, font, role colours) and the scene in use (built-in, drawn blocks, or the own picture, which is saved as the
+  picture) become a `calendar-theme/2` document, saved with `POST /api/themes`. A small dialog (`theme-save-dialog`)
+  asks for a name (`theme-save-name`, default "My theme", at most 40 characters, not empty; a name already in use gets
+  a number: "My theme 2"); `theme-save-confirm` saves, and the new theme becomes the chosen one (its fine-tuning is
+  now part of it, so the overrides are cleared).
 
 ## 8. Configuration (env)
 

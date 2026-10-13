@@ -1038,8 +1038,8 @@ Google shows the calendar {string}
 ```
 own themes are turned on in Labs
 I turn on own themes in the settings
-the theme menu has no block for own themes
-the theme menu has a block for own themes
+the theme menu has no block for creating own themes
+the theme menu has a block for creating own themes
 I choose "Create with AI"
 I see a prompt that describes the theme file {string}
 I can copy the prompt
@@ -1061,6 +1061,8 @@ the top bar shows the picture of the theme
 {string} imported the theme file {string}
 {string} uses the imported theme {string}
 I delete the theme {string}
+I save my look as my own theme named {string}
+my own theme {string} has {string} set to {string}
 ```
 
 - Fixture files live in `e2e/fixtures/themes/`: `ocean.json` (valid `calendar-theme/2`, drawn scene: gradient with the
@@ -1069,7 +1071,8 @@ I delete the theme {string}
   with a `<script>`, an `onload` attribute and an external `href`, which sets `window.__pwned = true` if it ever runs).
 - "own themes are turned on in Labs" sets `labsOwnThemes` through `PATCH /api/prefs` for the person who is using the
   app at that moment (before sign-in: the signed-out person); "I turn on own themes in the settings" opens the
-  settings and flips `settings-labs-own-themes` (waits for the save), as the Labs steps do. The block is `theme-own`.
+  settings and flips `settings-labs-own-themes` (waits for the save), as the Labs steps do. The block with the AI prompt and
+  the import is `theme-own`.
 - "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
   `theme-ai-copy` and checks the clipboard equals the prompt text. "copy the repair prompt" clicks `theme-repair-copy`
   and checks the clipboard equals `theme-repair-prompt`.
@@ -1084,3 +1087,6 @@ I delete the theme {string}
 - "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
   theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
   snackbar like other deletes; the step waits until it is gone).
+- "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
+  `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
+  "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
