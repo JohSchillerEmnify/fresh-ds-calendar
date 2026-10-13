@@ -184,7 +184,7 @@ describe('expanded list', () => {
     const s = server(list);
     const { w, m } = await open(list, { 'PATCH /api/tasklists/G/items/G-i1': s.handler });
     expect(done(w)).toEqual(['true', 'false', 'false']);
-    expect(w.get(tid('tasklist-next-task')).text()).toContain('Eggs');
+    expect(w.find(tid('tasklist-next-task')).exists()).toBe(false); // removed: it repeated the first open item
     await checkbox(w, 1).setValue(true);
     expect(done(w)).toEqual(['true', 'true', 'false']); // before the response
     await flushPromises();
