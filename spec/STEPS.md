@@ -1373,3 +1373,30 @@ the Canvas zoom is above {float}
 - "I zoom the Canvas in with Ctrl+wheel": dispatches a `wheel` event with `ctrlKey` and `deltaY` -300 over the middle of
   `canvas-viewport` (as the time grid's zoom step does) and waits until `data-zoom` grew and `localStorage` `cal.canvasView`
   holds the new zoom (the view is remembered a moment after the last change). "the Canvas zoom is above Z": `data-zoom` greater than Z (waits).
+
+## Tasks filter (`@tasks-filter`)
+
+```
+the calendar contains a task list {string} in the category {string} finished on {date}
+I filter the Tasks view by the category {string}
+I choose {string} as the Tasks view When filter
+I clear the Tasks view filters
+the Tasks view category filter {string} is on
+the Tasks view When filter is {string}
+the note {string} is dimmed
+the note {string} is not dimmed
+```
+
+- Also used: "the calendar contains a task list ... in the category ... on ...", "... with items:", "I open the Tasks view",
+  "I open the Canvas", "the Tasks view lists ...", "the Archive lists ...", "I switch to another device".
+- "... in the category C finished on D": like "finished on D" (Tasks archive: one item "Done" ticked while the test clock
+  stands on D) with `categoryId` of the category named C set on creation.
+- "I filter the Tasks view by the category C": opens the Tasks view when it is not shown, clicks the
+  `tasks-filter-category` chip whose text is C (`No category` for the "none" chip) and waits for the `PATCH /api/prefs`
+  response (status 200).
+- "I choose W as the Tasks view When filter": clicks `tasks-filter-when`, then the `tasks-filter-when-option` whose text is
+  W (`All`, `No date`, `Dated`, `Overdue`, `Today`, `Tomorrow`, `This week`), and waits for the `PATCH /api/prefs`
+  response. "I clear the Tasks view filters": clicks `tasks-filter-clear` and waits for the same.
+- "the category filter C is on": that `tasks-filter-category` chip has `aria-pressed="true"`. "the When filter is W":
+  `tasks-filter-when` has `data-value` equal to W's value (`all`, `nodate`, `dated`, `overdue`, `today`, `tomorrow`, `week`).
+- "the note N is dimmed / not dimmed": `canvas-note` `data-dimmed` is `"true"` / `"false"`.

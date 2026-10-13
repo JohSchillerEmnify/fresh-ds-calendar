@@ -633,9 +633,10 @@ Rules for implementers:
 | `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
 | `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
 | `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
+| `tasks-filter-bar` | the Tasks view's one filter row (all three tabs): `tasks-filter-category` (chip, `data-id`, `aria-pressed`), `tasks-filter-when` (chip, `data-value`) with the menu options `tasks-filter-when-option` (`data-value`), `tasks-filter-clear` (only while a filter is on) |
 | `tasks-tab-canvas` | the Canvas tab (`aria-pressed`); the tab's content is `tasks-canvas` |
 | `tasks-canvas`, `canvas-viewport` | Canvas root and its viewport; `canvas-viewport` has `data-zoom`, `data-pan-x`, `data-pan-y` |
-| `canvas-note` | one sticky note (picked up by a long press anywhere on it): `data-tasklist-id`, `data-title`, `data-date` (`""` when undated), `data-x`, `data-y` (top-left corner in canvas units, rounded), `data-placed` (`"true"` once it has a place), `data-area` (name of the area it lies in, `""` = none); contains a `tasklist-view`, `canvas-note-grip` (the top strip, where a mouse can grab it, with `canvas-note-date` when dated) |
+| `canvas-note` | one sticky note (picked up by a long press anywhere on it): `data-tasklist-id`, `data-title`, `data-date` (`""` when undated), `data-x`, `data-y` (top-left corner in canvas units, rounded), `data-placed` (`"true"` once it has a place), `data-area` (name of the area it lies in, `""` = none), `data-dimmed` (`"true"` when the Tasks filter does not match); contains a `tasklist-view`, `canvas-note-grip` (the top strip, where a mouse can grab it, with `canvas-note-date` when dated) |
 | `canvas-unsorted` | the "Unsorted" label above the stack of notes without a place |
 | `canvas-area` | one area: `data-area-id`, `data-name`, `data-color`, `data-x`, `data-y`, `data-w`, `data-h`; `data-selected` while its handles show; contains `canvas-area-header` (tap opens the editor) and, while selected, four `canvas-area-handle` (`data-corner`) |
 | `canvas-area-add` | creates an area in the middle of the view and opens its editor |
@@ -1237,6 +1238,34 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
   characters). The new components are added to the raw-text test.
 - **Not in this slice**: the Google Drive backup of the document (a later slice), area membership as data, snapping and
   alignment, multi-select, per-note sizes, a minimap.
+
+### Tasks filter (owner, 2026-10-13)
+
+One filter for the whole Tasks view, shown in `tasks-filter-bar` under the tabs of **Open, Canvas and Archive** alike. It
+replaces the calendar's URL-based chips in this view (A-77): the top bar's filter button and the global `filter-bar` are
+not offered on `/tasks` (the calendar views keep them).
+
+- **Fields.** Categories: any number of chips (`tasks-filter-category`, `data-id` = the category id or `none`), combined
+  with **or**; "No category" is the `none` chip. **When**: exactly one of `all` (default), `nodate`, `dated`, `overdue`,
+  `today`, `tomorrow`, `week`; **and** with the categories. Definitions on the app clock's today: `nodate` = no date;
+  `dated` = any date; `overdue` = date before today; `today`; `tomorrow` = today + 1; `week` = from today through the
+  coming Sunday (the same Sunday as the time groups, `weekEnd`, but including today). No category chip on and When `all`
+  = no filter.
+- **Where it applies.** Open: non-matching lists are hidden. Archive: hidden too, and **and** with the search. Canvas:
+  non-matching notes are **dimmed, not hidden** (opacity 0.25, no pointer events: not tickable, not draggable, `data-dimmed`),
+  so the hand-made layout does not vanish; areas are never dimmed. This replaces A-122 (the canvas used to ignore the chips).
+- **Pure function.** `matchesTasksFilter(list, filter, today)` and `filterActive(filter)` in
+  `features/tasklists/tasksFilter.ts`, unit-tested with fixed dates.
+- **Stored per person** (owner): the pref `tasksFilter: { categories: string[], when: TasksWhen }` in `prefs.json`, in
+  `GET/PATCH /api/prefs` (API.md "Prefs: Tasks view"), whitelisted: `when` from the list above, `categories` at most 50
+  unique strings of 1-64 characters; anything else is `400`. Why a pref and not the URL (the old chips): the choice follows
+  the person to other devices, like grouping and sorting. An id of a deleted category matches nothing and can be removed
+  with "Clear filters".
+- **UI.** One compact row: the **When chip** (`tasks-filter-when`, `data-value`; it shows "When" or the chosen value, selected
+  while not `all`) opens a small menu (`tasks-filter-when-option`, `data-value`), then, while any filter is on, **Clear
+  filters** (`tasks-filter-clear`), then the category chips in a horizontally scrolling strip. The When chip and Clear sit
+  outside the scrolling strip so the menu is not clipped by its overflow. Why a menu for When and not seven chips: seven
+  chips plus the categories would not fit one phone row, and only one value can be on at a time anyway. Texts: `tasks.filter.*`.
 
 ### Untitled task lists (owner, 2026-10-12)
 

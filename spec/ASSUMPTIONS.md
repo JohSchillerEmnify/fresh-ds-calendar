@@ -447,3 +447,16 @@ spec files are named.
   hover (hover does not exist on a phone, so one rule for both): a click on an area's header, or any drag of it, shows
   the handles. A mouse drag moves an area by its header only, because the body must stay available for panning with the
   mouse (areas can be large); touch has no such conflict, as a long press tells a move from a pan.
+- **A-136 Tasks filter replaces the calendar chips in the Tasks view** (owner: one filter bar for all tabs, stored per person):
+  the top bar's filter button and the global filter row are not shown on `/tasks`; supersedes A-77 and A-122.
+- **A-137 "This week"** (owner: "today through Sunday, matching the existing time groups"): date from today through the coming
+  Sunday inclusive (on a Sunday: only today). Undated lists never match Overdue, Today, Tomorrow or This week.
+- **A-138 Overdue in the Archive** (my reading): the rule is on the date only, so a finished list dated before today matches
+  "Overdue" in the Archive; the filter does not look at whether the list is finished.
+- **A-139 Filter UI** (owner: compact on the phone; my choice): the When chip with its menu and Clear filters sit left of a
+  horizontally scrolling strip of category chips, all in one row. A chip for a category that no longer exists is not shown;
+  such a stale id matches nothing and is dropped by "Clear filters".
+- **A-140 Dimmed notes** (owner: "e.g. opacity 0.25, not interactive"): opacity 0.25, `pointer-events: none` on the note, so a
+  dimmed note cannot be ticked, opened or moved (a long press on it pans nothing either: it acts as background).
+- **A-141 Saving** (my reading): each choice is one `PATCH /api/prefs { tasksFilter }` with the whole filter, optimistic
+  (the chips change at once, a refusal puts them back with a snackbar), like grouping and sorting.
