@@ -1236,3 +1236,12 @@ Requires 9.1 for the full experience; on plain HTTP the result is only a shortcu
 
 The `/api/auth/google/*` routes are the only additions for real Google; they are disabled with `PROVIDER=mock`.
 Mock data is not migrated to Google.
+
+## 10. Developer tooling
+
+Terse output on purpose (one line on success, only failures otherwise); every command finishes in about a minute.
+
+- `pnpm verify`: the gate before any merge or deploy; runs web/server/e2e tsc, server and web unit tests, `i18n:check` and `spec/scripts/check-steps.py` in parallel (`scripts/verify.mjs`).
+- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`.
+- `pnpm e2e:affected [base]`: the Playwright `--grep` for features touched since `base` (default `origin/master`), mapped via feature tags/titles, step definitions and `data-testid` literals (`scripts/e2e-affected.mjs`); `none` if nothing is affected.
+- `scripts/deploy-status.sh`: last auto-deploy result and the `calendar` container's age, read from sauron over ssh (`DEPLOY_HOST=user@host` overrides the host).
