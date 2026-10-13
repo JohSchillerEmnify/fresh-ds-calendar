@@ -171,11 +171,15 @@ export class CalendarService {
     return [localDateOf(ms, this.tz), 1, ms, i.title];
   }
 
-  async items(from: string, to: string, calendarIds?: string[]): Promise<{ items: CalendarItem[]; from: string; to: string; syncedAt: string }> {
-    const items = await this.fetchRange(from, to, calendarIds);
+  /** Items of `[from, to)`, plus those of the optional `also` range (deduplicated by id; API.md `GET /api/items`). */
+  async items(
+    from: string, to: string, calendarIds?: string[], also?: { from: string; to: string },
+  ): Promise<{ items: CalendarItem[]; from: string; to: string; also?: { from: string; to: string }; syncedAt: string }> {
+    const lists = await Promise.all([this.fetchRange(from, to, calendarIds), ...(also ? [this.fetchRange(also.from, also.to, calendarIds)] : [])]);
+    const items = [...new Map(lists.flat().map((i) => [i.id, i])).values()];
     const keyed = items.map((i) => ({ i, k: this.sortKey(i) }));
     keyed.sort((a, b) => a.k[0].localeCompare(b.k[0]) || a.k[1] - b.k[1] || a.k[2] - b.k[2] || a.k[3].localeCompare(b.k[3]));
-    return { items: keyed.map((x) => x.i), from, to, syncedAt: formatInZone(this.clock.real(), this.tz) };
+    return { items: keyed.map((x) => x.i), from, to, ...(also ? { also } : {}), syncedAt: formatInZone(this.clock.real(), this.tz) };
   }
 
   // ---------- events ----------

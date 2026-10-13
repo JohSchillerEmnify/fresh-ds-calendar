@@ -18,6 +18,7 @@ import TaskTray from '@/features/tasklists/TaskTray.vue';
 import { setAnimationSetting } from '@/motion/level';
 import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
 import { useTaskListsStore } from '@/features/tasklists/store';
+import { catSwipe } from '@/features/motivation/supportCat';
 import { validateForm } from '@/features/tasklists/validate';
 import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
 
@@ -59,6 +60,20 @@ beforeEach(() => { document.body.innerHTML = ''; celebrate.mockClear(); });
 afterEach(() => { wrapper?.unmount(); wrapper = null; });
 
 describe('collapsed card', () => {
+  it('strikes the title of a complete list through (its done state), not an open one', async () => {
+    const { pinia } = await setup();
+    const w = mountIn(TaskListCard, { segment: seg(tl('Done', { done: [true, true] })), variant: 'allday' }, pinia);
+    const title = w.get(tid('tasklist-card-title'));
+    expect(title.attributes('data-struck')).toBe('true');
+    expect(title.find(tid('strike-line')).exists()).toBe(true);
+    expect(title.text()).toBe('Done');
+    w.unmount();
+    const open = mountIn(TaskListCard, { segment: seg(tl('Open', { done: [true, false] })), variant: 'allday' }, pinia);
+    expect(open.get(tid('tasklist-card-title')).attributes('data-struck')).toBeUndefined();
+    expect(open.find(tid('strike-line')).exists()).toBe(false);
+  });
+
+
   it('shows emoji, title, item titles, count and a progress bar in the compact states', async () => {
     const { pinia } = await setup();
     useSettingsStore().settings.categories[0].icon = '🛒';
@@ -235,6 +250,51 @@ describe('expanded list', () => {
     expect(w.find(tid('tasklist-complete-message')).exists()).toBe(false);
   });
 
+  it('strikes the title through while the list is complete, and removes the line when an item is unticked', async () => {
+    const list = tl('G', { done: [true, true, false] });
+    const s = server(list);
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i2': s.handler });
+    const title = () => w.get(tid('tasklist-expanded-title'));
+    expect(title().attributes('data-struck')).toBeUndefined();
+    expect(title().find(tid('strike-line')).exists()).toBe(false);
+    await checkbox(w, 2).setValue(true);
+    await flushPromises();
+    expect(title().attributes('data-struck')).toBe('true');
+    expect(title().get(tid('strike-line')).classes()).not.toContain('draw'); // no cat: the line is simply there
+    expect(title().text()).toBe('G');
+    await checkbox(w, 2).setValue(false);
+    await flushPromises();
+    expect(title().attributes('data-struck')).toBeUndefined();
+    expect(title().find(tid('strike-line')).exists()).toBe(false);
+  });
+
+  it('shows a list that is already complete struck through', async () => {
+    const list = tl('G', { done: [true, true] });
+    const { w } = await open(list, {});
+    expect(w.get(tid('tasklist-expanded-title')).attributes('data-struck')).toBe('true');
+    expect(w.get(tid('tasklist-expanded-title')).find(tid('strike-line')).exists()).toBe(true);
+  });
+
+  it('when the support cat comes, the strike line draws itself in step with its paw swipe', async () => {
+    const list = tl('G', { done: [true, false] });
+    const s = server(list);
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i1': s.handler });
+    useClockStore().config.testMode = true;
+    window.__catNext = true;
+    try {
+      await checkbox(w, 1).setValue(true);
+      await flushPromises();
+      expect(document.querySelector(tid('support-cat'))).not.toBeNull();
+      const line = w.get(tid('tasklist-expanded-title')).get(tid('strike-line'));
+      expect(line.classes()).toContain('draw');
+      const swipe = catSwipe('full')!;
+      expect(line.attributes('style')).toContain(`--strike-delay: ${swipe.delay}ms`);
+      expect(line.attributes('style')).toContain(`--strike-dur: ${swipe.duration}ms`);
+    } finally {
+      window.__catNext = false;
+    }
+  });
+
   it('adds items (blank ignored), renames (blank keeps), deletes and reorders', async () => {
     const list = tl('G');
     let state = structuredClone(list);
@@ -303,6 +363,77 @@ describe('open tasks tray', () => {
     useItemsStore().upsert({ ...g, items: [{ ...g.items[0], done: true }], doneCount: 1 });
     await flushPromises();
     expect(w.get(tid('task-tray-count')).text()).toBe('No open tasks');
+  });
+  it('a list finished in the tray stays open (tray expanded) until the support cat has finished its visit', async () => {
+    const g = tl('Groceries', { done: [true, false] });
+    let state = g;
+    const patch = ({ body }: { body: any }) => (state = { ...g, items: [g.items[0], { ...g.items[1], ...body }], doneCount: 2 });
+    const { pinia } = await setup({
+      'GET /api/tasklists/open': () => (state.doneCount < 2 ? { items: [state] } : { items: [], finishedToday: [{ ...state, completedOn: '2026-10-12' }] }),
+      'PATCH /api/tasklists/Groceries/items/Groceries-i1': patch,
+    });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    useUiStore().trayExpanded = true;
+    useClockStore().config.testMode = true;
+    window.__catNext = true;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const row = () => w.get(`${tid('task-tray-item')}[data-title="Groceries"]`);
+    try {
+      await row().findAll(tid('tasklist-item'))[1].get('input[type=checkbox]').setValue(true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(document.querySelector(tid('support-cat'))).not.toBeNull();
+      // past the 2 s hold, the cat (3 s at Full) is still visiting: the list keeps its view and the tray stays open
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(document.querySelector(tid('support-cat'))).not.toBeNull();
+      expect(row().attributes('data-finished')).toBeUndefined();
+      expect(row().find(tid('tasklist-expanded-title')).attributes('data-struck')).toBe('true');
+      expect(useUiStore().trayExpanded).toBe(true);
+      // the visit ends: the list moves to the finished rows
+      await vi.advanceTimersByTimeAsync(600);
+      expect(document.querySelector(tid('support-cat'))).toBeNull();
+      expect(row().attributes('data-finished')).toBe('true');
+      expect(useUiStore().trayExpanded).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      window.__catNext = false;
+    }
+  });
+  it('a list finished in the tray keeps its place among the open lists while it is held', async () => {
+    const a = tl('Apples', { done: [true, false] });
+    const b = tl('Bakery', { done: [false] });
+    const { pinia } = await setup({
+      'GET /api/tasklists/open': () => ({ items: [a, b] }),
+      'PATCH /api/tasklists/Apples/items/Apples-i1': ({ body }: { body: any }) => ({ ...a, items: [a.items[0], { ...a.items[1], ...body }], doneCount: 2 }),
+    });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    const titles = () => w.findAll(tid('task-tray-item')).map((r) => r.attributes('data-title'));
+    expect(titles()).toEqual(['Apples', 'Bakery']);
+    await w.get(`${tid('task-tray-item')}[data-title="Apples"]`).findAll(tid('tasklist-item'))[1].get('input[type=checkbox]').setValue(true);
+    await flushPromises();
+    expect(titles()).toEqual(['Apples', 'Bakery']);
+  });
+  it('without the cat, a list finished in the tray stays open for 2 s', async () => {
+    const g = tl('Groceries', { done: [true, false] });
+    const { pinia } = await setup({
+      'GET /api/tasklists/open': () => ({ items: [g] }),
+      'PATCH /api/tasklists/Groceries/items/Groceries-i1': ({ body }: { body: any }) => ({ ...g, items: [g.items[0], { ...g.items[1], ...body }], doneCount: 2 }),
+    });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const row = () => w.get(`${tid('task-tray-item')}[data-title="Groceries"]`);
+    try {
+      await row().findAll(tid('tasklist-item'))[1].get('input[type=checkbox]').setValue(true);
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(document.querySelector(tid('support-cat'))).toBeNull();
+      expect(row().attributes('data-finished')).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(200);
+      expect(row().attributes('data-finished')).toBe('true');
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it('sets and clears --tray-h and refreshes through the sync store', async () => {
     const { pinia, m } = await setup();

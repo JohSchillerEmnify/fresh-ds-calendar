@@ -25,8 +25,13 @@ describe('per-person theme', () => {
     expect((await t.json('GET', '/api/prefs/theme')).body.preset).toBe('Neon');
   });
 
+  it('stores the Halloween preset and its scene', async () => {
+    expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Halloween', overrides: { scene: 'halloween' } })).status).toBe(200);
+    expect((await t.json('GET', '/api/prefs/theme')).body).toEqual({ preset: 'Halloween', overrides: { scene: 'halloween' } });
+  });
+
   it('rejects unknown presets and values', async () => {
-    expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Halloween' })).status).toBe(400);
+    expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Easter' })).status).toBe(400);
     expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { glow: 'blinding' } })).status).toBe(400);
     expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { cat: 'off' } })).status).toBe(400);
   });

@@ -6,6 +6,10 @@ import { attr, tid, type World } from './support/world.js';
 import { expectJoined, pathname } from './support/ui.js';
 
 When('I open the app', async function (this: World) {
+  // the app checks in on first open in the background (plant, streak): a later server read waits for it
+  this.firstCheckIn = this.page
+    .waitForResponse((r) => new URL(r.url()).pathname === '/api/streak/checkin', { timeout: 15_000 })
+    .catch(() => undefined);
   await this.page.goto('/');
 });
 
@@ -72,7 +76,7 @@ When('I click the day number of {date}', async function (this: World, date: stri
 When('I click empty space in the month cell of {date}', async function (this: World, date: string) {
   const cell = this.byTestId('month-cell', attr('data-date', date));
   const box = (await cell.boundingBox())!;
-  await cell.click({ position: { x: box.width - 6, y: box.height - 6 } }); // bottom-right corner: below any entries
+  await cell.click({ position: { x: box.width - 6, y: 6 } }); // top-right corner, beside the day number: a crowded cell has entries down to its bottom edge
 });
 
 When('I click the week header of {date}', async function (this: World, date: string) {

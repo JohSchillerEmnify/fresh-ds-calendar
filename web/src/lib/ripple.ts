@@ -40,6 +40,11 @@ export const vRipple: Directive<RippleEl, boolean | undefined> = {
       el.querySelectorAll('.m3-ripple, .m3-layer').forEach((n) => n.remove());
     };
   },
+  // A re-rendered `:class` binding overwrites `className`, dropping `m3-state` (and its `position: relative`),
+  // so ripples would position against an outer ancestor. Re-apply it after every component update.
+  updated(el) {
+    if (el.__ripple) el.classList.add('m3-state');
+  },
   unmounted(el) {
     el.__ripple?.();
   },

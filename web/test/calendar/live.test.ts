@@ -103,7 +103,7 @@ describe('now card', () => {
     const { calls } = mockFetch({
       'GET /api/config': () => config({ now: at('09:20').toISOString(), clockFrozen: true }),
       'GET /api/items': ({ url }) => ({
-        items: url.searchParams.get('from') === D ? [ev('dentist', t(D, '10:40'), t(D, '11:00'), { title })] : [],
+        items: url.searchParams.get('from') === D || url.searchParams.get('also')?.startsWith(`${D}..`) ? [ev('dentist', t(D, '10:40'), t(D, '11:00'), { title })] : [],
         from: url.searchParams.get('from'), to: url.searchParams.get('to'), syncedAt: 's',
       }),
     });
@@ -112,8 +112,8 @@ describe('now card', () => {
     const items = useItemsStore();
     useCalendarStore().setFromRoute('week', new Date(2026, 9, 19));
     await flushPromises();
-    const ranges = calls.filter((c) => c.path === '/api/items').map((c) => `${c.url.searchParams.get('from')}_${c.url.searchParams.get('to')}`);
-    expect(ranges).toEqual(['2026-10-19_2026-10-26', '2026-10-12_2026-10-13']);
+    const ranges = calls.filter((c) => c.path === '/api/items').map((c) => `${c.url.searchParams.get('from')}_${c.url.searchParams.get('to')} also=${c.url.searchParams.get('also')}`);
+    expect(ranges).toEqual(['2026-10-19_2026-10-26 also=2026-10-12..2026-10-13']); // one request per load/poll
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
     const w = mount(NowCard, { global: { plugins: [pinia, router] } });
     expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual(['Next: Dentist in 1 h 20 min']);
@@ -121,6 +121,7 @@ describe('now card', () => {
     await items.refreshVisible();
     await nextTick();
     expect(w.findAll('[data-testid="now-card-line"]').map((l) => l.text())).toEqual(['Next: Doctor in 1 h 20 min']);
+    expect(calls.filter((c) => c.path === '/api/items')).toHaveLength(2);
   });
 });
 

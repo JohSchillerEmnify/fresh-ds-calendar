@@ -30,12 +30,25 @@ function dateParam(c: Context, name: string): string {
   return v;
 }
 
-function range(c: Context, maxDays: number): { from: string; to: string } {
-  const from = dateParam(c, 'from');
-  const to = dateParam(c, 'to');
-  if (to <= from) throw validation('to must be after from', 'to');
-  if (dayNumber(to) - dayNumber(from) > maxDays) throw validation(`Range must be at most ${maxDays} days`, 'to');
+function checkRange(from: string, to: string, maxDays: number, field: string): { from: string; to: string } {
+  if (to <= from) throw validation('to must be after from', field);
+  if (dayNumber(to) - dayNumber(from) > maxDays) throw validation(`Range must be at most ${maxDays} days`, field);
   return { from, to };
+}
+
+function range(c: Context, maxDays: number): { from: string; to: string } {
+  return checkRange(dateParam(c, 'from'), dateParam(c, 'to'), maxDays, 'to');
+}
+
+/** The optional `also=YYYY-MM-DD..YYYY-MM-DD` range (same rules as `from`/`to`). */
+function alsoRange(c: Context, maxDays: number): { from: string; to: string } | undefined {
+  const v = c.req.query('also');
+  if (v === undefined) return undefined;
+  const [from, to, ...rest] = v.split('..');
+  if (rest.length || !from || !to || !isLocalDate(from) || !isLocalDate(to)) {
+    throw validation('also must be a range (YYYY-MM-DD..YYYY-MM-DD)', 'also');
+  }
+  return checkRange(from, to, maxDays, 'also');
 }
 
 export function configResponse(ctx: Ctx) {
@@ -132,8 +145,9 @@ export function apiRoutes(ctx: Ctx): Hono {
   // ---- items ----
   r.get('/items', async (c) => {
     const { from, to } = range(c, 100);
+    const also = alsoRange(c, 100);
     const ids = c.req.query('calendarIds')?.split(',').map((s) => s.trim()).filter(Boolean);
-    return c.json(await cal(c).items(from, to, ids));
+    return c.json(await cal(c).items(from, to, ids, also));
   });
 
   r.get('/summary', async (c) => {

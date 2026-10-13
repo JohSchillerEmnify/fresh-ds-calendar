@@ -180,6 +180,31 @@ When('I pick up the event {string}', async function (this: World, title: string)
   }
 });
 
+/**
+ * STEPS.md "Drag helper cat": desktop mouse press on the card, move down in steps, keep the pointer down (released by
+ * "I drop the dragged event"). The release time is kept in the page (`__dropAt`, native clock) for "is gone within".
+ */
+When('I pick up the event {string} and move it down by {int} hours', async function (this: World, title: string, hours: number) {
+  const chip = this.eventChip(title);
+  const from = await grabPoint(this, chip);
+  const dy = hours * (await hourHeight(this));
+  const { mouse } = this.page;
+  await mouse.move(from.x, from.y);
+  await mouse.down();
+  await mouse.move(from.x, from.y + dy, { steps: 12 });
+  await expect(this.eventChips(title).first()).toHaveAttribute('data-dragging', 'true');
+  this.held = async () => {
+    await this.page.evaluate(() => { (window as unknown as { __dropAt?: number }).__dropAt = new Event('t').timeStamp; });
+    await mouse.up();
+    this.held = undefined;
+  };
+});
+
+When('I hold the dragged card still for {int} second(s)', async function (this: World, seconds: number) {
+  if (!this.held) throw new Error('nothing is picked up');
+  await this.page.waitForTimeout(seconds * 1000);
+});
+
 When('I release the event without moving it', async function (this: World) {
   if (!this.held) throw new Error('nothing is picked up');
   await this.held();

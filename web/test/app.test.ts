@@ -84,6 +84,15 @@ describe('shell navigation', () => {
     expect(w.find(tid('view-switch-year')).exists()).toBe(true);
     expect(w.get(tid('view-switch-day')).attributes('aria-selected')).toBe('true');
   });
+  it('on a Labs view prev/next stay on it, but switching to Day leaves it', async () => {
+    const { w, router } = await mountAt('/clock/2026-10-14');
+    await w.get(tid('nav-next')).trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/clock/2026-10-15'));
+    await w.get(tid('nav-prev')).trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/clock/2026-10-14'));
+    await w.get(tid('view-switch-day')).trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/day/2026-10-14'));
+  });
   it('FAB opens the one new dialog with the kind switch (no menu)', async () => {
     const { w } = await mountAt('/day/2026-10-14');
     await w.get(tid('create-button')).trigger('click');
@@ -314,7 +323,7 @@ describe('settings', () => {
     const { w } = await mountAt('/settings');
     const theme = useThemeStore();
     theme.pref = { preset: 'Automatic', overrides: {} };
-    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Automatic · Fall'));
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic · (Spring|Summer|Fall|Halloween|Winter)$/)); // depends on today's season
     theme.pref = { preset: 'Neon', overrides: {} };
     await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Neon'));
   });

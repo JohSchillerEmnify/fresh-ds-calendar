@@ -1,9 +1,12 @@
 <script setup lang="ts">
 /**
- * One visit of the emotional support cat (ARCHITECTURE "Season scenes and the support cat"): walks in at the right
- * edge of the finished list card, puts a paw on the card, looks at the viewer, grins and fades out, then emits `done`
- * (the host removes it). Full ≈ 3 s; Reduced is shorter and calmer (no walk, smaller paw, still tail). The host never
- * mounts it at level Off. Fixed overlay, `pointer-events: none`, so it never blocks anything.
+ * One visit of the emotional support cat (ARCHITECTURE "Season scenes and the support cat"): walks in from the right
+ * (a stepping walk cycle with a little bob), stops at the end of the finished list's title, looks down at it and
+ * swipes its paw across it — the host draws the title's strike line in the same window (`CAT_SWIPE`) — then twitches
+ * an ear, tilts its head, looks at the viewer with a slow blink, grins with its eyes squinted into happy arcs and fades
+ * out, then emits `done` (the host removes it). The tail tip flicks all along. Full ≈ 3 s; Reduced is shorter and
+ * calmer (fades in already sitting, a gentle swipe, no tilt, twitch or flicks). The host never mounts it at level
+ * Off. Fixed overlay, `pointer-events: none`, so it never blocks anything; only transforms and opacity animate.
  */
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
@@ -13,18 +16,27 @@ import { catDuration } from './supportCat';
 const props = defineProps<{
   /** Viewport rect of the finished list card when it finished. */
   card: { left: number; top: number; right: number; bottom: number };
+  /** Viewport rect of the list title's text, if known: the cat stands at its end so the paw lands on it. */
+  title?: { left: number; top: number; right: number; bottom: number } | null;
   level: 'full' | 'reduced';
 }>();
 const emit = defineEmits<{ done: [] }>();
 
 const SIZE = 72;
 const duration = catDuration(props.level);
-/** Sits just inside the card's right edge near its top, so the paw lands on the card; always inside the viewport. */
+/** The point of the cat box (px from its top left) that goes over the title end: the paw sweeps through it. */
+const PAW_REACH = { x: 20, y: 54 };
+/**
+ * Stands at the end of the title (paw on its last letters) when the title is known, else just inside the card's
+ * right edge near its top; never past the card's right edge and always inside the viewport.
+ */
 const style = computed(() => {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 375;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 667;
-  const x = Math.max(4, Math.min(props.card.right, vw) - SIZE - 6);
-  const y = Math.max(4, Math.min(props.card.top + 6, vh - SIZE - 4));
+  const maxX = Math.min(props.card.right, vw) - SIZE - 6;
+  const t = props.title;
+  const x = Math.max(4, t ? Math.min(t.right - PAW_REACH.x, maxX) : maxX);
+  const y = Math.max(4, Math.min(t ? (t.top + t.bottom) / 2 - PAW_REACH.y : props.card.top + 6, vh - SIZE - 4));
   return { left: `${Math.round(x)}px`, top: `${Math.round(y)}px`, '--cat-dur': `${duration}ms` };
 });
 
@@ -46,57 +58,89 @@ onBeforeUnmount(() => stop?.());
   animation: cat-visit var(--cat-dur) linear both;
 }
 .support-cat * { pointer-events: none; }
+.support-cat :deep(.torso) { animation: cat-body var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.paw) { animation: cat-paw var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.leg-b) { animation: cat-leg-b var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.head) { animation: cat-head var(--cat-dur) ease-in-out both; }
-.support-cat :deep(.eyes) { animation: cat-look var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.pupils) { animation: cat-look var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.eyes) { animation: cat-slow-blink var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.ear-r) { animation: cat-ear var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.ear-l) { animation: cat-ear-l var(--cat-dur) ease-in-out both; }
 .support-cat :deep(.calm) { animation: cat-calm var(--cat-dur) step-end both; }
 .support-cat :deep(.grin) { animation: cat-grin var(--cat-dur) step-end both; }
-.support-cat :deep(.tail) { animation: cat-tail 1.1s ease-in-out infinite alternate; }
+.support-cat :deep(.tail) { animation: cat-tail var(--cat-dur) ease-in-out both; }
+.support-cat :deep(.tail-tip) { animation: cat-tip 0.900s ease-in-out infinite alternate; }
 
-/* Full: walk in from the right with a little bob, sit, fade out. */
+/* Full (3 s): walk in from the right with a bob per step (0-30 %), stop at the title, fade out at the end. */
 @keyframes cat-visit {
-  0% { opacity: 0; transform: translate(64px, 0); }
-  6% { opacity: 1; }
-  10% { transform: translate(48px, -2px); }
-  16% { transform: translate(32px, 0); }
-  22% { transform: translate(16px, -2px); }
+  0% { opacity: 0; transform: translate(70px, 0); }
+  5% { opacity: 1; }
+  7.500% { transform: translate(56px, -2px); }
+  15% { transform: translate(38px, 0); }
+  22.500% { transform: translate(18px, -2px); }
   30% { transform: translate(0, 0); }
-  86% { opacity: 1; transform: translate(0, 0); }
-  100% { opacity: 0; transform: translate(0, 4px); }
+  88% { opacity: 1; transform: translate(0, 0); }
+  100% { opacity: 0; transform: translate(0, 3px); }
 }
+/* walking sways the body from leg to leg; leaning into the swipe */
+@keyframes cat-body {
+  0% { transform: rotate(0deg); }
+  3.750%, 18.750% { transform: rotate(-3deg); }
+  11.250%, 26.250% { transform: rotate(3deg); }
+  30%, 34% { transform: rotate(0deg); }
+  44%, 52% { transform: rotate(-5deg); }
+  62%, 100% { transform: rotate(0deg); }
+}
+/* steps (lift and set down, opposite to the other leg), then the swipe: lift, sweep across the title (36-52 %, the
+   strike line draws in the same window), rest on the card, put back */
 @keyframes cat-paw {
-  0%, 32% { transform: rotate(0deg); }
-  40% { transform: rotate(80deg) translate(0, -2px); }
-  47%, 78% { transform: rotate(58deg); }
-  88%, 100% { transform: rotate(0deg); }
+  0%, 7.500%, 15%, 22.500%, 30% { transform: translate(0, 0); }
+  3.750%, 18.750% { transform: translate(0, -3px); }
+  33% { transform: rotate(-12deg) translate(0, -2px); }
+  36% { transform: rotate(18deg) translate(0, -2px); }
+  52% { transform: rotate(96deg) translate(0, 5px); }
+  58%, 74% { transform: rotate(84deg) translate(0, 3px); }
+  84%, 100% { transform: rotate(0deg); }
+}
+@keyframes cat-leg-b {
+  0%, 7.500%, 15%, 22.500%, 30%, 100% { transform: translate(0, 0); }
+  11.250%, 26.250% { transform: translate(0, -3px); }
 }
 @keyframes cat-head {
   0%, 30% { transform: rotate(0deg); }
-  38%, 50% { transform: rotate(-8deg) translate(-1px, 1px); }
-  58%, 86% { transform: rotate(5deg); }
+  38%, 52% { transform: rotate(-9deg) translate(-1px, 1px); }
+  60%, 86% { transform: rotate(6deg); }
   100% { transform: rotate(0deg); }
 }
+/* pupils: ahead while walking, down at the title under the paw, then up at the viewer */
 @keyframes cat-look {
-  0%, 50% { transform: translate(-1.6px, 0.9px); }
-  56%, 100% { transform: translate(0, 0); }
+  0%, 26% { transform: translate(-1.300px, 0); }
+  34%, 54% { transform: translate(-1.300px, 1.200px); }
+  60%, 100% { transform: translate(0, 0); }
 }
-@keyframes cat-calm { 0% { opacity: 1; } 64% { opacity: 0; } }
-@keyframes cat-grin { 0% { opacity: 0; } 64% { opacity: 1; } }
-@keyframes cat-tail { from { transform: rotate(-6deg); } to { transform: rotate(10deg); } }
+/* a slow, friendly blink at the viewer just before the grin */
+@keyframes cat-slow-blink { 0%, 62%, 70%, 100% { transform: scaleY(1); } 65%, 67% { transform: scaleY(0.12); } }
+@keyframes cat-ear { 0%, 54%, 62%, 100% { transform: none; } 56% { transform: rotate(16deg); } 58% { transform: rotate(-5deg); } 60% { transform: rotate(8deg); } }
+@keyframes cat-ear-l { 0%, 12%, 18%, 100% { transform: none; } 14% { transform: rotate(-10deg); } 16% { transform: rotate(3deg); } }
+@keyframes cat-calm { 0% { opacity: 1; } 70% { opacity: 0; } }
+@keyframes cat-grin { 0% { opacity: 0; } 70% { opacity: 1; } }
+/* the tail trails a little behind while walking, then stands up straight */
+@keyframes cat-tail { 0%, 26% { transform: rotate(9deg); } 36%, 100% { transform: rotate(0deg); } }
+@keyframes cat-tip { from { transform: rotate(-16deg); } to { transform: rotate(10deg); } }
 
-/* Reduced: fades in already sitting, a small paw, still tail. */
+/* Reduced (2 s): fades in already sitting, one gentle swipe (28-46 %), no steps, tilt, twitch or flicks. */
 .support-cat[data-level='reduced'] { animation-name: cat-visit-calm; }
 .support-cat[data-level='reduced'] :deep(.paw) { animation-name: cat-paw-calm; }
-.support-cat[data-level='reduced'] :deep(.head) { animation: none; }
-.support-cat[data-level='reduced'] :deep(.tail) { animation: none; }
+.support-cat[data-level='reduced'] :deep(:is(.torso, .leg-b, .head, .ear-l, .ear-r, .tail, .tail-tip)) { animation: none; }
 @keyframes cat-visit-calm {
   0% { opacity: 0; }
   15%, 85% { opacity: 1; }
   100% { opacity: 0; }
 }
 @keyframes cat-paw-calm {
-  0%, 18% { transform: rotate(0deg); }
-  32%, 78% { transform: rotate(50deg); }
+  0%, 24% { transform: rotate(0deg); }
+  28% { transform: rotate(14deg); }
+  46%, 78% { transform: rotate(80deg); }
   90%, 100% { transform: rotate(0deg); }
 }
 </style>

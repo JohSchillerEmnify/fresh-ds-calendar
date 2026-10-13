@@ -98,10 +98,10 @@ const themeOverrides = so({
   glow: v.optional(v.picklist(['off', 'soft', 'neon'], 'Invalid glow')),
   entries: v.optional(v.picklist(['solid', 'tinted', 'outline'], 'Invalid entries style')),
   corners: v.optional(v.picklist(['square', 'round', 'pill'], 'Invalid corners')),
-  scene: v.optional(v.picklist(['none', 'sunflowers', 'mordor', 'spring', 'summer', 'fall', 'winter'], 'Invalid scene')),
+  scene: v.optional(v.picklist(['none', 'sunflowers', 'mordor', 'spring', 'summer', 'fall', 'winter', 'halloween'], 'Invalid scene')),
 });
 export const themePatchSchema = so({
-  preset: v.optional(v.picklist(['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Winter', 'Mordor', 'Automatic'], 'Invalid theme')),
+  preset: v.optional(v.picklist(['Default', 'Neon', 'Spring', 'Summer', 'Fall', 'Halloween', 'Winter', 'Mordor', 'Automatic'], 'Invalid theme')),
   overrides: v.optional(themeOverrides),
 });
 const catName = v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(40, 'Name must be at most 40 characters'));
