@@ -75,7 +75,6 @@ export default {
     addPlaceholder: 'Add an item',
     newItem: 'New item',
     addItem: 'Add item',
-    moveToday: 'Move to today',
     edit: 'Edit',
     delete: 'Delete',
   },

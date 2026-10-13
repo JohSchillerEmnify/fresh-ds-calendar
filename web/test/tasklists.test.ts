@@ -354,7 +354,7 @@ describe('open tasks tray', () => {
     expect(rows.map((r) => r.attributes('data-title'))).toEqual(['Laundry', 'Groceries', 'Packing']);
     expect(rows[0].text()).toContain('From Sat 10 Oct');
     expect(rows[1].text()).not.toContain('From');
-    expect(w.findAll(tid('tasklist-move-today'))).toHaveLength(1); // the shared task list view's button
+    expect(w.findAll(tid('tasklist-move-today'))).toHaveLength(0); // no "Move to today": the carry-over already shows it today (owner)
   });
   it('count follows ticks and shows "No open tasks" when empty', async () => {
     const g = tl('Groceries', { done: [false] });

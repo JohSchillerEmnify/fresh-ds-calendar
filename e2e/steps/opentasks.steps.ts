@@ -167,10 +167,6 @@ Then('the overdue label of {string} does not use the error color', async functio
   );
 });
 
-When('I move the task list to today', async function (this: World) {
-  await this.expanded.getByTestId('tasklist-move-today').click();
-});
-
 Then('the open tasks tray is collapsed', async function (this: World) {
   await expect(this.page.getByTestId('task-tray')).toHaveAttribute('data-expanded', 'false');
 });

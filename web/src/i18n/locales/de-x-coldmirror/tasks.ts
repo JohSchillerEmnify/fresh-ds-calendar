@@ -76,7 +76,6 @@ export default {
     addPlaceholder: 'Eintrag dazu, yo',
     newItem: 'Neuer Eintrag, fresh',
     addItem: 'Eintrag dazu, yo',
-    moveToday: 'Auf heute, Digga',
     edit: 'Ändern, yo',
     delete: 'Weg damit',
   },

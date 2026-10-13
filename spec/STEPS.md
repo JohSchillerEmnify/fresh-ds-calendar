@@ -604,7 +604,6 @@ the open tasks tray shows the message {string} for {string}
 the task list {string} is shown as carried over from {string}
 the task list {string} is not flagged as overdue
 the overdue label of {string} does not use the error color
-I move the task list to today
 ```
 
 - "shown as carried over from D": `tasklist-card-overdue` of the card is visible and its accessible name is
