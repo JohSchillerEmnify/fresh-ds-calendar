@@ -21,7 +21,7 @@ import Chip from '@/components/m3/Chip.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import SupportCat from '@/features/motivation/SupportCat.vue';
-import { catComes, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
+import { catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
 import { displayTitle } from '@/lib/items';
 import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
@@ -46,8 +46,8 @@ const emit = defineEmits<{
   close: [];
   /** The list was deleted. */
   deleted: [];
-  /** A tick finished the list (the celebration is playing). */
-  completed: [];
+  /** A tick finished the list (the celebration is playing); `catMs` is the support cat's visit length (0 = no visit). */
+  completed: [catMs: number];
 }>();
 const items = useItemsStore();
 const pendingDeletes = usePendingDeletesStore();
@@ -103,7 +103,7 @@ function tick(item: TaskItem, done: boolean) {
   celebrate();
   maybeCat();
   lists.markFinished(props.id);
-  emit('completed');
+  emit('completed', cat.value ? catDuration(cat.value.level) : 0);
 }
 
 /** The emotional support cat: rolled once per finished list (about one in ten, every time with "Every time"), never at level Off or set to Off. */

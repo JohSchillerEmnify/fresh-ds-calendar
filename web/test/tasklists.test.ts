@@ -364,6 +364,77 @@ describe('open tasks tray', () => {
     await flushPromises();
     expect(w.get(tid('task-tray-count')).text()).toBe('No open tasks');
   });
+  it('a list finished in the tray stays open (tray expanded) until the support cat has finished its visit', async () => {
+    const g = tl('Groceries', { done: [true, false] });
+    let state = g;
+    const patch = ({ body }: { body: any }) => (state = { ...g, items: [g.items[0], { ...g.items[1], ...body }], doneCount: 2 });
+    const { pinia } = await setup({
+      'GET /api/tasklists/open': () => (state.doneCount < 2 ? { items: [state] } : { items: [], finishedToday: [{ ...state, completedOn: '2026-10-12' }] }),
+      'PATCH /api/tasklists/Groceries/items/Groceries-i1': patch,
+    });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    useUiStore().trayExpanded = true;
+    useClockStore().config.testMode = true;
+    window.__catNext = true;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const row = () => w.get(`${tid('task-tray-item')}[data-title="Groceries"]`);
+    try {
+      await row().findAll(tid('tasklist-item'))[1].get('input[type=checkbox]').setValue(true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(document.querySelector(tid('support-cat'))).not.toBeNull();
+      // past the 2 s hold, the cat (3 s at Full) is still visiting: the list keeps its view and the tray stays open
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(document.querySelector(tid('support-cat'))).not.toBeNull();
+      expect(row().attributes('data-finished')).toBeUndefined();
+      expect(row().find(tid('tasklist-expanded-title')).attributes('data-struck')).toBe('true');
+      expect(useUiStore().trayExpanded).toBe(true);
+      // the visit ends: the list moves to the finished rows
+      await vi.advanceTimersByTimeAsync(600);
+      expect(document.querySelector(tid('support-cat'))).toBeNull();
+      expect(row().attributes('data-finished')).toBe('true');
+      expect(useUiStore().trayExpanded).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      window.__catNext = false;
+    }
+  });
+  it('a list finished in the tray keeps its place among the open lists while it is held', async () => {
+    const a = tl('Apples', { done: [true, false] });
+    const b = tl('Bakery', { done: [false] });
+    const { pinia } = await setup({
+      'GET /api/tasklists/open': () => ({ items: [a, b] }),
+      'PATCH /api/tasklists/Apples/items/Apples-i1': ({ body }: { body: any }) => ({ ...a, items: [a.items[0], { ...a.items[1], ...body }], doneCount: 2 }),
+    });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    const titles = () => w.findAll(tid('task-tray-item')).map((r) => r.attributes('data-title'));
+    expect(titles()).toEqual(['Apples', 'Bakery']);
+    await w.get(`${tid('task-tray-item')}[data-title="Apples"]`).findAll(tid('tasklist-item'))[1].get('input[type=checkbox]').setValue(true);
+    await flushPromises();
+    expect(titles()).toEqual(['Apples', 'Bakery']);
+  });
+  it('without the cat, a list finished in the tray stays open for 2 s', async () => {
+    const g = tl('Groceries', { done: [true, false] });
+    const { pinia } = await setup({
+      'GET /api/tasklists/open': () => ({ items: [g] }),
+      'PATCH /api/tasklists/Groceries/items/Groceries-i1': ({ body }: { body: any }) => ({ ...g, items: [g.items[0], { ...g.items[1], ...body }], doneCount: 2 }),
+    });
+    const w = mountIn(TaskTray, {}, pinia);
+    await flushPromises();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const row = () => w.get(`${tid('task-tray-item')}[data-title="Groceries"]`);
+    try {
+      await row().findAll(tid('tasklist-item'))[1].get('input[type=checkbox]').setValue(true);
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(document.querySelector(tid('support-cat'))).toBeNull();
+      expect(row().attributes('data-finished')).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(200);
+      expect(row().attributes('data-finished')).toBe('true');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('sets and clears --tray-h and refreshes through the sync store', async () => {
     const { pinia, m } = await setup();
     const w = mountIn(TaskTray, {}, pinia);
