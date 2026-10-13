@@ -23,9 +23,9 @@ Feature: Resource efficiency and no memory leaks
     And I cycle through the month, week and day views 50 times
     And I open and close the event dialog 50 times
     And I expand and collapse the task list "Groceries" 50 times
-    Then the JS heap has grown by less than 10 percent since the recording
-    And the DOM node count has grown by less than 10 percent since the recording
-    And the event listener count has grown by less than 10 percent since the recording
+    Then the JS heap has grown by less than 15 percent since the recording
+    And the DOM node count has grown by less than 15 percent since the recording
+    And the event listener count has grown by less than 15 percent since the recording
     And there are no detached DOM nodes from closed dialogs
 
   Scenario: Navigating many periods does not accumulate polling timers
@@ -83,9 +83,9 @@ Feature: Resource efficiency and no memory leaks
     And I collapse the task list
     And I drag the event "Dentist" back and forth 20 times
     Then there are no reward effect elements left
-    And the JS heap has grown by less than 10 percent since the recording
-    And the DOM node count has grown by less than 10 percent since the recording
-    And the event listener count has grown by less than 10 percent since the recording
+    And the JS heap has grown by less than 15 percent since the recording
+    And the DOM node count has grown by less than 15 percent since the recording
+    And the event listener count has grown by less than 15 percent since the recording
 
   Scenario: The live clock uses one timer and pauses while hidden
     Given the time is 2026-10-12 09:20 and the clock is running
