@@ -841,6 +841,47 @@ It never reloads by itself and never interrupts an open dialog.
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and
   checkbox. Picking applies at once and saves in the background.
 
+### Fine-tuning sliders, density and icon choices (owner, 2026-10-13)
+
+The Fine-tuning card gets live controls on top of the step choices. Every control changes the Preview block and the whole
+app at once and is a **theme override** (reset by choosing a preset, captured by "Save as my theme").
+
+| Field (override and `calendar-theme/2`) | Control (testid) | Values | Applied as |
+|---|---|---|---|
+| `glowStrength` | slider `theme-slider-glow` | integer 0..150 (Off 0, Soft 40, Neon 100) | `--glow-r/-s/-a` interpolated between the anchors; `--glow-anim` is `neon-pulse` from 100 up |
+| `radius` | slider `theme-slider-radius` | integer 0..28 px (Square 2, Round 6, Pill 28 = pill) | `--r-chip` = value (28 = 999 px); `--r-block` interpolated 0/2/6/28 px to 0/2/8/16 px |
+| `tint` | slider `theme-slider-tint` | integer 5..60 % (default 24) | `--e-fill` while entries are Tinted |
+| `density` | segmented `theme-density` | `compact` / `comfortable` / `airy` | `--dz` 0.9 / 1 / 1.12: scales the font size of the type scale and the task list row height |
+| `checkbox` | segmented `theme-checkbox-shape` | `round` / `square` / `rounded` (default) | `<html data-checkbox>`, read by the task item checkbox, the task list card box and the preview |
+| `checkFill` | segmented `theme-check-fill` | `filled` (default) / `outline` | `<html data-checkfill>` |
+| `check` | segmented `theme-check-glyph` | `tick` (default) / `bold` / `cross` / `dot` | `<html data-check>`; one SVG glyph per value, the others hidden by CSS |
+
+- **Steps and sliders are one value.** The step buttons stay as quick picks: choosing a step stores the step and its value
+  (`glow: soft` + `glowStrength: 40`; `corners` + `radius`), and the slider shows it. Moving a slider stores only the number;
+  the step then shows as pressed only while the effective value equals the step's value, so between steps **no step is
+  pressed** (alternative weighed: marking the nearest step with a "custom" state; rejected: a pressed step must always
+  mean exactly that value). The step attribute (`data-glow`, `data-corners`) stays the preset's or the person's last pick
+  and is what the gallery samples use; the custom value is applied as inline custom properties on `<html>` by
+  `applyAttrs` (`web/src/theme/fine.ts` maps value to properties, pure), cached with the attributes for the first paint.
+- **Tint** applies to the Tinted entries style only; Solid is fully filled and Outline has no fill by definition, so the
+  slider is disabled with a hint unless entries are Tinted (the value is kept).
+- **Density** scales font sizes, not line heights, so fixed-height chips and the month cell line budgets are unaffected;
+  the time grid's hour height (`useHourHeight`, the zoom feature) is independent and untouched. Task list rows grow with
+  `--dz` but never below the 44 px touch target. Steps rather than a slider: three named looks are enough and give testable values.
+- **Document and validation.** The same fields are optional in `shared/theme.schema.json` (so own and imported themes carry
+  them) and the validator checks type and range (integer `minimum`/`maximum` support was added); the server accepts them in
+  `PATCH /api/prefs/theme` overrides with the same ranges; the web drops invalid stored values (`sanitizeFine`). The AI
+  prompt embeds the shared schema, so it picks the fields up without a prompt change.
+- **Accessibility.** Sliders are native `input[type=range]` (keyboard: arrows, Home/End, PageUp/PageDown) with a visible
+  label and value text (`aria-valuetext` carries the unit). Reduced motion: slider and checkbox transitions are off at the
+  Reduced and Off animation levels (`html[data-motion]`), the neon pulse already runs only at Full.
+- **Whole-app icon set (Outlined / Rounded / Sharp): not built in this slice.** Icons are compile-time inline SVG
+  components (`~icons/material-symbols/<name>` through `unplugin-icons`, 24 distinct icons in 38 imports) from the
+  `@iconify-json/material-symbols` set, which also ships `-rounded` and `-sharp` variants, so no new icon source is
+  needed. Switching at run time needs an indirection over all 38 import sites (one `AppIcon` component mapping a name to
+  the three variants) and bundles all three variants; that touches every view, so it is left to an owner decision (options
+  are in the slice report). No `icons` field exists in the schema yet.
+
 ### Holiday themes and "Automatic follows" (owner, 2026-10-13)
 
 - **Calendar mapping** (pure functions in `web/src/theme/holidays.ts`, unit-tested; `presets.ts` builds on them).

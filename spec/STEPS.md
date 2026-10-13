@@ -935,8 +935,38 @@ the Christmas tree lights are off
 the preview event is drawn as an outline
 the event {string} is drawn as an outline
 the event {string} glows
+the event {string} does not glow
 {string} may use the calendar
+I set the {string} slider to {int}
+the {string} slider shows {string}
+no option for {string} is pressed
+the option {string} for {string} is pressed
+the event {string} has a corner radius of {int} px
+the event {string} glows with a blur between {int} and {int} px
+the entry tint is {int} %
+I choose {string} for the {string} setting
+the app text is {float} px
+the task item checkboxes are drawn as {string} with a {string} mark
 ```
+
+- Fine-tuning sliders (owner 2026-10-13): "I set the X slider to N" finds the native `input[type=range]` by its label (`Glow strength` =
+  `theme-slider-glow`, `Corner radius` = `theme-slider-radius`, `Entry tint` = `theme-slider-tint`), opens the theme menu
+  when needed, sets the value the way a keyboard or pointer would (fires `input`) and waits for the save
+  (`PATCH /api/prefs/theme`). "the X slider shows T": the visible value text next to it (`<testid>-value`), e.g. `4 px`, `30 %`,
+  `40` (glow strength has no unit).
+- "no option for Y is pressed" / "the option V for Y is pressed": the `theme-option` buttons of that `data-setting`
+  (`glow`, `corners`) and their `aria-pressed`.
+- "has a corner radius of N px": the computed `border-top-left-radius` of the event as the week view draws it (a timed
+  block, whose radius follows the slider as `--r-block`: slider 4 px = 5 px, Round 6 px = 8 px, Pill = 16 px). "glows with a blur
+  between A and B px": the largest blur radius of the chip's coloured `box-shadow` is within A..B. "does not glow": no
+  coloured shadow with a blur. "the entry tint is N %": the computed `--e-fill` on `<html>` is `N%`.
+- "I choose V for the S setting": segmented controls of the menu by label (`Density` = `theme-density`, `Checkbox shape` =
+  `theme-checkbox-shape`, `Checkbox fill` = `theme-check-fill`, `Check mark` = `theme-check-glyph`); the option is the button
+  with that label inside; waits for the save. "the app text is N px": computed `font-size` of `<body>` (the body text size;
+  14 px at Comfortable, 12.6 px Compact, 15.68 px Airy).
+- "the task item checkboxes are drawn as S with a G mark": `<html data-checkbox>` equals S (`round`, `square`, `rounded`) and
+  `data-check` equals G (`tick`, `bold`, `cross`, `dot`), and in the expanded task list every `tasklist-item-checkbox` shows
+  only that glyph (`[data-glyph]` with a non-`none` display).
 
 - "glows": the event chip has a visible glow (a non-`none` `box-shadow` or `filter: drop-shadow` in the item colour).
 - "drawn as an outline": transparent or surface fill with a 1.5 px or wider border in the item colour.

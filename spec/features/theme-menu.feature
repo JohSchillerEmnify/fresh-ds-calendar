@@ -4,7 +4,9 @@ Feature: Choosing and fine-tuning a theme
   week in that theme's real look. "Scene" is the top app bar background: a switch "Follow the calendar (seasons & holidays)" that lets the picture
   follow the calendar whatever theme is chosen (colours stay), or any single scene to pick: Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year,
   Winter, Sunflower field, Mordor or None). "Fine-tuning" is where every option shows itself as a small sample before it is picked: theme mode, seed
-  colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square, round, pill). There is no
+  colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square, round, pill), each with a slider for
+  the value in between (glow strength, corner radius in px, entry tint in %), plus density (compact, comfortable, airy),
+  the checkbox shape and fill, and the check mark. There is no
   separate Mordor button; the Mordor preset does the same. A live preview with a
   real event, task list and checkbox follows every change, and so does the calendar, without a save button. Ready
   themes: Default, Neon, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year,
@@ -194,3 +196,66 @@ Feature: Choosing and fine-tuning a theme
     When I open the week view for 2026-10-12
     And I open the settings
     Then the settings show the theme "Neon"
+
+  Scenario: The corner slider fine-tunes the corners, and a step snaps it back
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I set the "Corner radius" slider to 4
+    Then the "Corner radius" slider shows "4 px"
+    And no option for "Corners" is pressed
+    And the event "Dentist" has a corner radius of 5 px
+    When I pick "Pill" for "Corners"
+    Then the "Corner radius" slider shows "28 px"
+    And the option "Pill" for "Corners" is pressed
+    And the event "Dentist" has a corner radius of 16 px
+
+  Scenario: A glow strength between Soft and Neon glows more than Soft and less than Neon
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I pick "Soft" for "Glow"
+    Then the "Glow strength" slider shows "40"
+    When I set the "Glow strength" slider to 70
+    Then no option for "Glow" is pressed
+    And the event "Dentist" glows with a blur between 10 and 13 px
+    When I set the "Glow strength" slider to 0
+    Then the event "Dentist" does not glow
+
+  Scenario: The entry tint sets how strongly tinted entries are coloured
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I pick "Tinted" for "Entries"
+    And I set the "Entry tint" slider to 30
+    Then the "Entry tint" slider shows "30 %"
+    And the entry tint is 30 %
+
+  Scenario: Compact density makes the text smaller and Airy larger
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then the app text is 14 px
+    When I choose "Compact" for the "Density" setting
+    Then the app text is 12.6 px
+    When I choose "Airy" for the "Density" setting
+    Then the app text is 15.68 px
+
+  Scenario: The checkbox shape and the check mark show on task items
+    Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item | done |
+      | Milk | yes  |
+      | Eggs | no   |
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I choose "Square" for the "Checkbox shape" setting
+    And I choose "Cross" for the "Check mark" setting
+    And I open the day view for 2026-10-14
+    And I expand the task list "Groceries"
+    Then the task item checkboxes are drawn as "square" with a "cross" mark
+
+  Scenario: Choosing a preset resets the fine-tuning
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I set the "Corner radius" slider to 4
+    And I set the "Glow strength" slider to 70
+    And I choose the theme "Default"
+    Then the "Corner radius" slider shows "6 px"
+    And the "Glow strength" slider shows "0"
+    And the event "Dentist" has a corner radius of 8 px

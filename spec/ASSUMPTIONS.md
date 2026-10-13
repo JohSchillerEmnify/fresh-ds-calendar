@@ -237,3 +237,19 @@ spec files are named.
   and the candle flicker run only at Full motion (at Reduced and Off the fireworks stand still, the flames are steady);
   (l) holiday presets' colours: Easter #8e6bbf, Summer holidays #0097a7, Christmas #c62828, New Year's Eve #d4af37,
   New Year #00897b.
+- **A-75 Fine-tuning sliders, density and icon choices** (owner decisions 2026-10-13 are final; the readings below are mine,
+  flagged for confirmation): (a) **between steps no step is pressed**; a pressed step means exactly its value (glow Off 0 /
+  Soft 40 / Neon 100, radius Square 2 / Round 6 / Pill 28 px); (b) glow strength runs 0..150, "beyond Neon" being up to a
+  blur of 20 px at 150; the neon pulse starts at 100; (c) the corner slider runs 0..28 px, 28 = pill (chips 999 px); timed
+  blocks take a derived radius (about a third rounder, 16 px at most), so 4 px gives 5 px on a timed event; (d) the entry
+  tint (5..60 %, default 24) applies to Tinted only, Solid and Outline ignore it, the slider is disabled for them; (e) the
+  density is three steps (Compact 0.9, Comfortable 1, Airy 1.12 of the font size), not a slider; it scales font sizes and
+  the task list row height, not line heights and not the time grid; (f) the checkbox has two settings: shape (round, square,
+  rounded; default rounded, which is today's look) and fill (filled default, outline), the glyph a third (tick default, bold
+  tick, cross, dot); they apply to the task item checkbox, the task list card box and the preview; (g) steps store their
+  value too (`glow` + `glowStrength`), so a step pick over a theme that carries its own number wins; (h) an own theme's
+  `glowStrength`/`radius` win over its `glow`/`corners` step for the look, but the step fields are always written; (i) the
+  **app icon set was not built**: it needs an indirection over all 38 import sites, so the options go to the owner; no
+  `icons` field in the schema yet; (j) the new document fields are top-level and flat (`glowStrength`, `radius`, `tint`,
+  `density`, `checkbox`, `checkFill`, `check`); `density` is not the scene's `scene.density` (decor amount).
+

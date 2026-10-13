@@ -313,6 +313,8 @@ in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `t
 `/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
 AND-ed. Events are never filtered.
 
+`PATCH /api/prefs/theme` `overrides` also takes the fine-tuning fields (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): `glowStrength` (integer 0..150), `radius` (integer 0..28), `tint` (integer 5..60), `density` (`compact|comfortable|airy`), `checkbox` (`round|square|rounded`), `checkFill` (`filled|outline`), `check` (`tick|bold|cross|dot`). Out-of-range or unknown values answer `400`. The same optional fields exist in `calendar-theme/2`.
+
 ### Imported themes (`/api/themes`)
 
 Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE
