@@ -2,7 +2,8 @@
  * Bedtime reminder: "Bedtime in N minutes" once per night while the app is open. Driven by the shared clock tick
  * (`clock.nowTick`, which pauses while the app is hidden), so it has no timer of its own. The reminder is handed to a
  * list of sinks; the snackbar is the first one and a later push notification can add another without touching the
- * schedule (ARCHITECTURE "Bedtime mode").
+ * schedule (ARCHITECTURE "Bedtime mode"). Inside the Android app the next reminder is also handed ahead of time to the
+ * native `Reminders` plugin, which shows it as a system notification when the app is closed or in the background.
  */
 import { effectScope, watch, type EffectScope } from 'vue';
 import { addDays, toIsoDate } from '@/lib/dates';
@@ -12,6 +13,7 @@ import { useUiStore } from '@/stores/ui';
 import { absMinutes, type BedtimeWindow } from './bedtime';
 import { useBedtimeWindows } from './useBedtime';
 import { t } from '@/i18n';
+import { language } from '@/i18n/language';
 
 /** A reminder that is due. */
 export interface BedtimeReminder {
@@ -53,6 +55,44 @@ export function dueReminder(windows: readonly BedtimeWindow[], nowAbs: number, m
   return w ? { night: w.wakeDate, inMin: w.start - nowAbs } : null;
 }
 
+/** The next reminder still to come: the first night whose reminder time (bedtime minus the lead) lies after now. */
+export interface UpcomingReminder {
+  night: string;
+  /** Absolute wall-clock minute the reminder is due. */
+  at: number;
+  /** Bedtime as `HH:MM`. */
+  bedtime: string;
+}
+
+/**
+ * The next reminder after now, for scheduling it ahead (the Android notification).
+ *
+ * @param windows Windows around now.
+ * @param nowAbs Absolute wall-clock minute of now.
+ * @param minutes Reminder lead in minutes; 0 means no reminder.
+ * @returns The reminder, or null.
+ */
+export function upcomingReminder(windows: readonly BedtimeWindow[], nowAbs: number, minutes: number): UpcomingReminder | null {
+  if (minutes <= 0) return null;
+  const w = windows.filter((x) => x.start - minutes > nowAbs).sort((a, b) => a.start - b.start)[0];
+  return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11) } : null;
+}
+
+/** The native plugin of the Android app (`android/…/notify/RemindersPlugin.java`); absent in a browser. */
+interface RemindersPlugin {
+  schedule(o: { id: string; at: number; title: string; body: string }): Promise<unknown>;
+  cancel(o: { id: string }): Promise<unknown>;
+}
+
+function remindersPlugin(): RemindersPlugin | null {
+  if (typeof window === 'undefined') return null;
+  const cap = (window as unknown as { Capacitor?: { Plugins?: { Reminders?: RemindersPlugin } } }).Capacitor;
+  return cap?.Plugins?.Reminders ?? null;
+}
+
+/** Id of the bedtime reminder in the native plugin (one pending at a time). */
+export const NATIVE_REMINDER_ID = 'bedtime';
+
 /** The last reminded night stored on this device (storage may be unavailable). */
 function remembered(): string | null {
   try { return localStorage.getItem(REMINDED_KEY); } catch { return null; }
@@ -93,6 +133,34 @@ export function startBedtimeReminder(): () => void {
         last = due.night;
         remember(due.night);
         for (const sink of sinks) sink(due);
+      },
+      { immediate: true },
+    );
+
+    // Android app: keep the next reminder scheduled as a system notification. The native side skips it while the app
+    // is in the foreground (the snackbar shows it then). Re-sent only when it changes.
+    const plugin = remindersPlugin();
+    if (!plugin) return;
+    let sent = '';
+    watch(
+      () => [clock.nowTick, prefs.bedtime, windows.value, language.value] as const,
+      () => {
+        const nowAbs = absMinutes(clock.today, clock.minutesNow);
+        const next = upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes);
+        if (!next) {
+          if (sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
+          sent = 'none';
+          return;
+        }
+        const minutes = prefs.bedtime.reminderMinutes;
+        const title = t('bedtime.reminder', { count: minutes }, minutes);
+        const body = t('bedtime.moon', { time: next.bedtime });
+        // relative to the app clock's current minute (the wall clock of `at` is in the app's time zone)
+        const at = clock.nowTick - (clock.nowTick % 60_000) + (next.at - nowAbs) * 60_000;
+        const key = `${at}|${title}|${body}`;
+        if (key === sent) return;
+        sent = key;
+        void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body }).catch(() => undefined);
       },
       { immediate: true },
     );

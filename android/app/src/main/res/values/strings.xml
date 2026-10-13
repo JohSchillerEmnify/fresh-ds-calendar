@@ -4,4 +4,6 @@
     <string name="title_activity_main">Calendar</string>
     <string name="package_name">lan.mordor.calendar</string>
     <string name="custom_url_scheme">lan.mordor.calendar</string>
+    <string name="reminder_channel">Reminders</string>
+    <string name="reminder_channel_description">The bedtime reminder</string>
 </resources>
