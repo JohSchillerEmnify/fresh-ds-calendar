@@ -47,3 +47,12 @@ Feature: The emotional support cat
     Then the support cat sits beside the card with a paw on it
     When I drop the dragged event
     Then the support cat is gone within 1500 ms
+
+  @opentasks
+  Scenario: Finishing a list in the tray waits for the cat
+    Given the support cat is set to "Every time" in the settings
+    When I open the day view for 2026-10-12
+    And I open the open tasks tray
+    And I tick the item "Eggs" in the open tasks tray
+    Then the support cat appears and is gone within 4000 ms
+    And the title of the task list "Groceries" is struck through
