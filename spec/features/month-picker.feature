@@ -67,3 +67,11 @@ Feature: Month picker in the top app bar
     And I open the month picker
     Then the month picker shows "February 2027"
     And 2027-02-03 is selected in the month picker
+
+  @mobile
+  Scenario: Opening the month picker never scrolls the page
+    When I open the month view for 2026-10
+    And I open the month picker
+    And I drag up and down inside the month picker
+    Then the page is not scrolled
+    And the bottom bar ends at the bottom of the viewport

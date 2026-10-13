@@ -127,7 +127,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
 </template>
 
 <style scoped>
-.shell { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.shell { height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: clip; } /* the app never scrolls as a whole: overlays (month picker scrim) must not extend the document */
 .body { flex: 1; min-height: 0; display: flex; }
 .col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Desktop: the open tasks tray is a right-hand side panel. */
