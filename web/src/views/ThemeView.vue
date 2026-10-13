@@ -82,11 +82,11 @@ function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, s
 }
 const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
 
-// --- mode, seed colour (settings, not theme prefs) ---------------------------
+// --- mode (a setting) and seed colour (fine-tuning on top of the chosen theme, like the other options) ----------------
 const sync = useSyncStore();
 const ui = useUiStore();
 const s = computed(() => settings.settings);
-/** Persist a patch; failures roll back in the store and surface as the banner or a snackbar. */
+/** Persist a settings patch; failures roll back in the store and surface as the banner or a snackbar. */
 async function save(p: Parameters<typeof settings.patch>[0]) {
   try {
     await settings.patch(p);
@@ -96,7 +96,7 @@ async function save(p: Parameters<typeof settings.patch>[0]) {
   }
 }
 const modes = [{ value: 'system', label: 'System' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }] as const;
-const seed = computed(() => s.value.seedColor.toLowerCase());
+const seed = computed(() => (theme.resolved.seed ?? s.value.seedColor).toLowerCase());
 const presetNames = SEED_PRESETS.map((p) => p.hex);
 const isMordor = computed(() => seed.value === MORDOR_SEED);
 const isCustom = computed(() => !presetNames.includes(seed.value) && !isMordor.value);
@@ -110,13 +110,13 @@ const hexError = ref('');
 watch(seed, (v) => { hex.value = v; hexError.value = ''; });
 function pickSwatch(v: string) {
   if (v === 'custom') { document.querySelector<HTMLInputElement>('[data-testid="settings-seed-custom"]')?.focus(); return; }
-  void save({ seedColor: v });
+  void theme.pick('seed', v);
 }
 function commitHex() {
   const v = hex.value.trim();
   if (!isHexColor(v)) { hexError.value = MSG_INVALID_COLOR; return; }
   hexError.value = '';
-  if (v.toLowerCase() !== seed.value) void save({ seedColor: v.toLowerCase() });
+  if (v.toLowerCase() !== seed.value) void theme.pick('seed', v.toLowerCase());
 }
 
 function back() {

@@ -100,6 +100,7 @@ const themeOverrides = so({
   entries: v.optional(v.picklist(['solid', 'tinted', 'outline'], 'Invalid entries style')),
   corners: v.optional(v.picklist(['square', 'round', 'pill'], 'Invalid corners')),
   scene: v.optional(v.picklist(['none', 'sunflowers', 'mordor', 'spring', 'summer', 'fall', 'winter', 'halloween'], 'Invalid scene')),
+  seed: v.optional(hex),
 });
 export const themePatchSchema = so({
   preset: v.optional(v.union([

@@ -16,6 +16,14 @@ export async function saveSetting(world: World, alreadySelected: boolean, act: (
   expect((await saved).status(), 'settings saved').toBe(200);
 }
 
+/** Like {@link saveSetting} for fine-tuning of the chosen theme: waits for the `PATCH /api/prefs/theme` response. */
+export async function saveThemePref(world: World, alreadySelected: boolean, act: () => Promise<void>) {
+  if (alreadySelected) return act();
+  const saved = world.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs/theme' && r.request().method() === 'PATCH');
+  await act();
+  expect((await saved).status(), 'theme saved').toBe(200);
+}
+
 /** Choose an option (by visible label) of a select / radio-like setting control and wait for the save. */
 export async function chooseSelect(world: World, control: Locator, label: string) {
   await expect(control).toBeVisible();

@@ -18,7 +18,9 @@ export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; sc
 export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
 /** An imported theme the person chose: `theme:<id>` (API.md "Imported themes"). */
 export type CustomThemeKey = `theme:${string}`;
-export interface ThemePref { preset: PresetName | CustomThemeKey; overrides: Partial<ThemeAttrs> }
+/** What the person's fine-tuning replaces of the chosen theme: the four attributes and the seed colour. */
+export type ThemeOverrides = Partial<ThemeAttrs> & { seed?: string };
+export interface ThemePref { preset: PresetName | CustomThemeKey; overrides: ThemeOverrides }
 /** What the one apply path works from, whether it came from a preset or an imported theme document. */
 export interface ResolvedTheme {
   name: string; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs;
@@ -106,7 +108,8 @@ export function resolveTheme(pref: ThemePref, today: string, custom: Record<stri
   const id = pref.preset.startsWith('theme:') ? pref.preset.slice(6) : null;
   const own = id === null ? { doc: presetDoc(presetFor(pref.preset as PresetName, today)) } : custom[id];
   const base = own ? docToResolved(own.doc, own.picture) : docToResolved(presetDoc(PRESETS.Default));
-  return { ...base, attrs: { ...base.attrs, ...pref.overrides } };
+  const { seed, ...attrs } = pref.overrides;
+  return { ...base, ...(seed ? { seed } : {}), attrs: { ...base.attrs, ...attrs } };
 }
 
 const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
@@ -115,6 +118,7 @@ const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
 export function sanitizePref(raw: unknown): ThemePref {
   const r = (raw ?? {}) as { preset?: string; overrides?: Record<string, unknown> };
   const preset = PRESET_NAMES.includes(r.preset as PresetName) || /^theme:[A-Za-z0-9_-]{1,32}$/.test(r.preset ?? '') ? (r.preset as ThemePref['preset']) : 'Default';
-  const overrides = Object.fromEntries(Object.entries(r.overrides ?? {}).filter(([k]) => ATTR_KEYS.includes(k as keyof ThemeAttrs)));
-  return { preset, overrides: overrides as Partial<ThemeAttrs> };
+  const o = r.overrides ?? {};
+  const overrides = Object.fromEntries(Object.entries(o).filter(([k, v]) => (k === 'seed' ? typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) : ATTR_KEYS.includes(k as keyof ThemeAttrs))));
+  return { preset, overrides: overrides as ThemeOverrides };
 }

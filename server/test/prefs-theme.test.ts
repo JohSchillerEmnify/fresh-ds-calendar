@@ -149,3 +149,12 @@ describe('scene and plant (migration of the retired garden style)', () => {
     expect(prefs.theme('local')).toEqual({ preset: 'Default', overrides: { scene: 'sunflowers' } });
   });
 });
+
+describe('seed colour as theme fine-tuning', () => {
+  it('stores a seed override with the preset and refuses a bad colour', async () => {
+    expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon', overrides: { seed: '#386A20', glow: 'soft' } })).status).toBe(200);
+    expect((await t.json('GET', '/api/prefs/theme')).body).toEqual({ preset: 'Neon', overrides: { seed: '#386A20', glow: 'soft' } });
+    expect((await t.json('PATCH', '/api/prefs/theme', { overrides: { seed: 'green' } })).status).toBe(400);
+    expect((await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon', overrides: {} })).body.overrides).toEqual({});
+  });
+});
