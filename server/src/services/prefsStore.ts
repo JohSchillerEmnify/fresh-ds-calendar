@@ -12,10 +12,12 @@ export interface ThemeOverrides {
   glowStrength?: number; radius?: number; tint?: number; density?: string; checkbox?: string; checkFill?: string; check?: string; icons?: string;
 }
 /** A person's chosen theme: a preset name plus fine-tuning overrides. */
-export interface ThemePref { preset: string; overrides: ThemeOverrides }
+/** What the calendar changes by itself (`off`, `header` = the top bar scene, `all` = colours and scene). */
+export interface ThemePref { preset: string; overrides: ThemeOverrides; seasonal: string }
 /** What `prefs.json` stores: the theme plus markers that the retired top bar scene and garden style were folded into it. */
-interface StoredTheme extends ThemePref { sceneUnified?: true; gardenMigrated?: true }
-export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
+interface StoredTheme extends Omit<ThemePref, 'seasonal'> { seasonal?: string; sceneUnified?: true; gardenMigrated?: true; seasonalMigrated?: true }
+/** A new person starts with the season's colours and header on base Default. */
+export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {}, seasonal: 'all' };
 
 /** How often the emotional support cat comes by when a task list is finished. */
 export type SupportCat = 'off' | 'sometimes' | 'always';
@@ -91,7 +93,14 @@ export class PrefsStore {
   /** The person's chosen theme (the Default preset until one is chosen). */
   theme(sub: string): ThemePref {
     const t = this.read(sub).theme;
-    return t ? { preset: t.preset, overrides: t.overrides ?? {} } : { ...DEFAULT_THEME, overrides: {} };
+    if (!t) return { ...DEFAULT_THEME, overrides: {} };
+    const overrides = t.overrides ?? {};
+    if (t.seasonalMigrated) return { preset: t.preset, overrides, seasonal: t.seasonal ?? 'off' };
+    // read-time migration (ARCHITECTURE "Seasons & holidays"): Automatic => Default + all, scene `season` => header, else off
+    const { scene, ...rest } = overrides;
+    if (t.preset === 'Automatic') return { preset: 'Default', overrides: scene === 'season' ? rest : overrides, seasonal: 'all' };
+    if (scene === 'season') return { preset: t.preset, overrides: rest, seasonal: 'header' };
+    return { preset: t.preset, overrides, seasonal: 'off' };
   }
 
   /**
@@ -105,9 +114,10 @@ export class PrefsStore {
     if (legacy === undefined || prev.theme?.sceneUnified) return;
     const cur = this.theme(sub);
     // Default and Neon had no scene of their own; the other presets always did
-    const own = cur.overrides.scene ?? (cur.preset === 'Default' || cur.preset === 'Neon' ? 'none' : 'preset');
+    const raw = prev.theme?.preset ?? 'Default';
+    const own = cur.overrides.scene ?? (raw === 'Default' || raw === 'Neon' ? 'none' : 'preset');
     const overrides = own === 'none' ? { ...cur.overrides, scene: legacy } : cur.overrides;
-    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, sceneUnified: true } } satisfies StoredPrefs);
+    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, seasonal: cur.seasonal, seasonalMigrated: true, sceneUnified: true } } satisfies StoredPrefs);
   }
 
   /**
@@ -121,23 +131,24 @@ export class PrefsStore {
     const prev = this.read(sub);
     if (legacy === undefined || prev.theme?.gardenMigrated) return;
     const cur = this.theme(sub);
+    const raw = prev.theme?.preset ?? 'Default';
     let overrides = cur.overrides;
     if (legacy === 'sunflowers') {
       // Default and Neon were the presets whose own scene was the (gated) field; other presets showed their own scene
-      if (overrides.scene === undefined && (cur.preset === 'Default' || cur.preset === 'Neon')) overrides = { ...overrides, scene: 'sunflowers' };
+      if (overrides.scene === undefined && (raw === 'Default' || raw === 'Neon')) overrides = { ...overrides, scene: 'sunflowers' };
     } else if (overrides.scene === 'sunflowers') {
       overrides = { ...overrides, scene: 'none' };
     }
-    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, gardenMigrated: true } } satisfies StoredPrefs);
+    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, seasonal: cur.seasonal, seasonalMigrated: true, gardenMigrated: true } } satisfies StoredPrefs);
   }
 
   /** Merges a theme change into the stored preferences and returns the result. */
-  setTheme(sub: string, patch: { preset?: string; overrides?: ThemeOverrides }): ThemePref {
+  setTheme(sub: string, patch: { preset?: string; overrides?: ThemeOverrides; seasonal?: string }): ThemePref {
     const prev = this.read(sub);
     const cur = this.theme(sub);
-    const theme: ThemePref = { preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides };
+    const theme: ThemePref = { preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides, seasonal: patch.seasonal ?? cur.seasonal };
     // a person's own save replaces the old scene and garden style, so there is nothing left to migrate
-    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...theme, sceneUnified: true, gardenMigrated: true } } satisfies StoredPrefs);
+    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...theme, seasonalMigrated: true, sceneUnified: true, gardenMigrated: true } } satisfies StoredPrefs);
     return theme;
   }
 

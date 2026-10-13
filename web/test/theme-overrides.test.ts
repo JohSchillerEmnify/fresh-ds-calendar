@@ -52,8 +52,8 @@ describe('The seed colour is fine-tuning on top of the chosen preset', () => {
   });
 
   it('leaves the person\'s own seed setting as the base where the preset has none, and keeps only valid overrides', () => {
-    expect(resolveTheme({ preset: 'Default', overrides: {} }, '2026-10-12')).toMatchObject({ seed: null, mode: null });
-    expect(resolveTheme({ preset: 'Default', overrides: { seed: GREEN } }, '2026-10-12')).toMatchObject({ seed: GREEN, mode: null });
+    expect(resolveTheme({ preset: 'Default', overrides: {}, seasonal: 'off' }, '2026-10-12')).toMatchObject({ seed: null, mode: null });
+    expect(resolveTheme({ preset: 'Default', overrides: { seed: GREEN }, seasonal: 'off' }, '2026-10-12')).toMatchObject({ seed: GREEN, mode: null });
     expect(sanitizePref({ preset: 'Neon', overrides: { seed: 'green', mode: 'dark', glow: 'soft' } }).overrides).toEqual({ glow: 'soft' });
   });
 });

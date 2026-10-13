@@ -63,21 +63,29 @@ describe('sanitising', () => {
 
 describe('resolving', () => {
   it('takes fine-tuning from overrides on top of the theme', () => {
-    const r = resolveTheme({ preset: 'Neon', overrides: { radius: 4, check: 'cross' } }, TODAY);
+    const r = resolveTheme({ preset: 'Neon', overrides: { radius: 4, check: 'cross' }, seasonal: 'off' }, TODAY);
     expect(r.fine).toEqual({ radius: 4, check: 'cross' });
     expect(r.attrs.corners).toBe('pill');
+  });
+
+  it('keeps fine-tuning on top while the calendar drives the theme, and drops the theme\'s own glow and corner numbers', () => {
+    const custom = { x: { doc: { ...presetDoc(PRESETS.Neon), glowStrength: 70, radius: 4, density: 'airy' as const } } };
+    const all = resolveTheme({ preset: 'theme:x', overrides: { tint: 30, icons: 'sharp' }, seasonal: 'all' }, TODAY, custom);
+    expect(all.name).toBe('Halloween');
+    expect(all.fine).toEqual({ density: 'airy', tint: 30, icons: 'sharp' });
+    expect(resolveTheme({ preset: 'Default', overrides: { radius: 4 }, seasonal: 'header' }, TODAY).fine).toEqual({ radius: 4 });
   });
 
   it('lets a picked step win over the own number of an imported theme', () => {
     const doc = { ...presetDoc(PRESETS.Neon), glowStrength: 70, radius: 4 };
     const custom = { x: { doc } };
-    expect(resolveTheme({ preset: 'theme:x', overrides: {} }, TODAY, custom).fine).toEqual({ glowStrength: 70, radius: 4 });
-    expect(resolveTheme({ preset: 'theme:x', overrides: { glow: 'soft' } }, TODAY, custom).fine).toEqual({ radius: 4 });
-    expect(resolveTheme({ preset: 'theme:x', overrides: { glow: 'soft', glowStrength: 40 } }, TODAY, custom).fine).toEqual({ glowStrength: 40, radius: 4 });
+    expect(resolveTheme({ preset: 'theme:x', overrides: {}, seasonal: 'off' }, TODAY, custom).fine).toEqual({ glowStrength: 70, radius: 4 });
+    expect(resolveTheme({ preset: 'theme:x', overrides: { glow: 'soft' }, seasonal: 'off' }, TODAY, custom).fine).toEqual({ radius: 4 });
+    expect(resolveTheme({ preset: 'theme:x', overrides: { glow: 'soft', glowStrength: 40 }, seasonal: 'off' }, TODAY, custom).fine).toEqual({ glowStrength: 40, radius: 4 });
   });
 
   it('writes the fine-tuning into a saved theme and reads it back', () => {
-    const r = resolveTheme({ preset: 'Default', overrides: { glowStrength: 70, radius: 4, tint: 30, density: 'compact', checkbox: 'square', check: 'cross' } }, TODAY);
+    const r = resolveTheme({ preset: 'Default', overrides: { glowStrength: 70, radius: 4, tint: 30, density: 'compact', checkbox: 'square', check: 'cross' }, seasonal: 'off' }, TODAY);
     const { doc } = lookToDoc(r, { mode: 'light', seed: '#1a73e8' }, 'Fine');
     expect(doc).toMatchObject({ glowStrength: 70, radius: 4, tint: 30, density: 'compact', checkbox: 'square', check: 'cross' });
     expect(docToResolved(doc).fine).toEqual(r.fine);
@@ -89,11 +97,11 @@ describe('applying', () => {
 
   it('sets the custom properties and checkbox attributes, and removes them when the value is gone', () => {
     const root = document.documentElement;
-    applyAttrs(resolveTheme({ preset: 'Default', overrides: { radius: 4, check: 'cross', checkbox: 'square' } }, TODAY), root);
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: { radius: 4, check: 'cross', checkbox: 'square' }, seasonal: 'off' }, TODAY), root);
     expect(root.style.getPropertyValue('--r-chip')).toBe('4px');
     expect([root.dataset.check, root.dataset.checkbox, root.dataset.checkfill]).toEqual(['cross', 'square', 'filled']);
     expect(localStorage.getItem('cal.themeFine')).toContain('--r-block:5px');
-    applyAttrs(resolveTheme({ preset: 'Default', overrides: {} }, TODAY), root);
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: {}, seasonal: 'off' }, TODAY), root);
     expect(root.style.getPropertyValue('--r-chip')).toBe('');
     expect(root.dataset.check).toBe('tick');
     expect(localStorage.getItem('cal.themeFine')).toBe('');
@@ -114,7 +122,7 @@ describe('store', () => {
     expect(t.pref.overrides).toEqual({ radius: 4, density: 'compact', glow: 'soft', glowStrength: 40 });
     expect(t.resolved.fine).toEqual({ radius: 4, density: 'compact', glowStrength: 40 });
     await t.choose('Neon');
-    expect(t.pref).toEqual({ preset: 'Neon', overrides: {} });
+    expect(t.pref).toMatchObject({ preset: 'Neon', overrides: {} });
     expect(t.resolved.fine).toEqual({});
   });
 });
@@ -127,10 +135,10 @@ describe('icon set', () => {
     expect(sanitizeFine({ icons: 'sharp' })).toEqual({ icons: 'sharp' });
     expect(sanitizeFine({ icons: 'filled' })).toEqual({});
     const root = document.documentElement;
-    applyAttrs(resolveTheme({ preset: 'Default', overrides: { icons: 'sharp' } }, TODAY), root);
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: { icons: 'sharp' }, seasonal: 'off' }, TODAY), root);
     expect([root.dataset.icons, iconSet.value]).toEqual(['sharp', 'sharp']);
     expect(JSON.parse(localStorage.getItem('cal.themeAttrs')!).icons).toBe('sharp');
-    applyAttrs(resolveTheme({ preset: 'Default', overrides: {} }, TODAY), root);
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: {}, seasonal: 'off' }, TODAY), root);
     expect([root.dataset.icons, iconSet.value]).toEqual(['outlined', 'outlined']);
   });
 

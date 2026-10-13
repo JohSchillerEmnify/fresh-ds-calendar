@@ -217,23 +217,28 @@ spec files are named.
   becomes the chosen theme at once; mode `system` is saved as `follow`, while seed colour and the other settings are
   saved as set, so the theme no longer follows later changes of the person's seed; an own picture is saved as the
   theme's picture, and a scene override on top of an own scene saves the overriding built-in scene instead.
-- **A-74 Holiday scenes and "Automatic follows"** (owner decisions 2026-10-13 are final; the readings below are mine,
-  flagged for confirmation): (a) **New Year** is 1 January only, then Automatic is Winter again; (b) the Easter window
+- **A-74 Holiday scenes and "Seasons & holidays"** (owner decisions 2026-10-13 are final; the readings below are mine,
+  flagged for confirmation): (a) **New Year** is 1 January only, then the calendar is Winter again; (b) the Easter window
   "two weeks around Easter" is Easter Sunday minus 7 days to plus 6 days (14 days); (c) the Christmas window is the
   1st Advent Sunday (the 4th Sunday before 25 December) to 30 December; the 4th Advent Sunday is the last Sunday on or
   before 24 December; candles on a date before 24 December = 1 + whole weeks since the 1st Advent (max 4); from 24
   December all four are lit and the tree lights are on; (d) the Christmas scene picked by hand outside its dates shows
   the full state (tree lights on, 4 candles), also the "Christmas" sample in the Scene card; (e) the `season` sentinel
-  and Automatic use the same calendar mapping; (f) the holiday presets keep the person's light/dark mode like the season
+  and the seasons & holidays setting use the same calendar mapping; (f) the holiday presets keep the person's light/dark mode like the season
   presets (no forced dark, except New Year's Eve, which is dark like Neon and Mordor — owner 2026-10-13); (g) preset names are
   the labels ("Easter", "Summer holidays", "Christmas", "New Year's Eve", "New Year") and the scene values are `easter`,
-  `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) "Automatic follows" is not a pref any more: the switch "Follow the calendar
-  (seasons & holidays)" in the Scene card stores `overrides.scene = 'season'` (owner decision; `automatic` and
-  `automaticBase` were dropped, nothing to migrate); (i) the switch is on by default for Automatic only. The owner text
-  "off for other presets, unless their own scene is seasonal" is read narrowly: a seasonal preset such as Spring keeps
-  showing its own scene and the switch is off for it (flagged for confirmation: the broad reading would make Spring
-  show the Halloween scene in October); turning the switch off on Automatic stores today's calendar scene so the picture
-  does not jump; (j) the settings row reads "Automatic · X" with X the calendar's preset of today; (k) Christmas, New Year's Eve and New Year have a cat but no butterflies; the fireworks
+  `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) the pref stores `seasonal` (`off` | `header` | `all`) and nothing else for this (owner journey, final); new
+  people get `all` on base Default; "Automatic" and the `season` scene sentinel are gone, because `header` resolves the
+  calendar's scene directly; migration on read (marker `seasonalMigrated`): preset Automatic becomes Default + `all`
+  (an explicit scene override of an old Automatic stays and wins), a stored scene `season` becomes `header` with the
+  override removed, everything else `off`; (i) in `all` the calendar's theme replaces seed, mode rule, glow, entries,
+  corners and an imported theme's role colours (the font stays the base's); these are the attributes counted as
+  "colours and style"; fine-tuning overrides sit on top, and an explicit scene override wins over the calendar's scene;
+  choosing a preset turns `all` into `header` and resets overrides, picking a scene sets `off`, setting `header` or
+  `all` drops the scene override; (j) the line under the control reads "Today: <calendar theme> header & colours",
+  "Today: <calendar theme> header" or "Today: nothing changes automatically"; the settings row reads "<calendar
+  theme>" (all), "<theme> · <calendar theme> header" (header) and "<theme>" (off), the theme being the chosen preset or
+  own theme name; (k) Christmas, New Year's Eve and New Year have a cat but no butterflies; the fireworks
   and the candle flicker run only at Full motion (at Reduced and Off the fireworks stand still, the flames are steady);
   (l) holiday presets' colours: Easter #8e6bbf, Summer holidays #0097a7, Christmas #c62828, New Year's Eve #d4af37,
   New Year #00897b.

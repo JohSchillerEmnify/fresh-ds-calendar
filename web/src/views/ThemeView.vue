@@ -19,7 +19,6 @@ import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Slider from '@/components/m3/Slider.vue';
-import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
 import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
@@ -38,7 +37,7 @@ import { useUiStore } from '@/stores/ui';
 import {
   CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES, sliderText,
 } from '@/theme/fine';
-import { docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type ThemeAttrs } from '@/theme/presets';
+import { automaticPreset, docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type Seasonal, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
 const theme = useThemeStore();
@@ -49,8 +48,8 @@ const prefs = usePrefsStore();
 const savingOwn = ref(false);
 const attrs = computed(() => theme.resolved.attrs);
 
-/** Every preset as the gallery shows it today (Automatic = the season's). */
-const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {} }, clock.today)])) as Record<PresetName, ResolvedTheme>);
+/** Every preset as the gallery shows it: its own look, whatever the seasons & holidays setting is. */
+const presetThemes = computed(() => Object.fromEntries(PRESET_NAMES.map((n) => [n, resolveTheme({ preset: n, overrides: {}, seasonal: 'off' }, clock.today)])) as Record<PresetName, ResolvedTheme>);
 
 /** Downloads a theme's document as a `.json` file. */
 function exportTheme(t: StoredTheme) {
@@ -76,16 +75,15 @@ const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', 
 const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
 const isSeason = (s: string) => (BACKDROP_SCENES as readonly string[]).includes(s);
 
-/** The stored scene choice: an explicit pick, the automatic `season`, or the preset's own scene (Automatic follows the calendar). */
-const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.preset === 'Automatic' ? 'season' : attrs.value.scene));
-/** The "Follow the calendar" switch: the picture follows the calendar whatever theme is chosen (stored as the scene `season`). */
-const followsCalendar = computed(() => sceneChoice.value === 'season');
-function setFollows(on: boolean) {
-  if (on) void theme.pick('scene', 'season');
-  // Automatic has no scene of its own: keep today's picture; any other theme goes back to its own scene
-  else if (theme.pref.preset === 'Automatic') void theme.pick('scene', theme.todaysSeasonScene);
-  else void theme.unpick('scene');
-}
+// --- Seasons & holidays (one setting for all of them) ----------------------------------------------------------------
+const seasonalOptions: { value: Seasonal; label: string }[] = [{ value: 'off', label: 'Off' }, { value: 'header', label: 'Header only' }, { value: 'all', label: 'Header + colours' }];
+/** What applies today, in words: the calendar's theme and which parts of it. */
+const seasonalToday = computed(() => {
+  const today = automaticPreset(clock.today);
+  return theme.pref.seasonal === 'all' ? `Today: ${today} header & colours` : theme.pref.seasonal === 'header' ? `Today: ${today} header` : 'Today: nothing changes automatically';
+});
+/** The scene option shown as pressed: the person's pick, or the theme's own scene while the calendar is off (none while it drives the header). */
+const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.seasonal === 'off' ? attrs.value.scene : null));
 /** Glow and corners are a step and a slider value in one: a step is pressed only while the slider is exactly on its value. */
 const STEP_VALUES = { glow: GLOW_STEPS, corners: RADIUS_STEPS } as Record<string, Record<string, number>>;
 const STEP_FIELD = { glow: 'glowStrength', corners: 'radius' } as const;
@@ -216,12 +214,18 @@ function back() {
         </div>
       </section>
 
+      <section class="card" aria-labelledby="h-cal" data-testid="theme-section" data-section="calendar">
+        <h2 id="h-cal">Seasons &amp; holidays</h2>
+        <SegmentedButton :model-value="theme.pref.seasonal" :options="seasonalOptions" label="Seasons & holidays" data-testid="theme-seasonal" @update:model-value="theme.setSeasonal" />
+        <p class="today" data-testid="theme-seasonal-today">{{ seasonalToday }}</p>
+      </section>
+
       <section class="card" aria-labelledby="h-gal" data-testid="theme-section" data-section="presets">
         <h2 id="h-gal">Presets</h2>
         <div class="gallery">
           <ThemeCard
             v-for="n in PRESET_NAMES" :key="n" :name="n" :theme="presetThemes[n]" :pressed="theme.pref.preset === n"
-            :sub="n === 'Automatic' ? presetThemes[n].name : undefined" @choose="theme.choose(n)"
+            @choose="theme.choose(n)"
           />
           <ThemeCard v-for="t in theme.themes" :key="t.id" :name="t.doc.name" :theme="docToResolved(t.doc, t.picture)" :pressed="theme.pref.preset === `theme:${t.id}`" @choose="theme.choose(`theme:${t.id}`)">
             <template #actions>
@@ -235,10 +239,6 @@ function back() {
 
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
         <h2 id="h-scene">Scene</h2>
-        <div class="follow">
-          <span class="ftxt"><span class="lab">Follow the calendar (seasons &amp; holidays)</span><span class="sub">Only the top bar picture changes; your colours stay.</span></span>
-          <Switch :model-value="followsCalendar" label="Follow the calendar (seasons & holidays)" data-testid="theme-scene-follows" @update:model-value="setFollows" />
-        </div>
         <ReuseGroup :g="sceneGroup" />
       </section>
 
@@ -312,7 +312,7 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .hex { margin-top: 10px; }
 .isamp { display: inline-flex; gap: 2px; }
 .isamp :deep(svg) { width: 16px; height: 16px; }
-.follow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }
-.ftxt { display: flex; flex-direction: column; min-width: 0; }
+
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
+.today { margin: 8px 4px 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 </style>

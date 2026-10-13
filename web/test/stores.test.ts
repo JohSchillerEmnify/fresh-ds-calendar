@@ -331,8 +331,9 @@ describe('settings store', () => {
     });
     const s = useSettingsStore();
     await s.load();
-    expect(s.effectiveScene).toBe('none'); // the Default theme has no scene of its own
     const theme = useThemeStore();
+    theme.pref = { preset: 'Default', overrides: {}, seasonal: 'off' };
+    expect(s.effectiveScene).toBe('none'); // the Default theme has no scene of its own
     await theme.pick('scene', 'sunflowers');
     expect(s.effectiveScene).toBe('sunflowers');
     await s.patch({ plant: false });

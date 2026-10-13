@@ -920,15 +920,14 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
-the theme menu sections are {string}, {string} and {string}
+the theme menu sections are {string}, {string}, {string} and {string}
 the scene choices are {string}
 the theme menu has no Mordor button
 the top bar shows the {string} scene
 the top bar shows no scene
 the settings show the theme {string}
-I switch the scene to follow the calendar
-the scene follows the calendar
-the scene does not follow the calendar
+I set the seasons and holidays to {string}
+the seasons and holidays are set to {string}
 the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
 the Christmas tree lights are off
@@ -978,7 +977,7 @@ every option of the {string} setting shows a sample icon
 - "every option ... shows a sample": each option of that setting contains a sample event chip drawn in that style.
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
-- "the theme X is in use": `<html data-theme-name>` equals X.
+- "the theme X is in use": `<html data-theme-name>` equals X (with Header + colours, the calendar's theme for today).
 - "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
   menu is opened first when it is not open. Scene options, in order: "Spring", "Summer", "Fall", "Halloween", "Winter", "Sunflower field", "Mordor",
   "None" (`data-value` `spring`, `summer`, `fall`, `halloween`, `winter`, `sunflowers`, `mordor`, `none`);
@@ -987,16 +986,16 @@ every option of the {string} setting shows a sample icon
   `christmas`, `newyearseve`, `newyear`; the top bar's `data-scene` is the same value);
   "the scene choices are" takes the labels as one comma-separated string, compares them in order, checks that
   they sit in the `scene` section (not in fine-tuning) and that `settings-scene` (the retired second control) is absent.
-- "the theme menu sections are": the headings of the `theme-section` elements (`data-section` `presets`, `scene`,
+- "the theme menu sections are": the headings of the `theme-section` elements (`data-section` `calendar`, `presets`, `scene`,
   `fine-tuning`; the live preview card above them is not a section), in page order. "has no Mordor button":
   `settings-theme-mordor` does not exist.
 - "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
   `spring`..); "shows no scene": `top-bar-scene` is absent.
-- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
-- "I switch the scene to follow the calendar": opens the theme menu when needed, turns the switch
-  `theme-scene-follows` (`role="switch"`, in the Scene section, label "Follow the calendar (seasons & holidays)") on
-  when it is off, and waits for the save. "the scene follows / does not follow the calendar": the switch has
-  `aria-checked` `true` / `false`.
+- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Halloween", "Neon · Halloween header", "Neon").
+- "I set the seasons and holidays to X": opens the theme menu when needed, clicks the option with that label ("Off",
+  "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
+  "Seasons & holidays" section and waits for the save. "the seasons and holidays are set to X": that option has
+  `aria-pressed` `true`. A new person has "Header + colours", so scenarios that want a plain look set "Off" first.
 - "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
   `data-part`), in timeline order left to right, exactly the first N with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
   has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.
