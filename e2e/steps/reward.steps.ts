@@ -1,6 +1,6 @@
 /** Reward effect and micro-interaction steps (STEPS.md "Reward effects"). */
 import { expect } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { itemById } from './support/tasklist.js';
 import { splitList } from './support/tables.js';
 import type { ProbeWindow, RewardLogEntry } from './support/world.js';
@@ -13,17 +13,22 @@ const QUIET_MS = 1_500;
 const rewardLog = (w: World): Promise<RewardLogEntry[]> =>
   w.page.evaluate(() => (window as unknown as ProbeWindow).__rewardLog ?? []);
 
+/** The latest effect of a kind is inserted (default timeout) and removed at most `ms` after its insertion. */
+async function expectEffectLifetime(world: World, kind: string, ms: number) {
+  world.extendTimeout(ms);
+  const latest = async () => (await rewardLog(world)).filter((e) => e.kind === kind).at(-1);
+  await expect.poll(latest, { message: `a "${kind}" reward effect is inserted` }).toBeDefined();
+  await expect
+    .poll(async () => (await latest())?.removedAt, { message: `the "${kind}" effect is removed`, timeout: ms + 2_000 })
+    .toBeDefined();
+  const entry = (await latest())!;
+  expect(entry.removedAt! - entry.insertedAt, `"${kind}" effect lifetime in ms`).toBeLessThanOrEqual(ms);
+}
+
 Then(
   'a {string} effect appears and is removed within {int} ms',
   async function (this: World, kind: string, ms: number) {
-    this.extendTimeout(ms);
-    const latest = async () => (await rewardLog(this)).filter((e) => e.kind === kind).at(-1);
-    await expect.poll(latest, { message: `a "${kind}" reward effect is inserted` }).toBeDefined();
-    await expect
-      .poll(async () => (await latest())?.removedAt, { message: `the "${kind}" effect is removed`, timeout: ms + 2_000 })
-      .toBeDefined();
-    const entry = (await latest())!;
-    expect(entry.removedAt! - entry.insertedAt, `"${kind}" effect lifetime in ms`).toBeLessThanOrEqual(ms);
+    await expectEffectLifetime(this, kind, ms);
   },
 );
 
@@ -113,4 +118,90 @@ Then('the page does not contain the words {string}', async function (this: World
   const text = await this.page.evaluate(() => document.body.innerText);
   const found = splitList(list).filter((w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text));
   expect(found, 'forbidden words present in the page text').toEqual([]);
+});
+
+// ---- The emotional support cat (STEPS.md "Scenes and the support cat") ----
+
+/** Kind under which the reward-effect observer logs `[data-testid="support-cat"]` (support/world.ts). */
+const CAT = 'support-cat';
+/** STEPS.md: "does not appear" = no cat inserted within 4 000 ms after the tick. */
+const CAT_QUIET_MS = 4_000;
+
+Given('the support cat comes by on the next finished list', async function (this: World) {
+  // Forces the next roll on every page load from now on (the app honours it in test mode only).
+  await this.context.addInitScript(() => { (window as unknown as { __catNext?: boolean }).__catNext = true; });
+});
+
+/** STEPS.md: picks the option with that label in `settings-support-cat` and waits for the save (`PATCH /api/prefs`). */
+Given('the support cat is set to {string} in the settings', async function (this: World, label: string) {
+  await this.page.goto('/settings');
+  const option = this.page.getByTestId('settings-support-cat').getByRole('button', { name: label, exact: true });
+  await expect(option).toBeVisible();
+  if ((await option.getAttribute('aria-pressed')) === 'true') return;
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await option.click();
+  await expect(option).toHaveAttribute('aria-pressed', 'true');
+  expect((await saved).status(), 'support cat setting saved').toBe(200);
+});
+
+Then('the support cat appears and is gone within {int} ms', async function (this: World, ms: number) {
+  await expectEffectLifetime(this, CAT, ms);
+});
+
+Then('the support cat does not appear', async function (this: World) {
+  this.extendTimeout(CAT_QUIET_MS);
+  await this.page.waitForTimeout(CAT_QUIET_MS);
+  const seen = (await rewardLog(this)).filter((e) => e.kind === CAT);
+  expect(seen, 'support cat visits').toEqual([]);
+});
+
+/**
+ * STEPS.md: the list's title element (the expanded view's title when that list is open, else its visible card title)
+ * has `data-struck="true"` and a visible strike line (a `strike-line` element over it or `line-through` decoration).
+ */
+Then('the title of the task list {string} is struck through', async function (this: World, title: string) {
+  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title));
+  const el = (await expanded.isVisible())
+    ? expanded.getByTestId('tasklist-expanded-title')
+    : this.taskCard(title).getByTestId('tasklist-card-title');
+  await expect(el, 'title marked as struck through').toHaveAttribute('data-struck', 'true');
+  const line = el.getByTestId('strike-line');
+  if (await line.count()) {
+    await expect(line, 'strike line over the title').toBeVisible();
+    return;
+  }
+  const deco = await el.evaluate((e) => getComputedStyle(e).textDecorationLine);
+  expect(deco, 'title text decoration').toContain('line-through');
+});
+
+// ---- The drag helper cat (STEPS.md "Drag helper cat") ----
+
+const dragCat = (w: World) => w.page.locator('[data-testid="support-cat"][data-role="drag"]');
+
+/** STEPS.md: pose `push-down` and the cat's box is above the dragged card's centre. */
+Then('the support cat pushes the card from above', async function (this: World) {
+  const cat = dragCat(this);
+  await expect(cat).toHaveAttribute('data-pose', 'push-down');
+  const centreY = async (sel: string) => {
+    const b = (await this.page.locator(sel).first().boundingBox())!;
+    return b.y + b.height / 2;
+  };
+  await expect
+    .poll(async () => (await centreY('[data-testid="support-cat"][data-role="drag"]')) < (await centreY('[data-dragging="true"]')), { message: 'cat above the card centre' })
+    .toBe(true);
+});
+
+Then('the support cat sits beside the card with a paw on it', async function (this: World) {
+  await expect(dragCat(this)).toHaveAttribute('data-pose', 'wait');
+});
+
+/** The drag cat is removed at most `ms` after the drop (release time from the pick-up step, both native clock). */
+Then('the support cat is gone within {int} ms', async function (this: World, ms: number) {
+  this.extendTimeout(ms);
+  const latest = async () => (await rewardLog(this)).filter((e) => e.kind === CAT).at(-1);
+  await expect.poll(latest, { message: 'the support cat was there' }).toBeDefined();
+  await expect.poll(async () => (await latest())?.removedAt, { message: 'the support cat is removed', timeout: ms + 2_000 }).toBeDefined();
+  const dropAt = await this.page.evaluate(() => (window as unknown as { __dropAt?: number }).__dropAt);
+  expect(dropAt, 'drop time recorded by the pick-up step').toBeDefined();
+  expect((await latest())!.removedAt! - dropAt!, 'ms from drop until the cat is gone').toBeLessThanOrEqual(ms);
 });

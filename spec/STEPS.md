@@ -901,24 +901,37 @@ the event {string} glows
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
   "Task list".
-## App updates
-
-```
-a new version of the app is deployed
-the app syncs
-I am told a new version is available
-I choose to reload
-the app runs the new version
-```
-
-- "deployed": `POST /api/__test/version { version }` makes the server report a new build version (TEST_MODE).
-- "the app syncs": the same as "I wait for the automatic sync" or a focus-triggered sync.
-- "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
-  `document.documentElement.dataset.appVersion` equals the deployed version.
-
 - Drag + scroll (mouse only): the hold step presses 5 min below the card top, moves to 12 px above the scroll
   container's bottom, then waits. The wheel step asserts scrollTop changed. "drawn on the drop indicator" compares the
   vertical centres of `[data-dragging="true"]` and `drop-indicator`, polling ≤ 3 s for a gap < 4 px.
+
+## Scenes and the support cat (`@scenes`, `@cat`)
+
+```
+the top bar scene shows {string}, {string}, {string} and {string}
+the support cat comes by on the next finished list
+the support cat is set to {string} in the settings
+the support cat appears and is gone within {int} ms
+the support cat does not appear
+the title of the task list {string} is struck through
+I pick up the event {string} and move it down by {int} hours
+the support cat pushes the card from above
+I hold the dragged card still for {int} second(s)
+the support cat sits beside the card with a paw on it
+the support cat is gone within {int} ms
+```
+
+- Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
+  "butterfly" part is present for the check.
+- Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
+  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`); the step lowercases and
+  hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
+  a prior "I open the theme menu" opens it from the week view for today first.
+- "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
+  `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
+  reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in
+  `settings-support-cat` (values `off|sometimes|always`, labels Off/Sometimes/Every time) and waits for the save. "does not appear": no `support-cat` inserted within 4 000 ms after the tick.
+
 ## Tasks calendar (`@tasks-calendar`)
 
 ```
@@ -940,3 +953,10 @@ Google shows the calendar {string}
   calendar list entry has `hidden: false`. The switch is `settings-tasks-calendar-visible`.
 - Approach window: pref `approachWindowHours` (3 | 6 | 12). "at its end" = the chip's `data-at-end="true"` and its
   left edge is in the last quarter of the track. "shows A and B" = exactly these chips (any order).
+- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
+  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
+  element over it).
+- Drag helper cat: `[data-testid="support-cat"][data-role="drag"]` with `data-pose` = `push-down` (above the card),
+  `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
+  "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
+  … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
