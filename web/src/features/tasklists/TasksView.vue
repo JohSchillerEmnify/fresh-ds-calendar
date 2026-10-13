@@ -7,7 +7,7 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { ApiError } from '@/api/client';
 import type { TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
-import IconSwap from '~icons/material-symbols/swap-vert';
+import { IconSwapVert as IconSwap } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';

@@ -67,6 +67,9 @@ import KeyboardArrowUpS from '~icons/material-symbols/keyboard-arrow-up-sharp';
 import ChecklistO from '~icons/material-symbols/checklist';
 import ChecklistR from '~icons/material-symbols/checklist-rounded';
 import ChecklistS from '~icons/material-symbols/checklist-sharp';
+import SwapVertO from '~icons/material-symbols/swap-vert';
+import SwapVertR from '~icons/material-symbols/swap-vert-rounded';
+import SwapVertS from '~icons/material-symbols/swap-vert-sharp';
 import ScienceO from '~icons/material-symbols/science';
 import ScienceR from '~icons/material-symbols/science-rounded';
 import ScienceS from '~icons/material-symbols/science-sharp';
@@ -110,6 +113,7 @@ export const IconIosShare = appIcon('IconIosShare', { outlined: IosShareO, round
 export const IconKeyboardArrowDown = appIcon('IconKeyboardArrowDown', { outlined: KeyboardArrowDownO, rounded: KeyboardArrowDownR, sharp: KeyboardArrowDownS });
 export const IconKeyboardArrowUp = appIcon('IconKeyboardArrowUp', { outlined: KeyboardArrowUpO, rounded: KeyboardArrowUpR, sharp: KeyboardArrowUpS });
 export const IconChecklist = appIcon('IconChecklist', { outlined: ChecklistO, rounded: ChecklistR, sharp: ChecklistS });
+export const IconSwapVert = appIcon('IconSwapVert', { outlined: SwapVertO, rounded: SwapVertR, sharp: SwapVertS });
 export const IconScience = appIcon('IconScience', { outlined: ScienceO, rounded: ScienceR, sharp: ScienceS });
 export const IconSettingsOutline = appIcon('IconSettingsOutline', { outlined: SettingsOutlineO, rounded: SettingsOutlineR, sharp: SettingsOutlineS });
 export const IconSync = appIcon('IconSync', { outlined: SyncO, rounded: SyncR, sharp: SyncS });
