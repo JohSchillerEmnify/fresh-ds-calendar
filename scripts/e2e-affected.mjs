@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// `pnpm e2e:affected [base]`: prints the Playwright --grep for the features touched since `base` (default origin/master,
-// falling back to master when there is no remote). Heuristic, see ARCHITECTURE "Developer tooling":
+// `pnpm e2e:affected [base]`: prints the Playwright --grep for the features touched since `base` (default origin/main,
+// falling back to main when there is no remote). Heuristic, see ARCHITECTURE "Developer tooling":
 //   .feature changed          -> that feature
 //   e2e step/support changed  -> features whose steps match the step definitions in (or using helpers of) that file
 //   web/src file changed      -> features whose step definitions reference a data-testid literal found in that file
@@ -19,9 +19,9 @@ const kebabs = (s) => new Set([...s.matchAll(KEBAB)].map((m) => m[1]));
 const TESTID = /(?:getByTestId|byTestId|tid)\(\s*['"`]([\w-]+)['"`]|data-testid=\\?["']?([\w-]+)/g;
 
 // --- changed files (committed since merge-base, plus working tree and untracked)
-let base = process.argv[2] ?? 'origin/master';
+let base = process.argv[2] ?? 'origin/main';
 const ok = (r) => { try { git('rev-parse', '--verify', '-q', r); return true; } catch { return false; } };
-if (!ok(base) && !process.argv[2]) base = 'master';
+if (!ok(base) && !process.argv[2]) base = 'main';
 if (!ok(base)) { console.error(`e2e:affected: unknown base ${base}`); process.exit(2); }
 const changed = new Set([
   ...git('diff', '--name-only', git('merge-base', base, 'HEAD')).split('\n'),
