@@ -14,7 +14,7 @@
     "redeploy": "bash scripts/deploy.sh",
     "e2e": "bash e2e/run.sh",
     "verify": "node scripts/verify.mjs",
-    "i18n:scan": "node scripts/i18n-scan.mjs",
+    "i18n:scan": "node web/scripts/i18n-scan.ts",
     "e2e:affected": "node scripts/e2e-affected.mjs"
   },
   "engines": {
