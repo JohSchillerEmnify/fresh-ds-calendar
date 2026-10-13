@@ -407,8 +407,7 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   animates when it first appears.
   - Lines (`now-card-line`), compact: current event `"<title> · <d> left"` with a shrinking linear progress bar
     (`now-progress`, M3 linear progress, `aria-valuenow` = elapsed %); next timed event today
-    `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things; each list's own "Next task"
-    stays in its expanded view).
+    `"Next: <title> in <d>"`, else `"Nothing else today"`. No next-task line (owner, 2026-10-13: the card shows only time things).
   - Duration format: `< 60 min` → `35 min`; whole hours → `2 h`; otherwise `1 h 20 min`. Values round down to whole
     minutes.
   - The current event is the one with start ≤ now < end; with several, the one ending first.
@@ -417,9 +416,15 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   notifications are a later option (they need HTTPS, permission and, on iOS, an installed PWA; not in scope).
 - **Task list view** (`features/tasklists/TaskListView.vue`, root `tasklist-view` with `data-tasklist-id`,
   `data-title`): the one component that shows a task list with everything that can be done to it. Head (progress ring,
-  title that renames on tap, done count `x/y` that bumps on change, "From <day>"), tags, "All done! 🎉" or "Next task",
-  item rows (reward checkbox, title that edits on tap with the animated strike-through, up/down/delete), add field,
-  footer (Move to today, Edit, Delete with confirmation). It owns the tick logic once for every host: optimistic
+  title that renames on tap, done count `x/y` that bumps on change, "From <day>", the collapse chevron), tags,
+  "All done! 🎉" (no "Next task" hint: owner 2026-10-13, it repeated the first open item), item rows (reward
+  checkbox, title that edits on tap with the animated strike-through, up/down/delete), the add field (only while
+  adding, above the footer) and one footer row (Move to today, Add item, Edit, Delete with confirmation).
+  **Collapsible** (owner 2026-10-13): the chevron `tasklist-collapse` (`aria-expanded`) hides everything below the head;
+  the root carries `data-collapsed="true|false"`. The state is per list and per device (`localStorage` key
+  `cal.tasklistCollapsed`, a map id → true, every access in try/catch; `features/tasklists/collapse.ts`). The expanded
+  list's sheet (`closable`) has no chevron: it is opened to see the list. Motion: Off and Reduced switch without a
+  height animation; Full fades the body (opacity, 160 ms). It owns the tick logic once for every host: optimistic
   `ops.patchItem`, row flash, `useCelebrate` on the tick that completes the list, `lists.markFinished` for that list.
   Hosts only frame it: the **expanded list** (`ExpandedTaskList.vue`) wraps it in `AdaptiveSheet` (placement, Escape,
   focus, `tasklist-close`, which the view renders only when its host listens to `close`); the **tray** renders one
@@ -623,12 +628,13 @@ Rules for implementers:
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
 | `resize-handle-top`, `resize-handle-bottom` | inside the block of the entry being resized (`event-chip` / `tasklist-card`) |
 | `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`) with one `tasklist-card-item` (`data-title`) per item, `tasklist-card-count` (`1/3`), `tasklist-card-time` |
-| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("+ Add item" button, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
+| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("Add item" button in the footer row beside `tasklist-edit` and `tasklist-delete`, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-collapse` (chevron in the head, `aria-expanded`; the `tasklist-view` root has `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
 | `tasks-group-by` | segmented button, options `data-value="time\|category\|none"`, labels Time/Category/None, `aria-pressed` |
 | `tasks-sort-by` | select, labels Date/Name/Category/Last changed/Progress |
+| `tasks-collapse-all` | one toggle after the sort controls: collapses every list shown in the Open tab, or expands them all when all are collapsed (`aria-pressed="true"` = all collapsed) |
 | `tasks-sort-dir` | toggle button next to it, `aria-pressed="true"` when reversed, `data-dir="default\|reversed"` |
 | `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
 | `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
@@ -1159,7 +1165,7 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
   stack layout, zoom around a point, area lookup) lives in `web/src/features/tasklists/canvas.ts` with unit tests.
 - **Notes** (`canvas-note`): a card in the category colour with a grip strip on top (the date, when the list has one),
   the title, the done count and the items with the same `RewardCheckbox` rows as everywhere. A note is the tray's
-  `TaskListView` in a `compact` mode (no move/delete buttons, next-task hint, add field or footer), so ticking, the
+  `TaskListView` in a `compact` mode (no move/delete buttons, add field or footer), so ticking, the
   celebration and the support cat are the existing code and the existing optimistic item ops. Tapping the title
   opens the task list dialog (`titleOpensDialog`). A tick that finishes the list plays the usual finish feedback, then
   the note leaves the canvas (the list is in the Archive, ARCHITECTURE "Archive"): the Tasks view store keeps a list that

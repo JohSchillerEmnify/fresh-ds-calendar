@@ -1223,11 +1223,32 @@ the Tasks view lists {string} under {string}
 the Tasks view lists {string}
 the Tasks view groups are {string}
 the Tasks view is grouped by {string}
+I collapse the card of the task list {string} in the Tasks view
+I expand the card of the task list {string} in the Tasks view
+the card of the task list {string} in the Tasks view is collapsed
+the card of the task list {string} in the Tasks view is expanded
+the card of the task list {string} in the Tasks view shows the items {string}
+the card of the task list {string} in the Tasks view shows no items
+the card of the task list {string} in the Tasks view shows the done count {string}
+I collapse all task lists in the Tasks view
+I expand all task lists in the Tasks view
+the Add item button of the task list {string} in the Tasks view shares a row with Edit and Delete
+the add field of the task list {string} in the Tasks view is hidden
+the add field of the task list {string} in the Tasks view is shown
+I tap Add item of the task list {string} in the Tasks view
 the calendar shows the task list {string} on {date}
 neither the calendar on {date} nor the open tasks tray shows the task list {string}
 ```
 
 - Steps that act in the Tasks view open it first (`/tasks`, via `view-switch-tasks`) when it is not shown.
+- Collapse steps (`tasklists-collapse.feature`) act on the `tasks-item` with `data-title` L: "collapse/expand the card"
+  clicks its `tasklist-collapse` when its `aria-expanded` differs; "is collapsed / expanded" = `data-collapsed` on
+  its `tasklist-view` is `true` / `false`; "shows no items" = no visible `tasklist-item`; "shows the items" = the
+  visible `tasklist-item` `data-title`s joined by ", "; "shows the done count" = `tasklist-expanded-count`.
+  "collapse/expand all" clicks `tasks-collapse-all` until every card shows the wanted state. "shares a row with
+  Edit and Delete": `tasklist-add`, `tasklist-edit` and `tasklist-delete` have the same vertical centre (within
+  4 px). "the add field is hidden / shown" = `tasklist-new-item` not visible / visible; "I tap Add item" clicks
+  `tasklist-add`.
 - "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
   without a date), type T into `tasklist-title`, `tasklist-save`.
