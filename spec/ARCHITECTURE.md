@@ -1520,6 +1520,14 @@ browser does not change.
   web app (the app's language), the channel name by Android (the system language). Alternatives weighed:
   `@capacitor/local-notifications` (a generic plugin with more surface than one reminder needs, and its own permission
   flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
+- **Transition warnings as notifications** (2026-10-14, ADHD-RESEARCH R33): `transitionWarning.ts` also schedules the
+  next warnings (at most 8: timed events of today and tomorrow as far as loaded, first day of multi-day events, warning
+  time = start minus `transitionWarningMinutes` still ahead; `upcomingWarnings`) with `Reminders.schedule({ id:
+  'transition:<eventId>@<date>T<start>', at, title: "Dentist starts in 10 min", body: start })`, cancels ids that left
+  that list (moved, deleted, setting off) and re-sends only changes. While the app is hidden nothing is re-sent, so the
+  schedule stays as it was left; the native side skips them while the app is in front (the snackbar shows them).
+  Events added elsewhere while the app stays closed are not scheduled until it is opened again (the widget's background
+  fetch does not schedule; a later step if needed). Same channel "Reminders" as the bedtime reminder.
 - **Distribution: a download link.** `scripts/android-build.sh` builds a release-signed APK (key generated locally in
   `~/.config/calendar-android/`, never in git; the build falls back to the debug key without it) and copies it to
   `/home/sauron/docker-compose/calendar/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The

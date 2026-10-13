@@ -14,6 +14,7 @@ import { absMinutes, type BedtimeWindow } from './bedtime';
 import { useBedtimeWindows } from './useBedtime';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
+import { remindersPlugin } from '@/native/reminders';
 
 /** A reminder that is due. */
 export interface BedtimeReminder {
@@ -76,18 +77,6 @@ export function upcomingReminder(windows: readonly BedtimeWindow[], nowAbs: numb
   if (minutes <= 0) return null;
   const w = windows.filter((x) => x.start - minutes > nowAbs).sort((a, b) => a.start - b.start)[0];
   return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11) } : null;
-}
-
-/** The native plugin of the Android app (`android/…/notify/RemindersPlugin.java`); absent in a browser. */
-interface RemindersPlugin {
-  schedule(o: { id: string; at: number; title: string; body: string }): Promise<unknown>;
-  cancel(o: { id: string }): Promise<unknown>;
-}
-
-function remindersPlugin(): RemindersPlugin | null {
-  if (typeof window === 'undefined') return null;
-  const cap = (window as unknown as { Capacitor?: { Plugins?: { Reminders?: RemindersPlugin } } }).Capacitor;
-  return cap?.Plugins?.Reminders ?? null;
 }
 
 /** Id of the bedtime reminder in the native plugin (one pending at a time). */

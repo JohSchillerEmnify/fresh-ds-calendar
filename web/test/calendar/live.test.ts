@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import NowMarker from '@/features/calendar/NowMarker.vue';
 import NowCard from '@/features/calendar/NowCard.vue';
-import { startTransitionWarnings, stopTransitionWarnings } from '@/features/calendar/transitionWarning';
+import { NATIVE_WARNING_PREFIX, startTransitionWarnings, stopTransitionWarnings, upcomingWarnings } from '@/features/calendar/transitionWarning';
 import { enableTimerCounting } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -169,5 +169,39 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     useItemsStore().applyResponse(D, '2026-10-13', [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later' })], 's');
     await vi.advanceTimersByTimeAsync(50 * 60000);
     expect(ui.snackbars).toHaveLength(0);
+  });
+});
+
+describe('transition warnings as Android notifications', () => {
+  afterEach(() => { delete (window as unknown as { Capacitor?: unknown }).Capacitor; stopTransitionWarnings(); });
+
+  it('lists the next warnings of today and tomorrow, soonest first, events only', async () => {
+    const { items } = await boot('09:00', false);
+    const today = items.byDate.get(D) ?? [];
+    const tomorrow = [ev('gym', t('2026-10-13', '07:30'), t('2026-10-13', '08:30'), { title: 'Gym' })];
+    items.applyResponse('2026-10-13', '2026-10-14', tomorrow, 's2');
+    const next = upcomingWarnings([today, items.byDate.get('2026-10-13') ?? []], 540, 10);
+    expect(next.map((w) => [w.title, w.inMin, w.start])).toEqual([['Dentist', 90, '10:40'], ['Call', 230, '13:00'], ['Gym', 1440 + 450 - 10 - 540, '07:30']]);
+    expect(upcomingWarnings([today], 540, 0)).toEqual([]);
+    expect(upcomingWarnings([today], 631, 10).map((w) => w.title)).toEqual(['Call']); // Dentist's warning time 10:30 has passed
+  });
+
+  it('schedules them through the plugin, re-sends only changes and cancels what is gone', async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    const { clock, items } = await boot('09:00', false);
+    useSettingsStore().settings = settingsFixture();
+    startTransitionWarnings();
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_WARNING_PREFIX), o.title, o.at]))
+      .toEqual([[true, 'Dentist starts in 10 min', at('10:30').getTime()], [true, 'Call starts in 10 min', at('12:50').getTime()]]);
+    clock.nowTick = at('09:01').getTime();
+    await nextTick();
+    expect(plugin.schedule).toHaveBeenCalledTimes(2);
+    items.applyResponse(D, '2026-10-13', [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's3');
+    await nextTick();
+    expect(plugin.cancel).toHaveBeenCalledWith({ id: expect.stringContaining('dentist') });
   });
 });
