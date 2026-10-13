@@ -95,8 +95,6 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type ViewName = 'month' | 'week' | 'day';
 export type AnimationLevel = 'full' | 'reduced' | 'off';
 export type GardenStyle = 'plant' | 'sunflowers' | 'off';
-/** Top app bar background scene (owner addition, not yet in API.md; see web/README.md). */
-export type SceneName = 'sunflowers' | 'mordor' | 'none';
 /** How often the emotional support cat comes by when a task list is finished (per person, `GET/PATCH /api/prefs`). */
 export type SupportCatSetting = 'off' | 'sometimes' | 'always';
 
@@ -115,6 +113,8 @@ export interface Prefs {
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;
   supportCat: SupportCatSetting;
+  /** Show the small build-version label in the bottom-left corner of the main UI. */
+  versionInCorner: boolean;
 }
 
 export interface Settings {
@@ -129,8 +129,6 @@ export interface Settings {
   transitionWarningMinutes: 0 | 5 | 10 | 15;
   streakFlame: boolean;
   garden: GardenStyle;
-  /** Optional until the server stores it; the web app falls back to localStorage. */
-  scene?: SceneName;
   categories: Category[];
   updated: DateTime;
   version: number;

@@ -17,7 +17,6 @@ const TASKLIST_FIELDS: Record<string, string> = {
   time: 'tasklist-time',
   items: 'tasklist-items',
   category: 'tasklist-category',
-  tags: 'tasklist-tags',
   estimate: 'tasklist-estimate',
   repeat: 'tasklist-repeat',
 };

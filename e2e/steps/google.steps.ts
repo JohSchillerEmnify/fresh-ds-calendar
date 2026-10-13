@@ -131,17 +131,6 @@ Then(
 );
 
 Then(
-  'the Google event for the task list {string} stores the tags {string}',
-  async function (this: World, title: string, tags: string) {
-    await pollEvent(this, title, true, (ev) => {
-      const raw = ev.extendedProperties?.private?.tags;
-      const got = raw ? (JSON.parse(raw) as string[]).join(', ') : '';
-      return got === tags ? 'ok' : `tags ${show(raw)}`;
-    });
-  },
-);
-
-Then(
   'the Google event for the task list {string} has the color ID {string}',
   async function (this: World, title: string, colorId: string) {
     await pollEvent(this, title, true, (ev) => (ev.colorId === colorId ? 'ok' : `colorId ${show(ev.colorId)}`));

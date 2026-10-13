@@ -72,8 +72,6 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type ViewName = 'month' | 'week' | 'day';
 export type AnimationLevel = 'full' | 'reduced' | 'off';
 export type GardenStyle = 'plant' | 'sunflowers' | 'off';
-/** Top app bar background scene (owner addition, not yet in spec/API.md). */
-export type SceneName = 'sunflowers' | 'mordor' | 'none';
 
 export interface Settings {
   themeMode: ThemeMode;
@@ -87,7 +85,6 @@ export interface Settings {
   transitionWarningMinutes: 0 | 5 | 10 | 15;
   streakFlame: boolean;
   garden: GardenStyle;
-  scene: SceneName;
   categories: Category[];
   updated: DateTime;
   version: number;

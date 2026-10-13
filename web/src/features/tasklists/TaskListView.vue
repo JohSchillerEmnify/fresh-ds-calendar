@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head, tags, "All done" /
+ * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head, "All done" /
  * next task, item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
  * open tasks tray (one per list). All item changes go through `ops.ts` (optimistic, queued, rolled back with a
  * snackbar on failure); the tick logic (flash, celebration, support cat, markFinished) lives only here. A complete list's title is struck through
@@ -17,7 +17,6 @@ import IconAdd from '~icons/material-symbols/add';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
-import Chip from '@/components/m3/Chip.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import SupportCat from '@/features/motivation/SupportCat.vue';
@@ -229,10 +228,6 @@ defineExpose({ root, busy });
       <IconButton v-if="closable" label="Close" data-testid="tasklist-close" @click="emit('close')"><IconClose /></IconButton>
     </header>
 
-    <div v-if="tl.tags.length" class="tags">
-      <Chip v-for="t in tl.tags" :key="t" variant="assist" data-testid="tasklist-expanded-tag" :data-name="t">{{ t }}</Chip>
-    </div>
-
     <p v-if="complete" class="celebrate" data-testid="tasklist-complete-message" role="status">All done! 🎉</p>
     <p v-else-if="next" class="next" data-testid="tasklist-next-task">Next task: <strong>{{ next.title }}</strong></p>
 
@@ -287,7 +282,6 @@ defineExpose({ root, busy });
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }
-.tags { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 0 8px; }
 .next { margin: 4px 0 4px; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); font: var(--md-sys-typescale-body-medium); overflow: hidden; text-overflow: ellipsis; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
 .list { list-style: none; margin: 4px 0 0; padding: 0; }

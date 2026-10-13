@@ -27,7 +27,6 @@ export function defaultSettings(now: string): Settings {
     transitionWarningMinutes: 10,
     streakFlame: true,
     garden: 'plant',
-    scene: 'sunflowers',
     categories: DEFAULT_CATEGORIES.map(withGoogleColor),
     updated: now,
     version: 1,
@@ -38,13 +37,22 @@ export function defaultSettings(now: string): Settings {
 export class SettingsStore {
   private s: Settings;
   private readonly file: string | null;
+  /** The retired `Settings.scene`, kept on disk (not served) until every person's theme has absorbed it. */
+  private legacyScene: string | undefined;
 
   constructor(dataDir: string | null, private readonly clock: Clock, private readonly tz: string) {
     this.file = dataDir ? path.join(dataDir, 'settings.json') : null;
-    const loaded = this.file ? readJson<Partial<Settings>>(this.file) : null;
+    const raw = this.file ? readJson<Partial<Settings> & { scene?: string }>(this.file) : null;
+    const { scene, ...loaded } = raw ?? {};
+    this.legacyScene = typeof scene === 'string' ? scene : undefined;
     const defaults = defaultSettings(this.stamp());
-    this.s = loaded ? { ...defaults, ...loaded } : defaults;
-    if (!loaded) this.save(false);
+    this.s = raw ? { ...defaults, ...loaded } : defaults;
+    if (!raw) this.save(false);
+  }
+
+  /** The retired top bar scene (`sunflowers`, `mordor` or `none`), or undefined when none was ever stored. */
+  legacyTopBarScene(): string | undefined {
+    return this.legacyScene;
   }
 
   private stamp(): string {
@@ -77,6 +85,6 @@ export class SettingsStore {
   }
 
   private save(_bump: boolean): void {
-    if (this.file) writeJsonAtomic(this.file, this.s);
+    if (this.file) writeJsonAtomic(this.file, this.legacyScene ? { ...this.s, scene: this.legacyScene } : this.s);
   }
 }

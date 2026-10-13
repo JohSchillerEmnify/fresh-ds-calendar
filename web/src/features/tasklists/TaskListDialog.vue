@@ -5,7 +5,6 @@ import { api, ApiError } from '@/api/client';
 import type { TaskList } from '@/api/types';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
-import Chip from '@/components/m3/Chip.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
@@ -13,7 +12,7 @@ import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
-import { newTaskListForm, parseItems, parseTags, validateForm, type TaskListForm } from './validate';
+import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string; time?: string | null }>();
@@ -37,7 +36,7 @@ function fill(t: TaskList) {
   etag = t.etag;
   Object.assign(form, {
     title: t.title, date: t.date, time: t.time ?? '', estimate: t.estimateMinutes ? String(t.estimateMinutes) : '',
-    categoryId: t.categoryId ?? 'none', tags: t.tags.join(', '),
+    categoryId: t.categoryId ?? 'none',
   });
   original = JSON.stringify(form);
 }
@@ -52,11 +51,9 @@ onMounted(async () => {
 });
 
 const dirty = computed(() => JSON.stringify(form) !== original);
-const tagList = computed(() => parseTags(form.tags));
 const catOptions = computed(() => [{ value: 'none', label: 'No category' }, ...settings.categories.map((c) => ({ value: c.id, label: c.name }))]);
 const cat = computed(() => settings.categoryById(form.categoryId === 'none' ? null : form.categoryId));
 const repeatOptions = [{ value: '', label: 'Does not repeat' }, { value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }];
-function removeTag(t: string) { form.tags = tagList.value.filter((x) => x !== t).join(', '); }
 
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
@@ -64,10 +61,11 @@ async function save() {
   conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
+  // Tags are shelved (ARCHITECTURE "Tags shelved"): no `tags` key, so the server keeps the stored ones.
   const body = {
     title: form.title.trim(), date: form.date, time: form.time || null,
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
-    categoryId: form.categoryId === 'none' ? null : form.categoryId, tags: tagList.value,
+    categoryId: form.categoryId === 'none' ? null : form.categoryId,
   };
   try {
     if (editing.value) await items.updateTaskList(props.id!, body, etag);
@@ -116,10 +114,6 @@ function remove() {
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" label="Category" :options="catOptions" class="grow" data-testid="tasklist-category" />
       </div>
-      <TextField v-model="form.tags" label="Tags (comma separated)" data-testid="tasklist-tags" autocomplete="off" />
-      <div v-if="tagList.length" class="chips">
-        <Chip v-for="t in tagList" :key="t" variant="assist" :title="`Remove ${t}`" @click="removeTag(t)">{{ t }} ✕</Chip>
-      </div>
       <TextField v-if="!editing" v-model="form.items" label="Items (one per line)" multiline :rows="4" data-testid="tasklist-items" />
       <Select v-if="!editing" v-model="form.repeat" label="Repeat" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div class="actions">
@@ -141,7 +135,6 @@ function remove() {
 .catrow { display: flex; gap: 10px; align-items: center; }
 .dot { flex: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .grow { flex: 1; min-width: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }
 </style>

@@ -30,8 +30,8 @@ re-seeds relative to the current app clock. Settings are kept. A "Reset demo dat
 ## Deviations and additions (relative to spec/API.md and ARCHITECTURE.md)
 
 Contract-relevant for web/e2e:
-1. `Settings.scene: 'sunflowers' | 'mordor' | 'none'` (default `sunflowers`) is stored and validated; `PATCH /api/settings`
-   accepts it. Theme presets (including `mordor` #c43e00) live in the web app; the server only stores `seedColor`.
+1. The scene is the theme's `scene` attribute (`/api/prefs/theme`), not a setting; `PATCH /api/settings` rejects `scene`.
+   The old `Settings.scene` is migrated once per person into the theme (ARCHITECTURE "Themes"). Theme presets (including `mordor` #c43e00) live in the web app; the server only stores `seedColor`.
 2. `POST /api/demo/reset` (new, see above).
 3. Unknown JSON keys give `400 VALIDATION_ERROR` with message `Unknown field` and `details[].field`. A missing required
    key gives a message such as `Title is required` / `Name is required` / `Start is required`.

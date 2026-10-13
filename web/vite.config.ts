@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import Icons from 'unplugin-icons/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-/** Build version; must equal the server's APP_VERSION (default '0.1.0') for /api/config comparison. */
+/** Build version (X.Y.Z+<sha>); must equal the server's APP_VERSION (default '0.1.0') for /api/config comparison. */
 const APP_VERSION = process.env.APP_VERSION ?? '0.1.0';
 
 export default defineConfig({

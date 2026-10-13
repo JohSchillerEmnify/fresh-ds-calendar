@@ -6,6 +6,7 @@ import { createAppRouter } from '@/router';
 import { registerBuiltinExtensions } from '@/extensions/builtin';
 import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
+import { useThemeStore } from '@/stores/theme';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:00+02:00`, `${d}T${Number(h) + 1}:00:00+02:00`);
@@ -283,7 +284,7 @@ describe('month, week and day views', () => {
 });
 
 describe('filter chips', () => {
-  it('toggle categories and tags into the URL query, clear removes them', async () => {
+  it('toggle categories into the URL query, no tag chips (tags shelved), clear removes them', async () => {
     const tl = { kind: 'tasklist', id: 'tl', calendarId: 'primary', title: 'G', date: '2026-10-14', time: null, items: [], doneCount: 0, totalCount: 0, estimateMinutes: null, categoryId: 'shopping', tags: ['weekend'], color: '#000', etag: 'e', updated: '' };
     const { w, router } = await mountAt('/week/2026-10-12', {}, [tl]);
     expect(w.find(tid('filter-bar')).exists()).toBe(false);
@@ -294,9 +295,7 @@ describe('filter chips', () => {
     await w.get('[data-testid="filter-chip-category"][data-name="Work"]').trigger('click');
     await wait(() => expect(router.currentRoute.value.query.categories).toBe('shopping,work'));
     expect(w.get('[data-testid="filter-chip-category"][data-name="Work"]').attributes('aria-pressed')).toBe('true');
-    expect(w.findAll(tid('filter-chip-tag')).map((c) => c.attributes('data-name'))).toEqual(['weekend']);
-    await w.get(tid('filter-chip-tag')).trigger('click');
-    await wait(() => expect(router.currentRoute.value.query.tags).toBe('weekend'));
+    expect(w.find(tid('filter-chip-tag')).exists()).toBe(false);
     await w.get(tid('filter-button')).trigger('click'); // stays open while active
     expect(w.find(tid('filter-bar')).exists()).toBe(true);
     await w.get(tid('filter-clear')).trigger('click');
@@ -312,12 +311,23 @@ describe('filter chips', () => {
 });
 
 describe('settings', () => {
-  it('shows defaults, saves theme mode and presets, validates the custom seed, applies the theme', async () => {
-    const { w, m } = await mountAt('/settings');
+  it('has seven sections, each setting once; theme controls only in the theme menu', async () => {
+    const { w, router } = await mountAt('/settings');
     await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
+    const sections = w.findAll(tid('settings-section'));
+    expect(sections.map((x) => x.attributes('data-section'))).toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'labs', 'account']);
+    expect(sections.map((x) => x.get('h2').text())).toEqual(['Appearance', 'Calendar', 'Task lists', 'Focus & motivation', 'Motion & sound', 'Labs', 'Account & data']);
+    expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home']);
+    for (const id of ['settings-theme-mode', 'settings-seed-preset', 'settings-seed-custom', 'settings-scene', 'settings-theme-mordor']) expect(w.find(tid(id)).exists()).toBe(false);
+    expect(w.get(tid('settings-theme')).text()).toContain('Default');
+    await w.get(tid('settings-theme')).trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/settings/theme'));
+  });
+  it('theme menu: saves theme mode and presets, validates the custom seed, applies the theme', async () => {
+    const { w, m } = await mountAt('/settings/theme');
+    await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
     expect(w.get('[data-testid="settings-theme-mode"] [aria-pressed="true"]').attributes('data-value')).toBe('system');
     expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Blue');
-    expect(w.findAll(tid('settings-category')).map((c) => c.attributes('data-name'))).toEqual(['Shopping', 'To-do', 'Work', 'Home']);
     await w.get('[data-testid="settings-theme-mode"] [data-value="dark"]').trigger('click');
     await wait(() => expect(document.documentElement.dataset.theme).toBe('dark') as never).catch(() => undefined);
     expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ themeMode: 'dark' });
@@ -335,11 +345,21 @@ describe('settings', () => {
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Custom'));
     expect(m.calls.at(-1)!.body).toEqual({ seedColor: '#8e24aa' });
   });
-  it('Mordor preset sets seed, dark mode and scene in one patch', async () => {
-    const { w, m } = await mountAt('/settings');
+  it('Mordor shortcut (theme menu) sets seed and dark mode, and the theme scene', async () => {
+    const { w, m } = await mountAt('/settings/theme');
+    await wait(() => expect(w.find(tid('settings-theme-mordor')).exists()).toBe(true));
     await w.get(tid('settings-theme-mordor')).trigger('click');
     await wait(() => expect(m.calls.some((c) => c.method === 'PATCH')).toBe(true));
-    expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ seedColor: '#c43e00', themeMode: 'dark', scene: 'mordor' });
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/settings')!.body).toEqual({ seedColor: '#c43e00', themeMode: 'dark' });
+    await wait(() => expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')).toBe(true));
+  });
+  it('the Theme row shows the seasonal theme in use for Automatic and the preset name otherwise', async () => {
+    const { w } = await mountAt('/settings');
+    const theme = useThemeStore();
+    theme.pref = { preset: 'Automatic', overrides: {} };
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toMatch(/^Automatic · (Spring|Summer|Fall|Halloween|Winter)$/)); // depends on today's season
+    theme.pref = { preset: 'Neon', overrides: {} };
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Neon'));
   });
   it('persists motivation toggles, shows the best streak and the demo reset only in mock mode', async () => {
     const { w, m } = await mountAt('/settings');

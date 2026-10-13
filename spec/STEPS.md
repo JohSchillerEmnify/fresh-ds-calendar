@@ -424,6 +424,11 @@ pressing the create button shows a state layer
 
 ```
 I open the settings
+the settings sections are {string}
+the settings page has no theme mode or seed colour controls
+the server reports the build version {string}
+the settings show the version {string}
+the corner shows the version {string}
 the settings screen is shown
 I leave the settings
 I choose the theme mode {string}
@@ -469,8 +474,6 @@ the category dialog shows the error {string}
 the task list {string} has the color {string}
 the task list {string} shows the icon {string}
 the task list {string} shows no icon
-the expanded task list shows the tags {string}
-the Google event for the task list {string} stores the tags {string}
 the Google event for the task list {string} has the color ID {string}
 the Google event for the task list {string} has no color ID
 I show the filters
@@ -905,6 +908,10 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
+the scene choices are {string}, {string}, {string} and {string}
+the top bar shows the {string} scene
+the top bar shows no scene
+the settings show the theme {string}
 the preview event is drawn as an outline
 the event {string} is drawn as an outline
 the event {string} glows
@@ -917,6 +924,13 @@ the event {string} glows
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X.
+- "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
+  menu is opened first when it is not open. Scene options, in order: "Season", "Sunflower field", "Mordor", "None"
+  (`data-value` `season`, `sunflowers`, `mordor`, `none`); "the scene choices are" compares their labels and checks
+  that `settings-scene` (the retired second control) is absent.
+- "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
+  `spring`..); "shows no scene": `top-bar-scene` is absent.
+- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
 - New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to
@@ -987,6 +1001,14 @@ Google shows the calendar {string}
   reads `data-hour-height` of `time-grid` (± 10 %) compared with the value captured before the pinch / at page open.
 - "drawn a quarter as tall": block heights of the task list card and the event chip, ratio 0.25 ± 0.05 (both at the
   current hour height; the step zooms in first if the list would hit the minimum).
+- Settings sections (owner 2026-10-13): `settings-section` with `data-section` = appearance | calendar | tasklists |
+  motivation | motion | labs | account. Theme mode and seed colour steps (`I choose the theme mode`, `I choose the seed
+  color preset`, `I enter the custom seed color`, `the seed color … is selected`, `the theme mode … is selected`)
+  operate in the theme menu (open it from the settings' `settings-theme` if not open); the testids are unchanged.
+  "I open the settings" stays the settings page.
+- Version: "the server reports the build version V" uses the existing `POST /api/__test/version { version }` and
+  reloads; `settings-version` text starts with "Version 0.4.2"; `app-version` text equals "0.4.2". The corner switch
+  goes through the generic `I turn on {string} in the settings` step.
 - "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
   `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
   element over it).
