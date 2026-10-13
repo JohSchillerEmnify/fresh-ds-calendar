@@ -9,6 +9,11 @@ import { useSettingsStore } from './settings';
 import { checkServerVersion, checkVersion } from '@/pwa/update';
 import { t } from '@/i18n';
 
+/** In the Android app only: hands the home-screen widget a fresh snapshot (a no-op in a browser, nothing is loaded). */
+export function pushWidget(): void {
+  if (typeof window !== 'undefined' && 'Capacitor' in window) void import('@/native/widgetBridge').then((m) => m.onSynced());
+}
+
 export type SyncState = 'idle' | 'syncing' | 'error';
 const FOCUS_DEBOUNCE_MS = 500;
 
@@ -83,6 +88,7 @@ export const useSyncStore = defineStore('sync', () => {
       error.value = null;
       state.value = 'idle';
       lastSync.value = new Date().toISOString();
+      pushWidget();
     }
     running.value = false;
   }
