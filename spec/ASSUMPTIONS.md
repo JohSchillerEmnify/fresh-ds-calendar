@@ -246,7 +246,7 @@ spec files are named.
   density is three steps (Compact 0.9, Comfortable 1, Airy 1.12 of the font size), not a slider; it scales font sizes and
   the task list row height, not line heights and not the time grid; (f) the checkbox has two settings: shape (round, square,
   rounded; default rounded, which is today's look) and fill (filled default, outline), the glyph a third (tick default, bold
-  tick, cross, dot); they apply to the task item checkbox, the task list card box and the preview; (g) steps store their
+  tick, cross, dot); they apply to the task item checkbox and the preview; the tiny box in the task list card takes the shape only (its mark stays a tick); (g) steps store their
   value too (`glow` + `glowStrength`), so a step pick over a theme that carries its own number wins; (h) an own theme's
   `glowStrength`/`radius` win over its `glow`/`corners` step for the look, but the step fields are always written; (i) the
   **app icon set was not built**: it needs an indirection over all 38 import sites, so the options go to the owner; no

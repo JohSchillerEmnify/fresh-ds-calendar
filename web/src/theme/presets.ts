@@ -4,6 +4,7 @@
  */
 import type { ThemeDecor, ThemeDensity, ThemeDoc, ThemeFont, ThemePicture } from '@calendar/shared';
 import { holidayOf, type Holiday } from './holidays';
+import { FINE_KEYS, sanitizeFine, type ThemeFine } from './fine';
 import type { ThemeMode } from './index';
 
 export type Glow = 'off' | 'soft' | 'neon';
@@ -25,11 +26,13 @@ export type CustomThemeKey = `theme:${string}`;
 /** What the person's fine-tuning replaces of the chosen theme: the four attributes and the seed colour. */
 /** What a person can store as scene: any scene, or `season`, the automatic choice that follows today's date. */
 export type SceneChoice = ThemeScene | 'season';
-export type ThemeOverrides = Partial<Omit<ThemeAttrs, 'scene'>> & { scene?: SceneChoice; seed?: string };
+export type ThemeOverrides = Partial<Omit<ThemeAttrs, 'scene'>> & ThemeFine & { scene?: SceneChoice; seed?: string };
 export interface ThemePref { preset: PresetName | CustomThemeKey; overrides: ThemeOverrides }
 /** What the one apply path works from, whether it came from a preset or an imported theme document. */
 export interface ResolvedTheme {
   name: string; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs;
+  /** Fine-tuning values (sliders, density, checkbox) of the theme; what is left out takes the step's or the app's default. */
+  fine: ThemeFine;
   /** Role colours replacing single roles of the generated scheme. */
   roles?: { light?: Record<string, string>; dark?: Record<string, string> };
   font?: ThemeFont;
@@ -105,6 +108,7 @@ export function docToResolved(doc: ThemeDoc, picture?: ThemePicture): ResolvedTh
       glow: doc.glow ?? 'off', entries: doc.entries ?? 'solid', corners: doc.corners ?? 'round',
       scene: own || draw ? 'custom' : doc.scene?.builtin ?? 'none',
     },
+    fine: sanitizeFine(doc),
     ...(doc.colors?.light || doc.colors?.dark ? { roles: { light: doc.colors.light, dark: doc.colors.dark } } : {}),
     ...(doc.font && doc.font !== 'system' ? { font: doc.font } : {}),
     ...(own ? { sceneSvg: picture } : {}),
@@ -126,10 +130,16 @@ export function resolveTheme(pref: ThemePref, today: string, custom: Record<stri
   const id = pref.preset.startsWith('theme:') ? pref.preset.slice(6) : null;
   const own = id === null ? { doc: presetDoc(presetFor(pref.preset as PresetName, today)) } : custom[id];
   const base = own ? docToResolved(own.doc, own.picture) : docToResolved(presetDoc(PRESETS.Default));
-  const { seed, ...attrs } = pref.overrides;
-  const merged = { ...base.attrs, ...attrs };
+  const { seed, ...rest } = pref.overrides;
+  const fine = sanitizeFine(rest);
+  const attrs = Object.fromEntries(Object.entries(rest).filter(([k]) => !(FINE_KEYS as readonly string[]).includes(k))) as Partial<Omit<ThemeAttrs, 'scene'>> & { scene?: SceneChoice };
+  const merged: Omit<ThemeAttrs, 'scene'> & { scene: SceneChoice } = { ...base.attrs, ...attrs };
+  // a step picked as override (glow, corners) wins over the theme's own number, which the step's own value then stands for
+  const inherited = { ...base.fine };
+  if (rest.glow && fine.glowStrength === undefined) delete inherited.glowStrength;
+  if (rest.corners && fine.radius === undefined) delete inherited.radius;
   // the automatic choice follows the date
-  return { ...base, ...(seed ? { seed } : {}), attrs: { ...merged, scene: merged.scene === 'season' ? seasonScene(today) : merged.scene } };
+  return { ...base, ...(seed ? { seed } : {}), fine: { ...inherited, ...fine }, attrs: { ...merged, scene: merged.scene === 'season' ? seasonScene(today) : merged.scene } };
 }
 
 const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
@@ -139,6 +149,6 @@ export function sanitizePref(raw: unknown): ThemePref {
   const r = (raw ?? {}) as { preset?: string; overrides?: Record<string, unknown> };
   const preset = PRESET_NAMES.includes(r.preset as PresetName) || /^theme:[A-Za-z0-9_-]{1,32}$/.test(r.preset ?? '') ? (r.preset as ThemePref['preset']) : 'Default';
   const o = r.overrides ?? {};
-  const overrides = Object.fromEntries(Object.entries(o).filter(([k, v]) => (k === 'seed' ? typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) : ATTR_KEYS.includes(k as keyof ThemeAttrs))));
-  return { preset, overrides: overrides as ThemeOverrides };
+  const attrs = Object.entries(o).filter(([k, v]) => (k === 'seed' ? typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) : ATTR_KEYS.includes(k as keyof ThemeAttrs)));
+  return { preset, overrides: { ...Object.fromEntries(attrs), ...sanitizeFine(o) } as ThemeOverrides };
 }

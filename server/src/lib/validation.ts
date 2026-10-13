@@ -95,12 +95,21 @@ export const settingsPatchSchema = so({
   plant: v.optional(v.boolean()),
   sunflowers: v.optional(v.picklist(['grow', 'full'], 'Invalid sunflowers setting')),
 });
+/** A whole number in a range (the theme sliders). */
+const int = (min: number, max: number, msg: string) => v.pipe(v.number(msg), v.integer(msg), v.minValue(min, msg), v.maxValue(max, msg));
 const themeOverrides = so({
   glow: v.optional(v.picklist(['off', 'soft', 'neon'], 'Invalid glow')),
   entries: v.optional(v.picklist(['solid', 'tinted', 'outline'], 'Invalid entries style')),
   corners: v.optional(v.picklist(['square', 'round', 'pill'], 'Invalid corners')),
   scene: v.optional(v.picklist(['season', 'none', 'sunflowers', 'mordor', 'spring', 'easter', 'summer', 'summerholidays', 'fall', 'halloween', 'christmas', 'newyearseve', 'newyear', 'winter'], 'Invalid scene')),
   seed: v.optional(hex),
+  glowStrength: v.optional(int(0, 150, 'Invalid glow strength')),
+  radius: v.optional(int(0, 28, 'Invalid corner radius')),
+  tint: v.optional(int(5, 60, 'Invalid entry tint')),
+  density: v.optional(v.picklist(['compact', 'comfortable', 'airy'], 'Invalid density')),
+  checkbox: v.optional(v.picklist(['round', 'square', 'rounded'], 'Invalid checkbox shape')),
+  checkFill: v.optional(v.picklist(['filled', 'outline'], 'Invalid checkbox fill')),
+  check: v.optional(v.picklist(['tick', 'bold', 'cross', 'dot'], 'Invalid check mark')),
 });
 const presetName = v.picklist([
   'Default', 'Neon', 'Spring', 'Easter', 'Summer', 'Summer holidays', 'Fall', 'Halloween', 'Christmas', 'New Year\'s Eve', 'New Year', 'Winter', 'Mordor', 'Automatic',

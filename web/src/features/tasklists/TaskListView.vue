@@ -285,7 +285,7 @@ defineExpose({ root, busy });
 .next { margin: 4px 0 4px; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); font: var(--md-sys-typescale-body-medium); overflow: hidden; text-overflow: ellipsis; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
 .list { list-style: none; margin: 4px 0 0; padding: 0; }
-.row { display: flex; align-items: center; gap: 4px; min-height: 48px; border-radius: 12px; transition: background 400ms; }
+.row { display: flex; align-items: center; gap: 4px; min-height: max(44px, calc(48px * var(--dz, 1))); border-radius: 12px; transition: background 400ms; }
 html:not([data-motion='off']) .row.flash { animation: tickflash 700ms ease-out; }
 .ititle {
   flex: 1; min-width: 0; text-align: left; min-height: 44px; padding: 0 4px; overflow-wrap: anywhere; font: var(--md-sys-typescale-body-large);

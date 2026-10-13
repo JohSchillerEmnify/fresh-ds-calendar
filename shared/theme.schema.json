@@ -132,6 +132,60 @@
       ],
       "default": "round"
     },
+    "glowStrength": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150,
+      "description": "Glow strength 0..150 (off 0, soft 40, neon 100); replaces the glow step's value."
+    },
+    "radius": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 28,
+      "description": "Corner radius in px, 0..28 (square 2, round 6, pill 28 = fully round); replaces the corners step's value."
+    },
+    "tint": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 60,
+      "description": "Fill strength in percent of tinted entries (default 24); used with entries tinted."
+    },
+    "density": {
+      "enum": [
+        "compact",
+        "comfortable",
+        "airy"
+      ],
+      "default": "comfortable",
+      "description": "Size of text and list rows."
+    },
+    "checkbox": {
+      "enum": [
+        "round",
+        "square",
+        "rounded"
+      ],
+      "default": "rounded",
+      "description": "Shape of task item checkboxes."
+    },
+    "checkFill": {
+      "enum": [
+        "filled",
+        "outline"
+      ],
+      "default": "filled",
+      "description": "Whether a ticked checkbox is filled or only outlined."
+    },
+    "check": {
+      "enum": [
+        "tick",
+        "bold",
+        "cross",
+        "dot"
+      ],
+      "default": "tick",
+      "description": "The mark in a ticked checkbox."
+    },
     "font": {
       "enum": [
         "system",

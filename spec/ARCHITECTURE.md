@@ -852,7 +852,7 @@ app at once and is a **theme override** (reset by choosing a preset, captured by
 | `radius` | slider `theme-slider-radius` | integer 0..28 px (Square 2, Round 6, Pill 28 = pill) | `--r-chip` = value (28 = 999 px); `--r-block` interpolated 0/2/6/28 px to 0/2/8/16 px |
 | `tint` | slider `theme-slider-tint` | integer 5..60 % (default 24) | `--e-fill` while entries are Tinted |
 | `density` | segmented `theme-density` | `compact` / `comfortable` / `airy` | `--dz` 0.9 / 1 / 1.12: scales the font size of the type scale and the task list row height |
-| `checkbox` | segmented `theme-checkbox-shape` | `round` / `square` / `rounded` (default) | `<html data-checkbox>`, read by the task item checkbox, the task list card box and the preview |
+| `checkbox` | segmented `theme-checkbox-shape` | `round` / `square` / `rounded` (default) | `<html data-checkbox>`, read by the task item checkbox and the preview; the task list card's tiny box takes the shape only |
 | `checkFill` | segmented `theme-check-fill` | `filled` (default) / `outline` | `<html data-checkfill>` |
 | `check` | segmented `theme-check-glyph` | `tick` (default) / `bold` / `cross` / `dot` | `<html data-check>`; one SVG glyph per value, the others hidden by CSS |
 

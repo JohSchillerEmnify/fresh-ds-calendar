@@ -8,6 +8,11 @@ export type ThemeRoles = Record<string, string>;
 /** A `calendar-theme/1` document. */
 export type ThemeDecor = 'stars' | 'sparkles' | 'waves' | 'hills' | 'hearts' | 'clouds' | 'confetti' | 'bubbles';
 export type ThemeDensity = 'low' | 'medium' | 'high';
+/** Size of text and rows (not the scene's decor `ThemeDensity`). */
+export type ThemeUiDensity = 'compact' | 'comfortable' | 'airy';
+export type ThemeCheckbox = 'round' | 'square' | 'rounded';
+export type ThemeCheckFill = 'filled' | 'outline';
+export type ThemeCheck = 'tick' | 'bold' | 'cross' | 'dot';
 /** The own top bar picture: SVG text, light and optional dark. */
 export interface ThemePicture { light?: string; dark?: string }
 
@@ -22,6 +27,14 @@ export interface ThemeDoc {
   glow?: 'off' | 'soft' | 'neon';
   entries?: 'solid' | 'tinted' | 'outline';
   corners?: 'square' | 'round' | 'pill';
+  /** Fine-tuning (optional): ranges are in theme.schema.json. */
+  glowStrength?: number;
+  radius?: number;
+  tint?: number;
+  density?: ThemeUiDensity;
+  checkbox?: ThemeCheckbox;
+  checkFill?: ThemeCheckFill;
+  check?: ThemeCheck;
   font?: ThemeFont;
   scene?: { builtin?: ThemeBuiltinScene; gradient?: string[]; decor?: ThemeDecor; density?: ThemeDensity };
 }

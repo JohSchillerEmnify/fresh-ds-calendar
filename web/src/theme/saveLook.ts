@@ -20,6 +20,7 @@ export function lookToDoc(t: ResolvedTheme, own: { mode: ThemeMode; seed: string
     schema: 'calendar-theme/2', name, mode: mode === 'system' ? 'follow' : mode,
     colors: { seed: (t.seed ?? own.seed).toLowerCase(), ...roles },
     glow: t.attrs.glow, entries: t.attrs.entries, corners: t.attrs.corners,
+    ...t.fine,
     ...(t.font ? { font: t.font } : {}),
     ...(scene ? { scene } : {}),
   };

@@ -61,6 +61,13 @@ export const useThemeStore = defineStore('theme', () => {
   /** Fine-tunes one attribute or the seed colour on top of the chosen theme. */
   const pick = <K extends keyof ThemeOverrides>(setting: K, value: NonNullable<ThemeOverrides[K]>) =>
     save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, [setting]: value } });
+  /** Fine-tunes several values at once (a step and its slider value are one change, so one request). */
+  const pickMany = (patch: ThemeOverrides) => save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, ...patch } });
+  /** Applies a fine-tuning change at once without saving it (a slider being dragged); the commit saves it. */
+  function preview(patch: ThemeOverrides): void {
+    pref.value = { preset: pref.value.preset, overrides: { ...pref.value.overrides, ...patch } };
+    remember();
+  }
   /** Drops one fine-tuning override, so the chosen theme's own value applies again. */
   const unpick = (setting: keyof ThemeOverrides) => {
     const { [setting]: _gone, ...rest } = pref.value.overrides;
@@ -82,5 +89,5 @@ export const useThemeStore = defineStore('theme', () => {
     unhide(id);
   }
 
-  return { pref, resolved, themes, todaysSeasonScene, saveError, load, choose, pick, unpick, importTheme, hide, unhide, removeCustom };
+  return { pref, resolved, themes, todaysSeasonScene, saveError, load, choose, pick, pickMany, preview, unpick, importTheme, hide, unhide, removeCustom };
 });
