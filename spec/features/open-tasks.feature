@@ -152,13 +152,6 @@ Feature: Open tasks stay in sight
     When I open the week view for 2026-10-12
     Then I do not see the task list "Old"
 
-  Scenario: Moving an overdue task list to today
-    When I open the day view for 2026-10-12
-    And I expand the task list "Laundry"
-    And I move the task list to today
-    Then the task list "Laundry" is not flagged as overdue
-    And the Google event for the task list "Laundry" is an all-day event on 2026-10-12
-
   Scenario: Finishing a carried-over task list sends it back to its own day
     When I open the day view for 2026-10-12
     And I expand the task list "Laundry"

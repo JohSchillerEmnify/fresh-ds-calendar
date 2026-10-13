@@ -73,7 +73,6 @@ export default {
     addPlaceholder: 'Eintrag hinzufügn',
     newItem: 'Neuer Eintrag',
     addItem: 'Eintrag hinzufügn',
-    moveToday: 'Auf heid verschiebn',
     edit: 'Ändern',
     delete: 'Löschn',
   },

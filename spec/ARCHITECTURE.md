@@ -429,7 +429,7 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   title that renames on tap, done count `x/y` that bumps on change, "From <day>", the collapse chevron), tags,
   "All done! 🎉" (no "Next task" hint: owner 2026-10-13, it repeated the first open item), item rows (reward
   checkbox, title that edits on tap with the animated strike-through, up/down/delete), the add field (only while
-  adding, above the footer) and one footer row (Move to today, Add item, Edit, Delete with confirmation).
+  adding, above the footer) and one footer row (Add item, Edit, Delete with confirmation; no "Move to today" — owner 2026-10-13: re-date by dragging in the calendar).
   **Collapsible** (owner 2026-10-13): the chevron `tasklist-collapse` (`aria-expanded`) hides everything below the head;
   the root carries `data-collapsed="true|false"`. The state is per list and per device (`localStorage` key
   `cal.tasklistCollapsed`, a map id → true, every access in try/catch; `features/tasklists/collapse.ts`). The expanded
@@ -455,8 +455,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   the FAB slides out of view while it is open.
 - **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
   text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording); mini cards
-  show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". Their expanded
-  view offers `tasklist-move-today` ("Move to today"), which PATCHes the date. Completed lists stay on their own date.
+  show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". There is no "Move to today" button (owner 2026-10-13):
+  the carry-forward already shows them on today; dragging in the calendar re-dates. Completed lists stay on their own date.
 - **Duration estimate**: task list form field (minutes), card badge `tasklist-card-estimate` `"~45 min"` /
   `"~1 h 30 min"`.
 - **Calm mode** (`html[data-calm="true"]`): collapsed cards show title and count only (no item preview, no tags),
@@ -612,7 +612,7 @@ Rules for implementers:
 | `now-marker`, `now-card`, `now-card-line`, `now-card-current`, `now-progress` | timeline (§5b) |
 | `transition-warning`, `transition-warning-dismiss` | snackbar |
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title` (finished rows), `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
-| `tasklist-card-overdue`, `tasklist-move-today`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
+| `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
 | `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
 | `reward-effect` (`data-kind`) | effect overlay elements |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |

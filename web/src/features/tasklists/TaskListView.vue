@@ -7,7 +7,7 @@
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconTodayOutline as IconToday, IconAdd } from '@/components/icons';
+import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
@@ -177,14 +177,6 @@ async function commitRename() {
 }
 
 // --- list actions -----------------------------------------------------------------------------------------------
-async function moveToday() {
-  try {
-    await items.updateTaskList(props.id, { date: clock.today });
-    void lists.refresh();
-  } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.moveFailed'));
-  }
-}
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
 function remove() {
@@ -265,7 +257,6 @@ defineExpose({ root, busy });
         </form>
 
         <footer v-if="!compact" class="foot">
-          <Button v-if="carried" variant="tonal" data-testid="tasklist-move-today" @click="moveToday"><template #icon><IconToday /></template>{{ t('tasks.list.moveToday') }}</Button>
           <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
           <span class="grow" />
           <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
