@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { applyLanguage } from '@/i18n';
 import {
-  fetchRange, monthGrid, nextFocus, parseParam, periodTitle, routePath, shiftPeriod, toIsoDate, weekDays,
+  fetchRange, formatDate, monthGrid, nextFocus, parseParam, periodTitle, routePath, shiftPeriod, toIsoDate, weekDays,
 } from '@/lib/dates';
 
 const d = (s: string) => parseParam('day', s)!;
@@ -55,5 +56,24 @@ describe('focus date', () => {
   it('week from a December month opens the week of its first day', () => {
     const f = nextFocus('month', d('2026-12-01'), null, today);
     expect(routePath('week', f)).toBe('/week/2026-11-30');
+  });
+});
+
+describe('formatDate follows the language', () => {
+  afterEach(async () => { await applyLanguage('en'); });
+  const day = d('2026-10-10'); // a Saturday
+  it('keeps the date-fns English forms', () => {
+    expect(formatDate(day, 'weekday')).toBe('Sat');
+    expect(formatDate(day, 'weekdayDayMonth')).toBe('Sat 10 Oct');
+    expect(formatDate(day, 'weekdayDayMonthLong')).toBe('Saturday 10 October');
+    expect(formatDate(day, 'monthYear')).toBe('October 2026');
+    expect(formatDate(day, 'full')).toBe('Saturday 10 October 2026');
+  });
+  it.each(['de', 'de-x-mainfr', 'de-x-coldmirror'] as const)('speaks German in %s', async (lang) => {
+    await applyLanguage(lang);
+    expect(formatDate(day, 'weekday')).toMatch(/^Sa/);
+    expect(formatDate(day, 'weekdayDayMonth')).toMatch(/^Sa\.?,? 10\. Okt/);
+    expect(formatDate(day, 'monthYear')).toBe('Oktober 2026');
+    expect(formatDate(day, 'full')).toBe('Samstag, 10. Oktober 2026');
   });
 });

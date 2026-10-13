@@ -1,8 +1,6 @@
-import { format } from 'date-fns';
 import type { TaskList } from '@/api/types';
 import { t } from '@/i18n';
-import { dateLocale, language } from '@/i18n/language';
-import { parseIsoDate } from '@/lib/dates';
+import { formatDate, parseIsoDate } from '@/lib/dates';
 
 /** 45 -> "~45 min", 90 -> "~1 h 30 min", 120 -> "~2 h". */
 export function formatEstimate(min: number): string {
@@ -15,8 +13,7 @@ export function formatEstimate(min: number): string {
 export function carriedLabel(date: string | null): string {
   const d = date ? parseIsoDate(date) : null;
   if (!d) return t('tasks.card.fromEarlier');
-  // English keeps its fixed date form; the other languages follow Intl (ARCHITECTURE "i18n" Formats)
-  const day = language.value === 'en' ? format(d, 'EEE d MMM') : new Intl.DateTimeFormat(dateLocale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(d);
+  const day = formatDate(d, 'weekdayDayMonth');
   return t('tasks.card.from', { date: day });
 }
 
