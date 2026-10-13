@@ -1027,6 +1027,7 @@ I choose {string} for the task list {string} in the Tasks view
 I remove the date of the task list {string} in the Tasks view
 I group the Tasks view by {string}
 I sort the Tasks view by {string}
+I sort the Tasks view by {string} in reversed order
 I tick the item {string} of the task list {string} in the Tasks view
 the Tasks view lists {string} under {string}
 the Tasks view lists {string}
@@ -1046,7 +1047,8 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
   dialog), clicks `tasklist-no-date`, `tasklist-save`.
 - "I group … by G" clicks the `tasks-group-by` option with that label (`Time`, `Category`, `None`); "I sort … by S"
   picks the label in the `tasks-sort-by` select (`Date`, `Name`, `Category`, `Last changed`, `Progress`). Both wait for
-  the `PATCH /api/prefs` response. "is grouped by G" = `aria-pressed="true"` on that `tasks-group-by` option.
+  the `PATCH /api/prefs` response. "... in reversed order" also sets the `tasks-sort-dir` toggle to reversed
+  (`aria-pressed="true"`, clicking it only when it is not yet) and waits for that save too. "is grouped by G" = `aria-pressed="true"` on that `tasks-group-by` option.
 - "lists T under G": the `tasks-item` with `data-title` T lies inside the `tasks-group` whose `tasks-group-title` text
   is G. "lists A, B, C" = all `tasks-item` titles in DOM order, joined `", "`. "groups are" = the `tasks-group-title`
   texts in DOM order, joined `", "`. When grouped by None there is one group without a title.
