@@ -7,7 +7,9 @@ import { deltaE76, nearestGoogleColorId, GOOGLE_COLORS } from '../src/lib/colors
 import { addDays, addMonthsClamp, formatInZone, isDateTime, isLocalDate, localDateOf, offsetMinutes, startOfLocalDay, zonedToUtc } from '../src/lib/time.js';
 import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError } from '../src/providers/CalendarProvider.js';
-import { decodeTaskList, encodeItems, encodeTaskList, mirror, nextCompletedOn, parseDescription, readItems } from '../src/services/taskCodec.js';
+import {
+  dateOnCompletion, decodeTaskList, encodeItems, encodePrivate, encodeTaskList, isUndatedEvent, mirror, nextCompletedOn, parseDescription, readItems, UNDATED_ANCHOR,
+} from '../src/services/taskCodec.js';
 
 describe('colors', () => {
   it('palette colors map to themselves', () => {
@@ -111,6 +113,29 @@ describe('TaskListCodec', () => {
     expect(nextCompletedOn(d(done, null), d(done, null), '2026-10-12')).toBeNull(); // finished outside the app: unknown date stays unknown
     expect(nextCompletedOn(d(done, '2026-10-10'), d(open, '2026-10-10'), '2026-10-12')).toBeNull();
     expect(nextCompletedOn(d(done, '2026-10-10'), d([], '2026-10-10'), '2026-10-12')).toBeNull(); // an empty list is not finished
+  });
+  it('an undated list is an all-day event on the anchor date with the undated marker, and round-trips to date null', () => {
+    const data = { title: 'T', date: null, time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null };
+    const ev = encodeTaskList(data, 'Europe/Berlin', null);
+    expect(UNDATED_ANCHOR).toBe('2099-12-31');
+    expect(ev.start).toEqual({ date: '2099-12-31' });
+    expect(ev.end).toEqual({ date: '2100-01-01' });
+    expect(ev.extendedProperties?.private?.undated).toBe('1');
+    const full = { ...ev, id: 'x', calendarId: 'primary', etag: 'e', status: 'confirmed' as const, created: '', updated: '' };
+    expect(isUndatedEvent(full)).toBe(true);
+    expect(decodeTaskList(full, 'Europe/Berlin')).toEqual(data);
+    // giving it a date clears the marker on the patch and a time is ignored while undated
+    expect(encodePrivate({ ...data, date: '2026-10-12' }).undated).toBeNull();
+    expect(encodeTaskList({ ...data, time: '09:00' }, 'Europe/Berlin', null).start).toEqual({ date: '2099-12-31' });
+  });
+  it('dateOnCompletion: only the write that ticks the last open item of an undated list dates it', () => {
+    const open = [{ id: 'a', title: 'A', done: false }, { id: 'b', title: 'B', done: true }], done = [{ id: 'a', title: 'A', done: true }, { id: 'b', title: 'B', done: true }];
+    const l = (its: typeof items, date: string | null) => ({ items: its, date });
+    expect(dateOnCompletion(l(open, null), l(done, null), '2026-10-12')).toBe('2026-10-12');
+    expect(dateOnCompletion(l(open, null), l(open, null), '2026-10-12')).toBeNull(); // still open
+    expect(dateOnCompletion(l(done, null), l(done, null), '2026-10-12')).toBeNull(); // was complete already
+    expect(dateOnCompletion(l(open, '2026-10-01'), l(done, '2026-10-01'), '2026-10-12')).toBeNull(); // dated lists keep their date
+    expect(dateOnCompletion(l(open, null), l([], null), '2026-10-12')).toBeNull(); // an empty list is not finished
   });
   it('splits at 1000 chars and reads chunks back in order', () => {
     const big = Array.from({ length: 60 }, (_, i) => ({ id: `id${String(i).padStart(6, '0')}`, title: `Title ${i} ${'x'.repeat(40)}`, done: i % 2 === 0 }));

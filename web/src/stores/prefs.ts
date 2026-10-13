@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
-import type { ApproachWindowHours, Prefs, SupportCatSetting } from '@/api/types';
+import type { ApproachWindowHours, Prefs, SupportCatSetting, TasksGroupBy, TasksSortBy } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
- * support cat, and the version label in the corner (off by default).
+ * support cat, the version label in the corner (off by default), and how the Tasks view groups and sorts (time, date).
  */
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
@@ -16,6 +16,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const tasksCalendarVisible = ref(false);
   const supportCat = ref<SupportCatSetting>('sometimes');
   const versionInCorner = ref(false);
+  const tasksGroupBy = ref<TasksGroupBy>('time');
+  const tasksSortBy = ref<TasksSortBy>('date');
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -25,6 +27,8 @@ export const usePrefsStore = defineStore('prefs', () => {
     tasksCalendarVisible.value = p.tasksCalendarVisible ?? tasksCalendarVisible.value;
     supportCat.value = p.supportCat ?? supportCat.value;
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
+    tasksGroupBy.value = p.tasksGroupBy ?? tasksGroupBy.value;
+    tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
   }
 
   async function load(): Promise<void> {
@@ -38,7 +42,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value,
+      versionInCorner: versionInCorner.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value,
     };
     apply(p);
     try {
@@ -49,5 +53,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, tasksGroupBy, tasksSortBy, load, set };
 });

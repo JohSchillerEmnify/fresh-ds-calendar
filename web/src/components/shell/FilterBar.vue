@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router';
 import Chip from '@/components/m3/Chip.vue';
 import { useFilters } from '@/composables/useFilters';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useSettingsStore } from '@/stores/settings';
 
-/** One horizontally scrolling row of filter chips; state lives in the URL query. */
+/** One horizontally scrolling row of filter chips; state lives in the URL query. The Tasks view offers category chips only. */
 const f = useFilters();
 const calendars = useCalendarsStore();
 const settings = useSettingsStore();
+const route = useRoute();
 </script>
 
 <template>
@@ -21,7 +23,7 @@ const settings = useSettingsStore();
     </Chip>
     <Chip :selected="f.filters.value.categories.includes('none')" data-testid="filter-chip-category" data-name="No category" data-category-id="none" @click="f.toggle('categories', 'none')">No category</Chip>
     <Chip
-      v-for="k in calendars.list" :key="k.id" :selected="!k.hidden" data-testid="filter-chip-calendar" :data-name="k.name" :data-calendar-id="k.id"
+      v-for="k in route.meta.tasks ? [] : calendars.list" :key="k.id" :selected="!k.hidden" data-testid="filter-chip-calendar" :data-name="k.name" :data-calendar-id="k.id"
       @click="calendars.toggle(k.id)"
     >
       <template #leading><i class="dot" :style="{ background: k.color }" /></template>

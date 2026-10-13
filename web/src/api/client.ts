@@ -223,6 +223,11 @@ export class ApiClient {
     return this.request<{ items: TaskList[]; finishedToday: TaskList[] }>('GET', `/api/tasklists/open?${q}`, undefined, o);
   }
 
+  /** Every open task list, undated ones included (the Tasks view). */
+  allOpenTaskLists(today: LocalDate, o?: RequestOptions) {
+    return this.request<{ items: TaskList[] }>('GET', `/api/tasklists/all-open?${new URLSearchParams({ today })}`, undefined, o);
+  }
+
   // --- settings & categories ----------------------------------------------------
   settings(o?: RequestOptions) {
     return this.request<Settings>('GET', '/api/settings', undefined, o);

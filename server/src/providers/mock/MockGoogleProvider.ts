@@ -131,8 +131,8 @@ export class MockGoogleProvider implements CalendarProvider {
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
     this.check();
     this.requireCalendar(p.calendarId);
-    const min = Date.parse(p.timeMin);
-    const max = Date.parse(p.timeMax);
+    const min = p.timeMin ? Date.parse(p.timeMin) : -Infinity;
+    const max = p.timeMax ? Date.parse(p.timeMax) : Infinity;
     const filters = (p.privateExtendedProperty ?? []).map((s) => {
       const i = s.indexOf('=');
       return [s.slice(0, i), s.slice(i + 1)] as const;
@@ -143,7 +143,8 @@ export class MockGoogleProvider implements CalendarProvider {
     for (const e of this.events.values()) {
       if (e.calendarId !== p.calendarId) continue;
       if (e.status === 'cancelled' && !p.showDeleted) continue;
-      const cands = e.recurrence && !e.recurringEventId ? this.expand(e, min, max, exceptions) : [e];
+      // recurring masters are expanded only inside a bounded range
+      const cands = e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
       for (const c of cands) {
         const [s, en] = this.bounds(c);
         if (!(en > min && s < max)) continue;

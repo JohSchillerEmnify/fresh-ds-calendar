@@ -11,7 +11,9 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
+import {
+  isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy,
+} from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -131,6 +133,14 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
       patch.supportCat = b.supportCat as SupportCat;
     }
+    if (b.tasksGroupBy !== undefined) {
+      if (!TASKS_GROUP_BY_VALUES.includes(b.tasksGroupBy as TasksGroupBy)) throw validation('Invalid tasksGroupBy', 'tasksGroupBy');
+      patch.tasksGroupBy = b.tasksGroupBy as TasksGroupBy;
+    }
+    if (b.tasksSortBy !== undefined) {
+      if (!TASKS_SORT_BY_VALUES.includes(b.tasksSortBy as TasksSortBy)) throw validation('Invalid tasksSortBy', 'tasksSortBy');
+      patch.tasksSortBy = b.tasksSortBy as TasksSortBy;
+    }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
     return c.json(ctx.prefs.setLabs(person(c), patch));
@@ -172,6 +182,11 @@ export function apiRoutes(ctx: Ctx): Hono {
     const days = daysRaw === undefined ? 30 : Number(daysRaw);
     if (!Number.isInteger(days) || days < 0 || days > 90) throw validation('days must be 0-90', 'days');
     return c.json(await cal(c).openTaskLists(today, days));
+  });
+  r.get('/tasklists/all-open', async (c) => {
+    const today = c.req.query('today') ?? ctx.motivation.today();
+    if (!isLocalDate(today)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
+    return c.json(await cal(c).allOpenTaskLists(today));
   });
   r.post('/tasklists', async (c) => c.json(await cal(c).createTaskList(parse(createTaskListSchema, await body(c))), 201));
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));

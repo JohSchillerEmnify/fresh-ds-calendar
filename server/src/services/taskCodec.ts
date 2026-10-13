@@ -6,11 +6,14 @@ import type { GoogleEvent, GoogleEventInput, GoogleEventPatch } from '../provide
 export const MAX_PRIVATE_BYTES = 30_000;
 const CHUNK = 1000;
 const SINGLE_MAX = 1024;
+/** The all-day date that stores undated task lists in Google (ARCHITECTURE "Undated task lists"). */
+export const UNDATED_ANCHOR = '2099-12-31';
 const RRULE: Record<Recurrence, string> = { daily: 'RRULE:FREQ=DAILY', weekly: 'RRULE:FREQ=WEEKLY', monthly: 'RRULE:FREQ=MONTHLY' };
 
 export interface TaskListData {
   title: string;
-  date: string;
+  /** Null = undated: stored on {@link UNDATED_ANCHOR} with the `undated` marker, never with a time. */
+  date: string | null;
   time: string | null;
   items: TaskItem[];
   categoryId: string | null;
@@ -27,6 +30,19 @@ const isFinished = (items: TaskItem[]): boolean => items.length > 0 && items.eve
 export function nextCompletedOn(before: Pick<TaskListData, 'items' | 'completedOn'>, after: Pick<TaskListData, 'items'>, today: string): string | null {
   if (!isFinished(after.items)) return null;
   return isFinished(before.items) ? before.completedOn : today;
+}
+
+/**
+ * The date a write gives an undated list that it finishes: today, or null when the list stays as it is. Only a write
+ * that ticks the last open item of an undated list re-dates it (a list that was already complete is left alone).
+ */
+export function dateOnCompletion(before: Pick<TaskListData, 'items' | 'date'>, after: Pick<TaskListData, 'items' | 'date'>, today: string): string | null {
+  return before.date === null && after.date === null && !isFinished(before.items) && isFinished(after.items) ? today : null;
+}
+
+/** Whether the event is an undated task list (anchor-dated, `undated = "1"`). */
+export function isUndatedEvent(ev: GoogleEvent): boolean {
+  return ev.extendedProperties?.private?.undated === '1';
 }
 
 export function isTaskListEvent(ev: GoogleEvent): boolean {
@@ -65,6 +81,7 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
     tlv: '1',
     // An untitled list keeps an empty app title although Google's summary shows the items.
     untitled: d.title ? null : '1',
+    undated: d.date === null ? '1' : null,
     ...encodeItems(d.items),
     categoryId: d.categoryId,
     tags: d.tags.length ? JSON.stringify(d.tags) : null,
@@ -88,7 +105,8 @@ export function privateSize(p: Record<string, string | null>): number {
 }
 
 function times(d: TaskListData, tz: string) {
-  if (d.time === null) return { start: { date: d.date }, end: { date: addDays(d.date, 1) } };
+  const date = d.date ?? UNDATED_ANCHOR;
+  if (d.date === null || d.time === null) return { start: { date }, end: { date: addDays(date, 1) } };
   const s = zonedToUtc(d.date, d.time, tz);
   const e = s + (d.estimateMinutes ?? 30) * 60_000;
   return {
@@ -164,9 +182,10 @@ export function readItems(ev: GoogleEvent): TaskItem[] {
 
 export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
   const p = ev.extendedProperties?.private ?? {};
-  let date: string;
+  let date: string | null;
   let time: string | null = null;
-  if (ev.start.date) date = ev.start.date;
+  if (p.undated === '1') date = null;
+  else if (ev.start.date) date = ev.start.date;
   else {
     const ms = Date.parse(ev.start.dateTime!);
     date = localDateOf(ms, tz);

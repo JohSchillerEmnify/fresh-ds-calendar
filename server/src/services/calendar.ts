@@ -16,7 +16,8 @@ import type { MotivationService } from './motivation.js';
 import type { PrefsStore } from './prefsStore.js';
 import type { SettingsStore } from './settingsStore.js';
 import {
-  categoryColorId, decodeTaskList, encodePrivate, encodeTaskList, encodeTaskListPatch, isTaskListEvent, MAX_PRIVATE_BYTES, nextCompletedOn, privateSize,
+  categoryColorId, dateOnCompletion, decodeTaskList, encodePrivate, encodeTaskList, encodeTaskListPatch, isTaskListEvent, isUndatedEvent, MAX_PRIVATE_BYTES,
+  nextCompletedOn, privateSize,
   type TaskListData,
 } from './taskCodec.js';
 import { TasksCalendar } from './tasksCalendar.js';
@@ -157,14 +158,16 @@ export class CalendarService {
       if (calendarIds && !calendarIds.includes(tasksId)) return [];
       const r = await this.provider.listEvents({ calendarId: tasksId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
       const color = await this.calendarColor(tasksId);
-      return r.items.filter((e) => e.status !== 'cancelled' && isTaskListEvent(e)).map((e): CalendarItem => this.toTaskList(e, color, cats));
+      // undated lists sit on the anchor date: a range that reaches it must not show them
+      return r.items.filter((e) => e.status !== 'cancelled' && isTaskListEvent(e) && !isUndatedEvent(e)).map((e): CalendarItem => this.toTaskList(e, color, cats));
     })();
     return (await Promise.all([...eventLists, taskLists])).flat();
   }
 
   private sortKey(i: CalendarItem): [string, number, number, string] {
     if (i.kind === 'tasklist') {
-      return i.time === null ? [i.date, 0, 0, i.title] : [i.date, 1, zonedToUtc(i.date, i.time, this.tz), i.title];
+      const date = i.date!; // ranges hold dated lists only
+      return i.time === null ? [date, 0, 0, i.title] : [date, 1, zonedToUtc(date, i.time, this.tz), i.title];
     }
     if (i.allDay) return [i.start, 0, 0, i.title];
     const ms = Date.parse(i.start);
@@ -259,7 +262,8 @@ export class CalendarService {
     if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title');
     if (d.items.length > 200) throw validation('A task list can have at most 200 items', 'items');
     if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags');
-    if (!isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
+    if (d.date !== null && !isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
+    if (d.date === null && d.recurrence) throw validation('An undated task list cannot repeat', 'date');
     if (d.categoryId !== null && d.categoryId !== keepCategory && !this.settings.categories().some((c) => c.id === d.categoryId)) throw validation('Unknown category', 'categoryId');
     if (privateSize(encodePrivate(d)) > MAX_PRIVATE_BYTES) throw validation('Task list is too large', 'items');
   }
@@ -271,7 +275,7 @@ export class CalendarService {
   async createTaskList(input: CreateTaskListInput, extra?: { id?: string }): Promise<TaskList> {
     const calendarId = await this.tasks.id();
     const d: TaskListData = {
-      title: input.title, date: input.date, time: input.time ?? null,
+      title: input.title, date: input.date, time: input.date === null ? null : input.time ?? null,
       items: (input.items ?? []).filter((i) => i.title.trim()).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done })),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
@@ -295,6 +299,9 @@ export class CalendarService {
       const before = decodeTaskList(cur, this.tz);
       const d = { ...fn(before) };
       d.completedOn = nextCompletedOn(before, d, this.today());
+      // an undated list finished by this write is dated to today, so it shows where it was finished
+      const finishedOn = dateOnCompletion(before, d, this.today());
+      if (finishedOn) { d.date = finishedOn; d.time = null; }
       this.checkTaskData(d, before.categoryId);
       try {
         const ev = await this.provider.patchEvent(cur.calendarId, id, encodeTaskListPatch(d, this.tz, this.colorFor(d), cur), { ifMatch: cur.etag });
@@ -315,6 +322,7 @@ export class CalendarService {
       if (input.title !== undefined) next.title = input.title;
       if (input.date !== undefined) next.date = input.date;
       if (input.time !== undefined) next.time = input.time;
+      if (next.date === null) next.time = null;
       if (input.categoryId !== undefined) next.categoryId = input.categoryId;
       if (input.tags !== undefined) next.tags = input.tags;
       if (input.estimateMinutes !== undefined) next.estimateMinutes = input.estimateMinutes;
@@ -379,12 +387,30 @@ export class CalendarService {
   /** Open lists and lists finished today, both dated in `[today - days, today]`, in tray order (API.md). */
   async openTaskLists(today: string, days: number): Promise<{ items: TaskList[]; finishedToday: TaskList[] }> {
     const all = await this.fetchRange(addDays(today, -days), addDays(today, 1), undefined, true);
-    const lists = all.filter((i): i is TaskList => i.kind === 'tasklist' && i.date >= addDays(today, -days) && i.date <= today);
-    lists.sort((a, b) => a.date.localeCompare(b.date) || Number(a.time !== null) - Number(b.time !== null) || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title));
+    const lists = all.filter((i): i is TaskList => i.kind === 'tasklist' && i.date !== null && i.date >= addDays(today, -days) && i.date <= today);
+    lists.sort((a, b) => a.date!.localeCompare(b.date!) || Number(a.time !== null) - Number(b.time !== null) || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title));
     return {
       items: lists.filter((l) => l.doneCount < l.totalCount),
       finishedToday: lists.filter((l) => l.completedOn === today && l.totalCount > 0 && l.doneCount === l.totalCount),
     };
+  }
+
+  /** Every open task list for the Tasks view: undated ones plus those dated within a year of `today` (API.md). */
+  async allOpenTaskLists(today: string): Promise<{ items: TaskList[] }> {
+    const tasksId = await this.tasks.id();
+    const [dated, undated] = await Promise.all([
+      this.fetchRange(addDays(today, -365), addDays(today, 366), undefined, true),
+      // by their property alone: they sit on the anchor date, far outside any range
+      this.provider.listEvents({ calendarId: tasksId, privateExtendedProperty: ['kind=tasklist', 'undated=1'] }),
+    ]);
+    const color = await this.calendarColor(tasksId);
+    const cats = this.settings.categories();
+    const lists = [
+      ...dated.filter((i): i is TaskList => i.kind === 'tasklist'),
+      ...undated.items.filter((e) => e.status !== 'cancelled').map((e) => this.toTaskList(e, color, cats)),
+    ];
+    // a list is open until all of its items are ticked (a list without items is still open)
+    return { items: lists.filter((l) => l.totalCount === 0 || l.doneCount < l.totalCount) };
   }
 
   async summary(from: string, to: string): Promise<Record<string, SummaryDay>> {
@@ -393,7 +419,7 @@ export class CalendarService {
       const b = addDays(a, 100) < to ? addDays(a, 100) : to;
       for (const it of await this.fetchRange(a, b)) {
         let first: string, last: string;
-        if (it.kind === 'tasklist') first = last = it.date;
+        if (it.kind === 'tasklist') first = last = it.date!;
         else if (it.allDay) { first = it.start; last = addDays(it.end, -1); }
         else {
           first = localDateOf(Date.parse(it.start), this.tz);
