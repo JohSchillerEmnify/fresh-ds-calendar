@@ -114,3 +114,10 @@ Feature: Mobile-first layout
     When I open the app
     Then the viewport meta tag contains "viewport-fit=cover"
     And the bottom bar reserves the safe-area inset at the bottom
+
+  Scenario: Pinching the week zooms the time grid and is remembered
+    When I open the week view for 2026-10-12
+    And I pinch out on the time grid to twice the size
+    Then one hour of the time grid is about twice as tall as before
+    When I reload the page
+    Then one hour of the time grid is still about twice as tall as at the start

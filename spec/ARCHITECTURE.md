@@ -198,7 +198,14 @@ Web (`stores/sync.ts`, `stores/items.ts`):
   4 only for Feb starting Monday in a non-leap year).
 - **Ordering in a day**: all-day events, then untimed task lists, then timed items by start time (events and timed
   task lists interleaved), ties by title.
-- **Time grid** (week/day): 24 rows, `--hour-height` 48 px (desktop) / 44 px (phone), initial scroll to 07:00
+- **Zoom** (owner, 2026-10-13): the time grid of the day and week views zooms — two-finger pinch on touch, Ctrl+wheel
+  / trackpad pinch on desktop — between 24 px and 160 px per hour, around the pinch/pointer position (the time under
+  the fingers stays put). The hour height is remembered per device (`localStorage`, not synced: phones and desktops
+  want different values). A pinch never starts a swipe or a drag; only `transform`/the `--hour-height` variable
+  change, blocks re-lay out after the gesture settles.
+- **Blocks to scale** (owner, 2026-10-13, replaces the earlier 44 px task list minimum): task lists are as tall as their
+  duration like events, with the same small minimum (title only when short; content fades out); zoom in for room.
+- **Time grid** (week/day): 24 rows, `--hour-height` 48 px (desktop) / 44 px (phone) by default (zoomable, see above), initial scroll to 07:00
   (or one hour before the current time if today is visible and later than 08:00). Overlap layout: Google-like column
   packing — events in a connected overlap cluster are split into equal columns; touching (end == start) is not overlap.
   Timed task lists are 30 min blocks in the grid.

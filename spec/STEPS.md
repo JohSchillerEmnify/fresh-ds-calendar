@@ -295,6 +295,10 @@ I start swiping left on the calendar by a quarter of the width
 I start swiping left on the calendar by half the width
 the week of {date} is shown beside the current one
 I let go
+I pinch out on the time grid to twice the size
+one hour of the time grid is about twice as tall as before
+one hour of the time grid is still about twice as tall as at the start
+the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
 ```
@@ -967,3 +971,7 @@ Google shows the calendar {string}
 - Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
   (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
   for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.
+- Pinch: two CDP touch points on `time-grid` moving apart until their distance doubles (≥ 300 ms). "one hour … tall"
+  reads `data-hour-height` of `time-grid` (± 10 %) compared with the value captured before the pinch / at page open.
+- "drawn a quarter as tall": block heights of the task list card and the event chip, ratio 0.25 ± 0.05 (both at the
+  current hour height; the step zooms in first if the list would hit the minimum).
