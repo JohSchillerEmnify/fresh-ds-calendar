@@ -235,8 +235,10 @@ Web (`stores/sync.ts`, `stores/items.ts`):
     default-exported object literal (`satisfies` the schema, which lives in `i18n/schema.ts`) so the build can
     precompile it.
   - **Precompiled, runtime-only** (owner, 2026-10-13): `@intlify/unplugin-vue-i18n` compiles all catalogues at build
-    time and vue-i18n ships without its message compiler, so every message must be a catalogue entry (no runtime
-    strings from the API are compiled; server text is shown as plain text). Details and measured sizes: A-91.
+    time and vue-i18n is built runtime-only by the plugin, so the message parser does not ship (the code generator
+    that turns the precompiled messages into functions does, vue-i18n 11.4 needs it). Every message must be a
+    catalogue entry (no runtime strings are compiled; server text is shown as plain text). We do not patch vue-i18n.
+    Details, measured sizes and the rejected compiler-removal hook: A-91.
   - **Choice**: the person pref `language` (`auto` | `en` | `de` | `de-x-mainfr` | `de-x-coldmirror`, default `auto`,
     in `Prefs`, `GET/PATCH /api/prefs`, validated by a whitelist). `auto` follows the device: the first entry of
     `navigator.languages` being `de` or `de-*` gives `de`, anything else `en`. Settings → Appearance has the select

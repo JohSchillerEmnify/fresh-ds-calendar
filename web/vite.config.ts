@@ -18,14 +18,7 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    // vue-i18n 11.4's runtime build still registers the message compiler unconditionally; drop that call so the compiler
-    // tree-shakes away (the catalogues are precompiled below).
-    ...(process.env.VITEST ? [] : [{
-      name: 'vue-i18n-drop-compiler',
-      enforce: 'pre' as const,
-      transform: (code: string, id: string) => (/vue-i18n\/dist\/vue-i18n\.runtime\.mjs$/.test(id) ? code.replace('registerMessageCompiler(compile);', '') : null),
-    }]),
-    // Precompiles the catalogues (also the lazy chunks); vue-i18n is built runtime-only without the compiler (hook above)
+    // Precompiles the catalogues (also the lazy chunks); vue-i18n is built runtime-only by the plugin
     // (ARCHITECTURE "i18n"). Unit tests keep the raw strings and the full build, which the key checks and `t()` tests need.
     ...(process.env.VITEST ? [] : [VueI18n({ runtimeOnly: true, include: [fileURLToPath(new URL('./src/i18n/locales/*.ts', import.meta.url))] })]),
     // <html data-app-version> carries the build version (e2e reads it after a reload).

@@ -220,17 +220,20 @@ spec files are named.
   Oberpflaume", "Eulen. Eulen everywhere." and never "Ich bin voll geil". Both are partial on purpose.
 - **A-90 Settings row**: "Language" sits at the end of Appearance (below Theme). The Automatic option is translated;
   the language names are not (each in its own name). Choosing saves through `PATCH /api/prefs` like the other prefs.
-- **A-91 First-load size** (owner decision, 2026-10-13: precompile and ship runtime-only): the catalogues are
-  precompiled at build time by `@intlify/unplugin-vue-i18n` (`include` = `web/src/i18n/locales/*.ts`, so the lazy
-  chunks too; each locale file therefore has a default export), and vue-i18n is built runtime-only. In vue-i18n 11.4.12
-  the runtime build still registers the message compiler unconditionally, so a small Vite hook in `vite.config.ts`
-  removes that one call and the compiler tree-shakes away; the prebuilt `runtime.esm-browser.prod.js` was tried and is
-  larger (141 kB first-load). Unit tests (`VITEST`) skip both, so they read the raw strings with the full build.
-  Measured first-load JS (gzip -9 of the chunks `index.html` loads: `index`, `clock`, `items`, `_plugin-vue_export-helper`,
-  `spring`): master 114,791 B; with i18n and the runtime compiler 132,005 B; precompiled and runtime-only 128,642 B
-  (+13.9 kB over master). The remaining cost is vue-i18n's composer and core runtime. size-limit "initial JS"
-  (`index-*.js` only) is 64.06 kB of 75; "all JS" was already over its limit (183.6 kB before, 200.6 kB now).
-  Not verified in a browser in this slice (no e2e): the language scenarios exercise the precompiled path.
+- **A-91 First-load size** (owner decision, 2026-10-13: precompile and ship runtime-only; later: no patching of vendor
+  code): the catalogues are precompiled at build time by `@intlify/unplugin-vue-i18n` (`include` =
+  `web/src/i18n/locales/*.ts`, so the lazy chunks too; each locale file therefore has a default export) and vue-i18n is
+  built runtime-only by the plugin's own alias. Precompiled messages are ASTs; vue-i18n 11.4.12 still turns them into
+  functions with the code generator it registers in `vue-i18n.runtime.mjs`, so only the message parser is dropped.
+  A hook that removed that registration was tried and rejected: the app then fails on the first `t()` with
+  `SyntaxError: 24` and renders nothing in the production build (found by e2e, root-caused by A/B on the same build).
+  Unit tests (`VITEST`) skip the plugin, so they read the raw strings. Measured first-load JS (gzip -9 of the chunks
+  `index.html` loads): master 114,791 B; with i18n and runtime compiling 132,005 B; precompiled, runtime-only by the
+  plugin 133,735 B (+18.9 kB over master); with the rejected hook 128,642 B. So without the hook, precompiling does not
+  shrink the first load (the AST data and the code generator outweigh the dropped parser); it keeps the parser and
+  its string syntax out of the browser and checks every message at build time. size-limit "initial JS" (`index-*.js`
+  only) is 64.08 kB of 75; "all JS" was already over its limit. Smaller options, if wanted later: function messages
+  or a hand-written minimal formatter instead of vue-i18n (rejected by the owner's decision 1 for now).
 - **A-92 Test step "the browser language is"**: an init script on the current context overrides `navigator.language`
   and `navigator.languages` (a Playwright context cannot change its `locale` after creation). New "another device"
   contexts keep the project locale `en-GB`, which is what the "follows the person" scenario needs.
