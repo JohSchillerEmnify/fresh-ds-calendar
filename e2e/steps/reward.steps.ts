@@ -154,3 +154,22 @@ Then('the support cat does not appear', async function (this: World) {
   const seen = (await rewardLog(this)).filter((e) => e.kind === CAT);
   expect(seen, 'support cat visits').toEqual([]);
 });
+
+/**
+ * STEPS.md: the list's title element (the expanded view's title when that list is open, else its visible card title)
+ * has `data-struck="true"` and a visible strike line (a `strike-line` element over it or `line-through` decoration).
+ */
+Then('the title of the task list {string} is struck through', async function (this: World, title: string) {
+  const expanded = this.byTestId('tasklist-expanded', attr('data-title', title));
+  const el = (await expanded.isVisible())
+    ? expanded.getByTestId('tasklist-expanded-title')
+    : this.taskCard(title).getByTestId('tasklist-card-title');
+  await expect(el, 'title marked as struck through').toHaveAttribute('data-struck', 'true');
+  const line = el.getByTestId('strike-line');
+  if (await line.count()) {
+    await expect(line, 'strike line over the title').toBeVisible();
+    return;
+  }
+  const deco = await el.evaluate((e) => getComputedStyle(e).textDecorationLine);
+  expect(deco, 'title text decoration').toContain('line-through');
+});

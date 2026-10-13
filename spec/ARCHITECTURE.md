@@ -757,18 +757,28 @@ It never reloads by itself and never interrupts an open dialog.
   follows the animation level (Off: still picture).
 - The support cat (`SupportCat`, testid `support-cat`) is a one-off overlay effect on finishing a task list, rolled
   with probability 0.1 per finished list (test hook forces the next roll). Sequence ≈ 3 s: walks in next to the list
-  card, paw on the card (the tick already happened, the paw is decoration), looks at the viewer, grins, fades out. It
+  card, swipes its paw across the list's title and a hand-drawn line strikes the title through (owner, 2026-10-13: the
+  cat "checks off the list"), looks at the viewer, grins, fades out. The struck-through title stays while the list is
+  complete (it is the done state of a list, with or without the cat; unticking an item removes it). It
   never captures pointer events and is skipped at animation level Off. Setting "Support cat" (`settings-support-cat`:
   Off / Sometimes / Every time, values `off|sometimes|always`, default `sometimes`) in the Focus & motivation part of
   the settings, per person in prefs (`supportCat`), independent of the theme so a theme change never resets it
   (owner, 2026-10-13; replaces the earlier theme-menu switch). "Every time" skips the roll. The scene cat and the
   support cat share one cat drawing (`CatFigure`), posed differently.
-- Cat look (owner, 2026-10-13, after a reference picture): a black, geometric, slightly naive cat — tall narrow body
-  seen half from the side, head turned to the viewer, two sharp triangle ears with pink insides, big round eyes as
-  yellow rings around dark pupils, a small grey triangle nose, a few fine light whiskers, and a thick tail curled
-  around the bottom; a subtle fur texture. Our own drawing in that style, not a copy. On dark themes a soft
-  rim light keeps the black body readable. More expressive: pupils follow what the cat looks at, slow blinks, ear
-  twitches, head tilt; the support cat's grin squints the eyes into happy arcs.
+- Drag helper (owner, 2026-10-13): when the person picks up an event or task list, the cat may come to "help" — same
+  setting as the support cat (Off / Sometimes ≈ every 5th drag / Every time). It follows the dragged card: moving
+  later/down → it pushes from above, earlier/up → it pulls from below, to another day → it pushes from the side;
+  when the pointer rests > 0.5 s it sits beside the card with a paw on it and looks at the person questioningly; on
+  drop or cancel it hops away (≤ 1.5 s). It reads the drag state from `motion/drag.ts` (no second drag logic),
+  never takes pointer events and must not slow the drag (transform-only, one rAF loop shared with the drag).
+- Cat look (owner, 2026-10-13, two reference pictures; the second one wins where they differ): a black cat in a
+  flat paper-cut style with a subtle paper/fur texture, no outlines, no cartoon mouth or cheeks: tall narrow body
+  that flows into a small head without a neck, seen from the front; two sharp triangle ears with pink insides; big
+  round eyes as yellow rings around black pupils, set close together; a tiny grey triangle nose; long thin light
+  whiskers reaching far out; two front legs showing at the bottom; the tail rising straight up behind the body with
+  a hook at the tip (sitting/napping poses may curl it). Our own drawing in that style, not a copy. On dark themes a
+  soft rim light keeps the black body readable. Expressive through eyes, ears, tail and head only: pupils look
+  around, slow blinks, ear twitches, tail-tip flicks, head tilt; "grin" = happy squinted eye arcs.
 
 ### Untitled task lists (owner, 2026-10-12)
 

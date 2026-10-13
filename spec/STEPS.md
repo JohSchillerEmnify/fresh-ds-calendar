@@ -923,6 +923,12 @@ the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
 the support cat does not appear
+the title of the task list {string} is struck through
+I pick up the event {string} and move it down by {int} hours
+the support cat pushes the card from above
+I hold the dragged card still for {int} second(s)
+the support cat sits beside the card with a paw on it
+the support cat is gone within {int} ms
 ```
 
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
@@ -966,3 +972,10 @@ Google shows the calendar {string}
 - Approaching card = `now-card` (testids kept). "the approaching track is off" → `PATCH /api/prefs { approachBar: false }`
   (default is on). "I set the approaching window to N hours" types N into `settings-approach-window-custom` and waits
   for the save; "I switch off the Approaching card" flips `settings-approaching-card`; "I do not see" = no `now-card`.
+- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
+  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
+  element over it).
+- Drag helper cat: `[data-testid="support-cat"][data-role="drag"]` with `data-pose` = `push-down` (above the card),
+  `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
+  "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
+  … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
