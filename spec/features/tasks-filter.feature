@@ -20,7 +20,8 @@ Feature: One filter for the whole Tasks view
     And the Archive lists "Old milk"
     When I clear the Tasks view filters
     Then the Archive lists "Old report, Old milk"
-    And the Open tab lists "Report, Milk"
+    And the Open tab lists "Report"
+    And the Open tab lists "Milk"
 
   Scenario: The canvas dims notes that don't match
     Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
