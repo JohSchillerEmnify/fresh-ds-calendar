@@ -683,7 +683,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
   the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end
   `approach-now`, right end now + `approachWindowHours` (3 | 6 | 12, Labs setting `settings-approach-window`, per
-  person in prefs, default 3; any whole number 1–24 via `settings-approach-window-custom` next to the 3/6/12 choices,
+  person in prefs, default 3; any whole number 1–24: one choice 3 h / 6 h / 12 h / Custom…, the hours field `settings-approach-window-custom`
+  only shows for Custom… or a custom value (owner: no duplicate controls),
   owner 2026-10-13). Time labels (`approach-tick`, HH:MM) at the smallest step of 15 min / 30 min / 1 h /
   2 h / 3 h whose labels do not collide at the current width (dynamic scaling). All timed entries of today
   that start within the window (owner, 2026-10-13: all, not only the next three) (events and task lists with a time, by start); entries already running stay on the
