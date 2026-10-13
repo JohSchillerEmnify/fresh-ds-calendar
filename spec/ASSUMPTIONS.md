@@ -463,3 +463,11 @@ spec files are named.
 - **A-142 Create button and the area editor** (owner bug report): on the phone the "+" button slides away (`.away`, as for the
   expanded tray) while the Canvas's area editor is open, through the ui flag `panelOpen`; any later bottom panel of a view
   sets the same flag. Labs views in the navigation bar have icons of their own (clock, timeline, view column).
+- **A-143 Long press on item rows** (owner bug report, phone): not reproducible in Chromium's touch emulation, with or without a
+  scrollable page (a CDP long press on an item title and on a checkbox picks the note up). Falsified there: a row handler
+  that stops or prevents the pointer stream (none exists in `TaskListView`, `RewardCheckbox`, `Chip`), the global
+  `button { touch-action: manipulation }` (the same run passes with and without a `touch-action: none` override, and the
+  event stream shows no `pointercancel`). What a phone adds and the emulation lacks is the browser's own long-press
+  reaction (context menu, text selection, native drag, callout). So the canvas defends against it: every element inside a
+  note is `touch-action: none; user-select: none; -webkit-touch-callout: none`, and `contextmenu`, `selectstart` and
+  `dragstart` are prevented on notes and areas. The scenarios stay as regression tests.

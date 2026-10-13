@@ -218,7 +218,13 @@ export function bindCanvasPointer(el: HTMLElement, h: CanvasPointerHooks): Dispo
     }
   }
 
+  // the browser's own long-press reactions (context menu, text selection, dragging a selection) would cancel the pointer
+  // stream of the long press that picks a note or area up
+  const noNative = (e: Event): void => { if ((e.target as Element).closest('[data-canvas-drag]')) e.preventDefault(); };
   const stops = [
+    listen(el, 'contextmenu', noNative),
+    listen(el, 'selectstart', noNative),
+    listen(el, 'dragstart', noNative),
     listen(el, 'pointerdown', (e) => onDown(e as PointerEvent)),
     listen(el, 'wheel', (e) => onWheel(e as WheelEvent), { passive: false }),
   ];

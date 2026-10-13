@@ -58,6 +58,8 @@ html:not([data-motion='off']) .note { transition: transform 200ms var(--md-sys-m
 .dots { width: 28px; height: 6px; border-radius: 3px; background: color-mix(in srgb, currentColor 30%, transparent); }
 .date { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .view { padding: 0 10px 8px; }
+/* the global `button { touch-action: manipulation }` lets the browser pan the page from a button, which cancels the long press that picks the note up */
+.note :deep(*) { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 /* the compact list view is smaller than the tray's */
 .view :deep(.name) { font: var(--md-sys-typescale-title-medium); min-height: 36px; }
 .view :deep(.head) { padding-top: 0; gap: 8px; }

@@ -1314,6 +1314,7 @@ the note {string} is at {int}, {int} on the Canvas
 the note {string} is in the Unsorted stack
 the note {string} is not in the Unsorted stack
 I tick the item {string} of the note {string} on the Canvas
+the page is a little taller than the screen
 I add an area on the Canvas
 the add button covers no control of the area editor
 I create the area {string} on the Canvas
@@ -1322,6 +1323,8 @@ the note {string} is in the area {string}
 the Canvas shows the area {string}
 I long-press the note {string} on its first item and drag it to {int}, {int}
 the item {string} of the note {string} is not ticked
+I long-press the item {string} of the note {string} and drag the note to {int}, {int}
+I long-press the checkbox of the item {string} of the note {string} and drag the note to {int}, {int}
 I swipe across the note {string} on the Canvas
 I tap the empty Canvas
 I long-press the area {string} and release without moving
@@ -1351,6 +1354,10 @@ the Canvas zoom is above {float}
 - "I long-press the note T on its first item and drag it to X, Y": like the move, but the finger goes down on the first
   `tasklist-item-title` (a button), to show that a long press picks the note up anywhere. "the item I of the note T is
   not ticked": `data-done="false"`.
+- "I long-press the item I of the note T and drag the note to X, Y": like the long press on the first item, but the finger
+  goes down on the text of that `tasklist-item` row (its `tasklist-item-title`, not the checkbox).
+- "I long-press the checkbox of the item I of the note T and drag the note to X, Y": the same, with the finger down on the
+  item's `tasklist-item-checkbox`.
 - "I swipe across the note T": the same finger (or mouse) drag by (60, 80) px from the middle of the note with no long
   press; the scenario then expects an unmoved note in the stack and the view still at 0, 0.
 - "I tap the empty Canvas": a click in the bottom right corner of `canvas-viewport` (outside notes and areas); it hides
@@ -1367,6 +1374,7 @@ the Canvas zoom is above {float}
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
   `GET /api/canvas` (through the test API) lists an area named N.
+- "the page is a little taller than the screen": gives the document 120 px of scroll range (an invisible 1 px box below the screen), as a phone's collapsing address bar does, so the browser can start a native pan.
 - "I add an area on the Canvas": clicks `canvas-area-add` and waits for `canvas-area-editor`.
 - "the add button covers no control of the area editor": waits until the bounding box of `create-button` (when it has one)
   intersects none of the boxes of the visible buttons of `canvas-area-editor`. On a phone the button slides away while the

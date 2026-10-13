@@ -175,6 +175,32 @@ When('I long-press the note {string} on its first item and drag it to {int}, {in
   expect((await saved).status(), 'place saved').toBe(200);
 });
 
+When('I long-press the item {string} of the note {string} and drag the note to {int}, {int}', async function (this: World, itemTitle: string, title: string, x: number, y: number) {
+  const n = note(this, title);
+  await expect(n).toBeVisible();
+  const zoom = await num(viewport(this), 'data-zoom');
+  const dx = (x - (await num(n, 'data-x'))) * zoom;
+  const dy = (y - (await num(n, 'data-y'))) * zoom;
+  const row = n.getByTestId('tasklist-item').and(this.page.locator(attr('data-title', itemTitle)));
+  const from = centre(await box(row.getByTestId('tasklist-item-title')));
+  const saved = this.page.waitForResponse(isTasklistWrite('PATCH'));
+  await dragBetween(this, from, { x: from.x + dx, y: from.y + dy }, true);
+  expect((await saved).status(), 'place saved').toBe(200);
+});
+
+When('I long-press the checkbox of the item {string} of the note {string} and drag the note to {int}, {int}', async function (this: World, itemTitle: string, title: string, x: number, y: number) {
+  const n = note(this, title);
+  await expect(n).toBeVisible();
+  const zoom = await num(viewport(this), 'data-zoom');
+  const dx = (x - (await num(n, 'data-x'))) * zoom;
+  const dy = (y - (await num(n, 'data-y'))) * zoom;
+  const row = n.getByTestId('tasklist-item').and(this.page.locator(attr('data-title', itemTitle)));
+  const from = centre(await box(row.getByTestId('tasklist-item-checkbox')));
+  const saved = this.page.waitForResponse(isTasklistWrite('PATCH'));
+  await dragBetween(this, from, { x: from.x + dx, y: from.y + dy }, true);
+  expect((await saved).status(), 'place saved').toBe(200);
+});
+
 Then('the item {string} of the note {string} is not ticked', async function (this: World, itemTitle: string, title: string) {
   await expect(note(this, title).getByTestId('tasklist-item').and(this.page.locator(attr('data-title', itemTitle)))).toHaveAttribute('data-done', 'false');
 });
@@ -232,6 +258,17 @@ Then('the area {string} is {int} wide and {int} high', async function (this: Wor
   await expect(area(this, name)).toHaveAttribute('data-h', String(h));
   // and saved
   await expect.poll(async () => (await this.api.get<{ areas: { name: string; w: number; h: number }[] }>('/api/canvas')).areas.find((a) => a.name === name)).toMatchObject({ w, h });
+});
+
+/** A phone's page can scroll a little (the browser's address bar collapses), so a native pan can start and cancel a touch. */
+When('the page is a little taller than the screen', async function (this: World) {
+  // an invisible 1 px box below the screen gives the document scroll range without moving anything
+  await this.page.evaluate(() => {
+    const pad = document.createElement('div');
+    pad.style.cssText = 'position:absolute;left:0;top:calc(100dvh + 120px);width:1px;height:1px;pointer-events:none';
+    document.body.appendChild(pad);
+  });
+  expect(await this.page.evaluate(() => document.scrollingElement!.scrollHeight > document.scrollingElement!.clientHeight)).toBe(true);
 });
 
 When('I add an area on the Canvas', async function (this: World) {
