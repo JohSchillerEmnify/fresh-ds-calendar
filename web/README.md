@@ -63,9 +63,9 @@ Other hooks:
 
 ## API assumptions beyond spec/API.md
 
-- `Settings.scene` (`sunflowers|mordor|none`), sent in `PATCH /api/settings`; falls back to `localStorage cal.scene` if the server omits it.
+- The scene is the theme's `scene` attribute (`/api/prefs/theme`, cached in `cal.theme`); there is no `Settings.scene` any more.
 - `POST /api/demo/reset` for "Reset demo data" (exists on the server; shown only when `/api/config.provider === 'mock'`). Etags are opaque: sent verbatim.
-- Dialog props shape and testids `settings-theme-mordor`, `settings-scene`, `settings-category-up/down`, `settings-reset-demo` are additions to the catalog.
+- Dialog props shape and testids `settings-theme-mordor`, `settings-category-up/down`, `settings-reset-demo` are additions to the catalog.
 - `year-month` carries `data-month="YYYY-MM"`.
 
 ## Known gaps

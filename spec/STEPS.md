@@ -892,6 +892,10 @@ the theme {string} is marked as chosen
 the theme {string} is in use
 every option for {string} shows a sample event drawn in that style
 I pick {string} for {string}
+the scene choices are {string}, {string}, {string} and {string}
+the top bar shows the {string} scene
+the top bar shows no scene
+the settings show the theme {string}
 the preview event is drawn as an outline
 the event {string} is drawn as an outline
 the event {string} glows
@@ -904,6 +908,13 @@ the event {string} glows
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X.
+- "I pick X for Y": the option is found by the label it shows (`theme-option` with that `data-setting`), and the theme
+  menu is opened first when it is not open. Scene options, in order: "Season", "Sunflower field", "Mordor", "None"
+  (`data-value` `season`, `sunflowers`, `mordor`, `none`); "the scene choices are" compares their labels and checks
+  that `settings-scene` (the retired second control) is absent.
+- "the top bar shows the X scene": back on the calendar, `top-bar-scene` has `data-scene` X (`sunflowers`, `mordor`,
+  `spring`..); "shows no scene": `top-bar-scene` is absent.
+- "the settings show the theme X": `settings-theme-name` has exactly the text X (e.g. "Automatic · Fall").
 - New dialog (owner): one dialog creates events and task lists; switch `new-kind` with options `new-kind-event` /
   `new-kind-tasklist` ("Event" / "Task list"); the form below is the event form (`event-dialog`) or the task list form
   (`tasklist-dialog`); date and time carry over when switching. "I start creating a task list" = "+" then switch to

@@ -2,7 +2,8 @@
 Feature: Choosing and fine-tuning a theme
   A theme menu shows a gallery of ready themes, each card drawn as a small week in that theme's real look, and a
   fine-tuning section where every option shows itself as a small sample before it is picked: glow (off, soft, neon),
-  entries (solid, tinted, outline), corners (square, round, pill) and the background scene. A live preview with a
+  entries (solid, tinted, outline), corners (square, round, pill) and the background scene (one choice: Season, Sunflower
+  field, Mordor or None). A live preview with a
   real event, task list and checkbox follows every change, and so does the calendar, without a save button. Ready
   themes: Default, Neon, Spring, Summer, Fall, Winter, Mordor and Automatic, which follows the season (spring from
   1 March, summer from 1 June, fall from 1 September, winter from 1 December). The choice is kept per person and
@@ -46,3 +47,32 @@ Feature: Choosing and fine-tuning a theme
       | 2026-07-10 | Summer |
       | 2026-10-12 | Fall   |
       | 2026-12-10 | Winter |
+
+  Scenario: There is one scene choice
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then the scene choices are "Season", "Sunflower field", "Mordor" and "None"
+
+  Scenario: Picking a scene changes the top bar
+    Given the garden style is "Sunflower field"
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I pick "Mordor" for "Scene"
+    Then the top bar shows the "mordor" scene
+    When I pick "Sunflower field" for "Scene"
+    Then the top bar shows the "sunflowers" scene
+    When I pick "None" for "Scene"
+    Then the top bar shows no scene
+
+  Scenario: The settings show which seasonal theme the automatic theme uses
+    Given today is 2026-10-12
+    And I chose the theme "Automatic"
+    When I open the week view for 2026-10-12
+    And I open the settings
+    Then the settings show the theme "Automatic · Fall"
+
+  Scenario: A fixed theme shows its own name in the settings
+    Given I chose the theme "Neon"
+    When I open the week view for 2026-10-12
+    And I open the settings
+    Then the settings show the theme "Neon"

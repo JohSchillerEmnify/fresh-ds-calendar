@@ -118,8 +118,10 @@ async function signInAs(world: World, email: string, date = '2026-10-12') {
 }
 
 const card = (world: World, name: string) => world.page.locator(`[data-testid="theme-card"][data-name="${name}"]`);
-const option = (world: World, setting: string, value: string) =>
-  world.page.locator(`[data-testid="theme-option"][data-setting="${setting.toLowerCase()}"][data-value="${value.toLowerCase()}"]`);
+/** A fine-tuning option, found by the label it shows (e.g. "Sunflower field"). */
+const option = (world: World, setting: string, label: string) =>
+  world.page.locator(`[data-testid="theme-option"][data-setting="${setting.toLowerCase()}"]`)
+    .filter({ has: world.page.locator('.ol', { hasText: new RegExp(`^${label}$`, 'i') }) });
 const isSaved = (r: { request(): { method(): string }; url(): string }) => r.request().method() === 'PATCH' && r.url().includes('/api/prefs/theme');
 
 async function openMenu(world: World) {
@@ -244,6 +246,7 @@ Then('every option for {string} shows a sample event drawn in that style', async
 });
 
 When('I pick {string} for {string}', async function (this: World, value: string, label: string) {
+  await ensureMenu(this);
   const saved = this.page.waitForResponse(isSaved);
   const o = option(this, label, value);
   await o.click();
@@ -290,4 +293,24 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
     const part = name.trim().toLowerCase().replace(/\s+/g, '-');
     await expect(scene.locator(`[data-part="${part}"]`).first(), name).toBeVisible();
   }
+});
+
+Then('the scene choices are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
+  await expect(this.page.locator('[data-testid="theme-option"][data-setting="scene"] .ol')).toHaveText([a, b, c, d]);
+  // the old second control is gone
+  await expect(this.page.getByTestId('settings-scene')).toHaveCount(0);
+});
+
+Then('the top bar shows the {string} scene', async function (this: World, name: string) {
+  await backToCalendar(this);
+  await expect(this.page.getByTestId('top-bar-scene')).toHaveAttribute('data-scene', name);
+});
+
+Then('the top bar shows no scene', async function (this: World) {
+  await backToCalendar(this);
+  await expect(this.page.getByTestId('top-bar-scene')).toHaveCount(0);
+});
+
+Then('the settings show the theme {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
 });

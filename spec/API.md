@@ -129,7 +129,6 @@ interface Settings {
   transitionWarningMinutes: 0 | 5 | 10 | 15;     // default 10; 0 = off
   streakFlame: boolean;               // default true: show the streak flame
   garden: 'plant' | 'sunflowers' | 'off';  // default 'plant'
-  scene: 'sunflowers' | 'mordor' | 'none'; // default 'sunflowers'; top app bar background, see "Scenes"
   categories: Category[];            // display order
   updated: DateTime;
   version: number;                   // increments on every change
@@ -145,14 +144,14 @@ Google event palette (`colorId` → hex, name): `1` #7986cb Lavender, `2` #33b67
 used by server (Google mapping) and web (none needed in UI, but available).
 Seed presets: Blue #1a73e8, Purple #6750a4, Teal #006a6a, Green #386a20, Orange #e8710a, Red #b3261e, Pink #c2185b,
 Slate #4f6170, Mordor #c43e00 (preset id `mordor`).
-Selecting the Mordor preset in the UI also sets `themeMode: 'dark'` and `scene: 'mordor'`. The server only stores
-the values, and the user can change each one afterwards.
-**Scenes** (owner addition 2026-10-12): `scene` picks the top app bar background.
-- `'sunflowers'` (default) shows the sunflower field when `garden === 'sunflowers'`; with other garden values it shows
-  nothing, so earlier behaviour is unchanged.
-- `'mordor'` shows the Barad-dûr + Eye of Sauron scene whatever `garden` is. The eye-open effect replaces the
-  butterfly. The single plant and the flame still show as widgets.
-- `'none'` shows no background.
+Selecting the Mordor preset in the UI also sets `themeMode: 'dark'` and the scene "Mordor" (a theme preference, see
+ARCHITECTURE "Themes"). The server only stores the values, and the user can change each one afterwards.
+**Scenes** (owner 2026-10-13): the top app bar background is not a setting any more. There is one "Scene" choice
+(Season, Sunflower field, Mordor, None), stored as the `scene` attribute of the person's theme
+(`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"). `PATCH /api/settings` rejects a `scene` field and
+`GET /api/settings` no longer returns one. The sunflower field still shows only when `garden === 'sunflowers'`, as
+before; Mordor shows whatever `garden` is, the eye-open effect replaces the butterfly, and the single plant and the
+flame still show as widgets.
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 

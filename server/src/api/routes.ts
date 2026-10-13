@@ -123,7 +123,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });
   // ---- per-person theme ----
-  r.get('/prefs/theme', (c) => c.json(ctx.prefs.theme(person(c))));
+  r.get('/prefs/theme', (c) => {
+    ctx.prefs.migrateScene(person(c), settings.legacyTopBarScene());
+    return c.json(ctx.prefs.theme(person(c)));
+  });
   r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));
 
   // ---- items ----

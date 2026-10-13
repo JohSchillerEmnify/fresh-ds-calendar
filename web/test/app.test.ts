@@ -6,6 +6,7 @@ import { createAppRouter } from '@/router';
 import { registerBuiltinExtensions } from '@/extensions/builtin';
 import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
+import { useThemeStore } from '@/stores/theme';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:00+02:00`, `${d}T${Number(h) + 1}:00:00+02:00`);
@@ -301,12 +302,21 @@ describe('settings', () => {
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Custom'));
     expect(m.calls.at(-1)!.body).toEqual({ seedColor: '#8e24aa' });
   });
-  it('Mordor preset (theme menu) sets seed, dark mode and scene in one patch', async () => {
+  it('Mordor shortcut (theme menu) sets seed and dark mode, and the theme scene', async () => {
     const { w, m } = await mountAt('/settings/theme');
     await wait(() => expect(w.find(tid('settings-theme-mordor')).exists()).toBe(true));
     await w.get(tid('settings-theme-mordor')).trigger('click');
     await wait(() => expect(m.calls.some((c) => c.method === 'PATCH')).toBe(true));
-    expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ seedColor: '#c43e00', themeMode: 'dark', scene: 'mordor' });
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/settings')!.body).toEqual({ seedColor: '#c43e00', themeMode: 'dark' });
+    await wait(() => expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')).toBe(true));
+  });
+  it('the Theme row shows the seasonal theme in use for Automatic and the preset name otherwise', async () => {
+    const { w } = await mountAt('/settings');
+    const theme = useThemeStore();
+    theme.pref = { preset: 'Automatic', overrides: {} };
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Automatic · Fall'));
+    theme.pref = { preset: 'Neon', overrides: {} };
+    await wait(() => expect(w.get(tid('settings-theme-name')).text()).toBe('Neon'));
   });
   it('persists motivation toggles, shows the best streak and the demo reset only in mock mode', async () => {
     const { w, m } = await mountAt('/settings');

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
-import type { Category, SceneName, Settings, SettingsPatch } from '@/api/types';
+import type { Category, Settings, SettingsPatch } from '@/api/types';
 import { MORDOR_SEED } from '@/api/colors';
 import { applySeed, applyThemeMode, DEFAULT_SEED } from '@/theme';
 import { DisposerBag, listen } from '@/lib/timers';
@@ -18,40 +18,25 @@ export const DEFAULT_CATEGORIES: Category[] = [
 export const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system', seedColor: DEFAULT_SEED, defaultView: 'month', defaultEventColorId: null,
   animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false, transitionWarningMinutes: 10,
-  streakFlame: true, garden: 'plant', scene: 'sunflowers', categories: DEFAULT_CATEGORIES,
+  streakFlame: true, garden: 'plant', categories: DEFAULT_CATEGORIES,
   updated: '', version: 0,
 };
-
-const SCENE_KEY = 'cal.scene';
-function readScene(): SceneName | null {
-  try {
-    const v = localStorage.getItem(SCENE_KEY);
-    return v === 'sunflowers' || v === 'mordor' || v === 'none' ? v : null;
-  } catch {
-    return null;
-  }
-}
 
 /** Settings + categories (API.md). Optimistic patches with `If-Match: <version>`; 412 re-reads and retries once. */
 export const useSettingsStore = defineStore('settings', () => {
   const s = ref<Settings>({ ...DEFAULT_SETTINGS });
   const loaded = ref(false);
   const saveError = ref<string | null>(null);
-  /** Local scene fallback until the server persists `scene`. */
-  const localScene = ref<SceneName | null>(readScene());
 
   const categories = computed(() => s.value.categories);
   const categoryById = (id: string | null | undefined) => categories.value.find((c) => c.id === id);
-  const scene = computed<SceneName>(() => s.value.scene ?? localScene.value ?? 'sunflowers');
   /**
-   * Scene the top bar actually shows (API.md "Scenes"): sunflowers only with garden 'sunflowers',
-   * mordor regardless of garden, none = nothing.
+   * Scene the top bar actually shows (API.md "Scenes"): the theme's scene, where sunflowers only show with garden
+   * 'sunflowers'; every other scene shows regardless of garden, none = nothing.
    */
   const effectiveScene = computed<ShownScene>(() => {
-    // the theme's scene wins; `none` leaves the top bar to the scene/garden settings
     const themed = useThemeStore().resolved.attrs.scene;
-    if (themed !== 'none') return themed;
-    return scene.value === 'mordor' ? 'mordor' : scene.value === 'sunflowers' && s.value.garden === 'sunflowers' ? 'sunflowers' : 'none';
+    return themed === 'sunflowers' && s.value.garden !== 'sunflowers' ? 'none' : themed;
   });
 
   async function load(signal?: AbortSignal): Promise<void> {
@@ -63,10 +48,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function mergeLocal(p: SettingsPatch): void {
     s.value = { ...s.value, ...p };
-    if (p.scene) {
-      localScene.value = p.scene;
-      try { localStorage.setItem(SCENE_KEY, p.scene); } catch { /* storage unavailable */ }
-    }
   }
 
   /** Optimistic update; rolls back and rethrows on failure (the caller / sync banner shows the error). */
@@ -116,9 +97,10 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
 
-  /** The "Mordor" theme preset: seed #c43e00 + dark mode + the Mordor scene. */
-  function applyMordor(): Promise<void> {
-    return patch({ seedColor: MORDOR_SEED, themeMode: 'dark', scene: 'mordor' });
+  /** The "Mordor" shortcut: seed #c43e00 + dark mode (settings) + the Mordor scene (theme). */
+  async function applyMordor(): Promise<void> {
+    await patch({ seedColor: MORDOR_SEED, themeMode: 'dark' });
+    await useThemeStore().pick('scene', 'mordor');
   }
 
   // --- DOM side effects ---------------------------------------------------------
@@ -167,7 +149,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   return {
-    settings: s, loaded, saveError, categories, categoryById, scene, effectiveScene,
+    settings: s, loaded, saveError, categories, categoryById, effectiveScene,
     load, patch, addCategory, updateCategory, deleteCategory, moveCategory, applyMordor, installAppearance, stopAppearance,
   };
 });

@@ -300,9 +300,10 @@ otherwise; bundle budget §5a applies).
   desktop) with M3 list sections:
   Sections (owner, 2026-10-13: deduplicated, proper sections; each a card with a heading, on desktop with a section
   list on the left; every setting exists exactly once):
-  1. *Appearance*: one row "Theme" showing the chosen theme, opening the theme menu (`settings-theme`). Theme mode
-     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), top
-     bar scene and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
+  1. *Appearance*: one row "Theme" showing the chosen theme (for Automatic "Automatic · <the seasonal theme in use>", e.g.
+     "Automatic · Fall"; owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
+     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), the
+     Scene choice and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
   2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.
   3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
   4. *Focus & motivation*: transition warning, calm mode, streak flame, garden, best streak, support cat.
@@ -742,10 +743,22 @@ It never reloads by itself and never interrupts an open dialog.
 
 - A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
-  `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|mordor|spring|summer|fall|winter;
+  `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|sunflowers|mordor|spring|summer|fall|winter;
   Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,
   Winter, Mordor and Automatic (resolves to the season by date: spring from 1 March, summer from 1 June, fall from
   1 September, winter from 1 December).
+- **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
+  The theme menu offers one "Scene" selector: Season, Sunflower field (`sunflowers`), Mordor, None. "Season" stores
+  the season's scene for today (spring..winter), so it is not a separate stored value. Default and Neon start with
+  `sunflowers`; the sunflower field still shows only with garden "Sunflower field" (API.md "Scenes"). Alternatives
+  weighed: keeping the old `Settings.scene` and hiding the theme one (rejected: two stored values and a precedence
+  rule nobody could see) and moving everything into settings (rejected: presets need to carry a scene).
+  Migration (once per person, when the server first serves the theme after the change, marker `sceneUnified` in the
+  stored theme): the scene that was visible wins. If the preset or override scene was not `none`, it already is the
+  value and stays; if it was `none`, the old top bar setting (`sunflowers`, `mordor` or `none`) becomes the override.
+  The old `scene` key stays in `settings.json` (read-only, unused) so other people can still migrate.
+- The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <resolved preset>", e.g.
+  "Automatic · Fall" (and "Automatic · Halloween" once that theme exists).
 - Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),
   `data-glow`, `data-entries`, `data-corners`, `data-scene`, plus CSS custom properties (`--glow-*`, `--radius-*`).
   Components style from these only (no per-component theme logic). Reduced/Off animation levels keep static glows

@@ -2,15 +2,15 @@
 /**
  * Theme menu (`/settings/theme`): a gallery of ready themes (each a real mini week under that theme's attributes),
  * fine-tuning options that each show a sample of their look, and a live preview. Picking applies at once and is
- * saved in the background by the theme store; there is no save button. Theme mode, seed colour, top bar scene and
- * the Mordor shortcut are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
+ * saved in the background by the theme store; there is no save button. The one Scene choice is a theme attribute. Theme
+ * mode, seed colour and the Mordor shortcut are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
  */
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import IconBack from '~icons/material-symbols/arrow-back';
 import { ApiError } from '@/api/client';
 import { isHexColor, MORDOR_SEED, MSG_INVALID_COLOR, SEED_PRESETS } from '@/api/colors';
-import type { SceneName, ThemeMode } from '@/api/types';
+import type { ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
@@ -49,7 +49,7 @@ const groups: { setting: keyof ThemeAttrs; label: string; options: { value: stri
   { setting: 'glow', label: 'Glow', options: [{ value: 'off', label: 'Off' }, { value: 'soft', label: 'Soft' }, { value: 'neon', label: 'Neon' }] },
   { setting: 'entries', label: 'Entries', options: [{ value: 'solid', label: 'Solid' }, { value: 'tinted', label: 'Tinted' }, { value: 'outline', label: 'Outline' }] },
   { setting: 'corners', label: 'Corners', options: [{ value: 'square', label: 'Square' }, { value: 'round', label: 'Round' }, { value: 'pill', label: 'Pill' }] },
-  { setting: 'scene', label: 'Scene', options: [{ value: 'none', label: 'None' }, { value: 'mordor', label: 'Mordor' }, { value: 'season', label: 'Season' }] },
+  { setting: 'scene', label: 'Scene', options: [{ value: 'season', label: 'Season' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] },
 ];
 const SEASONS = ['spring', 'summer', 'fall', 'winter'];
 const isSeason = (s: string) => SEASONS.includes(s);
@@ -70,7 +70,7 @@ function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, s
 }
 const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
 
-// --- mode, seed colour, top bar scene, Mordor (settings, not theme prefs) ---------------------------
+// --- mode, seed colour, Mordor (settings, not theme prefs) ---------------------------
 const sync = useSyncStore();
 const ui = useUiStore();
 const s = computed(() => settings.settings);
@@ -106,7 +106,6 @@ function commitHex() {
   hexError.value = '';
   if (v.toLowerCase() !== seed.value) void save({ seedColor: v.toLowerCase() });
 }
-const scenes = [{ value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' }] as const;
 
 function back() {
   if (window.history.state?.back) router.back();
@@ -181,10 +180,6 @@ function back() {
               <span class="ol">{{ o.label }}</span>
             </button>
           </div>
-        </div>
-        <div class="group">
-          <span class="lab">Top bar scene</span>
-          <SegmentedButton :model-value="settings.scene" :options="[...scenes]" label="Top bar scene" data-testid="settings-scene" @update:model-value="save({ scene: $event as SceneName })" />
         </div>
         <div class="group mordor">
           <span class="grow"><span class="lab">Mordor</span><span class="sub">Ember seed, dark mode and the Mordor scene</span></span>
