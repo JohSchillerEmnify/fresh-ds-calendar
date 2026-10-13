@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { t } from '@/i18n';
 import { animate } from '@/motion/animate';
 import { spawnSparkle } from '@/motion/effects';
 import { springs } from '@/motion/spring';
@@ -61,7 +62,7 @@ function crackle(from: number) {
   }
 }
 onBeforeUnmount(() => anims.forEach((a) => a.cancel()));
-const label = computed(() => `Streak: ${props.count} ${props.count === 1 ? 'day' : 'days'}`);
+const label = computed(() => t('tasks.streak.label', { count: props.count }, props.count));
 </script>
 
 <template>

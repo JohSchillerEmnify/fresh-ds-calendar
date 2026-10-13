@@ -3,6 +3,7 @@
  * No store or DOM access, so the rules are unit-tested with fixed dates.
  */
 import type { Category, TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
+import { t } from '@/i18n';
 import { addDays, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { displayTitle } from '@/lib/items';
 import { isComplete } from './format';
@@ -10,9 +11,8 @@ import { isComplete } from './format';
 /** The time buckets, in display order. */
 export type TimeGroup = 'overdue' | 'today' | 'week' | 'later' | 'nodate';
 export const TIME_GROUPS: readonly TimeGroup[] = ['overdue', 'today', 'week', 'later', 'nodate'];
-export const TIME_GROUP_TITLES: Record<TimeGroup, string> = {
-  overdue: 'Overdue', today: 'Today', week: 'This week', later: 'Later', nodate: 'No date',
-};
+/** The heading of a time bucket in the active language. */
+export const timeGroupTitle = (g: TimeGroup): string => t(`tasks.view.timeGroup.${g}`);
 
 /** One heading of the Tasks view with its lists, already sorted. */
 export interface TaskGroup {
@@ -82,11 +82,11 @@ export function groupLists(lists: TaskList[], groupBy: TasksGroupBy, sortBy: Tas
   if (groupBy === 'none') return sorted.length ? [{ key: 'all', title: '', lists: sorted }] : [];
   if (groupBy === 'time') {
     return TIME_GROUPS
-      .map((g) => ({ key: g as string, title: TIME_GROUP_TITLES[g], lists: sorted.filter((l) => timeGroupOf(l.date, today) === g) }))
+      .map((g) => ({ key: g as string, title: timeGroupTitle(g), lists: sorted.filter((l) => timeGroupOf(l.date, today) === g) }))
       .filter((g) => g.lists.length);
   }
   const known = new Set(categories.map((c) => c.id));
   const groups: TaskGroup[] = categories.map((c) => ({ key: c.id, title: c.name, lists: sorted.filter((l) => l.categoryId === c.id) }));
-  groups.push({ key: 'none', title: 'No category', lists: sorted.filter((l) => l.categoryId === null || !known.has(l.categoryId)) });
+  groups.push({ key: 'none', title: t('tasks.noCategory'), lists: sorted.filter((l) => l.categoryId === null || !known.has(l.categoryId)) });
   return groups.filter((g) => g.lists.length);
 }

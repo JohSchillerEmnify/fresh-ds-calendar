@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useMediaQuery } from '@vueuse/core';
+import { t } from '@/i18n';
 import { animate } from '@/motion/animate';
 import { spawnSparkle } from '@/motion/effects';
 import { useAnimationLevel } from '@/motion/level';
@@ -28,7 +29,7 @@ onBeforeUnmount(() => {
 const MAX = computed(() => (phone.value ? SUNFLOWER_MAX_PHONE : SUNFLOWER_MAX));
 const shown = computed(() => Math.min(props.flowers, MAX.value));
 const swaying = computed(() => level.value === 'full' && visible.value);
-const label = computed(() => `Sunflower field: ${props.flowers} ${props.flowers === 1 ? 'flower' : 'flowers'}`);
+const label = computed(() => t('tasks.sunflowers.label', { count: props.flowers }, props.flowers));
 
 const rand = (i: number, k: number) => {
   const x = Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453;

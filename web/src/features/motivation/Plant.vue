@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { t } from '@/i18n';
 import { animate } from '@/motion/animate';
 import { spawnDroplets, spawnSparkle } from '@/motion/effects';
 import { springs } from '@/motion/spring';
@@ -88,7 +89,7 @@ onBeforeUnmount(() => {
     :data-stage="stage"
     :data-mood="mood"
     role="img"
-    :aria-label="`Plant, stage ${stage + 1} of 5`"
+    :aria-label="t('tasks.plant.stageLabel', { stage: stage + 1 })"
   >
     <!-- plant (rotates about the soil line) -->
     <g ref="plantG" class="grow" :style="{ transform: `rotate(${deg}deg)` }">

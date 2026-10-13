@@ -12,6 +12,7 @@
  */
 import { computed, inject, onMounted, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
+import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
@@ -53,7 +54,7 @@ const carried = computed(() => !!props.segment.carriedFrom);
 const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
-const label = computed(() => `${displayTitle(tl.value)}, ${tl.value.doneCount} of ${tl.value.totalCount} done`);
+const label = computed(() => t('tasks.card.label', { title: displayTitle(tl.value), done: tl.value.doneCount, total: tl.value.totalCount }));
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < 84);
 const hasFoot = computed(() => !!tl.value.time && !fit.value.inline);
@@ -118,7 +119,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>No items</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="hasFoot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue';
+import { t } from '@/i18n';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { useUiStore } from '@/stores/ui';
 
@@ -23,7 +24,7 @@ onBeforeUnmount(() => { stopWatch(); timers.forEach((s) => s()); timers.clear();
     <div v-for="s in ui.snackbars" :key="s.id" class="snack snack-skin" role="status" :data-testid="s.testid ?? 'snackbar'">
       <span class="msg" data-testid="snackbar-text">{{ s.text }}</span>
       <button v-if="s.action" class="act" type="button" :data-testid="s.action.testid" @click="s.action.run(); ui.dismiss(s.id)">{{ s.action.label }}</button>
-      <button class="x" type="button" aria-label="Dismiss" :data-testid="s.testid ? s.testid + '-dismiss' : 'snackbar-dismiss'" @click="ui.dismiss(s.id)">✕</button>
+      <button class="x" type="button" :aria-label="t('tasks.undo.dismiss')" :data-testid="s.testid ? s.testid + '-dismiss' : 'snackbar-dismiss'" @click="ui.dismiss(s.id)">✕</button>
     </div>
   </div>
 </template>
