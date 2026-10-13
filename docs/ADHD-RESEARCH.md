@@ -1,6 +1,6 @@
 # ADHD research: what a calendar must do differently
 
-Research date 2026-10-12; time-specific follow-up (1.11–1.20, R25–R31) 2026-10-13. Purpose: ground the calendar's ADHD-specific requirements in evidence and in practice from
+Research date 2026-10-12; time-specific follow-up (1.11–1.20, R25–R31) and community, time-aid and visualisation research (1.21–1.23, R32–R37) 2026-10-13/14. Purpose: ground the calendar's ADHD-specific requirements in evidence and in practice from
 ADHD-focused tools. **Evidence quality varies a lot.** Each section is labelled:
 - **[research]**: peer-reviewed or clinical.
 - **[practice]**: clinicians and coaches, ADHD organisations, community reports.
@@ -235,6 +235,79 @@ fixed points, open lists, one first step) supports the habit the treatment train
 - Evidence is small and mixed: a 12-person VR preprint found benefits with a human or AI body double; a student study
   found no effect. [S51] Kept out of scope.
 
+### 1.21 What the community says: tools fade, guilt stays [research: qualitative, community data]
+Reddit blocks automated access for this research, so its posts were read through published analyses, not scraped.
+- **r/ADHD, 5,379 posts on time management, 2020–2025** (human-led, LLM-assisted thematic analysis, arXiv preprint Oct
+  2026). [S52] Challenges: putting tasks off until urgency forces a start (68.9 %, "If there is no urgency, I don't get it
+  done"); guilt and self-blame over lost time (55.1 %, "maybe I'm just lazy"); screen sessions noticed only afterwards
+  (23.6 %, "5 mins" became "3 hours"); tools breaking down (8.9 %): a planner forgotten "after about 2 weeks", reminders
+  ignored once familiar, a red badge on a to-do app causing anxiety and then muting, alarms "burned out" as a strategy, a
+  focus timer that "mostly just highlights how much time I wasted". The app-hopping cycle: "find a new system/app, shove
+  the chaos … list of well over 100 tasks a day, get overwhelmed, stop checking the app … move to a new app".
+  Strategies: other people (70.4 %; "a person, unlike a reminder, cannot be dismissed", body doubling over FaceTime);
+  tools that last are **shared, separate or visible** (21.7 %): "My partner and I have a joint colour-coded Google
+  Calendar and that works fairly well", "a timer that's separate from your phone", a whiteboard of done / to do / coming
+  up, breaks framed as earned; success redefined as "I notice it sooner and can gently guide myself back"; friction set
+  in advance (12.1 %): phone across the room, timed lock box, an alarm dismissed only by scanning a barcode in another
+  room. Wished-for tools: reminders that stay visible until done, tasks pinned to the lock screen, ambient displays,
+  minimal tools that do not "treat me like a child", support tied to calendar events.
+  The authors' design implications: progress feedback can feed guilt, so make **recovery** visible and offer a
+  manageable next step; support the transition away from the phone instead of only reminding; keep support continuous
+  when people switch tools; easy to switch on, not instantly dismissible, with the person in control of strength,
+  placement and repetition; judge tools by self-blame, not only by tasks done.
+- **r/adhdwomen vs r/ADHD** (3,383 posts, 2025): executive-function support is discussed together with digital tools
+  (OR ≈ 4.3), environmental structure (OR ≈ 4.7) and social support; r/ADHD talks more about reminders and apps,
+  r/adhdwomen in more emotional and relational language. [S53]
+- **ADDitude reader surveys** (self-selected): of 1,859 adults, few rated any non-drug strategy "extremely helpful"
+  (family/friends 5.6 %, personal organisers 4.7 %, time-management apps 3.5 %, coaches 2.7 %); 61 % in another survey
+  use paper planners, sticky notes or handwritten lists. The editors' summary: trial and error. [S54]
+- Interviews (CSCW 2026, n = 22 + 20): people plan from their rare hyperfocus days and overestimate what fits; reminders
+  work only inside routines or relationships ("If it's only me reminding myself, it just becomes invisible after a few
+  days"); planning itself can become avoidance or a source of shame. Of 13 concepts, the favourites were a calm
+  "brain weather" dashboard (14 of 20 in their top 3; "mild haze" instead of red overdue items), quiet social presence,
+  pause days and flexible plans with gentle streaks; **ambient transition cues were the least liked (too subtle during
+  focus)**; pattern-based nudges felt like being watched. "I want it to suggest, not decide." [S24]
+- Abandonment research outside ADHD agrees: lapses (forgetting, upkeep, skipping, suspending) are normal, and the
+  design task is resuming, for example by inviting people back to look at what they did before. [S55] Phone sessions
+  end on competing real-world demands, not on willpower. [S56]
+
+**Implication:** design for the second week, not the first day. Few, meaningful notifications the person tunes; nothing
+red, no badge counts that accuse; show what was done and make coming back easy after a gap; one shared calendar
+(the partner) and a glanceable place outside the app (widget, lock screen) instead of more in-app features; cues that
+are strong enough to notice but under the person's control.
+
+### 1.22 Time aids work best with practice, and calendars are the core of the evidence-based programmes [research]
+- **Let's Get Organized (LGO-S, "Ha koll")**, a Swedish occupational-therapy group programme for adults with ADHD,
+  autism or mental disorders: ten weekly sessions, **each one working with the person's own calendar**, plus estimating
+  and measuring how long activities take, prioritising with a to-do list, energy levels and circadian rhythm, matching
+  activities to energy, revising routines, planning rewarding weekends, and "succeed or learn" trial and error. In an RCT
+  (n = 75) it improved time management, organisation and emotional regulation as much as individual occupational
+  therapy, and the gain held after one year (n = 38). Parents described a family calendar or whiteboard giving the whole
+  family predictability. The authors note that a calendar also lets people look back at what they have done. [S57]
+- **Time-assistive devices** (reminders and alarms, day/week activity schedules, step-by-step schedules, timers that
+  show time as shrinking dots or a shrinking surface): in an RCT with children with ADHD (n = 38), devices plus training
+  and psychoeducation improved time processing, mostly **time orientation**, and parent-rated daily time management;
+  psychoeducation alone did nothing. Young adults using such devices reported more participation and a feeling of
+  control; the barriers were other people's attitudes and their own about using an aid. Time-processing ability varies
+  widely within ADHD. [S58] Devices "are not sufficient as such; training in how to use them is needed". [S57]
+- Assistive technology for cognition is used most for time management and planning, and is effective there (91 studies).
+  [S59] A digital calendar with phone reminders improved self-rated occupational performance in a small pilot RCT, but
+  people found it hard to fit into their routines. [S60] Stress, poor sleep and money or social problems undermine the
+  routines that aid use depends on. [S61]
+
+**Implication:** the calendar is the right core, but the app should teach its own use lightly (first-week hints, a
+weekly look back, "estimate, then see how long it took"), support time orientation (where am I in the day, what is
+next), offer an energy view of the day, and never look like a "special needs" device.
+
+### 1.23 Circles look calmer, lines read faster [research: visualisation]
+- Timelines: linear shapes are read faster and rated more readable; circles were described as "easier on the eyes".
+  [S62] Circular layouts were slightly slower (not significant) and judged more aesthetic. [S63] For 24-hour data,
+  linear charts were more accurate and efficient, while clock-like **sectors were easier to remember than rings**. [S64]
+
+**Implication:** the clock is a good *glance and orientation* view (where am I in the day, how much is left: the wedge
+is a sector), while reading exact times and comparing durations belongs to the linear views and words ("in 2 h 15 min").
+The clock should keep its words in the middle and the linear Approaching track elsewhere.
+
 ## 2. Derived requirements
 
 Mapped to `spec/features/` tags. P1 = must, P2 = should, P3 = optional (`@optional`).
@@ -271,6 +344,12 @@ Mapped to `spec/features/` tags. P1 = must, P2 = should, P3 = optional (`@option
 | R29 | Notification budget: only bedtime, transitions before real commitments and leave-by; no repeats; quiet hours. | P1 (proposed) | 1.18 | – |
 | R30 | Daily planning view: today's fixed points, open lists, one first step, reachable from a morning notification. | P2 (proposed) | 1.19 | – |
 | R31 | Long horizons in words and distance: "in 2 h 15 min" next to times on the Now card, clock and widget. | P2 (proposed) | 1.12, 1.13 | – |
+| R32 | Notification budget per person: choose which reminders reach the lock screen (bedtime, transitions before events, leave-by), quiet hours, no badge counts; reminders stay until acknowledged only when the person chooses so. | P1 (proposed) | 1.18, 1.21 | – |
+| R33 | Transition warnings as system notifications in the Android app (the in-app warning when the app is closed). | P1 (proposed) | 1.2, 1.11, 1.21 | – |
+| R34 | Look back: a calm "what I did" view (done lists and past events of the day/week), offered after a gap instead of overdue counts. | P2 (proposed) | 1.21, 1.22 | – |
+| R35 | Estimate, then measure: for a task list with an estimate, record when it was started and finished and show estimate vs actual over time, without judgement. | P2 (proposed) | 1.6, 1.22 | – |
+| R36 | Shared calendar with the partner as the core social support (already planned: `shared-lists`), and widgets / lock-screen presence as the glanceable "separate" place. | P1 (proposed) | 1.21 | – |
+| R37 | Energy-aware day: optional energy level per entry or time of day (LGO session 6–7) shown as a soft band. | P3 (proposed) | 1.22 | – |
 | R17 | Later ideas, not specified: estimate vs. actual learning, body-doubling or sharing, energy-based planning, lock-screen widgets (not possible for a PWA). | – | 1.6, 1.7 | – |
 
 ## 3. Sources
@@ -326,3 +405,16 @@ Mapped to `spec/features/` tags. P1 = must, P2 = should, P3 = optional (`@option
 - [S49] Kushlev, Proulx, Dunn. *"Silence your phones": smartphone notifications increase inattention and hyperactivity symptoms.* CHI 2016: https://www.interruptions.net/literature/Kushlev-CHI16.pdf
 - [S50] Safren S.A. et al. *CBT vs relaxation with educational support for medication-treated adults with ADHD.* JAMA 2010;304(8):875-80: https://pmc.ncbi.nlm.nih.gov/articles/PMC3874265
 - [S51] Body doubling in VR (preprint, n = 12): https://arxiv.org/abs/2509.12153 ; null result poster: https://www.ccsc.org/centralplains/2025/talks/talk-poster16/
+- [S52] Liu S., Cao L., Lee C.T., Shanbhag N., Ma R., Lukoff K. *r/ADHD: Community-Based Understandings of Time Management Challenges in Digital Environments.* arXiv:2610.12629, 2026: https://arxiv.org/abs/2610.12629
+- [S53] *Symptom expression and coping strategies in women-focused ADHD communities: a comparative natural language analysis of Reddit*: https://pmc.ncbi.nlm.nih.gov/articles/PMC13495778/
+- [S54] ADDitude reader surveys: https://www.additudemag.com/adhd-productivity-apps-tools/ ; https://www.additudemag.com/best-planners-adhd-brains-paper-digital/
+- [S55] Epstein D.A. et al. *A lived informatics model of personal informatics* (2015): https://my.eng.utah.edu/~cs5540/au16/readings/PersonalInformatics-Epstein2015.pdf ; *Beyond abandonment to next steps* (CHI 2016): https://library.selfresearch.org/research/beyond-abandonment-to-next-steps-understanding-and-designing-for-life-after-personal-informatics-tool-use/ ; *Reconsidering the device in the drawer* (UbiComp 2016): https://homes.cs.washington.edu/~jfogarty/publications/ubicomp2016.pdf
+- [S56] Tran J.A., Yang K.S., Davis K., Hiniker A. *Modeling the engagement-disengagement cycle of compulsive phone use.* CHI 2019: https://faculty.washington.edu/alexisr/engagementDisengagement.pdf
+- [S57] Wingren M. *Evaluation of the time management intervention Let's Get Organized.* Örebro Studies in Medicine 335, 2025: https://oru.diva-portal.org/smash/get/diva2:1967012/FULLTEXT01.pdf
+- [S58] Wennberg B. *Keeping track of time.* Linköping University Medical Dissertation No. 1717, 2019: https://www.diva-portal.org/smash/get/diva2:1371347/FULLTEXT01.pdf ; RCT: https://www.researchgate.net/publication/320066896_Effectiveness_of_time-related_interventions_in_children_with_ADHD_aged_9-15_years_a_randomized_controlled_study
+- [S59] Gillespie A., Best C., O'Neill B. *Cognitive function and assistive technology for cognition: a systematic review.* JINS 2012, doi:10.1017/S1355617711001548: https://dspace.stir.ac.uk/handle/1893/20146
+- [S60] Andreassen M., Danielsson H., Hemmingsson H., Jaarsma T. *An interactive digital calendar with mobile phone reminders (RemindMe) for people with cognitive impairment: a pilot RCT.* Scand J Occup Ther 2021/2022: https://researchinformation.umcutrecht.nl/en/publications/an-interactive-digital-calendar-with-mobile-phone-reminders-remin/
+- [S61] Lindstedt H. et al. CogniTech (WFOT 2010): https://archive.wfot.org/wfot2010/posters/pdf/1126.pdf ; *Co-exploring everyday life of adults with ADHD* (AAATE 2013): https://portal.research.lu.se/en/publications/co-exploring-everyday-life-of-adults-with-adhd/
+- [S62] Di Bartolomeo S. et al. *Evaluating the effect of timeline shape on visualization task performance.* CHI 2020: https://arxiv.org/pdf/2005.06039
+- [S63] Ståhlbom E. et al. *Should I make it round?* Computer Graphics Forum 2024: https://onlinelibrary.wiley.com/doi/10.1111/cgf.15102
+- [S64] Waldner M. et al. *A comparison of radial and linear charts for visualizing daily patterns.* 2019: https://www.cg.tuwien.ac.at/research/publications/2019/waldner-2019-rld/waldner-2019-rld-paper.pdf

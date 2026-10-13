@@ -1,6 +1,6 @@
 # iOS without a Mac and without much money
 
-Research date 2026-10-13 (first pass; to be deepened). Question (owner): is there really no way to ship a native iOS
+Research date 2026-10-13, deepened 2026-10-14 (tool issue trackers, Apple docs). Question (owner): is there really no way to ship a native iOS
 app, or at least an iOS home-screen widget, without owning an Apple device for development and without paying a lot?
 
 ## Short answer
@@ -26,12 +26,35 @@ app, or at least an iOS home-screen widget, without owning an Apple device for d
 | Same, with the paid program | 99 USD/yr | as above | yes | yes | yearly |
 | EU alternative marketplaces / Web Distribution | paid program + notarisation | – | – | – | not realistic |
 
-## Recommendation (first pass)
+## Details that decide it (as of October 2026)
 
-1. Once HTTPS is live: the PWA on iPhone for the app itself and Web Push for reminders.
-2. For the widget now: a Scriptable script (we write it; the phone owner pastes it once). Needs a way to authenticate
-   without the WebView cookie (a per-device token) when sign-in is on; with `PROVIDER=mock` no auth is needed.
-3. A native iOS app only if the 99 USD/year is accepted; without it the weekly re-sign makes it fragile.
+- **Sideloading with a free Apple ID is fragile right now.** SideStore's issue tracker shows refresh and pairing-file
+  failures through iOS 26.x in 2026 (stable builds broken for new pairing files in August, connections going stale after
+  a few days, workarounds by re-pairing with iLoader or nightly builds). [I10] AltStore needs AltServer on the PC on the
+  same Wi-Fi every 7 days; Sideloadly has no automatic refresh. A reminder app that silently stops launching after a
+  failed refresh is the worst case for an ADHD tool.
+- **xtool cannot ship a widget yet.** Widget extensions build to an empty binary, and with the workaround they crash on
+  launch (issue #313, open since 2026-10-10). Free-team App Groups (needed for app and widget to share data) are an
+  unmerged pull request (#284, changes requested 2026-10-04). [I11]
+- **WidgetKit refreshes 40–70 times a day** for a widget the person looks at often (about every 15–60 minutes, decided
+  by iOS), so an iOS widget, native or Scriptable, can never tick like a clock; it shows a snapshot. [I12]
+- **Web Push on iOS got simpler.** Since iOS 18.4, Home Screen web apps can use *Declarative Web Push*: the server sends
+  the notification content and no service worker has to run, which is more reliable than classic Web Push. [I13] The
+  installed PWA also gets the Badging API (16.4+), though badge counts are a guilt risk (ADHD-RESEARCH 1.21).
+- **Scriptable**: `Request` has `headers` (a per-device token can go in a header) and `allowInsecureRequest` for invalid
+  certificates; whether plain `http://` to the LAN is allowed is not documented, so HTTPS on the real domain is the safe
+  assumption. Widgets can draw freely with `DrawContext`, like the Android bitmap widget. [I3][I14]
+
+## Recommendation
+
+1. **HTTPS first** (the planned Cloudflare DNS-01 setup): it unlocks the PWA install on iPhone, Declarative Web Push for
+   the bedtime and transition reminders, and a safe target for a widget script.
+2. **Widget: a Scriptable script**, written by us, pasted once into the free Scriptable app: today's clock or the
+   week, drawn like the Android widgets, authenticated with a per-device token (a small server addition, revocable in
+   Settings). No Mac, no money, no weekly re-signing.
+3. **A native iOS app only with the 99 USD/year program.** Without it, the 7-day signature, the 3-app limit and the
+   current SideStore breakage make it unreliable, and xtool cannot build widgets yet. Revisit if xtool #313/#284 land
+   and the owner wants a native shell anyway.
 
 ## Sources
 
@@ -44,3 +67,8 @@ app, or at least an iOS home-screen widget, without owning an Apple device for d
 - [I7] Codemagic free tier: https://agentdeals.dev/vendor/codemagic
 - [I8] GitHub Actions macOS minute multiplier: https://dev.to/maclessdev/github-actions-free-macos-minutes-explained-33p7 ; https://docs.github.com/billing/managing-billing-for-github-actions/about-billing-for-github-actions
 - [I9] Fee waivers (organisations only): https://developer.apple.com/support/fee-waiver ; https://flaviocopes.com/apple-developer-free-vs-paid/
+- [I10] SideStore issues (2026): https://github.com/SideStore/SideStore/issues/1401 ; https://github.com/SideStore/SideStore/issues/1351 ; https://github.com/SideStore/SideStore/issues/1611
+- [I11] xtool widget extension crash: https://github.com/xtool-org/xtool/issues/313 ; free-team app groups PR: https://github.com/xtool-org/xtool/pull/284
+- [I12] Apple, Keeping a widget up to date (40–70 refreshes per day): https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date
+- [I13] WebKit, Meet Declarative Web Push: https://webkit.org/?p=16535 ; WebKit features in Safari 18.4: https://webkit.org/blog/16574/digital-credentials-api/
+- [I14] Scriptable DrawContext examples: https://talk.automators.fm/t/widget-examples/7994?page=26
