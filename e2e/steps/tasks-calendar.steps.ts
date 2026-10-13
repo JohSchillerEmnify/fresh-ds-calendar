@@ -27,7 +27,7 @@ When(
       await this.calendarShown();
     }
     await this.page.getByTestId('create-button').click();
-    await this.page.getByTestId('create-menu-tasklist').click();
+    await this.page.getByTestId('new-kind-tasklist').click();
     const dialog = this.page.getByTestId('tasklist-dialog');
     await expect(dialog).toBeVisible();
     await dialog.getByTestId('tasklist-title').fill(title);
@@ -78,7 +78,8 @@ When('I turn on {string} in the settings', async function (this: World, label: s
     await this.page.goto('/');
     await this.calendarShown();
   }
-  await this.page.getByTestId('settings-button').click();
+  // The settings may already be open (e.g. after "I open the settings").
+  if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
   const control = this.page.getByTestId('settings-view').getByRole('switch', { name: label, exact: true });
   await expect(control).toBeVisible();
   if ((await control.getAttribute('aria-checked')) !== 'true') {

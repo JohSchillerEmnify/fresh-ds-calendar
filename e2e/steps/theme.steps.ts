@@ -131,8 +131,12 @@ async function openMenu(world: World) {
 /** The theme menu is a page over the calendar: leave it through the browser history to see the calendar again. */
 async function backToCalendar(world: World) {
   // menu -> settings -> calendar
-  for (let i = 0; i < 2 && (await world.page.getByTestId('theme-view').or(world.page.getByTestId('settings-view')).isVisible()); i++) {
-    await world.page.goBack();
+  const page = world.page;
+  const overlay = page.getByTestId('theme-view').or(page.getByTestId('settings-view'));
+  // After a reload nothing is rendered yet, so wait for the app to show either a page or the calendar first.
+  await expect(overlay.or(page.getByTestId('month-view')).or(page.getByTestId('week-view')).or(page.getByTestId('day-view')).or(page.getByTestId('year-view')).first()).toBeVisible();
+  for (let i = 0; i < 2 && (await overlay.isVisible()); i++) {
+    await page.goBack();
   }
   await world.calendarShown();
 }
