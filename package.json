@@ -12,7 +12,10 @@
     "dev:server": "pnpm -F @calendar/server dev",
     "dev:web": "pnpm -F @calendar/web dev",
     "redeploy": "bash scripts/deploy.sh",
-    "e2e": "bash e2e/run.sh"
+    "e2e": "bash e2e/run.sh",
+    "verify": "node scripts/verify.mjs",
+    "i18n:scan": "node web/scripts/i18n-scan.ts",
+    "e2e:affected": "node scripts/e2e-affected.mjs"
   },
   "engines": {
     "node": ">=24.11"
