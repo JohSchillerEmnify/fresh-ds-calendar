@@ -9,3 +9,5 @@ spec
 docs
 *.md
 !CHANGELOG.md
+android
+capacitor.config.ts

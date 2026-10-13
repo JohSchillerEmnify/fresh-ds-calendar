@@ -10,6 +10,7 @@ import { authRoutes } from './api/authRoutes.js';
 import { createContext, type Ctx } from './context.js';
 import type { AppConfig } from './config.js';
 import type { Clock } from './lib/clock.js';
+import { downloadRoutes } from './routes/download.js';
 import { staticRoutes } from './routes/static.js';
 
 export type App = Hono & { ctx: Ctx; close(): void };
@@ -58,6 +59,8 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     if (config.logLevel !== 'error') console.error(err);
     return c.json(body('INTERNAL', 'Internal server error'), 500);
   });
+
+  app.route('/', downloadRoutes(config.dataDir)); // before the static routes, whose SPA fallback would answer /app.apk with index.html
 
   const hasWeb = config.webDist !== null && fs.existsSync(config.webDist);
   if (hasWeb) app.route('/', staticRoutes(config.webDist!, () => ctx.overrides.version));

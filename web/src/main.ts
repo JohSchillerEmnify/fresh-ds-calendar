@@ -6,6 +6,7 @@ import { createAppRouter } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useClockStore } from './stores/clock';
 import { useSettingsStore } from './stores/settings';
+import { pushWidget } from './stores/sync';
 import { useThemeStore } from './stores/theme';
 import { registerServiceWorker } from './pwa/register';
 import { registerBuiltinExtensions } from './extensions/builtin';
@@ -35,6 +36,7 @@ async function bootstrap() {
   await router.isReady();
   app.mount('#app');
   void registerServiceWorker();
+  pushWidget();
 }
 
 void bootstrap();

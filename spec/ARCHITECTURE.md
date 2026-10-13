@@ -1421,6 +1421,67 @@ the same corner scale so shapes look consistent.
   a number: "My theme 2"); `theme-save-confirm` saves, and the new theme becomes the chosen one (its fine-tuning is
   now part of it, so the overrides are cleared).
 
+### Android app and widget (owner, 2026-10-13)
+
+An Android app that loads the LAN calendar, plus a resizable weekly home-screen widget. Code in `android/`
+(Capacitor 8, Java), `capacitor.config.ts` at the repo root, web side in `web/src/native/`. The web app's behaviour in a
+browser does not change.
+
+- **The app is a Capacitor shell, not a TWA.** `capacitor.config.ts` sets `server.url = http://cal.mordor.lan`, so the
+  WebView shows the deployed web app and updates with every deploy (no re-install). Alternatives weighed: a Trusted Web
+  Activity (Chrome Custom Tabs; needs HTTPS and a Digital Asset Links file, and the LAN deploy has no HTTPS: impossible);
+  a bundled copy of the web app (would need its own build and update path, and the API is on another origin anyway).
+  Plain HTTP is allowed for that one host only, by `res/xml/network_security_config.xml` (`cal.mordor.lan`,
+  cleartext on, every other host HTTPS-only). The Capacitor `cleartext` option is for live reload only and is not set.
+  An offline error page (`android/www/error.html`, `server.errorPath`) shows when the server is unreachable.
+  App name "Calendar", id `lan.mordor.calendar`, icons from the PWA icons (adaptive icon, the maskable glyph).
+- **Widget data: the widget calls the existing API itself, with the app's own session. No new server auth, no key.**
+  Android's `CookieManager` is app-wide and shared with the WebView, so the widget's native code (`RefreshWorker`)
+  reads the `cal_session` cookie for the server and calls `GET /api/items?from=<Monday>&to=<next Monday>`
+  (one request; task lists are in the same response). With `PROVIDER=mock` sign-in is off and no cookie is needed.
+  Refresh: a periodic WorkManager job (every 30 min, network required) plus a one-off job when a widget is added, when
+  the app finishes a sync (through the plugin, at most every 2 min), on the refresh icon, at midnight/time change.
+  Alternatives weighed: a long-lived widget API key (the owner's first choice, then replaced: a second credential to
+  issue, store and revoke), and snapshot-only (the widget would show data only as fresh as the last time the app was
+  open: a week-old view after a quiet week).
+- **The app-written snapshot stays, in a smaller role.** Each time the web app finishes a sync, and when it starts
+  (only inside Capacitor: `window.Capacitor`; `web/src/native/widgetBridge.ts` is loaded lazily, so the first-load JS
+  budget does not change), it calls the native plugin `WidgetBridge.setSnapshot({ json })`. The plugin stores the JSON
+  in SharedPreferences (`calendar_widget`) and asks the widget to redraw. The snapshot (`buildWidgetSnapshot`, a pure
+  function, `web/src/native/widgetSnapshot.ts`) holds: `v`, `generatedAt`, `language`, `dark`, the theme colours
+  (primary, onPrimary, primaryContainer, onPrimaryContainer, surface, surfaceContainer, onSurface, onSurfaceVariant,
+  outlineVariant), `weekStart`, the seven days with their events (`title`, `allDay`, `start`/`end` as `HH:mm`,
+  `color`) and today's task lists (`title`, `done`, `total`, `color`). The widget uses it for the **theme and the
+  language** (always) and as the **fallback data** when the API call fails. The week is read from the server at most
+  every 10 min for the snapshot (an extra request, only in the app).
+- **What the widget shows** (default 4x2, resizable): the week range as the header (tap: opens `/week/<Monday>`), a
+  refresh icon, seven day columns (short weekday and date; today highlighted; each event as a colour bar, the start time
+  when the column is wide enough, and the title; as many rows as fit, the last one "+N" when more), a line with
+  today's task lists and their `done/total` progress, and a footer "Updated HH:MM" / "Stand: HH:MM" (language of the
+  snapshot, German for both fun languages). A tap on a day column opens the app at `/day/<date>` (an intent extra the
+  `MainActivity` turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted).
+  Dark or light and all colours follow the snapshot; without one the widget follows the system and the default theme.
+  Which data is shown: the newer of snapshot and last fetch, if it is for the current week.
+- **Failure states.** API call fails (offline, server down, HTTP error): the last data stays, the footer says when it
+  was current. HTTP 401 (session expired): the footer says "Open the app to sign in again" (tap opens the app);
+  signing in there makes the next refresh work. No snapshot and no fetched data yet: "Open the app once to load your week".
+- **Session lifetime is the trade-off.** The session cookie lives 90 days and is extended on every use (the server
+  pushes it forward at most once per hour and re-sends the cookie); the widget stores the `Set-Cookie` of its own
+  calls back into the WebView's jar, so a widget that keeps refreshing keeps the session alive. After 90 days without
+  any use (app or widget), or after signing out, the widget shows the sign-in hint until the app is opened. The cookie
+  is `HttpOnly; SameSite=Lax` and `Secure` only when `PUBLIC_URL` is https, so a native client over plain HTTP is not
+  blocked and no server security was loosened. The WebView's cookie jar is only readable by this app.
+- **Distribution: a download link.** `scripts/android-build.sh` builds a release-signed APK (key generated locally in
+  `~/.config/calendar-android/`, never in git; the build falls back to the debug key without it) and copies it to
+  `/home/sauron/docker-compose/calendar/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
+  server serves it at `GET /app.apk` (API.md); the service worker's navigation fallback excludes `/app.apk`. The APK is
+  not part of the Docker image and is not rebuilt by a deploy.
+- **Build constraints.** minSdk 26 (Android 8, `java.time`), compile/target SDK 36. Capacitor's modules ask for Java 21;
+  `android/build.gradle` pins every module to Java 17 so JDK 17 builds them.
+- **Tests.** No e2e scenarios: Playwright cannot drive a native widget. The snapshot builder has unit tests
+  (`web/test/widget-snapshot.test.ts`), the native day-splitting that mirrors it has JUnit tests
+  (`android/app/src/test`, `./gradlew testDebugUnitTest`), the download route a server test.
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |
@@ -1478,6 +1539,8 @@ Requires 9.1 for the full experience; on plain HTTP the result is only a shortcu
   these steps.) Opens standalone. To update: close and reopen the app.
 - Away from home the names do not resolve (by design: LAN only); the installed app opens its cached shell and shows the
   sync error banner.
+- **Android app with widget (plain HTTP, no PWA install needed)**: see "Android app and widget"; install from
+  `http://cal.mordor.lan/app.apk` (README "Android app").
 
 ### 9.3 Enabling real Google Calendar
 
