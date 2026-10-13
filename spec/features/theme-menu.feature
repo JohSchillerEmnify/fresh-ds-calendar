@@ -6,7 +6,7 @@ Feature: Choosing and fine-tuning a theme
   Winter, Sunflower field, Mordor or None). "Fine-tuning" is where every option shows itself as a small sample before it is picked: theme mode, seed
   colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square, round, pill), each with a slider for
   the value in between (glow strength, corner radius in px, entry tint in %), plus density (compact, comfortable, airy),
-  the checkbox shape and fill, and the check mark. There is no
+  the checkbox shape and fill, the check mark and the icon set (outlined, rounded, sharp). There is no
   separate Mordor button; the Mordor preset does the same. A live preview with a
   real event, task list and checkbox follows every change, and so does the calendar, without a save button. Ready
   themes: Default, Neon, Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year,
@@ -259,3 +259,14 @@ Feature: Choosing and fine-tuning a theme
     Then the "Corner radius" slider shows "6 px"
     And the "Glow strength" slider shows "0"
     And the event "Dentist" has a corner radius of 8 px
+
+  Scenario: The icon set changes every icon of the app
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then the app uses the "outlined" icon set
+    When I choose "Sharp" for the "Icon set" setting
+    Then the app uses the "sharp" icon set
+    And every option of the "Icon set" setting shows a sample icon
+    When I choose the theme "Default"
+    Then the app uses the "outlined" icon set
+

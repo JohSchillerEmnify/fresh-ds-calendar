@@ -854,6 +854,7 @@ app at once and is a **theme override** (reset by choosing a preset, captured by
 | `density` | segmented `theme-density` | `compact` / `comfortable` / `airy` | `--dz` 0.9 / 1 / 1.12: scales the font size of the type scale and the task list row height |
 | `checkbox` | segmented `theme-checkbox-shape` | `round` / `square` / `rounded` (default) | `<html data-checkbox>`, read by the task item checkbox and the preview; the task list card's tiny box takes the shape only |
 | `checkFill` | segmented `theme-check-fill` | `filled` (default) / `outline` | `<html data-checkfill>` |
+| `icons` | segmented `theme-icon-set` (a sample icon per option) | `outlined` (default, today's look) / `rounded` / `sharp` | `<html data-icons>` and the reactive `iconSet`; every app icon is an `AppIcon` that draws the chosen variant |
 | `check` | segmented `theme-check-glyph` | `tick` (default) / `bold` / `cross` / `dot` | `<html data-check>`; one SVG glyph per value, the others hidden by CSS |
 
 - **Steps and sliders are one value.** The step buttons stay as quick picks: choosing a step stores the step and its value
@@ -875,12 +876,15 @@ app at once and is a **theme override** (reset by choosing a preset, captured by
 - **Accessibility.** Sliders are native `input[type=range]` (keyboard: arrows, Home/End, PageUp/PageDown) with a visible
   label and value text (`aria-valuetext` carries the unit). Reduced motion: slider and checkbox transitions are off at the
   Reduced and Off animation levels (`html[data-motion]`), the neon pulse already runs only at Full.
-- **Whole-app icon set (Outlined / Rounded / Sharp): not built in this slice.** Icons are compile-time inline SVG
-  components (`~icons/material-symbols/<name>` through `unplugin-icons`, 24 distinct icons in 38 imports) from the
-  `@iconify-json/material-symbols` set, which also ships `-rounded` and `-sharp` variants, so no new icon source is
-  needed. Switching at run time needs an indirection over all 38 import sites (one `AppIcon` component mapping a name to
-  the three variants) and bundles all three variants; that touches every view, so it is left to an owner decision (options
-  are in the slice report). No `icons` field exists in the schema yet.
+- **Whole-app icon set** (owner confirmed option (a), 2026-10-13). Icons stay compile-time inline SVG from
+  `@iconify-json/material-symbols` through `unplugin-icons`; `web/src/components/icons.ts` imports the three variants of
+  each of the 24 icons in use (`<name>`, `<name>-rounded`, `<name>-sharp`; where the set has no sharp or rounded drawing the
+  alias is the same shape) and exports one component per icon (`IconAdd`, ...) that renders the variant of the current set.
+  The set lives in a module-level reactive value (`web/src/theme/iconSet.ts`), written by `applyAttrs` together with
+  `<html data-icons>`, so leaf components need no store. Alternative weighed: reading `data-icons` from the DOM (rejected: not
+  reactive, so every icon would need a MutationObserver or a re-render hook). The default `outlined` is the base name, i.e.
+  today's look; the first value is read from the cached attributes so there is no flash. Cost: the two extra variants are
+  bundled (bundle delta in the slice report), not lazily loaded, so a switch is instant and offline-safe.
 
 ### Holiday themes and "Automatic follows" (owner, 2026-10-13)
 

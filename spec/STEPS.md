@@ -947,6 +947,8 @@ the entry tint is {int} %
 I choose {string} for the {string} setting
 the app text is {float} px
 the task item checkboxes are drawn as {string} with a {string} mark
+the app uses the {string} icon set
+every option of the {string} setting shows a sample icon
 ```
 
 - Fine-tuning sliders (owner 2026-10-13): "I set the X slider to N" finds the native `input[type=range]` by its label (`Glow strength` =
@@ -961,9 +963,12 @@ the task item checkboxes are drawn as {string} with a {string} mark
   between A and B px": the largest blur radius of the chip's coloured `box-shadow` is within A..B. "does not glow": no
   coloured shadow with a blur. "the entry tint is N %": the computed `--e-fill` on `<html>` is `N%`.
 - "I choose V for the S setting": segmented controls of the menu by label (`Density` = `theme-density`, `Checkbox shape` =
-  `theme-checkbox-shape`, `Checkbox fill` = `theme-check-fill`, `Check mark` = `theme-check-glyph`); the option is the button
+  `theme-checkbox-shape`, `Checkbox fill` = `theme-check-fill`, `Check mark` = `theme-check-glyph`, `Icon set` = `theme-icon-set`); the option is the button
   with that label inside; waits for the save. "the app text is N px": computed `font-size` of `<body>` (the body text size;
   14 px at Comfortable, 12.6 px Compact, 15.68 px Airy).
+- "the app uses the X icon set": `<html data-icons>` equals X (`outlined`, `rounded`, `sharp`) and, back on the calendar, the
+  settings icon of the top bar (`settings-button`) is drawn in that set (its `svg` has `data-icon-set` X). "every option of
+  the S setting shows a sample icon": each button of that control contains an `svg`.
 - "the task item checkboxes are drawn as S with a G mark": `<html data-checkbox>` equals S (`round`, `square`, `rounded`) and
   `data-check` equals G (`tick`, `bold`, `cross`, `dot`), and in the expanded task list every `tasklist-item-checkbox` shows
   only that glyph (`[data-glyph]` with a non-`none` display).

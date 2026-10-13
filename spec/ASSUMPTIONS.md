@@ -249,7 +249,12 @@ spec files are named.
   tick, cross, dot); they apply to the task item checkbox and the preview; the tiny box in the task list card takes the shape only (its mark stays a tick); (g) steps store their
   value too (`glow` + `glowStrength`), so a step pick over a theme that carries its own number wins; (h) an own theme's
   `glowStrength`/`radius` win over its `glow`/`corners` step for the look, but the step fields are always written; (i) the
-  **app icon set was not built**: it needs an indirection over all 38 import sites, so the options go to the owner; no
-  `icons` field in the schema yet; (j) the new document fields are top-level and flat (`glowStrength`, `radius`, `tint`,
+  **app icon set** was first left out and then built (see A-76); (j) the new document fields are top-level and flat (`glowStrength`, `radius`, `tint`,
   `density`, `checkbox`, `checkFill`, `check`); `density` is not the scene's `scene.density` (decor amount).
+- **A-76 App icon set** (owner confirmed A-75 and asked for option (a), 2026-10-13; the readings are mine): (a) the field is
+  `icons` (`outlined` default = today's icons, `rounded`, `sharp`), an override like the others, reset by a preset pick,
+  saved in "Save as my theme"; (b) the set is a module-level reactive value plus `<html data-icons>`, not a store; (c) the
+  24 icons in use are mapped to their Material Symbols variants; a few have identical sharp or rounded drawings in the
+  set (aliases), so those icons do not change; (d) all three variants are bundled, none lazy; (e) icons drawn by other
+  means (emoji, the scene art, inline SVG such as the checkbox glyphs) are not part of the set.
 
