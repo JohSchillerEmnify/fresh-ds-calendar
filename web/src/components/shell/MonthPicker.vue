@@ -6,7 +6,7 @@ import IconNext from '~icons/material-symbols/chevron-right';
 import IconButton from '@/components/m3/IconButton.vue';
 import { useNav } from '@/composables/useNav';
 import { bindSwipe } from '@/composables/useSwipe';
-import { monthGrid, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
+import { monthGrid, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { listen, type Disposer } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -79,7 +79,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
         <IconButton label="Next month" data-testid="month-picker-next" @click="move(1)"><IconNext /></IconButton>
       </div>
       <div ref="grid" class="grid">
-        <span v-for="w in WEEKDAY_LABELS" :key="w" class="wd" aria-hidden="true">{{ w[0] }}</span>
+        <span v-for="w in weekdayLabels()" :key="w" class="wd" aria-hidden="true">{{ w[0] }}</span>
         <template v-for="week in weeks" :key="toIsoDate(week[0])">
           <button
             v-for="d in week" :key="toIsoDate(d)" type="button" class="day" data-testid="picker-day"

@@ -11,7 +11,7 @@ import {
   addItemSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import { isApproachWindow, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
+import { isApproachWindow, isLanguagePref, LOCAL_PERSON, SUPPORT_CAT_VALUES, type Prefs, type SupportCat } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
 const HEALTH_TTL_MS = 10_000;
@@ -131,6 +131,10 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
       patch.supportCat = b.supportCat as SupportCat;
     }
+    if (b.language !== undefined) {
+      if (!isLanguagePref(b.language)) throw validation('Invalid language', 'language');
+      patch.language = b.language;
+    }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
     return c.json(ctx.prefs.setLabs(person(c), patch));
@@ -203,7 +207,7 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   const uniqueName = (cats: Category[], name: string, exceptId?: string) => {
     if (cats.some((x) => x.id !== exceptId && x.name.toLowerCase() === name.toLowerCase())) {
-      throw validation('A category with this name already exists', 'name');
+      throw validation('A category with this name already exists', 'name', 'category.nameExists');
     }
   };
 

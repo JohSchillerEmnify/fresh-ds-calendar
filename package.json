@@ -8,6 +8,7 @@
     "build:e2e": "pnpm -F @calendar/web build:e2e && pnpm -F @calendar/server build:e2e",
     "test": "pnpm -F @calendar/server test && pnpm -F @calendar/web test",
     "size": "pnpm -F @calendar/web size",
+    "i18n:check": "pnpm -F @calendar/web i18n:check",
     "dev:server": "pnpm -F @calendar/server dev",
     "dev:web": "pnpm -F @calendar/web dev",
     "redeploy": "bash scripts/deploy.sh",

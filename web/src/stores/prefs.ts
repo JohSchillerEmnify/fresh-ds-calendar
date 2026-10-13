@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
+import { cachedLanguagePref, type LanguagePref } from '@/i18n';
 import type { ApproachWindowHours, Prefs, SupportCatSetting } from '@/api/types';
 
 /**
@@ -16,6 +17,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const tasksCalendarVisible = ref(false);
   const supportCat = ref<SupportCatSetting>('sometimes');
   const versionInCorner = ref(false);
+  /** The UI language preference; the shell applies it with `applyLanguage` whenever it changes. */
+  const language = ref<LanguagePref>(cachedLanguagePref());
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -25,6 +28,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     tasksCalendarVisible.value = p.tasksCalendarVisible ?? tasksCalendarVisible.value;
     supportCat.value = p.supportCat ?? supportCat.value;
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
+    language.value = p.language ?? language.value;
   }
 
   async function load(): Promise<void> {
@@ -38,7 +42,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value,
+      versionInCorner: versionInCorner.value, language: language.value,
     };
     apply(p);
     try {
@@ -49,5 +53,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, language, load, set };
 });

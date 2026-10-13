@@ -1,3 +1,5 @@
+import type { LanguagePref } from '@/i18n/language';
+
 /**
  * REST contract types (spec/API.md). Kept in sync by hand with `server/src/api/types.ts`.
  * If the server package exports the same module later, replace this file with a re-export.
@@ -17,7 +19,7 @@ export type ErrorCode =
   | 'INTERNAL';
 
 export interface ApiErrorBody {
-  error: { code: ErrorCode; message: string; details?: { field?: string; issue?: string }[] };
+  error: { code: ErrorCode; message: string; key?: string; details?: { field?: string; issue?: string }[] };
 }
 
 /** `/api/auth/me`: both null while sign-in is off. */
@@ -115,6 +117,8 @@ export interface Prefs {
   supportCat: SupportCatSetting;
   /** Show the small build-version label in the bottom-left corner of the main UI. */
   versionInCorner: boolean;
+  /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
+  language: LanguagePref;
 }
 
 export interface Settings {

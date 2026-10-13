@@ -3,7 +3,7 @@ import { computed, watch } from 'vue';
 import { format } from 'date-fns';
 import { useNav } from '@/composables/useNav';
 import { providePreview } from '@/composables/usePreview';
-import { monthGrid, MONTH_NAMES, toIsoDate } from '@/lib/dates';
+import { monthGrid, monthNames, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -22,7 +22,7 @@ const nav = useNav();
 const year = computed(() => (props.anchor ?? cal.anchor).getFullYear());
 const months = computed(() => Array.from({ length: 12 }, (_, m) => {
   const first = new Date(year.value, m, 1);
-  return { first, key: format(first, 'yyyy-MM'), name: MONTH_NAMES[m], weeks: monthGrid(first) };
+  return { first, key: format(first, 'yyyy-MM'), name: monthNames()[m], weeks: monthGrid(first) };
 }));
 
 watch(year, (y) => {

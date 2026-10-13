@@ -136,7 +136,7 @@ export type ErrorCode =
   | 'INTERNAL';
 
 export interface ApiError {
-  error: { code: ErrorCode; message: string; details?: { field?: string; issue?: string }[] };
+  error: { code: ErrorCode; message: string; key?: string; details?: { field?: string; issue?: string }[] };
 }
 
 export interface HealthResponse {

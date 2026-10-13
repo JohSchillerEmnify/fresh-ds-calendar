@@ -28,6 +28,16 @@ export function isApproachWindow(v: unknown): v is ApproachWindowHours {
   return Number.isInteger(v) && (v as number) >= APPROACH_WINDOW_MIN && (v as number) <= APPROACH_WINDOW_MAX;
 }
 
+/** The languages the app is translated into (`en` is the default; the two `de-x-*` ones are fun dialects). */
+export const LANGUAGE_VALUES = ['en', 'de', 'de-x-mainfr', 'de-x-coldmirror'] as const;
+/** The `language` preference: `auto` follows the device, otherwise one of {@link LANGUAGE_VALUES}. */
+export type LanguagePref = 'auto' | (typeof LANGUAGE_VALUES)[number];
+
+/** Whether `v` is an allowed `language` preference value. */
+export function isLanguagePref(v: unknown): v is LanguagePref {
+  return v === 'auto' || LANGUAGE_VALUES.includes(v as (typeof LANGUAGE_VALUES)[number]);
+}
+
 /** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat). */
 export interface Prefs {
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
@@ -38,6 +48,8 @@ export interface Prefs {
   supportCat: SupportCat;
   /** The small build-version label in the bottom-left corner of the main UI (off by default). */
   versionInCorner: boolean;
+  /** The UI language: `auto` (device language) or a fixed one (ARCHITECTURE "i18n"). */
+  language: LanguagePref;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -69,6 +81,7 @@ export class PrefsStore {
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
       versionInCorner: p?.versionInCorner === true,
+      language: isLanguagePref(p?.language) ? p.language : 'auto',
     };
   }
 
@@ -122,8 +135,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, language } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, language };
   }
 
   /**

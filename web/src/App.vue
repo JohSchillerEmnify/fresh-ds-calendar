@@ -19,6 +19,7 @@ import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
 import Snackbar from '@/components/m3/Snackbar.vue';
 import type { NavItem } from '@/components/m3/types';
+import { applyLanguage, t } from '@/i18n';
 import { acquireViewport, isPhone } from '@/composables/useViewport';
 import { useNav } from '@/composables/useNav';
 import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry';
@@ -51,20 +52,22 @@ const settings = useSettingsStore();
 const motivation = useMotivationStore();
 const labs = usePrefsStore();
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
+// the person's language choice (also arriving from another device) switches the UI at once, without a reload
+watch(() => labs.language, (pref) => { void applyLanguage(pref); });
 watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });
 
 const isCalendar = computed(() => !!route.meta.view || !!route.meta.lab);
 const activeView = computed(() => (route.meta.lab as string | undefined) ?? cal.view);
-const baseItems: NavItem[] = [
-  { id: 'year', label: 'Year', icon: IconYear, testid: 'view-switch-year' },
-  { id: 'month', label: 'Month', icon: IconMonth, testid: 'view-switch-month' },
-  { id: 'week', label: 'Week', icon: IconWeek, testid: 'view-switch-week' },
-  { id: 'day', label: 'Day', icon: IconDay, testid: 'view-switch-day' },
-];
+const baseItems = computed<NavItem[]>(() => [
+  { id: 'year', label: t('views.year'), icon: IconYear, testid: 'view-switch-year' },
+  { id: 'month', label: t('views.month'), icon: IconMonth, testid: 'view-switch-month' },
+  { id: 'week', label: t('views.week'), icon: IconWeek, testid: 'view-switch-week' },
+  { id: 'day', label: t('views.day'), icon: IconDay, testid: 'view-switch-day' },
+]);
 // Labs views are offered only with the Labs switch on, marked as experimental.
 const items = computed<NavItem[]>(() => labs.labs
-  ? [...baseItems, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: id[0].toUpperCase() + id.slice(1), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
-  : baseItems);
+  ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: IconLab, testid: `view-switch-${id}`, experimental: true }))]
+  : baseItems.value);
 const filterShown = computed(() => isCalendar.value && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 

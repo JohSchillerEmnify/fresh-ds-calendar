@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { NavItem } from './types';
+import { t } from '@/i18n';
 import { vRipple } from '@/lib/ripple';
 
 
@@ -8,7 +9,7 @@ defineEmits<{ 'update:modelValue': [id: string] }>();
 </script>
 
 <template>
-  <nav class="nav-bar" data-testid="bottom-bar" data-safe-area="true" aria-label="Views">
+  <nav class="nav-bar" data-testid="bottom-bar" data-safe-area="true" :aria-label="t('nav.views')">
     <div class="tabs" role="tablist" data-testid="view-switcher">
       <button
         v-for="it in items" :key="it.id" v-ripple class="dest" role="tab" type="button"

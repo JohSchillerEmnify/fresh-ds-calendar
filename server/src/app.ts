@@ -47,8 +47,8 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   });
 
   app.onError((err, c) => {
-    const body = (code: string, message: string, details?: unknown) => ({ error: { code, message, ...(details ? { details } : {}) } });
-    if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details), err.status);
+    const body = (code: string, message: string, details?: unknown, key?: string) => ({ error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } });
+    if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details, err.key), err.status);
     if (err instanceof ReauthRequiredError) return c.json(body('GOOGLE_REAUTH', 'Google no longer accepts your access. Sign in with Google again.'), 401);
     if (err instanceof ProviderUnavailableError) return c.json(body('PROVIDER_UNAVAILABLE', 'Google Calendar is unavailable'), 503);
     if (err instanceof PreconditionFailedError) return c.json(body('PRECONDITION_FAILED', 'This item was changed elsewhere. Reload it and try again.'), 412);

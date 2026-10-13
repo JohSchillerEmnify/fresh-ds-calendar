@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, language: 'auto' };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -57,8 +57,20 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, language: 'auto' });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
+  });
+
+  it('keeps the language per person, auto by default, only the known languages', async () => {
+    expect((await t.json('GET', '/api/prefs')).body.language).toBe('auto');
+    for (const l of ['en', 'de', 'de-x-mainfr', 'de-x-coldmirror', 'auto']) {
+      expect((await t.json('PATCH', '/api/prefs', { language: l })).body.language).toBe(l);
+    }
+    await t.json('PATCH', '/api/prefs', { language: 'de' });
+    for (const bad of ['fr', 'DE', '', 1, null]) expect((await t.json('PATCH', '/api/prefs', { language: bad })).status).toBe(400);
+    expect((await t.json('GET', '/api/prefs')).body.language).toBe('de');
+    await t.req('POST', '/api/__test/reset');
+    expect((await t.json('GET', '/api/prefs')).body.language).toBe('auto');
   });
 
   it('rejects an unknown support cat value', async () => {

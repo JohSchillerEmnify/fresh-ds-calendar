@@ -9,7 +9,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
-import { addDays, HOURS, hourLabel, MONTH_NAMES, parseIsoDate, routePath, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
+import { addDays, HOURS, hourLabel, monthNames, parseIsoDate, routePath, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, type Segment } from '@/lib/items';
 
 /** Days added per extension and the distance (in columns) from an edge that triggers one. */
@@ -35,8 +35,8 @@ const segs = (date: string): Segment[] => (items.byDate.get(date) ?? []).filter(
 const HH = 48;
 const topOf = (date: string) => segs(date).filter((s) => s.allDay || s.startTime === null);
 const placedOf = (date: string) => packColumns(segs(date), (MIN_BLOCK_PX / HH) * 60);
-const weekday = (d: string) => WEEKDAY_LABELS[(parseIsoDate(d)!.getDay() + 6) % 7];
-const dayLabel = (d: string) => `${parseIsoDate(d)!.getDate()} ${MONTH_NAMES[parseIsoDate(d)!.getMonth()].slice(0, 3)}`;
+const weekday = (d: string) => weekdayLabels()[(parseIsoDate(d)!.getDay() + 6) % 7];
+const dayLabel = (d: string) => `${parseIsoDate(d)!.getDate()} ${monthNames()[parseIsoDate(d)!.getMonth()].slice(0, 3)}`;
 
 const colWidth = () => scroller.value!.querySelector('.strip-column')!.getBoundingClientRect().width;
 const loadRange = () => items.setVisible(toIsoDate(start.value), toIsoDate(addDays(start.value, count.value))).catch(() => undefined);
