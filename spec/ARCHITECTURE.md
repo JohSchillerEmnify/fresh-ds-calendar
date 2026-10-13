@@ -1536,6 +1536,12 @@ browser does not change.
   any use (app or widget), or after signing out, the widget shows the sign-in hint until the app is opened. The cookie
   is `HttpOnly; SameSite=Lax` and `Secure` only when `PUBLIC_URL` is https, so a native client over plain HTTP is not
   blocked and no server security was loosened. The WebView's cookie jar is only readable by this app.
+- **Day widget** (owner, 2026-10-14: "build a day view widget as well"): `DayWidgetProvider` (default 2x3, resizable)
+  draws today like the app's day view with the week renderer run for one day (`WeekCanvas.drawDay`: the date as the
+  header, no weekday row, one wide column, so blocks show their time and a task list its open items; bars of multi-day
+  events crossing today are clipped to it). Same data, theme, language and refresh jobs as the week widget; the whole
+  widget opens `/day/<today>`, the icon refreshes. Layouts use only RemoteViews-allowed classes: a plain `View` made
+  launchers show "Can't load widget" (fixed 2026-10-14); `WidgetInflateTest` inflates all three widgets like a launcher.
 - **Clock widget** (owner, 2026-10-13: the clock "has a lot of potential for a widget"): a second, square widget
   (`ClockWidgetProvider`, `clock_widget_info.xml`, default 2x2, resizable) that draws today as the app's 24-hour clock
   (`ClockCanvas`, one bitmap): day ring with the elapsed part, plate and hour ticks (00/06/12/18 in the outer ring), arcs on

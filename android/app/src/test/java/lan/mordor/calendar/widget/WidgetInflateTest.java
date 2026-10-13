@@ -32,6 +32,12 @@ public class WidgetInflateTest {
     }
 
     @Test
+    public void dayWidgetInflates() {
+        RemoteViews rv = DayWidgetProvider.build(ctx, new Bundle(), LocalDate.of(2026, 10, 14), LocalTime.of(10, 20));
+        assertNotNull(rv.apply(ctx, new FrameLayout(ctx)));
+    }
+
+    @Test
     public void clockWidgetInflates() {
         RemoteViews rv = ClockWidgetProvider.build(ctx, new Bundle(), LocalDate.of(2026, 10, 14), LocalTime.of(10, 20));
         assertNotNull(rv.apply(ctx, new FrameLayout(ctx)));

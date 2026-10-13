@@ -4,4 +4,6 @@
     <string name="widget_refresh">Refresh</string>
     <string name="clock_widget_label">Clock</string>
     <string name="clock_widget_description">Today on the 24-hour clock: what is running, what comes next and how long until then</string>
+    <string name="day_widget_label">Day</string>
+    <string name="day_widget_description">Today as in the app\'s day view: events, task lists and the hour grid</string>
 </resources>

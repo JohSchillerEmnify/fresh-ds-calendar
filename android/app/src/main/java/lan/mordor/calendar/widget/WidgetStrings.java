@@ -64,6 +64,11 @@ final class WidgetStrings {
         return (german ? DE_DAYS : EN_DAYS)[w.getValue() - 1];
     }
 
+    /** The day widget's header: {@code Wednesday 14 October} / {@code Mittwoch, 14. Oktober}. */
+    String dayTitle(LocalDate d) {
+        return DateTimeFormatter.ofPattern(german ? "EEEE, d. MMMM" : "EEEE d MMMM", german ? Locale.GERMANY : Locale.UK).format(d);
+    }
+
     /** The week's range for the header: {@code 12–18 Oct} or {@code 28 Sep – 4 Oct}. */
     String weekRange(LocalDate monday) {
         LocalDate sunday = monday.plusDays(6);

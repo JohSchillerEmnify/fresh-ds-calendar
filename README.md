@@ -43,6 +43,6 @@ and copies it to `DATA_DIR/downloads/app.apk` (served at `http://cal.mordor.lan/
   outside git and gitignored. Back it up: an installed app can only be updated by an APK signed with the same key.
 - **Install on the phone**: open `http://cal.mordor.lan/app.apk` in Chrome, allow "Install unknown apps" for Chrome when
   asked, open the downloaded file and install; then long-press the home screen, Widgets, Calendar, add the weekly
-  widget and/or the clock widget (today on the 24-hour clock).
+  widget, the day widget and/or the clock widget (today on the 24-hour clock).
 - Tests: `./gradlew testDebugUnitTest` in `android/` (native day splitting), `pnpm -F @calendar/web test` (snapshot builder).
 
