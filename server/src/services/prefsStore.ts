@@ -34,6 +34,8 @@ export interface Prefs {
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
   tasksCalendarVisible: boolean;
   supportCat: SupportCat;
+  /** The small build-version label in the bottom-left corner of the main UI (off by default). */
+  versionInCorner: boolean;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -64,6 +66,7 @@ export class PrefsStore {
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
+      versionInCorner: p?.versionInCorner === true,
     };
   }
 
@@ -100,8 +103,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner };
   }
 
   /**

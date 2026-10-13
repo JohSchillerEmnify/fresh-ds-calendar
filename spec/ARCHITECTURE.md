@@ -752,7 +752,7 @@ It never reloads by itself and never interrupts an open dialog.
   with `<last tag>-preview+<sha>`. Alternative weighed: a hand-kept version in package.json — rejected (owner: automatic).
 - The update notice keeps comparing the full build version, so every deploy is noticed.
 - Settings → Account & data shows "Version X.Y.Z" with the sha in small print (`settings-version`). A switch "Show
-  version in the corner" (`settings-version-corner`, per device in `localStorage`, default off) shows a small label
+  version in the corner" (`settings-version-corner`, a person pref `versionInCorner` in `Prefs`, default off) shows a small label
   `app-version` ("0.4.2") in the bottom-left corner of the main UI (above the safe area, below dialogs, never covering
   the bottom bar or the FAB).
 
