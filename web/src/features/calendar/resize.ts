@@ -15,6 +15,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
+import { t } from '@/i18n';
 
 export type ResizeEdge = 'top' | 'bottom';
 
@@ -84,8 +85,8 @@ export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void
       : api.updateTaskList(item.id, plan.patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
     resizePreview.value = null;
   } catch (e) {
-    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : 'Something went wrong';
-    useUiStore().notify(`Could not resize “${displayTitle(item)}”. ${msg}`, { testid: 'move-failed' });
+    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
+    useUiStore().notify(t('calendar.drag.resizeFailed', { title: displayTitle(item), reason: msg }), { testid: 'move-failed' });
     // the store has rolled back: animate from the dragged size to the old one, then hand the geometry back to the store
     resizePreview.value = { id: item.id, date: seg.date, startMin: seg.startMin, endMin: seg.endMin, settle: true };
     setTimeout(() => { resizePreview.value = null; }, 300);

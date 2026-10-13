@@ -6,15 +6,10 @@ import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
 import { useThemeStore } from './theme';
 import { useUiStore } from './ui';
+import { t } from '@/i18n';
 
 /** How long a delete can be undone before its request is sent (ARCHITECTURE "Delete with undo"). */
 export const UNDO_MS = 6000;
-/** Every string of the undo snackbar. */
-export const UNDO_TEXT = {
-  deleted: (title: string) => `Deleted: ${title}`,
-  undo: 'Undo',
-  untitledList: 'List',
-} as const;
 
 declare global {
   interface Window {
@@ -66,9 +61,9 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
   function start(p: Pending, hide: () => void): void {
     void flush();
     hide();
-    const snack = useUiStore().notify(UNDO_TEXT.deleted(p.title), {
+    const snack = useUiStore().notify(t('calendar.undo.deleted', { title: p.title }), {
       duration: 0, testid: 'undo-snackbar',
-      action: { label: UNDO_TEXT.undo, testid: 'undo-action', run: undo },
+      action: { label: t('calendar.undo.undo'), testid: 'undo-action', run: undo },
     });
     current = { p, snack, stop: appTimeout(() => { void flush(); }, UNDO_MS) };
     mark();
@@ -116,7 +111,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
   function deleteTaskList(tl: TaskList): void {
     const items = useItemsStore();
     start({
-      title: tl.title || UNDO_TEXT.untitledList,
+      title: tl.title || t('tasklist.untitled'),
       restore: () => items.unhide(tl),
       send: (keepalive) => items.deleteTaskList(tl.id, tl.etag, { keepalive }),
     }, () => items.hide(tl.id));

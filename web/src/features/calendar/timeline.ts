@@ -1,6 +1,7 @@
 /** Pure time math for the timeline: block geometry, now marker position, Now card model, duration wording. */
 import type { Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
+import { t } from '@/i18n';
 
 export { blockGeometry, MIN_BLOCK_PX } from '@/lib/items';
 
@@ -14,9 +15,9 @@ export function nowMarkerTop(minutesNow: number, hourHeight: number): number {
 /** `<60 min` -> `35 min`; whole hours -> `2 h`; else `1 h 20 min`. Rounds down to whole minutes (ARCHITECTURE 5b). */
 export function formatDuration(totalMinutes: number): string {
   const m = Math.max(0, Math.floor(totalMinutes));
-  if (m < 60) return `${m} min`;
+  if (m < 60) return t('calendar.duration.minutes', { minutes: m });
   const h = Math.floor(m / 60), r = m % 60;
-  return r === 0 ? `${h} h` : `${h} h ${r} min`;
+  return r === 0 ? t('calendar.duration.hours', { hours: h }) : t('calendar.duration.hoursMinutes', { hours: h, minutes: r });
 }
 
 export interface NowCardModel {
@@ -38,13 +39,13 @@ export function nowCardModel(daySegments: Segment[], nowMin: number): NowCardMod
   const running = evs.filter((s) => s.startMin <= nowMin && nowMin < s.endMin).sort((a, b) => a.endMin - b.endMin || a.startMin - b.startMin);
   const cur = running[0];
   const upcoming = evs.filter((s) => s.startMin > nowMin).sort((a, b) => a.startMin - b.startMin)[0];
-  const nextLine = upcoming ? `Next: ${upcoming.item.title} in ${formatDuration(upcoming.startMin - nowMin)}` : 'Nothing else today';
+  const nextLine = upcoming ? t('calendar.now.next', { title: upcoming.item.title, duration: formatDuration(upcoming.startMin - nowMin) }) : t('calendar.now.nothingElse');
   if (!cur) return { current: null, nextLine };
   const left = formatDuration(cur.endMin - nowMin);
   const total = cur.endMin - cur.startMin;
   return {
     current: {
-      id: cur.item.id, title: cur.item.title, left, line: `${cur.item.title} · ${left} left`,
+      id: cur.item.id, title: cur.item.title, left, line: t('calendar.now.left', { title: cur.item.title, left }),
       elapsedPercent: Math.min(100, Math.max(0, Math.floor(((nowMin - cur.startMin) / total) * 100))),
       color: (cur.item as { color: string }).color,
     },
