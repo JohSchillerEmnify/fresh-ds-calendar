@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
-import type { ApproachWindowHours, Prefs, SupportCatSetting, TasksGroupBy, TasksSortBy } from '@/api/types';
+import type { ApproachWindowHours, Prefs, SupportCatSetting, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
@@ -18,6 +18,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   const versionInCorner = ref(false);
   const tasksGroupBy = ref<TasksGroupBy>('time');
   const tasksSortBy = ref<TasksSortBy>('date');
+  const tasksSortDir = ref<TasksSortDir>('default');
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -29,6 +30,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
     tasksGroupBy.value = p.tasksGroupBy ?? tasksGroupBy.value;
     tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
+    tasksSortDir.value = p.tasksSortDir ?? tasksSortDir.value;
   }
 
   async function load(): Promise<void> {
@@ -42,7 +44,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value,
+      versionInCorner: versionInCorner.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value,
     };
     apply(p);
     try {
@@ -53,5 +55,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, tasksGroupBy, tasksSortBy, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, tasksGroupBy, tasksSortBy, tasksSortDir, load, set };
 });

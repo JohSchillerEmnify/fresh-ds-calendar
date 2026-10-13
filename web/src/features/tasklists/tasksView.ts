@@ -2,7 +2,7 @@
  * Pure grouping and sorting of the Tasks view (ARCHITECTURE "Tasks view"; directions and group order: A-72).
  * No store or DOM access, so the rules are unit-tested with fixed dates.
  */
-import type { Category, TaskList, TasksGroupBy, TasksSortBy } from '@/api/types';
+import type { Category, TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
 import { addDays, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { displayTitle } from '@/lib/items';
 import { isComplete } from './format';
@@ -50,8 +50,11 @@ const byDate = (a: TaskList, b: TaskList): number =>
   || (a.time ?? '').localeCompare(b.time ?? '');
 const share = (l: TaskList): number => (l.totalCount ? l.doneCount / l.totalCount : 0);
 
-/** A comparator for the chosen sort; ties fall back to date, then name. */
-export function comparator(sortBy: TasksSortBy, categories: Pick<Category, 'id'>[]): (a: TaskList, b: TaskList) => number {
+/**
+ * A comparator for the chosen sort; ties fall back to date, then name. `dir` is relative to the key's own default
+ * direction (A-80): `reversed` flips the key only, not the tie-break.
+ */
+export function comparator(sortBy: TasksSortBy, categories: Pick<Category, 'id'>[], dir: TasksSortDir = 'default'): (a: TaskList, b: TaskList) => number {
   // no category (or an unknown one) sorts after every category
   const rank = (l: TaskList) => { const i = categories.findIndex((c) => c.id === l.categoryId); return i < 0 ? categories.length : i; };
   const primary: Record<TasksSortBy, (a: TaskList, b: TaskList) => number> = {
@@ -61,20 +64,21 @@ export function comparator(sortBy: TasksSortBy, categories: Pick<Category, 'id'>
     changed: (a, b) => b.updated.localeCompare(a.updated),
     progress: (a, b) => share(b) - share(a),
   };
-  return (a, b) => primary[sortBy](a, b) || byDate(a, b) || byName(a, b);
+  const sign = dir === 'reversed' ? -1 : 1;
+  return (a, b) => sign * primary[sortBy](a, b) || byDate(a, b) || byName(a, b);
 }
 
 /** Sorted copy of `lists`. */
-export function sortLists(lists: TaskList[], sortBy: TasksSortBy, categories: Pick<Category, 'id'>[]): TaskList[] {
-  return [...lists].sort(comparator(sortBy, categories));
+export function sortLists(lists: TaskList[], sortBy: TasksSortBy, categories: Pick<Category, 'id'>[], dir: TasksSortDir = 'default'): TaskList[] {
+  return [...lists].sort(comparator(sortBy, categories, dir));
 }
 
 /**
  * The lists in groups, each group sorted by `sortBy`, empty groups left out. Time groups come in the order
  * Overdue, Today, This week, Later, No date; category groups in the settings order followed by "No category".
  */
-export function groupLists(lists: TaskList[], groupBy: TasksGroupBy, sortBy: TasksSortBy, today: string, categories: Category[]): TaskGroup[] {
-  const sorted = sortLists(lists, sortBy, categories);
+export function groupLists(lists: TaskList[], groupBy: TasksGroupBy, sortBy: TasksSortBy, today: string, categories: Category[], dir: TasksSortDir = 'default'): TaskGroup[] {
+  const sorted = sortLists(lists, sortBy, categories, dir);
   if (groupBy === 'none') return sorted.length ? [{ key: 'all', title: '', lists: sorted }] : [];
   if (groupBy === 'time') {
     return TIME_GROUPS

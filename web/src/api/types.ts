@@ -104,6 +104,9 @@ export type TasksGroupBy = 'time' | 'category' | 'none';
 /** How the Tasks view sorts its lists (per person pref). */
 export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 
+/** Tasks view sort direction relative to the sort key's own default. */
+export type TasksSortDir = 'default' | 'reversed';
+
 /** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
 export type ApproachWindowHours = number;
 
@@ -124,6 +127,7 @@ export interface Prefs {
   /** Tasks view grouping and sorting. */
   tasksGroupBy: TasksGroupBy;
   tasksSortBy: TasksSortBy;
+  tasksSortDir: TasksSortDir;
 }
 
 export interface Settings {
