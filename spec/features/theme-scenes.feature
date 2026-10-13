@@ -11,6 +11,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
   Background:
     Given the calendar is empty
     And today is 2026-10-12
+    And the seasons and holidays are off
 
   Scenario Outline: A season theme keeps my mode
     When I open the week view for 2026-10-12

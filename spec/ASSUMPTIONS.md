@@ -364,3 +364,8 @@ spec files are named.
 - **A-92 Test step "the browser language is"**: an init script on the current context overrides `navigator.language`
   and `navigator.languages` (a Playwright context cannot change its `locale` after creation). New "another device"
   contexts keep the project locale `en-GB`, which is what the "follows the person" scenario needs.
+- **A-102 Idle server memory on a fresh server** (owner decision 2026-10-13: measure idle RSS on a fresh server): the
+  shared test server has served the whole suite before the @perf scenario runs, so its RSS is above 100 MB even though
+  it is small when idle. The scenario "The server stays small when idle" therefore uses the new step `When I request
+  {string} on a fresh server` (one wording change: `... on a fresh server` appended to the existing request step); the
+  assertion step is unchanged. The leak scenario keeps measuring growth on the shared server.

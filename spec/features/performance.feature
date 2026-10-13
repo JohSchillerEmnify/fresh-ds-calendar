@@ -13,6 +13,7 @@ Feature: Resource efficiency and no memory leaks
       | item | done |
       | Milk | no   |
       | Eggs | yes  |
+    And the seasons and holidays are off
 
   Scenario: Switching views and opening dialogs repeatedly does not leak memory
     When I open the month view for 2026-10
@@ -61,7 +62,7 @@ Feature: Resource efficiency and no memory leaks
     Then the performance score is at least 90
 
   Scenario: The server stays small when idle
-    When I request "GET /api/__test/memory?gc=true"
+    When I request "GET /api/__test/memory?gc=true" on a fresh server
     Then the server resident memory is below 100 MB
 
   Scenario: The server does not leak memory under load

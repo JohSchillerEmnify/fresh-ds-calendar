@@ -9,6 +9,7 @@ Feature: Saving my fine-tuned look as my own theme
     Given the calendar is empty
     And today is 2026-10-12
     And "jo@example.com" may use the calendar
+    And the seasons and holidays are off
 
   Scenario: I save my fine-tuned look as my own theme and it appears in the gallery and follows me to another device
     Given "jo@example.com" chose the theme "Neon"

@@ -341,6 +341,12 @@ When('I set the seasons and holidays to {string}', async function (this: World, 
   await expect(o).toHaveAttribute('aria-pressed', 'true');
 });
 
+Given('the seasons and holidays are off', async function (this: World) {
+  // the current session's person (the page may be signed in as someone else), so not this.api
+  const res = await this.page.request.patch('/api/prefs/theme', { data: { seasonal: 'off' } });
+  expect(res.ok(), await res.text()).toBe(true);
+});
+
 Then('the seasons and holidays are set to {string}', async function (this: World, label: string) {
   await ensureMenu(this);
   await expect(this.page.getByTestId('theme-seasonal').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');

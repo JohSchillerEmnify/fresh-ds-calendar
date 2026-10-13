@@ -8,6 +8,7 @@ Feature: Material 3 look and light/dark theme
     Given the calendar is empty
     And today is 2026-10-12
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    And the seasons and holidays are off
 
   Scenario Outline: The theme follows the system color scheme
     Given the device prefers a <scheme> color scheme

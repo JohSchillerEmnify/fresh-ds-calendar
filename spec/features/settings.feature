@@ -8,6 +8,7 @@ Feature: Settings
   Background:
     Given the calendar is empty
     And today is 2026-10-12
+    And the seasons and holidays are off
 
   Scenario: The settings screen is reachable from the top app bar
     When I open the week view for 2026-10-12

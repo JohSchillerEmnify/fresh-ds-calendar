@@ -9,6 +9,7 @@ Feature: Creating own themes with an AI is an experiment behind a Labs switch
     And today is 2026-10-12
     And "jo@example.com" may use the calendar
     And "jo@example.com" imported the theme file "ocean.json"
+    And the seasons and holidays are off
 
   Scenario: Without the switch there is no AI prompt and no import, but my themes show
     When "jo@example.com" opens the week view for 2026-10-12 on another device

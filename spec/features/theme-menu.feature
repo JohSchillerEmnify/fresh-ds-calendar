@@ -26,6 +26,7 @@ Feature: Choosing and fine-tuning a theme
     Given the calendar is empty
     And today is 2026-10-12
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    And the seasons and holidays are off
 
   Scenario: A preset with my own colour, and back to the preset
     When I open the week view for 2026-10-12

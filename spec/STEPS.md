@@ -363,6 +363,7 @@ the JavaScript downloaded for the first load is at most {int} KB compressed
 the month view was rendered within {int} ms of navigation start
 I run a phone performance audit of the app
 the performance score is at least {int}
+I request {string} on a fresh server
 the server resident memory is below {int} MB
 I send {int} warm-up requests to {string}
 I send {int} requests to {string}
@@ -389,7 +390,12 @@ the server memory has grown by less than {int} MB since the recording
   init script), relative to navigation start.
 - "phone performance audit": Lighthouse (mobile preset, simulated throttling) against the base URL; score = performance
   category × 100. Runs in the Playwright container on Chromium with `--remote-debugging-port`.
-- "the server resident memory is below N MB": `rss` from the last `GET /api/__test/memory?gc=true` response.
+- "I request "METHOD /path" on a fresh server": starts its own server process (`node --expose-gc server/dist/index.js`, the
+  same `TEST_MODE` env as `e2e/run.sh`: `PROVIDER=mock`, `SEED=false`, `POLL_INTERVAL_MS=30000`, `NODE_ENV=production`, but a free
+  loopback port and an empty temporary `DATA_DIR`), waits for `GET /api/health`, performs the request there (stored as the
+  last response like `I request {string}`), then stops the process and deletes its data directory (A-102).
+- "the server resident memory is below N MB": `rss` from the last response, here the `GET /api/__test/memory?gc=true`
+  response of the fresh server.
 - "send N requests to "METHOD /path"": sequential with concurrency 10 via Playwright `request`. The PATCH variant
   alternates `{done:true}` / `{done:false}` on `/api/tasklists/:id/items/:itemId`.
 - "record the server memory" / "has grown": `GET /api/__test/memory?gc=true`, compares `rss`.
@@ -952,6 +958,7 @@ the top bar shows the {string} scene
 the top bar shows no scene
 the settings show the theme {string}
 I set the seasons and holidays to {string}
+the seasons and holidays are off
 the seasons and holidays are set to {string}
 the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
@@ -1021,6 +1028,8 @@ every option of the {string} setting shows a sample icon
   "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
   "Seasons & holidays" section and waits for the save. "the seasons and holidays are set to X": that option has
   `aria-pressed` `true`. A new person has "Header + colours", so scenarios that want a plain look set "Off" first.
+  "the seasons and holidays are off" (Given, for Backgrounds): `PATCH /api/prefs/theme { seasonal: 'off' }` directly, without the
+  theme menu and before or after the page loads (a later load reads it).
 - "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
   `data-part`), in timeline order left to right, exactly the first N with `data-lit="true"`. "the Christmas tree lights are on / off": the top bar scene
   has one `xmas-tree` element with `data-lights` `on` / `off`; the tree is the end of the timeline, right of the fourth candle.

@@ -13,6 +13,7 @@ Feature: Making my own theme with an AI and importing it
     And today is 2026-10-12
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     And own themes are turned on in Labs
+    And the seasons and holidays are off
 
   Scenario: The AI prompt is ready to copy
     When I open the theme menu
