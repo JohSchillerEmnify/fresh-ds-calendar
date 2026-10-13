@@ -368,7 +368,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   the tray list scrolls instead of hiding items. Lists from `finishedToday` follow the open ones, collapsed to their
   struck-through title (`task-tray-title`, row `data-finished="true"`); `task-tray-unfold` shows their task list view
   in place (UI-only state). A list ticked complete in the tray keeps its view open for 2 s (celebration and
-  "All done! 🎉" visible), then moves to the finished rows with a move animation (the store moves it from open to
+  "All done! 🎉" visible) — or until the support cat has finished its visit if it came (owner, 2026-10-13: the cat
+  must not lose its card); the tray itself stays open meanwhile — then moves to the finished rows with a move animation (the store moves it from open to
   finished locally, the next refresh confirms it). The count counts open lists only. On phones the tray's expanded
   state lives in the `ui` store (`trayExpanded`), the opened tray is as tall as the expanded list's bottom sheet
   (desktop: the side panel is 380 px wide, like the expanded list's panel, and the FAB sits left of it via

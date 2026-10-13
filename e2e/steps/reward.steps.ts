@@ -173,3 +173,35 @@ Then('the title of the task list {string} is struck through', async function (th
   const deco = await el.evaluate((e) => getComputedStyle(e).textDecorationLine);
   expect(deco, 'title text decoration').toContain('line-through');
 });
+
+// ---- The drag helper cat (STEPS.md "Drag helper cat") ----
+
+const dragCat = (w: World) => w.page.locator('[data-testid="support-cat"][data-role="drag"]');
+
+/** STEPS.md: pose `push-down` and the cat's box is above the dragged card's centre. */
+Then('the support cat pushes the card from above', async function (this: World) {
+  const cat = dragCat(this);
+  await expect(cat).toHaveAttribute('data-pose', 'push-down');
+  const centreY = async (sel: string) => {
+    const b = (await this.page.locator(sel).first().boundingBox())!;
+    return b.y + b.height / 2;
+  };
+  await expect
+    .poll(async () => (await centreY('[data-testid="support-cat"][data-role="drag"]')) < (await centreY('[data-dragging="true"]')), { message: 'cat above the card centre' })
+    .toBe(true);
+});
+
+Then('the support cat sits beside the card with a paw on it', async function (this: World) {
+  await expect(dragCat(this)).toHaveAttribute('data-pose', 'wait');
+});
+
+/** The drag cat is removed at most `ms` after the drop (release time from the pick-up step, both native clock). */
+Then('the support cat is gone within {int} ms', async function (this: World, ms: number) {
+  this.extendTimeout(ms);
+  const latest = async () => (await rewardLog(this)).filter((e) => e.kind === CAT).at(-1);
+  await expect.poll(latest, { message: 'the support cat was there' }).toBeDefined();
+  await expect.poll(async () => (await latest())?.removedAt, { message: 'the support cat is removed', timeout: ms + 2_000 }).toBeDefined();
+  const dropAt = await this.page.evaluate(() => (window as unknown as { __dropAt?: number }).__dropAt);
+  expect(dropAt, 'drop time recorded by the pick-up step').toBeDefined();
+  expect((await latest())!.removedAt! - dropAt!, 'ms from drop until the cat is gone').toBeLessThanOrEqual(ms);
+});

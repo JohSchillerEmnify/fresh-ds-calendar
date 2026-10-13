@@ -25,12 +25,14 @@ export interface CatRoll {
   forced: boolean;
   /** A uniform random number in [0, 1). */
   random: number;
+  /** Chance with "Sometimes" (default `CAT_CHANCE`; the drag helper uses `DRAG_CAT_CHANCE`). */
+  chance?: number;
 }
 
-/** Whether the cat comes by for this finished list. */
+/** Whether the cat comes by for this finished list (or, with `chance`, this drag). */
 export function catComes(r: CatRoll): boolean {
   if (r.level === 'off' || r.setting === 'off') return false;
-  return r.setting === 'always' || r.forced || r.random < CAT_CHANCE;
+  return r.setting === 'always' || r.forced || r.random < (r.chance ?? CAT_CHANCE);
 }
 
 /** Reads and clears the test hook; always false outside test mode. */
