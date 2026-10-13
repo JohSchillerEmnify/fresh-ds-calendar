@@ -247,6 +247,11 @@ export class ApiClient {
     return this.request<{ items: TaskList[] }>('GET', `/api/tasklists/all-open?${new URLSearchParams({ today })}`, undefined, o);
   }
 
+  /** Every finished task list, undated ones included (the Tasks view's Archive tab). */
+  archivedTaskLists(today: LocalDate, o?: RequestOptions) {
+    return this.request<{ items: TaskList[] }>('GET', `/api/tasklists/archive?${new URLSearchParams({ today })}`, undefined, o);
+  }
+
   // --- settings & categories ----------------------------------------------------
   settings(o?: RequestOptions) {
     return this.request<Settings>('GET', '/api/settings', undefined, o);

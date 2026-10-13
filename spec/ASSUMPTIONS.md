@@ -371,3 +371,13 @@ spec files are named.
   it is small when idle. The scenario "The server stays small when idle" therefore uses the new step `When I request
   {string} on a fresh server` (one wording change: `... on a fresh server` appended to the existing request step); the
   assertion step is unchanged. The leak scenario keeps measuring growth on the shared server.
+- **A-103 Archive** (owner decisions 2026-10-13 are final; the readings below are mine): (a) a list is "finished" when it
+  has at least one item and all are ticked (same as A-94's complement), so an emptied list is not archived. (b) Lists
+  without `completedOn` are sorted after those with one, by event date newest first, then title; this is logged in the
+  UI nowhere, only here. (c) Search is a plain case-insensitive substring match (no fuzzy, no word split), and an empty
+  search shows everything. (d) The template copies title, category and tags only; estimate and recurrence are dropped,
+  so the copy never repeats (an undated list cannot). (e) Finished lists older than 365 days without the `done` marker
+  (written before this feature) are not found until they are edited once. (f) The setting lives in the "Task lists"
+  section of the settings as a two-option segmented control. (g) With "Archive only", a list that is already dated is
+  still dated: the setting concerns undated lists only (owner: "finished list without a date"). (h) The Archive refetches
+  when it opens and on every sync, like the Open tab.

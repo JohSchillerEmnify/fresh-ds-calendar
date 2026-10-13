@@ -137,6 +137,18 @@ describe('TaskListCodec', () => {
     expect(dateOnCompletion(l(open, '2026-10-01'), l(done, '2026-10-01'), '2026-10-12')).toBeNull(); // dated lists keep their date
     expect(dateOnCompletion(l(open, null), l([], null), '2026-10-12')).toBeNull(); // an empty list is not finished
   });
+  it('dateOnCompletion: "Archive only" keeps a finished undated list undated', () => {
+    const open = [{ id: 'a', title: 'A', done: false }], done = [{ id: 'a', title: 'A', done: true }];
+    const l = (its: typeof open) => ({ items: its, date: null });
+    expect(dateOnCompletion(l(open), l(done), '2026-10-12', 'archive')).toBeNull();
+    expect(dateOnCompletion(l(open), l(done), '2026-10-12', 'calendar')).toBe('2026-10-12');
+  });
+  it('encodePrivate marks finished lists with done=1 and clears it when an item is open again', () => {
+    const base = { title: 'T', date: null, time: null, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null };
+    expect(encodePrivate({ ...base, items: [{ id: 'a', title: 'A', done: true }] }).done).toBe('1');
+    expect(encodePrivate({ ...base, items: [{ id: 'a', title: 'A', done: false }] }).done).toBeNull();
+    expect(encodePrivate({ ...base, items: [] }).done).toBeNull();
+  });
   it('splits at 1000 chars and reads chunks back in order', () => {
     const big = Array.from({ length: 60 }, (_, i) => ({ id: `id${String(i).padStart(6, '0')}`, title: `Title ${i} ${'x'.repeat(40)}`, done: i % 2 === 0 }));
     const enc = encodeItems(big);

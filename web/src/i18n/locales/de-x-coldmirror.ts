@@ -76,6 +76,7 @@ export default {
       tasksCalendar: { label: 'Aufgabenkalender in Google zeigen, yo', hint: 'Aufgabenlisten bleiben in jedem Fall in der App, Digga' },
     },
     tasklists: {
+      undatedDone: { label: 'Erledigte Liste ohne Datum, yo', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv, Digga' },
       categories: 'Kategorien, yo',
       addCategory: 'Kategorie am Start, yo',
       editCategory: '{name} pimpen',

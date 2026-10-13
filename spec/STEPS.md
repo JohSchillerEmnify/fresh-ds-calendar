@@ -1247,3 +1247,41 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
 - "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
   `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
   "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
+
+## Tasks archive (`@tasks-archive`)
+
+```
+the calendar contains a task list {string} finished on {date}
+the calendar contains a task list {string} finished on {date} with the item {string}
+the setting {string} is {string}
+I open the Archive
+I search the Archive for {string}
+I untick the item {string} of the task list {string} in the Archive
+I choose {string} for the task list {string} in the Archive
+the Archive lists {string}
+the Archive does not list {string}
+the Open tab lists {string}
+the Open tab does not list {string}
+the open task list {string} has no date and {int} open item(s)
+```
+
+- Also used from "Tasks view": "the calendar contains an undated task list ... with items:", "I tick the item ... in the
+  Tasks view", "the calendar shows the task list ... on ...", "neither the calendar ... nor the open tasks tray ...".
+- "finished on D" fixture: an undated list whose items (one item "Done" unless `with the item` names it) are ticked
+  through the API while the test clock is D (so `completedOn` = D), then the clock is set back to the Background date.
+  The undated list is dated to D by the completion (default setting), which does not matter for the Archive.
+- "the setting S is V": S = `Finished list without a date`, V = `Show on the day it was finished` | `Archive only`;
+  `PATCH /api/prefs { undatedDone: 'calendar' | 'archive' }` as that person.
+- "I open the Archive": opens the Tasks view (as the Tasks view steps do) and clicks `tasks-tab-archive`
+  (`aria-pressed="true"`). "the Open tab lists / does not list T" clicks `tasks-tab-open` and checks the `tasks-item`
+  titles (`data-title`); "the Archive lists A, B" opens the Archive and compares all `tasks-archive-item` titles in DOM
+  order joined `", "` ("does not list T": none has that title).
+- "I search the Archive for X": opens the Archive and fills `tasks-archive-search` (the field's own debounce is
+  awaited by the expectation that follows).
+- "I untick the item I of the task list L in the Archive": unticks `tasklist-item-checkbox` of that item inside L's
+  `tasks-archive-item` and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
+- "I choose Use as template for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
+  waits for the `POST /api/tasklists` response.
+- "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
+  `data-date` and N `tasklist-item` rows with `data-done="false"` (and no done ones).
+

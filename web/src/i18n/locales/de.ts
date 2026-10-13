@@ -15,6 +15,17 @@ export default {
   nav: {
     views: 'Ansichten',
   },
+  tasks: {
+    tabs: { label: 'Aufgaben', open: 'Offen', archive: 'Archiv' },
+    archive: {
+      search: 'Erledigte Listen durchsuchen',
+      empty: 'Noch keine erledigten Aufgabenlisten.',
+      noMatch: 'Keine erledigte Aufgabenliste passt.',
+      useAsTemplate: 'Als Vorlage verwenden',
+      templateCreated: 'Offene Kopie von {title} angelegt',
+      templateFailed: 'Die Kopie konnte nicht angelegt werden.',
+    },
+  },
   common: {
     off: 'Aus',
   },
@@ -78,6 +89,7 @@ export default {
       editCategory: '{name} bearbeiten',
       moveUp: '{name} nach oben',
       moveDown: '{name} nach unten',
+      undatedDone: { label: 'Erledigte Liste ohne Datum', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv' },
     },
     motivation: {
       warnBefore: 'Vor Terminbeginn warnen',

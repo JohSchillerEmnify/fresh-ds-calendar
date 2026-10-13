@@ -8,7 +8,7 @@ beforeEach(async () => { await t.req('POST', '/api/__test/reset'); });
 
 describe('prefs (Labs switches)', () => {
   it('defaults to Labs off with the approach track and Approaching card on, merges patches and survives a calendar visibility change', async () => {
-    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', language: 'auto' };
+    const rest = { tasksCalendarVisible: false, approachWindowHours: 3, approachingCard: true, supportCat: 'sometimes', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto' };
     expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { labs: true })).body).toEqual({ labs: true, approachBar: true, ...rest });
     expect((await t.json('PATCH', '/api/prefs', { approachBar: false, approachWindowHours: 3 })).body).toEqual({ labs: true, approachBar: false, ...rest });
@@ -82,8 +82,15 @@ describe('prefs (Labs switches)', () => {
   it('keeps the support cat setting per person, independent of the theme', async () => {
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'always' })).body.supportCat).toBe('always');
     await t.json('PATCH', '/api/prefs/theme', { preset: 'Mordor', overrides: { glow: 'neon' } });
-    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', language: 'auto' });
+    expect((await t.json('GET', '/api/prefs')).body).toEqual({ labs: false, approachBar: true, approachWindowHours: 3, approachingCard: true, tasksCalendarVisible: false, supportCat: 'always', versionInCorner: false, labsOwnThemes: false, leftHanded: false, tasksGroupBy: 'time', tasksSortBy: 'date', tasksSortDir: 'default', undatedDone: 'calendar', language: 'auto' });
     expect((await t.json('PATCH', '/api/prefs', { supportCat: 'off' })).body.supportCat).toBe('off');
+  });
+
+  it('keeps undatedDone, calendar by default, only the known values', async () => {
+    expect((await t.json('GET', '/api/prefs')).body.undatedDone).toBe('calendar');
+    expect((await t.json('PATCH', '/api/prefs', { undatedDone: 'archive' })).body.undatedDone).toBe('archive');
+    expect((await t.json('PATCH', '/api/prefs', { undatedDone: 'trash' })).status).toBe(400);
+    expect((await t.json('GET', '/api/prefs')).body.undatedDone).toBe('archive');
   });
 
   it('keeps the language per person, auto by default, only the known languages', async () => {
