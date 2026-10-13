@@ -4,12 +4,14 @@
  */
 import type { Messages } from '../schema';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
+import bedtimeColdmirror from './de-x-coldmirror/bedtime.ts';
 
 import tasksColdmirror from './de-x-coldmirror/tasks.ts';
 import themeColdmirror from './de-x-coldmirror/theme.ts';
 
 export default {
   calendar: calendarColdmirror,
+  bedtime: bedtimeColdmirror,
   tasks: tasksColdmirror,
   views: {
     year: 'Jahr, yo',
@@ -55,6 +57,7 @@ export default {
       tasklists: 'To-do-Listen',
       motivation: 'Fokus & Flow',
       motion: 'Move & Sound',
+      bedtime: 'Bettzeit, yo',
       labs: 'Hexenlabor',
       account: 'Konto & Daten, yo',
     },

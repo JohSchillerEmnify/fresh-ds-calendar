@@ -6,6 +6,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ItemView from '@/components/calendar/ItemView.vue';
+import BedtimeColumn from '@/features/bedtime/BedtimeColumn.vue';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -116,6 +117,7 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
         <div class="gut hours"><span v-for="h in HOURS" :key="h" class="hlab" :style="{ height: HH + 'px' }">{{ h === 0 ? '' : hourLabel(h) }}</span></div>
         <article v-for="d in days" :key="d" class="strip-column" :class="{ today: d === today }" data-testid="strip-column" :data-date="d">
           <span v-for="h in HOURS" :key="h" class="hl" data-testid="strip-hour-line" :data-hour="h" :style="{ top: h * HH + 'px', height: HH + 'px' }" />
+          <BedtimeColumn :date="d" :hour-height="HH" />
           <div
             v-for="p in placedOf(d)" :key="p.seg.item.id + p.seg.date" class="blk"
             :style="{ top: blockGeometry(p.top, p.top + p.height, HH).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH).height + 'px', left: `calc(100% * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc(100% * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"

@@ -14,7 +14,7 @@ import {
   parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, LOCAL_PERSON, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isLanguagePref, LOCAL_PERSON, parseBedtimePatch, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -154,6 +154,11 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b.language !== undefined) {
       if (!isLanguagePref(b.language)) throw validation('Invalid language', 'language');
       patch.language = b.language;
+    }
+    if (b.bedtime !== undefined) {
+      const parsed = parseBedtimePatch(b.bedtime);
+      if (typeof parsed === 'string') throw validation(parsed, 'bedtime');
+      patch.bedtime = { ...ctx.prefs.labsPrefs(person(c)).bedtime, ...parsed };
     }
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
     if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);

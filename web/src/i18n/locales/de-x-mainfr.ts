@@ -4,12 +4,14 @@
  */
 import type { PartialMessages } from '../schema';
 import calendarMainfr from './de-x-mainfr/calendar.ts';
+import bedtimeMainfr from './de-x-mainfr/bedtime.ts';
 
 import tasksMainfr from './de-x-mainfr/tasks.ts';
 import themeMainfr from './de-x-mainfr/theme.ts';
 
 export default {
   calendar: calendarMainfr,
+  bedtime: bedtimeMainfr,
   tasks: tasksMainfr,
   views: {
     year: 'Jahr',
@@ -45,6 +47,7 @@ export default {
       tasklists: 'Aufgabnlisdn',
       motivation: 'Fokus un Motivation',
       motion: 'Bewegung un Ton',
+      bedtime: 'Bettzeit',
       account: 'Konto un Daden',
     },
     theme: {

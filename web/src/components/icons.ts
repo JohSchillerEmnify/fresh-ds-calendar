@@ -13,6 +13,12 @@ import AddS from '~icons/material-symbols/add-sharp';
 import ArrowBackO from '~icons/material-symbols/arrow-back';
 import ArrowBackR from '~icons/material-symbols/arrow-back-rounded';
 import ArrowBackS from '~icons/material-symbols/arrow-back-sharp';
+import BedtimeO from '~icons/material-symbols/bedtime';
+import BedtimeR from '~icons/material-symbols/bedtime-rounded';
+import BedtimeS from '~icons/material-symbols/bedtime-sharp';
+import SunnyO from '~icons/material-symbols/sunny';
+import SunnyR from '~icons/material-symbols/sunny-rounded';
+import SunnyS from '~icons/material-symbols/sunny-sharp';
 import CalendarMonthO from '~icons/material-symbols/calendar-month';
 import CalendarMonthR from '~icons/material-symbols/calendar-month-rounded';
 import CalendarMonthS from '~icons/material-symbols/calendar-month-sharp';
@@ -119,3 +125,5 @@ export const IconSettingsOutline = appIcon('IconSettingsOutline', { outlined: Se
 export const IconSync = appIcon('IconSync', { outlined: SyncO, rounded: SyncR, sharp: SyncS });
 export const IconSyncProblem = appIcon('IconSyncProblem', { outlined: SyncProblemO, rounded: SyncProblemR, sharp: SyncProblemS });
 export const IconTodayOutline = appIcon('IconTodayOutline', { outlined: TodayOutlineO, rounded: TodayOutlineR, sharp: TodayOutlineS });
+export const IconBedtime = appIcon('IconBedtime', { outlined: BedtimeO, rounded: BedtimeR, sharp: BedtimeS });
+export const IconSunny = appIcon('IconSunny', { outlined: SunnyO, rounded: SunnyR, sharp: SunnyS });

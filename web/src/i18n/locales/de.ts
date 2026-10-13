@@ -1,12 +1,14 @@
 /** German message catalogue; complete (a key missing here is a type error and fails `pnpm i18n:check`). */
 import type { Messages } from '../schema';
 import calendarDe from './de/calendar.ts';
+import bedtimeDe from './de/bedtime.ts';
 
 import tasksDe from './de/tasks.ts';
 import themeDe from './de/theme.ts';
 
 export default {
   calendar: calendarDe,
+  bedtime: bedtimeDe,
   tasks: tasksDe,
   views: {
     year: 'Jahr',
@@ -52,6 +54,7 @@ export default {
       tasklists: 'Aufgabenlisten',
       motivation: 'Fokus & Motivation',
       motion: 'Bewegung & Ton',
+      bedtime: 'Schlafenszeit',
       labs: 'Labor',
       account: 'Konto & Daten',
     },
