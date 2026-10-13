@@ -4,7 +4,7 @@ import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import { api, type StoredTheme } from '@/api/client';
 import {
   DEFAULT_PREF, resolveTheme, sanitizePref, seasonScene,
-  type CustomThemeKey, type ThemeAttrs, type ThemePref,
+  type CustomThemeKey, type ThemeOverrides, type ThemePref,
 } from '@/theme/presets';
 import { useClockStore } from './clock';
 
@@ -58,8 +58,8 @@ export const useThemeStore = defineStore('theme', () => {
 
   /** Chooses a preset; its own look replaces earlier fine-tuning. */
   const choose = (preset: ThemePref['preset']) => save({ preset, overrides: {} });
-  /** Fine-tunes one attribute on top of the chosen preset. */
-  const pick = <K extends keyof ThemeAttrs>(setting: K, value: ThemeAttrs[K]) =>
+  /** Fine-tunes one attribute or the seed colour on top of the chosen theme. */
+  const pick = <K extends keyof ThemeOverrides>(setting: K, value: NonNullable<ThemeOverrides[K]>) =>
     save({ preset: pref.value.preset, overrides: { ...pref.value.overrides, [setting]: value } });
 
   /** Saves a validated document (and its own picture) as one of the person's themes and chooses it. */

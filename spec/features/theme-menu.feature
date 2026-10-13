@@ -16,6 +16,17 @@ Feature: Choosing and fine-tuning a theme
     And today is 2026-10-12
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
 
+  Scenario: A preset with my own colour, and back to the preset
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I choose the theme "Neon"
+    And I choose the seed color preset "Green"
+    Then the color role "primary" has a hue within 15 degrees of "#386a20"
+    And the theme "Neon" is marked as chosen
+    And the event "Dentist" glows
+    When I choose the theme "Neon"
+    Then the color role "primary" has a hue within 15 degrees of "#9d4dff"
+
   Scenario: Choosing a theme from the gallery applies it at once
     When I open the week view for 2026-10-12
     And I open the theme menu

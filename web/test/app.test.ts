@@ -40,7 +40,7 @@ async function mountAt(path: string, extra: Record<string, () => unknown> = {}, 
 const tid = (id: string) => `[data-testid="${id}"]`;
 const wait = async (fn: () => void) => { await vi.waitFor(fn); await flushPromises(); };
 
-beforeEach(() => { document.body.innerHTML = ''; });
+beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); });
 afterEach(() => { wrapper?.unmount(); wrapper = null; });
 
 describe('routing', () => {
@@ -348,6 +348,8 @@ describe('settings', () => {
     await w.get('[data-testid="settings-theme-mode"] [data-value="dark"]').trigger('click');
     await wait(() => expect(document.documentElement.dataset.theme).toBe('dark') as never).catch(() => undefined);
     expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ themeMode: 'dark' });
+    // the seed colour is fine-tuning of the chosen theme (theme pref override), not a setting
+    const patched = () => m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme').at(-1)!.body;
     await w.get('[data-testid="settings-seed-preset"][data-name="Green"]').trigger('click');
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Green'));
     // invalid custom color: error, no request
@@ -360,7 +362,7 @@ describe('settings', () => {
     await field.setValue('#8e24aa');
     await field.trigger('blur');
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Custom'));
-    expect(m.calls.at(-1)!.body).toEqual({ seedColor: '#8e24aa' });
+    expect(patched()).toEqual({ preset: 'Default', overrides: { seed: '#8e24aa' } });
   });
   it('theme menu: Presets, Scene and Fine-tuning sections in that order, the scene choice only in its own, no Mordor button', async () => {
     const { w, m } = await mountAt('/settings/theme');

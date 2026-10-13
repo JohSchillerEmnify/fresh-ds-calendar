@@ -830,6 +830,19 @@ It never reloads by itself and never interrupts an open dialog.
   stored theme): the scene that was visible wins. If the preset or override scene was not `none`, it already is the
   value and stays; if it was `none`, the old top bar setting (`sunflowers`, `mordor` or `none`) becomes the override.
   The old `scene` key stays in `settings.json` (read-only, unused) so other people can still migrate.
+- **Fine-tuning sits on top of the chosen theme, the seed colour included** (owner bug, 2026-10-13). Cause found: the
+  theme's own seed always won over the person's `seedColor` setting (`theme.seed ?? settings.seedColor`), while the
+  swatches only wrote the setting, so on Neon, Halloween or any preset with a seed the colour pick changed nothing.
+  Now the seed colour is one more override of the theme pref (`overrides.seed`, `#rrggbb`, next to `glow`, `entries`,
+  `corners`, `scene`): colour in use = override, else the theme's seed, else the person's base setting `seedColor`
+  (which stays as the base for themes without a seed, and is not written by the menu any more). Choosing a theme (also
+  the one already chosen) clears all overrides, so the card resets it to its own look; "Save as my theme" then
+  captures the preset plus the overrides. Alternatives weighed: (a) making the person's setting win over every
+  preset (rejected: presets could not bring their colour, and a pick could never be reset); (b) a migration of the
+  stored setting into the overrides (not needed: until now a preset's seed won over the setting, so nothing visible
+  changes; for themes without a seed the setting stays the base). **Theme mode stays a setting** (`themeMode`): the
+  owner decided that season presets keep the person's System/Light/Dark and only Neon and Mordor are dark by design,
+  so a mode pick must survive choosing another theme, which an override (cleared on choose) would break.
 - The settings page's Theme row shows the preset name; for Automatic it shows "Automatic · <resolved preset>", e.g.
   "Automatic · Fall" (and "Automatic · Halloween" once that theme exists).
 - Applied as attributes on `<html>`: `data-theme-name` (the resolved preset, e.g. "Fall" for Automatic in October),

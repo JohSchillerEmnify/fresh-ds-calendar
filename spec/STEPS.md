@@ -448,8 +448,10 @@ the settings are changed elsewhere to the theme mode {string}
 
 - `I open the settings` clicks `settings-button` in the top app bar; `I leave the settings` clicks `settings-back`
   (returns to the previous calendar URL, or `/` if none).
-- Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing.
-  A rejected custom color does not send a request.
+- Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing,
+  except the seed colour steps (`I choose the seed color preset`, `I enter the custom seed color`): the seed colour is
+  fine-tuning of the chosen theme, so these wait for the `PATCH /api/prefs/theme` response (status 200) instead
+  (ARCHITECTURE "Themes", owner 2026-10-13). A rejected custom color does not send a request.
 - Theme modes are the labels `System`, `Light`, `Dark`. Seed presets are the labels `Blue`, `Purple`, `Teal`, `Green`,
   `Orange`, `Red`, `Pink`, `Slate`; a custom color is shown as `Custom`.
 - Hue check: computes the HCT hue (Material color science) of the computed `--md-sys-color-<role>` and of the hex value

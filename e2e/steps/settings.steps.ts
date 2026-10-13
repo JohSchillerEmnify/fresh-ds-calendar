@@ -2,7 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { expectRoleHue } from './support/color.js';
-import { chooseSelect, saveSetting } from './support/settings.js';
+import { chooseSelect, saveSetting, saveThemePref } from './support/settings.js';
 import { chooseOption, expectJoined, selectedLabel } from './support/ui.js';
 import { attr, tid, type World } from './support/world.js';
 
@@ -88,7 +88,7 @@ When('I choose the seed color preset {string}', async function (this: World, nam
   await inThemeMenu(this);
   const preset = seedPreset(this, name);
   await expect(preset).toBeVisible();
-  await saveSetting(this, (await preset.getAttribute('aria-pressed')) === 'true', () => preset.click());
+  await saveThemePref(this, (await preset.getAttribute('aria-pressed')) === 'true', () => preset.click());
 });
 
 When('I enter the custom seed color {string}', async function (this: World, value: string) {
@@ -96,7 +96,7 @@ When('I enter the custom seed color {string}', async function (this: World, valu
   const input = this.page.getByTestId('settings-seed-custom');
   await expect(input).toBeVisible();
   // A rejected custom color does not send a request.
-  await saveSetting(this, !HEX.test(value), async () => {
+  await saveThemePref(this, !HEX.test(value), async () => {
     await input.fill(value);
     await input.press('Enter');
   });
