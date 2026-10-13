@@ -128,7 +128,8 @@ interface Settings {
   calmMode: boolean;                  // default false
   transitionWarningMinutes: 0 | 5 | 10 | 15;     // default 10; 0 = off
   streakFlame: boolean;               // default true: show the streak flame
-  garden: 'plant' | 'sunflowers' | 'off';  // default 'plant'
+  plant: boolean;                     // default true: show the plant widget in the top bar (independent of the scene)
+  sunflowers: 'grow' | 'full';        // default 'grow': how many flowers the Sunflower field scene shows
   categories: Category[];            // display order
   updated: DateTime;
   version: number;                   // increments on every change
@@ -149,9 +150,16 @@ ARCHITECTURE "Themes"). The server only stores the values, and the user can chan
 **Scenes** (owner 2026-10-13): the top app bar background is not a setting any more. There is one "Scene" choice
 (Season, Sunflower field, Mordor, None), stored as the `scene` attribute of the person's theme
 (`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"). `PATCH /api/settings` rejects a `scene` field and
-`GET /api/settings` no longer returns one. The sunflower field still shows only when `garden === 'sunflowers'`, as
-before; Mordor shows whatever `garden` is, the eye-open effect replaces the butterfly, and the single plant and the
-flame still show as widgets.
+`GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
+depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
+**Garden style is gone** (owner 2026-10-13): `Settings.garden` was removed, `PATCH /api/settings` rejects a `garden`
+field (400 `VALIDATION_ERROR`), and `plant` (switch) and `sunflowers` (grow / full) replaced it.
+*Migration of stored settings* (once, when the server loads a `settings.json` that has `garden` and no `plant`):
+`plant = (garden === 'plant')`; the old `garden` key stays in the file (not served) so each person's theme can still
+absorb it. When a person's theme is first served after the change (marker `gardenMigrated` in the stored theme):
+for `garden === 'sunflowers'` and a Default or Neon preset without a scene override, the override becomes
+`sunflowers` (the field they saw); for `plant` or `off`, an override `sunflowers` becomes `none` (they did not see
+the field). Other presets and overrides stay as they were. The Default and Neon presets start with scene `none`.
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 
@@ -353,7 +361,7 @@ interface Motivation {
     nextStageAt: number | null;
     todayPoints: number;       // points earned today (0–30)
     lastWatered: LocalDate | null;
-    flowers: number;           // sunflower count, 0–24
+    flowers: number;           // sunflower count, 0–30
     vitality: 100 | 75 | 50 | 25;
     mood: 'happy' | 'thirsty' | 'dry' | 'droopy';
     message: string;
@@ -386,11 +394,13 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   ≥ 4 → droopy (25, the floor). No `lastWatered` → happy. Growth never decreases; the plant never dies.
 - Messages (exact): happy "Your plant is happy", thirsty "Your plant is a little thirsty", dry "Your plant could use
   some water", droopy "Your plant is resting. Anything you do will perk it up."
-- Streak and plant points are recorded regardless of `streakFlame` / `garden` (these settings only change what is shown).
-- **Sunflower field** (garden style `sunflowers`) uses the same points and mood: `plant.flowers = min(24,
-  floor(growth / 40))`. Flowers never decrease. The UI shows at most 12 on viewports < 600 px wide and up to 24 above
-  that; the accessible label always states the full count ("Sunflower field: 5 flowers", singular "1 flower").
-  A newly earned flower (the count went up since the last `Motivation` the client saw) plays the `bloom` effect.
+- Streak and plant points are recorded regardless of `streakFlame` / `plant` (these settings only change what is shown).
+- **Sunflower field** (the scene of that name) uses the same points and mood: `plant.flowers = min(30,
+  floor(growth / 40))`. Flowers never decrease. With `Settings.sunflowers = 'grow'` the field shows `plant.flowers`;
+  with `'full'` it shows a fixed 30 and never grows (no `bloom`). The UI shows at most 15 on viewports < 600 px wide
+  and up to 30 above that; the accessible label always states the count of the mode ("Sunflower field: 5 flowers",
+  singular "1 flower", "Sunflower field: 30 flowers" for the full field). In `grow` mode a newly earned flower (the
+  count went up since the last `Motivation` the client saw) plays the `bloom` effect.
 - Server-side awarding hooks: the event/task list/item handlers call `MotivationService.award(kind, key)`. Mutation
   responses carry the header `X-Motivation-Changed: 1` when points were awarded, and the web app then refetches
   `/api/motivation`.

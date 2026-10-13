@@ -5,6 +5,7 @@ import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
+import { useThemeStore } from '@/stores/theme';
 import { apiError, config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 function setHidden(v: boolean) {
@@ -321,7 +322,7 @@ describe('settings store', () => {
     expect(s.settings.sounds).toBe(true);
     expect(s.settings.defaultView).toBe('week');
   });
-  it('resolves the effective scene from the theme scene + garden and sets the Mordor shortcut', async () => {
+  it('resolves the effective scene from the theme scene alone, whatever the plant setting', async () => {
     let server = settingsFixture();
     mockFetch({
       'GET /api/settings': () => server,
@@ -330,12 +331,13 @@ describe('settings store', () => {
     });
     const s = useSettingsStore();
     await s.load();
-    expect(s.effectiveScene).toBe('none'); // the Default theme's sunflower scene needs garden = sunflowers
-    await s.patch({ garden: 'sunflowers' });
+    expect(s.effectiveScene).toBe('none'); // the Default theme has no scene of its own
+    const theme = useThemeStore();
+    await theme.pick('scene', 'sunflowers');
     expect(s.effectiveScene).toBe('sunflowers');
-    await s.applyMordor();
-    expect(s.settings).toMatchObject({ seedColor: '#c43e00', themeMode: 'dark' });
-    await s.patch({ garden: 'off' });
+    await s.patch({ plant: false });
+    expect(s.effectiveScene).toBe('sunflowers');
+    await theme.pick('scene', 'mordor');
     expect(s.effectiveScene).toBe('mordor');
   });
 });

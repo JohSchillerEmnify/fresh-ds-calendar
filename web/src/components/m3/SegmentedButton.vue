@@ -3,14 +3,14 @@ import { vRipple } from '@/lib/ripple';
 import IconCheck from '~icons/material-symbols/check';
 import type { Option } from './types';
 
-defineProps<{ modelValue: T; options: Option<T>[]; label: string }>();
+defineProps<{ modelValue: T; options: Option<T>[]; label: string; disabled?: boolean }>();
 defineEmits<{ 'update:modelValue': [v: T] }>();
 </script>
 
 <template>
   <div class="seg" role="group" :aria-label="label">
     <button
-      v-for="o in options" :key="o.value" v-ripple type="button" class="opt" :class="{ on: o.value === modelValue }"
+      v-for="o in options" :key="o.value" v-ripple type="button" class="opt" :class="{ on: o.value === modelValue }" :disabled="disabled"
       :aria-pressed="o.value === modelValue" :data-value="o.value" :data-testid="o.testid" @click="$emit('update:modelValue', o.value)"
     >
       <IconCheck v-if="o.value === modelValue" class="chk" aria-hidden="true" />
@@ -27,5 +27,6 @@ defineEmits<{ 'update:modelValue': [v: T] }>();
 }
 .opt + .opt { border-left: 1px solid var(--md-sys-color-outline); }
 .opt.on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+.opt:disabled { opacity: 0.38; cursor: default; }
 .chk { width: 18px; height: 18px; }
 </style>

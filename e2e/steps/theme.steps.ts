@@ -298,8 +298,19 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
 });
 
+Then('the theme menu sections are {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string) {
+  await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c]);
+});
+
+Then('the theme menu has no Mordor button', async function (this: World) {
+  await expect(this.page.getByTestId('theme-view')).toBeVisible();
+  await expect(this.page.getByTestId('settings-theme-mordor')).toHaveCount(0);
+});
+
 Then('the scene choices are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
-  await expect(this.page.locator('[data-testid="theme-option"][data-setting="scene"] .ol')).toHaveText([a, b, c, d]);
+  // the choices live in their own "Scene" section, not in the fine-tuning one
+  await expect(this.page.locator('[data-testid="theme-section"][data-section="scene"] [data-testid="theme-option"] .ol')).toHaveText([a, b, c, d]);
+  await expect(this.page.locator('[data-testid="theme-section"][data-section="fine-tuning"] [data-testid="theme-option"][data-setting="scene"]')).toHaveCount(0);
   // the old second control is gone
   await expect(this.page.getByTestId('settings-scene')).toHaveCount(0);
 });

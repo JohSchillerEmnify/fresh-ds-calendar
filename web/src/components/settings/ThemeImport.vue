@@ -85,8 +85,8 @@ async function save() {
 </script>
 
 <template>
-  <section class="card" aria-labelledby="h-own">
-    <h2 id="h-own">Your own theme</h2>
+  <div class="own" aria-labelledby="h-own" role="group">
+    <h3 id="h-own">Your own theme</h3>
     <div class="row">
       <Button variant="tonal" data-testid="theme-ai" :aria-expanded="aiOpen" @click="aiOpen = !aiOpen">Create with AI</Button>
     </div>
@@ -114,12 +114,12 @@ async function save() {
     <div class="row">
       <Button data-testid="theme-import-save" :disabled="!checked || saving" @click="save">Save theme</Button>
     </div>
-  </section>
+  </div>
 </template>
 
 <style scoped>
-.card { background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 12px 14px; }
-h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-primary); }
+.own { margin-top: 12px; }
+h3 { margin: 0; padding: 12px 4px 4px; font: var(--md-sys-typescale-label-large); }
 .row { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
 .hint { margin: 4px; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .prompt { margin: 4px 0 8px; padding: 10px 12px; max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/16px ui-monospace, monospace; border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container); }

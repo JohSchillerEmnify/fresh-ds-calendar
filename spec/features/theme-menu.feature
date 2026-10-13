@@ -1,9 +1,10 @@
 @themes @id:theme-menu
 Feature: Choosing and fine-tuning a theme
-  A theme menu shows a gallery of ready themes, each card drawn as a small week in that theme's real look, and a
-  fine-tuning section where every option shows itself as a small sample before it is picked: glow (off, soft, neon),
-  entries (solid, tinted, outline), corners (square, round, pill) and the background scene (one choice: Season, Sunflower
-  field, Mordor or None). A live preview with a
+  A theme menu has three sections, in this order. "Presets" is a gallery of ready themes, each card drawn as a small
+  week in that theme's real look. "Scene" is the top app bar background (one choice: Season, Sunflower field, Mordor
+  or None). "Fine-tuning" is where every option shows itself as a small sample before it is picked: theme mode, seed
+  colour, glow (off, soft, neon), entries (solid, tinted, outline) and corners (square, round, pill). There is no
+  separate Mordor button; the Mordor preset does the same. A live preview with a
   real event, task list and checkbox follows every change, and so does the calendar, without a save button. Ready
   themes: Default, Neon, Spring, Summer, Fall, Halloween, Winter, Mordor and Automatic, which follows the season
   (spring from 1 March, summer from 1 June, fall from 1 September, Halloween for all of October, fall again in
@@ -50,13 +51,25 @@ Feature: Choosing and fine-tuning a theme
       | 2026-11-10 | Fall   |
       | 2026-12-10 | Winter |
 
-  Scenario: There is one scene choice
+  Scenario: The menu has three sections
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    Then the theme menu sections are "Presets", "Scene" and "Fine-tuning"
+
+  Scenario: The scene has its own section with one choice
     When I open the week view for 2026-10-12
     And I open the theme menu
     Then the scene choices are "Season", "Sunflower field", "Mordor" and "None"
 
+  Scenario: The Mordor preset replaces the old Mordor button
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I choose the theme "Mordor"
+    Then the theme menu has no Mordor button
+    And the app uses the dark theme
+    And the top bar shows the "mordor" scene
+
   Scenario: Picking a scene changes the top bar
-    Given the garden style is "Sunflower field"
     When I open the week view for 2026-10-12
     And I open the theme menu
     And I pick "Mordor" for "Scene"

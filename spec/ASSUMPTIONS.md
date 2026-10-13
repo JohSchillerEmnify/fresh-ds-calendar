@@ -148,9 +148,10 @@ spec files are named.
 - **A-58 Plant rules** (fixed for testability): check-in +10, create event/task list +5, tick +2 (once per item per
   day), daily cap 30. Stages at 0/20/60/140/280. Mood by days since last watering: 0–1 happy, 2 thirsty, 3 dry,
   ≥ 4 droopy (floor). It never dies, and growth never decreases. Motivation settings: streak flame on/off (default on)
-  and garden style Single plant (default) / Sunflower field / Off, for the owner's A/B comparison.
-- **A-62 Sunflowers**: one per 40 growth points, max 24 stored; 12 visible on phones (< 600 px), 24 on wider screens.
-  They share the plant's mood and never decrease.
+  and Plant on/off (default on; replaced the garden style, see A-70).
+- **A-62 Sunflowers**: one per 40 growth points, max 30 stored (was 24); 15 visible on phones (< 600 px), 30 on wider
+  screens (was 12 / 24). They share the plant's mood and never decrease. The Motivation setting "Sunflowers" is
+  "Grow with points" (default) or "Full field" (fixed 30, 15 on phones, no growth).
 - **A-63 Butterfly**: once per browser-tab session (`sessionStorage`), only at motion level Full and with ≥ 1
   sunflower. Its landing flower is random (not asserted in tests).
 - **A-59 Year view density** buckets: 0, 1, 2–3, ≥ 4 items per day.
@@ -183,5 +184,17 @@ spec files are named.
   form; an expanded form may come back as a later feature.
 - **A-69 One scene choice** (owner, 2026-10-13; wording of the migration inferred, flagged for confirmation): the old
   "Top bar scene" setting and the theme's "Scene" attribute become one theme attribute. On migration the scene that was
-  visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
-  style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
+  visible wins (the theme's if it was not None, else the old top bar setting). "Season" stores today's season scene, not
+  a standing "follow the season" value. (The garden-style gate for the Sunflower field is gone, see A-70.)
+- **A-70 Scene and plant are separate** (owner, 2026-10-13): "scene" is the top bar background, "plant" the motivation
+  widget; the term "garden style" is removed. The Sunflower field shows whenever it is the chosen scene. Reason: one
+  setting (garden style) mixed a widget and a background, so choosing the Sunflower field scene could show nothing
+  while hiding the plant. Alternative weighed: keeping garden style as a third value in the scene choice (rejected by
+  the owner). Assumptions made while implementing (flagged for confirmation): (a) migration maps `plant` to true only
+  for old garden `plant`, so old `sunflowers` and `off` hide the plant widget as before; (b) old `sunflowers` turns
+  the scene on only for Default and Neon people without an override (they saw the field; season presets keep the
+  scene they saw); (c) old `plant` / `off` with an explicit `sunflowers` scene override become scene `none`, because
+  they never saw the field; (d) Default and Neon now start with scene `none` so a fresh Default look is unchanged
+  (before, the field was hidden by the default garden `plant`); (e) in "Full field" the mood still follows the plant,
+  only the count and the bloom are fixed; (f) the "Sunflowers" setting is global like the plant switch (not per
+  person), shown but inactive with a hint when the scene is not the Sunflower field (owner, confirmed).

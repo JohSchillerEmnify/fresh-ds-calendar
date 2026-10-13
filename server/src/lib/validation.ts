@@ -92,7 +92,8 @@ export const settingsPatchSchema = so({
   ignoreSystemMotion: v.optional(v.boolean()),
   transitionWarningMinutes: v.optional(v.picklist([0, 5, 10, 15], 'Invalid warning time')),
   streakFlame: v.optional(v.boolean()),
-  garden: v.optional(v.picklist(['plant', 'sunflowers', 'off'], 'Invalid garden style')),
+  plant: v.optional(v.boolean()),
+  sunflowers: v.optional(v.picklist(['grow', 'full'], 'Invalid sunflowers setting')),
 });
 const themeOverrides = so({
   glow: v.optional(v.picklist(['off', 'soft', 'neon'], 'Invalid glow')),

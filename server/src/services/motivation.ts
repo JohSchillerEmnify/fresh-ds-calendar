@@ -45,7 +45,7 @@ export function plantView(growth: number, todayPoints: number, lastWatered: stri
     nextStageAt: STAGES[stageIndex + 1]?.at ?? null,
     todayPoints,
     lastWatered,
-    flowers: Math.min(24, Math.floor(growth / 40)),
+    flowers: Math.min(30, Math.floor(growth / 40)),
     vitality,
     mood,
     message: MESSAGES[mood],

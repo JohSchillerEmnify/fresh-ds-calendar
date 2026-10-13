@@ -317,11 +317,11 @@ otherwise; bundle budget §5a applies).
   list on the left; every setting exists exactly once):
   1. *Appearance*: one row "Theme" showing the chosen theme (for Automatic "Automatic · <the seasonal theme in use>", e.g.
      "Automatic · Halloween" in October; owner 2026-10-13), opening the theme menu (`settings-theme`). Theme mode
-     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`), the
-     Scene choice and the Mordor shortcut live only in the theme menu's fine-tuning, no longer on the settings page.
+     (System / Light / Dark, `settings-theme-mode`), seed colour (`settings-seed-preset`, `settings-seed-custom`) and
+     the Scene choice live only in the theme menu, no longer on the settings page.
   2. *Calendar*: default view, default event colour, Approaching card + track + window, show tasks calendar in Google.
   3. *Task lists*: categories (list, add, sort; tap opens the category dialog).
-  4. *Focus & motivation*: transition warning, calm mode, streak flame, garden, best streak, support cat.
+  4. *Focus & motivation*: transition warning, calm mode, streak flame, plant, sunflowers, best streak, support cat.
   5. *Motion & sound*: animations, ignore the device setting, sounds.
   6. *Labs*: experimental views.
   7. *Account & data*: sign out, demo data.
@@ -469,13 +469,20 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   - Swipe: `bindSwipe` is disabled while `ui.resizing` is set (`disabled()` is read at touchstart, and handles are
     already visible then), so dragging a handle on a phone never changes the period.
 - **Streak flame** (`streak-flame`, text = current count) and **plant** (`plant-button`, `data-stage`, `data-mood`) in
-  the top app bar, shown per the settings `streakFlame` and `garden`. `streak-message` is a small toast ("Checked in, day 4" /
+  the top app bar, shown per the settings `streakFlame` and `plant`. `streak-message` is a small toast ("Checked in, day 4" /
   "Welcome back!") that auto-hides after 4 s and never blocks input. The plant card (`plant-card`, `plant-card-stage`,
   `plant-card-line`) is a small popover or sheet with the larger SVG plant.
   - Plant art: 5 stage SVGs (≤ 3 kB each, inline, M3 tones of the seed colour). Wilting is drawn as a droop transform
     plus reduced saturation by mood. It is never brown or dead.
   - Best streak shows in Settings (`settings-best-streak`).
-- **Sunflower field** (`sunflower-field`, `aria-label` "Sunflower field: N flowers", `data-mood`; children `sunflower`):
+- **Sunflower field** (`sunflower-field`, `aria-label` "Sunflower field: N flowers", `data-mood`; children `sunflower`).
+  It is the front of the Sunflower field *scene* (below) and shows whenever that scene is chosen:
+  - Count: `Settings.sunflowers` = `grow` (default) shows `plant.flowers` (one per 40 points, at most 30, with the
+    `bloom` effect); `full` shows a fixed full field (30, no growth, no bloom). Phones (< 600 px) show at most 15 of
+    either; the label states the mode's count (the full count, not the visible one). The setting is global but
+    inactive (shown, options disabled) with the hint "Applies to the Sunflower field scene" (`settings-sunflowers-hint`)
+    while the person's scene is another one. Wording and code stay open for a later general flower field with
+    several flower styles; nothing is built for that now.
   - Drawn in the background layer of the top app bar, behind the title and buttons. Low contrast: the flowers use
     `--md-sys-color-surface-container-highest` and tertiary tones at ≤ 35 % opacity in both themes. Text contrast
     stays ≥ 4.5:1.
@@ -485,6 +492,15 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
     `animation-play-state` when hidden or when the motion level is not Full. No per-frame JS.
   - Moods: droop (rotate down) and fade (lower opacity and saturation) by plant mood. Flowers are never removed. A new
     flower grows in (`bloom` effect).
+  - Cost (30 flowers): one CSS animation per flower on the compositor-friendly `rotate` property of its wrapper (no
+    per-frame JS, no filters on the flowers), so at most 30 composited layers plus the landscape's few animations
+    (3 clouds, 2 bees). All animations run only at motion Full while the page is visible.
+- **Sunflower field scene** (`SunflowerScene`, `top-bar-scene[data-scene="sunflowers"]`): a subtle landscape behind
+  the field, built like the season scenes (`SunflowerLandscape.vue`, a `SeasonScene` sibling): a sky gradient (`sky`),
+  soft rolling hills (`hills`), 2–3 slowly drifting clouds (`cloud`) and a couple of bees (`bee`) that cross now and
+  then (one pass every 20–30 s, mostly absent). Light and dark variants from the theme tokens (a pale blue sky into
+  warm haze by day, deep blue into a soft glow by night), low contrast so the title keeps ≥ 4.5:1. Drift and bees run
+  only at Full; Reduced and Off show a still picture. The once-per-session butterfly stays.
 - **Butterfly** (`reward-effect[data-kind="butterfly"]`): once per session (`sessionStorage` flag), on app open,
   only if `flowers ≥ 1` and the motion level is Full. A small SVG butterfly flies in, lands on a random visible
   sunflower, flaps (CSS keyframes on two wing paths), flies away and is removed after ≤ 4 500 ms. It has
@@ -546,7 +562,7 @@ Rules for implementers:
 | `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
 | `reward-effect` (`data-kind`) | effect overlay elements |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
-| `settings-animation-level` (options Full/Reduced/Off), `settings-sounds`, `settings-calm-mode`, `settings-transition-warning` (Off/5 min/10 min/15 min), `settings-streak-flame` (switch), `settings-garden` (Single plant/Sunflower field/Off) | settings additions |
+| `settings-animation-level` (options Full/Reduced/Off), `settings-sounds`, `settings-calm-mode`, `settings-transition-warning` (Off/5 min/10 min/15 min), `settings-streak-flame` (switch), `settings-plant` (switch, default on), `settings-sunflowers` (Grow with points/Full field) | settings additions |
 | `filter-bar` | `filter-chip-category` (`data-name`, `data-category-id`, `aria-pressed`), `filter-chip-tag` (`data-name`, `aria-pressed`), `filter-clear` |
 | `period-title` | text per §5 |
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
@@ -759,6 +775,11 @@ It never reloads by itself and never interrupts an open dialog.
 
 ### Themes
 
+- **Terms** (owner 2026-10-13). **Scene** = the top app bar background (Season, Sunflower field, Mordor or None),
+  chosen in the theme menu. **Plant** = the motivation widget in the top bar (the small growing plant); it is
+  independent of the scene and is switched in Settings → Motivation. "Garden style" is no longer a term: it is
+  removed from the spec, the UI, the code and the API. If more plant kinds come later they would be a "plant style";
+  nothing is built for that now.
 - A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|sunflowers|mordor|spring|summer|fall|winter;
@@ -768,7 +789,7 @@ It never reloads by itself and never interrupts an open dialog.
 - **One scene choice** (owner 2026-10-13): the top bar background is the theme's `scene` attribute and nothing else.
   The theme menu offers one "Scene" selector: Season, Sunflower field (`sunflowers`), Mordor, None. "Season" stores
   the season's scene for today (spring..winter), so it is not a separate stored value. Default and Neon start with
-  `sunflowers`; the sunflower field still shows only with garden "Sunflower field" (API.md "Scenes"). Alternatives
+  `none`; every scene, the Sunflower field included, shows whenever it is chosen (API.md "Scenes"). Alternatives
   weighed: keeping the old `Settings.scene` and hiding the theme one (rejected: two stored values and a precedence
   rule nobody could see) and moving everything into settings (rejected: presets need to carry a scene).
   Migration (once per person, when the server first serves the theme after the change, marker `sceneUnified` in the
@@ -788,7 +809,11 @@ It never reloads by itself and never interrupts an open dialog.
   but stop animated ones.
 - Stored per person in `DATA_DIR/users/<sub>/prefs.json` (`theme: { preset, overrides }`, same store as hidden
   calendars); `GET/PATCH /api/prefs/theme`. Cached in `localStorage` and applied before mount to avoid a flash.
-- Theme menu (`/settings/theme`, entry `settings-theme`): gallery `theme-card` (`data-name`, `aria-pressed`), each
+- Theme menu (`/settings/theme`, entry `settings-theme`): below the live preview, three sections in this order
+  (`theme-section`, `data-section`): **Presets** (`presets`, the gallery), **Scene** (`scene`, its own card with the
+  scene choices) and **Fine-tuning** (`fine-tuning`: theme mode, seed colour, glow, entries, corners). There is no
+  separate Mordor row or button (`settings-theme-mordor` is removed): the Mordor preset (seed #c43e00, dark mode,
+  Mordor scene) does the same, and Mordor stays a scene choice. Gallery `theme-card` (`data-name`, `aria-pressed`), each
   card renders a real mini week (event chip + task list card) under that preset's attributes in a scoped container;
   fine-tuning `theme-option` (`data-setting`, `data-value`, `aria-pressed`), each option renders a sample event chip
   in that style; live preview `theme-preview` with a real event chip (`theme-preview-event`), task list card and

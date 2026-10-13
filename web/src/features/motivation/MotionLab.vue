@@ -44,7 +44,7 @@ function growStage() {
   stage.value = (((stage.value + 1) % 5) as 0 | 1 | 2 | 3 | 4);
   fire('water', 'grow');
 }
-function bloom() { flowers.value = Math.min(24, flowers.value + 1); fire('water', 'bloom'); }
+function bloom() { flowers.value = Math.min(30, flowers.value + 1); fire('water', 'bloom'); }
 const MOODS: Mood[] = ['happy', 'thirsty', 'dry', 'droopy'];
 function nextMood() { mood.value = MOODS[(MOODS.indexOf(mood.value) + 1) % 4]; }
 const sceneKey = ref(0);

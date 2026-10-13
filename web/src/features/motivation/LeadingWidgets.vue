@@ -11,8 +11,8 @@ import { useMotivationStore } from './store';
  * Starts the store (first-open check-in by the APP clock via `today`) and stops it on unmount.
  */
 const props = withDefaults(
-  defineProps<{ streakFlame?: boolean; garden?: 'plant' | 'sunflowers' | 'off'; today: () => string }>(),
-  { streakFlame: true, garden: 'plant' },
+  defineProps<{ streakFlame?: boolean; showPlant?: boolean; today: () => string }>(),
+  { streakFlame: true, showPlant: true },
 );
 const store = useMotivationStore();
 const cardOpen = ref(false);
@@ -27,7 +27,7 @@ onBeforeUnmount(() => store.stop());
 <template>
   <div class="lw" data-testid="leading-widgets">
     <StreakFlame v-if="streakFlame && streak" :count="streak.current" :pulse="store.streakPulse" />
-    <div v-if="garden === 'plant' && plant" class="lw-plant">
+    <div v-if="showPlant && plant" class="lw-plant">
       <button
         type="button"
         class="lw-btn"

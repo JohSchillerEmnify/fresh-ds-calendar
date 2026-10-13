@@ -5,8 +5,8 @@ Feature: Plant companion
   30 points per day. Growth never goes down. Stages: Seed (0), Sprout (20), Small plant (60),
   Leafy (140), Flowering (280). Without activity it rests: 0–1 days since last watering = happy,
   2 = thirsty, 3 = dry, 4 or more = droopy. It never dies and perks up as soon as it is watered.
-  Settings "Motivation": streak flame on/off (default on) and garden style Single plant (default) /
-  Sunflower field / Off.
+  Settings "Motivation": streak flame on/off (default on) and Plant on/off (default on). The plant is the
+  widget in the top bar and is independent of the scene behind it (the sunflower field is a scene).
 
   Background:
     Given the calendar is empty
@@ -119,22 +119,32 @@ Feature: Plant companion
     And I open the plant card
     Then the page does not contain the words "dead, died, dying, lost, failed, neglected"
 
-  Scenario Outline: The motivation settings decide what is shown
+  Scenario Outline: The streak flame setting decides whether the flame is shown
     When I open the path "/settings"
-    And I turn the streak flame "<flame setting>"
-    And I choose "<garden>" as the garden style
+    And I turn the streak flame "<setting>"
     And I open the app
     Then I <flame> the streak flame
-    And I <plant> the plant
-    And I <field> the sunflower field
 
     Examples:
-      | flame setting | garden          | flame      | plant      | field      |
-      | on            | Single plant    | see        | see        | do not see |
-      | on            | Off             | see        | do not see | do not see |
-      | off           | Single plant    | do not see | see        | do not see |
-      | off           | Sunflower field | do not see | do not see | see        |
-      | off           | Off             | do not see | do not see | do not see |
+      | setting | flame      |
+      | on      | see        |
+      | off     | do not see |
+
+  Scenario Outline: The plant setting decides whether the plant is shown
+    When I open the path "/settings"
+    And I turn the plant "<setting>"
+    And I open the app
+    Then I <plant> the plant
+
+    Examples:
+      | setting | plant      |
+      | on      | see        |
+      | off     | do not see |
+
+  Scenario: The plant and the sunflowers are on by default
+    When I request "GET /api/settings"
+    Then the response JSON field "plant" equals "true"
+    And the response JSON field "sunflowers" equals "grow"
 
   Scenario: The plant is synced across devices
     When I open the app

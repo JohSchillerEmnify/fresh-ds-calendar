@@ -193,8 +193,7 @@ describe('shell navigation', () => {
   });
   it('mounts the real TopBarScene in the background slot with the effective scene', async () => {
     const { w } = await mountAt('/month/2026-10');
-    const s = useSettingsStore();
-    await s.applyMordor();
+    await useThemeStore().pick('scene', 'mordor');
     await flushPromises();
     await wait(() => expect(w.find(`${tid('top-bar-background')} [data-testid="scene-mordor"]`).exists()).toBe(true));
   });
@@ -323,6 +322,24 @@ describe('settings', () => {
     await w.get(tid('settings-theme')).trigger('click');
     await wait(() => expect(router.currentRoute.value.path).toBe('/settings/theme'));
   });
+  it('motivation: the Plant switch and the Sunflowers choice replace the garden style', async () => {
+    const { w, m } = await mountAt('/settings');
+    await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
+    expect(w.find(tid('settings-garden')).exists()).toBe(false);
+    // without the Sunflower field scene the setting is shown but inactive, with a hint
+    expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeDefined();
+    expect(w.get(tid('settings-sunflowers-hint')).text()).toBe('Applies to the Sunflower field scene');
+    await useThemeStore().pick('scene', 'sunflowers');
+    await wait(() => expect(w.find(tid('settings-sunflowers-hint')).exists()).toBe(false));
+    expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeUndefined();
+    expect(w.get(tid('settings-plant')).attributes('aria-checked')).toBe('true');
+    expect(w.get('[data-testid="settings-sunflowers"] [aria-pressed="true"]').attributes('data-value')).toBe('grow');
+    expect(w.findAll('[data-testid="settings-sunflowers"] button').map((b) => b.text())).toEqual(['Grow with points', 'Full field']);
+    await w.get(tid('settings-plant')).trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ plant: false }));
+    await w.get('[data-testid="settings-sunflowers"] [data-value="full"]').trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ sunflowers: 'full' }));
+  });
   it('theme menu: saves theme mode and presets, validates the custom seed, applies the theme', async () => {
     const { w, m } = await mountAt('/settings/theme');
     await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
@@ -345,13 +362,20 @@ describe('settings', () => {
     await wait(() => expect(w.get('[data-testid="settings-seed-preset"][aria-pressed="true"]').attributes('data-name')).toBe('Custom'));
     expect(m.calls.at(-1)!.body).toEqual({ seedColor: '#8e24aa' });
   });
-  it('Mordor shortcut (theme menu) sets seed and dark mode, and the theme scene', async () => {
+  it('theme menu: Presets, Scene and Fine-tuning sections in that order, the scene choice only in its own, no Mordor button', async () => {
     const { w, m } = await mountAt('/settings/theme');
-    await wait(() => expect(w.find(tid('settings-theme-mordor')).exists()).toBe(true));
-    await w.get(tid('settings-theme-mordor')).trigger('click');
-    await wait(() => expect(m.calls.some((c) => c.method === 'PATCH')).toBe(true));
-    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/settings')!.body).toEqual({ seedColor: '#c43e00', themeMode: 'dark' });
+    await wait(() => expect(w.find(tid('theme-view')).exists()).toBe(true));
+    const sections = w.findAll(tid('theme-section'));
+    expect(sections.map((x) => [x.attributes('data-section'), x.get('h2').text()])).toEqual([['presets', 'Presets'], ['scene', 'Scene'], ['fine-tuning', 'Fine-tuning']]);
+    const values = (el: typeof w) => el.findAll(tid('theme-option')).map((o) => `${o.attributes('data-setting')}:${o.attributes('data-value')}`);
+    expect(values(sections[1] as never)).toEqual(['scene:season', 'scene:sunflowers', 'scene:mordor', 'scene:none']);
+    expect(values(sections[2] as never).filter((v) => v.startsWith('scene:'))).toEqual([]);
+    expect(values(sections[2] as never)).toHaveLength(9);
+    expect(w.find(tid('settings-theme-mordor')).exists()).toBe(false);
+    // the Mordor preset replaces the old button
+    await w.get('[data-testid="theme-card"][data-name="Mordor"]').trigger('click');
     await wait(() => expect(m.calls.some((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')).toBe(true));
+    expect(m.calls.find((c) => c.method === 'PATCH' && c.path === '/api/prefs/theme')!.body).toMatchObject({ preset: 'Mordor' });
   });
   it('the Theme row shows the seasonal theme in use for Automatic and the preset name otherwise', async () => {
     const { w } = await mountAt('/settings');
