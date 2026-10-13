@@ -110,4 +110,15 @@ export default {
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },
   },
+  themePreview: {
+    label: 'Live-Vorschau',
+    collapse: 'Live-Vorschau einklappen',
+    expand: 'Live-Vorschau ausklappen',
+    month: 'Januar 2030',
+    today: 'Heute',
+    sample: {
+      sync: 'Team-Abstimmung', lunch: 'Mittagessen', run: 'Laufen', review: 'Review', call: 'Anruf',
+      groceries: 'Einkauf', milk: 'Milch', bread: 'Brot', eggs: 'Eier',
+    },
+  },
 } satisfies Messages;

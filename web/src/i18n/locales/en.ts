@@ -116,4 +116,15 @@ export default {
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },
   },
+  themePreview: {
+    label: 'Live preview',
+    collapse: 'Collapse the live preview',
+    expand: 'Expand the live preview',
+    month: 'January 2030',
+    today: 'Today',
+    sample: {
+      sync: 'Team sync', lunch: 'Lunch', run: 'Run', review: 'Review', call: 'Call',
+      groceries: 'Groceries', milk: 'Milk', bread: 'Bread', eggs: 'Eggs',
+    },
+  },
 };
