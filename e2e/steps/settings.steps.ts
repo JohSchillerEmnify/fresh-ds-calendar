@@ -34,6 +34,11 @@ async function checkInThemeMenu(w: World, check: () => Promise<void>) {
 }
 
 When('I open the settings', async function (this: World) {
+  // A scenario may start on a blank page: load the app first.
+  if (!this.page.url().startsWith('http')) {
+    await this.page.goto('/');
+    await this.calendarShown();
+  }
   await this.page.getByTestId('settings-button').click();
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
 });
