@@ -13,7 +13,7 @@ export function staticRoutes(webDist: string, versionOverride: () => string | un
     .use('*', async (c, next) => {
       const version = versionOverride();
       const p = c.req.path;
-      if (!version || c.req.method !== 'GET' || p.startsWith('/api/') || path.extname(p) !== '') return next();
+      if (!version || c.req.method !== 'GET' || p.startsWith('/api/') || (path.extname(p) !== '' && p !== '/index.html')) return next(); // /index.html too: the service worker precaches it
       const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/data-app-version="[^"]*"/, `data-app-version="${version}"`);
       return c.html(html);
     })
