@@ -1,9 +1,11 @@
 /** Material 3 theme steps (STEPS.md "Theme"). */
+import fs from 'node:fs';
+import path from 'node:path';
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { Scheme } from './parameters.js';
 import { contrastRatio, cssColorToRgba, roleHex, toHex } from './support/color.js';
-import { tid, type World } from './support/world.js';
+import { exactText, tid, type World } from './support/world.js';
 
 async function emulateScheme(world: World, scheme: Scheme) {
   world.colorScheme = scheme;
@@ -150,10 +152,6 @@ async function chooseTheme(world: World, name: string) {
   await saved;
 }
 
-When('I open the theme menu', async function (this: World) {
-  await openMenu(this);
-});
-
 /** The theme menu is open; from the settings screen, or from the week view for today when nothing is open yet. */
 async function ensureMenu(world: World) {
   if (await world.page.getByTestId('theme-view').isVisible()) return;
@@ -171,6 +169,10 @@ async function ensureMenu(world: World) {
   }
   await openMenu(world);
 }
+
+When('I open the theme menu', async function (this: World) {
+  await ensureMenu(this);
+});
 
 When('I choose the theme {string}', async function (this: World, name: string) {
   await ensureMenu(this);
@@ -314,4 +316,90 @@ Then('the top bar shows no scene', async function (this: World) {
 
 Then('the settings show the theme {string}', async function (this: World, text: string) {
   await expect(this.page.getByTestId('settings-theme-name')).toHaveText(text);
+});
+
+// ---- Theme import (STEPS.md "Theme import (`@theme-import`)") ----
+
+const themeFile = (name: string) => path.join(import.meta.dirname, '../fixtures/themes', name);
+const preview = (world: World) => world.page.getByTestId('theme-import-preview');
+
+When('I choose "Create with AI"', async function (this: World) {
+  await this.page.getByTestId('theme-ai').click();
+});
+
+Then('I see a prompt that describes the theme file {string}', async function (this: World, schema: string) {
+  const prompt = this.page.getByTestId('theme-ai-prompt');
+  await expect(prompt).toBeVisible();
+  await expect(prompt).toContainText(schema);
+});
+
+Then('I can copy the prompt', async function (this: World) {
+  await this.context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await this.page.getByTestId('theme-ai-copy').click();
+  const shown = await this.page.getByTestId('theme-ai-prompt').textContent();
+  await expect.poll(() => this.page.evaluate(() => navigator.clipboard.readText())).toBe(shown);
+});
+
+When('I import the theme file {string}', async function (this: World, name: string) {
+  await this.page.getByTestId('theme-import-file').setInputFiles(themeFile(name));
+});
+
+When('I paste the theme text {string}', async function (this: World, text: string) {
+  await this.page.getByTestId('theme-import-text').fill(text);
+  await this.page.getByTestId('theme-import-submit').click();
+});
+
+Then('the import preview shows the theme {string}', async function (this: World, name: string) {
+  await expect(preview(this)).toHaveAttribute('data-name', name);
+});
+
+When('I save the imported theme', async function (this: World) {
+  // saving stores the theme, then chooses it: wait for both requests
+  const stored = this.page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/themes'));
+  const chosen = this.page.waitForResponse(isSaved);
+  await this.page.getByTestId('theme-import-save').click();
+  expect((await stored).status()).toBe(201);
+  await chosen;
+});
+
+Then('the gallery offers the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await expect(card(this, name)).toBeVisible();
+});
+
+Then('the gallery does not offer the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await expect(card(this, name)).toHaveCount(0);
+});
+
+Then('the import says {string}', async function (this: World, message: string) {
+  await expect(this.page.getByTestId('theme-import-error').filter({ hasText: exactText(message) })).toHaveCount(1);
+});
+
+Then('I cannot save the imported theme', async function (this: World) {
+  await expect(this.page.getByTestId('theme-import-save')).toBeDisabled();
+});
+
+Then('the import notes that unsafe content was removed', async function (this: World) {
+  await expect(this.page.getByTestId('theme-import-sanitized')).toBeVisible();
+});
+
+Then('no script from the theme runs', async function (this: World) {
+  // the picture is only an image: give a script that slipped through a second to run, then look for its mark
+  await this.page.waitForTimeout(1000);
+  expect(await this.page.evaluate(() => (window as unknown as { __pwned?: boolean }).__pwned)).toBeUndefined();
+  await expect(preview(this).locator('script')).toHaveCount(0);
+  await expect(this.page.getByTestId('top-bar-scene').locator('script')).toHaveCount(0);
+});
+
+Given('{string} imported the theme file {string}', async function (this: World, email: string, name: string) {
+  await signInAs(this, email);
+  const res = await this.page.request.post('/api/themes', { data: JSON.parse(fs.readFileSync(themeFile(name), 'utf8')) });
+  expect(res.status(), await res.text()).toBe(201);
+});
+
+When('I delete the theme {string}', async function (this: World, name: string) {
+  await ensureMenu(this);
+  await this.page.locator(`[data-testid="theme-item"][data-name="${name}"]`).getByTestId('theme-delete').click();
+  await expect(card(this, name)).toHaveCount(0);
 });
