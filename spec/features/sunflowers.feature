@@ -75,6 +75,15 @@ Feature: Sunflower field
     When I open the app
     Then the sunflower field shows 15 flowers
 
+  Scenario: The sunflowers setting is active only with the Sunflower field scene
+    When I open the path "/settings"
+    Then the sunflowers setting is active
+    When I open the app
+    And I pick "Mordor" for "Scene"
+    And I open the path "/settings"
+    Then the sunflowers setting is inactive
+    And the sunflowers hint says "Applies to the Sunflower field scene"
+
   Scenario: The sunflowers setting is chosen in the settings
     When I open the path "/settings"
     And I choose "Full field" for the sunflowers

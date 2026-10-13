@@ -197,4 +197,4 @@ spec files are named.
   they never saw the field; (d) Default and Neon now start with scene `none` so a fresh Default look is unchanged
   (before, the field was hidden by the default garden `plant`); (e) in "Full field" the mood still follows the plant,
   only the count and the bloom are fixed; (f) the "Sunflowers" setting is global like the plant switch (not per
-  person), and is shown even when the scene is not the Sunflower field.
+  person), shown but inactive with a hint when the scene is not the Sunflower field (owner, confirmed).
