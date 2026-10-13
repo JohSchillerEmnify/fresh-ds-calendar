@@ -7,6 +7,7 @@
  * a default) goes: one name per line -> ellipsised names, as many lines as fit, the rest fading out at the bottom (no count)
  * -> (cards narrower than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row)
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
+ * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
  */
 import { computed, inject, onMounted, ref } from 'vue';
@@ -24,6 +25,7 @@ import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
 import { fitItems } from './layout';
 import { sectionKey } from './section';
+import StrikeLine from './StrikeLine.vue';
 
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
 const INLINE_BELOW_PX = 62;
@@ -106,7 +108,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="row">
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-      <span class="title" data-testid="tasklist-card-title">{{ displayTitle(tl) }}</span>
+      <span class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" /></span></span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
       <span class="meta">
@@ -138,7 +140,10 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 /* the handles stick out of the block */
 .tl.resizing { overflow: visible; }
 .tl.complete { opacity: 0.55; }
-.tl.complete .title, .it.done { text-decoration: line-through; }
+.it.done { text-decoration: line-through; }
+/* done state: a hand-drawn line over the title text (StrikeLine), not text-decoration */
+.tx { position: relative; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: top; --strike-w: 1.400px; }
+.mini .tx { text-overflow: clip; }
 .it.done { opacity: 0.7; }
 .row { display: flex; align-items: center; gap: 3px; min-width: 0; min-height: 16px; }
 .emoji { flex: none; font-size: 11px; line-height: 1; }

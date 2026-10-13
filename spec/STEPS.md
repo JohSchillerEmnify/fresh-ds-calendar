@@ -819,6 +819,9 @@ the view switcher offers {string}, {string} and {string} marked as experimental
 I open the clock view for {date}
 the event {string} is an arc from {time} to {time}
 the clock hand points at {time}
+the task list {string} is an arc from {time} to {time}
+the middle of the clock lists {string}
+the clock fills the available space
 the arc of {string} is labelled {string}
 the approach bar is on
 the approaching track is off
@@ -855,7 +858,9 @@ the hour lines of the strip columns of {date} and {date} are at the same height
 the all-day bands of the strip columns of {date} and {date} are equally tall
 ```
 
-- Clock: `clock-arc` per event (`data-title`, `data-start`, `data-end` as HH:MM), `clock-hand` (`data-time` HH:MM).
+- Clock: `clock-arc` per event and per timed task list (`data-title`, `data-start`, `data-end` as HH:MM, `data-kind`
+  `event|tasklist`), `clock-hand` (`data-time` HH:MM). "the middle lists X": a `clock-untimed` entry with that text.
+  "fills the available space": the dial's diameter is ≥ 90 % of the smaller side of the view's content area.
 - Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
   (`data-title`, `data-minutes` = minutes until start) and `approach-now`; "in this order" = exactly these chips, by
   distance from `approach-now`; "closer" compares the item's distance from `approach-now` before and after the clock
@@ -929,12 +934,19 @@ the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
 the support cat does not appear
+the title of the task list {string} is struck through
+I pick up the event {string} and move it down by {int} hours
+the support cat pushes the card from above
+I hold the dragged card still for {int} second(s)
+the support cat sits beside the card with a paw on it
+the support cat is gone within {int} ms
 ```
 
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
   "butterfly" part is present for the check.
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
-  `sunflower`, `sun`, `butterfly`, `cat`); the step lowercases and hyphenates the names. "I choose the theme" without
+  `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`); the step lowercases and
+  hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
@@ -975,3 +987,10 @@ Google shows the calendar {string}
   reads `data-hour-height` of `time-grid` (± 10 %) compared with the value captured before the pinch / at page open.
 - "drawn a quarter as tall": block heights of the task list card and the event chip, ratio 0.25 ± 0.05 (both at the
   current hour height; the step zooms in first if the list would hit the minimum).
+- "title … is struck through": the list's title element (`tasklist-card-title` or the expanded view's title) has
+  `data-struck="true"` and a visible strike line (`text-decoration-line` includes `line-through` or a `strike-line`
+  element over it).
+- Drag helper cat: `[data-testid="support-cat"][data-role="drag"]` with `data-pose` = `push-down` (above the card),
+  `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
+  "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
+  … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.

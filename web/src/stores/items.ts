@@ -24,7 +24,8 @@ interface RangeEntry {
 /**
  * Range cache with normalized items (events and task lists share one id-keyed map, as ids are unique).
  * - `setVisible(from, to)` fetches the range the router needs; LRU of 6 ranges, unreferenced items are dropped.
- *   With `withToday`, today is fetched (and refreshed) as its own range as well when outside `[from, to)` (Now card).
+ *   With `withToday`, today is fetched (and refreshed) in the same request (`also`) when outside `[from, to)` (Now card)
+ *   and cached as its own range.
  * - A refresh replaces the range; items with a pending mutation keep their optimistic state.
  * - Mutations: events/task list details are not optimistic (`createEvent`...), item ops use `optimistic()`.
  */
@@ -108,6 +109,17 @@ export const useItemsStore = defineStore('items', () => {
     fetchRange(from, to).catch(() => {}).finally(() => prefetching.delete(key));
   }
 
+  /** One request for `[from, to)` plus the `also` range; the merged response is split back into both cached ranges. */
+  async function fetchWithAlso(from: LocalDate, to: LocalDate, also: { from: LocalDate; to: LocalDate }, signal?: AbortSignal): Promise<void> {
+    const res = await api.items(from, to, undefined, { signal }, also);
+    const extra: RangeEntry = { ...also, ids: [], syncedAt: res.syncedAt };
+    const inAlso = res.items.filter((it) => overlaps(it, extra));
+    // an item not placed in `also` stays with the main range, so a boundary mismatch never loses it to gc
+    const inMain = res.items.filter((it) => overlaps(it, { from, to, ids: [], syncedAt: '' }) || !inAlso.includes(it));
+    applyResponse(also.from, also.to, inAlso, res.syncedAt);
+    applyResponse(from, to, inMain, res.syncedAt);
+  }
+
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
   async function setVisible(from: LocalDate, to: LocalDate, withToday = false): Promise<void> {
     visible.value = { from, to, withToday };
@@ -123,9 +135,11 @@ export const useItemsStore = defineStore('items', () => {
     try {
       const clock = useClockStore();
       const today = clock.today;
-      const loads = [fetchRange(v.from, v.to, mine.signal)];
-      if (v.withToday && (today < v.from || today >= v.to)) loads.push(fetchRange(today, toIsoDate(addDays(clock.todayDate, 1)), mine.signal));
-      await Promise.all(loads);
+      if (v.withToday && (today < v.from || today >= v.to)) {
+        await fetchWithAlso(v.from, v.to, { from: today, to: toIsoDate(addDays(clock.todayDate, 1)) }, mine.signal);
+      } else {
+        await fetchRange(v.from, v.to, mine.signal);
+      }
       useSyncStore().markSynced();
     } catch (e) {
       if (e instanceof ApiError && e.isAbort) return;

@@ -98,6 +98,8 @@ export class World {
   /** Hour height of the time grid captured before the last pinch ("as before" / "at the start"). */
   hourHeightBefore?: number;
   lastResponse?: { status: number; json: unknown; url: string };
+  /** The first-open check-in of the page opened by "I open the app" (settles to undefined when none comes). */
+  firstCheckIn?: Promise<unknown>;
   browserMemory?: BrowserMemory;
   serverRss?: number;
   requestCount?: number;

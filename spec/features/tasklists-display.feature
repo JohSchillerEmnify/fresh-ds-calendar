@@ -70,7 +70,8 @@ Feature: Task lists in the calendar views
     When I open the week view for 2026-10-12
     Then the task list "Einkaufen" shows the item "Milk" below its title
 
-  @mobile @week
+  # Superseded by "task lists are drawn to scale like events" (owner 2026-10-13): a 15-minute list is too short for an item line. Pending owner confirmation.
+  @mobile @week @backlog
   Scenario: A very short timed task list in a narrow week column still shows its item below the title
     Given the calendar contains a task list "Call mum" on 2026-10-14 at 09:00 for 15 minutes with items:
       | item             | done |
