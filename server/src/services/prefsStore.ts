@@ -9,11 +9,7 @@ export const LOCAL_PERSON = 'local';
 /** Fine-tuning choices that replace the preset's own attributes. */
 export interface ThemeOverrides { glow?: string; entries?: string; corners?: string; scene?: string; seed?: string }
 /** A person's chosen theme: a preset name plus fine-tuning overrides. */
-export interface ThemePref {
-  preset: string; overrides: ThemeOverrides;
-  /** What Automatic changes with the calendar (`both` when absent) and the base theme of "scene only". */
-  automatic?: string; automaticBase?: string;
-}
+export interface ThemePref { preset: string; overrides: ThemeOverrides }
 /** What `prefs.json` stores: the theme plus markers that the retired top bar scene and garden style were folded into it. */
 interface StoredTheme extends ThemePref { sceneUnified?: true; gardenMigrated?: true }
 export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {} };
@@ -92,7 +88,7 @@ export class PrefsStore {
   /** The person's chosen theme (the Default preset until one is chosen). */
   theme(sub: string): ThemePref {
     const t = this.read(sub).theme;
-    return t ? { preset: t.preset, overrides: t.overrides ?? {}, ...(t.automatic ? { automatic: t.automatic } : {}), ...(t.automaticBase ? { automaticBase: t.automaticBase } : {}) } : { ...DEFAULT_THEME, overrides: {} };
+    return t ? { preset: t.preset, overrides: t.overrides ?? {} } : { ...DEFAULT_THEME, overrides: {} };
   }
 
   /**
@@ -133,15 +129,10 @@ export class PrefsStore {
   }
 
   /** Merges a theme change into the stored preferences and returns the result. */
-  setTheme(sub: string, patch: { preset?: string; overrides?: ThemeOverrides; automatic?: string; automaticBase?: string }): ThemePref {
+  setTheme(sub: string, patch: { preset?: string; overrides?: ThemeOverrides }): ThemePref {
     const prev = this.read(sub);
     const cur = this.theme(sub);
-    const automatic = patch.automatic ?? cur.automatic;
-    const automaticBase = patch.automaticBase ?? cur.automaticBase;
-    const theme: ThemePref = {
-      preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides,
-      ...(automatic ? { automatic } : {}), ...(automaticBase ? { automaticBase } : {}),
-    };
+    const theme: ThemePref = { preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides };
     // a person's own save replaces the old scene and garden style, so there is nothing left to migrate
     writeJsonAtomic(this.file(sub), { ...prev, theme: { ...theme, sceneUnified: true, gardenMigrated: true } } satisfies StoredPrefs);
     return theme;

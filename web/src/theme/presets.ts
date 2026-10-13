@@ -17,9 +17,6 @@ export type PresetName = 'Default' | 'Neon' | 'Spring' | 'Summer' | 'Fall' | 'Ha
   | 'Easter' | 'Summer holidays' | 'Christmas' | 'New Year\'s Eve' | 'New Year';
 /** A preset Automatic can stand for on a date: a season, Halloween or a holiday. */
 export type CalendarPreset = Season | 'Halloween' | Holiday;
-/** What Automatic changes with the calendar: colours and scene, only the scene or only the colours. */
-export type AutomaticFollows = 'both' | 'scene' | 'colors';
-
 export interface ThemeAttrs { glow: Glow; entries: Entries; corners: Corners; scene: ThemeScene }
 /** `seed`/`mode` null = keep the person's own seed colour / mode setting. */
 export interface Preset { name: PresetName; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs }
@@ -29,13 +26,7 @@ export type CustomThemeKey = `theme:${string}`;
 /** What a person can store as scene: any scene, or `season`, the automatic choice that follows today's date. */
 export type SceneChoice = ThemeScene | 'season';
 export type ThemeOverrides = Partial<Omit<ThemeAttrs, 'scene'>> & { scene?: SceneChoice; seed?: string };
-export interface ThemePref {
-  preset: PresetName | CustomThemeKey; overrides: ThemeOverrides;
-  /** What Automatic changes with the calendar (default `both`); only read while Automatic is the chosen preset. */
-  automatic?: AutomaticFollows;
-  /** The theme "Scene only" takes its colours from: a non-seasonal preset or an imported theme (default `Default`). */
-  automaticBase?: PresetName | CustomThemeKey;
-}
+export interface ThemePref { preset: PresetName | CustomThemeKey; overrides: ThemeOverrides }
 /** What the one apply path works from, whether it came from a preset or an imported theme document. */
 export interface ResolvedTheme {
   name: string; seed: string | null; mode: ThemeMode | null; attrs: ThemeAttrs;
@@ -53,8 +44,6 @@ export interface CustomTheme { doc: ThemeDoc; picture?: ThemePicture }
 export const PRESET_NAMES: PresetName[] = [
   'Default', 'Neon', 'Spring', 'Easter', 'Summer', 'Summer holidays', 'Fall', 'Halloween', 'Christmas', 'New Year\'s Eve', 'New Year', 'Winter', 'Mordor', 'Automatic',
 ];
-/** The presets "Scene only" may take its colours from: the ones that do not change with the season. */
-export const AUTOMATIC_BASE_PRESETS: PresetName[] = ['Default', 'Neon', 'Mordor'];
 export const DEFAULT_PREF: ThemePref = { preset: 'Default', overrides: {} };
 
 const base: ThemeAttrs = { glow: 'off', entries: 'solid', corners: 'round', scene: 'none' };
@@ -130,42 +119,26 @@ export function presetFor(name: PresetName, today: string): Preset {
 
 /**
  * The chosen theme (a preset or one of the person's imported themes, `custom` by id) plus the person's overrides,
- * ready to be applied. An imported theme that is gone falls back to Default. For Automatic, `pref.automatic` says what
- * follows the calendar: both (default), only the scene (colours from `automaticBase`) or only the colours (the scene is
- * the person's own pick, none by default).
+ * ready to be applied. An imported theme that is gone falls back to Default. The scene override `season` (the
+ * "Follow the calendar" switch) resolves to the calendar's scene of `today`; Automatic has it on by default.
  */
 export function resolveTheme(pref: ThemePref, today: string, custom: Record<string, CustomTheme> = {}): ResolvedTheme {
-  const follows = pref.preset === 'Automatic' ? pref.automatic ?? 'both' : 'both';
-  // the key whose colours and attributes apply: the base theme for "scene only", otherwise the chosen one
-  const key = follows === 'scene' ? pref.automaticBase ?? 'Default' : pref.preset;
-  const id = key.startsWith('theme:') ? key.slice(6) : null;
-  const own = id === null ? { doc: presetDoc(presetFor(key as PresetName, today)) } : custom[id];
-  const resolved = own ? docToResolved(own.doc, own.picture) : docToResolved(presetDoc(PRESETS.Default));
-  // "scene only" swaps the base theme's picture for the calendar's scene, "colours only" has no scene until one is picked
-  const { sceneSvg: _svg, sceneDraw: _draw, ...plain } = resolved;
-  const base = follows === 'scene' ? { ...plain, attrs: { ...plain.attrs, scene: seasonScene(today) } } : follows === 'colors' ? { ...plain, attrs: { ...plain.attrs, scene: 'none' as const } } : resolved;
+  const id = pref.preset.startsWith('theme:') ? pref.preset.slice(6) : null;
+  const own = id === null ? { doc: presetDoc(presetFor(pref.preset as PresetName, today)) } : custom[id];
+  const base = own ? docToResolved(own.doc, own.picture) : docToResolved(presetDoc(PRESETS.Default));
   const { seed, ...attrs } = pref.overrides;
   const merged = { ...base.attrs, ...attrs };
   // the automatic choice follows the date
   return { ...base, ...(seed ? { seed } : {}), attrs: { ...merged, scene: merged.scene === 'season' ? seasonScene(today) : merged.scene } };
 }
 
-/** The Automatic variants' label parts: "Automatic", "Automatic (scene)" or "Automatic (colours)". */
-export function automaticLabel(follows: AutomaticFollows | undefined): string {
-  return follows === 'scene' ? 'Automatic (scene)' : follows === 'colors' ? 'Automatic (colours)' : 'Automatic';
-}
-
-const FOLLOWS: AutomaticFollows[] = ['both', 'scene', 'colors'];
 const ATTR_KEYS = Object.keys(base) as (keyof ThemeAttrs)[];
 
 /** Keeps only known values of a stored/cached preference (drops retired attributes such as the old `cat` switch). */
 export function sanitizePref(raw: unknown): ThemePref {
-  const r = (raw ?? {}) as { preset?: string; overrides?: Record<string, unknown>; automatic?: string; automaticBase?: string };
+  const r = (raw ?? {}) as { preset?: string; overrides?: Record<string, unknown> };
   const preset = PRESET_NAMES.includes(r.preset as PresetName) || /^theme:[A-Za-z0-9_-]{1,32}$/.test(r.preset ?? '') ? (r.preset as ThemePref['preset']) : 'Default';
   const o = r.overrides ?? {};
   const overrides = Object.fromEntries(Object.entries(o).filter(([k, v]) => (k === 'seed' ? typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) : ATTR_KEYS.includes(k as keyof ThemeAttrs))));
-  const key = (k: unknown) => (typeof k === 'string' && (PRESET_NAMES.includes(k as PresetName) || /^theme:[A-Za-z0-9_-]{1,32}$/.test(k)) ? (k as ThemePref['automaticBase']) : undefined);
-  const automatic = FOLLOWS.includes(r.automatic as AutomaticFollows) ? (r.automatic as AutomaticFollows) : undefined;
-  const automaticBase = key(r.automaticBase);
-  return { preset, overrides: overrides as ThemeOverrides, ...(automatic ? { automatic } : {}), ...(automaticBase ? { automaticBase } : {}) };
+  return { preset, overrides: overrides as ThemeOverrides };
 }

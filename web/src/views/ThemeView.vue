@@ -19,7 +19,7 @@ import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
-import Select from '@/components/m3/Select.vue';
+import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import ThemeCard from '@/components/settings/ThemeCard.vue';
 import SaveThemeDialog from '@/components/settings/SaveThemeDialog.vue';
@@ -34,7 +34,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
-import { AUTOMATIC_BASE_PRESETS, docToResolved, PRESET_NAMES, resolveTheme, type AutomaticFollows, type PresetName, type ResolvedTheme, type ThemeAttrs } from '@/theme/presets';
+import { docToResolved, PRESET_NAMES, resolveTheme, type PresetName, type ResolvedTheme, type ThemeAttrs } from '@/theme/presets';
 
 const router = useRouter();
 const theme = useThemeStore();
@@ -63,7 +63,7 @@ const groups: { setting: keyof ThemeAttrs; label: string; options: { value: stri
 ];
 /** The Scene choice has its own section; its options look and behave like the fine-tuning ones. */
 const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', options: [
-  { value: 'season', label: 'Season' }, { value: 'spring', label: 'Spring' }, { value: 'easter', label: 'Easter' }, { value: 'summer', label: 'Summer' },
+  { value: 'spring', label: 'Spring' }, { value: 'easter', label: 'Easter' }, { value: 'summer', label: 'Summer' },
   { value: 'summerholidays', label: 'Summer holidays' }, { value: 'fall', label: 'Fall' }, { value: 'halloween', label: 'Halloween' },
   { value: 'christmas', label: 'Christmas' }, { value: 'newyearseve', label: 'New Year\'s Eve' }, { value: 'newyear', label: 'New Year' },
   { value: 'winter', label: 'Winter' }, { value: 'sunflowers', label: 'Sunflower field' }, { value: 'mordor', label: 'Mordor' }, { value: 'none', label: 'None' },
@@ -72,19 +72,16 @@ const sceneGroup: (typeof groups)[number] = { setting: 'scene', label: 'Scene', 
 const [DefineGroup, ReuseGroup] = createReusableTemplate<{ g: (typeof groups)[number] }>();
 const isSeason = (s: string) => (BACKDROP_SCENES as readonly string[]).includes(s);
 
-// --- Automatic follows (shown while Automatic is chosen) ------------------------------------------------------------
-const followsOptions: { value: AutomaticFollows; label: string }[] = [
-  { value: 'both', label: 'Colours and scene' }, { value: 'scene', label: 'Scene only' }, { value: 'colors', label: 'Colours only' },
-];
-const follows = computed(() => theme.pref.automatic ?? 'both');
-/** "Scene only" takes its colours from a theme that does not change with the season, or one of the person's own. */
-const baseOptions = computed(() => [
-  ...AUTOMATIC_BASE_PRESETS.map((n) => ({ value: n as string, label: n })),
-  ...theme.themes.map((t) => ({ value: `theme:${t.id}`, label: t.doc.name })),
-]);
-
-/** The stored scene choice: an explicit pick, the automatic `season`, or the preset's own scene (Automatic follows the season, "colours only" has none). */
-const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.preset === 'Automatic' ? (follows.value === 'colors' ? 'none' : 'season') : attrs.value.scene));
+/** The stored scene choice: an explicit pick, the automatic `season`, or the preset's own scene (Automatic follows the calendar). */
+const sceneChoice = computed(() => theme.pref.overrides.scene ?? (theme.pref.preset === 'Automatic' ? 'season' : attrs.value.scene));
+/** The "Follow the calendar" switch: the picture follows the calendar whatever theme is chosen (stored as the scene `season`). */
+const followsCalendar = computed(() => sceneChoice.value === 'season');
+function setFollows(on: boolean) {
+  if (on) void theme.pick('scene', 'season');
+  // Automatic has no scene of its own: keep today's picture; any other theme goes back to its own scene
+  else if (theme.pref.preset === 'Automatic') void theme.pick('scene', theme.todaysSeasonScene);
+  else void theme.unpick('scene');
+}
 function pressed(setting: keyof ThemeAttrs, value: string): boolean {
   return setting === 'scene' ? sceneChoice.value === value : attrs.value[setting] === value;
 }
@@ -97,7 +94,6 @@ function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, s
   if (setting !== 'scene') a[`data-${setting}`] = value;
   return a;
 }
-const sceneOf = (value: string) => (value === 'season' ? theme.todaysSeasonScene : value);
 
 // --- mode (a setting) and seed colour (fine-tuning on top of the chosen theme, like the other options) ----------------
 const sync = useSyncStore();
@@ -159,7 +155,7 @@ function back() {
             >
               <span v-if="g.setting !== 'scene'" class="sample" v-bind="sampleAttrs(g.setting, o.value)"><ThemeSample kind="event" title="Dentist" /></span>
               <span v-else class="sample scenebox" v-bind="sampleAttrs(g.setting, o.value)">
-                <span class="back" :class="[`b-${sceneOf(o.value)}`]"><SeasonScene v-if="isSeason(sceneOf(o.value))" :season="sceneOf(o.value) as 'spring'" /></span>
+                <span class="back" :class="[`b-${o.value}`]"><SeasonScene v-if="isSeason(o.value)" :season="o.value as 'spring'" /></span>
                 <ThemeSample kind="event" title="Dentist" />
               </span>
               <span class="ol">{{ o.label }}</span>
@@ -190,19 +186,15 @@ function back() {
             </template>
           </ThemeCard>
         </div>
-        <div v-if="theme.pref.preset === 'Automatic'" class="group auto">
-          <span class="lab">Changes with the season</span>
-          <SegmentedButton :model-value="follows" :options="followsOptions" label="Changes with the season" data-testid="theme-automatic-follows" @update:model-value="theme.setAutomatic({ automatic: $event })" />
-          <Select
-            v-if="follows === 'scene'" class="base" :model-value="theme.pref.automaticBase ?? 'Default'" :options="baseOptions" label="Colours from"
-            data-testid="theme-automatic-base" @update:model-value="theme.setAutomatic({ automaticBase: $event as PresetName })"
-          />
-        </div>
         <ThemeImport v-if="prefs.labsOwnThemes" />
       </section>
 
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">
         <h2 id="h-scene">Scene</h2>
+        <div class="follow">
+          <span class="ftxt"><span class="lab">Follow the calendar (seasons &amp; holidays)</span><span class="sub">Only the top bar picture changes; your colours stay.</span></span>
+          <Switch :model-value="followsCalendar" label="Follow the calendar (seasons & holidays)" data-testid="theme-scene-follows" @update:model-value="setFollows" />
+        </div>
         <ReuseGroup :g="sceneGroup" />
       </section>
 
@@ -255,5 +247,7 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
 .scenebox :deep(.s-ev) { position: relative; }
 .ol { font: var(--md-sys-typescale-label-large); }
 .hex { margin-top: 10px; }
-.auto { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.follow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 0 8px; }
+.ftxt { display: flex; flex-direction: column; min-width: 0; }
+.sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 </style>
