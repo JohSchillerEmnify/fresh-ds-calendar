@@ -341,13 +341,15 @@ When('I choose "Create with AI"', async function (this: World) {
 Then('I see a prompt that describes the theme file {string}', async function (this: World, schema: string) {
   const prompt = this.page.getByTestId('theme-ai-prompt');
   await expect(prompt).toBeVisible();
-  await expect(prompt).toContainText(schema);
+  expect(await prompt.inputValue()).toContain(schema);
 });
 
 Then('I can copy the prompt', async function (this: World) {
   await this.context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  // the app is served over plain http on the LAN: copy as an insecure context would (no async Clipboard API)
+  await this.page.evaluate(() => Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true }));
   await this.page.getByTestId('theme-ai-copy').click();
-  const shown = await this.page.getByTestId('theme-ai-prompt').textContent();
+  const shown = await this.page.getByTestId('theme-ai-prompt').inputValue();
   await expect.poll(() => this.page.evaluate(() => navigator.clipboard.readText())).toBe(shown);
 });
 
