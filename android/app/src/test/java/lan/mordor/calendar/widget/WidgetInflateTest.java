@@ -15,7 +15,10 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 
-/** Both widgets' RemoteViews must inflate the way a launcher does it (only RemoteViews-allowed classes). */
+/**
+ * Both widgets' RemoteViews must inflate the way a launcher does it: only RemoteViews-allowed classes (a plain {@code View}
+ * made launchers show "Can't load widget", owner 2026-10-14).
+ */
 @RunWith(RobolectricTestRunner.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = 35)

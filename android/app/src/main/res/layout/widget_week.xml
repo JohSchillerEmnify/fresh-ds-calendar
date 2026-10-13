@@ -31,7 +31,7 @@
             android:layout_height="20dp"
             android:orientation="horizontal">
 
-            <View
+            <FrameLayout
                 android:id="@+id/hdr"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -55,13 +55,13 @@
             android:paddingEnd="4dp"
             android:paddingBottom="14dp">
 
-            <View android:id="@+id/d0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
-            <View android:id="@+id/d1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
-            <View android:id="@+id/d2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
-            <View android:id="@+id/d3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
-            <View android:id="@+id/d4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
-            <View android:id="@+id/d5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
-            <View android:id="@+id/d6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d0" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d1" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d2" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d3" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d4" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d5" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
+            <FrameLayout android:id="@+id/d6" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" />
         </LinearLayout>
     </LinearLayout>
 
