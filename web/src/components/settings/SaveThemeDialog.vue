@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** Asks for a name and saves the look in use as an own theme (see `lookToDoc`); the new theme becomes the chosen one. */
 import { ref } from 'vue';
-import { validateTheme } from '@calendar/shared';
+import { validateThemeIssues } from '@calendar/shared';
 import { ApiError } from '@/api/client';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
@@ -10,6 +10,7 @@ import { t } from '@/i18n';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
+import { issueText } from '@/theme/issueText';
 import { lookToDoc, uniqueName } from '@/theme/saveLook';
 
 const emit = defineEmits<{ close: [] }>();
@@ -25,8 +26,8 @@ async function save() {
   if (!name.value.trim()) { error.value = t('theme.saveOwn.nameRequired'); return; }
   const named = uniqueName(name.value.trim(), theme.themes.map((t) => t.doc.name));
   const { doc, picture } = lookToDoc(theme.resolved, { mode: settings.settings.themeMode, seed: settings.settings.seedColor }, named);
-  const valid = validateTheme(doc);
-  if (!valid.ok) { error.value = valid.errors[0]!; return; }
+  const valid = validateThemeIssues(doc);
+  if (!valid.ok) { error.value = issueText(valid.issues[0]!); return; }
   saving.value = true;
   try {
     await theme.importTheme(doc, picture);
