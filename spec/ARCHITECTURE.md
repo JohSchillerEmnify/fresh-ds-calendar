@@ -781,7 +781,7 @@ It never reloads by itself and never interrupts an open dialog.
   independent of the scene and is switched in Settings → Motivation. "Garden style" is no longer a term: it is
   removed from the spec, the UI, the code and the API. If more plant kinds come later they would be a "plant style";
   nothing is built for that now.
-- A theme is a preset of: seed colour (existing scheme generation), mode (only Neon and Mordor force dark; the season
+- A theme is a preset of: seed colour (existing scheme generation), mode (only Neon, Mordor and New Year's Eve force dark — New Year's Eve since 2026-10-13, owner: fireworks need the night; the season
   presets and Default leave the person's System/Light/Dark setting alone, owner 2026-10-13), `glow` (off|soft|neon),
   `entries` (solid|tinted|outline), `corners` (square|round|pill) and `scene` (none|sunflowers|mordor|spring|summer|fall|winter;
   Halloween comes with its own slice). Presets live in `web/src/theme/presets.ts`: Default, Neon, Spring, Summer, Fall,

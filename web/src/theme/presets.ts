@@ -71,7 +71,7 @@ export const PRESETS: Record<Exclude<PresetName, 'Automatic'>, Preset> = {
   Easter: { name: 'Easter', seed: '#8e6bbf', mode: null, attrs: { ...base, entries: 'tinted', corners: 'pill', scene: 'easter' } },
   'Summer holidays': { name: 'Summer holidays', seed: '#0097a7', mode: null, attrs: { ...base, glow: 'soft', scene: 'summerholidays' } },
   Christmas: { name: 'Christmas', seed: '#c62828', mode: null, attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'christmas' } },
-  'New Year\'s Eve': { name: 'New Year\'s Eve', seed: '#d4af37', mode: null, attrs: { ...base, glow: 'neon', entries: 'tinted', scene: 'newyearseve' } },
+  'New Year\'s Eve': { name: 'New Year\'s Eve', seed: '#d4af37', mode: 'dark', attrs: { ...base, glow: 'neon', entries: 'tinted', scene: 'newyearseve' } },
   'New Year': { name: 'New Year', seed: '#00897b', mode: null, attrs: { ...base, glow: 'soft', corners: 'pill', scene: 'newyear' } },
   Winter: { name: 'Winter', seed: '#3d79b8', mode: null, attrs: { ...base, glow: 'soft', corners: 'square', scene: 'winter' } },
   Mordor: { name: 'Mordor', seed: '#c43e00', mode: 'dark', attrs: { ...base, glow: 'soft', entries: 'tinted', scene: 'mordor' } },

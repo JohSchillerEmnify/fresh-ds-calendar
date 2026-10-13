@@ -225,7 +225,7 @@ spec files are named.
   December all four are lit and the tree lights are on; (d) the Christmas scene picked by hand outside its dates shows
   the full state (tree lights on, 4 candles), also the "Christmas" sample in the Scene card; (e) the `season` sentinel
   and Automatic use the same calendar mapping; (f) the holiday presets keep the person's light/dark mode like the season
-  presets (no forced dark, not even for New Year's Eve; the scene looks night-like in either mode); (g) preset names are
+  presets (no forced dark, except New Year's Eve, which is dark like Neon and Mordor — owner 2026-10-13); (g) preset names are
   the labels ("Easter", "Summer holidays", "Christmas", "New Year's Eve", "New Year") and the scene values are `easter`,
   `summerholidays`, `christmas`, `newyearseve`, `newyear`; (h) the pref stores `automatic` (`both` | `scene` |
   `colors`, default `both`) and, for "Scene only", `automaticBase` (a non-seasonal preset name, or `theme:<id>`,
