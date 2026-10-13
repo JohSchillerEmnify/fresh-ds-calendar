@@ -29,6 +29,7 @@ interface ApiError {
   error: {
     code: ErrorCode;
     message: string;              // English, may be shown to the user
+    key?: string;                 // message key (web catalogue path), set for user-facing validation errors
     details?: { field?: string; issue?: string }[];
   };
 }
@@ -41,6 +42,8 @@ type ErrorCode =
   | 'INTERNAL';             // 500
 ```
 
+`key`, when present, names a message of the web catalogue (for example `errors.validation.endAfterStart`); the web
+app shows that message in the person's language and falls back to the English `message` for unknown keys.
 Validation messages are the exact UI strings where one exists: `Title is required`, `Add a title or an item`,
 `Title must be at most 200 characters`, `End must be after start`.
 The web app maps `PROVIDER_UNAVAILABLE` / network failure to `Could not save: Google Calendar is unavailable` and
@@ -167,6 +170,14 @@ Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, 
 `home` Home #f4511e 🏠.
 
 ## Endpoints
+
+### `GET /api/prefs` → 200, `PATCH /api/prefs` → 200
+
+Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
+`tasksCalendarVisible`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
+`'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, ARCHITECTURE
+"i18n"). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
+for an unknown value; it returns the full preferences.
 
 ### `GET /api/health` → 200
 

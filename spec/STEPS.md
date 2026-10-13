@@ -460,6 +460,31 @@ the settings are changed elsewhere to the theme mode {string}
   a new page; all following steps act on it.
 - `the settings are changed elsewhere to ...` sends `PATCH /api/settings` directly through the API.
 
+## Language (`@i18n`)
+
+```
+the browser language is {string}
+the view switcher shows {string}
+the page language is {string}
+I choose {string} as the language
+the language {string} is selected
+the page was not reloaded
+```
+
+- `the browser language is "de-DE"` (Given) makes `navigator.language` / `navigator.languages` report that language
+  for every page of the current context, with a context init script (a Playwright context's `locale` cannot change after
+  creation). The context option `locale: 'en-GB'` stays, so numbers and `Intl` defaults are unaffected. Steps that open
+  "another device" create a fresh context with the project locale, i.e. an English browser.
+- `the view switcher shows "A, B, C, D"` compares the texts of the `tab`s inside `view-switcher` (bottom bar or rail,
+  in DOM order, joined with `", "`). With Labs on, the experimental views are part of the list.
+- `the page language is X` = the `lang` attribute of `<html>` (`en`, `de`, `de-x-mainfr`, `de-x-coldmir`).
+- `I choose "L" as the language` selects the option labelled L in `settings-language` (a select) and waits for the
+  `PATCH /api/prefs` response (status 200) when the value changes. Before choosing it sets a marker on `window`, which
+  `the page was not reloaded` looks for (a reload would lose it); the options are `Automatisch`/`Automatic` (follows
+  the device, translated), `English`, `Deutsch`, `Fränggisch`, `Coldmirror` (each in its own name, never translated).
+- `the language "L" is selected` = the selected option label of `settings-language`.
+- The existing `the settings sections are`, `the period title is` and `the weekday headers are` steps are reused.
+
 ## Categories, tags and filters (`@categories`)
 
 ```

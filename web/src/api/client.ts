@@ -14,22 +14,24 @@ import type {
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
 import type { ThemePref } from '@/theme/presets';
+import { hasKey, t } from '@/i18n';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'ABORTED' | 'HTTP';
 
-export const MSG_UNAVAILABLE = 'Could not save: Google Calendar is unavailable';
-export const MSG_CONFLICT = 'This event was changed elsewhere. Reload it and try again.';
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code: ClientErrorCode;
   readonly details: { field?: string; issue?: string }[];
-  constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = []) {
+  /** Message key the server sent; translated by {@link userMessage} when the catalogue knows it. */
+  readonly key?: string;
+  constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = [], key?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.details = details;
+    this.key = key;
   }
   /** Network failure, 502 or 503: Google (or the server) cannot be reached. Drives the sync error banner. */
   get isUnavailable(): boolean {
@@ -44,11 +46,12 @@ export class ApiError extends Error {
   get isAbort(): boolean {
     return this.code === 'ABORTED';
   }
-  /** The message the UI shows for a failed save (API.md "Error format"). */
+  /** The message the UI shows for a failed save, in the active language (API.md "Error format"). */
   get userMessage(): string {
-    if (this.isUnavailable) return MSG_UNAVAILABLE;
-    if (this.isConflict) return MSG_CONFLICT;
-    return this.message;
+    if (this.isUnavailable) return t('errors.saveUnavailable');
+    if (this.isConflict) return t('errors.conflict');
+    // unknown keys fall back to the server's English text
+    return this.key && hasKey(this.key) ? t(this.key) : this.message;
   }
 }
 
@@ -124,11 +127,11 @@ export class ApiClient {
       }
     }
     if (!res.ok) {
-      const err = (data as { error?: { code?: ErrorCode; message?: string; details?: [] } } | null)?.error;
+      const err = (data as { error?: { code?: ErrorCode; message?: string; key?: string; details?: [] } } | null)?.error;
       if (res.status === 401 && (err?.code === 'UNAUTHENTICATED' || err?.code === 'GOOGLE_REAUTH')) {
         for (const fn of this.authListeners) fn(err.code);
       }
-      throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? []);
+      throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? [], err?.key);
     }
     return data as T;
   }

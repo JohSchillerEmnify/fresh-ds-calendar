@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/api/client';
+import { cachedLanguagePref, type LanguagePref } from '@/i18n';
 import type { ApproachWindowHours, Prefs, SupportCatSetting, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
 
 /**
@@ -21,6 +22,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const tasksSortBy = ref<TasksSortBy>('date');
   const labsOwnThemes = ref(false);
   const tasksSortDir = ref<TasksSortDir>('default');
+  /** The UI language preference; the shell applies it with `applyLanguage` whenever it changes. */
+  const language = ref<LanguagePref>(cachedLanguagePref());
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -35,6 +38,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
     labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
     tasksSortDir.value = p.tasksSortDir ?? tasksSortDir.value;
+    language.value = p.language ?? language.value;
   }
 
   async function load(): Promise<void> {
@@ -48,7 +52,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, language: language.value,
     };
     apply(p);
     try {
@@ -59,5 +63,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, language, load, set };
 });

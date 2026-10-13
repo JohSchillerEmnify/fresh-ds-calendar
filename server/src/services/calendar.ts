@@ -190,14 +190,14 @@ export class CalendarService {
     if (m.allDay) {
       if (!isLocalDate(m.start)) throw validation('Start must be a date (YYYY-MM-DD) for all-day events', 'start');
       if (!isLocalDate(m.end)) throw validation('End must be a date (YYYY-MM-DD) for all-day events', 'end');
-      if (m.end <= m.start) throw validation('End must be after start', 'end');
-      if (dayNumber(m.end) - dayNumber(m.start) > 366) throw validation('Event must be at most 366 days long', 'end');
+      if (m.end <= m.start) throw validation('End must be after start', 'end', 'errors.validation.endAfterStart');
+      if (dayNumber(m.end) - dayNumber(m.start) > 366) throw validation('Event must be at most 366 days long', 'end', 'errors.validation.eventTooLong');
     } else {
       if (!isDateTime(m.start)) throw validation('Start must be a date and time with offset', 'start');
       if (!isDateTime(m.end)) throw validation('End must be a date and time with offset', 'end');
       const s = Date.parse(m.start), e = Date.parse(m.end);
-      if (e <= s) throw validation('End must be after start', 'end');
-      if (e - s > 366 * DAY) throw validation('Event must be at most 366 days long', 'end');
+      if (e <= s) throw validation('End must be after start', 'end', 'errors.validation.endAfterStart');
+      if (e - s > 366 * DAY) throw validation('Event must be at most 366 days long', 'end', 'errors.validation.eventTooLong');
     }
   }
 
@@ -259,9 +259,9 @@ export class CalendarService {
 
   // ---------- task lists ----------
   private checkTaskData(d: TaskListData, keepCategory?: string | null): void {
-    if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title');
-    if (d.items.length > 200) throw validation('A task list can have at most 200 items', 'items');
-    if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags');
+    if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title', 'tasklist.titleOrItem');
+    if (d.items.length > 200) throw validation('A task list can have at most 200 items', 'items', 'tasklist.tooManyItems');
+    if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags', 'tasklist.tagsUnique');
     if (d.date !== null && !isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
     if (d.date === null && d.recurrence) throw validation('An undated task list cannot repeat', 'date');
     if (d.categoryId !== null && d.categoryId !== keepCategory && !this.settings.categories().some((c) => c.id === d.categoryId)) throw validation('Unknown category', 'categoryId');

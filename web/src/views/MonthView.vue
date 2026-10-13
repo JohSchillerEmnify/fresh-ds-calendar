@@ -10,7 +10,7 @@ import { allotHeights } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { laneCount } from '@/lib/spans';
 import { providePreview } from '@/composables/usePreview';
-import { monthGrid, periodTitle, toIsoDate, WEEKDAY_LABELS } from '@/lib/dates';
+import { monthGrid, periodTitle, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 
@@ -79,7 +79,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 <template>
   <section class="month" :class="{ phone: isPhone }" data-testid="month-view" :data-month="periodTitle('month', anchor)">
     <div class="weekdays" role="row">
-      <div v-for="w in WEEKDAY_LABELS" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
+      <div v-for="w in weekdayLabels()" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
     <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
       <div v-for="(row, wi) in rows" :key="row.dates[0]" class="week" :style="{ '--lanes': row.lanes }">

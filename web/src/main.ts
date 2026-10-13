@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
+import { applyLanguage, cachedLanguagePref } from './i18n';
 import { createAppRouter } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useClockStore } from './stores/clock';
@@ -23,6 +24,8 @@ async function bootstrap() {
   const budget = AbortSignal.timeout(4000);
   await Promise.allSettled([clock.load(budget), settings.load(budget), useThemeStore().load(budget)]);
   if (clock.config.testMode) enableTimerCounting();
+  // the language chosen on this device last time (or the device's), before the first paint
+  await applyLanguage(cachedLanguagePref());
   installMotion();
   settings.installAppearance();
   registerBuiltinExtensions();
