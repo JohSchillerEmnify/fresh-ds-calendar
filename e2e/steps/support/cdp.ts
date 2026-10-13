@@ -19,6 +19,8 @@ async function gc(cdp: CDPSession) {
 
 /** JS heap used size, DOM node count and JS event listener count after two forced GCs. */
 export async function measureMemory(page: Page): Promise<BrowserMemory> {
+  // Chromium keeps every mark/measure/resource entry on the JS heap; they are test noise, not app growth
+  await page.evaluate(() => { performance.clearMarks(); performance.clearMeasures(); performance.clearResourceTimings(); });
   return withCdp(page, async (cdp) => {
     await gc(cdp);
     const heap = await cdp.send('Runtime.getHeapUsage');
