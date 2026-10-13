@@ -141,6 +141,7 @@ option A of two — B, server storage with Drive backup, may follow in the VPS t
 | | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
 | human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
 | `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |
 | `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
 | `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
 | color in Google | `colorId` = nearest Google color to the category color; no category → `colorId` removed (calendar color) |
@@ -571,6 +572,12 @@ Rules for implementers:
 | `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("+ Add item" button, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
+| `tasks-group-by` | segmented button, options `data-value="time\|category\|none"`, labels Time/Category/None, `aria-pressed` |
+| `tasks-sort-by` | select, labels Date/Name/Category/Last changed/Progress |
+| `tasks-group`, `tasks-group-title` | one group (`data-group`: `overdue\|today\|week\|later\|nodate`, a category id or `none`) and its heading text |
+| `tasks-item` | one list: `data-tasklist-id`, `data-title`, `data-date` (`""` when undated); contains a `tasklist-view`, `tasks-today`, `tasks-tomorrow` |
+| `tasklist-no-date` | "No date" toggle in the task list dialog (`aria-pressed`) |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
 | `sync-status` | `data-state`, `data-last-sync` |
 | `sync-error-banner`, `sync-retry` | error strip |
@@ -836,6 +843,52 @@ It never reloads by itself and never interrupts an open dialog.
   a hook at the tip (sitting/napping poses may curl it). Our own drawing in that style, not a copy. On dark themes a
   soft rim light keeps the black body readable. Expressive through eyes, ears, tail and head only: pupils look
   around, slow blinks, ear twitches, tail-tip flicks, head tilt; "grin" = happy squinted eye arcs.
+
+### Undated task lists (owner, 2026-10-13)
+
+A task list may have no date. It is stored in the same place as every other list, the person's tasks calendar, as an
+**all-day event on the fixed anchor date `2099-12-31`** with `extendedProperties.private.undated = "1"`. The API shows
+`date: null` and `time: null` for it.
+
+- **Reading**: undated lists are fetched with Google's filter `privateExtendedProperty=undated=1` on `events.list`
+  (no time range; the filter is `ListEventsParams.privateExtendedProperty`, which both providers support, and
+  `timeMin`/`timeMax` are optional now). Date-range reads (`/api/items`, `/api/summary`, `/api/tasklists/open`) never
+  return them, even when the range reaches the anchor date: events with `undated = "1"` are dropped. So an undated
+  list never shows in Year, Month, Week, Day or the Labs views, in the month picker counts or in the open tasks tray.
+- **Dating** = moving the event: `PATCH /api/tasklists/:id { date: "YYYY-MM-DD" }` rewrites `start`/`end` and removes
+  `undated`. **Undating** = `PATCH { date: null }`: the event moves to the anchor date, `undated = "1"` is set and the
+  time is dropped.
+- **Completion**: a write that ticks the last open item of an undated list dates it to the app-clock day (all-day) and
+  sets `completedOn` to the same day, so it shows in the calendar where it was finished (assumption A-75). The Archive
+  slice will add a setting to switch this; it is not built yet.
+- **Why this way** (owner decision). Alternatives weighed: (a) a separate store (server file or a second calendar)
+  for undated lists; (b) a flag with a real but ordinary date. Chosen: one store, so the same sync, backup, etag and
+  conflict handling cover undated lists too, and "giving a date" is just moving the event instead of moving data
+  between stores. The price: people who show the tasks calendar in Google (setting "Show tasks calendar in Google")
+  see these events in the year 2099.
+- An undated list cannot repeat and has no time (`400` otherwise).
+
+### Tasks view (owner, 2026-10-13, slice 1 of the task management feature)
+
+- **Route and navigation**: `/tasks` (`meta.tasks`), a destination after Day in the phone navigation bar and the
+  desktop rail: Year, Month, Week, Day, Tasks (`view-switch-tasks`; Labs views follow when on). It is not a calendar
+  view: no period, no swipe, no open tasks tray (it is the tray's bigger sibling). The top bar shows "Tasks", sync
+  status, filter button and settings button (A-78). The create button ("+") opens the task list dialog without a date.
+- **Content**: all open lists (A-70), dated and undated, from `GET /api/tasklists/all-open?today=` (API.md). Each list is
+  a `tasks-item` containing the tray's own item component, the **task list view**, so ticking, adding, reordering and
+  deleting items work as in the tray; the one difference is that tapping the title opens the task list dialog
+  instead of renaming in place. Each `tasks-item` also has the quick actions `tasks-today` and `tasks-tomorrow`.
+  The lists live in the items store (kept in the cache while the Tasks view lists them), so item operations are the
+  existing optimistic ones.
+- **Grouping** (`tasks-group-by`: Time, Category, None; default Time) and **sorting** (`tasks-sort-by`: Date, Name,
+  Category, Last changed, Progress; default Date) are person prefs `tasksGroupBy` (`time|category|none`) and
+  `tasksSortBy` (`date|name|category|changed|progress`), whitelisted by `PATCH /api/prefs` (invalid value: 400) and
+  returned by `GET /api/prefs`. Grouping and sorting are pure functions in `features/tasklists/tasksView.ts`
+  (details and directions: A-72). Why prefs and not the URL: the choice should follow the person to other devices
+  (owner), like `versionInCorner`.
+- **Filters**: the category chips of the calendar filter the lists (A-77).
+- **Dating**: the task list dialog has a "No date" toggle (`tasklist-no-date`, A-73); the quick actions set today
+  or tomorrow (A-74).
 
 ### Untitled task lists (owner, 2026-10-12)
 

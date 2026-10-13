@@ -155,7 +155,7 @@ spec files are named.
   sunflower. Its landing flower is random (not asserted in tests).
 - **A-59 Year view density** buckets: 0, 1, 2–3, ≥ 4 items per day.
 - **A-60 Month picker** jumps the current view to the picked day. It does not switch views.
-- **A-61 Phone navigation** has four destinations (Year, Month, Week, Day). The open tasks tray sits above the
+- **A-61 Phone navigation** has four destinations (Year, Month, Week, Day; the Tasks view adds a fifth, see ARCHITECTURE "Tasks view"). The open tasks tray sits above the
   navigation bar, and the FAB floats above the tray bar. While the tray is expanded the FAB slides away (owner
   2026-10-12), so it never covers the tray's controls; it returns when the tray is collapsed.
 - **A-E1** withdrawn (overflow is a fade now, A-10).
@@ -185,3 +185,35 @@ spec files are named.
   "Top bar scene" setting and the theme's "Scene" attribute become one theme attribute. On migration the scene that was
   visible wins (the theme's if it was not None, else the old top bar setting). "Sunflower field" still needs garden
   style "Sunflower field" to show. "Season" stores today's season scene, not a standing "follow the season" value.
+- **A-70 Open in the Tasks view** (assumption, slice 1 of the task management feature): a list is open when it is not
+  complete, so a list with no items yet also shows (the tray, by contrast, lists only lists with an unticked item).
+  A finished list leaves the Tasks view on its next refresh; until then it stays, struck through, so the celebration
+  can play.
+- **A-71 Which dated lists the Tasks view fetches** (assumption): open lists dated from one year before today to one
+  year after, plus all undated lists. Lists further out are not shown there (they stay in the calendar).
+- **A-72 Sort directions** (assumption): Date earliest first (undated last); Name A to Z (case-insensitive); Category by
+  the order of the categories in the settings (no category last); Last changed newest first; Progress most done first
+  (done share of the items; a list without items counts as 0 %). Ties fall back to Date, then Name. Inside a group the
+  chosen sort applies. Groups: Time in the order Overdue, Today, This week, Later, No date; Category in the settings
+  order, then "No category"; None = one group. Empty groups are not shown. "This week" = tomorrow until the coming
+  Sunday (weeks start on Monday); on a Sunday it is empty.
+- **A-73 Dating through the dialog** (assumption): the task list dialog gets a "No date" toggle beside the date field
+  (also when creating from a calendar view); with it on the date and time are empty and the list is saved undated.
+  Clearing the date field by hand without the toggle still fails with "Pick a date". An undated list has no time, no
+  estimate-based block and cannot repeat (the server answers 400 for a repeat on an undated list).
+- **A-74 Quick actions** (assumption): "Today" and "Tomorrow" set the date to the app-clock day (tomorrow = +1) and
+  keep the time; an undated list gets no time. They show on every list in the Tasks view, dated or not.
+- **A-75 Completion re-dating** (owner decision, wording inferred): only a write that ticks the last open item of an
+  undated list dates it (to the app-clock day, untimed) and sets `completedOn` to the same day. A list already
+  complete, or created complete, is not re-dated. The later Archive slice adds a setting to switch this; not built yet.
+- **A-76 New list from the "+" in the Tasks view** (assumption): the button is the existing create button; in this view
+  it opens the task list dialog directly (no Event/Task list switch) with "No date" on.
+- **A-77 Filter chips in the Tasks view** (assumption, owner: reuse if simple): the category chips of the calendar
+  (`filter-bar`, `categories` URL query, "No category" included) filter the Tasks view; calendar chips are not offered
+  there because they do not apply to task lists. The filter button is in the Tasks view's top bar.
+- **A-78 Tasks view top bar** (assumption): no period title and no previous/next/Today buttons (they do not apply); it
+  shows the title "Tasks", the sync status, the filter button and the settings button. The calendar swipe is off.
+- **A-79 Undated lists in Google** (owner decision): they are all-day events on 2099-12-31 in the tasks calendar. The
+  server never lets them into a date range read (it drops anchor-date events of undated lists), so a range that
+  reaches 2099 does not show them.
+

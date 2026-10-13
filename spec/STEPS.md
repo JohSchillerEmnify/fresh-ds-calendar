@@ -1016,3 +1016,42 @@ Google shows the calendar {string}
   `pull-up` (below), `push-side` (beside, moving to another day) or `wait` (beside, paw on the card, questioning look).
   "pushes the card from above" = pose `push-down` and the cat's box is above the dragged card's centre. "sits beside
   … with a paw on it" = pose `wait`. The pick-up step uses mouse press + moves (desktop), keeping the pointer down.
+
+## Tasks view (`@tasks-view`)
+
+```
+the calendar contains an undated task list {string} with items:
+I open the Tasks view
+I create the task list {string} in the Tasks view
+I choose {string} for the task list {string} in the Tasks view
+I remove the date of the task list {string} in the Tasks view
+I group the Tasks view by {string}
+I sort the Tasks view by {string}
+I tick the item {string} of the task list {string} in the Tasks view
+the Tasks view lists {string} under {string}
+the Tasks view lists {string}
+the Tasks view groups are {string}
+the Tasks view is grouped by {string}
+the calendar shows the task list {string} on {date}
+neither the calendar on {date} nor the open tasks tray shows the task list {string}
+```
+
+- Steps that act in the Tasks view open it first (`/tasks`, via `view-switch-tasks`) when it is not shown.
+- "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
+- "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
+  without a date), type T into `tasklist-title`, `tasklist-save`.
+- "I choose X for the task list L": clicks `tasks-today` / `tasks-tomorrow` (X = `Today` / `Tomorrow`) in the
+  `tasks-item` with `data-title` L and waits for the `PATCH /api/tasklists/:id` response.
+- "I remove the date of the task list L": taps `tasklist-expanded-title` of L's `tasks-item` (opens the task list
+  dialog), clicks `tasklist-no-date`, `tasklist-save`.
+- "I group … by G" clicks the `tasks-group-by` option with that label (`Time`, `Category`, `None`); "I sort … by S"
+  picks the label in the `tasks-sort-by` select (`Date`, `Name`, `Category`, `Last changed`, `Progress`). Both wait for
+  the `PATCH /api/prefs` response. "is grouped by G" = `aria-pressed="true"` on that `tasks-group-by` option.
+- "lists T under G": the `tasks-item` with `data-title` T lies inside the `tasks-group` whose `tasks-group-title` text
+  is G. "lists A, B, C" = all `tasks-item` titles in DOM order, joined `", "`. "groups are" = the `tasks-group-title`
+  texts in DOM order, joined `", "`. When grouped by None there is one group without a title.
+- "I tick the item I of the task list L": ticks `tasklist-item-checkbox` of the item inside L's `tasks-item`
+  (a `tasklist-view`, the tray's own item component).
+- "the calendar shows L on D" opens the day view for D and expects the `tasklist-card` L there. "neither … nor …"
+  opens the day view for D and expects no `tasklist-card` L, opens the open tasks tray and expects it not to list L.
+

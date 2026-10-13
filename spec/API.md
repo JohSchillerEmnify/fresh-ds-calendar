@@ -88,7 +88,7 @@ interface TaskList {
   id: string;              // the Google event id
   calendarId: string;
   title: string;           // 1–200 chars after trim
-  date: LocalDate;
+  date: LocalDate | null;  // null = undated (ARCHITECTURE "Undated task lists"); then time is null too
   time: LocalTime | null;  // null = no time (all-day Google event)
   items: TaskItem[];       // max 200, in display order
   doneCount: number;
@@ -245,6 +245,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 | Method | Path | Body | Success |
 |---|---|---|---|
 | `POST` | `/api/tasklists` | `CreateTaskListInput` | `201` `TaskList` |
+| `GET` | `/api/tasklists/all-open?today=YYYY-MM-DD` | – | `200` `{ items: TaskList[] }` |
 | `GET` | `/api/tasklists/:id` | – | `200` `TaskList` |
 | `PATCH` | `/api/tasklists/:id` | `UpdateTaskListInput` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
@@ -257,7 +258,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 interface CreateTaskListInput {
   // no calendarId: task lists always go to the person's tasks calendar (ARCHITECTURE §3)
   title: string;          // may be empty/blank (stored as "") when at least one non-blank item is given
-  date: LocalDate;
+  date: LocalDate | null; // required key; null creates an undated list (no time, no recurrence)
   time?: LocalTime | null;
   items?: { title: string; done?: boolean }[];   // blank titles are dropped
   categoryId?: string | null;   // must exist in settings, else 400
@@ -267,7 +268,7 @@ interface CreateTaskListInput {
 }
 interface UpdateTaskListInput {
   title?: string;
-  date?: LocalDate;
+  date?: LocalDate | null; // a date makes the list appear in the calendar; null makes it undated (drops the time)
   time?: LocalTime | null; // null removes the time
   items?: { id?: string; title: string; done: boolean }[];  // full replacement (used by fixtures)
   categoryId?: string | null;
@@ -321,6 +322,18 @@ task lists with at least one unticked item dated in `[today − days, today]` (i
 in the same date window with `completedOn = today` (finished today, shown struck through in the tray). Order of both:
 date ascending, then untimed before timed, then time, then title. The web app shows lists dated before `today` as **carried over** on today (and not on their own
 date); lists with no open items are never carried. `days` max 90, default 30.
+
+### All open task lists (Tasks view)
+
+`GET /api/tasklists/all-open?today=YYYY-MM-DD` → `200 { items: TaskList[] }`: every task list that is not complete
+(a list without items counts as open), undated lists and lists dated in `[today − 365, today + 365]`. Unordered; the
+web app groups and sorts. Errors: 400, 502, 503. Undated lists are returned only here and by `GET /api/tasklists/:id`;
+`/api/items`, `/api/summary` and `/api/tasklists/open` never return them.
+
+### Prefs: Tasks view
+
+`GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
+`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); any other value is `400`.
 
 ### Motivation: check-in streak and plant
 
