@@ -9,16 +9,15 @@ import { BUTTON_FACTOR, clampPanTo, type Pan, type WheelAxes, type Zoom2, type Z
 /** Time zoom: 1 fits the 24 hours in the viewport width, 24 makes one hour as wide as the viewport. */
 export const MIN_ZX = 1;
 export const MAX_ZX = 24;
-/** Day zoom: 1 fits the rows the mode shows in the viewport height, 8 makes them eight times as tall. */
+/** Day zoom: 1 fits the seven days in the viewport height, 3 shows about two and a half days (a few days replace a day mode). */
 export const MIN_ZY = 1;
-export const MAX_ZY = 8;
+export const MAX_ZY = 3;
 /** The zoom a view starts with: about eight hours across, every row of the mode in view. */
 export const DEFAULT_ZOOM: Zoom2 = { x: 3, y: 1 };
 /** The left edge of the viewport at the start (hour of the day). */
 export const START_HOUR = 6;
-/** Rows that fit the viewport height at day zoom 1: the week shows seven, the day an assumed four lanes. */
-export const FIT_ROWS = { week: 7, day: 4 } as const;
-export type HMode = keyof typeof FIT_ROWS;
+/** Rows (days of the week) that fit the viewport height at day zoom 1. */
+export const FIT_ROWS = 7;
 /** Narrowest a card is drawn (px): a bare title chip; shorter events are widened to it. */
 export const MIN_CARD_PX = 28;
 /** Least height (px) of a lane of overlapping entries, and the height of an untimed bar. */
@@ -55,7 +54,7 @@ export function hWheelAxes(e: { ctrlKey: boolean; metaKey: boolean; shiftKey: bo
 export const pxPerHour = (vw: number, zx: number): number => (vw * zx) / 24;
 
 /** Base height (px) of a day row at day zoom `zy` in a viewport `vh` high (a row may be taller when its lanes need room). */
-export const baseRowHeight = (vh: number, zy: number, mode: HMode): number => (vh * zy) / FIT_ROWS[mode];
+export const baseRowHeight = (vh: number, zy: number): number => (vh * zy) / FIT_ROWS;
 
 /** Distance in hours between two labels of the time axis so that they stay about 40 px apart at least. */
 export function hourStep(pph: number): 1 | 2 | 3 | 6 {
@@ -98,9 +97,9 @@ export function layoutRow(date: string, segs: Segment[], pph: number, baseH: num
 }
 
 /** The layout of all rows stacked top to bottom, and the size of the world they make. */
-export function layoutRows(days: { date: string; segs: Segment[] }[], vw: number, vh: number, z: Zoom2, mode: HMode): { rows: HRow[]; width: number; height: number } {
+export function layoutRows(days: { date: string; segs: Segment[] }[], vw: number, vh: number, z: Zoom2): { rows: HRow[]; width: number; height: number } {
   const pph = pxPerHour(vw, z.x);
-  const base = baseRowHeight(vh, z.y, mode);
+  const base = baseRowHeight(vh, z.y);
   let top = 0;
   const rows = days.map((d) => {
     const r = layoutRow(d.date, d.segs, pph, base);

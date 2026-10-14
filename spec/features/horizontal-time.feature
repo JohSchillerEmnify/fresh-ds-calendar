@@ -1,7 +1,8 @@
 @labs @horizontal @id:horizontal-time
 Feature: Labs: the horizontal view
-  In the horizontal view time runs from left to right. The week has one row per day with the hours as columns, the day is
-  one row with lanes for overlapping entries. Cards get wider instead of taller, so a task list has room for its items.
+  In the horizontal view time runs from left to right. The week has one row per day with the hours as columns and lanes for
+  overlapping entries. There is no day mode: zooming the days shows a few of them. Dragging or scrolling sideways only pans
+  the time, it never goes to another week (that is what the previous and next buttons are for). Cards get wider instead of taller, so a task list has room for its items.
   Time (pixels per hour) and the days (row height) zoom independently: pinch zooms both, Ctrl or Cmd with the wheel zooms
   time, Shift+Ctrl or Alt with the wheel zooms the day height, and each axis has its + and - buttons. The surface pans
   sideways and down by drag or wheel. The hour axis on top and the day labels on the left stay in view. The zoom is
@@ -18,10 +19,9 @@ Feature: Labs: the horizontal view
     Then the horizontal view shows 7 day rows
     And in the horizontal view "Dentist" is left of "Lunch" in the same row
 
-  Scenario: The horizontal day shows one row with the hours left to right
+  Scenario: The removed day mode shows the week
     When I open the horizontal day view for 2026-10-14
-    Then the horizontal view shows 1 day rows
-    And in the horizontal view "Dentist" is left of "Lunch" in the same row
+    Then the horizontal view shows 7 day rows
 
   Scenario: Zooming time makes events wider
     When I open the horizontal view for 2026-10-14
@@ -37,6 +37,11 @@ Feature: Labs: the horizontal view
     And I zoom the horizontal view in days with Alt+wheel
     Then the day rows of the horizontal view are taller than noted
 
+  Scenario: Zooming days shows only a few days on screen
+    When I open the horizontal view for 2026-10-14
+    And I zoom the horizontal view in days to the maximum
+    Then the horizontal view shows between 2 and 3 days on screen
+
   Scenario: The zoom buttons work for each axis
     When I open the horizontal view for 2026-10-14
     And I note the width of "Dentist" in the horizontal view
@@ -51,6 +56,13 @@ Feature: Labs: the horizontal view
     Then the horizontal view does not show the hour 18:00
     When I scroll the horizontal view sideways
     Then the horizontal view shows the hour 18:00
+
+  Scenario: Dragging sideways pans the time and does not change the week
+    When I open the horizontal view for 2026-10-14
+    And I note the scroll position of the horizontal view
+    And I drag the horizontal view sideways with a finger
+    Then the horizontal view has panned
+    And the URL path is "/horizontal/2026-10-14"
 
   Scenario: Overlapping events get separate lanes
     Given the calendar contains an event "Review" on 2026-10-15 from 10:00 to 12:00

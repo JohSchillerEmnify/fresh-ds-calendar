@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * Labs horizontal view: time runs left to right. The week has one row per day with the hours as columns, the day is one row
- * with lanes for overlapping entries (ARCHITECTURE "Labs: Horizontal view"). Time (pixels per hour) and the day height zoom
+ * Labs horizontal view: time runs left to right. The week has one row per day with the hours as columns and lanes for
+ * overlapping entries (ARCHITECTURE "Labs: Horizontal view"); zooming the days shows a few of them. The route opts out of the
+ * shell's swipe navigation (`meta.noSwipe`), so a sideways drag only pans the time. Time (pixels per hour) and the day height zoom
  * independently; the surface pans sideways and down. It is the zoom month's world: laid out once per committed zoom, moved by
  * a CSS transform while a gesture runs (`zoomGestures.ts`), with the sticky hour axis and day labels following the same
  * transform on their own axis. Entries are the calendar's own components (`ItemView`: events, `TaskListCard`).
@@ -23,7 +24,7 @@ import { t } from '@/i18n';
 import { createZoomController } from '../zoom/zoomGestures';
 import {
   DEFAULT_ZOOM, hourStep, horizontalModel, layoutRows, MAX_ZX, MAX_ZY, MIN_ZX, MIN_ZY, panToHour, pxPerHour, readStoredHZoom, START_HOUR, stepAxis,
-  writeStoredHZoom, type HMode,
+  writeStoredHZoom,
 } from './htime';
 
 const route = useRoute();
@@ -36,8 +37,9 @@ const ui = useUiStore();
 const filters = useFilters();
 
 const anchorDate = computed(() => parseIsoDate(route.params.param as string) ?? clock.todayDate);
-const mode = computed<HMode>(() => (route.query.mode === 'day' ? 'day' : 'week'));
-const days = computed(() => (mode.value === 'day' ? [anchorDate.value] : weekDays(anchorDate.value)));
+const days = computed(() => weekDays(anchorDate.value));
+// The removed day mode: an old `?mode=day` link shows the week.
+watch(() => route.query.mode, (m) => { if (m !== undefined) void router.replace({ path: route.path, query: { ...route.query, mode: undefined } }); }, { immediate: true });
 
 const port = ref<HTMLElement | null>(null);
 const world = ref<HTMLElement | null>(null);
@@ -54,7 +56,7 @@ function segsOf(date: string): Segment[] {
   return filters.active.value ? l.filter((s) => filters.matches(s.item)) : l;
 }
 const dayList = computed(() => days.value.map((d) => ({ date: toIsoDate(d), segs: segsOf(toIsoDate(d)) })));
-const layoutAt = (z: { x: number; y: number }) => layoutRows(dayList.value, vw.value, vh.value, z, mode.value);
+const layoutAt = (z: { x: number; y: number }) => layoutRows(dayList.value, vw.value, vh.value, z);
 const layout = computed(() => layoutAt(zoom.value));
 const pph = computed(() => pxPerHour(vw.value, zoom.value.x));
 const hours = computed(() => { const s = hourStep(pph.value); return Array.from({ length: Math.ceil(24 / s) }, (_, i) => i * s); });
@@ -90,8 +92,8 @@ watch([vw, vh], ([w, h]) => {
   const s = ctl.state();
   ctl.set(s.z, s.x, s.y);
 });
-// Another mode or week lays out new rows; the pan is kept inside the new world.
-watch([mode, () => toIsoDate(anchorDate.value)], async () => {
+// Another week lays out new rows; the pan is kept inside the new world.
+watch(() => toIsoDate(anchorDate.value), async () => {
   await nextTick();
   const s = ctl.state();
   ctl.set(s.z, s.x, s.y);
@@ -120,22 +122,18 @@ function openDay(iso: string): void {
 }
 
 const zoomAxis = (axisName: 'x' | 'y', dir: 1 | -1) => ctl.zoomTo(stepAxis(zoom.value, axisName, dir), vw.value / 2, vh.value / 2);
-const go = (q: { mode?: string; date?: string }) =>
-  router.push({ path: `/horizontal/${q.date ?? toIsoDate(anchorDate.value)}`, query: { ...route.query, mode: q.mode ?? route.query.mode } });
-const shift = (dir: 1 | -1) => go({ date: toIsoDate(addDays(anchorDate.value, dir * (mode.value === 'day' ? 1 : 7))) });
-const title = computed(() => periodTitle(mode.value, anchorDate.value));
+const shift = (dir: 1 | -1) => router.push({ path: `/horizontal/${toIsoDate(addDays(anchorDate.value, dir * 7))}`, query: route.query });
+const title = computed(() => periodTitle('week', anchorDate.value));
 const atMin = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x <= MIN_ZX : zoom.value.y <= MIN_ZY);
 const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value.y >= MAX_ZY);
 </script>
 
 <template>
-  <section class="ht-view" data-testid="htime-view" :data-mode="mode" :data-zoom-x="zoom.x.toFixed(2)" :data-zoom-y="zoom.y.toFixed(2)">
+  <section class="ht-view" data-testid="htime-view" :data-zoom-x="zoom.x.toFixed(2)" :data-zoom-y="zoom.y.toFixed(2)">
     <header class="bar">
       <button type="button" class="btn icon" data-testid="htime-prev" :aria-label="t('calendar.topBar.previous')" @click="shift(-1)">‹</button>
       <span class="title" data-testid="htime-title">{{ title }}</span>
       <button type="button" class="btn icon" data-testid="htime-next" :aria-label="t('calendar.topBar.next')" @click="shift(1)">›</button>
-      <button type="button" class="btn" :class="{ on: mode === 'week' }" data-testid="htime-mode-week" @click="go({ mode: 'week' })">{{ t('views.week') }}</button>
-      <button type="button" class="btn" :class="{ on: mode === 'day' }" data-testid="htime-mode-day" @click="go({ mode: 'day' })">{{ t('views.day') }}</button>
       <span class="grp">
         <button type="button" class="btn icon" data-testid="htime-time-out" :aria-label="t('horizontal.timeOut')" :disabled="atMin('x')" @click="zoomAxis('x', -1)">↔−</button>
         <button type="button" class="btn icon" data-testid="htime-time-in" :aria-label="t('horizontal.timeIn')" :disabled="atMax('x')" @click="zoomAxis('x', 1)">↔+</button>

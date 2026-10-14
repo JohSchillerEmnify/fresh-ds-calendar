@@ -2,6 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import type { World } from './support/world.js';
+import { touchDrag } from './support/ui.js';
 
 const view = (w: World) => w.byTestId('htime-view');
 const port = (w: World) => w.byTestId('htime-port');
@@ -130,4 +131,32 @@ When('I scroll the horizontal view sideways', async function (this: World) {
 
 When('I tap the day label {date} in the horizontal view', async function (this: World, date: string) {
   await this.byTestId('htime-day-label', `[data-date="${date}"]`).click();
+});
+
+/** Zooms the days with the button until it is disabled (the largest zoom). */
+When('I zoom the horizontal view in days to the maximum', async function (this: World) {
+  const btn = this.byTestId('htime-day-in');
+  for (let i = 0; i < 12 && (await btn.isEnabled()); i++) await btn.click();
+  await expect(btn).toBeDisabled();
+});
+
+Then('the horizontal view shows between {int} and {int} days on screen', async function (this: World, lo: number, hi: number) {
+  const [p, r] = [(await port(this).boundingBox())!, (await this.byTestId('htime-row').first().boundingBox())!];
+  expect(p.height / r.height).toBeGreaterThanOrEqual(lo - 0.05);
+  expect(p.height / r.height).toBeLessThanOrEqual(hi + 0.05);
+});
+
+/** Left edge of the hour 00:00 label: it follows the pan of the time axis. */
+const panX = async (w: World) => (await w.byTestId('htime-hour', '[data-hour="0"]').boundingBox())!.x;
+const panNoted = new WeakMap<World, number>();
+When('I note the scroll position of the horizontal view', async function (this: World) { panNoted.set(this, await panX(this)); });
+
+When('I drag the horizontal view sideways with a finger', async function (this: World) {
+  const p = (await port(this).boundingBox())!;
+  const [x, y] = [p.x + p.width / 2, p.y + p.height / 2];
+  await touchDrag(this.page, { x: x + 110, y }, { x: x - 110, y }, { durationMs: 150 });
+});
+
+Then('the horizontal view has panned', async function (this: World) {
+  await expect.poll(async () => Math.abs((await panX(this)) - panNoted.get(this)!)).toBeGreaterThan(40);
 });

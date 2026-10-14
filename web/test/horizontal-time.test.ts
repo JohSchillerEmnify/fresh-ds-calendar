@@ -19,6 +19,11 @@ describe('two-axis zoom', () => {
     expect(clampHZoom({ x: 99, y: 0.1 })).toEqual({ x: MAX_ZX, y: MIN_ZY });
     expect(clampHZoom({ x: Number.NaN, y: 2 })).toEqual({ x: MIN_ZX, y: 2 });
   });
+  it('at the largest day zoom two to three days fill the height', () => {
+    const rows = 700 / baseRowHeight(700, MAX_ZY);
+    expect(rows).toBeGreaterThanOrEqual(2);
+    expect(rows).toBeLessThanOrEqual(3);
+  });
   it('a button step changes one axis only', () => {
     expect(stepAxis({ x: 2, y: 2 }, 'x', 1)).toEqual({ x: 2.5, y: 2 });
     expect(stepAxis({ x: 2, y: 2 }, 'y', -1).x).toBe(2);
@@ -76,8 +81,8 @@ describe('horizontal layout', () => {
   const pph = 100;
   it('derives pixels per hour and row height from viewport and zoom', () => {
     expect(pxPerHour(480, 3)).toBe(60);
-    expect(baseRowHeight(700, 1, 'week')).toBe(100);
-    expect(baseRowHeight(700, 2, 'week')).toBe(200);
+    expect(baseRowHeight(700, 1)).toBe(100);
+    expect(baseRowHeight(700, 2)).toBe(200);
     expect(hourStep(60)).toBe(1);
     expect(hourStep(12)).toBe(6);
   });
@@ -116,10 +121,10 @@ describe('horizontal layout', () => {
   });
   it('stacks rows and sizes the world; zooming days makes rows taller, time wider', () => {
     const days = [{ date: 'a', segs: [ev('a', 600, 660)] }, { date: 'b', segs: [] }];
-    const l1 = layoutRows(days, 240, 700, { x: 1, y: 1 }, 'week');
+    const l1 = layoutRows(days, 240, 700, { x: 1, y: 1 });
     expect(l1.rows[1]!.top).toBe(l1.rows[0]!.height);
     expect(l1.width).toBe(240);
-    const l2 = layoutRows(days, 240, 700, { x: 4, y: 2 }, 'week');
+    const l2 = layoutRows(days, 240, 700, { x: 4, y: 2 });
     expect(l2.rows[0]!.height).toBeGreaterThan(l1.rows[0]!.height);
     expect(l2.rows[0]!.cards[0]!.width).toBeGreaterThan(l1.rows[0]!.cards[0]!.width);
   });

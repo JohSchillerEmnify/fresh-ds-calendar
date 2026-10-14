@@ -45,11 +45,11 @@ function viewRoute(view: ViewKind): RouteRecordRaw {
 }
 
 /** Experimental Labs views (always routable; the view switcher offers them only with Labs on). */
-const labDated = (name: 'clock' | 'strip' | 'zoom' | 'horizontal', component: () => Promise<unknown>): RouteRecordRaw => ({
+const labDated = (name: 'clock' | 'strip' | 'zoom' | 'horizontal', component: () => Promise<unknown>, noSwipe = false): RouteRecordRaw => ({
   path: `/${name}/:param`,
   name,
   component: component as () => Promise<Component>,
-  meta: { lab: name },
+  meta: { lab: name, noSwipe },
   beforeEnter: (to) => (parseParam('day', to.params.param as string) ? true : { path: `/${name}/${toIsoDate(useClockStore().todayDate)}`, replace: true }),
 });
 
@@ -69,7 +69,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/timeline', name: 'timeline', component: () => import('@/features/labs/timeline/TimelineView.vue'), meta: { lab: 'timeline' } },
   labDated('strip', () => import('@/features/labs/strip/StripView.vue')),
   labDated('zoom', () => import('@/features/labs/zoom/ZoomMonthView.vue')),
-  labDated('horizontal', () => import('@/features/labs/htime/HorizontalTimeView.vue')),
+  labDated('horizontal', () => import('@/features/labs/htime/HorizontalTimeView.vue'), true),
   { path: '/tasks', name: 'tasks', component: () => import('@/features/tasklists/TasksView.vue'), meta: { tasks: true } },
   { path: '/signin', name: 'signin', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
   { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { settings: true } },

@@ -76,8 +76,8 @@ const switchTo = (id: string) => { void nav.switchView(id as ViewKind | 'tasks')
 const filterShown = computed(() => hasShell.value && !route.meta.tasks && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
-/** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, and outside the calendar. */
-const swipeDisabled = () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
+/** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, outside the calendar, and on views that pan sideways themselves. */
+const swipeDisabled = () => !!route.meta.noSwipe || isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
 let undo: Array<() => void> = [];
 onMounted(() => {
   undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }));

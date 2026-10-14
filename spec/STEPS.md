@@ -1067,6 +1067,11 @@ I zoom the zoom month in with Ctrl+wheel
 I tap the day number {date} in the zoom month
 I open the horizontal view for {date}
 I open the horizontal day view for {date}
+I zoom the horizontal view in days to the maximum
+the horizontal view shows between {int} and {int} days on screen
+I note the scroll position of the horizontal view
+I drag the horizontal view sideways with a finger
+the horizontal view has panned
 the horizontal view shows {int} day rows
 in the horizontal view {string} is left of {string} in the same row
 in the horizontal view {string} and {string} are in separate lanes of the same row
@@ -1112,7 +1117,7 @@ I tap the day label {date} in the horizontal view
   `data-detail`; `zoom-cell` (`data-date`, `data-count` = entries of the day), `zoom-time` (`data-weight`) before a timed event
   in `zoom-entries`. "shows the whole month": zoom 1 and the last cell lies inside `zoom-port`. "Ctrl+wheel": a `wheel`
   event with `ctrlKey` on `zoom-port`; the zoom is remembered in `sessionStorage` `cal.zoomMonth`.
-- Horizontal view: `htime-view` carries `data-mode` (`week|day`), `data-zoom-x` (time) and `data-zoom-y` (days);
+- Horizontal view: `htime-view` carries `data-zoom-x` (time) and `data-zoom-y` (days);
   `htime-row` (`data-date`) per day, `htime-day-label` (`data-date`), `htime-hour` (`data-hour`) in the sticky axis,
   `htime-port` the viewport; events are the usual `event-chip`. "left of ... in the same row": both chips lie in the same
   `htime-row` and the first one's left edge is smaller. "separate lanes": same row, their boxes overlap in x and not in y.
@@ -1120,7 +1125,11 @@ I tap the day label {date} in the horizontal view
   widths. "Ctrl+wheel" / "Alt+wheel": a `wheel` event on `htime-port` with `ctrlKey` / `altKey` (deltaY -300); the zoom is
   remembered in `sessionStorage` `cal.zoomHTime`. "shows the hour H": the `htime-hour` label's box lies inside the port's
   horizontal span. "scroll sideways": a plain `wheel` event with a large `deltaX` on the port. The time buttons are
-  `htime-time-in`, the day buttons `htime-day-in`.
+  `htime-time-in`, the day buttons `htime-day-in`. "I open the horizontal day view" opens the removed `?mode=day` link
+  (it shows the week). "zoom in days to the maximum": press `htime-day-in` until it is disabled; "between N and M days on
+  screen": port height / row height lies in that range. "drag sideways with a finger": a CDP touch drag of 220 px right to
+  left across the port (`touchDrag`, 150 ms); "scroll position" is the left edge of the `htime-hour` 00:00 label, "has
+  panned" that it moved by more than 40 px.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
