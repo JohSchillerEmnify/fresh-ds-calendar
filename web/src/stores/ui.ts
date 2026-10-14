@@ -61,10 +61,9 @@ export const useUiStore = defineStore('ui', () => {
   function closeDialog(): void {
     dialog.value = null;
   }
-  /** Expands the card of that list and day, or collapses it when it already is; another expanded card collapses. */
-  function toggleCard(card: ExpandedCard): void {
-    const c = expandedCard.value;
-    expandedCard.value = c && c.id === card.id && c.date === card.date ? null : { ...card };
+  /** Expands the card of that list and day (a set, never a toggle: a tap on a collapsed card always opens it); another expanded card collapses. */
+  function expandCard(card: ExpandedCard): void {
+    expandedCard.value = { ...card };
   }
   /** Collapses the expanded card; with `card` only when it is that one (a card going away must not close a newer one). */
   function collapseCard(card?: ExpandedCard): void {
@@ -81,5 +80,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, toggleCard, collapseCard, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, dismiss };
 });

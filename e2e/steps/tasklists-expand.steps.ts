@@ -48,8 +48,11 @@ Then('the expanded task list overlaps the event {string}', async function (this:
   const g = await rectOf(grown(this));
   const e = await rectOf(this.eventChip(title));
   expect(g.bottom, 'grown card reaches into the event').toBeGreaterThan(e.y + 4);
-  // and it is on top there
-  const onTop = await this.page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[data-testid="tasklist-expanded"]'), { x: e.x + e.width / 2, y: e.y + 2 });
+  // and it is on top there: at the middle of the horizontal overlap. The card is only as wide as its content, so a short one
+  // may not reach sideways under a neighbouring event at all; then it only reaches into the event's time span.
+  const [l, r] = [Math.max(g.x, e.x), Math.min(g.right, e.right)];
+  if (r <= l) return;
+  const onTop = await this.page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[data-testid="tasklist-expanded"]'), { x: (l + r) / 2, y: e.y + 2 });
   expect(onTop, 'the grown card is above the event').toBe(true);
 });
 
@@ -195,6 +198,35 @@ Then('the expanded task list has the left and width of the day column of {string
   await expect.poll(async () => { const g = await rectOf(grown(this, title)); return Math.max(Math.abs(g.x - (col.x + 2)), Math.abs(g.right - (col.right - 1))); }).toBeLessThanOrEqual(2);
 });
 
+Then('the expanded task list is only as wide as its content needs, within the day column of {string}', async function (this: World, title: string) {
+  const col = await rectOf(columnOf(this, title));
+  const card = await rectOf(this.taskCard(title));
+  await expect.poll(async () => {
+    const g = await rectOf(grown(this, title));
+    // natural content width: the grown card cloned at max-content with unwrapped title row and item rows (padding included)
+    const natural = await grown(this, title).getByTestId('tasklist-card-grown').evaluate((c) => {
+      const k = c.cloneNode(true) as HTMLElement;
+      Object.assign(k.style, { position: 'absolute', visibility: 'hidden', left: '0', top: '0', width: 'max-content', maxWidth: 'none', containerType: 'normal' });
+      k.querySelectorAll<HTMLElement>('.title, .tx, .it, .items').forEach((e) => { e.style.whiteSpace = 'nowrap'; e.style.flex = 'none'; });
+      k.querySelectorAll<HTMLElement>('.row').forEach((e) => { e.style.flexWrap = 'nowrap'; });
+      c.parentElement!.appendChild(k);
+      const w = k.getBoundingClientRect().width;
+      k.remove();
+      return w;
+    });
+    const colWidth = col.right - 1 - (col.x + 2);
+    const inside = g.x >= col.x + 2 - 2 && g.right <= col.right - 1 + 2;
+    const wideEnough = g.width >= card.width - 2;
+    const fits = natural > colWidth ? Math.abs(g.width - colWidth) <= 2 : Math.abs(g.width - Math.max(natural, card.width)) <= 6;
+    return { inside, wideEnough, fits };
+  }).toEqual({ inside: true, wideEnough: true, fits: true });
+});
+
+Then('the expanded task list is narrower than the day column of {string}', async function (this: World, title: string) {
+  const col = await rectOf(columnOf(this, title));
+  await expect.poll(async () => col.width - (await rectOf(grown(this, title))).width).toBeGreaterThanOrEqual(20);
+});
+
 Then('the expanded task list has no scrollbars and no sideways overflow', async function (this: World) {
   await expect.poll(() => grown(this).evaluate((e) => {
     const cs = getComputedStyle(e);
@@ -235,20 +267,26 @@ Then('the expanded task list keeps its offset to the card {string} when the grid
 });
 
 /** One Ctrl+wheel gesture on the time grid scroller; the grid commits (`data-hour-height` changes) once the gesture settled. */
-async function zoomTimeGrid(w: World, deltaY: number) {
+async function zoomTimeGrid(w: World, deltaY: number, at: 'card' | 'lower edge' | 'top edge' = 'card') {
   const grid = w.byTestId('time-grid');
   const before = await grid.getAttribute('data-hour-height');
   // over the grown card when there is one: the time under the pointer stays in place, so the card stays in view
   const g = grown(w);
-  const at = (await g.count()) ? await rectOf(g) : await rectOf(w.page.locator('[data-scroll-area]'));
+  // 'lower edge': the pinch centre sits on the bottom of the grown card, so the collapsed card's time moves up the screen while the card stays on it;
+  // 'top edge': the centre is the scroller's top, far from the card, so the card's time really leaves the screen
+  const area = await rectOf(w.page.locator('[data-scroll-area]'));
+  const card = (await g.count()) ? await rectOf(g) : area;
+  const pt = at === 'top edge' ? { x: area.x + area.width / 2, y: area.y + 1 } : at === 'lower edge' ? { x: card.x + card.width / 2, y: card.bottom - 4 } : { x: card.x + card.width / 2, y: card.y + Math.min(card.height / 2, 40) };
   await w.page.locator('[data-scroll-area]').evaluate((el, p) => {
     el.dispatchEvent(new WheelEvent('wheel', { deltaY: p.deltaY, ctrlKey: true, clientX: p.x, clientY: p.y, bubbles: true, cancelable: true }));
-  }, { deltaY, x: at.x + at.width / 2, y: at.y + Math.min(at.height / 2, 40) });
+  }, { deltaY, x: pt.x, y: pt.y });
   await expect(grid).not.toHaveAttribute('data-hour-height', before ?? '');
 }
 
 When('I zoom the time grid in', async function (this: World) { await zoomTimeGrid(this, -300); });
 When('I zoom the time grid out', async function (this: World) { await zoomTimeGrid(this, 300); });
+When('I zoom the time grid in on the lower edge of the grown card', async function (this: World) { await zoomTimeGrid(this, -300, 'lower edge'); });
+When('I zoom the time grid in far from the grown card', async function (this: World) { await zoomTimeGrid(this, -300, 'top edge'); });
 
 Then('the real time block of the expanded task list matches the card {string}', async function (this: World, title: string) {
   await expect.poll(async () => {

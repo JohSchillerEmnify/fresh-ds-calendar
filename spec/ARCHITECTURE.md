@@ -1643,12 +1643,25 @@ actually longer". Owner decisions (final):
   - *Grow only what's needed* (owner's choice): the card goes to the full day-column width only when its own slot cuts the
     title or items; it grows taller only when items are cut. A card that already shows its whole title and every open item
     does not grow at all: a tap opens the list sheet directly (as the second tap would).
+  - **Fix 2026-10-14 (3), width only as needed (owner, screenshot: a 15 min "Einkaufen" beside "Abend zu zweit" grew to the
+    full screen width with short items)**: the first build read the rule above as "any cut → the full column". To Be: the grown
+    card is **only as wide as its content needs** (the widest of its title row and item rows at their natural, unwrapped
+    width, plus the card padding), never narrower than its own slot and never wider than the day column (inside its border);
+    it keeps the slot's left edge and only widens to the right, unless that would leave the column, then it shifts left
+    just enough. Its height is its content height (never less than the real time block). Text wraps only when the content is
+    wider than the column. The same holds in the week and the day view.
   - **Why**: the pixel snapshot (re-placed on events) was the source of the duplicate; re-placing on another event (hour
     height watch) would fix this one trigger but stay a separate positioning system that can drift again. Laying the copy out
     in the grid's own time coordinates makes it scale like every other block by construction (owner: "it can't be a
     completely separate component, it should be the same scaling-wise as any other inline calendar event").
+  - *Zoom keeps the card (owner: "zooming closes the card")*: the "out of sight" close in `place()` looked at the collapsed
+    card only. A zoom around a point below the anchor (a pinch on the grown card's extension) moves the anchor's time up and
+    off the top while the grown card, which hangs down from it, is still on screen. **To Be**: the expansion closes only when
+    neither the collapsed card nor the grown card intersects the visible scroll area (`anchorVisible` on both rects). A zoom
+    that really takes the card's time out of view still closes it; one tap on the card then grows it again (`ui.expandedCard` is
+    null after every close path, covered by the `@expand-zoom` scenarios for Escape, tap elsewhere and zoom).
 
-**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.toggleCard`, collapse on unmount; a
+**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.expandCard` (a set: a tap on a collapsed card always expands), collapse on unmount; a
 swipe preview copy never grows). It mounts `ExpandedCard.vue` (lazy chunk), a `position: fixed` wrapper teleported to the
 body (so no ancestor's `overflow: hidden`, such as a month cell, clips it) at the collapsed card's box, re-placed on scroll,
 resize and content size change. Inside it renders `TaskListCard` again with `grown`: every item shown, nothing cut or faded,
