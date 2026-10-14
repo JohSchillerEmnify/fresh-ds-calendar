@@ -178,6 +178,19 @@ When('I collapse the task list', async function (this: World) {
   await expect(this.expanded).toBeHidden();
 });
 
+/** The grown card over the calendar when there is one, else the list sheet or popover. */
+const shownList = async (w: World) => ((await w.byTestId('tasklist-expanded', attr('data-presentation', 'overlay')).count()) ? w.byTestId('tasklist-expanded', attr('data-presentation', 'overlay')) : w.expanded);
+
+Then('the expanded task list items are {string}', async function (this: World, list: string) {
+  const shown = await shownList(this);
+  const overlay = (await shown.getAttribute('data-presentation')) === 'overlay';
+  await expectJoined(shown.getByTestId(overlay ? 'tasklist-card-item' : 'tasklist-item-title'), list);
+});
+
+Then('the expanded task list fits within the viewport', async function (this: World) {
+  await expectInViewport(this.page, await shownList(this));
+});
+
 Then('the task list {string} is expanded', async function (this: World, title: string) {
   await expect(this.byTestId('tasklist-expanded', attr('data-title', title))).toBeVisible();
 });
@@ -189,14 +202,6 @@ Then('the task list {string} is collapsed', async function (this: World, title: 
 
 Then('no task list is expanded', async function (this: World) {
   await expect(this.page.getByTestId('tasklist-expanded')).toHaveCount(0);
-});
-
-Then('the expanded task list items are {string}', async function (this: World, list: string) {
-  await expectJoined(this.expanded.getByTestId('tasklist-item-title'), list);
-});
-
-Then('the expanded task list fits within the viewport', async function (this: World) {
-  await expectInViewport(this.page, this.expanded);
 });
 
 // --- items (act on the expanded list) -------------------------------------------------------------------------

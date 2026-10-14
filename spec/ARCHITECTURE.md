@@ -639,7 +639,7 @@ Rules for implementers:
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
 | `resize-handle-top`, `resize-handle-bottom` | inside the block of the entry being resized (`event-chip` / `tasklist-card`) |
 | `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`) with one `tasklist-card-item` (`data-title`) per item, `tasklist-card-count` (`1/3`), `tasklist-card-time` |
-| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover\|overlay"` (overlay = the card expanded in place over the calendar, also `data-readonly`, "Expanded task list card"); contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("Add item" button in the footer row beside `tasklist-edit` and `tasklist-delete`, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-collapse` (chevron in the head, `aria-expanded`; the `tasklist-view` root has `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
+| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover\|overlay"` (overlay = the card grown in place over the calendar, "Expanded task list card": `data-readonly="true"`, contains one `tasklist-card-grown` (the card rendering, `tasklist-card-title`, `tasklist-card-item` with `data-done`, `tasklist-card-count`, `tasklist-card-time`, the layers `tasklist-grown-real` and `tasklist-grown-ext`), no `tasklist-view`); the sheet and popover contain a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("Add item" button in the footer row beside `tasklist-edit` and `tasklist-delete`, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-collapse` (chevron in the head, `aria-expanded`; the `tasklist-view` root has `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
@@ -1497,48 +1497,57 @@ such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list
 empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
 `extendedProperties.private.untitled = "1"` keeps the app title empty.
 
-### Expanded task list card (owner, 2026-10-14)
+### Expanded task list card (owner, 2026-10-14, reworked the same day)
 
 A task list card is only as tall as its time block, so a long list was cut off and the owner had to change the list's
-time to see it. A tap on the card now expands it **in place**. Owner decisions (final):
+time to see it. A tap on the card now makes **the card itself grow in the same view**: same left, top and width (its
+column), same colour, border, font and title as the collapsed card, only taller, "as if it were longer, but it is not
+actually longer". Owner decisions (final):
 
-- **Views**: the card in the Day, Week and Month view (`TaskListCard`, every variant).
-- **Overlay**: the expanded card grows over the following slots or cells with elevation and a shadow; the calendar
-  underneath does not move or reflow. It stays inside the visible scroll area: down from the card's top, else up from
-  its bottom, else it takes the roomier side and scrolls inside (`placeExpanded` in `features/tasklists/expand.ts`).
-- **Tap toggles**: a tap on the card expands it, a tap on the head of the expansion (it covers the card) collapses it
-  again. This replaces what the tap did before (opening the expanded sheet, `ExpandedTaskList`).
+- **Views**: the card in the Day, Week and desktop Month view (`TaskListCard`, every variant). On the phone's month view a
+  tap still opens the day (`cardClick`).
+- **Growing in place**: the grown card is the collapsed card's own rendering (`TaskListCard` with the prop `grown`) at the
+  collapsed card's left, top and width, with the height its content needs (never less than the collapsed card): header
+  row, every item one per line (ticked ones struck, with their filled marker), the time foot; the title wraps instead of
+  being cut. It lies over the following events, slots or cells (raised z-index, subtle shadow); the calendar underneath
+  does not move or reflow, and the collapsed card keeps its size and look (a short time block stays the one-row inline
+  card). Placement stays in the visible scroll area: down from the card's top, else up from its bottom, else the roomier
+  side with scrolling inside (`placeExpanded` in `features/tasklists/expand.ts`; horizontal position and width are the
+  card's).
+- **The real duration stays recognisable**: the grown card is drawn by two layers behind the same content. The part over
+  the list's real time block (`tasklist-grown-real`, the collapsed card's height) looks exactly like the normal card; the part
+  that only extends it (`tasklist-grown-ext`, below the real end, or above the real start when it grows up) is inset 5 px
+  from both sides, a lighter tone of the card colour, with a thin seam at the real end. The item rows run on across both.
+- **Read-only everywhere**: in every view, the Day view included, the grown card shows done markers only. It has no
+  checkboxes, no edit button, no close button, no resize handles and no drag.
+- **A tap anywhere on the grown card opens the normal list sheet** (`ExpandedTaskList`, the same dialog a calendar tap
+  opened before this feature): item rows and their markers included, they never toggle an item. Ticking, adding, renaming
+  and editing the list happen in the sheet.
+- **Flow**: tap 1 on the collapsed card grows it; tap 2 on the grown card opens the sheet. The grown card collapses on a tap
+  elsewhere (capture-phase click outside; the tapped control still does its own thing), Escape, the system back
+  (`useOverlayHistory`), a change of view or date, a scroll that takes the card out of sight, a dialog or the sheet opening,
+  the list being deleted, or another card growing. One at a time; `ui.expandedCard` (`{ id, date }`), never stored.
 - **Long press stays as it is**: pick up for drag, release in place shows the resize handles (`useCalendarDrag`).
-- **Editing goes through the expanded card**: an edit button (`tasklist-edit`, label "Edit") in its head opens the
-  existing task list dialog; the card collapses first and gives the focus back to the card, so the dialog remembers it.
-- **Checking items only in the Day view**, inside the expanded card; in the Week and Month view the expanded card is
-  read-only: the items with their done state (`tasklist-item-mark`, `data-done`), no checkboxes, no footer.
-- **State is not stored**: `ui.expandedCard` (`{ id, date }`, in the `ui` store, one at a time). The card closes on a
-  tap on the card again, a tap elsewhere (capture-phase click outside the card and the expansion; the tapped control still
-  does its own thing), Escape, the system back (`useOverlayHistory`), a change of view or date, a scroll that takes the
-  card out of sight, a dialog opening, the list being deleted, or another card expanding.
 
-**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the card button, `ui.toggleCard`, collapse on
-unmount; a swipe preview copy never expands). `ExpandedCard.vue` (lazy chunk) is a `position: fixed` overlay teleported to
-the body, placed over the card's box (re-placed on scroll, resize and content size change) and hosts `TaskListView` with
-`closable overlay` (+ `readonly` outside the Day view). `TaskListView` gained two props: `overlay` (plain title, edit button in
-the head instead of the footer) and `readonly` (done marker instead of the reward checkbox, no add field or footer). In
-the Day view the expansion is the full view otherwise (tick with reward and support cat, add, edit, move and delete items,
-delete the list); renaming the list is the dialog's job.
+**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.toggleCard`, collapse on unmount; a
+swipe preview copy never grows). It mounts `ExpandedCard.vue` (lazy chunk), a `position: fixed` wrapper teleported to the
+body (so no ancestor's `overflow: hidden`, such as a month cell, clips it) at the collapsed card's box, re-placed on scroll,
+resize and content size change. Inside it renders `TaskListCard` again with `grown`: every item shown, nothing cut or faded,
+no drag handlers, wrapping title, `height: auto` with `min-height` of the collapsed card; a click emits `open-list`, which
+`ExpandedCard` turns into `ui.openDialog('tasklist-expanded')` after moving the focus to the collapsed card (the sheet's
+opener). `TaskListView` is untouched by this feature.
 
-**Accessibility.** The card has `aria-expanded`; the expansion is a `role="group"` named after the list and
-`tabindex="-1"`: focus moves into it on open and returns to the card on close (unless the person already focused something
-else). The edit button has the label "Edit" (`tasks.list.edit`); a read-only done item is announced with the existing
-`tasks.list.itemDone` text. **FAB**: while it is open the expansion registers the panel `expanded-task-card`, so the phone's
-"+" slides away and covers no control of it (e2e: "the add button covers no control of the expanded task list").
-Test ids: the expansion is `tasklist-expanded` with `data-presentation="overlay"` and `data-readonly`; the sheet and
-popover presentations of the same test id remain for the other openers of `openItem` (labs views).
+**Accessibility.** The collapsed card has `aria-expanded`; the wrapper is a `role="group"` named after the list; the grown
+card is a button, focused on open (Enter or Space opens the sheet) and the focus returns to the collapsed card on close
+(unless the person already focused something else). **FAB**: while it is open the wrapper registers the panel
+`expanded-task-card`, so the phone's "+" slides away and covers no control of it.
 
-**Why (alternatives weighed).** (a) Reusing the sheet/popover for a taller card was the old behaviour and hid the calendar.
-(b) Growing the card inside its own cell would push the layout and was rejected by the owner (overlay, nothing reflows).
-(c) A per-card absolutely positioned child would be clipped by the time grid's `overflow`; a teleported fixed overlay is
-not, at the price of re-placing on scroll. (d) The full `TaskListView` is reused instead of a second list renderer, so
-the tick logic (rewards, cat, `markFinished`) stays in one place.
+**Why (alternatives weighed).** (a) A separate popover panel with its own header (the first version of this feature) was
+rejected by the owner: wider, differently styled, and its header squeezed the title. (b) Growing the card's own element
+inside its cell would push the layout, and a month cell or the all-day row clips overflow; a teleported fixed copy is the
+same card visually, never clips and never reflows, at the price of re-placing on scroll. (c) Reusing `TaskListCard` (a
+`grown` mode) instead of a second renderer keeps the one look the owner asked for. (d) Read-only plus the sheet keeps
+ticking (rewards, support cat, `markFinished`) in one place, `TaskListView`.
 
 ### One "new" dialog (owner, 2026-10-12)
 

@@ -770,22 +770,20 @@ spec files are named.
   labels only (icons would not fit 8 Labs tabs at 360 px); (d) the phone rail is 64 px wide (the desktop rail is 80 px).
 
 
-## Expanded task list card (owner 2026-10-14)
+## Expanded task list card (owner 2026-10-14, reworked as the card grown in place)
 
 - **A-253 Phone month keeps tap-to-open-the-day** (my choice): the owner listed Day, Week and Month for the in-place
   expansion. On the phone's month view the cards are `pointer-events: none` by design (a tap goes to the cell and opens the
   day, ARCHITECTURE §5) and the cells are far too small to hold a list, so the expansion works in the desktop month view
   and on the phone's Day and Week view. Alternative: also expand in the phone month (needs the cell tap to give way).
   Open question for the owner.
-- **A-254 The Day view expansion keeps the full list view** (my choice, broad reading): "checking items only in the Day
-  view" is read as "the Day view's expanded card is what the sheet was": tick (with reward and support cat), add, rename,
-  move and delete items, delete the list, plus the new edit button; only renaming the list inline went (the title is plain
-  text, its tap collapses; the dialog renames). The sheet's inline editing is no longer reachable from the Week and Month
-  view (read-only there, edit goes through the dialog, which has no item fields once a list exists). Alternative: tick-only
-  in the Day view too. Open question for the owner.
-- **A-255 "Tap on the card toggles"** (my choice): the expansion starts at the card's own top and covers it, so the second tap
-  lands on the head of the expansion: a tap there outside its buttons collapses it. Alternative: start the expansion below
-  the card (the card stays visible and tappable, but the head would repeat).
+- **A-254 Grown card read-only everywhere, a tap opens the list sheet** (owner, 2026-10-14, replaces my broad reading):
+  the grown card has done markers only in every view; a tap anywhere on it opens the normal sheet, where items are
+  ticked and the list is edited. No edit or close button on the grown card.
+- **A-255 Collapse and the second tap** (replaces my earlier choice): the grown card covers the collapsed one, so a second
+  tap lands on it and opens the sheet; collapsing is a tap elsewhere, Escape, back, or the sheet opening.
 - **A-256 Back and dialogs** (my choice, not in the owner's list): the system back closes the expansion first (like every
   overlay), and opening any dialog collapses it. A scroll that takes the card out of sight closes it too, so it never floats
   loose at the edge of the area.
+- **A-257 Long lists scroll inside the grown card** (my choice): a list taller than the visible area makes the grown card
+  scroll inside its box (`max-height` from `placeExpanded`); the all-day row's own scroll area is not specially handled.

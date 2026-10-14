@@ -13,20 +13,17 @@ export interface Placement {
 
 /** Room kept between the card and the edge of the area it must stay in. */
 export const EXPAND_MARGIN = 8;
-/** The expanded card is never narrower than this, even over a narrow month cell or week column. */
-export const EXPAND_MIN_WIDTH = 240;
 
 /**
  * Place the expanded card over its collapsed `anchor` inside `bounds` (the visible part of the scroll area).
  * It starts at the anchor's top and grows down; with too little room below it grows up from the anchor's bottom; when
- * neither side holds `contentH` it takes the roomier side and `maxHeight` makes it scroll inside. Horizontally it keeps
- * the anchor's left edge and is pulled back inside `bounds`.
+ * neither side holds `contentH` it takes the roomier side and `maxHeight` makes it scroll inside. Horizontally it is the
+ * anchor's own column: exactly the same left edge and width.
  */
-export function placeExpanded(anchor: Box, bounds: Box, contentH: number, minWidth = EXPAND_MIN_WIDTH): Placement {
+export function placeExpanded(anchor: Box, bounds: Box, contentH: number): Placement {
   const m = EXPAND_MARGIN;
-  const room = bounds.right - bounds.left - 2 * m;
-  const width = Math.max(0, Math.min(Math.max(anchor.right - anchor.left, minWidth), room));
-  const left = Math.max(bounds.left + m, Math.min(anchor.left, bounds.right - m - width));
+  const width = anchor.right - anchor.left;
+  const left = anchor.left;
   const below = Math.max(0, bounds.bottom - m - anchor.top);
   const above = Math.max(0, anchor.bottom - (bounds.top + m));
   if (contentH <= below) return { left, top: anchor.top, width, maxHeight: below, dir: 'down' };

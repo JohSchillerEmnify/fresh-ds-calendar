@@ -237,7 +237,16 @@ I move the item {string} down
 I edit the task list details
 I delete the task list
 I tap the task list {string}
-I tap the task list {string} again
+I tap the expanded task list {string}
+I tap the item {string} of the expanded task list
+I note where the event {string} is
+the event {string} has not moved
+the expanded task list overlaps the event {string}
+the expanded task list has the left and width of the card {string}
+the expanded task list shows the full title {string}
+the expanded task list shows the real time block of the card {string} and a slimmer extension starting at its end
+the task list card {string} is still the one-row inline card of its time block
+the task list {string} opens as the list sheet
 I tap outside the expanded task list
 I note where the task list cards are
 the task list cards have not moved
@@ -259,15 +268,22 @@ is at or under the bottom of `tasklist-card-title`, "next to" = it shares the ti
 visible text part of the card (`tasklist-card-time`, `tasklist-card-items`, `tasklist-card-count`).
 "for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
-Expanded card (`tasklists-expand.feature`; ARCHITECTURE "Expanded task list card"): "I expand the task list X" taps the card
-(the expansion is `tasklist-expanded` with `data-presentation="overlay"`); "I tap the task list X" is the same click without
-waiting for the expansion; "again" taps the title in the head of the expansion (it covers the card, its head is where the card was). "I tap outside the expanded task list" clicks a point of the
-viewport that is outside the expansion and not on a button, link or field. "I note where the task list cards are" records the
-box of every `tasklist-card`; "have not moved" compares them (within 1 px) after the expansion. "is expanded over the
-calendar": the expansion is an overlay (`data-presentation="overlay"`), the card has `aria-expanded="true"` and the
-expansion is the top element at its own centre (it covers what lies below). "shows the item I as done and J as open":
-`tasklist-item` rows with `data-done` true / false; "has no checkboxes": no `tasklist-item-checkbox` inside it. "the focus is
-inside" / "the card has the focus": `document.activeElement` is within the expansion / is the card button.
+Expanded card (`tasklists-expand.feature`; ARCHITECTURE "Expanded task list card"): "I expand the task list X" opens the list
+sheet: it taps the card, waits for the grown card (`tasklist-expanded` with `data-presentation="overlay"`), taps it and waits
+for the sheet. "I tap the task list X" is only the first tap; "I tap the expanded task list X" taps the grown card
+(`tasklist-card-grown`), "the item I of the expanded task list" an item row (`tasklist-card-item`) of it. "opens as the list
+sheet": a `tasklist-expanded` that is not the overlay is visible and the overlay is gone. "I tap outside the expanded task
+list" clicks a point of the viewport outside it and not on a button, link or field. "I note where the task list cards are" /
+"the event X" record the boxes of the `tasklist-card`s / the event chip; "have not moved" compares them (within 1 px) after
+the expansion. "is expanded over the calendar": the overlay is visible, the collapsed card has `aria-expanded="true"` and
+the overlay is the top element at its own centre. "has the left and width of the card X": the grown card's box equals the
+collapsed card's left and width within 2 px. "overlaps the event X": the grown card reaches into the event's box and is the
+top element there. "shows the full title": `tasklist-card-title` of the grown card has the whole text, is not clipped
+(`scrollWidth <= clientWidth`) and lies inside the card. "shows the real time block ... and a slimmer extension": the grown card's `tasklist-grown-real` layer has the height of the collapsed card (2 px), `tasklist-grown-ext` starts at its end (2 px, below it) and is narrower; "is still the one-row inline card of its time block": the
+collapsed card has `data-fit="inline"` and the height of its time block (parent box, 2 px). "shows the item I as done and J as
+open": `tasklist-card-item` `data-done` true / false in the overlay; "has no checkboxes": no input, checkbox, edit or close
+button inside it. "the focus is inside" / "the card has the focus": `document.activeElement` is within the overlay / is the
+collapsed card button.
 
 ## Google (provider) side
 

@@ -22,19 +22,10 @@ describe('placeExpanded', () => {
     const p = placeExpanded(box(20, 600, 300, 40), view, 5000);
     expect(p).toMatchObject({ top: 640 - 632, dir: 'up', maxHeight: 632 });
   });
-  it('is never narrower than the minimum over a narrow cell, and is pulled back inside at the right edge', () => {
-    const p = placeExpanded(box(350, 100, 40, 20), view, 100);
-    expect(p.width).toBe(240);
-    expect(p.left).toBe(400 - 8 - 240);
-  });
-  it('never leaves the left margin', () => {
-    expect(placeExpanded(box(-30, 100, 300, 40), view, 100).left).toBe(8);
-  });
-  it('shrinks to a narrow area', () => {
-    const narrow: Box = { left: 0, top: 0, right: 200, bottom: 800 };
-    const p = placeExpanded(box(0, 100, 60, 40), narrow, 100);
-    expect(p.width).toBe(184);
-    expect(p.left).toBe(8);
+  it('always has the left and width of the collapsed card, even a narrow one at the edge', () => {
+    expect(placeExpanded(box(350, 100, 40, 20), view, 100)).toMatchObject({ left: 350, width: 40 });
+    expect(placeExpanded(box(-30, 100, 300, 40), view, 100)).toMatchObject({ left: -30, width: 300 });
+    expect(placeExpanded(box(390, 100, 40, 20), view, 100)).toMatchObject({ left: 390, width: 40 });
   });
 });
 
