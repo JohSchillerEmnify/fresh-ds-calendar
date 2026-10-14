@@ -793,8 +793,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
   `settings-approach-bar`. `labsOwnThemes` (default off) shows the own-theme part of the theme menu (see "Theme engine
   and AI themes").
-- Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
-  flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
+- Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`, `/zoom/:date`. With `labs` on, the view switcher adds them with a
+  flask mark (`view-switch-clock|timeline|strip|zoom`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle as large as the view allows (owner, 2026-10-13), events as arcs labelled with their
@@ -854,6 +854,27 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   Nothing ahead today → the usual "Nothing else today" line. The current-event and next-task lines are unchanged.
 - Owner feedback (v2): every experiment shows time to scale (an item's length is proportional to its duration, never
   equal sizes) and uses the whole available space; all-day entries get their own band above the timed area.
+- Zoom month (owner, 2026-10-14: "a canvas calendar, like the month view, but you can zoom in and out"; route `/zoom/:date`,
+  `web/src/features/labs/zoom/`): the month grid on a world of `viewport x zoom` px. Zoom is continuous, 1 (the whole month
+  fits) to 7 (one day as wide as the viewport), remembered per session in `sessionStorage` `cal.zoomMonth` (not a pref).
+  - *Detail follows the cell size, not a mode* (`zoom.ts`, pure): the cell size is computed from the viewport and zoom (never
+    measured per cell), and `detailAt(w, h)` turns its geometric mean `s` into weights that fade with smoothstep: dots out
+    85..120, title chips in 80..115, start times in 150..200, task lists growing from a chip to the full card (`TaskListCard`,
+    height by need, `allotHeights`) 170..230, mini day timeline (`ZoomTimeline`: untimed band with every task item as a
+    full card over a 24 h grid, blocks as `ItemView` `block`) 300..400, which replaces the chips by crossfade. Layers are
+    mounted only while their weight is above 0.01. Cells further than half a viewport from the visible part draw only their number.
+  - *Gestures* (`zoomGestures.ts`): pinch, Ctrl/Cmd+wheel and trackpad pinch (Ctrl+wheel) zoom about the gesture point
+    (`panAfterZoom`); drag and wheel pan; the zoom buttons (`zoom-in`/`zoom-out`, in the header, step x1.25 about the
+    middle) are the accessible path. During a gesture ONLY a CSS transform changes (set directly on the DOM, no Vue
+    render); the grid is laid out once when the gesture ends (all fingers up, or 140 ms after the last wheel event).
+    The viewport is measured with `box: 'border-box'` and its size does not depend on its content, as in the month view's
+    measuring-loop fix (no feedback loop). Pan is clamped so the world covers the viewport.
+  - *Interactions as in the month view*: a tap on a day (number or empty space) opens the day view; on a phone a tap on an entry
+    opens the day, on desktop it opens the entry (event dialog, expandable task list card). No new editing; mouse drags on
+    entries stay with the calendar's drag and drop (`data-zoom-nopan`), a finger drags the surface.
+  - *No bottom control*: the zoom buttons sit in the view header, so the "+" FAB cannot cover them (no overlap scenario).
+  - Why not discrete levels (rejected): owner asked for "stufenlos"; why a transform and not native scroll: pinch anchoring and
+    smooth live zoom need one transform; why `sessionStorage`: owner, "per session, not on the server".
 - Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all
   days with a date divider and an all-day band per day that takes its own room, items as long as they last with
   horizontal readable titles, overlaps side by side (wider on desktop), `timeline-now` as a line, zoom on desktop.

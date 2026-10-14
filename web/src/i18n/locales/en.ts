@@ -31,6 +31,11 @@ export default {
     clock: 'Clock',
     timeline: 'Timeline',
     strip: 'Strip',
+    zoom: 'Zoom month',
+  },
+  zoomMonth: {
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
   },
   nav: {
     views: 'Views',

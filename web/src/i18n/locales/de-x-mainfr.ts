@@ -25,6 +25,11 @@ export default {
     week: 'Woche',
     day: 'Dag',
     tasks: 'Aufgabn',
+    zoom: 'Zoom-Monad',
+  },
+  zoomMonth: {
+    zoomIn: 'Nei zoomma',
+    zoomOut: 'Naus zoomma',
   },
   nav: {
     views: 'Ansichdn',
