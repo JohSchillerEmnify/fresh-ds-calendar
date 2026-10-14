@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { ApiError } from '@/api/client';
+import { api, ApiError, type SyncErrorBeacon } from '@/api/client';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
 import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
@@ -16,6 +16,8 @@ export function pushWidget(): void {
 
 export type SyncState = 'idle' | 'syncing' | 'error';
 const FOCUS_DEBOUNCE_MS = 500;
+/** A failure within this long after the page became visible again counts as "just resumed". */
+const RESUME_WINDOW_MS = 5000;
 
 /**
  * Background sync. Exactly one polling timer exists app-wide (`pollTimer`), chained after each sync, paused while
@@ -36,6 +38,9 @@ export const useSyncStore = defineStore('sync', () => {
   let started = false;
   let current: Promise<void> | null = null;
   let again = false;
+  let visibleAt = -Infinity;
+  /** A beacon that could not be sent (network down); the next successful sync sends it. */
+  let pending: { beacon: SyncErrorBeacon; at: number } | null = null;
 
   const errorMessage = computed(() => (error.value ? t('calendar.sync.unreachable') : ''));
 
@@ -45,10 +50,31 @@ export const useSyncStore = defineStore('sync', () => {
     return () => { if (tasks.get(name) === fn) tasks.delete(name); };
   }
 
-  function reportError(e: unknown): void {
+  /** Tells the server (which only logs it) why the banner appeared; a send that fails on the network waits for the next good sync. */
+  function sendBeacon(beacon: SyncErrorBeacon, retry: boolean): void {
+    api.diagSyncError(beacon).catch((e) => {
+      if (retry && e instanceof ApiError && e.code === 'NETWORK') pending = { beacon, at: Date.now() };
+    });
+  }
+
+  function beaconFor(e: ApiError, task: string): SyncErrorBeacon {
+    return {
+      kind: e.isAbort ? 'abort' : e.timeout ? 'timeout' : e.status > 0 ? 'http' : 'network',
+      ...(e.status > 0 ? { status: e.status } : {}),
+      task,
+      online: typeof navigator === 'undefined' ? true : navigator.onLine,
+      resumed: Date.now() - visibleAt <= RESUME_WINDOW_MS,
+      app: typeof window !== 'undefined' && 'Capacitor' in window,
+    };
+  }
+
+  /** Shows the banner for an unavailable error; `task` names the failed refresher for the diagnostics beacon. */
+  function reportError(e: unknown, task = 'other'): void {
     if (e instanceof ApiError && e.isUnavailable) {
+      const entering = state.value !== 'error';
       error.value = e;
       state.value = 'error';
+      if (entering) sendBeacon(beaconFor(e, task), true);
     }
   }
   function clearError(): void {
@@ -79,9 +105,10 @@ export const useSyncStore = defineStore('sync', () => {
     }
     const list = [...builtinTasks(), ...tasks.entries()];
     const results = await Promise.allSettled(list.map(([, fn]) => fn()));
-    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected' && !(r.reason instanceof ApiError && r.reason.isAbort));
+    const failedAt = results.findIndex((r) => r.status === 'rejected' && !(r.reason instanceof ApiError && r.reason.isAbort));
+    const failed = failedAt >= 0 ? (results[failedAt] as PromiseRejectedResult) : undefined;
     if (failed) {
-      if (failed.reason instanceof ApiError && failed.reason.isUnavailable) reportError(failed.reason);
+      if (failed.reason instanceof ApiError && failed.reason.isUnavailable) reportError(failed.reason, list[failedAt]![0]);
       else if (!error.value) state.value = 'idle';
       else state.value = 'error';
     } else {
@@ -89,6 +116,11 @@ export const useSyncStore = defineStore('sync', () => {
       state.value = 'idle';
       lastSync.value = new Date().toISOString();
       pushWidget();
+      if (pending) {
+        const p = pending;
+        pending = null;
+        sendBeacon({ ...p.beacon, ageSec: Math.round((Date.now() - p.at) / 1000) }, false);
+      }
     }
     running.value = false;
   }
@@ -142,6 +174,7 @@ export const useSyncStore = defineStore('sync', () => {
       pollTimer = null;
       return;
     }
+    visibleAt = Date.now();
     void syncNow(true).then(schedule);
   }
   function onFocus(): void {

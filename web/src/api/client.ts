@@ -25,13 +25,16 @@ export class ApiError extends Error {
   readonly details: { field?: string; issue?: string }[];
   /** Message key the server sent; translated by {@link userMessage} when the catalogue knows it. */
   readonly key?: string;
-  constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = [], key?: string) {
+  /** The request ran into its time limit (a `TimeoutError`); only used for the diagnostics beacon. */
+  readonly timeout: boolean;
+  constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = [], key?: string, timeout = false) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.details = details;
     this.key = key;
+    this.timeout = timeout;
   }
   /** Network failure, 502 or 503: Google (or the server) cannot be reached. Drives the sync error banner. */
   get isUnavailable(): boolean {
@@ -57,6 +60,18 @@ export class ApiError extends Error {
 
 /** One of the person's imported themes (API.md "Imported themes"). */
 export interface StoredTheme { id: string; doc: ThemeDoc; picture?: ThemePicture }
+
+/** `POST /api/diag/sync-error` body: facts about the failure, nothing about the person's data. */
+export interface SyncErrorBeacon {
+  kind: 'network' | 'timeout' | 'http' | 'abort';
+  status?: number;
+  task: string;
+  online: boolean;
+  resumed: boolean;
+  app: boolean;
+  /** Seconds since the error, set when the beacon could not be sent at once. */
+  ageSec?: number;
+}
 
 export interface RequestOptions {
   signal?: AbortSignal;
@@ -111,7 +126,7 @@ export class ApiClient {
       });
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') throw new ApiError(0, 'ABORTED', 'Request aborted');
-      throw new ApiError(0, 'NETWORK', 'Network error');
+      throw new ApiError(0, 'NETWORK', 'Network error', [], undefined, (e as Error)?.name === 'TimeoutError');
     }
     if (res.headers.get('X-Motivation-Changed') === '1') {
       for (const fn of this.motivationListeners) fn();
@@ -286,6 +301,12 @@ export class ApiClient {
   }
   checkIn(o?: RequestOptions) {
     return this.request<CheckInResponse>('POST', '/api/streak/checkin', undefined, o);
+  }
+
+  // --- diagnostics ---------------------------------------------------------------
+  /** Tells the server the sync error banner is showing (API.md "Diagnostics"); it only logs it. */
+  diagSyncError(b: SyncErrorBeacon, o?: RequestOptions) {
+    return this.request<void>('POST', '/api/diag/sync-error', b, o);
   }
 
   // --- demo data (mock provider only; endpoint not yet in API.md, see web/README.md) --------

@@ -166,6 +166,7 @@ export type ErrorCode =
   | 'PRECONDITION_FAILED'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'
+  | 'RATE_LIMITED'
   | 'INTERNAL';
 
 export interface ApiError {

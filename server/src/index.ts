@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import { serve } from '@hono/node-server';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
+import { VERSION } from './context.js';
+import { logEvent } from './lib/diag.js';
 
 const config = loadConfig();
 fs.mkdirSync(config.dataDir, { recursive: true });
@@ -20,6 +22,8 @@ if (config.provider === 'mock' && config.seed && !config.testMode && app.ctx.moc
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   console.log(`calendar server listening on http://${info.address}:${info.port} (provider=${config.provider}${config.testMode ? ', TEST_MODE' : ''})`);
+  // one line per boot, to correlate restarts (deploys, crashes) with the errors people see
+  logEvent('startup', { version: VERSION, provider: config.provider, node: process.version, pid: process.pid });
 });
 
 for (const sig of ['SIGINT', 'SIGTERM'] as const) {
