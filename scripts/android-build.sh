@@ -2,6 +2,8 @@
 # Builds the Android app (Capacitor shell + home-screen widget) as a release-signed APK and publishes it, so the server
 # hands it out as http://cal.mordor.lan/app.apk (DATA_DIR/downloads/app.apk).
 # Usage: scripts/android-build.sh [--no-publish]
+# The public instance gets the APK from sauron's DOWNLOADS dir through `scripts/vps.sh deploy`.
+# Publishing works from sauron (local copy) and from any other machine (scp/ssh to sauron, SAURON=user@host).
 # Runs on sauron: Gradle builds inside the `calendar-android-build` image (android/build.Dockerfile, built on first use),
 # capped at 3 CPUs / 4 GB with low CPU shares so Pi-hole keeps priority; the APK is copied straight into the data dir.
 # Needs: docker, node 24 + pnpm (see README "Android app").
@@ -11,6 +13,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$HOME/.local/opt/node-v24.21.0-linux-x64/bin:$PATH"
 # the compose mounts deploy/data of the repo on sauron as /data (DATA_DIR) in the container
 DOWNLOADS="/home/sauron/projects/calendar/deploy/data/downloads"
+SAURON="${SAURON:-sauron@192.168.1.38}"
 # not under a dot directory: the build container cannot mount those here; mounted as /key, so storeFile=/key/release.jks
 KEY_DIR="${CAL_ANDROID_KEY_DIR:-$HOME/calendar-android-key}"
 IMAGE="calendar-android-build"
@@ -47,6 +50,12 @@ echo "APK: $APK ($(du -h "$APK" | cut -f1))"
 if [[ "${1:-}" == "--no-publish" ]]; then exit 0; fi
 
 echo "==> publishing to $DOWNLOADS/app.apk"
-mkdir -p "$DOWNLOADS"
-cp "$APK" "$DOWNLOADS/app.apk.part" && chmod 644 "$DOWNLOADS/app.apk.part" && mv "$DOWNLOADS/app.apk.part" "$DOWNLOADS/app.apk"
-curl -s --max-time 5 -o /dev/null -w 'http://cal.mordor.lan/app.apk -> %{http_code} %{content_type}\n' -H 'Host: cal.mordor.lan' http://127.0.0.1/app.apk
+if [[ -d "$DOWNLOADS" ]]; then
+  # on sauron
+  cp "$APK" "$DOWNLOADS/app.apk.part" && chmod 644 "$DOWNLOADS/app.apk.part" && mv "$DOWNLOADS/app.apk.part" "$DOWNLOADS/app.apk"
+  curl -s --max-time 5 -o /dev/null -w 'http://cal.mordor.lan/app.apk -> %{http_code} %{content_type}\n' -H 'Host: cal.mordor.lan' http://127.0.0.1/app.apk
+else
+  # elsewhere: the directory is on sauron, so copy over ssh and move into place there
+  scp -q "$APK" "$SAURON:projects/calendar/deploy/data/downloads/app.apk.new"
+  ssh "$SAURON" 'cd projects/calendar/deploy/data/downloads && chmod 644 app.apk.new && mv app.apk.new app.apk && sha256sum app.apk'
+fi

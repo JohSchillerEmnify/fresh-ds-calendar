@@ -9,7 +9,7 @@ The specs (`spec/ARCHITECTURE.md` §8 Configuration, §9 Owner actions) hold the
 |---|---|---|
 | Production | `http://cal.mordor.lan` (alias `cal.mordor.local`) | automatically after every merge into `main` on sauron |
 | Preview | `http://preview.cal.mordor.lan` | automatically after every merge into the `preview` branch on sauron |
-| Android app | `http://cal.mordor.lan/app.apk` (also Settings → Account & data → Android app) | `scripts/android-build.sh` on sauron (Gradle in Docker) |
+| Android app | `http://cal.mordor.lan/app.apk` and `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | `scripts/android-build.sh` on sauron (Gradle in Docker); `scripts/vps.sh deploy` puts the APK on the VPS |
 | Source mirror | `github.com/JohSchillerEmnify/fresh-ds-calendar` (private), branch `main` | push from a clone (see below) |
 
 Everything is LAN-only: the `*.mordor.lan` names resolve through Pi-hole to `192.168.1.38`; Traefik routes them to the
@@ -128,10 +128,18 @@ scripts/android-build.sh --no-publish
 - The signing key is `~/calendar-android-key/release.jks` (new key since 2026-10-13: the laptop's key is gone, so the app
   had to be reinstalled once; not in a dot directory because the build container cannot mount those here) (password in `keystore.properties` next to it), **outside
   git — back it up**: updates of an installed app must be signed with the same key.
-- The app is a Capacitor shell that loads `http://cal.mordor.lan`; web changes reach it on the next start, no new APK
-  needed. Only native changes (widget, shell) need a rebuild.
+- The app is a Capacitor shell that loads the server chosen on the first start (`https://cal.example.org` or
+  `http://cal.mordor.lan`; Settings → Account & data → Server → Change goes back to the chooser); web changes reach it on
+  the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
+- From another machine than sauron, `scripts/android-build.sh` publishes with scp/ssh to sauron (`SAURON=user@host`). Build
+  with sauron's key (`~/calendar-android-key`): an APK signed with another key cannot update the installed app.
+- **Public server (VPS)**: the APK is not in the image. `scripts/vps.sh deploy` (run on sauron) also copies
+  `deploy/data/downloads/app.apk` into the running app container (`/data/downloads/app.apk`, volume `calendar_data`), so
+  `https://cal.example.org/app.apk` and the Settings button work there. Check:
+  `curl -sI https://cal.example.org/app.apk` (200, `application/vnd.android.package-archive`). To update only the APK, run
+  the same deploy (the image is re-sent but unchanged) or do the `scp` + `docker compose cp` steps by hand.
 
-Install on a phone (home Wi-Fi): open `http://cal.mordor.lan/app.apk` (or Settings → Android app → Download), allow the
+Install on a phone: open `https://cal.example.org/app.apk` or (home Wi-Fi) `http://cal.mordor.lan/app.apk` (or Settings → Android app → Download), allow the
 browser to install unknown apps, install ("Install anyway" if Play Protect warns), open the app once, then add the
 widget from the home screen's widget list.
 
