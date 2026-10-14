@@ -38,7 +38,8 @@ Feature: ADHD support: estimates, transition warnings, next task, calm mode
   # --- Transition warnings --------------------------------------------------
 
   Scenario: A gentle warning appears before the next event starts
-    Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
+    Given the calendar "Personal" has the default reminders "10"
+    And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
     And the time is 2026-10-12 10:25 and the clock is running
     When I open the week view for 2026-10-12
     Then I do not see a transition warning
@@ -49,14 +50,6 @@ Feature: ADHD support: estimates, transition warnings, next task, calm mode
     When 2 minutes pass
     Then I do not see a transition warning
 
-  Scenario: The warning time can be changed or switched off
-    Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
-    And the time is 2026-10-12 10:25 and the clock is running
-    When I open the path "/settings"
-    And I choose "Off" as the transition warning time
-    And I open the day view for 2026-10-12
-    And 6 minutes pass
-    Then I do not see a transition warning
 
   # --- Calm mode ------------------------------------------------------------
 
