@@ -24,6 +24,15 @@ const itemTitle = v.pipe(v.string('Item title is required'), v.trim(), v.minLeng
 
 const strict = v.strictObject;
 const so = <T extends v.ObjectEntries>(e: T) => strict(e);
+/** Popup lead times in minutes: whole numbers up to Google's 4 weeks, at most 5, all different. */
+const leadMinutes = v.pipe(
+  v.array(v.pipe(v.number('Reminder must be a number of minutes'), v.integer('Reminder must be a whole number of minutes'), v.minValue(0, 'Reminder must be 0-40320 minutes'), v.maxValue(40_320, 'Reminder must be 0-40320 minutes'))),
+  v.maxLength(5, 'At most 5 reminders'),
+  v.check((a) => new Set(a).size === a.length, 'Reminders must be different'),
+);
+const reminders = so({ useDefault: v.boolean('useDefault must be a boolean'), minutes: leadMinutes });
+/** `PATCH /api/calendars/:id` and `PATCH /api/reminders/tasks-calendar`: the new popup default list. */
+export const defaultRemindersSchema = leadMinutes;
 /** A whole number of canvas units (ARCHITECTURE "Canvas"). */
 const canvasInt = (min: number, max: number, msg: string) => v.pipe(v.number(msg), v.integer(msg), v.minValue(min, msg), v.maxValue(max, msg));
 const canvasPlace = v.nullable(so({ x: canvasInt(0, 10_000, 'Canvas x must be a whole number from 0 to 10000'), y: canvasInt(0, 10_000, 'Canvas y must be a whole number from 0 to 10000') }));
@@ -65,6 +74,7 @@ export const createEventSchema = so({
   start: v.string('Start is required'),
   end: v.string('End is required'),
   colorId: v.optional(colorId),
+  reminders: v.optional(reminders),
 });
 export const updateEventSchema = so({
   calendarId: v.optional(v.string()),
@@ -75,6 +85,7 @@ export const updateEventSchema = so({
   start: v.optional(v.string('Start is required')),
   end: v.optional(v.string('End is required')),
   colorId: v.optional(colorId),
+  reminders: v.optional(reminders),
 });
 
 export const createTaskListSchema = so({
@@ -86,6 +97,7 @@ export const createTaskListSchema = so({
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
   recurrence: v.optional(recurrence),
+  reminders: v.optional(reminders),
 });
 export const updateTaskListSchema = so({
   title: v.optional(listTitle),
@@ -96,6 +108,7 @@ export const updateTaskListSchema = so({
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
   canvas: v.optional(canvasPlace),
+  reminders: v.optional(reminders),
 });
 export const addItemSchema = so({ title: itemTitle, done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
@@ -114,7 +127,6 @@ export const settingsPatchSchema = so({
   sounds: v.optional(v.boolean()),
   calmMode: v.optional(v.boolean()),
   ignoreSystemMotion: v.optional(v.boolean()),
-  transitionWarningMinutes: v.optional(v.picklist([0, 5, 10, 15], 'Invalid warning time')),
   streakFlame: v.optional(v.boolean()),
   plant: v.optional(v.boolean()),
   sunflowers: v.optional(v.picklist(['grow', 'full'], 'Invalid sunflowers setting')),

@@ -123,7 +123,6 @@ function commitCustomHours() {
   if (h !== labs.approachWindowHours) void savePrefs({ approachWindowHours: h });
 }
 const levels = computed(() => [{ value: 'full', label: t('settings.motion.full') }, { value: 'reduced', label: t('settings.motion.reduced') }, { value: 'off', label: t('common.off') }]);
-const warns = computed(() => [{ value: '0', label: t('common.off') }, ...[5, 10, 15].map((m) => ({ value: String(m), label: t('settings.motivation.minutes', { count: m }) }))]);
 /** The sunflowers setting only has an effect on the Sunflower field scene; otherwise it is shown but inactive. */
 const fieldActive = computed(() => settings.effectiveScene === 'sunflowers');
 const sunflowerModes = computed(() => [{ value: 'grow', label: t('settings.sunflowers.grow') }, { value: 'full', label: t('settings.sunflowers.full') }]);
@@ -268,7 +267,6 @@ async function resetDemo() {
 
         <section id="s-motivation" class="card" data-testid="settings-section" data-section="motivation" aria-labelledby="h-focus">
           <h2 id="h-focus">{{ title('motivation') }}</h2>
-          <div class="row col"><span class="lab">{{ t('settings.motivation.warnBefore') }}</span><SegmentedButton :model-value="String(s.transitionWarningMinutes)" :options="warns" :label="t('settings.motivation.transitionWarning')" data-testid="settings-transition-warning" @update:model-value="save({ transitionWarningMinutes: Number($event) as 0 | 5 | 10 | 15 })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.motivation.calmMode.label') }}</span><span class="sub">{{ t('settings.motivation.calmMode.hint') }}</span></div><Switch :model-value="s.calmMode" :label="t('settings.motivation.calmMode.label')" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.motivation.streakFlame') }}</span><Switch :model-value="s.streakFlame" :label="t('settings.motivation.streakFlame')" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.plant') }}</span><Switch :model-value="s.plant" :label="t('settings.plant')" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
@@ -311,6 +309,10 @@ async function resetDemo() {
 
         <section id="s-notifications" class="card" data-testid="settings-section" data-section="notifications" aria-labelledby="h-notifications">
           <h2 id="h-notifications">{{ title('notifications') }}</h2>
+          <button type="button" class="row link" data-testid="settings-reminders" @click="router.push('/settings/reminders')">
+            <span class="grow"><span class="lab">{{ t('settings.reminders.label') }}</span><span class="sub">{{ t('settings.reminders.hint') }}</span></span>
+            <IconNext aria-hidden="true" />
+          </button>
           <p class="sub note" data-testid="settings-notify-hint">{{ t('settings.notifications.hint') }}</p>
           <div class="row"><span class="lab grow">{{ t('settings.notifications.bedtime') }}</span><Switch :model-value="nt.bedtime" :label="t('settings.notifications.bedtime')" data-testid="settings-notify-bedtime" @update:model-value="saveNotify({ bedtime: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.notifications.events.label') }}</span><span class="sub">{{ t('settings.notifications.events.hint') }}</span></div><Switch :model-value="nt.events" :label="t('settings.notifications.events.label')" data-testid="settings-notify-events" @update:model-value="saveNotify({ events: $event })" /></div>

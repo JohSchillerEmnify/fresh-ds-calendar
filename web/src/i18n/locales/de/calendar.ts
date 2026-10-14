@@ -147,7 +147,8 @@ export default {
     resizeFailed: 'Die Länge von „{title}“ konnte nicht geändert werden. {reason}',
   },
   warning: {
-    startsIn: '{title} beginnt in {minutes} Min.',
+    startsIn: '{title} beginnt in {duration}',
+    startsNow: '{title} beginnt jetzt',
   },
   undo: {
     deleted: 'Gelöscht: {title}',
@@ -160,6 +161,24 @@ export default {
   update: {
     available: 'Neue Version verfügbar',
     reload: 'Neu laden',
+  },
+  reminders: {
+    title: 'Erinnerungen',
+    atStart: 'Zum Beginn',
+    days: '{days} Tag | {days} Tage',
+    defaultLabel: 'Kalender-Standard',
+    defaultNone: 'keine Erinnerungen',
+    none: 'Keine Erinnerungen',
+    add: 'Erinnerung hinzufügen',
+    remove: 'Erinnerung {label} entfernen',
+    useDefault: 'Kalender-Standard verwenden',
+    noReminders: 'Keine Erinnerungen',
+    custom: 'Eigene',
+    customLabel: 'Minuten vorher',
+    customAdd: 'Hinzufügen',
+    customInvalid: 'Gib Minuten von 0 bis 40320 ein',
+    max: 'Höchstens 5 Erinnerungen',
+    pick: 'Erinnerung wählen',
   },
   whatsNew: {
     title: 'Was ist neu',

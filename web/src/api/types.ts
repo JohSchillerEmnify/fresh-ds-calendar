@@ -52,6 +52,17 @@ export interface Calendar {
   writable: boolean;
   /** The person's choice (GET /api/calendars). */
   hidden?: boolean;
+  /** Popup reminder leads of Google's calendar default, minutes, Google's order. */
+  defaultReminders?: number[];
+}
+
+/**
+ * An item's reminders: `minutes` is the popup lead list in effect (the calendar default while `useDefault`, else the
+ * item's own list; ARCHITECTURE "Reminders, several per event").
+ */
+export interface Reminders {
+  useDefault: boolean;
+  minutes: number[];
 }
 
 export interface CalendarEvent {
@@ -68,6 +79,7 @@ export interface CalendarEvent {
   color: string;
   /** Set only on Google birthday entries (read-only): `anniversary` for a contact's anniversary, `birthday` for every other special date. */
   special?: 'birthday' | 'anniversary';
+  reminders?: Reminders;
   etag: string;
   updated: DateTime;
 }
@@ -106,6 +118,8 @@ export interface TaskList {
   shared?: SharedInfo;
   /** The owner's category look carried on a shared list (the requester's own categories may differ). */
   categoryInfo?: { name: string; color: string; icon: string | null } | null;
+  /** Absent on shared lists (they live outside Google). */
+  reminders?: Reminders;
   etag: string;
   updated: DateTime;
 }
@@ -247,7 +261,6 @@ export interface Settings {
   sounds: boolean;
   calmMode: boolean;
   ignoreSystemMotion: boolean;
-  transitionWarningMinutes: 0 | 5 | 10 | 15;
   streakFlame: boolean;
   plant: boolean;
   sunflowers: SunflowersMode;
@@ -308,6 +321,7 @@ export interface CreateEventInput {
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;
   colorId?: string | null;
+  reminders?: Reminders;
 }
 export type UpdateEventInput = Partial<CreateEventInput>;
 
@@ -321,6 +335,7 @@ export interface CreateTaskListInput {
   tags?: string[];
   estimateMinutes?: number | null;
   recurrence?: Recurrence | null;
+  reminders?: Reminders;
 }
 export interface UpdateTaskListInput {
   title?: string;
@@ -333,6 +348,7 @@ export interface UpdateTaskListInput {
   estimateMinutes?: number | null;
   /** Integers 0-10000; null clears the place. */
   canvas?: CanvasPlace | null;
+  reminders?: Reminders;
 }
 
 /** One labelled rectangle on the Canvas (API.md "Canvas"). */

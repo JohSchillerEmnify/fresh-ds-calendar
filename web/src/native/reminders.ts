@@ -6,6 +6,8 @@
 export interface RemindersPlugin {
   schedule(o: { id: string; at: number; title: string; body: string }): Promise<unknown>;
   cancel(o: { id: string }): Promise<unknown>;
+  /** The ids of every reminder the plugin still holds. */
+  list(): Promise<{ ids: string[] }>;
 }
 
 /** The plugin inside the Android app, null in a browser. */

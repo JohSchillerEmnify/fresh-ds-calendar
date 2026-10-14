@@ -1,5 +1,6 @@
 import { t } from '@/i18n';
 import { parseIsoDate } from '@/lib/dates';
+import type { Reminders } from '@/api/types';
 
 export interface TaskListForm {
   title: string;
@@ -11,6 +12,8 @@ export interface TaskListForm {
   categoryId: string; // 'none' = no category
   items: string;
   repeat: '' | 'daily' | 'weekly' | 'monthly';
+  /** The list's own reminders; `minutes` stays empty while it uses the tasks calendar's default. */
+  reminders?: Reminders;
 }
 
 export function parseItems(text: string): string[] {
@@ -19,7 +22,7 @@ export function parseItems(text: string): string[] {
 
 /** Empty create form: the slot's (or focused) date, and the slot's time when one was tapped, else no time. A null date starts the form undated. */
 export function newTaskListForm(date: string | null, time?: string | null): TaskListForm {
-  return { title: '', date: date ?? '', noDate: date === null, time: time ?? '', estimate: '', categoryId: 'none', items: '', repeat: '' };
+  return { title: '', date: date ?? '', noDate: date === null, time: time ?? '', estimate: '', categoryId: 'none', items: '', repeat: '', reminders: { useDefault: true, minutes: [] } };
 }
 
 /**

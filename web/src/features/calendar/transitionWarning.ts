@@ -1,62 +1,39 @@
 /**
- * Transition warnings: a dismissible snackbar "<title> starts in <N> min" once per event when now is within the
- * configured minutes (Settings, 0 = off). Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
- * Events of hidden calendars are skipped, also in the scheduled notifications. It sees the events of the loaded range only,
- * i.e. while a calendar view showing today is cached.
- * Inside the Android app the next warnings (today and tomorrow, as far as loaded) are also scheduled ahead with the native
- * `Reminders` plugin, so they arrive as notifications while the app is closed: before events and before task lists with
- * a time, each as chosen in Settings → Notifications (`prefs.notify`), plus the optional morning overview of the day
- * (ARCHITECTURE "Notifications").
+ * Reminders in the open app and in the Android app (ARCHITECTURE "Reminders, several per event"). Both follow the reminder
+ * plan (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
+ * reminder lead of the item. Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
+ * In the app, a dismissible snackbar "<title> starts in <lead>" (the lead as the reminder names it) shows once per event and lead from its time until the start
+ * (several due leads show the nearest one). Events of hidden calendars never remind. It sees the items of the loaded range
+ * only, i.e. while a calendar view showing today is cached.
+ * Inside the Android app the next reminders (the next week, as far as loaded) are also scheduled ahead with the native
+ * `Reminders` plugin, so they arrive as notifications while the app is closed, as chosen in Settings → Notifications
+ * (`prefs.notify`), plus the optional morning overview of the day. Stored ids no longer wanted are cancelled, once on start
+ * for everything the plugin still holds.
  */
 import { effectScope, watch, type EffectScope } from 'vue';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
-import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
-import { dueWarnings } from './timeline';
+import { reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
 import { remindersPlugin } from '@/native/reminders';
 
-export const warningText = (title: string, inMin: number) => t('calendar.warning.startsIn', { title, minutes: inMin });
+/** The wording of a snackbar for an event starting in `minutes` (kept as the one name tests and callers know). */
+export const warningText = reminderText;
 
-/** A warning to schedule ahead: `inMin` minutes from now (the event starts `minutes` after that). */
-export interface UpcomingWarning { key: string; title: string; start: string; inMin: number }
-
-/** Prefix of the native reminder ids of transition warnings. */
-export const NATIVE_WARNING_PREFIX = 'transition:';
-/** At most this many warnings are scheduled ahead. */
-export const NATIVE_WARNING_LIMIT = 8;
-
-/**
- * The next transition warnings after now, soonest first: timed events (their first day) of today and the following
- * days given, whose warning time (start minus `minutes`) is still ahead.
- *
- * @param days Segments per day, today first, consecutive days.
- * @param nowMin Minute of today.
- * @param minutes Warning lead; 0 means none.
- * @param limit At most this many.
- */
-export function upcomingWarnings(
-  days: Segment[][], nowMin: number, minutes: number, limit = NATIVE_WARNING_LIMIT, kinds: { events: boolean; tasklists: boolean } = { events: true, tasklists: false },
-): UpcomingWarning[] {
-  if (minutes <= 0) return [];
-  const out: UpcomingWarning[] = [];
-  days.forEach((segs, i) => {
-    for (const s of segs) {
-      if (s.allDay || !s.first || s.startTime === null || s.carriedFrom) continue;
-      if (s.item.kind === 'event' ? !kinds.events : !kinds.tasklists) continue;
-      const inMin = i * 1440 + s.startMin - minutes - nowMin;
-      const title = s.item.title.trim() || t('tasklist.untitled');
-      if (inMin > 0) out.push({ key: `${s.item.id}@${s.date}T${s.startTime}`, title, start: s.startTime, inMin });
-    }
-  });
-  return out.sort((a, b) => a.inMin - b.inMin).slice(0, limit);
-}
+/** Prefix of the native reminder ids of event and task list reminders. */
+export const NATIVE_REMINDER_PREFIX = 'reminder:';
+/** Prefix of the ids the single transition warning scheduled before reminder lists existed; cancelled on start. */
+export const NATIVE_LEGACY_PREFIX = 'transition:';
+/** At most this many reminders are scheduled ahead, nearest first. */
+export const NATIVE_REMINDER_LIMIT = 24;
+/** The plan covers this many days from today (a lead can be a day). */
+export const PLAN_DAYS = 8;
 
 /** Native reminder id of the morning overview (one pending at a time). */
 export const NATIVE_MORNING_ID = 'morning';
@@ -80,76 +57,96 @@ export function morningOverview(segs: Segment[]): { title: string; body: string 
 
 let scope: EffectScope | null = null;
 
-/** Starts the watcher on the active Pinia (a previous one is stopped first). Returns a stop function. */
+/** Starts the watchers on the active Pinia (previous ones are stopped first). Returns a stop function. */
 export function startTransitionWarnings(): () => void {
   stopTransitionWarnings();
   const clock = useClockStore();
   const items = useItemsStore();
   const cals = useCalendarsStore();
-  const settings = useSettingsStore();
   const ui = useUiStore();
+  const prefs = usePrefsStore();
   const warned = new Set<string>();
-  /** key -> { snackbar id, event start minute } of warnings currently shown. */
-  const shown = new Map<string, { id: number; startMin: number; title: string }>();
+  /** occurrence -> { snackbar id, start (epoch ms) } of the reminders currently shown. */
+  const shown = new Map<string, { id: number; startAt: number }>();
   let day = clock.today;
+
+  /** The next `PLAN_DAYS` days of segments, today first, without the calendars the person switched off. */
+  const days = (): Segment[][] => Array.from({ length: PLAN_DAYS }, (_, i) => {
+    const date = i === 0 ? clock.today : toIsoDate(addDays(clock.todayDate, i));
+    return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
+  });
+  const plan = (kinds: { events: boolean; tasklists: boolean }): PlannedReminder[] =>
+    reminderPlan(days(), clock.nowTick, clock.minutesNow, kinds, t('tasklist.untitled'));
 
   scope = effectScope(true);
   scope.run(() => {
     watch(
-      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate, cals.hidden] as const,
+      () => [clock.nowTick, items.byDate, cals.hidden, prefs.notify.tasklists, language.value] as const,
       () => {
         if (clock.today !== day) { day = clock.today; warned.clear(); }
-        const now = clock.minutesNow;
-        const n = settings.settings.transitionWarningMinutes;
-        // events of calendars the person switched off never warn (same filter as the views)
-        const segs = (items.byDate.get(clock.today) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
-        // refresh / auto-hide what is on screen
+        const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
+        // in the app events always remind; task lists only with the Reminders switch
+        const all = plan({ events: true, tasklists: prefs.notify.tasklists });
+        const occurrences = new Set(all.map((p) => p.occurrence));
+        // auto-hide what is on screen once the event has started, was dismissed, or lost its reminders
         for (const [key, w] of shown) {
-          if (n <= 0 || now >= w.startMin || !ui.snackbars.some((s) => s.id === w.id)) {
+          if (minuteStart >= w.startAt || !occurrences.has(key) || !ui.snackbars.some((x) => x.id === w.id)) {
             ui.dismiss(w.id);
             shown.delete(key);
-          } else {
-            const text = warningText(w.title, w.startMin - now);
-            ui.snackbars = ui.snackbars.map((s) => (s.id === w.id && s.text !== text ? { ...s, text } : s));
           }
         }
-        for (const d of dueWarnings(segs, now, n)) {
-          if (warned.has(d.key)) continue;
-          warned.add(d.key);
-          const id = ui.notify(warningText(d.title, d.inMin), { duration: 0, testid: 'transition-warning' });
-          shown.set(d.key, { id, startMin: d.startMin, title: d.title });
+        // of the leads due for one event only the nearest one speaks; the earlier ones count as said
+        const nearest = new Map<string, PlannedReminder>();
+        for (const p of all) {
+          if (p.at > minuteStart) continue;
+          const cur = nearest.get(p.occurrence);
+          if (!cur || p.lead < cur.lead) nearest.set(p.occurrence, p);
+        }
+        for (const [occurrence, p] of nearest) {
+          const fresh = !warned.has(p.key);
+          for (const q of all) if (q.occurrence === occurrence && q.at <= minuteStart) warned.add(q.key);
+          if (!fresh) continue;
+          const old = shown.get(occurrence);
+          if (old) ui.dismiss(old.id);
+          // the text names the reminder's own lead ("starts in 30 min"), not the minutes left
+          const id = ui.notify(p.title, { duration: 0, testid: 'transition-warning' });
+          shown.set(occurrence, { id, startAt: p.startAt });
         }
       },
       { immediate: true },
     );
 
-    // Android app: keep the next warnings scheduled as notifications (shown only while the app is not in front)
+    // Android app: keep the next reminders scheduled as notifications (shown only while the app is not in front)
     const plugin = remindersPlugin();
     if (!plugin) return;
-    const prefs = usePrefsStore();
     const sent = new Map<string, string>();
+    let cleaned = false;
     watch(
-      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate, cals.hidden, language.value, prefs.notify] as const,
+      () => [clock.nowTick, items.byDate, cals.hidden, language.value, prefs.notify] as const,
       () => {
         if (typeof document !== 'undefined' && document.hidden) return; // the schedule stays as it was left
-        const n = settings.settings.transitionWarningMinutes;
         const tomorrow = toIsoDate(addDays(clock.todayDate, 1));
-        const visible = (segs: Segment[]) => segs.filter((s) => !cals.isHidden(s.item.calendarId));
-        const today = items.byDate.get(clock.today) ?? [];
-        const kinds = { events: prefs.notify.events, tasklists: prefs.notify.tasklists };
-        const next = upcomingWarnings([today, items.byDate.get(tomorrow) ?? []].map(visible), clock.minutesNow, n, NATIVE_WARNING_LIMIT, kinds);
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
-        const want = new Map<string, { at: number; title: string; body: string }>(next.map((w) => [NATIVE_WARNING_PREFIX + w.key, {
-          at: minuteStart + w.inMin * 60_000, title: warningText(w.title, n), body: w.start,
-        }]));
+        const next = plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }).filter((p) => p.at > minuteStart).slice(0, NATIVE_REMINDER_LIMIT);
+        const want = new Map<string, { at: number; title: string; body: string }>(next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.title, body: p.body }]));
         // the morning overview: today's if its time is still ahead, else tomorrow's (loaded on demand)
         if (prefs.notify.morning) {
           const [h, m] = prefs.notify.morningTime.split(':').map(Number);
           const at = h * 60 + m;
-          const day = at > clock.minutesNow ? clock.today : tomorrow;
-          if (day === tomorrow) items.prefetch(tomorrow, toIsoDate(addDays(clock.todayDate, 2)));
-          const o = morningOverview(visible(items.byDate.get(day) ?? []).filter((s) => !s.carriedFrom));
-          want.set(NATIVE_MORNING_ID, { at: minuteStart + ((day === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, ...o });
+          const dayOfOverview = at > clock.minutesNow ? clock.today : tomorrow;
+          if (dayOfOverview === tomorrow) items.prefetch(tomorrow, toIsoDate(addDays(clock.todayDate, 2)));
+          const visible = (items.byDate.get(dayOfOverview) ?? []).filter((s) => !cals.isHidden(s.item.calendarId) && !s.carriedFrom);
+          want.set(NATIVE_MORNING_ID, { at: minuteStart + ((dayOfOverview === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, ...morningOverview(visible) });
+        }
+        // once per start, once today's items are loaded: whatever the plugin still holds that is not planned is stale
+        if (!cleaned && items.byDate.has(clock.today)) {
+          cleaned = true;
+          // an older APK has no `list`: the call then fails and nothing is cleaned
+          void Promise.resolve().then(() => plugin.list()).then(({ ids }) => {
+            for (const id of ids) {
+              if ((id.startsWith(NATIVE_REMINDER_PREFIX) || id.startsWith(NATIVE_LEGACY_PREFIX)) && !want.has(id)) void plugin.cancel({ id }).catch(() => undefined);
+            }
+          }, () => undefined);
         }
         for (const id of [...sent.keys()]) {
           if (want.has(id)) continue;

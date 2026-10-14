@@ -5,10 +5,6 @@ import { chooseSelect, setSwitch } from './support/settings.js';
 import { selectedLabel } from './support/ui.js';
 import { exactText, type World } from './support/world.js';
 
-When('I choose {string} as the transition warning time', async function (this: World, label: string) {
-  await chooseSelect(this, this.page.getByTestId('settings-transition-warning'), label);
-});
-
 When('I turn on calm mode', async function (this: World) {
   await setSwitch(this, this.page.getByTestId('settings-calm-mode'), true);
 });

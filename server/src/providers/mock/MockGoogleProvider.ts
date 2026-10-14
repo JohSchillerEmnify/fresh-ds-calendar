@@ -5,7 +5,7 @@ import { addDays, addMonthsClamp, dayNumber, formatInZone, localDateOf, localTim
 import type { Clock } from '../../lib/clock.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
-  type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
+  type CalendarProvider, type GoogleEvent, type GoogleReminder, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 
@@ -106,6 +106,8 @@ export class MockGoogleProvider implements CalendarProvider {
     /** The calendar list including hidden entries. */
     calendars: (): ProviderCalendar[] => this.calendars.map((c) => ({ ...c })),
     insertCalendar: (summary: string, hidden = false, extra?: CalendarExtra): ProviderCalendar => this.doInsertCalendar(summary, hidden, extra),
+    /** Sets a calendar's `defaultReminders` as another Google client would. */
+    setDefaultReminders: (calendarId: string, reminders: GoogleReminder[]): void => this.doSetDefaultReminders(calendarId, reminders),
   };
 
   private check(): void {
@@ -136,6 +138,11 @@ export class MockGoogleProvider implements CalendarProvider {
     this.requireCalendar(calendarId);
     this.calendars.find((c) => c.id === calendarId)!.hidden = hidden;
     this.scheduleFlush();
+  }
+
+  async setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void> {
+    this.check();
+    this.doSetDefaultReminders(calendarId, reminders);
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
@@ -208,6 +215,12 @@ export class MockGoogleProvider implements CalendarProvider {
   // ---- internals ----
   private requireCalendar(id: string): void {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
+  }
+
+  private doSetDefaultReminders(calendarId: string, reminders: GoogleReminder[]): void {
+    this.requireCalendar(calendarId);
+    this.calendars.find((c) => c.id === calendarId)!.defaultReminders = reminders.map((r) => ({ ...r }));
+    this.scheduleFlush();
   }
 
   private doInsertCalendar(summary: string, hidden: boolean, extra: CalendarExtra = {}): ProviderCalendar {

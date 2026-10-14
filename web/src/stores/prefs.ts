@@ -11,7 +11,7 @@ import type { ApproachWindowHours, NavPosition, BedtimePrefs, NotifyPrefs, Prefs
  * support cat, the version label in the corner (off by default), left-handed mode (off by default), where the view switcher sits (phone, desktop), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
  */
 /** The server's default `notify` preference (ARCHITECTURE "Notifications"). */
-export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' };
+export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' };
 
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);

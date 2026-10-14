@@ -130,6 +130,15 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json(cal, 201);
   });
 
+  // Sets a calendar's Google `defaultReminders` as another Google client would (popup minutes, optional email ones).
+  t.put('/remote/calendars/:id/default-reminders', async (c) => {
+    const b = (await body(c)) as { owner?: string; defaultReminders?: Array<{ method?: unknown; minutes?: unknown }> } | undefined;
+    if (!Array.isArray(b?.defaultReminders)) throw validation('defaultReminders is required', 'defaultReminders');
+    store(b.owner).remote.setDefaultReminders(c.req.param('id'), b.defaultReminders.map((r) => ({ method: String(r.method ?? 'popup'), minutes: Number(r.minutes) })));
+    calendarOf(b.owner).invalidate();
+    return c.json({ ok: true });
+  });
+
   // The person's tasks calendar id, found or created like the app does on first use.
   t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
 

@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import java.util.ArrayList;
+import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -58,6 +60,11 @@ public final class Reminders {
     public static void cancel(Context ctx, String id) {
         prefs(ctx).edit().remove(id).apply();
         alarms(ctx).cancel(pendingIntent(ctx, id));
+    }
+
+    /** The ids of every stored reminder (the web app cancels the ones its current plan no longer holds). */
+    public static List<String> ids(Context ctx) {
+        return new ArrayList<>(prefs(ctx).getAll().keySet());
     }
 
     /** The stored reminder with this id, or null. */

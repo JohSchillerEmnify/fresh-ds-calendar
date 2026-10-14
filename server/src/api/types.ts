@@ -12,6 +12,17 @@ export interface Calendar {
   color: string;
   primary: boolean;
   writable: boolean;
+  /** Popup reminder lead times of Google's calendar default, in minutes, in Google's order. */
+  defaultReminders: number[];
+}
+
+/**
+ * An item's reminders (ARCHITECTURE "Reminders, several per event"). `minutes` is the popup lead list in effect: the
+ * calendar's default while `useDefault` is true, else the item's own list. Email reminders stay in Google, untouched.
+ */
+export interface Reminders {
+  useDefault: boolean;
+  minutes: number[];
 }
 
 export interface CalendarEvent {
@@ -28,6 +39,7 @@ export interface CalendarEvent {
   color: string;
   /** Set only on Google birthday entries (read-only): `anniversary` for a contact's anniversary, `birthday` for every other special date. */
   special?: 'birthday' | 'anniversary';
+  reminders: Reminders;
   etag: string;
   updated: DateTime;
 }
@@ -67,6 +79,8 @@ export interface TaskList {
   completedOn: LocalDate | null;
   /** Place on the Tasks view's Canvas in canvas units; null = no place yet (Unsorted). */
   canvas: CanvasPlace | null;
+  /** Absent on shared lists (they live outside Google and have no reminders). */
+  reminders?: Reminders;
   /** Present on shared lists only (API.md "Shared task lists"). */
   shared?: SharedInfo;
   /** The owner's category (name, colour, icon) carried on a shared list, whatever the requester's own categories are. */
@@ -124,7 +138,6 @@ export interface Settings {
   sounds: boolean;
   calmMode: boolean;
   ignoreSystemMotion: boolean;
-  transitionWarningMinutes: 0 | 5 | 10 | 15;
   streakFlame: boolean;
   plant: boolean;
   sunflowers: SunflowersMode;
@@ -144,6 +157,8 @@ export interface CreateEventInput {
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;
   colorId?: string | null;
+  /** Absent keeps the calendar default (create) or the current reminders (update). */
+  reminders?: Reminders;
 }
 export type UpdateEventInput = Partial<CreateEventInput>;
 
@@ -157,6 +172,7 @@ export interface CreateTaskListInput {
   tags?: string[];
   estimateMinutes?: number | null;
   recurrence?: Recurrence | null;
+  reminders?: Reminders;
 }
 
 export interface UpdateTaskListInput {
@@ -170,6 +186,7 @@ export interface UpdateTaskListInput {
   estimateMinutes?: number | null;
   /** Integers 0-10000; null clears the place. */
   canvas?: CanvasPlace | null;
+  reminders?: Reminders;
 }
 
 /** One labelled rectangle on the Canvas (API.md "Canvas"). */

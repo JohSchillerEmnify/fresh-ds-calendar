@@ -2133,18 +2133,18 @@ browser does not change.
 - **Notifications** (owner, 2026-10-14: "implement notifications for all the things that need them, not only
   bedtime"; ADHD-RESEARCH R29/R32/R33: few, chosen ones, no badges). Settings → Notifications (`settings-notify-*`, stored
   per person as `prefs.notify`) chooses which reminders reach the lock screen: the bedtime reminder, warnings before
-  timed events, warnings before task lists with a time (same lead as the in-app warning, `transitionWarningMinutes`), and
+  timed events, warnings before task lists with a time (at each reminder lead, see "Reminders, several per event"), and
   an optional **morning overview** at a chosen time ("Your day" · "3 appointments · 2 lists · first: Dentist 10:00",
   `morningOverview`; today's when its time is ahead, else tomorrow's, which is then prefetched). In-app snackbars are
   unchanged. Delivery: the Android app's `Reminders` plugin now; in a browser nothing is delivered while the app is
   closed until HTTPS allows Web Push (Declarative Web Push on iOS, see docs/IOS-OPTIONS.md). Deliberately not notified:
   overdue or carried-over lists, streaks, the plant (guilt and badge anxiety, ADHD-RESEARCH 1.21).
-- **Transition warnings as notifications** (2026-10-14, ADHD-RESEARCH R33): `transitionWarning.ts` also schedules the
-  next warnings (at most 8: timed events of today and tomorrow as far as loaded, first day of multi-day events, warning
-  time = start minus `transitionWarningMinutes` still ahead; `upcomingWarnings`) with `Reminders.schedule({ id:
-  'transition:<itemId>@<date>T<start>', at, title: "Dentist starts in 10 min", body: start })`; timed task lists too
-  when chosen (not carried-over ones), cancels ids that left
-  that list (moved, deleted, setting off) and re-sends only changes. While the app is hidden nothing is re-sent, so the
+- **Transition warnings as notifications** (2026-10-14, ADHD-RESEARCH R33; superseded by the reminder lists, see "Reminders,
+  several per event": the plan is `reminderPlan.ts`, ids `reminder:<itemId>@<date>T<start>-<lead>`, at most 24, the next 8
+  days as far as loaded): `transitionWarning.ts` also schedules the next reminders with `Reminders.schedule({ id, at,
+  title: "Dentist starts in 30 min", body: start })`; timed task lists too when chosen (not carried-over ones), cancels ids
+  that left that list (moved, deleted, setting off) and re-sends only changes, and on start cancels every stored
+  `reminder:*` / `transition:*` id not in the plan (`Reminders.list()`). While the app is hidden nothing is re-sent, so the
   schedule stays as it was left; the native side skips them while the app is in front (the snackbar shows them).
   Events added elsewhere while the app stays closed are not scheduled until it is opened again (the widget's background
   fetch does not schedule; a later step if needed). Same channel "Reminders" as the bedtime reminder.

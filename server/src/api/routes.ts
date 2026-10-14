@@ -11,7 +11,7 @@ import { nanoid } from '../lib/ids.js';
 import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
-  addItemSchema, canvasDocSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
+  addItemSchema, canvasDocSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
@@ -120,12 +120,23 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.patch('/calendars/:id', async (c) => {
     const id = c.req.param('id');
-    const b = (await body(c)) as { hidden?: unknown } | undefined;
-    if (typeof b?.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
-    const k = (await cal(c).calendars()).find((x) => x.id === id);
-    if (!k) throw notFound('Calendar not found');
-    ctx.prefs.setHidden(person(c), id, b.hidden);
-    return c.json({ ...k, hidden: b.hidden });
+    const b = (await body(c)) as { hidden?: unknown; defaultReminders?: unknown } | undefined;
+    // `hidden` (this person's choice) and/or `defaultReminders` (Google's popup defaults of the calendar)
+    if (b?.hidden === undefined && b?.defaultReminders === undefined) throw validation('hidden must be a boolean', 'hidden');
+    if (b.hidden !== undefined && typeof b.hidden !== 'boolean') throw validation('hidden must be a boolean', 'hidden');
+    const minutes = b.defaultReminders === undefined ? undefined : parse(defaultRemindersSchema, b.defaultReminders);
+    if (!(await cal(c).calendars()).some((x) => x.id === id)) throw notFound('Calendar not found');
+    if (minutes) await cal(c).setDefaultReminders(id, minutes);
+    if (typeof b.hidden === 'boolean') ctx.prefs.setHidden(person(c), id, b.hidden);
+    const hidden = ctx.prefs.hiddenCalendars(person(c));
+    const k = (await cal(c).calendars()).find((x) => x.id === id)!;
+    return c.json({ ...k, hidden: hidden.includes(id) });
+  });
+  // The tasks calendar is not in the calendar list; its reminder default is edited here (ARCHITECTURE "Reminders").
+  r.get('/reminders/tasks-calendar', async (c) => c.json({ defaultReminders: await cal(c).tasksDefaultReminders() }));
+  r.patch('/reminders/tasks-calendar', async (c) => {
+    const b = (await body(c)) as { defaultReminders?: unknown } | undefined;
+    return c.json({ defaultReminders: await cal(c).setDefaultReminders('', parse(defaultRemindersSchema, b?.defaultReminders), true) });
   });
 
   r.get('/prefs', (c) => c.json(ctx.prefs.labsPrefs(person(c))));
