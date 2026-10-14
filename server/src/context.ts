@@ -20,6 +20,7 @@ import path from 'node:path';
 import type { CalendarProvider } from './providers/CalendarProvider.js';
 import { MockGoogleProvider } from './providers/mock/MockGoogleProvider.js';
 import { seedDemo } from './seed.js';
+import type { ApkInfo } from './routes/download.js';
 
 export const VERSION = process.env.APP_VERSION ?? '0.1.0';
 
@@ -46,7 +47,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; version?: string };
+  overrides: { pollIntervalMs?: number; version?: string; apk?: ApkInfo | null };
   health: { at: number; status: 'ok' | 'unavailable' } | null;
   /** The calendar of the signed-in person; the shared one when auth is off. */
   calendarFor(sub: string | null | undefined): CalendarService;

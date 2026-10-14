@@ -6,6 +6,28 @@ import { Hono } from 'hono';
 /** The Android app, built by `scripts/android-build.sh` and put into `DATA_DIR/downloads/` by hand (never part of the image). */
 export const APK_FILE = 'app.apk';
 
+/** Sidecar of the APK, written next to it by `scripts/android-build.sh`: `{ "versionCode": 7, "versionName": "1.1.7" }`. */
+export const APK_INFO_FILE = 'app.json';
+
+/** Version of the published APK, as the app compares it with the installed one. */
+export interface ApkInfo { versionCode: number; versionName: string }
+
+/**
+ * Reads the published APK's version from `DATA_DIR/downloads/app.json`.
+ *
+ * @param dataDir The server's `DATA_DIR`.
+ * @returns The version, or null while there is no valid sidecar (then the app offers no download hint).
+ */
+export function readApkInfo(dataDir: string): ApkInfo | null {
+  try {
+    const j = JSON.parse(fs.readFileSync(path.join(dataDir, 'downloads', APK_INFO_FILE), 'utf8')) as Partial<ApkInfo>;
+    if (!Number.isInteger(j.versionCode) || (j.versionCode as number) < 1 || typeof j.versionName !== 'string') return null;
+    return { versionCode: j.versionCode as number, versionName: j.versionName };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Serves the Android app at `/app.apk` from `DATA_DIR/downloads/app.apk`.
  *

@@ -1,6 +1,6 @@
 /** HTTP and PWA steps (STEPS.md "PWA and HTTP"). */
 import { expect } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { dig } from './support/google.js';
 import type { World } from './support/world.js';
 
@@ -167,4 +167,39 @@ When('I close the install instructions', async function (this: World) {
 
 Then('the install instructions are closed', async function (this: World) {
   await expect(this.page.getByTestId('ios-install-sheet')).toBeHidden();
+});
+
+// --- the APK update hint (inside the Android app) ---
+
+Given('the app runs inside the Android app with version code {int}', async function (this: World, code: number) {
+  await this.context.addInitScript((versionCode) => {
+    (window as unknown as { Capacitor: unknown }).Capacitor = {
+      isNativePlatform: () => true,
+      Plugins: { ServerChoice: { get: async () => ({}), appVersion: async () => ({ versionCode }) } },
+    };
+  }, code);
+});
+
+Given('the server offers the app version code {int}', async function (this: World, code: number) {
+  await this.api.post('/api/__test/apk', { versionCode: code, versionName: `1.1.${code}` });
+});
+
+Then('I am offered to download the new app version', async function (this: World) {
+  await expect(this.page.getByTestId('apk-available')).toBeVisible();
+});
+
+Then('I am not offered to download the new app version', async function (this: World) {
+  await expect(this.page.getByTestId('app-shell')).toBeVisible();
+  await expect(this.page.getByTestId('apk-available')).toBeHidden();
+});
+
+let apkRequested: Promise<unknown> | null = null;
+
+When('I choose to download the app', async function (this: World) {
+  apkRequested = this.page.waitForRequest((r) => new URL(r.url()).pathname === '/app.apk');
+  await this.page.getByTestId('apk-download').click();
+});
+
+Then('the app download starts', async function (this: World) {
+  await apkRequested;
 });

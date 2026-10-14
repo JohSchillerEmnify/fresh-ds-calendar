@@ -117,3 +117,23 @@ Feature: Installable progressive web app
     When I choose to reload
     Then the app runs the new version
 
+  Scenario: In the Android app a newer APK offers a download
+    Given the app runs inside the Android app with version code 5
+    And the server offers the app version code 6
+    When I open the week view for 2026-10-12
+    Then I am offered to download the new app version
+    And the add button covers no control of the "app update hint"
+    When I choose to download the app
+    Then the app download starts
+
+  Scenario: In the Android app the newest APK offers nothing
+    Given the app runs inside the Android app with version code 6
+    And the server offers the app version code 6
+    When I open the week view for 2026-10-12
+    Then I am not offered to download the new app version
+
+  Scenario: In a browser no APK hint shows
+    Given the server offers the app version code 6
+    When I open the week view for 2026-10-12
+    Then I am not offered to download the new app version
+

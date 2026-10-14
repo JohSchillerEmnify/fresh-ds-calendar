@@ -47,6 +47,14 @@ case "${1:-}" in
         docker compose cp app.apk.new app:/data/downloads/app.apk.part
         docker compose exec -T app mv /data/downloads/app.apk.part /data/downloads/app.apk
         rm -f app.apk.new'
+      # the sidecar with the APK's versionCode/versionName (written by android-build.sh) makes the app offer the download
+      info="${CAL_APK_INFO:-$(dirname "$apk")/app.json}"
+      if [[ -f "$info" ]]; then
+        scp "${OPTS[@]}" -q "$info" "$HOST:/opt/calendar/app.json.new"
+        on_vps 'set -e; cd /opt/calendar && chmod 644 app.json.new
+          docker compose cp app.json.new app:/data/downloads/app.json
+          rm -f app.json.new'
+      fi
       echo "APK: $(sha256sum "$apk" | cut -c1-16)... -> https://cal.example.org/app.apk"
     else
       echo "no APK at $apk: /app.apk on the VPS stays as it is (scripts/android-build.sh builds one)" >&2

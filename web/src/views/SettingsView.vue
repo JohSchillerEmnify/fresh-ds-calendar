@@ -5,12 +5,10 @@ import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 const isIos = detectIos();
 const showIosInstall = isIos && !isStandalone();
 const installing = ref(false);
-/** Starts the APK download (`GET /app.apk`, served by the server, excluded from the service worker's fallback). */
-function downloadApk(): void { location.href = '/app.apk'; }
 // inside the Android app: the server it runs on (null until the plugin answers)
 const nativeHost = ref<string | null>(null);
 if (isNativeApp()) void nativeServerHost().then((host) => { nativeHost.value = host; });
-import { androidAppLabelKey, changeNativeServer, isNativeApp, nativeServerHost } from '@/native/app';
+import { androidAppLabelKey, changeNativeServer, downloadApk, isNativeApp, nativeServerHost } from '@/native/app';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';

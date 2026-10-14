@@ -13,6 +13,8 @@ export function androidAppLabelKey(inApp: boolean): 'settings.account.androidApp
 
 interface ServerChoicePlugin {
   get(): Promise<{ url?: string; host?: string }>;
+  /** Added with the update hint; an APK installed before it has no such method. */
+  appVersion?(): Promise<{ versionCode?: number }>;
   choose(): Promise<unknown>;
 }
 
@@ -32,4 +34,21 @@ export async function nativeServerHost(): Promise<string | null> {
 /** Forgets the server choice: the native app returns to its "Which calendar?" page. */
 export async function changeNativeServer(): Promise<void> {
   await serverChoice()?.choose();
+}
+
+/** Starts the APK download (`GET /app.apk`, served by the server, excluded from the service worker's fallback). */
+export function downloadApk(): void { location.href = '/app.apk'; }
+
+/**
+ * The `versionCode` of the installed app, or null outside the app. An APK that predates the version bridge cannot tell, so
+ * it counts as 0: any published APK is newer and offers itself once, and the APK it installs reports its own code.
+ */
+export async function installedVersionCode(): Promise<number | null> {
+  if (!isNativeApp()) return null;
+  try {
+    const code = (await serverChoice()?.appVersion?.())?.versionCode;
+    return Number.isInteger(code) ? (code as number) : 0;
+  } catch {
+    return 0;
+  }
 }

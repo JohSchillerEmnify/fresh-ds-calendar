@@ -23,8 +23,9 @@ android {
         applicationId "lan.mordor.calendar"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.1"
+        // scripts/android-build.sh passes the git commit count (always rising), so the app can tell a newer APK from its own
+        versionCode (project.findProperty('appVersionCode') ?: '2').toInteger()
+        versionName (project.findProperty('appVersionName') ?: '1.1')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

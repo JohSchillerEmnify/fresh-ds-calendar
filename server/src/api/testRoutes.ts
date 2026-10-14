@@ -5,7 +5,7 @@ import { ApiException, validation } from '../lib/errors.js';
 import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { newestFirst } from '../services/backup.js';
-import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -75,6 +75,12 @@ export function testRoutes(ctx: Ctx): Hono {
   // "A new version of the app is deployed": /api/config reports this build version from now on.
   t.post('/version', async (c) => {
     ctx.overrides.version = parse(testVersionSchema, await body(c)).version;
+    return c.json(configResponse(ctx));
+  });
+
+  // "The server offers an APK": /api/config reports it from now on (null = none).
+  t.post('/apk', async (c) => {
+    ctx.overrides.apk = parse(testApkSchema, await body(c));
     return c.json(configResponse(ctx));
   });
 

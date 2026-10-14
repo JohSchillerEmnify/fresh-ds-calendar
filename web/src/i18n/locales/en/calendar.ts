@@ -151,6 +151,10 @@ export default {
     deleted: 'Deleted: {title}',
     undo: 'Undo',
   },
+  apk: {
+    available: 'New app version',
+    download: 'Download',
+  },
   update: {
     available: 'New version available',
     reload: 'Reload',

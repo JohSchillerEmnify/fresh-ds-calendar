@@ -673,6 +673,11 @@ Serves `DATA_DIR/downloads/app.apk` if the file exists: `200`, `Content-Type: ap
 `404` with the usual JSON error body (never the SPA `index.html`). Public (outside `/api`, no session needed: the
 file holds no secrets). The file is put there by `scripts/android-build.sh`, not by the server.
 
+`DATA_DIR/downloads/app.json` (`{ "versionCode": 7, "versionName": "1.1.7" }`, written next to the APK by `scripts/android-build.sh`,
+`versionCode` = git commit count) is reported by `GET /api/config` as `apk: { versionCode, versionName } | null` (null without a valid
+file). The Android app compares it with its installed `versionCode` and offers the download (snackbar "New app version").
+TEST_MODE: `POST /api/__test/apk { versionCode, versionName }` overrides it until the next reset.
+
 ## Sign-in (auth on when `PROVIDER=google`; off with `PROVIDER=mock` unless a test turns it on)
 
 | Method | Path | Effect |
