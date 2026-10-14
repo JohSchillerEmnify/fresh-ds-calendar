@@ -340,7 +340,17 @@ the browser install prompt was shown
 I see the iOS install hint {string}
 I do not see the iOS install hint
 I dismiss the iOS install hint
+the settings offer to install the app
+the settings do not offer to install the app
+I open the install instructions in the settings
+the install instructions show the steps {string}
+I close the install instructions
+the install instructions are closed
 ```
+
+- Settings install row (iOS, owner 2026-10-14): `settings-install-app` (row button, only on iOS and not installed) opens
+  `ios-install-sheet` with the ordered steps `ios-install-step`; `ios-install-close` closes it. "the install
+  instructions show the steps" compares the comma-separated step texts with the `ios-install-step` texts in order.
 
 - `I request "METHOD /path"` uses Playwright `request` against the base URL; "JSON field" is a dotted path; the value is
   compared as `String(value)`. "the manifest ..." steps use the last response.

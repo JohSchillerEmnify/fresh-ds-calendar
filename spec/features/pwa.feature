@@ -83,6 +83,28 @@ Feature: Installable progressive web app
     Then I do not see the iOS install hint
     And I do not see the install app button
 
+  @ios
+  Scenario: An iPhone user sees how to install the app
+    Given I am using Safari on an iPhone
+    When I open the path "/settings"
+    Then the settings offer to install the app
+    When I open the install instructions in the settings
+    Then the install instructions show the steps "Tap the Share button, Choose Add to Home Screen, Tap Add"
+    And the add button covers no control of the "install sheet"
+    When I close the install instructions
+    Then the install instructions are closed
+
+  @ios
+  Scenario: The settings offer no install row when the app is already installed
+    Given I am using Safari on an iPhone
+    And the app runs as an installed app
+    When I open the path "/settings"
+    Then the settings do not offer to install the app
+
+  Scenario: The settings offer no iOS install row on other devices
+    When I open the path "/settings"
+    Then the settings do not offer to install the app
+
   Scenario: No iOS hint on other browsers
     When I open the app
     Then I do not see the iOS install hint
