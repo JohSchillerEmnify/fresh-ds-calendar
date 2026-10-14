@@ -62,9 +62,17 @@ export interface CalendarProvider {
   deleteEvent(calendarId: string, eventId: string, o?: WriteOptions): Promise<void>;
   moveEvent(calendarId: string, eventId: string, destinationCalendarId: string): Promise<GoogleEvent>;
   listChanges?(calendarId: string, syncToken: string): Promise<ListEventsResult>;
+  /** Milliseconds left of a rate-limit cooldown (no Google calls are made meanwhile); 0 or absent when not cooling down. */
+  cooldownMs?(): number;
 }
 
 export class ProviderUnavailableError extends Error {}
+/** Google's per-person rate limit is in force: no call was made (or it was refused); try again after `retryAfterSec`. */
+export class RateLimitedError extends ProviderUnavailableError {
+  constructor(readonly retryAfterSec: number) {
+    super('Google rate limit: cooling down');
+  }
+}
 /** Google no longer accepts the person's refresh token (invalid_grant): they must sign in again. */
 export class ReauthRequiredError extends Error {}
 /** Google refuses calendar calls because the person did not grant the calendar scope at sign-in. */

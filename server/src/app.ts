@@ -3,7 +3,7 @@ import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { sessionMiddleware } from './auth/middleware.js';
 import { ApiException } from './lib/errors.js';
-import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider } from './providers/CalendarProvider.js';
+import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError, RateLimitedError, type CalendarProvider } from './providers/CalendarProvider.js';
 import { apiRoutes } from './api/routes.js';
 import { testRoutes } from './api/testRoutes.js';
 import { authRoutes } from './api/authRoutes.js';
@@ -40,14 +40,15 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   app.close = () => ctx.close();
 
   if (config.allowedOrigins.length) {
-    app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed'] }));
+    app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed', 'X-Stale', 'Retry-After'] }));
   }
 
   // Diagnostics: every API answer with status >= 500 leaves one line, with the cause the error handler noted.
   app.use('/api/*', async (c, next) => {
     const started = Date.now();
     await next();
-    if (c.res.status >= 500) {
+    // a rate-limited answer is logged once per cooldown (`rate_limited`), not per request
+    if (c.res.status >= 500 && causeFor(c) !== RateLimitedError.name) {
       logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
     }
   });
@@ -82,6 +83,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details, err.key), err.status);
     if (err instanceof ReauthRequiredError) return c.json(body('GOOGLE_REAUTH', 'Google no longer accepts your access. Sign in with Google again.'), 401);
     if (err instanceof CalendarPermissionMissingError) return c.json(body('CALENDAR_PERMISSION_MISSING', 'Google Calendar access was not granted. Sign in with Google again and tick the calendar checkbox.'), 403);
+    if (err instanceof RateLimitedError) return c.json(body('RATE_LIMITED', 'Google is limiting requests right now. Try again shortly.'), 503, { 'Retry-After': String(err.retryAfterSec) });
     if (err instanceof ProviderUnavailableError) return c.json(body('PROVIDER_UNAVAILABLE', 'Google Calendar is unavailable'), 503);
     if (err instanceof PreconditionFailedError) return c.json(body('PRECONDITION_FAILED', 'This item was changed elsewhere. Reload it and try again.'), 412);
     if (err instanceof NotFoundError) return c.json(body('NOT_FOUND', 'Not found'), 404);

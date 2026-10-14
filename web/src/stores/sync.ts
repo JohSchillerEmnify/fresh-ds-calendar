@@ -16,6 +16,8 @@ export function pushWidget(): void {
 
 export type SyncState = 'idle' | 'syncing' | 'error';
 const FOCUS_DEBOUNCE_MS = 500;
+/** After a failed sync, automatic triggers wait at least the poll interval (or this, when polling is off) and any `Retry-After`. */
+const DEFAULT_BACKOFF_MS = 30_000;
 /** A failure within this long after the page became visible again counts as "just resumed". */
 const RESUME_WINDOW_MS = 5000;
 
@@ -24,12 +26,16 @@ const RESUME_WINDOW_MS = 5000;
  * `document.hidden` and resumed with one immediate sync on `visible`. Triggers: interval (`pollIntervalMs` from
  * /api/config, 0 = off), window focus (debounced), visibilitychange, `online`, `retry()`, route changes
  * (the items store). Other features add their own refreshers with `registerTask`.
+ * A failed sync starts a quiet period (the poll interval, or the server's `Retry-After` when longer) in which focus,
+ * visibility, `online` and queued follow-ups do not sync again; only the poll timer and `retry()` do.
  */
 export const useSyncStore = defineStore('sync', () => {
   const state = ref<SyncState>('idle');
   const lastSync = ref<string | null>(null);
   const error = ref<ApiError | null>(null);
   const running = ref(false);
+  /** The server is rate limited by Google but the screen still has data: no banner, only this flag (and `data-rate-limited`). */
+  const rateLimited = ref(false);
 
   const tasks = new Map<string, () => Promise<unknown>>();
   const bag = new DisposerBag();
@@ -39,6 +45,8 @@ export const useSyncStore = defineStore('sync', () => {
   let current: Promise<void> | null = null;
   let again = false;
   let visibleAt = -Infinity;
+  /** Until this time (ms) automatic triggers do not start a sync (set by a failed sync). */
+  let quietUntil = 0;
   /** A beacon that could not be sent (network down); the next successful sync sends it. */
   let pending: { beacon: SyncErrorBeacon; at: number } | null = null;
 
@@ -68,9 +76,21 @@ export const useSyncStore = defineStore('sync', () => {
     };
   }
 
-  /** Shows the banner for an unavailable error; `task` names the failed refresher for the diagnostics beacon. */
+  /** Starts the quiet period after a failure: the poll interval, at least the server's `Retry-After`. */
+  function noteFailure(e: ApiError): void {
+    const poll = useClockStore().pollIntervalMs;
+    const ms = Math.max(poll > 0 ? poll : DEFAULT_BACKOFF_MS, (e.retryAfterSec ?? 0) * 1000);
+    quietUntil = Math.max(quietUntil, Date.now() + ms);
+  }
+
+  /** Shows the banner for an unavailable error (not for a rate limit while data is shown); `task` names the failed refresher for the diagnostics beacon. */
   function reportError(e: unknown, task = 'other'): void {
     if (e instanceof ApiError && e.isUnavailable) {
+      noteFailure(e);
+      if (e.isRateLimited && Object.keys(useItemsStore().ranges).length > 0) {
+        rateLimited.value = true;
+        return;
+      }
       const entering = state.value !== 'error';
       error.value = e;
       state.value = 'error';
@@ -93,7 +113,8 @@ export const useSyncStore = defineStore('sync', () => {
     ];
   }
 
-  async function run(withConfig: boolean): Promise<void> {
+  /** Runs every refresher once; resolves to whether all of them succeeded. */
+  async function run(withConfig: boolean): Promise<boolean> {
     running.value = true;
     if (state.value !== 'error') state.value = 'syncing';
     const clock = useClockStore();
@@ -109,9 +130,10 @@ export const useSyncStore = defineStore('sync', () => {
     const failed = failedAt >= 0 ? (results[failedAt] as PromiseRejectedResult) : undefined;
     if (failed) {
       if (failed.reason instanceof ApiError && failed.reason.isUnavailable) reportError(failed.reason, list[failedAt]![0]);
-      else if (!error.value) state.value = 'idle';
+      if (!error.value) state.value = 'idle';
       else state.value = 'error';
     } else {
+      rateLimited.value = false;
       error.value = null;
       state.value = 'idle';
       lastSync.value = new Date().toISOString();
@@ -123,9 +145,10 @@ export const useSyncStore = defineStore('sync', () => {
       }
     }
     running.value = false;
+    return !failed;
   }
 
-  /** Run a sync now (coalesces concurrent calls; a call during a run schedules exactly one follow-up). */
+  /** Run a sync now (coalesces concurrent calls; a call during a run schedules exactly one follow-up, unless that run fails). */
   function syncNow(withConfig = false): Promise<void> {
     if (current) {
       again = true;
@@ -135,7 +158,8 @@ export const useSyncStore = defineStore('sync', () => {
       try {
         do {
           again = false;
-          await run(withConfig);
+          const ok = await run(withConfig);
+          if (!ok) again = false; // a failed sync is retried by the poll timer, never at once
           if (typeof document !== 'undefined' && document.hidden) again = false; // no follow-up fetch while hidden
         } while (again);
       } finally {
@@ -154,6 +178,15 @@ export const useSyncStore = defineStore('sync', () => {
     return syncNow(true);
   }
 
+  /** A sync started by focus or visibility: skipped (the poll timer stays) during the quiet period after a failure. */
+  function syncAuto(): void {
+    if (Date.now() < quietUntil) {
+      schedule();
+      return;
+    }
+    void syncNow(true).then(schedule);
+  }
+
   function schedule(): void {
     pollTimer?.();
     pollTimer = null;
@@ -163,9 +196,9 @@ export const useSyncStore = defineStore('sync', () => {
     pollTimer = appTimeout(async () => {
       pollTimer = null;
       if (document.hidden) return;
-      await syncNow();
+      if (Date.now() >= quietUntil) await syncNow();
       schedule();
-    }, ms);
+    }, quietUntil > Date.now() ? quietUntil - Date.now() + 50 : ms);
   }
 
   function onVisible(): void {
@@ -175,14 +208,14 @@ export const useSyncStore = defineStore('sync', () => {
       return;
     }
     visibleAt = Date.now();
-    void syncNow(true).then(schedule);
+    syncAuto();
   }
   function onFocus(): void {
     focusTimer?.();
     focusTimer = appTimeout(() => {
       focusTimer = null;
       if (document.hidden) return;
-      void syncNow(true).then(schedule);
+      syncAuto();
     }, FOCUS_DEBOUNCE_MS);
   }
 
@@ -192,6 +225,7 @@ export const useSyncStore = defineStore('sync', () => {
     started = true;
     bag.add(listen(document, 'visibilitychange', onVisible));
     bag.add(listen(window, 'focus', onFocus));
+    // the network coming back is news, so it is not held back by the quiet period
     bag.add(listen(window, 'online', () => { void syncNow(true).then(schedule); }));
     schedule();
   }
@@ -205,5 +239,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, retry, start, stop, schedule };
+  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, retry, start, stop, schedule };
 });

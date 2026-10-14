@@ -87,6 +87,12 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (motivation.rev !== before && c.req.method !== 'GET') c.header('X-Motivation-Changed', '1');
   });
 
+  // Reads answered while Google's rate limit is in force come from the server's cache: say so.
+  r.use('*', async (c, next) => {
+    await next();
+    if (c.req.method === 'GET' && c.res.status === 200 && cal(c).stale()) c.header('X-Stale', '1');
+  });
+
   // ---- health / config ----
   r.get('/health', async (c) => {
     const now = ctx.clock.real();

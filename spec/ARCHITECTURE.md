@@ -53,7 +53,7 @@ calendar/
 | `colors.ts` | Google palette, nearest-color (CIE76 ΔE), hex validation. Shared with `web/`. |
 | `CalendarProvider` | Abstraction over Google Calendar API v3 (below). |
 | `MockGoogleProvider` | In-memory store + JSON file persistence in `DATA_DIR/mock-google.json` (atomic write: temp file + rename). Seeds demo data when empty unless `SEED=false`. Emulates ids, etag, `updated`, `sequence`, `status: cancelled`, `extendedProperties`, `syncToken`, 412 on stale `ifMatch`. Has test hooks: `reset`, `setOutage`. |
-| `GoogleProvider` | Google Calendar API v3 over HTTPS (official client library or plain `fetch`, per RESEARCH.md) with OAuth2 refresh-token auth. Unit-tested with mocked HTTP (injected `fetch` or an HTTP interceptor). Maps Google HTTP errors: 401/403 auth → `ProviderUnavailableError`, 404/410 → `NotFoundError`, 412 → `PreconditionFailedError`, 5xx/network → `ProviderUnavailableError`, other → `ProviderError`. |
+| `GoogleProvider` | Google Calendar API v3 over HTTPS (official client library or plain `fetch`, per RESEARCH.md) with OAuth2 refresh-token auth. Unit-tested with mocked HTTP (injected `fetch` or an HTTP interceptor). Caches reads and backs off on rate limits (§4 "Google access: caching and rate limits"). Maps Google HTTP errors: rate limit (429, 403 `rateLimitExceeded`) → `RateLimitedError`, 401/403 auth → `ProviderUnavailableError`, 404/410 → `NotFoundError`, 412 → `PreconditionFailedError`, 5xx/network → `ProviderUnavailableError`, other → `ProviderError`. |
 
 ### CalendarProvider interface
 
@@ -162,8 +162,9 @@ option A of two — B, server storage with Drive backup, may follow in the VPS t
 
 ## 4. Sync strategy
 
-Server: stateless pass-through to the provider for every request (no cache, so remote changes are visible
-immediately). `GoogleProvider` may later use `syncToken` per calendar internally; the REST contract does not change.
+Server: a pass-through to the provider for every request. `MockGoogleProvider` has no cache; `GoogleProvider` keeps a
+short per-person read cache and a rate-limit cooldown (see "Google access: caching and rate limits"), so a remote change
+can take up to 25 s to show. The REST contract does not change, apart from the `stale` marker.
 
 Web (`stores/sync.ts`, `stores/items.ts`):
 
@@ -180,11 +181,49 @@ Web (`stores/sync.ts`, `stores/items.ts`):
    on success replace with the returned `TaskList`, on failure roll back and show the banner. Event and task list
    dialog saves are **not** optimistic: the dialog shows a saving state, closes on success, stays open with an inline
    error on failure.
-6. Errors: any failed fetch/mutation with network error, 502 or 503 sets `sync.error` → `sync-error-banner`
+6. Errors: any failed fetch/mutation with network error, 502 or 503 (not `RATE_LIMITED` while data is shown, see
+   "Google access: caching and rate limits") sets `sync.error` → `sync-error-banner`
    ("Can't reach Google Calendar. Showing the last known data." + "Retry"). The banner is a non-modal strip below
    the top bar; everything stays interactive. The next successful fetch clears it.
    `sync-status` exposes `data-state="idle|syncing|error"` and `data-last-sync="<ISO>"` (time of last successful sync).
+   After a failed sync, focus and visibility triggers and the queued follow-up sync do nothing for the poll
+   interval (or the server's `Retry-After`, when longer); only the poll timer, the `online` event and the banner's Retry button start a sync.
 7. No offline write queue (assumption A-12).
+
+### Google access: caching and rate limits (owner incident 2026-10-14)
+
+Why: after a deploy restart one person produced about 100 `rateLimitExceeded` answers in a minute (75 `events.list`,
+20 `calendarList.list`, 32 `GET /api/items` answered 503) and saw "Can't reach Google Calendar". One `GET /api/items`
+fans out to one `events.list` per calendar plus one for the tasks calendar, all at once, after a `calendarList.list`
+that was neither cached (the `/api/calendars` route bypassed the service cache) nor shared between parallel requests,
+and a failed read left nothing behind, so the next request repeated all of it. Google's per-person limit then turned
+every request into a 503.
+
+`server/src/providers/google/RateGuard.ts`, one instance per `GoogleProvider` (= per person):
+
+- **Read cache.** `events.list` (key: calendar, range, `showDeleted`, property filter) and `calendarList.list`, fresh for
+  25 s. Concurrent identical calls share one in-flight request (single-flight). Callers get copies. Every write
+  (`insert`/`patch`/`delete`/`move` of events, `calendars.insert`, `calendarList.patch`) makes all entries not fresh at
+  once, and a read that was already in flight during the write is not stored as fresh. `getEvent` and `listChanges` are
+  never cached (read-modify-write needs the live etag). Entries stay usable as stale data for 30 min, at most 300 per person.
+- **Cooldown.** A 429, or a 403 with reason `rateLimitExceeded` / `userRateLimitExceeded`, starts a cooldown of 5 s,
+  doubling on every consecutive rate-limit answer up to 2 min, or Google's `Retry-After` (at most 10 min) when sent. A
+  successful call after the cooldown resets the backoff. While it runs **no Google call is made** (not even a write):
+  reads fall back to the cached entry (stale up to 30 min), everything else throws `RateLimitedError`
+  (a `ProviderUnavailableError`), which the API answers as `503 RATE_LIMITED` + `Retry-After` (not logged as
+  `api_unavailable`). Calls that fail at the same moment as the one that started the cooldown neither log nor extend it.
+- **Stale marker.** `CalendarService.stale()` is true while the cooldown runs; `GET /api/items` then carries
+  `stale: true` and every `GET` the header `X-Stale: 1` (API.md "Stale data").
+- **Diagnostics.** `rate_limited` lines: `state: start` (`subHash`, `op`, `cooldownSec`, `step`, `retryAfter`) and
+  `state: end` (the first successful call after the cooldown), one each per cooldown, not per request. `google_error`
+  lines are still written per failed Google call.
+
+Alternatives weighed: a global (not per person) limiter (rejected: Google's limit is per person, one person's burst must
+not slow the others); serving stale data for every provider failure (rejected: outages must stay visible, the banner exists
+for them; only the rate limit is a known transient); a longer TTL (rejected: a remote change would show later than the 30 s
+poll people expect). Web: `ApiError.isRateLimited`; a rate-limited failure shows no banner while any range is loaded
+(`sync.rateLimited`, `data-rate-limited` on `sync-status`); background `prefetch` of a range that failed is not repeated
+for 30 s.
 
 ## 5. Web app
 
@@ -2069,6 +2108,8 @@ no response and no retry changed. Lines are one JSON object each on stdout (`doc
 | `google_error` | a Google API call failed (after the Google client's own retries) | `subHash`, `op` (`events.list`, `calendarList.list` ...), `status`, `reason` (Google's reason), `code` (network code such as `ETIMEDOUT`, `ECONNRESET`, `ENOTFOUND`, `TIMEOUT`; only when there was no HTTP status), `retry` (attempt the client library reached), `durationMs` |
 | `api_unavailable` | the server sent an `/api` response with status >= 500 | `route` (`GET /api/items`, the route pattern), `status`, `durationMs`, `cause` (`429:rateLimitExceeded`, `503`, `ETIMEDOUT`, or the error class name) |
 | `auth_flow` | a step of the app's Google sign-in (see "App sign-in hang" below) | `step` (`start`, `callback`, `fallback`, `exchange`, `exchange_failed`), `app`, `subHash` (callback only), `durationMs` (handler time; start, callback only) |
+| `rate_limited` | Google's rate limit started or ended a cooldown (once per transition, §4) | `state` (`start`/`end`), `subHash`, `op`, `cooldownSec`, `step`, `retryAfter` |
+| `api_unavailable` | the server sent an `/api` response with status >= 500 (except `RATE_LIMITED`, which has `rate_limited`) | `route` (`GET /api/items`, the route pattern), `status`, `durationMs`, `cause` (`429:rateLimitExceeded`, `503`, `ETIMEDOUT`, or the error class name) |
 | `client_sync_error` | the web app entered the banner state (`POST /api/diag/sync-error`, API.md "Diagnostics") | `subHash`, `kind`, `status`, `task`, `online`, `resumed`, `app`, `ageSec` |
 
 Example reading: `google_error` followed by `api_unavailable` with the same `cause` = Google; `client_sync_error` with
