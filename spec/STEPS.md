@@ -223,7 +223,6 @@ the task list {string} is expanded
 the task list {string} is collapsed
 no task list is expanded
 the expanded task list items are {string}
-the expanded task list is shown as a bottom sheet
 the expanded task list fits within the viewport
 I tick the item {string}
 I untick the item {string}
@@ -235,9 +234,20 @@ I rename the item {string} to {string} but press Escape
 I delete the item {string}
 I move the item {string} up
 I move the item {string} down
-I rename the task list to {string}
 I edit the task list details
 I delete the task list
+I tap the task list {string}
+I tap the task list {string} again
+I tap outside the expanded task list
+I note where the task list cards are
+the task list cards have not moved
+the task list {string} is expanded over the calendar
+the expanded task list shows the item {string} as done and the item {string} as open
+the expanded task list has no checkboxes
+the focus is inside the expanded task list
+the card of the task list {string} has the focus
+the card of the task list {string} says it is expanded
+the card of the task list {string} says it is collapsed
 ```
 
 "the task list X shows the done count" checks the expanded header if X is expanded, else the collapsed card.
@@ -249,6 +259,15 @@ is at or under the bottom of `tasklist-card-title`, "next to" = it shares the ti
 visible text part of the card (`tasklist-card-time`, `tasklist-card-items`, `tasklist-card-count`).
 "for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
+Expanded card (`tasklists-expand.feature`; ARCHITECTURE "Expanded task list card"): "I expand the task list X" taps the card
+(the expansion is `tasklist-expanded` with `data-presentation="overlay"`); "I tap the task list X" is the same click without
+waiting for the expansion; "again" taps the title in the head of the expansion (it covers the card, its head is where the card was). "I tap outside the expanded task list" clicks a point of the
+viewport that is outside the expansion and not on a button, link or field. "I note where the task list cards are" records the
+box of every `tasklist-card`; "have not moved" compares them (within 1 px) after the expansion. "is expanded over the
+calendar": the expansion is an overlay (`data-presentation="overlay"`), the card has `aria-expanded="true"` and the
+expansion is the top element at its own centre (it covers what lies below). "shows the item I as done and J as open":
+`tasklist-item` rows with `data-done` true / false; "has no checkboxes": no `tasklist-item-checkbox` inside it. "the focus is
+inside" / "the card has the focus": `document.activeElement` is within the expansion / is the card button.
 
 ## Google (provider) side
 

@@ -23,6 +23,12 @@ export interface ResizingEntry {
   date: string;
 }
 
+/** The task list card that is expanded in place over the calendar (one at a time, never stored). */
+export interface ExpandedCard {
+  id: string;
+  date: string;
+}
+
 let seq = 0;
 
 /** Shell UI state that must survive refreshes (open pickers, dialogs, snackbars). */
@@ -41,6 +47,7 @@ export const useUiStore = defineStore('ui', () => {
   }
   const dialog = ref<OpenDialog | null>(null);
   const resizing = ref<ResizingEntry | null>(null);
+  const expandedCard = ref<ExpandedCard | null>(null);
   const snackbars = ref<SnackbarMessage[]>([]);
 
   /** Opens a dialog registered with `registerDialog(kind, component)`. */
@@ -49,6 +56,16 @@ export const useUiStore = defineStore('ui', () => {
   }
   function closeDialog(): void {
     dialog.value = null;
+  }
+  /** Expands the card of that list and day, or collapses it when it already is; another expanded card collapses. */
+  function toggleCard(card: ExpandedCard): void {
+    const c = expandedCard.value;
+    expandedCard.value = c && c.id === card.id && c.date === card.date ? null : { ...card };
+  }
+  /** Collapses the expanded card; with `card` only when it is that one (a card going away must not close a newer one). */
+  function collapseCard(card?: ExpandedCard): void {
+    const c = expandedCard.value;
+    if (!card || (c && c.id === card.id && c.date === card.date)) expandedCard.value = null;
   }
 
   function notify(text: string, opts: Partial<Omit<SnackbarMessage, 'id' | 'text'>> = {}): number {
@@ -60,5 +77,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, panelOpen, setPanel, dialog, resizing, snackbars, openDialog, closeDialog, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, toggleCard, collapseCard, notify, dismiss };
 });

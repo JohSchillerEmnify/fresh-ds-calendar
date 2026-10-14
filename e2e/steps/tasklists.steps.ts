@@ -6,7 +6,7 @@ import { field, fillField, readField, type FieldKind } from './support/forms.js'
 import { expectPositioned } from './support/grid.js';
 import { expandTaskList, itemById } from './support/tasklist.js';
 import { cellValue, formRows } from './support/tables.js';
-import { expectBottomSheet, expectInViewport, expectJoined } from './support/ui.js';
+import { expectInViewport, expectJoined } from './support/ui.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 
 const dialog = (w: World) => w.page.getByTestId('tasklist-dialog');
@@ -195,10 +195,6 @@ Then('the expanded task list items are {string}', async function (this: World, l
   await expectJoined(this.expanded.getByTestId('tasklist-item-title'), list);
 });
 
-Then('the expanded task list is shown as a bottom sheet', async function (this: World) {
-  await expectBottomSheet(this.page, this.expanded);
-});
-
 Then('the expanded task list fits within the viewport', async function (this: World) {
   await expectInViewport(this.page, this.expanded);
 });
@@ -265,14 +261,6 @@ When('I move the item {string} up', async function (this: World, title: string) 
 
 When('I move the item {string} down', async function (this: World, title: string) {
   await (await itemById(this, title)).getByTestId('tasklist-item-down').click();
-});
-
-When('I rename the task list to {string}', async function (this: World, title: string) {
-  await this.expanded.getByTestId('tasklist-expanded-title').click();
-  const input = this.expanded.getByTestId('tasklist-expanded-title-input');
-  await input.fill(title);
-  await input.press('Enter');
-  await expect(input).toBeHidden();
 });
 
 When('I edit the task list details', async function (this: World) {

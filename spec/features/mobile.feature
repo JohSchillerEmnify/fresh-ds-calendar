@@ -117,14 +117,14 @@ Feature: Mobile-first layout
     And I save the event
     Then the event "Dentist" is positioned from 09:00 to 10:00
 
-  Scenario: Expand a task list and tick an item on a phone
+  Scenario: Expand a task list over the calendar and tick an item on a phone
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |
       | Milk | no   |
       | Eggs | no   |
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
-    Then the expanded task list is shown as a bottom sheet
+    Then the task list "Groceries" is expanded over the calendar
     And the expanded task list fits within the viewport
     When I tick the item "Milk"
     Then the task list "Groceries" shows the done count "1/2"
