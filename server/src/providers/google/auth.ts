@@ -1,10 +1,10 @@
 import { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import type { OAuthBackend, OAuthResult } from '../../auth/oauth.js';
-import { hasCalendarScope, readUserScope, readUserToken, writeUserToken } from '../../auth/people.js';
+import { DRIVE_APPDATA_SCOPE, hasCalendarScope, readUserScope, readUserToken, writeUserToken } from '../../auth/people.js';
 
-/** One OAuth round trip signs in (`openid email`) and connects the calendar. */
-export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar'];
+/** One OAuth round trip signs in (`openid email`), connects the calendar and the hidden Drive app folder (backups). */
+export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar', DRIVE_APPDATA_SCOPE];
 type Cfg = Pick<AppConfig, 'dataDir' | 'google'>;
 
 const newClient = (config: Cfg) =>

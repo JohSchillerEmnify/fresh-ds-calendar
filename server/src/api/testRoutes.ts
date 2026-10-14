@@ -2,7 +2,9 @@ import { Hono, type Context } from 'hono';
 import { configResponse } from './routes.js';
 import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
-import { mockSub, parseEmails } from '../auth/people.js';
+import fs from 'node:fs';
+import { mockSub, parseEmails, userDir } from '../auth/people.js';
+import { newestFirst } from '../services/backup.js';
 import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
@@ -28,6 +30,8 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.resetPeople();
     ctx.prefs.reset();
     ctx.themes.reset();
+    ctx.backup.reset();
+    ctx.mockDrive?.reset();
     ctx.canvas.reset();
     ctx.people.reset();
     ctx.shared.reset();
@@ -169,9 +173,11 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // The Google account the fake consent screen signs in next.
   t.post('/oauth/account', async (c) => {
-    const b = (await body(c)) as { email?: unknown } | undefined;
+    const b = (await body(c)) as { email?: unknown; driveScope?: unknown } | undefined;
     if (typeof b?.email !== 'string' || !b.email) throw validation('email is required', 'email');
+    if (b.driveScope !== undefined && typeof b.driveScope !== 'boolean') throw validation('driveScope must be a boolean', 'driveScope');
     ctx.auth.fake!.account = b.email;
+    ctx.auth.fake!.driveScope = b.driveScope !== false;
     return c.json({ email: b.email });
   });
 
@@ -196,6 +202,40 @@ export function testRoutes(ctx: Ctx): Hono {
     if (typeof b?.email !== 'string' || !b.email) throw validation('email is required', 'email');
     ctx.mockFor(mockSub(b.email)).setRevoked(true);
     return c.json({ revoked: b.email });
+  });
+
+  // ---- backups to the mock Drive ----
+  t.post('/backup/flush', async (c) => c.json({ ran: await ctx.backup.flush() }));
+  t.post('/backup/tick', async (c) => c.json({ ran: await ctx.backup.tick() }));
+  t.post('/backup/timers', async (c) => {
+    const b = ((await body(c)) ?? {}) as { debounceMs?: unknown; minIntervalMs?: unknown };
+    for (const k of ['debounceMs', 'minIntervalMs'] as const) {
+      if (b[k] === undefined) continue;
+      if (typeof b[k] !== 'number' || !Number.isFinite(b[k]) || (b[k] as number) < 0) throw validation(`${k} must be a number of milliseconds`, k);
+      ctx.backup.timings[k] = b[k] as number;
+    }
+    return c.json({ debounceMs: ctx.backup.timings.debounceMs, minIntervalMs: ctx.backup.timings.minIntervalMs });
+  });
+  t.post('/backup/drive-down', async (c) => {
+    const b = (await body(c)) as { down?: unknown } | undefined;
+    if (typeof b?.down !== 'boolean') throw validation('down must be a boolean', 'down');
+    ctx.mockDrive!.down = b.down;
+    return c.json({ down: b.down });
+  });
+  // The server "lost" this person's data (a new server with an empty DATA_DIR); the mock Drive stays as it is.
+  t.post('/backup/wipe', async (c) => {
+    const b = (await body(c)) as { owner?: unknown } | undefined;
+    if (typeof b?.owner !== 'string' || !b.owner) throw validation('owner is required', 'owner');
+    const sub = mockSub(b.owner);
+    fs.rmSync(userDir(ctx.config.dataDir, sub), { recursive: true, force: true });
+    ctx.auth.sessions.deleteSub(sub);
+    ctx.backup.forget(sub);
+    return c.body(null, 204);
+  });
+  t.get('/backup/drive', (c) => {
+    const owner = c.req.query('owner');
+    if (!owner) throw validation('owner is required', 'owner');
+    return c.json({ files: newestFirst(ctx.mockDrive!.filesOf(mockSub(owner))) });
   });
 
   t.get('/memory', (c) => {

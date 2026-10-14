@@ -48,6 +48,13 @@ export class SessionStore {
     }
   }
 
+  /** Ends every session of one person (TEST_MODE: the server "forgot" them). */
+  deleteSub(sub: string): void {
+    const ids = Object.keys(this.sessions).filter((id) => this.sessions[id]!.sub === sub);
+    for (const id of ids) delete this.sessions[id];
+    if (ids.length) this.save();
+  }
+
   clear(): void {
     const had = Object.keys(this.sessions).length > 0;
     this.sessions = {};

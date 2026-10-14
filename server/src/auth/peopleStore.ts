@@ -11,10 +11,15 @@ interface Known { email: string; name?: string }
  */
 export class PeopleStore {
   private readonly file: string | null;
-  private known: Record<string, Known>;
+  private known!: Record<string, Known>;
 
   constructor(dataDir: string | null) {
     this.file = dataDir ? path.join(dataDir, 'people.json') : null;
+    this.reload();
+  }
+
+  /** Reads the file again (start, and after a backup restore replaced it). */
+  reload(): void {
     this.known = (this.file && readJson<Record<string, Known>>(this.file)) || {};
   }
 

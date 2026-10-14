@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { CALENDAR_SCOPE, mockSub } from './people.js';
+import { CALENDAR_SCOPE, DRIVE_APPDATA_SCOPE, mockSub } from './people.js';
 
 /** What the callback needs from one OAuth round trip: who signed in and the long-lived calendar token. */
 export interface OAuthResult {
@@ -53,6 +53,8 @@ export class StateStore {
 export class FakeOAuth implements OAuthBackend {
   /** The Google account the next consent screen "picks". */
   account: string | null = null;
+  /** Whether the next consent grants the Drive app-folder permission. */
+  driveScope = true;
   /** False: the fake consent screen is answered without the calendar scope (the person left the checkbox unticked). */
   calendarGranted = true;
 
@@ -67,6 +69,7 @@ export class FakeOAuth implements OAuthBackend {
   async exchange(code: string): Promise<OAuthResult> {
     if (!code.startsWith('fake:')) throw new Error('Invalid fake code');
     const email = decodeURIComponent(code.slice(5)).toLowerCase();
-    return { sub: mockSub(email), email, emailVerified: true, name: email.split('@')[0] ?? email, refreshToken: `fake-refresh-${mockSub(email)}`, scope: this.calendarGranted ? `openid email ${CALENDAR_SCOPE}` : 'openid email' };
+    const scope = ['openid', 'email', ...(this.calendarGranted ? [CALENDAR_SCOPE] : []), ...(this.driveScope ? [DRIVE_APPDATA_SCOPE] : [])].join(' ');
+    return { sub: mockSub(email), email, emailVerified: true, name: email.split('@')[0] ?? email, refreshToken: `fake-refresh-${mockSub(email)}`, scope };
   }
 }

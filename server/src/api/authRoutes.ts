@@ -59,6 +59,8 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     }
     // the cached provider still holds the old OAuth client (and its access token without the calendar scope): rebuild it
     ctx.forgetPerson(who.sub);
+    // a new or wiped server gets the person's data back from their Drive backup (never fails the sign-in)
+    await ctx.backup.restoreIfEmpty(who.sub);
     setSessionCookie(ctx, c, ctx.auth.sessions.create({ sub: who.sub, email: who.email.toLowerCase(), ...(who.name ? { name: who.name } : {}) }));
     // signed in, but Google's token response (the authority, not the callback's scope query) lacks the calendar: say so instead of pretending
     return c.redirect(missing ? '/?calendar=missing' : '/', 302);

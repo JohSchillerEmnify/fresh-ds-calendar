@@ -4,6 +4,7 @@
  */
 import type { PartialMessages } from '../schema';
 import calendarMainfr from './de-x-mainfr/calendar.ts';
+import backupMainfr from './de-x-mainfr/backup.ts';
 import canvasMainfr from './de-x-mainfr/canvas.ts';
 import bedtimeMainfr from './de-x-mainfr/bedtime.ts';
 
@@ -13,6 +14,7 @@ import themeMainfr from './de-x-mainfr/theme.ts';
 
 export default {
   calendar: calendarMainfr,
+  backup: backupMainfr,
   canvas: canvasMainfr,
   bedtime: bedtimeMainfr,
   sharing: sharingMainfr,

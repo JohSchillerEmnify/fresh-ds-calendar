@@ -69,7 +69,7 @@ export class Api {
     return this.setup('/api/__test/calendars', { owner, calendars });
   }
   /** The Google account the OAuth test double's consent screen signs in next. */
-  chooseGoogleAccount(email: string) { return this.setup('/api/__test/oauth/account', { email }); }
+  chooseGoogleAccount(email: string, driveScope = true) { return this.setup('/api/__test/oauth/account', { email, driveScope }); }
   /** Google answers this person's token refresh with invalid_grant from now on. */
   revokeGoogleAccess(email: string) { return this.setup('/api/__test/oauth/revoke', { email }); }
   /** The fake consent screen grants the calendar scope (true) or leaves the checkbox unticked (false). */

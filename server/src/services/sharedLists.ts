@@ -60,6 +60,11 @@ export class SharedListService {
     this.load();
   }
 
+  /** Reads every list and the category rules again (after a backup restore wrote files behind the store's back). */
+  reload(): void {
+    this.load();
+  }
+
   private load(): void {
     this.docs.clear();
     this.rules = readJson<Record<string, Record<string, string>>>(this.rulesFile) ?? {};

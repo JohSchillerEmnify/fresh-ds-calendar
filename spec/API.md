@@ -476,6 +476,28 @@ A `PUT` with an unknown field, a bad value, a duplicate id or more than 50 areas
 nothing. Last write wins (no etag). The document is per person (the signed-in person; one shared document with sign-in
 off). `POST /api/__test/reset` forgets every person's document.
 
+### Backups (`/api/backup`)
+
+All three need a session while sign-in is on. With sign-in off there is no Google account, so `GET` answers
+`available: false` and the two `POST`s answer `404 NOT_FOUND`. Details: ARCHITECTURE "Backups".
+
+```ts
+interface BackupStatus {
+  available: boolean;                 // false while sign-in is off
+  permission: 'granted' | 'missing';  // the token has the drive.appdata scope
+  state: 'off' | 'never' | 'ok' | 'failed';  // off = permission missing
+  lastBackupAt: DateTime | null;      // time of the newest successful backup
+  error: string | null;               // reason of the last failed attempt (state 'failed')
+  keep: number;                       // versions kept (7)
+}
+```
+
+| Method | Path | Effect |
+|---|---|---|
+| `GET` | `/api/backup` | `200 BackupStatus`. Reads the person's `backup-state.json` only; never calls Drive. |
+| `POST` | `/api/backup` | Backs up now (forced, no throttle) and answers `200 BackupStatus` with the new `lastBackupAt`. `403 DRIVE_PERMISSION_REQUIRED` without the scope; `502 BACKUP_FAILED` (message = reason) when Drive fails, the status then shows `failed`. |
+| `POST` | `/api/backup/restore` | Safety backup, then restores the newest readable version over the person's server data. `200 BackupStatus`. `403 DRIVE_PERMISSION_REQUIRED`; `404 NO_BACKUP` when Drive holds none; `502 BACKUP_FAILED` when the safety backup or Drive fails (nothing is restored then). |
+
 ### Motivation: check-in streak and plant
 
 Stored server-side in `DATA_DIR/motivation.json` (single user, synced across devices). Dates are local dates of the
@@ -553,6 +575,13 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly? }` | Adds a calendar to the account's list as another Google client would; `id`, `color` and `readOnly` (role `reader`) let a test add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |
+| `POST` | `/api/__test/oauth/account` | `{ email: string; driveScope?: boolean }` | (extended) `driveScope: false` makes the fake consent leave out `drive.appdata` (default `true`). |
+| `POST` | `/api/__test/backup/flush` | – | Fires every pending debounce timer now and waits for the runs. `200 { ran: number }` |
+| `POST` | `/api/__test/backup/tick` | – | Runs the daily check once (due = last backup 24 h or older by the test clock, or last attempt failed). `200 { ran: number }` |
+| `POST` | `/api/__test/backup/timers` | `{ debounceMs?: number; minIntervalMs?: number }` | Overrides the debounce (2 min) and the minimum interval (5 min); cleared by reset. `200 { debounceMs, minIntervalMs }` |
+| `POST` | `/api/__test/backup/drive-down` | `{ down: boolean }` | While `down`, every MockDrive call fails. Cleared by reset. `200 { down }` |
+| `POST` | `/api/__test/backup/wipe` | `{ owner: string }` | Deletes everything under `users/<sub>/` of that Google address and ends its sessions (a new server). The mock Drive stays. `204` |
+| `GET` | `/api/__test/backup/drive?owner=<email>` | – | The files in that person's mock appDataFolder, newest first. `200 { files: { id, name, createdTime }[] }` |
 | `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string }` | Creates an undated task list in the mock Google account of `owner` (an email); `category` is a category name. `201` `TaskList` |
 | `GET` | `/api/__test/memory?gc=true` | – | With `gc=true` runs `global.gc()` twice first (server started with `--expose-gc` in test mode). `200 { rss: number; heapUsed: number; heapTotal: number; external: number }` (bytes, from `process.memoryUsage()`) |
 
@@ -590,10 +619,10 @@ The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
 | 201 | create event / task list / item / imported theme, remote insert |
 | 204 | delete event / task list / imported theme, remote delete |
 | 400 | validation |
-| 403 | owner-only action on a shared list by one of its members |
+| 403 | `DRIVE_PERMISSION_REQUIRED` (token without the Drive scope); owner-only action on a shared list by one of its members |
 | 404 | unknown id / route (also a shared list the person is not a member of); test routes when `TEST_MODE` is off |
 | 412 | stale `If-Match` |
-| 502 | provider error |
+| 502 | provider error; `BACKUP_FAILED` |
 | 503 | provider unavailable (outage, network, auth) |
 
 ## Static files
@@ -615,8 +644,8 @@ file holds no secrets). The file is put there by `scripts/android-build.sh`, not
 
 | Method | Path | Effect |
 |---|---|---|
-| `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
-| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid `state`. |
+| `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar + `https://www.googleapis.com/auth/drive.appdata`, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
+| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a person with no server data and a Drive backup gets it restored (ARCHITECTURE "Backups"), a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid `state`. |
 | `GET` | `/api/auth/google/start` (while signed in) | Works with an existing session too (re-grant); the URL carries `include_granted_scopes=true`, so a newly granted scope adds to the old ones. |
 | `GET` | `/api/auth/me` | `{ email, name }` of the signed-in person; 401 without a session; `{ email: null, name: null }` while auth is off (so the client can tell "off" from "signed out"). Public. |
 | `POST` | `/api/auth/signout` | Ends the session (server side) and clears the cookie; 204. |
