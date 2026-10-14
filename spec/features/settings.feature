@@ -134,3 +134,16 @@ Feature: Settings
     When I turn on "Show version in the corner" in the settings
     And I open the week view for 2026-10-12
     Then the corner shows the version "0.4.2"
+
+  @no-sideways
+  Scenario Outline: Settings pages do not scroll sideways on a small phone
+    Given the screen is 320 pixels wide
+    When I open the settings page "<page>"
+    Then the page cannot be scrolled sideways
+    And no settings row is wider than the screen
+
+    Examples:
+      | page               |
+      | /settings          |
+      | /settings/theme    |
+      | /settings/reminders |

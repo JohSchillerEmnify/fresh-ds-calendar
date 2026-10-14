@@ -2098,6 +2098,11 @@ browser does not change.
   web app (the app's language), the channel name by Android (the system language). Alternatives weighed:
   `@capacitor/local-notifications` (a generic plugin with more surface than one reminder needs, and its own permission
   flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
+- **Settings never scroll sideways (owner, 2026-10-14: "you can scroll the settings to the side in iOS")**. Every
+  settings page (`/settings`, its sub-pages Theme and Reminders) scrolls vertically only: the page scroller clips
+  horizontally (`overflow-x: clip`), and no row is wider than the screen at 320 px and up: rows with two controls
+  (two time fields, two buttons) wrap or shrink, grid columns use `minmax(0, 1fr)`. Why both: clipping alone would hide
+  a control that is cut off; fixing the rows alone leaves the next wide row to break it again.
 - **Reminders, several per event (owner, 2026-10-14: "remind me 1 h 30, then 30 min, then 15 min before")**. Slice 1 of 2
   (slice 2 = Web Push, see below). Owner decisions, in order:
   - **Google is the source of truth for event reminders** (owner: "careful with events we already have in Google Calendar,
