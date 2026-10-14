@@ -243,6 +243,16 @@ I note where the event {string} is
 the event {string} has not moved
 the expanded task list overlaps the event {string}
 the expanded task list has the left and width of the card {string}
+the task list card {string} is narrower than its day column
+the expanded task list has the left and width of the day column of {string}
+the expanded task list has no scrollbars and no sideways overflow
+the expanded task list is as tall as its content
+the expanded task list has no time extension
+the month view shows no time blocks
+I tap the title of the expanded task list
+no list sheet is open
+the expanded task list has its first item below the header
+the expanded task list keeps its offset to the card {string} when the grid scrolls by {int} px
 the expanded task list shows the full title {string}
 the expanded task list shows the real time block of the card {string} and a slimmer extension starting at its end
 the task list card {string} is still the one-row inline card of its time block
@@ -277,7 +287,7 @@ list" clicks a point of the viewport outside it and not on a button, link or fie
 "the event X" record the boxes of the `tasklist-card`s / the event chip; "have not moved" compares them (within 1 px) after
 the expansion. "is expanded over the calendar": the overlay is visible, the collapsed card has `aria-expanded="true"` and
 the overlay is the top element at its own centre. "has the left and width of the card X": the grown card's box equals the
-collapsed card's left and width within 2 px. "overlaps the event X": the grown card reaches into the event's box and is the
+collapsed card's left and width within 2 px (month); "of the day column of X": the grown card spans its time grid column (inside the border, 2 px), over side-by-side neighbours. "as tall as its content": the grown month card ends within 12 px below its last item; "has no time extension": no `tasklist-grown-ext` layer. "the month view shows no time blocks": no `.block` item and no zoom timeline in the month view. "keeps its offset ... scrolls": after setting the grid's `scrollTop` in the same task, the grown card is still at the same offset to the collapsed card (it scrolls natively). A tap on the title row collapses, a tap on the item area opens the sheet (taps use `tasklist-card-items`). "overlaps the event X": the grown card reaches into the event's box and is the
 top element there. "shows the full title": `tasklist-card-title` of the grown card has the whole text, is not clipped
 (`scrollWidth <= clientWidth`) and lies inside the card. "shows the real time block ... and a slimmer extension": the grown card's `tasklist-grown-real` layer has the height of the collapsed card (2 px), `tasklist-grown-ext` starts at its end (2 px, below it) and is narrower; "is still the one-row inline card of its time block": the
 collapsed card has `data-fit="inline"` and the height of its time block (parent box, 2 px). "shows the item I as done and J as

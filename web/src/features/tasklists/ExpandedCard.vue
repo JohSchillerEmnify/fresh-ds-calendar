@@ -4,8 +4,8 @@
  * to the body at exactly the collapsed `anchor` card's left, top and width, holding the same `TaskListCard` rendering in its
  * `grown` mode (full height, every item). It is placed by `placeExpanded` (down, up or scrolling inside, within the visible
  * scroll area), so the calendar underneath never moves. Read-only: a tap anywhere on it opens the normal list sheet. Closes on
- * Escape, the system back, a tap elsewhere, a change of view or date, a scroll that takes the card out of sight, or when a
- * dialog opens. The focus moves in and returns to the card.
+ * Escape, the system back, a tap elsewhere or on its title, a change of view or date, or when a dialog opens (a fixed one also when a
+ * scroll takes it out of sight; one inside the time grid scrolls natively with it). The focus moves in and returns to the card.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ItemRendererProps } from '@/extensions/registry';
@@ -27,6 +27,9 @@ const calendar = useCalendarStore();
 // the system back closes the expansion first (ARCHITECTURE "Back closes overlays")
 useOverlayHistory(() => true, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
+// A time block's card lives inside the scrolling time grid (absolute, in content coordinates), so the browser scrolls it with the
+// calendar natively; anywhere else (month cells, all-day areas) it is a fixed overlay on the body.
+const host = props.variant === 'block' ? props.anchor.closest<HTMLElement>('.grid') : null;
 const pos = ref<{ left: number; top: number; width: number; maxHeight: number; minHeight: number; radius: string; dir: 'down' | 'up' } | null>(null);
 const tl = computed(() => {
   const i = items.get(props.id);
@@ -52,9 +55,14 @@ function place() {
   const a = props.anchor.getBoundingClientRect();
   const b = bounds();
   if (!anchorVisible(a, b)) { emit('close'); return; }
+  // a time block sits in a narrow side-by-side slot; grown it takes its whole day column, over the neighbours (inside the column's border, with the block's 1 px inset)
+  const col = props.variant === 'block' ? props.anchor.closest('.col') : null;
+  const cr = col?.getBoundingClientRect();
+  const box: Box = cr ? { left: cr.left + 2, right: cr.right - 1, top: a.top, bottom: a.bottom } : a;
   // natural height of the grown card (the panel scrolls when it is cut to maxHeight), never less than the collapsed card
-  const p = placeExpanded(a, b, Math.max(card.offsetHeight, a.height));
-  const n = { left: p.left, top: p.top, width: p.width, maxHeight: p.maxHeight, minHeight: a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: p.dir };
+  const p = placeExpanded(box, b, props.variant === 'card' ? card.offsetHeight : Math.max(card.offsetHeight, a.height));
+  const hr = host?.getBoundingClientRect();
+  const n = { left: p.left - (hr?.left ?? 0), top: p.top - (hr?.top ?? 0), width: p.width, maxHeight: p.maxHeight, minHeight: props.variant === 'card' ? 0 : a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: p.dir };
   const o = pos.value;
   if (!o || o.left !== n.left || o.top !== n.top || o.width !== n.width || o.maxHeight !== n.maxHeight || o.minHeight !== n.minHeight || o.radius !== n.radius || o.dir !== n.dir) pos.value = n;
 }
@@ -73,7 +81,8 @@ onMounted(() => {
       const target = e.target as Node | null;
       if (target && !panel.value?.contains(target) && !props.anchor.contains(target)) stops.push(appTimeout(() => emit('close'), 0));
     }, { capture: true }),
-    listen(window, 'scroll', place, { capture: true, passive: true }),
+    // fixed overlay only: one inside the scrolling content moves with it
+    ...(host ? [] : [listen(window, 'scroll', place, { capture: true, passive: true })]),
     listen(window, 'resize', place),
   );
   if (typeof ResizeObserver !== 'undefined' && panel.value?.firstElementChild) { ro = new ResizeObserver(place); ro.observe(panel.value.firstElementChild); }
@@ -106,21 +115,25 @@ function openList() {
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport :to="host ?? 'body'">
     <div
-      ref="panel" class="xc" role="group" data-testid="tasklist-expanded" data-presentation="overlay" data-readonly="true"
+      ref="panel" class="xc" :class="{ inGrid: !!host }" role="group" data-testid="tasklist-expanded" data-presentation="overlay" data-readonly="true"
       :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')"
       :style="pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
     >
-      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" @open-list="openList" />
+      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" @open-list="openList" @collapse="emit('close')" />
     </div>
   </Teleport>
 </template>
 
 <style scoped>
 .xc {
-  position: fixed; z-index: 40; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain;
+  position: fixed; z-index: 40; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
   /* a filter, not a box-shadow: the card is two layers of different widths, the shadow follows their outline */
   filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.35));
 }
+/* inside the scrolling time grid: placed in its content coordinates */
+.xc.inGrid { position: absolute; }
+/* a taller list scrolls by touch or wheel, never with a visible bar */
+.xc::-webkit-scrollbar { display: none; }
 </style>
