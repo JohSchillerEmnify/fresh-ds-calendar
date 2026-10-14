@@ -1068,6 +1068,10 @@ the zoom month cell of {date} has {int} entries
 the zoom month shows no start times
 I zoom the zoom month in until the start times show
 I zoom the zoom month in until the task list items show
+I zoom the zoom month in to the largest zoom
+the title of the task list {string} is on top in the zoom month
+{string} is drawn lower than {string} in the zoom month
+the zoom month heights of {string} and {string} are proportional to their durations
 {string} shows its start time {string} in the zoom month
 the task list {string} shows the item {string} in the zoom month
 I press the zoom in button of the zoom month

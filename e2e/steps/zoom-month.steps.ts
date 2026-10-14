@@ -98,3 +98,53 @@ When('I zoom the zoom month in with Ctrl+wheel', async function (this: World) {
 When('I tap the day number {date} in the zoom month', async function (this: World, date: string) {
   await this.byTestId('zoom-cell', `[data-date="${date}"]`).locator('[data-testid="zoom-cell-number"]').click();
 });
+
+When('I zoom the zoom month in to the largest zoom', async function (this: World) {
+  for (let i = 0; i < 14 && (await this.byTestId('zoom-in').isEnabled()); i++) {
+    const before = await zoomOf(this);
+    await this.byTestId('zoom-in').click();
+    await expect.poll(() => zoomOf(this)).toBeGreaterThan(before);
+  }
+  await expect(this.byTestId('zoom-in')).toBeDisabled();
+  // the detail layers settle after the layout of the new zoom
+  await expect.poll(() => weight(this, 'lists')).toBeGreaterThanOrEqual(0.99);
+});
+
+Then('the title of the task list {string} is on top in the zoom month', async function (this: World, title: string) {
+  const titles = view(this).locator(`[data-testid="tasklist-card"][data-title="${title}"] [data-testid="tasklist-card-title"]`);
+  // the big cell is larger than the screen and the zoom buttons zoom about the middle: pan (wheel) until the title is inside the port
+  const port = (await this.byTestId('zoom-port').boundingBox())!;
+  await this.page.mouse.move(port.x + port.width / 2, port.y + port.height / 2);
+  for (let i = 0; i < 8; i++) {
+    const r = await titles.last().boundingBox();
+    const dx = r ? r.x + 20 - (port.x + port.width / 2) : 0;
+    const dy = r ? r.y + r.height / 2 - (port.y + port.height / 2) : 0;
+    if (Math.abs(dx) < port.width / 2 - 30 && Math.abs(dy) < port.height / 2 - 30) break;
+    await this.page.mouse.wheel(dx, dy);
+    await this.page.waitForTimeout(200);
+  }
+  // some title of this list is what a tap at the middle of the title hits (the others are hidden layers)
+  await expect.poll(() => titles.evaluateAll((els) => els.some((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return r.width > 0 && !!hit && el.closest('[data-testid="tasklist-card"]')!.contains(hit);
+  }))).toBe(true);
+});
+
+/** Box of the block of an event in the zoom month's day timeline. */
+const blockBox = async (w: World, title: string) => {
+  const el = view(w).locator(`[data-testid="zoom-timeline"] [data-testid="event-chip"][data-title="${title}"]`).first();
+  await expect(el).toBeVisible();
+  return (await el.boundingBox())!;
+};
+
+Then('{string} is drawn lower than {string} in the zoom month', async function (this: World, lower: string, upper: string) {
+  expect((await blockBox(this, lower)).y).toBeGreaterThan((await blockBox(this, upper)).y);
+});
+
+Then('the zoom month heights of {string} and {string} are proportional to their durations', async function (this: World, a: string, b: string) {
+  // "Abend zu zweit" lasts 17:15-21:30 (255 min), "Late show" 19:00-22:00 (180 min)
+  const ratio = (await blockBox(this, a)).height / (await blockBox(this, b)).height;
+  expect(ratio).toBeGreaterThan((255 / 180) * 0.9);
+  expect(ratio).toBeLessThan((255 / 180) * 1.1);
+});

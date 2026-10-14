@@ -911,7 +911,7 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
     measured per cell), and `detailAt(w, h)` turns its geometric mean `s` into weights that fade with smoothstep: dots out
     85..120, title chips in 80..115, start times in 150..200, task lists growing from a chip to the full card (`TaskListCard`,
     height by need, `allotHeights`) 170..230, mini day timeline (`ZoomTimeline`: untimed band with every task item as a
-    full card over a 24 h grid, blocks as `ItemView` `block`) 300..400, which replaces the chips by crossfade. Layers are
+    full card over a time grid, blocks as `ItemView` `block`) 200..260, which replaces the chips by crossfade. The grid covers only the whole hours the day's timed items span (`timeSpan`), blocks sit at their real top and duration height, overlaps use `packColumns` (lanes/cascade as the day view). It shows only where `realTimeFits`: the shortest item (at least 15 min) gets the minimum block height (25 px) at the grid's px/h; else the compact chips stay (a day's whole-hour span of items in the cell height, after the untimed band). Why a scoped class must not be `.tl`: it lands on the task list card's root `.tl` and made every card fill its cell behind later rows (owner: "lists shown behind everything"). Layers are
     mounted only while their weight is above 0.01. Cells further than half a viewport from the visible part draw only their number.
   - *Gestures* (`zoomGestures.ts`): pinch, Ctrl/Cmd+wheel and trackpad pinch (Ctrl+wheel) zoom about the gesture point
     (`panAfterZoom`); drag and wheel pan; the zoom buttons (`zoom-in`/`zoom-out`, in the header, step x1.25 about the
