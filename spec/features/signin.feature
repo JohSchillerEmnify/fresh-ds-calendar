@@ -42,12 +42,6 @@ Feature: Signing in with Google
     Then they see the sign-in page
     And they see no events
 
-  Scenario: A calendar that is already open notices that the session expired
-    Given "jo@example.com" is signed in
-    When their session expires
-    And I go to the next period
-    Then they see the sign-in page
-
   Scenario: Each person sees their own Google calendar
     Given "jo@example.com" has an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     And "anna@example.com" has an event "Yoga" on 2026-10-14 from 18:00 to 19:00

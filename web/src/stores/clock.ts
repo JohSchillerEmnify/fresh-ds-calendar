@@ -5,9 +5,12 @@ import type { AppConfig } from '@/api/types';
 import { parseIsoDate } from '@/lib/dates';
 import { appTimeout, listen, DisposerBag } from '@/lib/timers';
 
-const FALLBACK: AppConfig = {
+/** The config as the app holds it: `provider` is `null` until the server has answered (never assumed to be the mock). */
+export type ClientConfig = Omit<AppConfig, 'provider'> & { provider: AppConfig['provider'] | null };
+
+const FALLBACK: ClientConfig = {
   now: '', clockFrozen: false, timeZone: 'Europe/Berlin', weekStartsOn: 1, pollIntervalMs: 30000,
-  provider: 'mock', testMode: false, publicUrl: null, version: '',
+  provider: null, testMode: false, publicUrl: null, version: '',
 };
 
 /**
@@ -15,7 +18,7 @@ const FALLBACK: AppConfig = {
  * nothing else calls `new Date()` for that. `now` ticks once per minute (aligned), paused while hidden.
  */
 export const useClockStore = defineStore('clock', () => {
-  const config = ref<AppConfig>({ ...FALLBACK });
+  const config = ref<ClientConfig>({ ...FALLBACK });
   const loaded = ref(false);
   /** Date.parse(now) - Date.now() at fetch time (running clock). */
   const offsetMs = ref(0);

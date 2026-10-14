@@ -837,8 +837,7 @@ they are no longer told Google Calendar access is missing
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
 - "their session expires": the browser loses the session cookie (all cookies of the page's context are cleared), so the
-  next request is refused as unauthenticated; the page that is open stays open (the stale shell). `I go to the next
-  period` is the generic step.
+  next request is refused as unauthenticated; a page that is already open keeps its old state (the stale shell).
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
 - "answered without calendar access": the fake consent screen returns a token whose `scope` lacks the calendar scope
   (the person left Google's "Google Calendar" checkbox unticked). "told ... is missing": the banner
