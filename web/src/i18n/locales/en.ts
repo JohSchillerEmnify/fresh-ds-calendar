@@ -90,6 +90,13 @@ export default {
       intro: 'These are Google Calendar\'s own reminders. A calendar\'s default applies to every appointment that has no list of its own.',
       readOnly: 'Read-only calendar',
       defaultFor: 'Default reminders of {name}',
+      push: {
+        title: 'Browser',
+        label: 'Reminders in this browser while the app is closed',
+        hint: 'This browser gets the reminders as notifications, in addition to the ones inside the app.',
+        denied: 'Notifications are blocked for this site. Allow them in the browser settings, then switch this on again.',
+        failed: 'Could not switch browser reminders on. Try again.',
+      },
       tasklists: {
         title: 'Task lists',
         switch: { label: 'Remind about task lists', hint: 'Task lists with a time ring like appointments. A list\'s own reminders are set in the list.' },

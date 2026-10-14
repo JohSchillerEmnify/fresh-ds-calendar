@@ -8,8 +8,8 @@ import type { DriveFile } from '../providers/DriveClient.js';
 export const BACKUP_SCHEMA = 1;
 /** How many backup versions are kept per person. */
 export const BACKUP_KEEP = 7;
-/** Files of a person that never go into a backup (a secret and the bookkeeping of the backup itself). */
-export const EXCLUDED_FILES: readonly string[] = ['google-token.json', 'backup-state.json'];
+/** Files of a person that never go into a backup (a secret, the bookkeeping of the backup itself, and the browsers' push subscriptions with their plans). */
+export const EXCLUDED_FILES: readonly string[] = ['google-token.json', 'backup-state.json', 'push.json'];
 
 /** One backup: every file of a person as UTF-8 text, keyed by its path relative to `DATA_DIR`. */
 export interface BackupBundle {

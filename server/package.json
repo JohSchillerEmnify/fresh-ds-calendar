@@ -22,11 +22,13 @@
     "google-auth-library": "11.2.0",
     "hono": "4.13.13",
     "jsdom": "30.1.2",
-    "valibot": "^1.5.0"
+    "valibot": "^1.5.0",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
     "@types/jsdom": "30.0.0",
     "@types/node": "catalog:",
+    "@types/web-push": "3.6.4",
     "tsx": "^4.23.15",
     "typescript": "catalog:",
     "vitest": "catalog:"

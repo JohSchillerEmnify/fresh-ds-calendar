@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarItem } from '@/api/types';
 import { diffInput, formFromEvent, newForm, ownReminders, toInput } from '@/features/calendar/eventForm';
-import { formatLead, formatLeads, reminderPlan } from '@/features/calendar/reminderPlan';
+import { formatLead, formatLeads, pushPlan, reminderPlan } from '@/features/calendar/reminderPlan';
 import { ev, segsOf, t } from './helpers';
 
 const D = '2026-10-12';
@@ -49,6 +49,28 @@ describe('reminder plan', () => {
     const tomorrow = ev('t', t('2026-10-13', '12:00'), t('2026-10-13', '13:00'), { title: 'Trip', ...remind([1440, 1440]) });
     const p = reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, NOW_MIN, kinds, 'x');
     expect(p.map((r) => [r.title, r.at - NOW])).toEqual([['Trip starts in 1 day', (1440 + 12 * 60 - NOW_MIN - 1440) * 60000]]);
+  });
+});
+
+describe('push plan', () => {
+  const at = (id: string, date: string, time: string, minutes: number[]) => ev(id, t(date, time), t(date, '23:00'), { title: id, ...remind(minutes) });
+
+  it('has the ahead reminders with the same texts and the native reminder id as key', () => {
+    const e = ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', ...remind([60, 30]) }); // the 1 h lead is due already
+    expect(pushPlan(plan([e]), NOW)).toEqual([
+      { at: NOW + 5 * 60000, title: 'Dentist starts in 30 min', body: '11:00', key: `reminder:d@${D}T11:00-30` },
+    ]);
+  });
+
+  it('keeps nothing beyond 7 days from now', () => {
+    const days = Array.from({ length: 8 }, (_, i) => segsOf([at(`e${i}`, `2026-10-${12 + i}`, '23:00', [5])], `2026-10-${12 + i}`));
+    const keys = pushPlan(reminderPlan(days, NOW, NOW_MIN, kinds, 'x'), NOW).map((p) => p.key.split('@')[0]);
+    expect(keys).toEqual(['reminder:e0', 'reminder:e1', 'reminder:e2', 'reminder:e3', 'reminder:e4', 'reminder:e5', 'reminder:e6']);
+  });
+
+  it('drops reminders that are due already', () => {
+    const e = ev('x', t(D, '10:40'), t(D, '11:30'), { title: 'Early', ...remind([30, 10]) });
+    expect(pushPlan(plan([e]), NOW).map((p) => p.title)).toEqual(['Early starts in 10 min']);
   });
 });
 

@@ -254,6 +254,18 @@ is the popup list in effect: the calendar's default while `useDefault`, else the
 `useDefault: true` ignores `minutes`); a write keeps the item's non-popup (email) overrides, and a `PATCH` without
 `reminders` leaves them alone. Why: Google is the source of truth (ARCHITECTURE "Reminders, several per event").
 
+### Web Push
+
+Per person (`local` while sign-in is off); all `204` unless noted. Why: ARCHITECTURE "Reminders, several per event", slice 2.
+
+- `GET /api/push/key` → `200 { key }`: the server's public VAPID key (URL-safe base64).
+- `POST /api/push/subscriptions` `{ endpoint, keys: { p256dh, auth } }`: stores a browser's subscription (an `https` endpoint; same
+  endpoint again updates its keys and keeps its plan; at most 10 per person, else `400`).
+- `DELETE /api/push/subscriptions` `{ endpoint }`: removes it (also when unknown).
+- `PUT /api/reminders/plan` `{ endpoint, plan: { at, title, body, key }[] }`: replaces that browser's plan (`at` epoch ms, at most
+  500 entries). `404` when the endpoint is not subscribed. The server sends `{ title, body, key }` at `at`, up to 10 minutes late,
+  once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription.
+
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 
 Returns every event and task list overlapping `[from 00:00, to 00:00)` local time (`to` exclusive), from all calendars
@@ -627,6 +639,9 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |
 | `POST` | `/api/__test/oauth/account` | `{ email: string; driveScope?: boolean }` | (extended) `driveScope: false` makes the fake consent leave out `drive.appdata` (default `true`). |
+| `GET` | `/api/__test/pushes` | – | The pushes the recorder holds (the push service is replaced by it in TEST_MODE): `200 { pushes: { endpoint, title, body, key }[] }` |
+| `GET` | `/api/__test/push-subscriptions` | – | Every stored subscription with its plan: `200 { subscriptions: { sub, endpoint, plan }[] }` |
+| `POST` | `/api/__test/push/tick` | – | Runs the push loop once on the app clock (`POST /api/__test/clock` does so too). `200 { sent }` |
 | `POST` | `/api/__test/backup/flush` | – | Fires every pending debounce timer now and waits for the runs. `200 { ran: number }` |
 | `POST` | `/api/__test/backup/tick` | – | Runs the daily check once (due = last backup 24 h or older by the test clock, or last attempt failed). `200 { ran: number }` |
 | `POST` | `/api/__test/backup/timers` | `{ debounceMs?: number; minIntervalMs?: number }` | Overrides the debounce (2 min) and the minimum interval (5 min); cleared by reset. `200 { debounceMs, minIntervalMs }` |

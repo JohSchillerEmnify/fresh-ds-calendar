@@ -2152,7 +2152,8 @@ browser does not change.
     `{ title, body, key }`, shown with `tag: key` (a re-send replaces, never doubles). VAPID keys are generated on first
     start into `DATA_DIR/vapid.json` (no env setup) unless `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` are set; sender
     library `web-push`. In e2e the push service is replaced by a recorder (`E2E` mode: pushes go to
-    `GET /api/test/pushes` instead of the network).
+    `GET /api/__test/pushes` instead of the network). The plan request is `{ endpoint, plan: [...] }` (the endpoint names
+    the browser; unknown → 404 → the app subscribes again). Bedtime and morning overview are not pushed in this slice.
 - **Notifications** (owner, 2026-10-14: "implement notifications for all the things that need them, not only
   bedtime"; ADHD-RESEARCH R29/R32/R33: few, chosen ones, no badges). Settings → Notifications (`settings-notify-*`, stored
   per person as `prefs.notify`) chooses which reminders reach the lock screen: the bedtime reminder, warnings before

@@ -11,6 +11,7 @@ import { SettingsStore } from './services/settingsStore.js';
 import { SharedListService } from './services/sharedLists.js';
 import { ThemeStore } from './services/themeStore.js';
 import { BackupService } from './services/backupService.js';
+import { PushService, RecordingSender, loadVapid, webPushSender } from './services/push.js';
 import { registerServerFilesBackup } from './services/serverFilesBackup.js';
 import { registerSharedListsBackup } from './services/sharedListsBackup.js';
 import { hasDriveScope } from './auth/people.js';
@@ -36,6 +37,10 @@ export interface Ctx {
   canvas: CanvasStore;
   /** Backups of every person's server data to their hidden Drive app folder (ARCHITECTURE "Backups"). */
   backup: BackupService;
+  /** Web Push reminders: subscriptions, plans and the send loop (ARCHITECTURE "Reminders, several per event"). */
+  push: PushService;
+  /** TEST_MODE push recorder in place of the push services; null otherwise. */
+  pushRecorder: RecordingSender | null;
   /** Drive double (TEST_MODE / mock provider); null with the real Google provider. */
   mockDrive: MockDrive | null;
   /** The people who signed in at least once (sharing picks members from them). */
@@ -80,6 +85,13 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     driveFor: (sub) => (driveFor ? driveFor(sub) : mockDrive?.forPerson(sub) ?? null),
     log: (m) => { if (config.logLevel !== 'error') console.log(m); },
   });
+  // TEST_MODE: pushes are recorded instead of sent over the network
+  const pushRecorder = config.testMode ? new RecordingSender() : null;
+  const vapid = loadVapid(config.dataDir);
+  const push = new PushService({
+    dataDir: config.dataDir, clock, vapidPublicKey: vapid.publicKey, log: (m) => { if (config.logLevel !== 'error') console.log(m); },
+    sender: pushRecorder ?? webPushSender(vapid, process.env.VAPID_SUBJECT ?? config.publicUrl ?? 'mailto:calendar@example.org'),
+  });
   const people = new PeopleStore(config.dataDir);
   const shared = new SharedListService(config.dataDir, people, clock, config.tz, () => (auth.on ? (e: string) => auth.allows(e) : null));
   registerSharedListsBackup(backup, shared, config.dataDir);
@@ -89,7 +101,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const mocks = new Map<string, MockGoogleProvider>();
   const calendars = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
@@ -118,6 +130,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
     },
     close() {
       backup.close();
+      push.close();
       mock?.close();
     },
   };

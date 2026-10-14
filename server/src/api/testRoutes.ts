@@ -32,6 +32,8 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.prefs.reset();
     ctx.themes.reset();
     ctx.backup.reset();
+    ctx.push.reset();
+    ctx.pushRecorder?.reset();
     ctx.mockDrive?.reset();
     ctx.canvas.reset();
     ctx.people.reset();
@@ -62,6 +64,8 @@ export function testRoutes(ctx: Ctx): Hono {
       if (Number.isNaN(ms)) throw validation('now must be an ISO date-time', 'now');
       ctx.clock.set(ms, b.frozen ?? true);
     }
+    // the push loop runs on the app clock: moving the clock sends what became due, without waiting for its timer
+    await ctx.push.tick();
     return c.json({ now: ctx.clock.now().toISOString(), clockFrozen: ctx.clock.frozen });
   });
 
@@ -260,6 +264,11 @@ export function testRoutes(ctx: Ctx): Hono {
     if (!owner) throw validation('owner is required', 'owner');
     return c.json({ files: newestFirst(ctx.mockDrive!.filesOf(mockSub(owner))) });
   });
+
+  // ---- web push: the recorder stands in for the push services ----
+  t.get('/pushes', (c) => c.json({ pushes: ctx.pushRecorder?.sent ?? [] }));
+  t.get('/push-subscriptions', (c) => c.json({ subscriptions: ctx.push.all() }));
+  t.post('/push/tick', async (c) => c.json({ sent: await ctx.push.tick() }));
 
   t.get('/memory', (c) => {
     if (c.req.query('gc') === 'true') { (globalThis as { gc?: () => void }).gc?.(); (globalThis as { gc?: () => void }).gc?.(); }

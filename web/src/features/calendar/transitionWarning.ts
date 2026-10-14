@@ -7,7 +7,8 @@
  * only, i.e. while a calendar view showing today is cached.
  * Inside the Android app the next reminders (the next week, as far as loaded) are also scheduled ahead with the native
  * `Reminders` plugin, so they arrive as notifications while the app is closed, as chosen in Settings → Notifications
- * (`prefs.notify`), plus the optional morning overview of the day. Stored ids no longer wanted are cancelled, once on start
+ * (`prefs.notify`), plus the optional morning overview of the day. In a browser with Web Push switched on, the plan of the next
+ * 7 days (`pushPlan`) is sent to the server whenever it changed (the server sends each push at its time). Stored ids no longer wanted are cancelled, once on start
  * for everything the plugin still holds.
  */
 import { effectScope, watch, type EffectScope } from 'vue';
@@ -16,12 +17,13 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
-import { reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
+import { pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
 import { remindersPlugin } from '@/native/reminders';
+import { pushEndpoint, pushSupported, refreshPushState, sendPushPlan } from '@/pwa/push';
 
 /** The wording of a snackbar for an event starting in `minutes` (kept as the one name tests and callers know). */
 export const warningText = reminderText;
@@ -115,6 +117,26 @@ export function startTransitionWarnings(): () => void {
       },
       { immediate: true },
     );
+
+    // Browser with Web Push switched on: the server sends the next 7 days of reminders, so the plan goes to it whenever it changes
+    if (pushSupported()) {
+      void refreshPushState();
+      let sentSig = '';
+      watch(
+        () => [items.byDate, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
+        async () => {
+          const endpoint = pushEndpoint.value;
+          if (!endpoint) { sentSig = ''; return; }
+          // before today's items are loaded an empty plan would wipe the server's
+          if (!items.byDate.has(clock.today)) return;
+          const entries = pushPlan(plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }), clock.nowTick);
+          const sig = `${endpoint}|${JSON.stringify(entries)}`;
+          if (sig === sentSig) return;
+          if (await sendPushPlan(endpoint, entries)) sentSig = sig;
+        },
+        { immediate: true },
+      );
+    }
 
     // Android app: keep the next reminders scheduled as notifications (shown only while the app is not in front)
     const plugin = remindersPlugin();
