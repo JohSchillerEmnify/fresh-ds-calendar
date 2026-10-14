@@ -1088,6 +1088,7 @@ in the horizontal view {string} and {string} are in separate lanes of the same r
 I note the width of {string} in the horizontal view
 {string} is wider in the horizontal view than noted
 in the horizontal view {string} is about {int} times as wide as {string}
+in the horizontal view the title of {string} is inside the viewport and inside its card
 I note the height of the day rows of the horizontal view
 the day rows of the horizontal view are taller than noted
 I zoom the horizontal view in time with Ctrl+wheel

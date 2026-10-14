@@ -160,3 +160,15 @@ When('I drag the horizontal view sideways with a finger', async function (this: 
 Then('the horizontal view has panned', async function (this: World) {
   await expect.poll(async () => Math.abs((await panX(this)) - panNoted.get(this)!)).toBeGreaterThan(40);
 });
+
+Then('in the horizontal view the title of {string} is inside the viewport and inside its card', async function (this: World, title: string) {
+  const card = entry(this, title);
+  await expect(card).toHaveCount(1);
+  // the title is pinned to the viewport's left edge once the card starts left of it
+  await expect.poll(() => card.evaluate((c, vp) => {
+    const t = c.querySelector('[data-testid$="-title"]')!.getBoundingClientRect();
+    const [k, p] = [c.getBoundingClientRect(), (document.querySelector(vp) as HTMLElement).getBoundingClientRect()];
+    const inside = (o: DOMRect, r: DOMRect) => o.left >= r.left - 1 && o.right <= r.right + 1;
+    return k.left < p.left && inside(t, p) && inside(t, k) && t.width > 20;
+  }, '[data-testid="htime-port"]')).toBe(true);
+});

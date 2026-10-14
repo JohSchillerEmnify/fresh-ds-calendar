@@ -87,3 +87,11 @@ Feature: Labs: the horizontal view
     Then the task list "Groceries" is expanded over the calendar
     When I tap the expanded task list "Groceries"
     Then the task list "Groceries" opens as the list sheet
+
+  Scenario: Titles of long events stay visible when scrolled sideways
+    Given the calendar contains an all-day event "Offsite" on 2026-10-14
+    And the calendar contains an event "Workshop" on 2026-10-14 from 07:00 to 23:00
+    When I open the horizontal view for 2026-10-14
+    And I scroll the horizontal view sideways
+    Then in the horizontal view the title of "Offsite" is inside the viewport and inside its card
+    And in the horizontal view the title of "Workshop" is inside the viewport and inside its card
