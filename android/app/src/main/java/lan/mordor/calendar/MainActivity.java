@@ -17,9 +17,9 @@ import lan.mordor.calendar.widget.WidgetBridgePlugin;
  * turns the system back gesture into a back step inside the web app.
  */
 public class MainActivity extends BridgeActivity {
-    /** Intent extra set by the widget's tap targets: the app path to open, e.g. {@code /day/2026-10-14}. */
+    /** Intent extra set by the widget's tap targets: the app path to open, e.g. {@code /day/2026-10-14} or {@code /clock/2026-10-14}. */
     public static final String EXTRA_PATH = "lan.mordor.calendar.PATH";
-    private static final Pattern PATH = Pattern.compile("^/(day|week)/\\d{4}-\\d{2}-\\d{2}$");
+    private static final Pattern PATH = Pattern.compile("^/(day|week|clock)/\\d{4}-\\d{2}-\\d{2}$");
     private static volatile boolean foreground;
 
     /** Whether the app is on screen; a due reminder then shows as the web app's snackbar, not as a notification. */
@@ -93,7 +93,7 @@ public class MainActivity extends BridgeActivity {
         openPathFrom(intent);
     }
 
-    /** Navigates the WebView to the widget's path; only a day or week path of the calendar itself is accepted. */
+    /** Navigates the WebView to the widget's path; only a day, week or clock path of the calendar itself is accepted. */
     private void openPathFrom(Intent intent) {
         String path = intent == null ? null : intent.getStringExtra(EXTRA_PATH);
         if (path == null || !PATH.matcher(path).matches()) return;

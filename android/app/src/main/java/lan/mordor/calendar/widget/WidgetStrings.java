@@ -38,10 +38,35 @@ final class WidgetStrings {
         return german ? "Ohne Titel" : "Untitled";
     }
 
+    /** {@code 35 min}, {@code 2 h}, {@code 1 h 20 min} (German: Min., Std.), like the web app's formatDuration. */
+    String duration(int minutes) {
+        int m = Math.max(0, minutes), h = m / 60, r = m % 60;
+        if (m < 60) return m + (german ? " Min." : " min");
+        if (r == 0) return h + (german ? " Std." : " h");
+        return h + (german ? " Std. " : " h ") + r + (german ? " Min." : " min");
+    }
+
+    String next(String title, String in) {
+        return german ? "Als Nächstes: " + title + " in " + in : "Next: " + title + " in " + in;
+    }
+
+    String left(String title, String left) {
+        return german ? title + " · noch " + left : title + " · " + left + " left";
+    }
+
+    String nothingElse() {
+        return german ? "Heute nichts mehr" : "Nothing else today";
+    }
+
     /** Short weekday label, Monday first (fixed forms, like the web app's). */
     String weekday(LocalDate d) {
         DayOfWeek w = d.getDayOfWeek();
         return (german ? DE_DAYS : EN_DAYS)[w.getValue() - 1];
+    }
+
+    /** The day widget's header: {@code Wednesday 14 October} / {@code Mittwoch, 14. Oktober}. */
+    String dayTitle(LocalDate d) {
+        return DateTimeFormatter.ofPattern(german ? "EEEE, d. MMMM" : "EEEE d MMMM", german ? Locale.GERMANY : Locale.UK).format(d);
     }
 
     /** The week's range for the header: {@code 12–18 Oct} or {@code 28 Sep – 4 Oct}. */

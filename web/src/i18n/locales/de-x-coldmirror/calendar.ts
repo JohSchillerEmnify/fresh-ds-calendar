@@ -88,6 +88,9 @@ export default {
   },
   clock: {
     face: '24-Stunden-Uhr für {date}, Digga',
+    arc: '{title}, {start} bis {end}, Digga',
+    handleStart: 'Ziehen für neuen Start, yo',
+    handleEnd: 'Ziehen für neues Ende, yo',
   },
   event: {
     editTitle: 'Termin pimpen, yo',

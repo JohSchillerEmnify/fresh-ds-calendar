@@ -2,4 +2,8 @@
 <resources>
     <string name="reminder_channel">Erinnerungen</string>
     <string name="reminder_channel_description">Die Erinnerung vor der Schlafenszeit</string>
+    <string name="clock_widget_label">Uhr</string>
+    <string name="clock_widget_description">Heute auf der 24-Stunden-Uhr: was gerade läuft, was als Nächstes kommt und wie lange bis dahin</string>
+    <string name="day_widget_label">Tag</string>
+    <string name="day_widget_description">Heute wie in der Tagesansicht der App: Termine, Aufgabenlisten und das Stundenraster</string>
 </resources>

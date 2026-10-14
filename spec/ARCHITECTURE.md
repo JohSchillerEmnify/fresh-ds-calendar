@@ -798,8 +798,39 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle as large as the view allows (owner, 2026-10-13), events as arcs labelled with their
   titles, timed task lists as arcs too (estimate, else 30 min; thinner or dashed, labelled "title done/total"),
-  untimed task lists listed under the time in the middle (tap opens them), hand at the app clock
-  (`clock` store), progress ring.
+  hand at the app clock (`clock` store), progress ring.
+  **Clock v3 (owner, 2026-10-13: "flesh out the clock view so that it becomes much more usable")**: the clock is a full
+  calendar view, not just a picture.
+  - *Open*: a tap on an arc or its label opens the entry (`openItem`: event dialog, expanded task list; timed task lists
+    too). Each arc has a 26-unit invisible stroke over it (`clock-arc-hit`, `role="button"`, focusable, `aria-label`
+    "title, start to end"), so thin arcs are easy to hit; the drawn arc ignores the pointer.
+  - *Move*: a long press (350 ms, touch/pen/mouse held still; a mouse also picks up after 4 px of movement) picks the arc up
+    (lifted: thicker, shadow, haptic tick per 15-minute step) and it turns round the dial with the pointer: the pointer's
+    turn is accumulated with `wrapDelta` (so crossing midnight is a small step, not a jump of 24 h), the start snaps to
+    15 minutes and the arc stays on the day (`turnedStart`). The middle shows where it would land (`clock-drag-time`).
+    Release saves with the time grid's `applyMove` (optimistic, spring back + snackbar on failure). Esc cancels. Touch
+    scrolling is blocked only while an arc is held; a touch that moves before the long press cancels it (swipe to the next
+    day still works).
+  - *Resize*: a long press released in place selects the arc (`data-selected`): a handle (`clock-handle`, `data-edge`
+    `start|end`, `role="slider"`) sits on each end; dragging one changes the start or the end via `resizeEdges` /
+    `finishResize` (same limits as the time grid: ≥ 15 min, task lists ≤ 720 min). A tap on the plate or Esc clears it.
+  - *Create*: a tap on the empty plate (outside the middle, radius ≥ 56) opens the "new" dialog at that time
+    (`tappedTime`, nearest quarter hour). With an arc selected the tap only clears the selection.
+  - *Keyboard*: on a focused arc Enter/Space opens, Alt+←/→ moves by 15 min, Alt+Shift+←/→ changes the end; on a handle
+    Alt+←/→ moves that edge.
+  - *Middle*: today the time and under it the Approaching card's text (`nowCardModel`: "Dentist · 40 min left" or
+    "Next: Gym in 2 h") in `clock-now-line`; a *focus wedge* (`clock-wedge`, `focusWedge`) shades the sector from the
+    hand to the end of the running event, else to the start of the next one, in that event's colour: the remaining time as
+    an area, like a Time Timer (ADHD-RESEARCH 1.1, 1.2, 1.12, R31). The hand is drawn under labels and text, which have a
+    halo.
+  - *Lists next to the dial*: untimed task lists (`clock-untimed`) and all-day events (`clock-allday`) are chips beside the
+    dial: below and above it on an upright screen, left and right of it on a wide one (container query on the view,
+    aspect ≥ 5:4). Before, they were text rows in the middle, which collided with the labels and the hand.
+  - *Labels* (`placeLabels`): longest arcs first, each label starts inside the innermost lane on its arc's angle and moves
+    inwards row by row, trying ±20/40 minutes round, until its estimated box (0.56 em per character) is free of the earlier
+    labels and of the middle; labels near the top or bottom are centred, the others point inwards. A label that fits
+    nowhere is left out (its arc still opens and names itself in the tooltip and `aria-label`).
+  - Swipe navigation is told about a held arc through `claimGesture()` (motion), like the time grid's drag.
 - Approach bar (owner v3, 2026-10-13: "the next-event element becomes the timeline", then absolute and configurable):
   no bar of its own; with `approachBar` on, the now card's "Next:" line is replaced by a track (`approach-bar`) inside
   the now card, and no "Next:" text shows anywhere while it is on. The track is an absolute time axis: left end
@@ -1521,6 +1552,26 @@ browser does not change.
   any use (app or widget), or after signing out, the widget shows the sign-in hint until the app is opened. The cookie
   is `HttpOnly; SameSite=Lax` and `Secure` only when `PUBLIC_URL` is https, so a native client over plain HTTP is not
   blocked and no server security was loosened. The WebView's cookie jar is only readable by this app.
+- **Day widget** (owner, 2026-10-14: "build a day view widget as well"): `DayWidgetProvider` (default 2x3, resizable)
+  draws today like the app's day view with the week renderer run for one day (`WeekCanvas.drawDay`: the date as the
+  header, no weekday row, one wide column, so blocks show their time and a task list its open items; bars of multi-day
+  events crossing today are clipped to it). Same data, theme, language and refresh jobs as the week widget; the whole
+  widget opens `/day/<today>`, the icon refreshes. Layouts use only RemoteViews-allowed classes: a plain `View` made
+  launchers show "Can't load widget" (fixed 2026-10-14); `WidgetInflateTest` inflates all three widgets like a launcher.
+- **Clock widget** (owner, 2026-10-13: the clock "has a lot of potential for a widget"): a second, square widget
+  (`ClockWidgetProvider`, `clock_widget_info.xml`, default 2x2, resizable) that draws today as the app's 24-hour clock
+  (`ClockCanvas`, one bitmap): day ring with the elapsed part, plate and hour ticks (00/06/12/18 in the outer ring), arcs on
+  lanes (`ClockLayout.arcs`, the web's `assignLanes`; lanes too far in are left out), the focus wedge (`ClockLayout.wedge`,
+  the web's `focusWedge`), the hand (starting at 36 % of the plate so the middle stays free), the first all-day event above
+  the middle, and under it the Approaching card's line (`ClockLayout.nowLine`: "Dentist · 40 min left", "Next: Gym in 2 h",
+  same wording and German forms as the web) and the untimed task lists. The digital time is a live `TextClock` over the
+  bitmap (ticked by the system every minute, no app work); the bitmap is redrawn by an inexact, non-waking 5-minute alarm
+  (`ACTION_TICK`), so it moves while the phone is in use and costs nothing with the screen off, plus on every data change.
+  It shares the week widget's data (`WidgetRenderer.pickData`: the newer of fetch and snapshot), theme, language and the
+  30-minute WorkManager fetch (kept while either widget exists). A tap opens `/clock/<today>` (the deep-link pattern now
+  accepts `clock`). Alternatives weighed: `AnalogClock` in RemoteViews (12-hour hands only, no arcs); a per-minute alarm
+  for the whole picture (battery for a 0.25° step of the hand). Pictures for review without a device:
+  `ClockCanvasRenderTest` draws it with Robolectric's native graphics into `android/app/build/widget-pictures/`.
 - **System back** (owner bug, 2026-10-13): without a handler the Android back gesture finished the activity whatever was
   open. `MainActivity` registers an `OnBackPressedCallback` (works with predictive back, target SDK 36): when the WebView
   `canGoBack()` it calls `goBack()`, which fires `popstate`, so the overlay back-stack ("Back closes overlays") closes
