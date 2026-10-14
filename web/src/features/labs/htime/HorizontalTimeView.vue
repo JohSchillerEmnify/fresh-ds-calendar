@@ -63,7 +63,11 @@ const hours = computed(() => { const s = hourStep(pph.value); return Array.from(
 
 /** Applies pan and live scale to the world, the hour axis (x only) and the day labels (y only); no layout. */
 function applyTransform(x: number, y: number, kx: number, ky: number): void {
-  if (world.value) world.value.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${kx}, ${ky})`;
+  if (world.value) {
+    world.value.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${kx}, ${ky})`;
+    // the viewport's left edge in world pixels: card titles are pinned to it by CSS (no Vue render per frame)
+    world.value.style.setProperty('--stick', `${-x / kx}px`);
+  }
   if (axis.value) axis.value.style.transform = `translateX(${x}px) scaleX(${kx})`;
   if (labels.value) labels.value.style.transform = `translateY(${y}px) scaleY(${ky})`;
 }
@@ -164,7 +168,7 @@ const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value
           >
             <div
               v-for="c in r.cards" :key="c.seg.item.id + c.seg.date" class="card" data-zoom-nopan
-              :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px' }"
+              :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px', '--cl': c.left + 'px', '--room': Math.max(0, c.width - 56) + 'px' }"
             ><ItemView :segment="c.seg" :variant="variantOf(c.seg)" :height="c.height" /></div>
           </div>
           <div v-if="days.some((d) => toIsoDate(d) === today)" class="now" data-testid="htime-now" :style="{ left: nowX + 'px' }" />
@@ -202,5 +206,7 @@ const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value
 .row.today { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
 .card { position: absolute; box-sizing: border-box; padding: 0 1px 1px 0; display: flex; min-width: 0; }
 .card > :deep(*) { flex: 1; min-width: 0; }
+/* a title starts at the viewport's left edge while its card starts left of it, and stops short of the card's right edge */
+.card :deep(:is(.ev > .title, .tl > .row, .item > .title, .item > .head)) { margin-left: clamp(0px, calc(var(--stick, 0px) - var(--cl)), var(--room)); }
 .now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--md-sys-color-error); pointer-events: none; z-index: 3; }
 </style>
