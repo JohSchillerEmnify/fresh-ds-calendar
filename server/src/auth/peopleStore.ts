@@ -32,9 +32,9 @@ export class PeopleStore {
     if (this.file) writeJsonAtomic(this.file, this.known);
   }
 
-  /** TEST_MODE: knows an address as if it had signed in once (the sub is the mock account's). */
+  /** TEST_MODE: knows an address as if it had signed in once (the sub and the name, the part before the `@`, are the mock account's). */
   recordMock(email: string): void {
-    this.record(mockSub(email), email);
+    this.record(mockSub(email), email, email.split('@')[0]);
   }
 
   /** The person with this sub, or null when nobody with it signed in. */
