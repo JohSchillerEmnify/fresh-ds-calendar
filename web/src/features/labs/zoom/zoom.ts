@@ -23,6 +23,42 @@ export function clampZoom(z: number): number {
   return Number.isFinite(z) ? clamp(z, MIN_ZOOM, MAX_ZOOM) : MIN_ZOOM;
 }
 
+/** A zoom per axis: the month zooms both alike, the horizontal view zooms time (x) and the day height (y) on their own. */
+export interface Zoom2 { x: number; y: number }
+
+/** Which axes a wheel event with these modifiers zooms; null means the wheel pans. */
+export type WheelAxes = 'xy' | 'x' | 'y' | null;
+
+/** What the gesture controller needs to know about a view: its zoom limits, its world size and which axes the wheel zooms. */
+export interface ZoomModel {
+  /** The zoom limited to its range. */
+  clamp(z: Zoom2): Zoom2;
+  /** Size (px) of the whole world at zoom `z` in a viewport of vw x vh. */
+  world(z: Zoom2, vw: number, vh: number): { w: number; h: number };
+  /** The axes a wheel event zooms (null: it pans). */
+  wheel(e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean }): WheelAxes;
+}
+
+/** The zoom month: one zoom for both axes, the world is the viewport times the zoom, Ctrl/Cmd+wheel zooms. */
+export const MONTH_MODEL: ZoomModel = {
+  clamp: (z) => { const c = clampZoom(z.x); return { x: c, y: c }; },
+  world: (z, vw, vh) => ({ w: vw * z.x, h: vh * z.x }),
+  wheel: (e) => (e.ctrlKey || e.metaKey ? 'xy' : null),
+};
+
+/** The pan that keeps the world point under (ax, ay) there when the zoom goes from `z0` to `z1`, per axis. */
+export function panAfterZoom2(pan: Pan, z0: Zoom2, z1: Zoom2, ax: number, ay: number): Pan {
+  return {
+    x: ax - (ax - pan.x) * (z0.x > 0 ? z1.x / z0.x : 1),
+    y: ay - (ay - pan.y) * (z0.y > 0 ? z1.y / z0.y : 1),
+  };
+}
+
+/** The pan limited so a world of the given size always covers the viewport (a smaller world sits at the top left). */
+export function clampPanTo(pan: Pan, vw: number, vh: number, world: { w: number; h: number }): Pan {
+  return { x: clamp(pan.x, Math.min(0, vw - world.w), 0), y: clamp(pan.y, Math.min(0, vh - world.h), 0) };
+}
+
 /** One button step in `dir` (1 in, -1 out), clamped; both ends of the range are reached exactly. */
 export function stepZoom(z: number, dir: 1 | -1): number {
   return clampZoom(dir === 1 ? z * BUTTON_FACTOR : z / BUTTON_FACTOR);

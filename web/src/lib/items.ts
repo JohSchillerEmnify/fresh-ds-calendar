@@ -147,13 +147,14 @@ export interface PlacedSegment {
  * a later group that overlaps cascades one level deeper (up to MAX_STACK_DEPTH, then it joins the last group's columns).
  * A block drawn at its minimum height (shorter than `minMinutes`) is a bare title row, so a later block cascades over it only
  * when it starts at least `minMinutes` later; closer ones share columns instead and never hide that title.
- * Touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration.
+ * Touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration. With `stack` false nothing cascades:
+ * a whole overlap cluster shares columns (lanes), as the horizontal Labs view needs.
  */
 /**
  * `minMinutes` is the drawn minimum per block, in minutes: a number for all, or per segment (A-E5: a block drawn
  * taller than its duration, e.g. a task list with open items, occupies its drawn height for the layout).
  */
-export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0): PlacedSegment[] {
+export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true): PlacedSegment[] {
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const out: PlacedSegment[] = [];
@@ -182,7 +183,7 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
     const min = minOf(s);
     const visualEnd = Math.max(s.endMin, s.startMin + min);
     let g = groups[groups.length - 1];
-    if (!g || s.startMin - g.start >= g.stackGap) {
+    if (!g || (stack && s.startMin - g.start >= g.stackGap)) {
       const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
       if (!g || level <= MAX_STACK_DEPTH) {
         // A block drawn taller than its duration is only a title row: a cascaded later block must leave that whole row visible.

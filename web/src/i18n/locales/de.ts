@@ -26,6 +26,13 @@ export default {
     timeline: 'Zeitstrahl',
     strip: 'Streifen',
     zoom: 'Zoom-Monat',
+    horizontal: 'Horizontal',
+  },
+  horizontal: {
+    timeIn: 'Zeit vergrößern',
+    timeOut: 'Zeit verkleinern',
+    dayIn: 'Tage höher',
+    dayOut: 'Tage niedriger',
   },
   zoomMonth: {
     zoomIn: 'Vergrößern',

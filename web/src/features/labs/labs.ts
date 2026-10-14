@@ -1,6 +1,6 @@
 import type { Component } from 'vue';
 import type { MessageKey } from '@/i18n';
-import { IconSchedule as IconClock, IconTimeline, IconViewColumn as IconStrip, IconZoomIn } from '@/components/icons';
+import { IconSchedule as IconClock, IconTimeline, IconSwapHoriz, IconViewColumn as IconStrip, IconZoomIn } from '@/components/icons';
 import { toIsoDate } from '@/lib/dates';
 
 /** One experimental view the view switcher can offer. */
@@ -22,6 +22,7 @@ export const LABS_VIEWS: readonly LabsView[] = [
   { id: 'timeline', labelKey: 'views.timeline', icon: IconTimeline, route: '/timeline', defaultOn: true },
   { id: 'strip', labelKey: 'views.strip', icon: IconStrip, route: '/strip', defaultOn: false },
   { id: 'zoom', labelKey: 'views.zoom', icon: IconZoomIn, route: '/zoom', defaultOn: true },
+  { id: 'horizontal', labelKey: 'views.horizontal', icon: IconSwapHoriz, route: '/horizontal', defaultOn: true },
 ];
 
 /** Whether the person has the Labs view `id` switched on; without a stored choice the registry default applies, and an unknown id is on. */
