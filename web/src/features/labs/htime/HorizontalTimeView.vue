@@ -7,7 +7,7 @@
  * a CSS transform while a gesture runs (`zoomGestures.ts`), with the sticky hour axis and day labels following the same
  * transform on their own axis. Entries are the calendar's own components (`ItemView`: events, `TaskListCard`).
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, shallowRef, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { addDays } from 'date-fns';
@@ -61,13 +61,43 @@ const layout = computed(() => layoutAt(zoom.value));
 const pph = computed(() => pxPerHour(vw.value, zoom.value.x));
 const hours = computed(() => { const s = hourStep(pph.value); return Array.from({ length: Math.ceil(24 / s) }, (_, i) => i * s); });
 
+/** Selector of the card parts that stay readable at the viewport's left edge (the card variants' titles and heads). */
+const STICKY = '.ev > .title, .tl > .row, .item > .title, .item > .head';
+/** The sticky parts per card with the margin written last (the inline style is the cache: a write only when it changes). */
+type Sticky = { card: HTMLElement; parts: { el: HTMLElement; ml: number }[] };
+let sticky: Sticky[] | null = null;
+let stick = 0;
+/**
+ * Pins the titles to the viewport's left edge: margin-left = clamp(0, stick - card left, room), written per element only when it
+ * changes. A CSS variable on the world would restyle every element below it on each frame (it inherits); this touches a few titles.
+ */
+function pinTitles(): void {
+  if (!world.value) return;
+  sticky ??= Array.from(world.value.querySelectorAll<HTMLElement>('.card'), (card) => ({
+    card, parts: Array.from(card.querySelectorAll<HTMLElement>(STICKY), (el) => ({ el, ml: 0 })),
+  }));
+  for (const { card, parts } of sticky) {
+    const cl = parseFloat(card.style.left) || 0;
+    const room = Math.max(0, (parseFloat(card.style.width) || 0) - 56);
+    const ml = Math.min(room, Math.max(0, stick - cl));
+    for (const p of parts) if (p.ml !== ml) { p.ml = ml; p.el.style.marginLeft = `${ml}px`; }
+  }
+}
+// Cards and their parts come and go with renders (also of the child components): the list is rebuilt and the titles re-pinned.
+let mo: MutationObserver | null = null;
+const repin = (): void => { sticky = null; pinTitles(); };
+onMounted(() => { if (world.value) { mo = new MutationObserver(repin); mo.observe(world.value, { childList: true, subtree: true }); } });
+onBeforeUnmount(() => mo?.disconnect());
+onUpdated(repin);
+
 /** Applies pan and live scale to the world, the hour axis (x only) and the day labels (y only); no layout. */
 function applyTransform(x: number, y: number, kx: number, ky: number): void {
   if (world.value) {
     world.value.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${kx}, ${ky})`;
-    // the viewport's left edge in world pixels: card titles are pinned to it by CSS (no Vue render per frame)
-    world.value.style.setProperty('--stick', `${-x / kx}px`);
   }
+  // the viewport's left edge in world pixels: card titles are pinned to it (no Vue render per frame)
+  stick = -x / kx;
+  pinTitles();
   if (axis.value) axis.value.style.transform = `translateX(${x}px) scaleX(${kx})`;
   if (labels.value) labels.value.style.transform = `translateY(${y}px) scaleY(${ky})`;
 }
@@ -168,7 +198,7 @@ const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value
           >
             <div
               v-for="c in r.cards" :key="c.seg.item.id + c.seg.date" class="card" data-zoom-nopan
-              :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px', '--cl': c.left + 'px', '--room': Math.max(0, c.width - 56) + 'px' }"
+              :style="{ left: c.left + 'px', top: c.top + 'px', width: c.width + 'px', height: c.height + 'px' }"
             ><ItemView :segment="c.seg" :variant="variantOf(c.seg)" :height="c.height" /></div>
           </div>
           <div v-if="days.some((d) => toIsoDate(d) === today)" class="now" data-testid="htime-now" :style="{ left: nowX + 'px' }" />
@@ -206,7 +236,5 @@ const atMax = (a: 'x' | 'y') => (a === 'x' ? zoom.value.x >= MAX_ZX : zoom.value
 .row.today { background: color-mix(in srgb, var(--md-sys-color-primary) 6%, transparent); }
 .card { position: absolute; box-sizing: border-box; padding: 0 1px 1px 0; display: flex; min-width: 0; }
 .card > :deep(*) { flex: 1; min-width: 0; }
-/* a title starts at the viewport's left edge while its card starts left of it, and stops short of the card's right edge */
-.card :deep(:is(.ev > .title, .tl > .row, .item > .title, .item > .head)) { margin-left: clamp(0px, calc(var(--stick, 0px) - var(--cl)), var(--room)); }
 .now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--md-sys-color-error); pointer-events: none; z-index: 3; }
 </style>
