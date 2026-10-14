@@ -147,6 +147,7 @@ export default {
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },
     leftHanded: { label: 'Left-handed mode', hint: 'Mirrors the phone layout so the main controls sit under the left thumb' },
+    navPosition: { label: 'View switcher', hint: 'Where Year, Month, Week and Day sit', phone: 'On phones', desktop: 'On desktop and tablets', bottom: 'Bottom', top: 'Top', rail: 'Side rail' },
     plant: 'Plant',
     sunflowers: { label: 'Sunflowers', hint: 'Applies to the Sunflower field scene', grow: 'Grow with points', full: 'Full field' },
     ownThemes: { label: 'Own themes (AI and import)', hint: 'Experimental: a prompt for an AI and the import of its theme file in the theme menu' },

@@ -149,6 +149,9 @@ export type SunflowersMode = 'grow' | 'full';
 /** How often the emotional support cat comes by when a task list is finished (per person, `GET/PATCH /api/prefs`). */
 export type SupportCatSetting = 'off' | 'sometimes' | 'always';
 
+/** Where the view switcher sits: a bottom bar, a tabs row under the top bar, or a side rail (per person prefs `navPhone`, `navDesktop`). */
+export type NavPosition = 'bottom' | 'top' | 'rail';
+
 /** How the Tasks view groups its lists (per person pref). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 /** How the Tasks view sorts its lists (per person pref). */
@@ -185,6 +188,9 @@ export interface Prefs {
   leftHanded: boolean;
   /** The "From Sat 10 Oct" label on carried-over task lists. */
   showCarriedFrom: boolean;
+  /** Where the view switcher sits on phones and on desktop and tablets (ARCHITECTURE "View switcher position"). */
+  navPhone: NavPosition;
+  navDesktop: NavPosition;
   /** Tasks view grouping and sorting. */
   tasksGroupBy: TasksGroupBy;
   tasksSortBy: TasksSortBy;

@@ -1689,4 +1689,39 @@ I edit the task list {string} in the Tasks view
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
+## View switcher position (`@nav-position`)
+
+```
+the view switcher on phones is set to {string}
+the view switcher on desktop and tablets is set to {string}
+I choose {string} as the view switcher position on phones
+the view switcher is in the {string} position
+the view switcher is directly under the top bar
+the view switcher is above the calendar
+the view switcher is on the {string} side of the screen
+there is no bottom bar
+the open tasks tray is at the bottom of the screen
+the open tasks tray is above the bottom bar
+the add button is above the open tasks tray
+```
+
+- "the view switcher on phones is set to P" / "... on desktop and tablets is set to P" (P = `bottom` | `top` | `rail`)
+  set the person pref with `PATCH /api/prefs { "navPhone": P }` / `{ "navDesktop": P }` through the API before the page
+  is opened. Left-handed mode is a separate `Given` ("left-handed mode is on").
+- "I choose X as the view switcher position on phones" (X = `Bottom` | `Top` | `Side rail`): clicks the option of the
+  segmented button `settings-nav-phone` (the desktop one is `settings-nav-desktop`) and waits for the `PATCH /api/prefs` 200.
+- "the view switcher is in the P position": the `view-switcher` element has `data-position` = P (the bottom bar, the top
+  tabs row and the rail each render one `view-switcher`).
+- "directly under the top bar": the top of `view-switcher` is within 2 px of the bottom of `top-bar` (banners and
+  hints are not shown in these scenarios). "above the calendar": its bottom is above the top of `calendar-swipe-area`.
+- "the view switcher is on the S side of the screen" is the left-hand step with the element name `view switcher`
+  (`view-switcher`).
+- "there is no bottom bar": no element `[data-testid=bottom-bar][data-position=bottom]` exists. The bottom navigation bar
+  and the rail keep the testid `bottom-bar` (existing steps), and both carry `data-position` (`bottom` / `rail`).
+- "the open tasks tray is at the bottom of the screen": the bottom edge of `task-tray` is within 1 px of `innerHeight`
+  (the test viewport has no safe-area inset). "above the bottom bar": the tray bottom is at or above the top of the
+  `bottom-bar`. "the add button is above the open tasks tray": the bottom of `create-button` is at or above the top of
+  `task-tray`.
+- The overlap check reuses "the add button covers no control of the {string}" with the panel name `view switcher`
+  (`view-switcher`), see the panel map in `e2e/steps/tasks-canvas.steps.ts`.
 

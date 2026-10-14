@@ -758,3 +758,14 @@ spec files are named.
   not stable. On the shared host the identical build scored 0.64-0.84, with TBT between 384 and 1430 ms from host load alone, and
   the first-load work (mount, re-render when items arrive) leaves TBT above what 90 needs. The JS budget stays 150 KB; it is
   measured as Chromium negotiates it (Brotli on localhost/HTTPS, served from the precompressed files; over plain HTTP gzip-9, about 151 KB).
+- **A-253 View switcher position** (owner 2026-10-14, final): a Settings option for where the view switcher sits, a
+  setting only (no quick toggle). Default = current behaviour (phone bottom bar, desktop/tablet rail). One setting per
+  device type, split like `useViewport` (`isPhone` < 768 px vs. the rest; A-250). Options: `bottom` (phone = the bottom
+  bar, as now), `top` (M3 tabs row directly under the top app bar; the bottom bar disappears), `rail` (slim side rail,
+  also on phones, on the thumb side: right, or left in left-handed mode; desktop/tablet rail stays at the left as now).
+  When the phone has no bottom bar the open tasks tray moves to the bottom edge and the "+" floats above it, safe area
+  respected. Stored per person (`navPhone`, `navDesktop`), validated server-side. My choices: (a) desktop and tablet offer
+  all three options; `bottom` there is the same bar full width below the tray panel (simple, so not withheld);
+  (b) both rows are shown on every device, because the choice is per person and follows them; (c) the tabs row shows text
+  labels only (icons would not fit 8 Labs tabs at 360 px); (d) the phone rail is 64 px wide (the desktop rail is 80 px).
+

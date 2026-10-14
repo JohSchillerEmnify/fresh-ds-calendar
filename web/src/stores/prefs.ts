@@ -3,12 +3,12 @@ import { ref } from 'vue';
 import { api } from '@/api/client';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
-import type { ApproachWindowHours, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
+import type { ApproachWindowHours, NavPosition, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
- * support cat, the version label in the corner (off by default), left-handed mode (off by default), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
+ * support cat, the version label in the corner (off by default), left-handed mode (off by default), where the view switcher sits (phone, desktop), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
  */
 /** The server's default `notify` preference (ARCHITECTURE "Notifications"). */
 export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' };
@@ -26,6 +26,9 @@ export const usePrefsStore = defineStore('prefs', () => {
   const leftHanded = ref(false);
   /** The "From …" label on task lists carried over to today (on by default). */
   const showCarriedFrom = ref(true);
+  /** Where the view switcher sits on phones / on desktop and tablets (ARCHITECTURE "View switcher position"). */
+  const navPhone = ref<NavPosition>('bottom');
+  const navDesktop = ref<NavPosition>('rail');
   const tasksGroupBy = ref<TasksGroupBy>('time');
   const tasksSortBy = ref<TasksSortBy>('date');
   const labsOwnThemes = ref(false);
@@ -51,6 +54,8 @@ export const usePrefsStore = defineStore('prefs', () => {
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
     leftHanded.value = p.leftHanded ?? leftHanded.value;
     showCarriedFrom.value = p.showCarriedFrom ?? showCarriedFrom.value;
+    navPhone.value = p.navPhone ?? navPhone.value;
+    navDesktop.value = p.navDesktop ?? navDesktop.value;
     tasksGroupBy.value = p.tasksGroupBy ?? tasksGroupBy.value;
     tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
     labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
@@ -73,7 +78,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
     };
     apply(p);
     try {
@@ -84,5 +89,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify, load, set };
 });

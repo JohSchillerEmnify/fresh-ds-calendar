@@ -13,11 +13,13 @@ import DragCat from '@/features/motivation/DragCat.vue';
 import VersionLabel from '@/components/shell/VersionLabel.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
+import NavigationTabs from '@/components/m3/NavigationTabs.vue';
 import Snackbar from '@/components/m3/Snackbar.vue';
 import type { NavItem } from '@/components/m3/types';
 import { applyLanguage, t } from '@/i18n';
 import { acquireViewport, isPhone } from '@/composables/useViewport';
 import { useNav } from '@/composables/useNav';
+import { useNavPosition } from '@/composables/useNavPosition';
 import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry';
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
@@ -44,6 +46,7 @@ const filters = useFilters();
 const calendars = useCalendarsStore();
 const settings = useSettingsStore();
 const motivation = useMotivationStore();
+const { position: navPosition, side: railSide } = useNavPosition();
 const labs = usePrefsStore();
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
 // the person's language choice (also arriving from another device) switches the UI at once, without a reload
@@ -67,6 +70,9 @@ const LAB_ICONS = { clock: IconClock, timeline: IconTimeline, strip: IconStrip }
 const items = computed<NavItem[]>(() => labs.labs
   ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: LAB_ICONS[id], testid: `view-switch-${id}`, experimental: true }))]
   : baseItems.value);
+/** A phone without a bottom bar and without the tray (Tasks, Labs views) still keeps clear of the bottom safe area. */
+const edgePad = computed(() => hasShell.value && isPhone.value && navPosition.value !== 'bottom' && !route.meta.view);
+const switchTo = (id: string) => { void nav.switchView(id as ViewKind | 'tasks'); };
 const filterShown = computed(() => hasShell.value && !route.meta.tasks && (ui.filtersShown || filters.active.value));
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
@@ -89,6 +95,8 @@ onBeforeUnmount(() => {
   sync.stop();
   clock.stopTicker();
 });
+// CSS (FAB, tray, snackbar) follows the position through one attribute on <html>
+watch(navPosition, (p) => { document.documentElement.dataset.navPos = p; }, { immediate: true });
 // System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
 useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });
 useOverlayHistory(() => ui.filtersShown, () => { ui.filtersShown = false; });
@@ -101,13 +109,14 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
   <div class="shell" data-testid="app-shell" :data-view="cal.view">
     <template v-if="hasShell">
       <AppTopBar />
+      <NavigationTabs v-if="navPosition === 'top'" :items="items" :model-value="activeView" @update:model-value="switchTo" />
       <InstallPrompts part="hint" />
     </template>
     <ReauthBanner />
     <SyncErrorBanner />
     <FilterBar v-if="filterShown" />
-    <div class="body">
-      <NavigationRail v-if="hasShell && !isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind | 'tasks')" />
+    <div class="body" :class="{ 'edge-pad': edgePad }">
+      <NavigationRail v-if="hasShell && navPosition === 'rail'" :items="items" :model-value="activeView" :phone="isPhone" :side="railSide" @update:model-value="switchTo" />
       <div class="col">
         <SwipeCarousel :disabled="swipeDisabled">
           <template v-if="route.meta.view"><template v-for="(h, i) in calendarHeaders" :key="i"><component :is="h.component" v-if="h.shown()" /></template></template>
@@ -116,7 +125,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
       </div>
     </div>
     <CreateFab v-if="hasShell" />
-    <NavigationBar v-if="hasShell && isPhone" :items="items" :model-value="activeView" @update:model-value="nav.switchView($event as ViewKind | 'tasks')" />
+    <NavigationBar v-if="hasShell && navPosition === 'bottom'" :items="items" :model-value="activeView" @update:model-value="switchTo" />
     <component :is="dialogComp" v-if="dialogComp && ui.dialog" v-bind="ui.dialog.props" @close="ui.closeDialog()" />
     <VersionLabel v-if="hasShell && labs.versionInCorner" :raised="isPhone" />
     <Snackbar />
@@ -127,6 +136,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
 <style scoped>
 .shell { height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: clip; } /* the app never scrolls as a whole: overlays (month picker scrim) must not extend the document */
 .body { flex: 1; min-height: 0; display: flex; }
+.body.edge-pad { padding-bottom: var(--safe-bottom); }
 .col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Desktop: the open tasks tray is a right-hand side panel. */
 @media (min-width: 768px) { .col { flex-direction: row; } }

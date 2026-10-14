@@ -16,7 +16,8 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, NotifyPrefs, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
+import { NAV_POSITIONS } from '@/lib/navPosition';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -131,6 +132,8 @@ const undatedDoneOptions = computed(() => [
   { value: 'calendar', label: t('settings.tasklists.undatedDone.calendar'), testid: 'settings-undated-done-calendar' },
   { value: 'archive', label: t('settings.tasklists.undatedDone.archive'), testid: 'settings-undated-done-archive' },
 ]);
+/** The three view switcher positions as options of the phone or the desktop row. */
+const navOptions = (device: 'phone' | 'desktop') => NAV_POSITIONS.map((p) => ({ value: p, label: t(`settings.navPosition.${p}`), testid: `settings-nav-${device}-${p}` }));
 // --- bedtime ------------------------------------------------------------------------------------
 const bt = computed(() => labs.bedtime);
 const nt = computed(() => labs.notify);
@@ -242,6 +245,8 @@ async function resetDemo() {
           </div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.tasksCalendar.label') }}</span><span class="sub">{{ t('settings.calendar.tasksCalendar.hint') }}</span></div><Switch :model-value="labs.tasksCalendarVisible" :label="t('settings.calendar.tasksCalendar.label')" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.leftHanded.label') }}</span><span class="sub">{{ t('settings.leftHanded.hint') }}</span></div><Switch :model-value="labs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><SegmentedButton :model-value="labs.navPhone" :options="navOptions('phone')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.phone')}`" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPosition })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.desktop') }}</span><SegmentedButton :model-value="labs.navDesktop" :options="navOptions('desktop')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.desktop')}`" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" /></div>
         </section>
 
         <section id="s-tasklists" class="card" data-testid="settings-section" data-section="tasklists" aria-labelledby="h-cats">

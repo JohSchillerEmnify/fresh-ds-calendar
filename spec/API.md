@@ -171,6 +171,8 @@ the field). Other presets and overrides stay as they were. The Default and Neon 
 stored `categoryId`s are untouched), the person pref `leftHanded` (boolean, default `false`; a
 non-boolean is a 400) turns on the mirrored phone and touch-tablet layout (ARCHITECTURE "Left-handed mode"), and `showCarriedFrom` (boolean,
 default `true`) shows the "From <day>" label on task lists carried over to today.
+The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
+`rail`; any other value is a 400; ARCHITECTURE "View switcher position").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 

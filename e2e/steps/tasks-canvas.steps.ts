@@ -277,7 +277,7 @@ When('I add an area on the Canvas', async function (this: World) {
   await expect(this.page.getByTestId('canvas-area-editor')).toBeVisible();
 });
 
-const PANELS: Record<string, string> = { 'area editor': 'canvas-area-editor', 'filter sheet': 'tasks-filter-sheet', 'sort sheet': 'tasks-sort-sheet', 'install sheet': 'ios-install-sheet' };
+const PANELS: Record<string, string> = { 'area editor': 'canvas-area-editor', 'filter sheet': 'tasks-filter-sheet', 'sort sheet': 'tasks-sort-sheet', 'install sheet': 'ios-install-sheet', 'view switcher': 'view-switcher' };
 
 Then('the add button covers no control of the {string}', async function (this: World, panel: string) {
   const fab = this.page.getByTestId('create-button');
