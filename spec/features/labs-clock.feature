@@ -54,6 +54,16 @@ Feature: Labs: experimental views and the 24-hour clock
     Then the task list "Laundry" is an arc from 18:00 to 19:30
     And the arc of "Laundry" is labelled "Laundry 1/2"
 
+  Scenario: A short task list right before an event is visible on the clock
+    Given the calendar contains a task list "Einkaufsliste" on 2026-10-14 at 17:00 for 15 minutes with items:
+      | item | done |
+      | Milk | no   |
+    And the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 21:30
+    When I open the clock view for 2026-10-14
+    Then the task list "Einkaufsliste" is an arc from 17:00 to 17:15
+    And the arc of "Einkaufsliste" is not covered by the arc of "Abend zu zweit"
+    And the arc of "Einkaufsliste" is labelled "Einkaufsliste 0/1"
+
   Scenario: Task lists without a time are listed next to the dial
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |

@@ -45,7 +45,7 @@ const R_OUTER = 172;
 const LANE_GAP = 17;
 const ARC_W = 14;
 /**
- * Timed events and task lists as arcs, overlapping ones on inner lanes; task lists thinner and dashed. The arc being
+ * Timed events and task lists as arcs, overlapping ones on inner lanes; task lists thinner and dashed (a short one, where dashes would hide it, solid). The arc being
  * dragged is drawn where the preview puts it (lifted).
  */
 const arcs = computed(() =>
@@ -59,7 +59,7 @@ const arcs = computed(() =>
     return {
       key, seg: s as Segment, kind: s.item.kind, title: displayTitle(s.item), text: clockText(s.item),
       start, end, startMin, endMin, color: cats.itemColor(s.item), mid: (startMin + endMin) / 2, r, d: arcPath(startMin, endMin, r),
-      width: tasklist ? ARC_W / 2 : ARC_W, dash: tasklist ? '5 4' : undefined,
+      width: tasklist ? ARC_W / 2 : ARC_W, dash: tasklist && endMin - startMin >= 30 ? '5 4' : undefined, thin: tasklist,
       done: s.item.kind === 'tasklist' && s.item.doneCount >= s.item.totalCount,
       lifted: !!p, selected: selected.value === key,
       aria: t('calendar.clock.arc', { title: clockText(s.item), start: s.startTime!, end: s.endTime! }),
@@ -178,7 +178,7 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
         </g>
         <path
           v-for="a in arcs" :key="a.key" :d="a.d" class="arc" :class="{ done: a.done, lifted: a.lifted, selected: a.selected }" :stroke="a.color"
-          :stroke-width="a.lifted ? a.width + 6 : a.width" :stroke-dasharray="a.dash" :stroke-linecap="a.dash ? 'butt' : 'round'"
+          :stroke-width="a.lifted ? a.width + 6 : a.width" :stroke-dasharray="a.dash" :stroke-linecap="a.thin ? 'butt' : 'round'"
           data-testid="clock-arc" :data-r="a.r" :data-kind="a.kind" :data-title="a.title" :data-start="a.start" :data-end="a.end"
           :data-selected="a.selected ? 'true' : undefined" :data-lifted="a.lifted ? 'true' : undefined"
         />
