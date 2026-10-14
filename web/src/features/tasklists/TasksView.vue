@@ -59,7 +59,7 @@ function chooseTab(next: TasksTab): void {
 /** "Use as template": an open, undated copy appears in Open; the archived original stays. */
 async function useAsTemplate(l: TaskList): Promise<void> {
   try {
-    await items.createTaskList(templateOf(l));
+    await items.createTaskList(templateOf(l, cats.on.value));
     ui.notify(t('tasks.archive.templateCreated', { title: displayTitle(l) }));
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.templateFailed'));

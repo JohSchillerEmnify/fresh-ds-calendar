@@ -4,7 +4,7 @@
  * changes stored data: the stored filter, grouping, sort and the lists' `categoryId`s stay as they are.
  */
 import { computed } from 'vue';
-import type { TaskList, TasksFilter, TasksGroupBy, TasksSortBy } from '@/api/types';
+import type { CalendarItem, TaskList, TasksFilter, TasksGroupBy, TasksSortBy } from '@/api/types';
 import { usePrefsStore } from '@/stores/prefs';
 
 /** Grouping to apply: "category" falls back to the default "time" while categories are off. */
@@ -19,6 +19,9 @@ export const effectiveFilter = (f: TasksFilter, on: boolean): TasksFilter => (on
 /** Colour of a list: its category colour, or the tasks calendar's colour while categories are off. */
 export const listColor = (l: Pick<TaskList, 'color' | 'calendarColor'>, on: boolean): string => (on ? l.color : l.calendarColor ?? l.color);
 
+/** Colour of any calendar item: events keep theirs, task lists follow {@link listColor}. */
+export const itemColor = (i: CalendarItem, on: boolean): string => (i.kind === 'tasklist' ? listColor(i, on) : i.color);
+
 /** Category of a list as the UI sees it: none while categories are off. */
 export const listCategoryId = (l: Pick<TaskList, 'categoryId'>, on: boolean): string | null => (on ? l.categoryId : null);
 
@@ -29,6 +32,7 @@ export function useTaskCategories() {
   return {
     on,
     color: (l: Pick<TaskList, 'color' | 'calendarColor'>): string => listColor(l, on.value),
+    itemColor: (i: CalendarItem): string => itemColor(i, on.value),
     categoryId: (l: Pick<TaskList, 'categoryId'>): string | null => listCategoryId(l, on.value),
     groupBy: computed(() => effectiveGroupBy(prefs.tasksGroupBy, on.value)),
     sortBy: computed(() => effectiveSortBy(prefs.tasksSortBy, on.value)),

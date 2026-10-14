@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { templateOf } from '@/features/tasklists/archive';
 import { effectiveFilter, effectiveGroupBy, effectiveSortBy, listCategoryId, listColor } from '@/features/tasklists/categories';
 
 describe('task categories switch: fall-backs while off', () => {
@@ -25,5 +26,10 @@ describe('task categories switch: fall-backs while off', () => {
     expect(listColor({ color: '#111111' }, false)).toBe('#111111');
     expect(listCategoryId(l, true)).toBe('shopping');
     expect(listCategoryId(l, false)).toBeNull();
+  });
+  it('a template copy has no category while off', () => {
+    const l = { title: 'T', categoryId: 'work', tags: [], items: [] };
+    expect(templateOf(l, false).categoryId).toBeNull();
+    expect(templateOf(l).categoryId).toBe('work');
   });
 });

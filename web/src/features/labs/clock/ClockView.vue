@@ -11,6 +11,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { clockSegments, clockText } from './clock';
 import { angleOf, arcPath, CENTER, clip, fadingRows, labelSizing, pointAt, VIEW } from './geometry';
+import { useTaskCategories } from '@/features/tasklists/categories';
 import { t } from '@/i18n';
 
 const cal = useCalendarStore();
@@ -22,6 +23,7 @@ const date = computed(() => toIsoDate(cal.anchor));
 const dateLabel = computed(() => formatDate(cal.anchor, 'weekdayDayMonthLong'));
 
 const segments = computed(() => (items.byDate.get(date.value) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)));
+const cats = useTaskCategories();
 const split = computed(() => clockSegments(segments.value));
 
 /** The dial is a square as large as the area below the date allows (owner, 2026-10-13). */
@@ -41,7 +43,7 @@ const arcs = computed(() =>
     const tasklist = s.item.kind === 'tasklist';
     return {
       key: `${s.item.id}-${s.date}`, kind: s.item.kind, title: displayTitle(s.item), text: clockText(s.item),
-      start: s.startTime!, end: s.endTime!, color: s.item.color, mid: (s.startMin + s.endMin) / 2, r, d: arcPath(s.startMin, s.endMin, r),
+      start: s.startTime!, end: s.endTime!, color: cats.itemColor(s.item), mid: (s.startMin + s.endMin) / 2, r, d: arcPath(s.startMin, s.endMin, r),
       width: tasklist ? ARC_W / 2 : ARC_W, dash: tasklist ? '5 4' : undefined,
       done: s.item.kind === 'tasklist' && s.item.doneCount >= s.item.totalCount,
     };
