@@ -10,6 +10,7 @@
 - In the zoom month, task lists are no longer hidden behind events, and events show at their real time when there is room.
 - The zoom month shows every day at its real times from the same zoom level, much earlier than before, and days in a week share their hours.
 - On desktop the add button no longer covers the buttons of a notice at the bottom.
+- On the Canvas, the first tap after dropping a note works again, for example on the add button.
 - In the month view, multi-day events only take room on the days they cover, so every day uses its space for its own events.
 - Settings show what's new, and after an update the app tells you once what changed.
 
