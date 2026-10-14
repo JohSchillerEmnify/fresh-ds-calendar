@@ -591,3 +591,18 @@ spec files are named.
 - **A-221 Download button in the app** (my choice): "Update the app" hands `/app.apk` to the system browser
   (`ACTION_VIEW`) instead of using `DownloadManager`: no permission, no notification channel code, and Chrome shows progress
   and the install prompt. Only URLs of the calendar's own host are handed over. The label switch is by `window.Capacitor`.
+
+## Missing calendar permission (owner report, 2026-10-14)
+
+- **A-240 Cause** (found): a person who ticked no calendar box got a token without the calendar scope; signing in again
+  with it stored the new token, but the running server kept the old per-person provider (old access token) until a restart.
+- **A-241 Scope source** (my choice): the token response `scope` is the authority and is stored in `google-token.json`;
+  the callback's `scope` query is ignored. Tokens stored before this have no scope and are judged by Google's 403.
+- **A-242 Still signed in** (owner instruction): a person without calendar access may sign in; the app says what is
+  missing and offers the re-grant instead of "unreachable".
+- **A-243 Status 403** (my choice): `CALENDAR_PERMISSION_MISSING` answers 403 (not 401): the session is fine, the grant is not.
+- **A-244 Re-grant** (my choice): the existing start route with `include_granted_scopes=true` and `prompt=consent`, so
+  Google shows the checkbox again; the banner and the Settings row use it.
+- **A-245 Cache** (my choice): the per-person CalendarService (and so provider, OAuth client, calendar list, tasks-calendar
+  id) is dropped after the callback stores a token and at sign-out; mock calendar data stays.
+- **A-246 Wording** (my choice): the banner quotes the start of Google's checkbox label, which Google may reword.

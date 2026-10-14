@@ -734,6 +734,11 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   `/signin` and remembers the page asked for (sessionStorage), which `/` returns to after signing in. A 401
   `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
   `/api/auth/google/start`. Settings get `settings-signout`.
+  `CALENDAR_PERMISSION_MISSING` (403) or `/?calendar=missing` shows `calendar-access-banner` (button
+  `calendar-access-grant` back to `/api/auth/google/start`, hint names the checkbox) and Settings -> Account & data
+  shows `settings-calendar-access` while it is missing. The stored scope never replaces Google's own answer: tokens
+  without a recorded scope are judged by Google's 403. Cached per-person providers (they hold the OAuth client with the
+  old access token) are dropped when the callback stores a new token and at sign-out (`ctx.forgetPerson`).
 
 ### All calendars and hiding them
 
