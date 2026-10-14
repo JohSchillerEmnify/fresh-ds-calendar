@@ -9,6 +9,7 @@ import { computed } from 'vue';
 import type { TaskList } from '@/api/types';
 import { displayTitle } from '@/lib/items';
 import { NOTE_W, noteDateLabel } from './canvas';
+import { useTaskCategories } from './categories';
 import TaskListView from './TaskListView.vue';
 
 const props = defineProps<{
@@ -27,7 +28,8 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ completed: [catMs: number] }>();
 
-const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}px, 0)`, zIndex: props.z, width: `${NOTE_W}px`, '--c': props.list.color }));
+const cats = useTaskCategories();
+const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}px, 0)`, zIndex: props.z, width: `${NOTE_W}px`, '--c': cats.color(props.list) }));
 </script>
 
 <template>

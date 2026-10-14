@@ -89,6 +89,7 @@ export default {
     tasklists: {
       undatedDone: { label: 'Erledigte Liste ohne Datum, yo', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv, Digga' },
       categories: 'Kategorien, yo',
+      taskCategories: { label: 'Kategorien für Aufgabenlisten, yo', hint: 'Aufgabenlisten nach Kategorie gruppieren, sortieren, filtern und einfärben. Ausschalten blendet nur aus, nix wird gelöscht, Digga.' },
       addCategory: 'Kategorie am Start, yo',
       editCategory: '{name} pimpen',
       moveUp: '{name} nach oben, yo',

@@ -165,7 +165,8 @@ for `garden === 'sunflowers'` and a Default or Neon preset without a scene overr
 `sunflowers` (the field they saw); for `plant` or `off`, an override `sunflowers` becomes `none` (they did not see
 the field). Other presets and overrides stay as they were. The Default and Neon presets start with scene `none`.
 **Prefs** (`GET/PATCH /api/prefs`): besides the Labs switches, `approachingCard`, `approachBar`, `approachWindowHours`,
-`tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `leftHanded` (boolean, default `false`; a
+`tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `taskCategories` (boolean, default `true`; a non-boolean is a 400; `false` hides every task category UI, the
+stored `categoryId`s are untouched), the person pref `leftHanded` (boolean, default `false`; a
 non-boolean is a 400) turns on the mirrored phone layout (ARCHITECTURE "Left-handed mode").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
@@ -175,7 +176,7 @@ Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, 
 ### `GET /api/prefs` → 200, `PATCH /api/prefs` → 200
 
 Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
-`tasksCalendarVisible`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
+`tasksCalendarVisible`, `taskCategories`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
 `'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, ARCHITECTURE
 "i18n"). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
 for an unknown value; it returns the full preferences.

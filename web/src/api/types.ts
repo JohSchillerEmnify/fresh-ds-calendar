@@ -79,6 +79,8 @@ export interface TaskList {
   categoryId: string | null;
   tags: string[];
   color: string;
+  /** Colour of the tasks calendar: what an uncategorised list shows (used while task categories are switched off). */
+  calendarColor?: string;
   /** Date the last open item was ticked (server, app clock); null/absent while an item is open. */
   completedOn?: LocalDate | null;
   /** Place on the Tasks view's Canvas (canvas units); null/absent = no place yet (Unsorted). */
@@ -137,6 +139,7 @@ export interface Prefs {
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;
   approachingCard: boolean;
+  taskCategories: boolean;
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;
   supportCat: SupportCatSetting;

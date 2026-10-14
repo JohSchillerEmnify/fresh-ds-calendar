@@ -25,9 +25,11 @@ import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
 import TasksCanvas from './TasksCanvas.vue';
 import TasksToolbar from './TasksToolbar.vue';
+import { useTaskCategories } from './categories';
 import { matchesTasksFilter } from './tasksFilter';
 
 const tasks = useTasksViewStore();
+const cats = useTaskCategories();
 const items = useItemsStore();
 const prefs = usePrefsStore();
 const settings = useSettingsStore();
@@ -36,9 +38,9 @@ const sync = useSyncStore();
 const ui = useUiStore();
 
 /** The filter bar's choice (all three tabs, ARCHITECTURE "Tasks filter"). */
-const passes = (l: TaskList): boolean => matchesTasksFilter(l, prefs.tasksFilter, clock.today);
+const passes = (l: TaskList): boolean => matchesTasksFilter(l, cats.filter.value, clock.today);
 const shown = computed(() => tasks.lists.filter(passes));
-const groups = computed(() => groupLists(shown.value, prefs.tasksGroupBy, prefs.tasksSortBy, clock.today, settings.categories, prefs.tasksSortDir));
+const groups = computed(() => groupLists(shown.value, cats.groupBy.value, cats.sortBy.value, clock.today, settings.categories, prefs.tasksSortDir));
 
 /** True when every list shown in the Open tab is collapsed: the toggle then offers "Expand all". */
 const allCollapsed = computed(() => shown.value.length > 0 && shown.value.every((l) => isCollapsed(l.id)));
@@ -75,7 +77,7 @@ onBeforeUnmount(() => stop?.());
 </script>
 
 <template>
-  <section class="tv" data-testid="tasks-view" :data-group-by="prefs.tasksGroupBy" :data-sort-by="prefs.tasksSortBy" :data-sort-dir="prefs.tasksSortDir">
+  <section class="tv" data-testid="tasks-view" :data-group-by="cats.groupBy.value" :data-sort-by="cats.sortBy.value" :data-sort-dir="prefs.tasksSortDir">
     <div class="controls">
       <SegmentedButton :model-value="tasks.tab" :options="tabOptions" :label="t('tasks.tabs.label')" class="tabs" @update:model-value="chooseTab" />
     </div>
@@ -90,7 +92,7 @@ onBeforeUnmount(() => stop?.());
         <ul class="list group">
           <li
             v-for="l in archive" :key="l.id" class="item" data-testid="tasks-archive-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
-            :data-completed-on="l.completedOn ?? ''" :style="{ '--c': l.color }"
+            :data-completed-on="l.completedOn ?? ''" :style="{ '--c': cats.color(l) }"
           >
             <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" />
             <div class="quick">
@@ -107,7 +109,7 @@ onBeforeUnmount(() => stop?.());
         <ul class="list">
           <li
             v-for="l in g.lists" :key="l.id" class="item" data-testid="tasks-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
-            :data-date="l.date ?? ''" :style="{ '--c': l.color }"
+            :data-date="l.date ?? ''" :style="{ '--c': cats.color(l) }"
           >
             <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" @completed="tasks.markFinished(l.id)" />
           </li>

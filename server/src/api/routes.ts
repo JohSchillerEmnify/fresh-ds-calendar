@@ -123,10 +123,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'taskCategories'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'versionInCorner', 'labsOwnThemes', 'leftHanded'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'taskCategories'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.approachWindowHours !== undefined) {
       if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
       patch.approachWindowHours = b.approachWindowHours;

@@ -106,7 +106,7 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
-      tags: d.tags, color: cat ? cat.color : calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
+      tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
     };
   }
 

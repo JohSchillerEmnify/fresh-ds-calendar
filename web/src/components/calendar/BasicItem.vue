@@ -6,6 +6,7 @@
 import { computed } from 'vue';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { useSettingsStore } from '@/stores/settings';
+import { useTaskCategories } from '@/features/tasklists/categories';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import { t } from '@/i18n';
@@ -13,8 +14,9 @@ import { t } from '@/i18n';
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
 const settings = useSettingsStore();
+const cats = useTaskCategories();
 const it = computed(() => props.segment.item);
-const icon = computed(() => (it.value.kind === 'tasklist' ? settings.categoryById(it.value.categoryId)?.icon ?? null : null));
+const icon = computed(() => (it.value.kind === 'tasklist' ? settings.categoryById(cats.categoryId(it.value))?.icon ?? null : null));
 const items = computed(() => {
   const i = it.value;
   return i.kind === 'tasklist' ? (i.items.length ? i.items.map((x) => x.title).join(', ') : t('calendar.item.noItems')) : '';
@@ -37,7 +39,7 @@ const timeText = computed(() => {
   </button>
   <button
     v-else v-ripple class="item tasklist" :class="[variant, { done: it.totalCount > 0 && it.doneCount >= it.totalCount }]" type="button" data-testid="tasklist-card" :data-tasklist-id="it.id" :data-title="displayTitle(it)"
-    :data-date="it.date" :data-time="it.time ?? ''" :data-color="it.color" :data-category-id="it.categoryId ?? ''" :style="{ '--c': it.color }" @click.stop="emit('open')"
+    :data-date="it.date" :data-time="it.time ?? ''" :data-color="cats.color(it)" :data-category-id="cats.categoryId(it) ?? ''" :style="{ '--c': cats.color(it) }" @click.stop="emit('open')"
   >
     <span class="head">
       <span v-if="icon" class="icon" data-testid="tasklist-card-icon">{{ icon }}</span>

@@ -22,6 +22,7 @@ import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { ProgressRing } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
+import { useTaskCategories } from './categories';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
 import { fitItems } from './layout';
@@ -48,7 +49,9 @@ const tl = computed(() => {
 });
 /** Resize handles show after a release without moving (time grid blocks only). */
 const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
-const icon = computed(() => settings.categoryById(tl.value.categoryId)?.icon ?? null);
+const cats = useTaskCategories();
+const icon = computed(() => settings.categoryById(cats.categoryId(tl.value))?.icon ?? null);
+const color = computed(() => cats.color(tl.value));
 const calm = computed(() => settings.settings.calmMode);
 const carried = computed(() => !!props.segment.carriedFrom);
 const complete = computed(() => isComplete(tl.value));
@@ -102,8 +105,8 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
   <button
     ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
-    :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
-    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on-solid': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
+    :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">

@@ -1318,6 +1318,27 @@ Owner decisions are final; the numbers and names below are mine (A-120 .. A-131)
 - **Not in this slice**: the Google Drive backup of the document (a later slice), area membership as data, snapping and
   alignment, multi-select, per-note sizes, a minimap.
 
+### Task categories switch (owner, 2026-10-14)
+
+Users find task categories confusing, so a per-person setting "Task list categories" (`settings-task-categories`, Tasks section
+of the Settings, pref `taskCategories` in `prefs.json`, default **on** = unchanged behaviour) switches them off.
+
+- **Hidden while off:** the category picker in the task list dialog; the category chips of the Tasks filter sheet and the
+  calendar `filter-bar`; the "Category" options of Group by and Sort by; the category icon and colour on every task list
+  (cards, Tasks view, Canvas notes, tray, expanded list: a list shows the colour of its calendar, `TaskList.calendarColor`);
+  the category list and "Add category" in the Settings.
+- **Fall-backs, never stored:** a stored grouping/sorting by category is shown as the default (time / date); category chips of
+  the stored Tasks filter and `?categories=` in the calendar URL are ignored (so no list vanishes); the stored values stay
+  and apply again when the switch goes on. Pure rules and the binding are `features/tasklists/categories.ts`.
+- **Data is kept:** stored `categoryId`s are never deleted; saving a list in the dialog while off omits `categoryId`, so the
+  stored one stays. A new list made while off has no category.
+- **Events** have no categories (only task lists carry `categoryId`; the calendar `filter-bar` chips filter task lists only), so
+  there is no separate event category store to leave alone: nothing about events changes.
+- **Why client-side, not the server:** the switch must apply instantly on every screen without refetching items; the server's
+  `color` stays category-based and `calendarColor` is added so the client can show the uncategorised colour. Alternative
+  weighed: the server drops categories from responses while off (one place, but needs a refetch on toggle and loses the
+  stored id in copies). Not covered: Labs views (approach bar, clock, timeline) still draw the category colour (experimental).
+
 ### Tasks filter (owner, 2026-10-13)
 
 One filter for the whole Tasks view, shown in `tasks-filter-bar` under the tabs of **Open, Canvas and Archive** alike. It

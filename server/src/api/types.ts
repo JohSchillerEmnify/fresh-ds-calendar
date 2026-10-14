@@ -60,6 +60,8 @@ export interface TaskList {
   categoryId: string | null;
   tags: string[];
   color: string;
+  /** Colour of the tasks calendar (what an uncategorised list shows). */
+  calendarColor: string;
   completedOn: LocalDate | null;
   /** Place on the Tasks view's Canvas in canvas units; null = no place yet (Unsorted). */
   canvas: CanvasPlace | null;

@@ -91,6 +91,7 @@ export default {
     },
     tasklists: {
       categories: 'Categories',
+      taskCategories: { label: 'Task list categories', hint: 'Group, sort, filter and color task lists by category. Switching off only hides them, nothing is deleted.' },
       addCategory: 'Add category',
       editCategory: 'Edit {name}',
       moveUp: 'Move {name} up',

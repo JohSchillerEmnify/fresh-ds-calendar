@@ -18,6 +18,7 @@ import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import { AREA_COLORS, areaOf, centeredArea, clampArea, clampNote, clampView, placeNotes, resizeRect, type Corner, type Point, type Rect, WORLD_H, WORLD_W } from './canvas';
 import { useCanvasStore } from './canvasStore';
+import { useTaskCategories } from './categories';
 import { matchesTasksFilter } from './tasksFilter';
 import CanvasArea from './CanvasArea.vue';
 import CanvasNote from './CanvasNote.vue';
@@ -34,6 +35,7 @@ const items = useItemsStore();
 const sync = useSyncStore();
 const ui = useUiStore();
 const prefs = usePrefsStore();
+const cats = useTaskCategories();
 const clock = useClockStore();
 
 const viewport = ref<HTMLElement | null>(null);
@@ -57,7 +59,7 @@ const rects = computed(() => canvas.areas.map((a) => {
 const notes = computed(() => placeNotes(lists.value, canvas.placed).map((n) => {
   const at: Point = live.value?.kind === 'note' && live.value.id === n.id ? live.value : n;
   const z = raised[n.id] !== undefined ? 20 + raised[n.id]! : n.placed ? 20 : 10 + Math.min(n.stack, 9);
-  return { id: n.id, x: at.x, y: at.y, placed: n.placed, z, list: byId.value.get(n.id)!, area: areaOf(at, rects.value)?.area.name ?? '', dimmed: !matchesTasksFilter(byId.value.get(n.id)!, prefs.tasksFilter, clock.today) };
+  return { id: n.id, x: at.x, y: at.y, placed: n.placed, z, list: byId.value.get(n.id)!, area: areaOf(at, rects.value)?.area.name ?? '', dimmed: !matchesTasksFilter(byId.value.get(n.id)!, cats.filter.value, clock.today) };
 }));
 const stacked = computed(() => notes.value.some((n) => !n.placed));
 

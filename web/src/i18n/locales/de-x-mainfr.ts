@@ -66,6 +66,7 @@ export default {
     },
     tasklists: {
       categories: 'Kadegorien',
+      taskCategories: { label: 'Kadegorien für Aufgabnlisdn', hint: 'Aufgabnlisdn nach Kadegorie grubbieren, sordiern, fildern un einfärbn. Ausschalddn blendes nur aus, nix wird gelöschd.' },
       addCategory: 'Kadegorie dazu',
     },
     motivation: {

@@ -533,6 +533,28 @@ the URL query is {string}
   `filter-chip-tag` in DOM order.
 - "the URL query is" compares `location.search` without the leading `?` (`""` = no query).
 
+### Task categories switch (`@categories`; setting `settings-task-categories`, pref `taskCategories`)
+
+```
+I turn the task categories {string}
+the settings page shows no categories
+the Tasks view offers no category filter, grouping or sorting
+I open the new task list dialog in the Tasks view
+the task list dialog has no category field
+the task lists {string} and {string} have the same color
+I retitle the task list {string} to {string} in the Tasks view
+```
+
+- "I turn the task categories on/off": clicks `settings-task-categories` (Settings screen is open) when its `aria-checked`
+  differs and waits for the `PATCH /api/prefs` response (200).
+- "the settings page shows no categories": no `settings-category` and no `settings-category-add`.
+- "offers no category filter, grouping or sorting": opens the Tasks view; its filter sheet has no `tasks-filter-category`,
+  `tasks-group-by` has no "Category" button and `tasks-sort-by` does not offer "Category".
+- "I open the new task list dialog in the Tasks view": opens the Tasks view and clicks `create-button` (which opens the dialog there).
+- "the task list dialog has no category field": `tasklist-category` is absent from the open `tasklist-dialog`.
+- "the task lists A and B have the same color": equal `data-color` on their `tasklist-card`s.
+- "I retitle ...": opens the list's dialog from its title in the Tasks view, replaces the title and saves.
+
 ## Event colors (`@colors`)
 
 ```

@@ -85,6 +85,7 @@ export default {
     },
     tasklists: {
       categories: 'Kategorien',
+      taskCategories: { label: 'Kategorien für Aufgabenlisten', hint: 'Aufgabenlisten nach Kategorie gruppieren, sortieren, filtern und einfärben. Ausschalten blendet nur aus, nichts wird gelöscht.' },
       addCategory: 'Kategorie hinzufügen',
       editCategory: '{name} bearbeiten',
       moveUp: '{name} nach oben',
