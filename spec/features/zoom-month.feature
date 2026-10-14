@@ -47,3 +47,22 @@ Feature: Labs: the zoom month
     When I open the zoom month for 2026-10-14
     And I tap the day number 2026-10-14 in the zoom month
     Then the URL path is "/day/2026-10-14"
+
+  Scenario: Task lists in the zoom month are not hidden behind events
+    Given the calendar contains a task list "Dinner call" on 2026-10-14 at 17:00 for 15 minutes with items:
+      | item  | done |
+      | Table | no   |
+    And the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 21:30
+    And the calendar contains an event "Late show" on 2026-10-14 from 19:00 to 22:00
+    When I open the zoom month for 2026-10-14
+    And I zoom the zoom month in to the largest zoom
+    Then the title of the task list "Dinner call" is on top in the zoom month
+    And the title of the task list "Groceries" is on top in the zoom month
+
+  Scenario: Zoomed in, items are laid out by their real time
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 21:30
+    And the calendar contains an event "Late show" on 2026-10-14 from 19:00 to 22:00
+    When I open the zoom month for 2026-10-14
+    And I zoom the zoom month in to the largest zoom
+    Then "Late show" is drawn lower than "Abend zu zweit" in the zoom month
+    And the zoom month heights of "Abend zu zweit" and "Late show" are proportional to their durations

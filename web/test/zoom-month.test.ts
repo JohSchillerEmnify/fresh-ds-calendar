@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { Segment } from '@/lib/items';
 import {
   BUTTON_FACTOR, cellNear, cellSize, centerOnCell, clampPan, clampZoom, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, panAfterZoom, parseStoredZoom,
-  pinchZoom, smooth, stepZoom,
+  pinchZoom, realTimeFits, smooth, stepZoom, timeSpan,
 } from '@/features/labs/zoom/zoom';
 
 describe('zoom range', () => {
@@ -105,5 +106,33 @@ describe('detail thresholds', () => {
     const one = cellSize(vw, vh, MAX_ZOOM, rows);
     expect(detailAt(whole.w, whole.h).level).toBe('dots');
     expect(detailAt(one.w, one.h).level).toBe('timeline');
+  });
+});
+
+/** A minimal timed (or untimed with `null`) segment. */
+const seg = (from: string | null, to = from): Segment => {
+  const m = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+  return { allDay: from === null, startTime: from, startMin: from ? m(from) : 0, endMin: to ? m(to) : 0 } as unknown as Segment;
+};
+
+describe('real time layout threshold', () => {
+  const day = [seg('17:00', '17:15'), seg('17:15', '21:30'), seg('19:00', '22:00')];
+  it('the time grid spans the whole hours of the timed items only', () => {
+    expect(timeSpan(day)).toEqual({ start: 17 * 60, end: 22 * 60 });
+    expect(timeSpan([seg(null), seg('09:20', '09:30')])).toEqual({ start: 9 * 60, end: 10 * 60 });
+    expect(timeSpan([seg(null)])).toBeNull();
+  });
+  it('fits when the shortest item (15 min of 5 h) gets the minimum block height, not before', () => {
+    // 5 h at 100 px/h: 15 min = 25 px = the minimum block
+    expect(realTimeFits(day, 500)).toBe(true);
+    expect(realTimeFits(day, 499)).toBe(false);
+  });
+  it('an item shorter than 15 min counts as 15 min; a day without timed items always fits', () => {
+    expect(realTimeFits([seg('09:00', '09:00')], 100)).toBe(true);
+    expect(realTimeFits([seg('09:00', '09:05')], 99)).toBe(false);
+    expect(realTimeFits([seg(null)], 0)).toBe(true);
+  });
+  it('a longer shortest item needs less room', () => {
+    expect(realTimeFits([seg('09:00', '10:00'), seg('09:00', '12:00')], 75)).toBe(true);
   });
 });

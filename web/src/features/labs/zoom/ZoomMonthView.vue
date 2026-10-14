@@ -22,7 +22,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { t } from '@/i18n';
 import ZoomTimeline from './ZoomTimeline.vue';
-import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, MONTH_MODEL, readStoredZoom, stepZoom, writeStoredZoom } from './zoom';
+import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, MONTH_MODEL, readStoredZoom, realTimeFits, stepZoom, writeStoredZoom } from './zoom';
 import { createZoomController } from './zoomGestures';
 
 const route = useRoute();
@@ -114,6 +114,17 @@ function entriesOf(date: string) {
   const hs = all.length ? allotHeights(all.map(needOf), room, evH) : [];
   return all.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? hs[n] : undefined }));
 }
+/** Whether a day's timed items fit the cell at their real time (else the compact chips); the band above the grid takes what its untimed entries need, at most 45%. */
+function realOf(date: string): boolean {
+  const all = segsOf(date);
+  const untimed = all.filter((s) => s.allDay || s.startTime === null);
+  const need = untimed.reduce((n, s) => n + (s.item.kind === 'tasklist' ? 17 + s.item.items.filter((i) => !i.done).length * 14 + 5 : 18) + 2, 0);
+  const body = cell.value.h - numPx.value - 6;
+  const band = Math.min(need, body * 0.45);
+  return realTimeFits(all, body - band - (untimed.length ? 2 : 0));
+}
+/** How much of the real-time layer a day shows: the timeline weight, but only where the day's items fit. */
+const timelineOf = (date: string): number => (realOf(date) ? detail.value.timeline : 0);
 const dotsOf = (date: string) => segsOf(date).slice(0, 12);
 
 const today = computed(() => clock.today);
@@ -171,7 +182,7 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
             </div>
             <template v-if="isNear(i)">
               <div
-                v-if="detail.chips > 0.01 && detail.timeline < 0.99" class="entries" :style="{ opacity: detail.chips * (1 - detail.timeline) }" :class="{ off: detail.timeline > 0.5 }"
+                v-if="detail.chips > 0.01 && timelineOf(toIsoDate(day)) < 0.99" class="entries" :style="{ opacity: detail.chips * (1 - timelineOf(toIsoDate(day))) }" :class="{ off: timelineOf(toIsoDate(day)) > 0.5 }"
                 data-testid="zoom-entries" @click.capture="onEntriesClick($event, day)"
               >
                 <div v-for="{ s, h } in entriesOf(toIsoDate(day))" :key="s.item.id + s.date" class="row" data-zoom-nopan>
@@ -179,7 +190,7 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
                   <ItemView :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
                 </div>
               </div>
-              <div v-if="detail.timeline > 0.01" class="tl" :style="{ opacity: detail.timeline }" :class="{ off: detail.timeline < 0.5 }" @click.capture="onEntriesClick($event, day)">
+              <div v-if="timelineOf(toIsoDate(day)) > 0.01" class="tlayer" :style="{ opacity: timelineOf(toIsoDate(day)) }" :class="{ off: timelineOf(toIsoDate(day)) < 0.5 }" @click.capture="onEntriesClick($event, day)">
                 <ZoomTimeline :segments="segsOf(toIsoDate(day))" />
               </div>
             </template>
@@ -216,9 +227,10 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
 .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
 .dot.list { border-radius: 1.5px; }
 .entries { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
-.entries.off, .tl.off { pointer-events: none; }
+.entries.off, .tlayer.off { pointer-events: none; }
 .row { flex: none; display: flex; align-items: center; min-width: 0; gap: 3px; }
 .row > :deep(:last-child) { flex: 1; min-width: 0; }
 .ztime { flex: none; overflow: hidden; white-space: nowrap; font: var(--md-sys-typescale-label-small); font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface-variant); }
-.tl { position: absolute; inset: 0; }
+/* not `.tl`: a scoped parent class also lands on a child component's root, and the task list card's root is `.tl` (it would fill the whole cell, behind later rows) */
+.tlayer { position: absolute; inset: 0; }
 </style>

@@ -3,6 +3,7 @@
  * a gesture in place, how big a cell is at a zoom, and how much of each level of detail a cell of that size shows. No DOM,
  * store or timer, so the rules are unit-tested with plain numbers.
  */
+import { MIN_BLOCK_PX, type Segment } from '@/lib/items';
 
 /** Columns of the month grid; one day filling the width is the largest zoom. */
 export const COLS = 7;
@@ -106,7 +107,7 @@ export const DETAIL = {
   chipsIn: [80, 115],
   timesIn: [150, 200],
   listsIn: [170, 230],
-  timelineIn: [300, 400],
+  timelineIn: [200, 260],
 } as const;
 
 /** How much of each level of detail a cell shows (0..1 each, fading in and out continuously), plus the strongest level's name. */
@@ -136,6 +137,30 @@ export function detailAt(w: number, h: number): Detail {
   };
   const level = d.timeline >= 0.5 ? 'timeline' : d.lists >= 0.5 ? 'lists' : d.times >= 0.5 ? 'times' : d.chips >= 0.5 ? 'chips' : 'dots';
   return { ...d, level };
+}
+
+/** Shortest duration (min) a timed item counts as in the real-time layout: the cascade gap `packColumns` uses, so a point-like item still needs a readable block. */
+export const SHORTEST_MIN = 15;
+
+/** The minutes of the day (whole hours) a day's timed items span, or null when it has none; an item counts at least `SHORTEST_MIN`. */
+export function timeSpan(segs: Segment[]): { start: number; end: number } | null {
+  const timed = segs.filter((s) => !s.allDay && s.startTime !== null);
+  if (!timed.length) return null;
+  const start = Math.floor(Math.min(...timed.map((s) => s.startMin)) / 60) * 60;
+  const end = Math.ceil(Math.max(...timed.map((s) => Math.max(s.endMin, s.startMin + SHORTEST_MIN))) / 60) * 60;
+  return { start, end: Math.min(24 * 60, Math.max(end, start + 60)) };
+}
+
+/**
+ * True when a time grid `gridPx` tall, spanning only the hours the day's timed items occupy, gives the shortest item at least
+ * `minPx` (the minimum block height): then every item can be drawn at its real top and height. A day without timed items
+ * always fits (nothing to scale). Below it the cell falls back to the compact chips.
+ */
+export function realTimeFits(segs: Segment[], gridPx: number, minPx: number = MIN_BLOCK_PX): boolean {
+  const span = timeSpan(segs);
+  if (!span) return true;
+  const shortest = Math.min(...segs.filter((s) => !s.allDay && s.startTime !== null).map((s) => Math.max(s.endMin - s.startMin, SHORTEST_MIN)));
+  return (gridPx / (span.end - span.start)) * shortest >= minPx;
 }
 
 /** Height (px) of a task list entry: a chip while `lists` is 0, its full need at 1. */
