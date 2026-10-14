@@ -1,6 +1,10 @@
 <script setup lang="ts">
-// iPhones and iPads cannot install the Android app, so the download row is hidden there
-const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+import { isIos as detectIos, isStandalone } from '@/pwa/install';
+import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
+// iPhones and iPads cannot install the Android app, so the download row is hidden there; they get the Home Screen instructions instead
+const isIos = detectIos();
+const showIosInstall = isIos && !isStandalone();
+const installing = ref(false);
 /** Starts the APK download (`GET /app.apk`, served by the server, excluded from the service worker's fallback). */
 function downloadApk(): void { location.href = '/app.apk'; }
 import { androidAppLabelKey, isNativeApp } from '@/native/app';
@@ -278,6 +282,7 @@ async function resetDemo() {
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
           <div v-if="auth.calendarMissing" class="row"><div class="grow"><span class="lab">{{ t('settings.account.calendarAccess.label') }}</span><span class="sub">{{ t('settings.account.calendarAccess.hint') }}</span></div><Button variant="tonal" data-testid="settings-calendar-access" @click="auth.grantCalendar()">{{ t('settings.account.calendarAccess.grant') }}</Button></div>
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">{{ t('settings.account.resetDemo.label') }}</span><span class="sub">{{ t('settings.account.resetDemo.hint') }}</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button></div>
+          <div v-if="showIosInstall" class="row"><div class="grow"><span class="lab">{{ t('settings.account.installApp.label') }}</span><span class="sub">{{ t('settings.account.installApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-install-app" @click="installing = true">{{ t('settings.account.installApp.button') }}</Button></div>
           <div v-if="!isIos" class="row"><div class="grow"><span class="lab">{{ t(androidAppLabelKey(isNativeApp())) }}</span><span class="sub">{{ t('settings.account.androidApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-android-app" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
@@ -285,6 +290,7 @@ async function resetDemo() {
         </section>
       </div>
     </div>
+    <IosInstallSheet v-if="installing" @close="installing = false" />
     <CategoryDialog v-if="adding" @close="adding = false" />
     <CategoryDialog v-if="editing" :category="editing" @close="editing = null" />
   </section>
