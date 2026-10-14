@@ -2141,6 +2141,18 @@ browser does not change.
     The service worker shows them (`push` handler, needs `injectManifest` instead of `generateSW`). Caveat (owner accepted):
     an event changed only in Google gets its push updated at the next sync of one of the person's apps. The Android app
     keeps its own native notifications and does not subscribe to push (no doubles on the same phone).
+    **Opt-in per browser** (assumption 2026-10-14, logged: a push subscription needs the browser's permission prompt,
+    which needs a tap): the Reminders page gets a row "Reminders in this browser while the app is closed"
+    (`reminders-push`, a switch, off by default, hidden in the Android app and where `PushManager` is missing). On:
+    permission prompt → `pushManager.subscribe` with the server's public key (`GET /api/push/key`) →
+    `POST /api/push/subscriptions`; off: unsubscribe → `DELETE /api/push/subscriptions` (by endpoint). Denied
+    permission leaves it off with a hint (`reminders-push-denied`). Subscriptions live in the person's data dir
+    (`push.json`, endpoint + keys + plan); a 404/410 from the push service removes that subscription. The plan is sent
+    only while subscribed; the key is `reminder:<itemId>@<date>T<start>-<lead>` as in the native plan. Push payload:
+    `{ title, body, key }`, shown with `tag: key` (a re-send replaces, never doubles). VAPID keys are generated on first
+    start into `DATA_DIR/vapid.json` (no env setup) unless `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` are set; sender
+    library `web-push`. In e2e the push service is replaced by a recorder (`E2E` mode: pushes go to
+    `GET /api/test/pushes` instead of the network).
 - **Notifications** (owner, 2026-10-14: "implement notifications for all the things that need them, not only
   bedtime"; ADHD-RESEARCH R29/R32/R33: few, chosen ones, no badges). Settings → Notifications (`settings-notify-*`, stored
   per person as `prefs.notify`) chooses which reminders reach the lock screen: the bedtime reminder, warnings before
