@@ -149,9 +149,9 @@ function toggleFold(id: string) {
 }
 /* Left-handed mode (phone): the toggle chevron sits at the left, right of the "+" button's clearance; the fold toggle too. */
 @media (max-width: 767.98px) {
-  html[data-hand='left'] .bar { padding: 0 16px 0 88px; }
-  html[data-hand='left'] .chev { order: -1; margin-left: 0; }
-  html[data-hand='left'] .head { padding: 0 12px 0 0; }
-  html[data-hand='left'] .mv { order: -1; }
+  html[data-hand='left'][data-touch] .bar { padding: 0 16px 0 88px; }
+  html[data-hand='left'][data-touch] .chev { order: -1; margin-left: 0; }
+  html[data-hand='left'][data-touch] .head { padding: 0 12px 0 0; }
+  html[data-hand='left'][data-touch] .mv { order: -1; }
 }
 </style>

@@ -322,9 +322,7 @@ h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-mediu
 .catmain { flex: 1; min-height: 52px; display: flex; align-items: center; gap: 10px; text-align: left; min-width: 0; }
 .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; }
 .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--md-sys-typescale-body-large); }
-/* Left-handed mode (phone): the switch or trailing control at the left start of the row, the label after it. */
-@media (max-width: 767.98px) {
-  html[data-hand='left'] .row:not(.col, .link) { flex-direction: row-reverse; }
-  html[data-hand='left'] .cat { flex-direction: row-reverse; padding: 0 16px 0 8px; }
-}
+/* Left-handed mode (phone, touch tablet): the switch or trailing control at the left start of the row, the label after it. */
+html[data-hand='left'][data-touch] .row:not(.col, .link) { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .cat { flex-direction: row-reverse; padding: 0 16px 0 8px; }
 </style>

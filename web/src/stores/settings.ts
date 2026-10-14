@@ -126,7 +126,7 @@ export const useSettingsStore = defineStore('settings', () => {
       if (s.value.calmMode) root.dataset.calm = 'true';
       else delete root.dataset.calm;
     }, { immediate: true });
-    // html[data-hand="left"] mirrors the phone layout (left-handed mode, a person pref; CSS scopes it to the phone)
+    // html[data-hand="left"] mirrors the phone layout (left-handed mode, a person pref; CSS also needs html[data-touch], see useViewport)
     const prefs = usePrefsStore();
     const stop3 = watch(() => prefs.leftHanded, (on) => {
       if (on) root.dataset.hand = 'left';

@@ -88,11 +88,12 @@ function toggleFilters() {
   .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
   .title { font-size: 24px; }
 }
-/* Left-handed mode (phone): the settings group and the leading widgets sit at the left, title and navigation at the right. */
+/* Left-handed mode (phone, touch tablet): the settings group and the leading widgets sit at the left, title and navigation at the right. */
+html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .widgets { justify-content: flex-start; }
 @media (max-width: 767.98px) {
-  html[data-hand='left'] .grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'actions title' 'widgets nav'; padding: 2px 8px 2px 4px; }
-  html[data-hand='left'] .actions { flex-direction: row-reverse; }
-  html[data-hand='left'] .widgets { justify-content: flex-start; }
-  html[data-hand='left'] .nav { justify-self: end; }
+  html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'actions title' 'widgets nav'; padding: 2px 8px 2px 4px; }
+  html[data-hand='left'][data-touch] .nav { justify-self: end; }
 }
+@media (min-width: 768px) { html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'actions widgets nav title'; } }
 </style>

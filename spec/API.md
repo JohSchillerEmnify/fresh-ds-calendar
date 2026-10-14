@@ -166,7 +166,7 @@ for `garden === 'sunflowers'` and a Default or Neon preset without a scene overr
 the field). Other presets and overrides stay as they were. The Default and Neon presets start with scene `none`.
 **Prefs** (`GET/PATCH /api/prefs`): besides the Labs switches, `approachingCard`, `approachBar`, `approachWindowHours`,
 `tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `leftHanded` (boolean, default `false`; a
-non-boolean is a 400) turns on the mirrored phone layout (ARCHITECTURE "Left-handed mode").
+non-boolean is a 400) turns on the mirrored phone and touch-tablet layout (ARCHITECTURE "Left-handed mode").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 

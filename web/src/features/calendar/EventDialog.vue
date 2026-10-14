@@ -231,5 +231,5 @@ function remove() {
 :global(html[data-motion='full'] .rise) { animation: rise 300ms var(--md-sys-motion-emphasized) both; animation-delay: calc(var(--i) * 28ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 /* Left-handed mode (phone): the primary action is at the bottom left. */
-@media (max-width: 767.98px) { html[data-hand='left'] .actions { flex-direction: row-reverse; } }
+html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
 </style>
