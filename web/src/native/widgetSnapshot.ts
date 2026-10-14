@@ -54,6 +54,8 @@ export interface SnapshotInput {
   dark: boolean;
   language: Language;
   now: Date;
+  /** Ids of the calendars the person switched off; their events are left out. */
+  hiddenCalendars?: ReadonlySet<string>;
 }
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -69,7 +71,7 @@ const iso = (d: Date) => format(d, 'yyyy-MM-dd');
  */
 export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
   const monday = startOfWeek(parseIsoDate(input.today)!, WEEK_OPTS);
-  const segments = segmentsByDate(input.items.filter((it) => it.kind === 'event')); // the calendar's own splitting and day order
+  const segments = segmentsByDate(input.items.filter((it) => it.kind === 'event' && !input.hiddenCalendars?.has(it.calendarId))); // the calendar's own splitting and day order
   const days: WidgetDay[] = Array.from({ length: 7 }, (_, i) => {
     const date = iso(addDays(monday, i));
     const events = (segments.get(date) ?? []).map((seg): WidgetEvent => {
