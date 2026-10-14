@@ -8,10 +8,10 @@ describe('Labs views offered in the view switcher', () => {
     expect(ids(false, { strip: true })).toEqual([]);
   });
   it('offers Clock and Timeline but not Strip by default', () => {
-    expect(ids(true, {})).toEqual(['clock', 'timeline']);
+    expect(ids(true, {})).toEqual(['clock', 'timeline', 'zoom']);
   });
   it('follows the person\'s choices over the defaults', () => {
-    expect(ids(true, { strip: true, clock: false })).toEqual(['timeline', 'strip']);
+    expect(ids(true, { strip: true, clock: false })).toEqual(['timeline', 'strip', 'zoom']);
   });
   it('treats a view the person never chose and the registry does not know as on', () => {
     expect(isLabsViewOn('zoom-month', {})).toBe(true);
