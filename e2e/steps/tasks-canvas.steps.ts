@@ -215,7 +215,8 @@ When('I swipe across the note {string} on the Canvas', async function (this: Wor
 
 When('I tap the empty Canvas', async function (this: World) {
   const b = await box(viewport(this));
-  await this.page.mouse.click(b.x + b.width * 0.95, b.y + b.height * 0.95);
+  // bottom left: the create button floats over the bottom right corner
+  await this.page.mouse.click(b.x + b.width * 0.08, b.y + b.height * 0.92);
 });
 
 When('I long-press the area {string} and release without moving', async function (this: World, name: string) {

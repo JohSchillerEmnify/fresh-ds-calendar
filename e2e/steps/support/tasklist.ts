@@ -24,9 +24,9 @@ export async function expandTaskList(world: World, title: string) {
     if (!(await grown.isVisible())) await world.taskCard(title).click();
   }
   await expect(grown).toBeVisible();
-  // near the bottom edge of the grown card: a tap on its title row folds it back up instead
+  // the very bottom edge of the grown card: a tap on its title row folds it back up instead, and a titles-only card has little but that row
   const card = grown.getByTestId('tasklist-card-grown');
-  await card.click({ position: { x: 6, y: (await card.boundingBox())!.height - 3 } });
+  await card.click({ position: { x: 6, y: (await card.boundingBox())!.height - 1 } });
   await expect(sheet).toBeVisible();
 }
 
