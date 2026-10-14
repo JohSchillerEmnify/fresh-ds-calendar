@@ -1035,6 +1035,35 @@ It never reloads by itself and never interrupts an open dialog.
   `app-version` ("0.4.2") in the bottom-left corner of the main UI (bottom right in left-handed mode on the phone; above the safe area, below dialogs, never covering
   the bottom bar or the FAB).
 
+### Release notes (owner, 2026-10-14)
+
+Owner decisions: release notes **in the app, automatic**; the text is **one or two plain user-facing English sentences
+written per merge to main** (not commit subjects, which are often technical); **English only** (the entries; the UI
+labels around them go through i18n like every other string).
+
+- **Source of truth: `CHANGELOG.md`.** Every merge to main adds its lines under a `## YYYY-MM-DD` heading at the top
+  (the merge date, newest first; one `- ` bullet per user-visible change, written for the person using the app; test,
+  tooling and spec-only merges add nothing). The old iteration history stays below, under `## Older history`, and is
+  ignored by the parser. Part of the merge step of the development loop, in the merge commit itself (no extra commit,
+  so the version bump is unchanged).
+- **Server**: `GET /api/release-notes` → `{ notes: [{ id, date, text }] }`, newest first, at most 50, parsed once at
+  start from `CHANGELOG.md` (copied into the runtime image; missing or unparsable file → empty list, never an error).
+  `id` is a short stable hash of date + text. TEST_MODE: `POST /api/__test/release-notes { notes }` replaces the list.
+  Why server-side rather than bundled into the web build: the e2e can inject notes, and an old client learns of new
+  notes without a rebuild of itself.
+- **Settings → Account & data → "What's new"** (`settings-whats-new`, next to `settings-version`) opens a sheet
+  `whats-new` listing the notes grouped by date (`whats-new-day` with `data-date`, `whats-new-item`). Empty list: "No
+  release notes yet".
+- **After an update**: the app remembers per device (localStorage `cal.notesSeen` = the newest note id seen). When the
+  app starts with a build version different from the last one this device ran (`cal.lastVersion`), it fetches the notes;
+  if there are notes newer than `cal.notesSeen`, a snackbar `whats-new-note` says "New: <newest text>" (cut to one line;
+  "+N more" when there are several) with the action "What's new" (`whats-new-open`, opens the sheet) and a dismiss
+  (`whats-new-dismiss`). Opening or dismissing marks all shown notes as seen. A device that has never run the app
+  (no `cal.lastVersion`) marks everything as seen and shows nothing. It never interrupts an open dialog (waits until it
+  closes), follows the shared snackbar rules (one at a time, after the update snackbar) and, on the phone, the "+"
+  button slides away while it shows (covers no control). Per device, not a person pref: the question is "what changed
+  since this device last ran", and a sync round trip for it adds nothing.
+
 ### View switcher position (owner, 2026-10-14; see A-253)
 
 - A setting (Settings → Calendar, two rows: "On phones" `settings-nav-phone`, "On desktop and tablets"
