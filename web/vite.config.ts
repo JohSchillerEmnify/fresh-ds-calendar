@@ -24,7 +24,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png'],
+      includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png', 'icons/logo-small.svg'],
       manifest: {
         id: '/',
         name: 'Calendar',

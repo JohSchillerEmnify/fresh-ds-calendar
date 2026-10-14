@@ -100,6 +100,9 @@ Google only accepts an HTTPS redirect URI on a real domain, so HTTPS comes first
    - enable **Google Calendar API**;
    - OAuth consent screen: *External*; scopes `…/auth/calendar` and `…/auth/drive.appdata` (backups);
      **Publish → In production** (in *Testing*, sign-ins expire after 7 days; unverified is fine for personal use);
+   - App logo (optional): `docs/branding/logo-120.png` (120×120, as Google recommends; vector in `logo.svg`). Uploading a
+     logo on the consent screen triggers Google's app verification, so only upload it if verification is wanted;
+     without it the app works as before (unverified is fine for personal use);
    - Credentials → OAuth client ID → *Web application*, redirect URI `https://cal.<sub>.<domain>/api/auth/google/callback`.
 4. Fill `PROVIDER=google`, `PUBLIC_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS` in `.env`; redeploy.
 5. Sign in; in Settings → Account & data press **Allow backups to Google Drive** once.
