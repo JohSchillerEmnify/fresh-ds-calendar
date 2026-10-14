@@ -638,7 +638,7 @@ Rules for implementers:
 | `event-chip` | `data-event-id`, `data-title`, `data-date` (segment day), `data-all-day`, `data-start-time`, `data-end-time` (segment, `24:00` if it continues), `data-color`; child `event-chip-title`, `event-chip-time` |
 | `resize-handle-top`, `resize-handle-bottom` | inside the block of the entry being resized (`event-chip` / `tasklist-card`) |
 | `tasklist-card` | `data-tasklist-id`, `data-title`, `data-date`, `data-time` (`""` if none), `data-color`, `data-category-id` (`""` if none); children `tasklist-card-icon` (only with a category icon), `tasklist-card-title`, `tasklist-card-items` (text = titles joined `, ` or `No items`) with one `tasklist-card-item` (`data-title`) per item, `tasklist-card-count` (`1/3`), `tasklist-card-time` |
-| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover"`; contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("Add item" button in the footer row beside `tasklist-edit` and `tasklist-delete`, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-collapse` (chevron in the head, `aria-expanded`; the `tasklist-view` root has `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
+| `tasklist-expanded` | `data-tasklist-id`, `data-title`, `data-presentation="sheet\|popover\|overlay"` (overlay = the card expanded in place over the calendar, also `data-readonly`, "Expanded task list card"); contains a `tasklist-view` (also used in the tray) with children `tasklist-expanded-title` (click → `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (click → `tasklist-item-title-input`, Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` ("Add item" button in the footer row beside `tasklist-edit` and `tasklist-delete`, click → `tasklist-new-item`, Enter adds, stays open for the next item, closes when left empty), `tasklist-collapse` (chevron in the head, `aria-expanded`; the `tasklist-view` root has `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close`, `tasklist-expanded-tag` (one per tag, `data-name`) |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day` (checkbox), `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar` (select, option labels = calendar names), `event-color` (radio group/select, option labels `Calendar color` + Google color names, order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-category` (select: category names + `No category`), `tasklist-tags` (comma-separated text), `tasklist-items` (textarea, create only), `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `view-switch-tasks`, `tasks-view` | Tasks view destination and root (`data-group-by`, `data-sort-by`) |
@@ -1375,6 +1375,49 @@ A task list may have an empty title when it has at least one item (else "Add a t
 such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list)` in one place, the stored title stays
 empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
 `extendedProperties.private.untitled = "1"` keeps the app title empty.
+
+### Expanded task list card (owner, 2026-10-14)
+
+A task list card is only as tall as its time block, so a long list was cut off and the owner had to change the list's
+time to see it. A tap on the card now expands it **in place**. Owner decisions (final):
+
+- **Views**: the card in the Day, Week and Month view (`TaskListCard`, every variant).
+- **Overlay**: the expanded card grows over the following slots or cells with elevation and a shadow; the calendar
+  underneath does not move or reflow. It stays inside the visible scroll area: down from the card's top, else up from
+  its bottom, else it takes the roomier side and scrolls inside (`placeExpanded` in `features/tasklists/expand.ts`).
+- **Tap toggles**: a tap on the card expands it, a tap on the head of the expansion (it covers the card) collapses it
+  again. This replaces what the tap did before (opening the expanded sheet, `ExpandedTaskList`).
+- **Long press stays as it is**: pick up for drag, release in place shows the resize handles (`useCalendarDrag`).
+- **Editing goes through the expanded card**: an edit button (`tasklist-edit`, label "Edit") in its head opens the
+  existing task list dialog; the card collapses first and gives the focus back to the card, so the dialog remembers it.
+- **Checking items only in the Day view**, inside the expanded card; in the Week and Month view the expanded card is
+  read-only: the items with their done state (`tasklist-item-mark`, `data-done`), no checkboxes, no footer.
+- **State is not stored**: `ui.expandedCard` (`{ id, date }`, in the `ui` store, one at a time). The card closes on a
+  tap on the card again, a tap elsewhere (capture-phase click outside the card and the expansion; the tapped control still
+  does its own thing), Escape, the system back (`useOverlayHistory`), a change of view or date, a scroll that takes the
+  card out of sight, a dialog opening, the list being deleted, or another card expanding.
+
+**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the card button, `ui.toggleCard`, collapse on
+unmount; a swipe preview copy never expands). `ExpandedCard.vue` (lazy chunk) is a `position: fixed` overlay teleported to
+the body, placed over the card's box (re-placed on scroll, resize and content size change) and hosts `TaskListView` with
+`closable overlay` (+ `readonly` outside the Day view). `TaskListView` gained two props: `overlay` (plain title, edit button in
+the head instead of the footer) and `readonly` (done marker instead of the reward checkbox, no add field or footer). In
+the Day view the expansion is the full view otherwise (tick with reward and support cat, add, edit, move and delete items,
+delete the list); renaming the list is the dialog's job.
+
+**Accessibility.** The card has `aria-expanded`; the expansion is a `role="group"` named after the list and
+`tabindex="-1"`: focus moves into it on open and returns to the card on close (unless the person already focused something
+else). The edit button has the label "Edit" (`tasks.list.edit`); a read-only done item is announced with the existing
+`tasks.list.itemDone` text. **FAB**: while it is open the expansion registers the panel `expanded-task-card`, so the phone's
+"+" slides away and covers no control of it (e2e: "the add button covers no control of the expanded task list").
+Test ids: the expansion is `tasklist-expanded` with `data-presentation="overlay"` and `data-readonly`; the sheet and
+popover presentations of the same test id remain for the other openers of `openItem` (labs views).
+
+**Why (alternatives weighed).** (a) Reusing the sheet/popover for a taller card was the old behaviour and hid the calendar.
+(b) Growing the card inside its own cell would push the layout and was rejected by the owner (overlay, nothing reflows).
+(c) A per-card absolutely positioned child would be clipped by the time grid's `overflow`; a teleported fixed overlay is
+not, at the price of re-placing on scroll. (d) The full `TaskListView` is reused instead of a second list renderer, so
+the tick logic (rewards, cat, `markFinished`) stays in one place.
 
 ### One "new" dialog (owner, 2026-10-12)
 

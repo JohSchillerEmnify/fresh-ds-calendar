@@ -40,6 +40,10 @@ const props = defineProps<{
   titleOpensDialog?: boolean;
   /** A sticky note on the Canvas: head, celebration and the item rows only (no row buttons, add field or footer). */
   compact?: boolean;
+  /** The expanded card over the calendar: the title is plain text (renaming is the dialog's), the edit button sits in the head. */
+  overlay?: boolean;
+  /** Nothing can be changed: a done marker instead of the checkbox, plain title, no footer (week and month view). */
+  readonly?: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -47,6 +51,8 @@ const emit = defineEmits<{
   deleted: [];
   /** A tick finished the list (the celebration is playing); `catMs` is the support cat's visit length (0 = no visit). */
   completed: [catMs: number];
+  /** The task list dialog is about to open (the host collapses first). */
+  edit: [];
 }>();
 const items = useItemsStore();
 const pendingDeletes = usePendingDeletesStore();
@@ -177,7 +183,7 @@ async function commitRename() {
 }
 
 // --- list actions -----------------------------------------------------------------------------------------------
-function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
+function edit() { emit('edit'); ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
 function remove() {
   if (!tl.value) return;
@@ -212,6 +218,9 @@ defineExpose({ root, busy });
           v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" maxlength="200" :aria-label="t('tasks.list.titleLabel')"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
+        <p v-else-if="readonly || overlay" class="name ro" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined">
+          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" /></span>
+        </p>
         <button v-else class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
           <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
         </button>
@@ -224,6 +233,7 @@ defineExpose({ root, busy });
         v-if="!closable" class="chev" :class="{ open: !collapsed }" :label="collapsed ? t('tasks.list.expand') : t('tasks.list.collapse')" :aria-expanded="!collapsed"
         data-testid="tasklist-collapse" @click="setCollapsed(id, !collapsed)"
       ><IconChevron /></IconButton>
+      <IconButton v-if="overlay" :label="t('tasks.list.edit')" data-testid="tasklist-edit" @click="edit"><IconEdit /></IconButton>
       <IconButton v-if="closable" :label="t('tasks.list.close')" data-testid="tasklist-close" @click="emit('close')"><IconClose /></IconButton>
     </header>
 
@@ -236,6 +246,11 @@ defineExpose({ root, busy });
             v-for="(item, i) in tl.items" :key="stableKey(item.id)" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
             :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
           >
+            <template v-if="readonly">
+              <span class="mark" :class="{ on: item.done }" aria-hidden="true" data-testid="tasklist-item-mark" />
+              <span class="ititle ro" :aria-label="item.done ? t('tasks.list.itemDone', { title: item.title }) : undefined" data-testid="tasklist-item-title"><span class="tt">{{ item.title }}</span></span>
+            </template>
+            <template v-else>
             <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
             <input
               v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" :aria-label="t('tasks.list.itemTitle')"
@@ -245,21 +260,22 @@ defineExpose({ root, busy });
             <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
             <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
             <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
+            </template>
           </li>
         </ul>
         <p v-if="!tl.items.length" class="empty">{{ t('tasks.list.empty') }}</p>
 
-        <form v-if="adding && !compact" class="add" @submit.prevent="add">
+        <form v-if="adding && !compact && !readonly" class="add" @submit.prevent="add">
           <input
             ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" maxlength="200"
             :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
           />
         </form>
 
-        <footer v-if="!compact" class="foot">
+        <footer v-if="!compact && !readonly" class="foot">
           <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
           <span class="grow" />
-          <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
+          <Button v-if="!overlay" variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
           <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
         </footer>
       </div>
@@ -304,6 +320,10 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .item-in { flex: 1; }
 .act { width: 36px; height: 44px; opacity: 0.75; }
 .act:disabled { opacity: 0.2; }
+.ro { cursor: default; display: flex; align-items: center; }
+p.name { margin: 0; display: flex; align-items: center; }
+.mark { flex: none; box-sizing: border-box; width: 18px; height: 18px; margin: 0 13px; border: 2px solid var(--md-sys-color-outline); border-radius: 4px; }
+.mark.on { background: var(--c); border-color: var(--c); }
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
 .add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }

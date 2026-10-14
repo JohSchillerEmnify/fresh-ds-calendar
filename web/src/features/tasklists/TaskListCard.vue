@@ -8,9 +8,10 @@
  * -> (cards narrower than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row)
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
- * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
+ * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap expands the card in place
+ * (`ExpandedCard`, one at a time, state in the `ui` store) and a second tap collapses it.
  */
-import { computed, inject, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
@@ -21,6 +22,7 @@ import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { ProgressRing } from '@/motion';
+import { useCalendarStore } from '@/stores/calendar';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
@@ -28,18 +30,25 @@ import { fitItems } from './layout';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
 
+const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
+
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
 const INLINE_BELOW_PX = 62;
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
 const settings = useSettingsStore();
 const ui = useUiStore();
+const calendar = useCalendarStore();
 const el = ref<HTMLElement | null>(null);
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
 // a preview copy (swipe neighbour) is inert: no drag handlers
 if (!inPreview()) useCalendarDrag(el, () => props.segment, () => props.variant);
 const { width } = useElementSize(el);
+/** Expanded in place over the calendar (a swipe preview copy never is); tap toggles, items change only in the day view. */
+const expanded = computed(() => !inPreview() && ui.expandedCard?.id === props.segment.item.id && ui.expandedCard.date === props.segment.date);
+const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
+onBeforeUnmount(() => { if (!inPreview()) ui.collapseCard(cardKey()); });
 
 const tl = computed(() => {
   const i = props.segment.item;
@@ -103,7 +112,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="tl.color"
-    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :style="{ '--c': tl.color, '--on-solid': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => emit('open'))"
+    :data-category-id="tl.categoryId ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': tl.color, '--on-solid': onColor(tl.color), '--fill': check.fill + '%' }" @click="cardClick($event, () => ui.toggleCard(cardKey()))"
   >
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
@@ -126,6 +135,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span v-else-if="tl.time" class="sr" data-testid="tasklist-card-time">{{ tl.time }}</span>
     </span>
     <ResizeHandles v-if="resizing" :segment="segment" />
+    <ExpandedCard v-if="expanded && el" :id="tl.id" :anchor="el" :readonly="calendar.view !== 'day'" @close="ui.collapseCard(cardKey())" />
   </button>
 </template>
 

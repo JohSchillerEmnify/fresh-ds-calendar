@@ -85,8 +85,9 @@ Feature: ADHD support: estimates, transition warnings, next task, calm mode
       | repeat | Weekly         |
       | items  | Sink; Floor    |
     And I save the task list
+    And I open the day view for 2026-10-14
     And I expand the task list "Clean bathroom"
     And I tick the item "Sink"
-    And I go to the next period
+    And I open the week view for 2026-10-19
     Then I see the task list "Clean bathroom" on 2026-10-21
     And the task list "Clean bathroom" shows the done count "0/2"

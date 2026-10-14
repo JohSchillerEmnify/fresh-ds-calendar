@@ -124,8 +124,11 @@ Feature: Creating, editing and deleting task lists
       | Milk | no   |
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
-    And I rename the task list to "Weekly shop"
-    Then the task list "Weekly shop" is expanded
+    And I edit the task list details
+    And I fill in the task list form with:
+      | title | Weekly shop |
+    And I save the task list
+    Then I see the task list "Weekly shop" on 2026-10-14
     And Google contains no event "Groceries"
     When I reload the page
     Then I see the task list "Weekly shop" on 2026-10-14
