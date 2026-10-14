@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { checkApk, dismissedApk, rememberApkDismissed, shouldOfferApk } from '@/native/apkHint';
 import { installedVersionCode } from '@/native/app';
@@ -92,5 +92,18 @@ describe('checkApk', () => {
     expect(ui.snackbars).toHaveLength(0);
     await checkApk({ versionCode: 7, versionName: '1.1.7' });
     expect(ui.snackbars).toHaveLength(1);
+  });
+
+  it('remembers "Download" like "Later", so an uninstalled download is not offered again', async () => {
+    setApp(async () => ({ versionCode: 5 }));
+    await checkApk(apk);
+    const ui = useUiStore();
+    const s = ui.snackbars[0]!;
+    const hrefs = vi.spyOn(Storage.prototype, 'setItem');
+    s.action!.run();
+    expect(hrefs).toHaveBeenCalledWith('cal.apkHintDismissed', '6');
+    ui.dismiss(s.id);
+    await checkApk(apk);
+    expect(ui.snackbars).toHaveLength(0);
   });
 });

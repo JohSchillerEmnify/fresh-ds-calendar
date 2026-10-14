@@ -120,7 +120,7 @@ export const useSyncStore = defineStore('sync', () => {
     const clock = useClockStore();
     if (withConfig) {
       await clock.load().catch(() => undefined);
-      checkVersion(clock.config.version, clock.config.apk);
+      void checkVersion(clock.config.version, clock.config.apk);
     } else {
       await checkServerVersion();
     }

@@ -34,7 +34,8 @@ export async function checkApk(apk: { versionCode: number; versionName: string }
   const ui = useUiStore();
   shown = ui.notify(t('calendar.apk.available'), {
     duration: 0, testid: 'apk-available',
-    action: { label: t('calendar.apk.download'), testid: 'apk-download', run: downloadApk },
+    // "Download" counts like "Later": the installed APK reads as old until the new one is installed, so it must not come back
+    action: { label: t('calendar.apk.download'), testid: 'apk-download', run: () => { rememberApkDismissed(apk.versionCode); downloadApk(); } },
     onClose: () => rememberApkDismissed(apk.versionCode),
   });
 }
