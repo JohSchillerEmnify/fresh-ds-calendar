@@ -207,6 +207,7 @@ the task list {string} shows the done count {string}
 the task list {string} shows the item {string} below its title
 the task list {string} shows the item {string} next to its title
 the task list {string} does not show the item {string}
+the task list {string} shows its title without overlap
 the items of the task list {string} fade out towards the bottom
 the task list {string} shows no overflow count
 the collapsed task list {string} lists the items {string}
@@ -241,6 +242,8 @@ I delete the task list
 collapsed card is visible and its box lies inside the card (an ellipsised name counts); "below" = its top
 is at or under the bottom of `tasklist-card-title`, "next to" = it shares the title's line. "does not show the item Y": the
 `tasklist-card-item` Y of X is not visible (it stays in the DOM for screen readers).
+"the task list X shows its title without overlap": X's `tasklist-card-title` is visible and its box intersects no other
+visible text part of the card (`tasklist-card-time`, `tasklist-card-items`, `tasklist-card-count`).
 "for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
 

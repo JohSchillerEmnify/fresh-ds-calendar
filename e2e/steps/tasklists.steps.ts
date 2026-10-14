@@ -134,6 +134,22 @@ Then('the task list {string} does not show the item {string}', async function (t
   await expect(el).toBeHidden();
 });
 
+Then('the task list {string} shows its title without overlap', async function (this: World, list: string) {
+  const card = this.taskCard(list);
+  await expect(card.getByTestId('tasklist-card-title')).toBeVisible();
+  // Poll until the layout settled: no visible text part of the card may intersect the title box.
+  await expect.poll(() => card.evaluate((c) => {
+    const box = (e: Element) => e.getBoundingClientRect();
+    const t = box(c.querySelector('[data-testid="tasklist-card-title"]')!);
+    const hit = (a: DOMRect, b: DOMRect) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    return ['tasklist-card-time', 'tasklist-card-items', 'tasklist-card-count']
+      .flatMap((id) => [...c.querySelectorAll(`[data-testid="${id}"]`)])
+      .filter((e) => { const r = box(e); return r.width > 2 && r.height > 2 && getComputedStyle(e).visibility !== 'hidden'; })
+      .filter((e) => (e.textContent ?? '').trim() !== '' && hit(t, box(e)))
+      .map((e) => e.getAttribute('data-testid'));
+  })).toEqual([]);
+});
+
 Then('the collapsed task list {string} shows {string}', async function (this: World, title: string, text: string) {
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(text));
 });

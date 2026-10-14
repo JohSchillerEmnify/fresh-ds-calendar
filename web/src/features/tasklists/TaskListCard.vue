@@ -66,7 +66,9 @@ const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount
 const label = computed(() => t('tasks.card.label', { title: displayTitle(tl.value), done: tl.value.doneCount, total: tl.value.totalCount }));
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < 84);
-const hasFoot = computed(() => !!tl.value.time && !fit.value.inline);
+/** A block too short for a second row (the inline threshold) drops the time line, also when no open item is left to go inline. */
+const shortBlock = computed(() => props.variant === 'block' && !!props.height && props.height < INLINE_BELOW_PX);
+const hasFoot = computed(() => !!tl.value.time && !fit.value.inline && !shortBlock.value);
 /** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const section = inject(sectionKey, () => 'full' as const);
@@ -78,7 +80,6 @@ const fit = computed(() => {
   const footVisible = block && !!tl.value.time && !mini.value;
   const open = openItems.value.length;
   if (collapsed.value || !open) return { shown: 0, more: 0, inline: false };
-  const shortBlock = block && !!props.height && props.height < INLINE_BELOW_PX;
   const f = fitItems({
     count: open,
     height: props.height || undefined,
@@ -89,12 +90,12 @@ const fit = computed(() => {
     minLines: block ? 0 : 1,
   });
   // Mini cards are too narrow for inline names: rows below the title.
-  if (mini.value && (f.inline || shortBlock)) {
+  if (mini.value && (f.inline || shortBlock.value)) {
     const shown = f.inline ? 0 : f.shown;
     return { shown, more: open - shown, inline: false };
   }
   // Inline names run on in one line and fade out at the right edge, so every open one is shown.
-  if (f.inline || shortBlock) return { shown: open, more: 0, inline: true };
+  if (f.inline || shortBlock.value) return { shown: open, more: 0, inline: true };
   return { shown: f.shown, more: f.more, inline: false };
 });
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */

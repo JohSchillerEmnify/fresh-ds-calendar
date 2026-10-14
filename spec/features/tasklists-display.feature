@@ -80,6 +80,14 @@ Feature: Task lists in the calendar views
     Then the task list "Call mum" shows the item "Ask about Sunday" below its title
     And the task list "Call mum" shows the done count "0/1"
 
+  @day
+  Scenario: A done timed task list in the day view shows its title without overlap
+    Given the calendar contains a task list "Liste" on 2026-10-14 at 11:00 for 30 minutes with items:
+      | item  | done |
+      | Chore | yes  |
+    When I open the day view for 2026-10-14
+    Then the task list "Liste" shows its title without overlap
+
   @desktop @day
   Scenario: A short timed task list in a wide column shows its items next to the title
     Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 45 minutes with items:
