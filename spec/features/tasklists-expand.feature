@@ -204,6 +204,40 @@ Feature: A task list card grows in place over the calendar
     When I zoom the time grid out
     Then the real time block of the expanded task list matches the card "Groceries"
 
+  @mobile @expand-zoom
+  Scenario: After the grown card closes with Escape, one tap grows it again
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    And I press Escape
+    Then the task list "Groceries" is collapsed
+    When I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+
+  @mobile @expand-zoom
+  Scenario: After the grown card closes with a tap elsewhere, one tap grows it again
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    And I tap outside the expanded task list
+    Then the task list "Groceries" is collapsed
+    When I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+
+  @mobile @expand-zoom
+  Scenario: After a zoom took the card out of sight, one tap grows it again
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    And I zoom the time grid in far from the grown card
+    Then no task list is expanded
+    When I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+
+  @mobile @expand-zoom
+  Scenario: Zooming around the lower edge of the grown card keeps it open on its card
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    And I zoom the time grid in on the lower edge of the grown card
+    Then the real time block of the expanded task list matches the card "Groceries"
+
   @expand-zoom
   Scenario: A card that already shows everything opens the list directly
     Given the calendar contains a task list "Short" on 2026-10-14 at 13:00 for 120 minutes with items:

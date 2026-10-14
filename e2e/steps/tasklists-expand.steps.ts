@@ -235,20 +235,26 @@ Then('the expanded task list keeps its offset to the card {string} when the grid
 });
 
 /** One Ctrl+wheel gesture on the time grid scroller; the grid commits (`data-hour-height` changes) once the gesture settled. */
-async function zoomTimeGrid(w: World, deltaY: number) {
+async function zoomTimeGrid(w: World, deltaY: number, at: 'card' | 'lower edge' | 'top edge' = 'card') {
   const grid = w.byTestId('time-grid');
   const before = await grid.getAttribute('data-hour-height');
   // over the grown card when there is one: the time under the pointer stays in place, so the card stays in view
   const g = grown(w);
-  const at = (await g.count()) ? await rectOf(g) : await rectOf(w.page.locator('[data-scroll-area]'));
+  // 'lower edge': the pinch centre sits on the bottom of the grown card, so the collapsed card's time moves up the screen while the card stays on it;
+  // 'top edge': the centre is the scroller's top, far from the card, so the card's time really leaves the screen
+  const area = await rectOf(w.page.locator('[data-scroll-area]'));
+  const card = (await g.count()) ? await rectOf(g) : area;
+  const pt = at === 'top edge' ? { x: area.x + area.width / 2, y: area.y + 1 } : at === 'lower edge' ? { x: card.x + card.width / 2, y: card.bottom - 4 } : { x: card.x + card.width / 2, y: card.y + Math.min(card.height / 2, 40) };
   await w.page.locator('[data-scroll-area]').evaluate((el, p) => {
     el.dispatchEvent(new WheelEvent('wheel', { deltaY: p.deltaY, ctrlKey: true, clientX: p.x, clientY: p.y, bubbles: true, cancelable: true }));
-  }, { deltaY, x: at.x + at.width / 2, y: at.y + Math.min(at.height / 2, 40) });
+  }, { deltaY, x: pt.x, y: pt.y });
   await expect(grid).not.toHaveAttribute('data-hour-height', before ?? '');
 }
 
 When('I zoom the time grid in', async function (this: World) { await zoomTimeGrid(this, -300); });
 When('I zoom the time grid out', async function (this: World) { await zoomTimeGrid(this, 300); });
+When('I zoom the time grid in on the lower edge of the grown card', async function (this: World) { await zoomTimeGrid(this, -300, 'lower edge'); });
+When('I zoom the time grid in far from the grown card', async function (this: World) { await zoomTimeGrid(this, -300, 'top edge'); });
 
 Then('the real time block of the expanded task list matches the card {string}', async function (this: World, title: string) {
   await expect.poll(async () => {
