@@ -170,6 +170,8 @@ spec files are named.
 - **A-E5 Drawn height counts for overlap**: a block drawn taller than its duration (events and task lists alike: 24 px minimum;
   the former 44 px task list minimum was dropped on 2026-10-13, owner) occupies its drawn height when entries are laid out; an entry starting inside it is placed
   as overlapping (side by side or stacked), so nothing hides another entry's title (owner, 2026-10-12).
+  A block drawn at that minimum is a bare title row: an entry starting less than the minimum later shares columns
+  with it instead of cascading over it (owner report 2026-10-14: a short list was almost fully covered).
 - **A-T1 Drag back and forth on a phone** (performance.feature): the day view on a phone has a single column, so the
   step switches client-side to the week view (no reload) before moving the event +1/-1 day.
 - **A-T2 Fixtures award no plant points**: setup steps that create events/task lists through the API restore the plant

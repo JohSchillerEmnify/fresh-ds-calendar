@@ -87,6 +87,13 @@ describe('packing and proportions', () => {
     const p = Object.fromEntries(packColumns(segsOf([a, c], D), (s) => (s.item.id === 'a' ? 60 : 0)).map((x) => [x.seg.item.id, x]));
     expect(p.c.level > p.a.level || p.c.col !== p.a.col).toBe(true);
   });
+  it('a block drawn at its minimum height is not cascaded over by a block starting inside that height', () => {
+    const a = ev('a', t(D, '17:00'), t(D, '17:15')), c = ev('c', t(D, '17:15'), t(D, '21:30')), d = ev('d', t(D, '19:00'), t(D, '22:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, c, d], D), 31).map((x) => [x.seg.item.id, x]));
+    expect([p.a, p.c].map((x) => [x.level, x.cols])).toEqual([[0, 2], [0, 2]]);
+    expect(p.a.col).not.toBe(p.c.col);
+    expect(p.d.level).toBe(1);
+  });
   it('a block widens into free columns to its right', () => {
     const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:00'), t(D, '09:10')), c = ev('c', t(D, '09:10'), t(D, '12:00'));
     const placed = packColumns(segsOf([a, b, c], D));

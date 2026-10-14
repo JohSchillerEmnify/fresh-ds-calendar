@@ -211,6 +211,7 @@ the task list {string} shows the item {string} below its title
 the task list {string} shows the item {string} next to its title
 the task list {string} does not show the item {string}
 the task list {string} shows its title without overlap
+the title of the task list {string} is not covered
 the items of the task list {string} fade out towards the bottom
 the task list {string} shows no overflow count
 the collapsed task list {string} lists the items {string}

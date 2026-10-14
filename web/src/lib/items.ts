@@ -145,6 +145,8 @@ export interface PlacedSegment {
  * Packing: items in a connected overlap cluster are grouped by start time. Blocks starting within
  * OVERLAP_STACK_MIN_START_GAP_MIN of the group's first start share equal columns (a title would be hidden otherwise);
  * a later group that overlaps cascades one level deeper (up to MAX_STACK_DEPTH, then it joins the last group's columns).
+ * A block drawn at its minimum height (shorter than `minMinutes`) is a bare title row, so a later block cascades over it only
+ * when it starts at least `minMinutes` later; closer ones share columns instead and never hide that title.
  * Touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration.
  */
 /**
@@ -155,7 +157,7 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const out: PlacedSegment[] = [];
-  interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[] }
+  interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[]; stackGap: number }
   let groups: Group[] = [];
   let clusterEnd = -1;
   const flush = () => {
@@ -180,10 +182,12 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
     const min = minOf(s);
     const visualEnd = Math.max(s.endMin, s.startMin + min);
     let g = groups[groups.length - 1];
-    if (!g || s.startMin - g.start >= OVERLAP_STACK_MIN_START_GAP_MIN) {
+    if (!g || s.startMin - g.start >= g.stackGap) {
       const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
       if (!g || level <= MAX_STACK_DEPTH) {
-        g = { start: s.startMin, end: visualEnd, level, items: [], colEnds: [] };
+        // A block drawn taller than its duration is only a title row: a cascaded later block must leave that whole row visible.
+        const stackGap = s.endMin - s.startMin < min ? Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, min) : OVERLAP_STACK_MIN_START_GAP_MIN;
+        g = { start: s.startMin, end: visualEnd, level, items: [], colEnds: [], stackGap };
         groups.push(g);
       }
     }
