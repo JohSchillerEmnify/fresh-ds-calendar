@@ -32,6 +32,17 @@ Feature: Mobile-first layout
     And the calendar contains an event "Meeting" on 2026-08-12 from 10:00 to 11:00
     When I open the month view for 2026-08
     Then the month cell of 2026-08-12 shows its first entry
+    And I see the all-day event "Trip" on 2026-08-12
+
+  Scenario: Multi-day bars stay visible in a crowded month on a small phone
+    Given I am using Safari on an iPhone
+    And the browser window is 390 by 664 pixels wide and high
+    And the calendar contains an all-day event "Trip" from 2026-08-10 to 2026-08-14
+    And the calendar contains an all-day event "Conference" from 2026-08-11 to 2026-08-13
+    And the calendar contains an all-day event "Camp" from 2026-08-12 to 2026-08-16
+    And the calendar contains an event "Meeting" on 2026-08-12 from 10:00 to 11:00
+    When I open the month view for 2026-08
+    Then I see the event "Trip" as a bar from 2026-08-10 to 2026-08-14
 
   Scenario: The view switcher sits in a bottom bar within thumb reach
     When I open the month view for 2026-10

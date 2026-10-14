@@ -6,7 +6,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
-import { allotHeights, maxLanes } from '@/features/tasklists/layout';
+import { allotHeights, CELL_METRICS, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { laneCount } from '@/lib/spans';
 import { providePreview } from '@/composables/usePreview';
@@ -61,7 +61,8 @@ function entries(date: string, lanes: number) {
     const phone = isPhone.value;
     const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
     const needOf = (s: (typeof all)[number]) => (s.item.kind === 'tasklist' ? titleH + s.item.items.filter((i) => !i.done).length * rowH + extra : evH);
-    const room = cellH - (phone ? 26 : 28) - (phone ? 2 : 8) - lanes * (phone ? 18 : 22) - (all.length - 1) * gap - 2;
+    const cm = phone ? CELL_METRICS.phone : CELL_METRICS.wide;
+    const room = cellH - cm.num - cm.pad - lanes * (phone ? 18 : 22) - (all.length - 1) * gap - 2;
     heights = allotHeights(all.map(needOf), room, evH);
   }
   return all.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined }));
@@ -119,9 +120,9 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 .phone .week { --lane-h: 18px; --bar-h: 16px; }
 .cell:nth-child(8) { border-right: 0; }
 .lanes { flex: none; height: calc(var(--lanes) * var(--lane-h)); }
-/* bars overlay the cells just below the day number (cell padding 2/4px + number 28/26px + gap) */
+/* bars overlay the cells just below the day number (cell padding 2/4px + number 28/20px + gap) */
 .bars { position: absolute; z-index: 2; left: 0; right: 0; top: 34px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; pointer-events: none; }
-.phone .bars { top: 30px; row-gap: 0; }
+.phone .bars { top: 22px; row-gap: 0; }
 @media (min-width: 768px) { .bars { top: 35px; } .lanes { height: calc(var(--lanes) * (var(--lane-h) + 2px)); } }
 .num { align-self: center; width: 28px; height: 28px; flex: none; border-radius: 50%; font: var(--md-sys-typescale-label-large); display: flex; align-items: center; justify-content: center; }
 .outside .num { color: var(--md-sys-color-on-surface-variant); opacity: 0.55; }
@@ -131,7 +132,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 /* what does not fit fades out at the bottom (no "+N"); the cell still opens the day */
 .chips[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
 /* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */
-.phone .cell { cursor: pointer; padding: 2px 1px 0; }
-.phone .num { width: 26px; height: 26px; }
+.phone .cell { cursor: pointer; padding: 1px 1px 0; gap: 1px; }
+.phone .num { width: 20px; height: 20px; font-size: 12px; line-height: 20px; }
 @media (min-width: 768px) { .cell { padding: 4px; gap: 3px; } .chips :deep(.ev) { font-size: 12px; } }
 </style>
