@@ -76,6 +76,13 @@ export const createEventSchema = so({
   colorId: v.optional(colorId),
   reminders: v.optional(reminders),
 });
+/** `POST /api/events` with `kind: 'birthday'` (API.md "Birthdays"): the name, the day and an optional colour. */
+export const createBirthdaySchema = so({
+  kind: v.literal('birthday'),
+  title,
+  date: localDate,
+  colorId: v.optional(colorId),
+});
 export const updateEventSchema = so({
   calendarId: v.optional(v.string()),
   title: v.optional(title),

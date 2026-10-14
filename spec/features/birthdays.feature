@@ -76,9 +76,9 @@ Feature: Birthdays
 
   @google-birthdays
   Scenario: A birthday from Google Contacts keeps its date
-    Given the calendar "Personal" has a birthday "Anna" on 2026-10-15 linked to a contact
+    Given the calendar "Personal" has a birthday "Anne" on 2026-10-15 linked to a contact
     When I open the month view for 2026-10
-    And I open the event "Anna"
+    And I open the event "Anne"
     Then the birthday date cannot be changed
     And the birthday name can be changed
 

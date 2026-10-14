@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /**
  * Event dialog (kind 'event'): create ({ mode: 'create', date, time }) and edit ({ id }). Adaptive sheet.
+ * Birthday mode (kind 'birthday', or an existing birthday in a calendar the person can write): the same sheet with a name,
+ * a date and a colour only (ARCHITECTURE "Birthdays like Google Calendar"); a birthday that is read-only opens as plain details.
  * Saves optimistically (the item shows at once, rolls back on failure) but stays open with the error until Google
  * confirmed (AC-32). Props `draft` / `error` restore a form after a failed attempt.
  */
@@ -25,13 +27,13 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { calendars, loadCalendars } from './calendars';
 import { createContext } from '@/extensions/create';
-import { diffInput, formFromEvent, newForm, toInput, validate, withStart, type EventForm } from './eventForm';
+import { birthdayPatch, diffInput, formFromEvent, newForm, toBirthdayInput, toInput, validate, validateBirthday, withStart, type EventForm } from './eventForm';
 import { formatDuration } from './timeline';
 import { specialMarker } from '@/lib/items';
-import { wallMinutes } from './zone';
+import { fromWallMinutes, wallMinutes } from './zone';
 import { t, type MessageKey } from '@/i18n';
 
-const props = defineProps<{ mode?: 'create'; id?: string; date?: string; time?: string | null; draft?: EventForm; error?: string }>();
+const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; draft?: EventForm; error?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const settings = useSettingsStore();
@@ -42,8 +44,19 @@ const original = ref<CalendarEvent | null>(null);
 const loading = ref(false);
 const loadError = ref('');
 const isEdit = computed(() => !!props.id);
-/** A Google birthday entry opens as plain details: Google owns it, so there is nothing to edit or delete. */
 const special = computed(() => original.value?.special ?? null);
+/** A birthday the app cannot change (the contacts Birthdays calendar, a read-only calendar) opens as plain details. */
+const readOnly = computed(() => !!original.value?.special && !!original.value.readOnly);
+/** The dialog edits a birthday: a new one, or an existing one in a writable calendar. */
+const birthdayMode = computed(() => props.birthday === true || (!!original.value?.special && !original.value.readOnly));
+/** Google keeps the date of this birthday (linked to a contact, or the person's own). */
+const dateLocked = computed(() => !!original.value?.dateLocked);
+/** Accessible name of the sheet. */
+const label = computed(() => {
+  const k = special.value;
+  if (k) return t(k === 'anniversary' ? 'calendar.item.anniversary' : 'calendar.item.birthday');
+  return birthdayMode.value ? t('calendar.birthday.newTitle') : isEdit.value ? t('calendar.event.editTitle') : t('calendar.event.newTitle');
+});
 
 function blank(): EventForm {
   const ctx = createContext(props.date, props.time);
@@ -136,6 +149,16 @@ function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEven
   };
 }
 
+/** The birthday as it is shown while its save is in flight (`base`: the opened one, null for a new one). */
+function birthdayEvent(id: string, base: CalendarEvent | null): CalendarEvent {
+  const f = form.value;
+  return {
+    kind: 'event', id, calendarId: base?.calendarId ?? f.calendarId, title: f.title.trim(), description: '', location: '', allDay: true, start: f.startDate,
+    end: fromWallMinutes(wallMinutes(f.startDate, '00:00') + 1440).date, colorId: f.colorId || null, color: googleColor(f.colorId || null)?.hex ?? base?.color ?? calColor.value,
+    special: base?.special ?? 'birthday', ...(base?.dateLocked ? { dateLocked: true as const } : {}), etag: base?.etag ?? '', updated: base?.updated ?? '', reminders: base?.reminders,
+  };
+}
+
 function fail(e: unknown, what: string) {
   const msg = e instanceof ApiError ? e.userMessage : t('calendar.event.genericError');
   error.value = msg;
@@ -171,6 +194,38 @@ async function save() {
   }
 }
 
+/** Saves the birthday form: the whole yearly birthday changes (the server patches the series), then the views reload to show every year. */
+async function saveBirthday() {
+  if (saving.value) return;
+  const bad = validateBirthday(form.value);
+  if (bad) {
+    error.value = bad.message;
+    sheet.value?.querySelector<HTMLInputElement>(`[data-field="${bad.field}"]`)?.focus();
+    return;
+  }
+  error.value = '';
+  const title = form.value.title.trim();
+  saving.value = true;
+  try {
+    if (original.value) {
+      const ev = original.value;
+      const patch = birthdayPatch(form.value, ev);
+      if (Object.keys(patch).length === 0) { emit('close'); return; }
+      await items.optimisticItem(ev.id, birthdayEvent(ev.id, ev), () => api.updateEvent(ev.id, patch, { ifMatch: items.get(ev.id)?.etag ?? ev.etag }));
+      items.refreshVisible().catch(() => undefined); // the other years of the series; a failed reload is the sync banner's business
+    } else {
+      const input = toBirthdayInput(form.value);
+      const tmp = `tmp-${Date.now().toString(36)}`;
+      await items.optimisticItem(tmp, birthdayEvent(tmp, null), () => api.createBirthday(input));
+    }
+    emit('close');
+  } catch (e) {
+    fail(e, `“${title}”`);
+  } finally {
+    saving.value = false;
+  }
+}
+
 /** No confirmation: the entry goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
 function remove() {
   const ev = original.value;
@@ -181,19 +236,44 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet :open="true" :label="special ? t(`calendar.item.${special}`) : isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle')" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
-    <section v-if="original && special" class="f" data-testid="event-readonly" :style="{ '--accent': original.color }">
+  <AdaptiveSheet
+    :open="true" :label="label"
+    :testid="birthdayMode ? 'birthday-dialog' : 'event-dialog'" :dismiss-on-scrim="!dirty" @close="emit('close')"
+  >
+    <section v-if="original && readOnly" class="f" data-testid="event-readonly" :style="{ '--accent': original.color }">
       <header class="hd">
         <span class="dot" aria-hidden="true" />
         <h2 class="t" data-testid="event-readonly-title">{{ specialMarker(original) }} {{ original.title }}</h2>
       </header>
-      <p class="lab" data-testid="event-readonly-date">{{ t(`calendar.item.${special}`) }} · {{ original.start }}</p>
+      <p class="lab" data-testid="event-readonly-date">{{ t(`calendar.item.${original.special!}`) }} · {{ original.start }}</p>
       <p class="lab">{{ t('calendar.event.readOnly') }}</p>
       <div class="actions">
         <span class="sp" />
         <Button variant="text" data-testid="event-cancel" @click="emit('close')">{{ t('calendar.actions.dismiss') }}</Button>
       </div>
     </section>
+    <form v-else-if="birthdayMode" ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="saveBirthday" @keydown.enter="enterNext">
+      <NewKindSwitch v-if="!isEdit" kind="birthday" :date="form.startDate" />
+      <header class="hd rise" style="--i: 0">
+        <span class="dot" aria-hidden="true" />
+        <h2 class="t">{{ isEdit ? t('calendar.birthday.editTitle') : t('calendar.birthday.newTitle') }}</h2>
+      </header>
+      <p v-if="loadError" class="err" role="alert" data-testid="event-error">{{ loadError }}</p>
+      <TextField v-model="form.title" class="rise" style="--i: 1" :label="t('calendar.birthday.name')" data-testid="birthday-name" data-field="title" autocomplete="off" enterkeyhint="next" />
+      <TextField v-model="form.startDate" type="date" class="rise" style="--i: 2" :label="t('calendar.birthday.date')" :disabled="dateLocked" data-testid="birthday-date" data-field="startDate" data-enter-skip />
+      <p v-if="dateLocked" class="lab" data-testid="birthday-date-locked">{{ t('calendar.birthday.dateLocked') }}</p>
+      <div class="colors rise" style="--i: 3">
+        <span class="lab">{{ t('calendar.event.fields.color') }}</span>
+        <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" :label="t('calendar.event.fields.color')" radio data-testid="event-color" />
+      </div>
+      <p v-if="error" class="err" role="alert" data-testid="event-error">{{ error }}</p>
+      <div class="actions">
+        <Button v-if="isEdit" variant="text" class="del" data-testid="event-delete" :disabled="saving || !original" @click="remove">{{ t('calendar.actions.delete') }}</Button>
+        <span class="sp" />
+        <Button variant="text" data-testid="event-cancel" @click="emit('close')">{{ t('calendar.actions.cancel') }}</Button>
+        <Button type="submit" :disabled="saving || loading" data-testid="birthday-save">{{ saving ? t('calendar.event.saving') : t('calendar.actions.save') }}</Button>
+      </div>
+    </form>
     <form v-else ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
       <header class="hd rise" style="--i: 0">

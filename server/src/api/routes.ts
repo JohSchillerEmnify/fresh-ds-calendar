@@ -11,7 +11,7 @@ import { nanoid } from '../lib/ids.js';
 import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
-  addItemSchema, canvasDocSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
+  addItemSchema, canvasDocSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createBirthdaySchema, createEventSchema, createTaskListSchema, orderSchema,
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
@@ -268,7 +268,12 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
 
   // ---- events ----
-  r.post('/events', async (c) => c.json(await cal(c).createEvent(parse(createEventSchema, await body(c))), 201));
+  r.post('/events', async (c) => {
+    const b = await body(c);
+    // a birthday has its own body (name, day, colour): Google accepts nothing else on it
+    if ((b as { kind?: unknown } | undefined)?.kind === 'birthday') return c.json(await cal(c).createBirthday(parse(createBirthdaySchema, b)), 201);
+    return c.json(await cal(c).createEvent(parse(createEventSchema, b)), 201);
+  });
   r.get('/events/:id', async (c) => c.json(await cal(c).getEvent(c.req.param('id'))));
   r.patch('/events/:id', async (c) => c.json(await cal(c).updateEvent(c.req.param('id'), parse(updateEventSchema, await body(c)), c.req.header('If-Match'))));
   r.delete('/events/:id', async (c) => {

@@ -37,8 +37,12 @@ export interface CalendarEvent {
   end: DateTime | LocalDate;
   colorId: string | null;
   color: string;
-  /** Set only on Google birthday entries (read-only): `anniversary` for a contact's anniversary, `birthday` for every other special date. */
+  /** Set only on Google birthday entries: `anniversary` for a contact's anniversary, `birthday` for every other special date. */
   special?: 'birthday' | 'anniversary';
+  /** Birthdays only: true when the app cannot edit or delete it (the contacts Birthdays calendar, or a calendar the person cannot write). */
+  readOnly?: true;
+  /** Birthdays only: true when Google keeps the date (linked to a contact, or the person's own birthday); name and colour stay editable. */
+  dateLocked?: true;
   reminders: Reminders;
   etag: string;
   updated: DateTime;
@@ -161,6 +165,14 @@ export interface CreateEventInput {
   reminders?: Reminders;
 }
 export type UpdateEventInput = Partial<CreateEventInput>;
+
+/** `POST /api/events` with `kind: 'birthday'`: a yearly birthday in the person's primary calendar, like Google's "Birthday" create menu. */
+export interface CreateBirthdayInput {
+  kind: 'birthday';
+  title: string;
+  date: LocalDate;
+  colorId?: string | null;
+}
 
 export interface CreateTaskListInput {
   title: string;

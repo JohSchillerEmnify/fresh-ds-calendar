@@ -1,6 +1,6 @@
 /** Pure form model of the event dialog: defaults, duration-keeping edits, validation and API conversion. */
 import { parseIsoDate, toIsoDate, addDays } from '@/lib/dates';
-import type { CalendarEvent, CreateEventInput, Reminders } from '@/api/types';
+import type { CalendarEvent, CreateBirthdayInput, CreateEventInput, Reminders, UpdateEventInput } from '@/api/types';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 import { t } from '@/i18n';
 
@@ -134,6 +134,36 @@ export function diffInput(next: CreateEventInput, ev: CalendarEvent): Partial<Cr
     out.allDay = next.allDay;
     out.start = next.start;
     out.end = next.end;
+  }
+  return out;
+}
+
+// --- birthdays (the event dialog in birthday mode: name, date, colour) -----------------------------------------------
+
+/** First problem of a birthday form (its name and date), or null. */
+export function validateBirthday(f: EventForm): { field: string; message: string } | null {
+  const title = f.title.trim();
+  if (!title) return { field: 'title', message: msg.titleRequired() };
+  if (title.length > 200) return { field: 'title', message: msg.titleLong() };
+  if (!validDate(f.startDate)) return { field: 'startDate', message: msg.date() };
+  return null;
+}
+
+/** Birthday form -> `POST /api/events` body. Assumes `validateBirthday` passed. */
+export function toBirthdayInput(f: EventForm): CreateBirthdayInput {
+  return { kind: 'birthday', title: f.title.trim(), date: f.startDate, colorId: f.colorId || null };
+}
+
+/** Fields of a birthday that differ from the opened one: only name, colour and the day (a one-day all-day range), as Google allows. */
+export function birthdayPatch(f: EventForm, ev: CalendarEvent): UpdateEventInput {
+  const out: UpdateEventInput = {};
+  const title = f.title.trim();
+  if (title !== ev.title) out.title = title;
+  if ((f.colorId || null) !== ev.colorId) out.colorId = f.colorId || null;
+  if (f.startDate !== ev.start) {
+    out.allDay = true;
+    out.start = f.startDate;
+    out.end = fromWallMinutes(wallMinutes(f.startDate, '00:00') + 1440).date;
   }
   return out;
 }

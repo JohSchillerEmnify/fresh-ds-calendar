@@ -2108,7 +2108,8 @@ browser does not change.
     if it has one, else its calendar's (was: always the calendar's).
   - **Editable** (in a writable calendar), as the Google API allows: name (`summary`) and colour always; the date unless
     the birthday is linked to a contact or is the person's own (`type: self`), then the date row is read-only with the
-    hint "Change it in Google Contacts" (`birthday-date-locked`). Every change applies to the whole yearly birthday, never
+    hint "Change it in Google Contacts" (`birthday-date-locked`). A new date changes only month and day (the series keeps its start year, the birth year); onto or off 29 February
+    is refused with "delete it and create it again" (the yearly rule cannot be patched). Every change applies to the whole yearly birthday, never
     one year (the instance's `recurringEventId` is what gets patched). No drag to move; dialog only. Only these fields
     are sent (the API rejects other event properties on a birthday). Reminders on birthdays are left as Google has them
     (not edited in this slice; assumption, logged).
@@ -2117,7 +2118,13 @@ browser does not change.
     the "+" menu gets "Birthday" (`create-birthday`), which opens the event dialog in birthday mode (`birthday-dialog`):
     a name field, a date, a colour; no time, no repeat, no calendar picker. It is created in the person's primary
     calendar with exactly the fields above (`eventType`, one-day all-day `start`/`end`, the yearly rule, private,
-    transparent, `summary`, optional `colorId`). Shared/other calendars cannot get birthdays from this app.
+    transparent, `summary`, optional `colorId`). Shared/other calendars cannot get birthdays from this app. The app has no
+    separate create menu (the "+" opens the one "new" dialog), so "Birthday" is a third segment of that dialog's kind
+    switch next to Event and Task list (`create-birthday`); choosing it swaps the body (same date) for the birthday form.
+  - **Edit semantics** (implementation choices, assumptions logged): the date picked in the dialog becomes the series' new
+    start (an edit opened from a later year's instance moves the series start to that year); the PATCH response is the opened
+    instance, the views reload afterwards so every year shows the change; a birthday in a read-only calendar opens as details.
+    The mock Google also expands yearly rules (`FREQ=YEARLY`, and the 29 February rule on the last day of February).
   - Server: `GoogleEventInput` gains `eventType`, `recurrence`, `visibility`, `transparency` for this create only; the
     events API takes `kind: "birthday"` on create. The mock Google enforces the same rules (rejects other properties).
 - **Reminders, several per event (owner, 2026-10-14: "remind me 1 h 30, then 30 min, then 15 min before")**. Slice 1 of 2

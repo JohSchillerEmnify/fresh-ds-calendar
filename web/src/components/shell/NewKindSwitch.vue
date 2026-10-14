@@ -1,23 +1,27 @@
 <script setup lang="ts">
-/** "Event | Task list" switch at the top of the one "new" dialog; re-opens the other body with the same date/time. */
+/** "Event | Task list | Birthday" switch at the top of the one "new" dialog (the create menu); re-opens the other body with the same date/time. */
 import { computed } from 'vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import { rememberNewKind, type NewKind } from '@/extensions/create';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 
+/** The dialog bodies the switch offers: the two remembered kinds, and a birthday (never remembered: the "+" opens an event or a list). */
+type Kind = NewKind | 'birthday';
+
 /** `time`: undefined = none chosen (each form uses its own default), null = all-day / untimed. */
-const props = defineProps<{ kind: NewKind; date: string; time?: string | null }>();
+const props = defineProps<{ kind: Kind; date: string; time?: string | null }>();
 const ui = useUiStore();
 const options = computed(() => [
   { value: 'event' as const, label: t('calendar.create.event'), testid: 'new-kind-event' },
   { value: 'tasklist' as const, label: t('calendar.create.tasklist'), testid: 'new-kind-tasklist' },
+  { value: 'birthday' as const, label: t('calendar.create.birthday'), testid: 'create-birthday' },
 ]);
 
-function change(k: NewKind) {
+function change(k: Kind) {
   if (k === props.kind) return;
-  rememberNewKind(k);
-  ui.openDialog(k, { mode: 'create', date: props.date, ...(props.time !== undefined ? { time: props.time } : {}) });
+  if (k !== 'birthday') rememberNewKind(k);
+  ui.openDialog(k, { mode: 'create', ...(k === 'birthday' ? { birthday: true } : {}), date: props.date, ...(props.time !== undefined ? { time: props.time } : {}) });
 }
 </script>
 

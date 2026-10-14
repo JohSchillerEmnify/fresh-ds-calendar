@@ -104,7 +104,11 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     start({
       title: ev.title,
       restore: () => items.unhide(ev),
-      send: (keepalive) => items.deleteEvent(ev.id, ev.etag, { keepalive }),
+      send: async (keepalive) => {
+        await items.deleteEvent(ev.id, ev.etag, { keepalive });
+        // a birthday goes with every year: reload what the views show
+        if (ev.special) items.refreshVisible().catch(() => undefined);
+      },
     }, () => items.hide(ev.id));
   }
 

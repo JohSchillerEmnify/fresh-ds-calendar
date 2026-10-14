@@ -80,8 +80,10 @@ interface CalendarEvent {
   start: DateTime | LocalDate;  // LocalDate iff allDay
   end: DateTime | LocalDate;    // exclusive; LocalDate iff allDay
   colorId: string | null;  // Google event colorId '1'..'11' override, null = calendar color
-  color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for a birthday)
-  special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'. Read-only.
+  color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for an event of the contacts Birthdays calendar)
+  special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'
+  readOnly?: true;         // birthdays only: the contacts Birthdays calendar, or a calendar the person cannot write; PATCH/DELETE answer 400
+  dateLocked?: true;       // birthdays only: linked to a contact or `birthdayProperties.type` 'self'; Google keeps the date (name and colour stay editable)
   etag: string;
   updated: DateTime;
 }
@@ -302,9 +304,34 @@ Validation: title required/trimmed/≤200; `allDay` true ⇒ both `LocalDate`, f
 duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (unknown id, or id is a task list), 412,
 502, 503. Events cannot be turned into task lists or vice versa.
 
-Birthdays (`special` set) are read-only: `PATCH` and `DELETE` answer `400 VALIDATION_ERROR` ("Birthdays are read-only").
-Google itself allows only colour, title, reminders and (for entries not linked to a contact or of type `self`) the date to
-change; the special-date properties are edited in Contacts. The app keeps birthdays read-only and offers no editing.
+#### Birthdays
+
+Birthdays made in Google Calendar (`eventType: "birthday"`, a yearly all-day event in a normal calendar) are handled like
+Google Calendar handles them (ARCHITECTURE "Birthdays like Google Calendar").
+
+`POST /api/events` with `kind: 'birthday'` creates one in the person's primary calendar (`201` `CalendarEvent`, the series
+as created; `403` when the primary calendar is read-only):
+
+```ts
+interface CreateBirthdayInput { kind: 'birthday'; title: string; date: LocalDate; colorId?: string | null }
+```
+
+Nothing else is accepted (`400`, unknown field). The server sends Google exactly: `eventType: 'birthday'`, a one-day
+all-day `start`/`end`, `recurrence: ['RRULE:FREQ=YEARLY']` (29 February: `['RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1']`),
+`visibility: 'private'`, `transparency: 'transparent'`, `birthdayProperties: { type: 'birthday' }`, `summary` and the
+optional `colorId`; Google rejects any other property on a birthday.
+
+`PATCH /api/events/:id` on a birthday (the id of any year's instance) changes the whole yearly series, never one year:
+only `title`, `colorId` and a one-day all-day `start`/`end` (`allDay: true`, `end` = `start` + 1 day; only its month and
+day are used, the series keeps its start year, i.e. the birth year) are accepted. `description`, `location`, `reminders`, `calendarId` and `allDay: false` answer `400`
+(`calendar.birthday.field`). A new date on a `dateLocked` birthday answers `400` (`calendar.birthday.dateLocked`); a move onto or off 29 February
+answers `400` (`calendar.birthday.leapDay`: the yearly rule would have to change, which a patch cannot). The
+answer is the opened instance (same `id`) with the change applied. `DELETE` removes the whole series (Google does not touch
+Contacts). `If-Match` is checked against the instance.
+
+Birthdays with `readOnly` (the contacts Birthdays calendar, calendars the person cannot write) answer `PATCH` and `DELETE`
+with `400 VALIDATION_ERROR` ("Birthdays are read-only"). A birthday's colour is its own `colorId`, else its calendar's
+(the contacts calendar's entries always show the calendar colour).
 
 ### Task lists
 
@@ -650,6 +677,8 @@ interface GoogleEvent {
   id: string; calendarId: string; etag: string; status: 'confirmed' | 'cancelled';
   summary?: string; description?: string; location?: string; colorId?: string;
   eventType?: string;      // Google `eventType`, e.g. 'birthday'
+  visibility?: string; transparency?: string;   // a birthday is created `private` / `transparent`
+  recurrence?: string[]; recurringEventId?: string;
   birthdayProperties?: { type?: string; customTypeName?: string; contact?: string };
   start: { date?: string; dateTime?: string; timeZone?: string };
   end:   { date?: string; dateTime?: string; timeZone?: string };

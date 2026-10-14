@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -255,6 +255,9 @@ export class ApiClient {
 
   // --- events ---------------------------------------------------------------
   createEvent(input: CreateEventInput, o?: RequestOptions) {
+    return this.request<CalendarEvent>('POST', '/api/events', input, o);
+  }
+  createBirthday(input: CreateBirthdayInput, o?: RequestOptions) {
     return this.request<CalendarEvent>('POST', '/api/events', input, o);
   }
   getEvent(id: string, o?: RequestOptions) {

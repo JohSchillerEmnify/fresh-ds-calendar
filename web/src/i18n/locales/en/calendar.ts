@@ -56,6 +56,18 @@ export default {
     event: 'Event',
     tasklist: 'Task list',
     editorUnavailable: 'The editor is not available yet',
+    birthday: 'Birthday',
+  },
+  birthday: {
+    newTitle: 'New birthday',
+    editTitle: 'Edit birthday',
+    name: 'Name',
+    date: 'Date',
+    dateLocked: 'The date comes from Google Contacts. Change it there.',
+    nameRequired: 'Name is required',
+    field: 'A birthday has no such field',
+    leapDay: 'A birthday cannot be moved to or from 29 February. Delete it and create it again.',
+    readOnly: 'The primary calendar is read-only, so no birthday can be added',
   },
   grid: {
     tasksSection: 'Tasks: {mode}. Tap to change',
