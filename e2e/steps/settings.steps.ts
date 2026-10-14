@@ -58,7 +58,7 @@ Then('the settings sections are {string}', async function (this: World, list: st
   await expect(headings).toHaveText(list.split(', '));
   await expect
     .poll(() => this.page.getByTestId('settings-section').evaluateAll((els) => els.map((e) => e.getAttribute('data-section'))))
-    .toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'labs', 'account']);
+    .toEqual(['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'notifications', 'labs', 'account']);
 });
 
 Then('the settings page has no theme mode or seed colour controls', async function (this: World) {
