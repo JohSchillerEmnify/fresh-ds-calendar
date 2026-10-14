@@ -109,12 +109,16 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   const prefetching = new Set<string>();
-  /** Load `[from, to)` into the cache in the background unless it is cached or already loading (swipe neighbour). Errors are ignored: the route change reports its own. */
+  /** When a background load of a range last failed: it is not retried before `PREFETCH_RETRY_MS` (watchers re-ask on every change). */
+  const prefetchFailed = new Map<string, number>();
+  const PREFETCH_RETRY_MS = 30_000;
+  /** Load `[from, to)` into the cache in the background unless it is cached, already loading or failed a moment ago (swipe neighbour). Errors are ignored: the route change reports its own. */
   function prefetch(from: LocalDate, to: LocalDate): void {
     const key = rangeKey(from, to);
     if (ranges.value[key] || prefetching.has(key)) return;
+    if (Date.now() - (prefetchFailed.get(key) ?? -Infinity) < PREFETCH_RETRY_MS) return;
     prefetching.add(key);
-    fetchRange(from, to).catch(() => {}).finally(() => prefetching.delete(key));
+    fetchRange(from, to).then(() => prefetchFailed.delete(key), () => prefetchFailed.set(key, Date.now())).finally(() => prefetching.delete(key));
   }
 
   /** Make `[from, to)` the visible range and load it (aborting a superseded load). Errors are reported to the sync store. */
@@ -368,6 +372,7 @@ export const useItemsStore = defineStore('items', () => {
     pending.clear();
     carriedIds.clear();
     keptIds.clear();
+    prefetchFailed.clear();
     summaryByKey.clear();
     summaryKeys.value = [];
     summary.value = {};

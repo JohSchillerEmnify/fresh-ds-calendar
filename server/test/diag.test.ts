@@ -26,11 +26,12 @@ function provider(fetchImpl: typeof fetch) {
 const reply = (status: number, json: unknown) => (async () => new Response(JSON.stringify(json), { status, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
 
 describe('google_error log line', () => {
-  it('logs a 429 with its Google reason and keeps the 503 mapping', async () => {
+  it('logs a 429 with its Google reason and keeps the 503 mapping (plus one rate_limited start line)', async () => {
     const p = provider(reply(429, { error: { code: 429, message: 'Quota for Dentist exceeded', errors: [{ reason: 'rateLimitExceeded', message: 'Dentist' }] } }));
     await expect(p.listEvents({ calendarId: 'primary', timeMin: 'a', timeMax: 'b' })).rejects.toBeInstanceOf(ProviderUnavailableError);
-    expect(lines).toHaveLength(1);
+    expect(lines).toHaveLength(2);
     expect(lines[0]).toMatchObject({ event: 'google_error', op: 'events.list', status: 429, reason: 'rateLimitExceeded', subHash: subHash(SUB) });
+    expect(lines[1]).toMatchObject({ event: 'rate_limited', state: 'start', op: 'events.list', subHash: subHash(SUB) });
     expect(typeof lines[0]!.durationMs).toBe('number');
     expect(typeof lines[0]!.ts).toBe('string');
   });

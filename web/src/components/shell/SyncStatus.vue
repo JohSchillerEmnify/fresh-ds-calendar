@@ -7,7 +7,7 @@ const sync = useSyncStore();
 </script>
 
 <template>
-  <span class="status" role="status" data-testid="sync-status" :data-state="sync.state" :data-last-sync="sync.lastSync ?? ''" :aria-label="sync.state === 'error' ? t('calendar.sync.problem') : sync.state === 'syncing' ? t('calendar.sync.syncing') : t('calendar.sync.synced')">
+  <span class="status" role="status" data-testid="sync-status" :data-state="sync.state" :data-rate-limited="sync.rateLimited || undefined" :data-last-sync="sync.lastSync ?? ''" :aria-label="sync.state === 'error' ? t('calendar.sync.problem') : sync.state === 'syncing' ? t('calendar.sync.syncing') : t('calendar.sync.synced')">
     <component :is="sync.state === 'error' ? IconProblem : IconSync" :class="{ spin: sync.state === 'syncing' }" />
   </span>
 </template>

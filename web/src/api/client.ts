@@ -27,7 +27,9 @@ export class ApiError extends Error {
   readonly key?: string;
   /** The request ran into its time limit (a `TimeoutError`); only used for the diagnostics beacon. */
   readonly timeout: boolean;
-  constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = [], key?: string, timeout = false) {
+  /** Seconds the server asked to wait (`Retry-After`), when it sent one. */
+  readonly retryAfterSec?: number;
+  constructor(status: number, code: ClientErrorCode, message: string, details: { field?: string; issue?: string }[] = [], key?: string, timeout = false, retryAfterSec?: number) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -35,6 +37,11 @@ export class ApiError extends Error {
     this.details = details;
     this.key = key;
     this.timeout = timeout;
+    this.retryAfterSec = retryAfterSec;
+  }
+  /** The server is holding Google back (503 `RATE_LIMITED`): data on screen is still the last known, a retry before `retryAfterSec` is pointless. */
+  get isRateLimited(): boolean {
+    return this.status === 503 && this.code === 'RATE_LIMITED';
   }
   /** Network failure, 502 or 503: Google (or the server) cannot be reached. Drives the sync error banner. */
   get isUnavailable(): boolean {
@@ -146,7 +153,8 @@ export class ApiClient {
       if ((res.status === 401 && (err?.code === 'UNAUTHENTICATED' || err?.code === 'GOOGLE_REAUTH')) || (res.status === 403 && err?.code === 'CALENDAR_PERMISSION_MISSING')) {
         for (const fn of this.authListeners) fn(err!.code!);
       }
-      throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? [], err?.key);
+      const ra = Number(res.headers.get('Retry-After'));
+      throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? [], err?.key, false, Number.isFinite(ra) && ra > 0 ? ra : undefined);
     }
     return data as T;
   }

@@ -40,7 +40,7 @@ type ErrorCode =
   | 'PRECONDITION_FAILED'   // 412 etag mismatch
   | 'PROVIDER_ERROR'        // 502 provider returned an unexpected error
   | 'PROVIDER_UNAVAILABLE'  // 503 provider unreachable / outage / auth failure
-  | 'RATE_LIMITED'          // 429 only `POST /api/diag/sync-error`
+  | 'RATE_LIMITED'          // 503 Google's per-person rate limit is in force and nothing cached can answer (`Retry-After`); 429 `POST /api/diag/sync-error`
   | 'INTERNAL';             // 500
 ```
 
@@ -48,6 +48,9 @@ type ErrorCode =
 app shows that message in the person's language and falls back to the English `message` for unknown keys.
 Validation messages are the exact UI strings where one exists: `Title is required`, `Add a title or an item`,
 `Title must be at most 200 characters`, `End must be after start`.
+`RATE_LIMITED` with status 503 carries `Retry-After: <seconds>` (the rest of the server's cooldown, or Google's own
+`Retry-After` when it sent one). The web app does not retry before then and shows no banner while it has data (see
+"Stale data").
 The web app maps `PROVIDER_UNAVAILABLE` / network failure to `Could not save: Google Calendar is unavailable` and
 `PRECONDITION_FAILED` to `This event was changed elsewhere. Reload it and try again.`
 
@@ -243,8 +246,9 @@ Returns every event and task list overlapping `[from 00:00, to 00:00)` local tim
 (or the listed ones).
 
 ```ts
-{ items: CalendarItem[]; from: LocalDate; to: LocalDate; syncedAt: DateTime }
+{ items: CalendarItem[]; from: LocalDate; to: LocalDate; syncedAt: DateTime; stale?: true }
 ```
+`stale: true` (see "Stale data") means the items came from the server's cache while Google's rate limit was in force.
 Sorted by start (all-day first per day, then by time, then title). A Google event whose
 `extendedProperties.private.kind === 'tasklist'` is returned as `TaskList`, all others as `CalendarEvent`. Cancelled
 events are omitted. Errors: 400 (`from`/`to` invalid, `to <= from`, range > 100 days), 503, 502.
@@ -639,9 +643,22 @@ interface GoogleEvent {
 }
 ```
 
-Remote changes are always visible to the next `GET /api/items`; there is no server-side cache that would hide them.
+The mock provider has no cache: remote changes are visible to the next `GET /api/items`. (The Google provider caches reads
+for a few seconds, see "Stale data".)
 The test clock affects only "now" (`/api/config`, defaults, `updated` timestamps keep using the real clock).
 The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
+
+## Stale data and rate limits (Google provider)
+
+Google limits calls per person. The server caches `events.list` per calendar and range and `calendarList.list` for
+25 s (identical concurrent calls share one request; every write makes the cache stale at once) and, once Google answers
+`rateLimitExceeded` / `userRateLimitExceeded` / 429, stops calling Google for a cooldown (ARCHITECTURE "Google access:
+caching and rate limits"). Meanwhile:
+
+- a `GET` that can be answered from the last known data answers `200` with the header `X-Stale: 1`; `GET /api/items`
+  also carries `stale: true` in the body. Nothing else about the response changes.
+- a request that needs data the server does not have, and every write, answers `503 RATE_LIMITED` with
+  `Retry-After: <seconds>`.
 
 ## Status code summary
 

@@ -288,6 +288,8 @@ export interface ItemsResponse {
   /** Echo of the optional `also` range whose items are merged into `items`. */
   also?: { from: LocalDate; to: LocalDate };
   syncedAt: DateTime;
+  /** Set while Google's rate limit is in force: the items come from the server's cache and may be older than the last poll. */
+  stale?: true;
 }
 
 export interface CreateEventInput {
