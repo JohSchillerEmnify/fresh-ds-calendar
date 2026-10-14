@@ -32,6 +32,22 @@ When('I click the month {string} in the year view', async function (this: World,
   await (((await title.count()) > 0 ? title.first() : month).click());
 });
 
+Then('the year view\'s {string} shows no circle for days of other months', async function (this: World, name: string) {
+  const index = MONTHS.indexOf(name);
+  if (index < 0) throw new Error(`Unknown month name "${name}"`);
+  const month = this.page.locator(`[data-testid="year-month"][data-month$="-${String(index + 1).padStart(2, '0')}"]`);
+  const out = month.getByTestId('year-day-out');
+  await expect(out.first(), 'the month has leading or trailing cells').toBeAttached();
+  const n = await out.count();
+  for (let i = 0; i < n; i++) {
+    const cell = out.nth(i);
+    await expect(cell, `cell ${i + 1} has no density mark`).not.toHaveAttribute('data-density', /.*/);
+    await expect(cell, `cell ${i + 1} has no number`).toHaveText('');
+    await expect(cell, `cell ${i + 1} has no background`).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(cell, `cell ${i + 1} has no ring`).toHaveCSS('box-shadow', 'none');
+  }
+});
+
 // --- month picker -------------------------------------------------------------------------------------------------
 
 const picker = (w: World) => w.page.getByTestId('month-picker');

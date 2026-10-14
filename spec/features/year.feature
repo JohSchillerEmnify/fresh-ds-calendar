@@ -31,6 +31,11 @@ Feature: Year overview
     And the density of 2026-10-16 in the year view is 3
     And the density of 2026-10-17 in the year view is 0
 
+  Scenario: Days of other months are empty space in the mini months
+    Given the calendar contains an event "Halloween" on 2026-10-31 from 09:00 to 10:00
+    When I open the year view for 2026
+    Then the year view's "November" shows no circle for days of other months
+
   Scenario: Tapping a month opens the month view
     When I open the year view for 2026
     And I click the month "March" in the year view

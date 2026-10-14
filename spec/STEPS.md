@@ -620,6 +620,7 @@ I open the year view for {int}
 the year view shows {int} months
 the density of {date} in the year view is {int}
 I click the month {string} in the year view
+the year view's {string} shows no circle for days of other months
 I open the month picker
 the month picker is open
 the month picker is closed
@@ -637,6 +638,9 @@ the page is not scrolled
 the bottom bar ends at the bottom of the viewport
 ```
 
+- "the year view's M shows no circle for days of other months": the `year-month` tile of month M has at least one
+  `year-day-out` cell (a leading or trailing day of a neighbouring month, `aria-hidden`), and every one of them has no
+  `data-density`, no text, a transparent background and no box shadow. The cells stay in the grid (alignment).
 - `I open the month picker` clicks `period-title` (it toggles the picker).
 - Density = `data-density` of `year-day[data-date]`. "selected" = `aria-selected="true"` on `picker-day`; "marked" =
   `data-has-items="true"`.
@@ -808,6 +812,7 @@ the sunflowers look {string}
 {string} signs in with Google
 {string} is signed in
 Google no longer accepts the access of {string}
+their session expires
 someone opens the week view for {date} without signing in
 they sign out in the settings
 they open the week view for {date}
@@ -831,6 +836,9 @@ they are no longer told Google Calendar access is missing
   round trip through the test double, no real Google. "they" is the person of the last sign-in step.
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
+- "their session expires": the browser loses the session cookie (all cookies of the page's context are cleared), so the
+  next request is refused as unauthenticated; the page that is open stays open (the stale shell). `I go to the next
+  period` is the generic step.
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
 - "answered without calendar access": the fake consent screen returns a token whose `scope` lacks the calendar scope
   (the person left Google's "Google Calendar" checkbox unticked). "told ... is missing": the banner
@@ -1189,6 +1197,7 @@ the switches in the settings are on the {string} side of the screen
 the support cat walks in from the {string}
 ```
 
+- Scenarios tagged `@tablet` run in the `tablet` project only (820x1180, touch, `isMobile`: an iPad in portrait).
 - "left-handed mode is on" sets the person pref with `PATCH /api/prefs { "leftHanded": true }` through the API before the
   page is opened (the switch itself is exercised through the generic `I turn on {string} in the settings` step with the
   label "Left-handed mode", switch testid `settings-left-handed`).
