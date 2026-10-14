@@ -281,6 +281,13 @@ export interface AppConfig {
   apk: { versionCode: number; versionName: string } | null;
 }
 
+/** One plain-English line of CHANGELOG.md (`GET /api/release-notes`). */
+export interface ReleaseNote {
+  id: string;
+  date: string;
+  text: string;
+}
+
 export interface ItemsResponse {
   items: CalendarItem[];
   from: LocalDate;

@@ -159,4 +159,12 @@ export default {
     available: 'New version available',
     reload: 'Reload',
   },
+  whatsNew: {
+    title: 'What\'s new',
+    empty: 'No release notes yet',
+    note: 'New: {text}',
+    noteMore: 'New: {text} +{n} more',
+    open: 'What\'s new',
+    close: 'Close',
+  },
 };

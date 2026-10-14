@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
@@ -184,6 +184,9 @@ export class ApiClient {
   }
   config(o?: RequestOptions) {
     return this.request<AppConfig>('GET', '/api/config', undefined, o);
+  }
+  releaseNotes(o?: RequestOptions) {
+    return this.request<{ notes: ReleaseNote[] }>('GET', '/api/release-notes', undefined, o);
   }
   calendars(o?: RequestOptions) {
     return this.request<{ calendars: Calendar[] }>('GET', '/api/calendars', undefined, o);

@@ -154,6 +154,7 @@ export default {
       calendarAccess: { label: 'Calendar access', hint: 'Google Calendar access is missing. Grant it, and tick the calendar box on Google\'s screen.', grant: 'Grant calendar access' },
       resetDemo: { label: 'Reset demo data', hint: 'Replaces the mock calendar with fresh demo events', button: 'Reset', done: 'Demo data restored', failed: 'Could not reset demo data' },
       version: 'Version {version}',
+      whatsNew: { label: 'What\'s new', hint: 'The latest changes to the app', button: 'Show' },
       androidApp: { label: 'Android app', updateLabel: 'Update the app', hint: 'Install the calendar as an Android app with a weekly home-screen widget', download: 'Download' },
       server: { label: 'Server: {host}', hint: 'Which calendar server this app uses', change: 'Change' },
       installApp: { label: 'Install this app', hint: 'Add the calendar to your Home Screen', button: 'Show how', title: 'Install the calendar', step1: 'Tap the Share button', step2: 'Choose Add to Home Screen', step3: 'Tap Add', close: 'Got it' },
