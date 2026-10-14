@@ -161,4 +161,12 @@ export default {
     available: 'Neue Version verfügbar',
     reload: 'Neu laden',
   },
+  whatsNew: {
+    title: 'Was ist neu',
+    empty: 'Noch keine Neuigkeiten',
+    note: 'Neu: {text}',
+    noteMore: 'Neu: {text} +{n} weitere',
+    open: 'Was ist neu',
+    close: 'Schließen',
+  },
 } satisfies Messages['calendar'];

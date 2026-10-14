@@ -21,6 +21,7 @@ import type { CalendarProvider } from './providers/CalendarProvider.js';
 import { MockGoogleProvider } from './providers/mock/MockGoogleProvider.js';
 import { seedDemo } from './seed.js';
 import type { ApkInfo } from './routes/download.js';
+import { loadReleaseNotes, type ReleaseNote } from './services/releaseNotes.js';
 
 export const VERSION = process.env.APP_VERSION ?? '0.1.0';
 
@@ -47,7 +48,9 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; version?: string; apk?: ApkInfo | null };
+  overrides: { pollIntervalMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[] };
+  /** Release notes parsed from CHANGELOG.md once at start. */
+  releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;
   /** The calendar of the signed-in person; the shared one when auth is off. */
   calendarFor(sub: string | null | undefined): CalendarService;
@@ -86,7 +89,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const mocks = new Map<string, MockGoogleProvider>();
   const calendars = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, mockDrive, people, shared, motivation, calendar, overrides: {}, health: null, personProvider, auth,
+    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));

@@ -148,6 +148,7 @@ export default {
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehlt. Erlaube ihn und setz auf Googles Bildschirm den Haken beim Kalender.', grant: 'Kalenderzugriff erlauben' },
       resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Testkalender durch frische Demotermine', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
       version: 'Version {version}',
+      whatsNew: { label: 'Was ist neu', hint: 'Die letzten Änderungen an der App', button: 'Anzeigen' },
       androidApp: { label: 'Android-App', updateLabel: 'App aktualisieren', hint: 'Den Kalender als Android-App mit Wochen-Widget für den Homescreen installieren', download: 'Herunterladen' },
       server: { label: 'Server: {host}', hint: 'Welchen Kalender-Server die App benutzt', change: 'Ändern' },
       installApp: { label: 'App installieren', hint: 'Den Kalender zum Home-Bildschirm hinzufügen', button: 'Anleitung', title: 'Kalender installieren', step1: 'Tippe auf den Teilen-Button', step2: 'Wähle „Zum Home-Bildschirm“', step3: 'Tippe auf Hinzufügen', close: 'Verstanden' },

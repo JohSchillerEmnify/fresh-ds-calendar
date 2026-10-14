@@ -1181,6 +1181,33 @@ the app download starts
   with action `apk-download`; "download starts": the page requested `/app.apk` (a download navigation, seen as the
   `download` event). The "add button covers no control of the" map knows "app update hint" (`apk-available`; on a phone the add button slides out while a persistent snackbar shows). Without Capacitor (browser) nothing shows. Real-device behaviour of the bridge is not e2e-testable.
 
+## Release notes
+
+```
+the release notes are:
+I open What's new
+What's new shows the days {string}
+What's new shows {string} under {date}
+this device last ran an older version and has seen the notes up to {date}
+I am told what is new: {string} and {int} more
+I dismiss the release note
+I choose What's new in the release note
+I am not told what is new
+I reload the app
+```
+
+- "the release notes are:" (table `date`, `text`, newest first) is `POST /api/__test/release-notes { notes }`.
+- "I open What's new": the `settings-whats-new` row in the open settings; the sheet `whats-new` is visible. "shows the
+  days X": the `whats-new-day` `data-date` values in order, comma-separated. "shows T under D": a `whats-new-item` with
+  text T inside the `whats-new-day` of D.
+- "this device last ran an older version and has seen the notes up to D": an init script sets localStorage
+  `cal.lastVersion` to `0.0.1` and `cal.notesSeen` to the id of the newest note dated D or earlier (ids from
+  `GET /api/release-notes`).
+- "told what is new: T and N more": snackbar `whats-new-note` is visible, contains T and the text "+N more". "not told":
+  no `whats-new-note` within 2 s after the app is idle. "dismiss": `whats-new-dismiss`; "choose What's new in the release
+  note": `whats-new-open`. "I reload the app": `page.reload()` and wait until the app is idle. The "add button covers no
+  control of the" map knows "release note" (`whats-new-note`).
+
 - Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
   until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of

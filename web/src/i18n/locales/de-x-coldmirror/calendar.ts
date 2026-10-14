@@ -161,4 +161,12 @@ export default {
     available: 'Neue Version am Start, yo',
     reload: 'Neu laden, fresh',
   },
+  whatsNew: {
+    title: 'Was geht ab, yo',
+    empty: 'Noch nix Neues, Digga',
+    note: 'Frisch: {text}',
+    noteMore: 'Frisch: {text} +{n} weitere',
+    open: 'Was geht ab',
+    close: 'Zu, yo',
+  },
 } satisfies Messages['calendar'];

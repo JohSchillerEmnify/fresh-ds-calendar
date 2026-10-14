@@ -14,6 +14,8 @@ export interface AppConfig {
   provider: ProviderKind;
   /** Directory of the built web app; null disables static serving. */
   webDist: string | null;
+  /** CHANGELOG.md the release notes are parsed from at start (a missing file means no notes). */
+  changelogPath: string;
   tz: string;
   seed: boolean;
   testMode: boolean;
@@ -46,6 +48,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     dataDir: env.DATA_DIR ?? path.resolve('data'),
     provider: env.PROVIDER === 'google' ? 'google' : 'mock',
     webDist: env.WEB_DIST ?? path.resolve(here, '../../web/dist'),
+    changelogPath: env.CHANGELOG_PATH ?? path.resolve(here, '../../CHANGELOG.md'),
     tz,
     seed: bool(env.SEED, true) && !testMode,
     testMode,

@@ -111,6 +111,8 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
 
   r.get('/config', (c) => c.json(configResponse(ctx)));
+  // The plain-English lines of CHANGELOG.md, newest first (ARCHITECTURE "Release notes").
+  r.get('/release-notes', (c) => c.json({ notes: ctx.overrides.notes ?? ctx.releaseNotes }));
 
   r.get('/calendars', async (c) => {
     const hidden = ctx.prefs.hiddenCalendars(person(c));

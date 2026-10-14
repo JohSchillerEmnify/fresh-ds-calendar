@@ -4,8 +4,9 @@ import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
 import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
+import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
-import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -76,6 +77,13 @@ export function testRoutes(ctx: Ctx): Hono {
   t.post('/version', async (c) => {
     ctx.overrides.version = parse(testVersionSchema, await body(c)).version;
     return c.json(configResponse(ctx));
+  });
+
+  // "The release notes are": GET /api/release-notes answers this list (as given, newest first) until the next reset.
+  t.post('/release-notes', async (c) => {
+    const { notes } = parse(testReleaseNotesSchema, await body(c));
+    ctx.overrides.notes = notes.slice(0, MAX_RELEASE_NOTES).map((n) => ({ id: noteId(n.date, n.text), date: n.date, text: n.text }));
+    return c.json({ notes: ctx.overrides.notes });
   });
 
   // "The server offers an APK": /api/config reports it from now on (null = none).

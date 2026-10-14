@@ -11,6 +11,7 @@ import { useSettingsStore } from './stores/settings';
 import { pushWidget } from './stores/sync';
 import { useThemeStore } from './stores/theme';
 import { registerServiceWorker } from './pwa/register';
+import { checkReleaseNotes } from './pwa/releaseNotes';
 import { registerBuiltinExtensions } from './extensions/builtin';
 import { installMotion } from './motion';
 import './styles.css';
@@ -46,6 +47,7 @@ async function bootstrap() {
   pushWidget();
   // on start (later syncs check again through checkVersion); a browser never shows the hint
   void checkApk(clock.config.apk);
+  void checkReleaseNotes();
 }
 
 void bootstrap();

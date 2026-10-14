@@ -8,6 +8,8 @@ export interface SnackbarMessage {
   /** ms; 0 = stays until dismissed. */
   duration: number;
   testid?: string;
+  /** Test id of the ✕ button when it is not `<testid>-dismiss`. */
+  dismissTestid?: string;
   /** Called when the person closes the snackbar with ✕ (not when the action is taken or the time runs out). */
   onClose?: () => void;
 }

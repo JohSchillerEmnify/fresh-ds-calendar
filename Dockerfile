@@ -30,6 +30,8 @@ ENV APP_VERSION=$APP_VERSION NODE_ENV=production PORT=3000 DATA_DIR=/data WEB_DI
 WORKDIR /app
 COPY --from=build /out server
 COPY --from=build /app/web/dist web/dist
+# the release notes the server parses at start (CHANGELOG_PATH, default two levels above server/dist)
+COPY CHANGELOG.md CHANGELOG.md
 RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 3000

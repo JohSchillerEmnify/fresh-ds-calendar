@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-14
+
+- Google rate limits no longer break syncing: calendars are cached per person and the app backs off after a failed sync.
+- The "New version available" prompt no longer comes back after you reload.
+- In the Horizontal view, dragging sideways moves through time instead of jumping to the next week.
+- A tapped task list grows over its whole day column, without scrollbars.
+
+## Older history
+
 ## Iteration 1 — walking skeleton (2026-10-12)
 
 Live at **http://cal.mordor.local** (also linked on Homepage as "Calendar").
