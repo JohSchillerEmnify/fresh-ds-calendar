@@ -275,6 +275,8 @@ export interface AppConfig {
   testMode: boolean;
   publicUrl: string | null;
   version: string;
+  /** The APK the server offers (`scripts/android-build.sh`), or null. */
+  apk: { versionCode: number; versionName: string } | null;
 }
 
 export interface ItemsResponse {

@@ -11,8 +11,8 @@ import { t } from '@/i18n';
 /** FAB: opens the one "new" dialog (event or task list, switchable there); in the Tasks view a new list without a date. */
 const ui = useUiStore();
 const route = useRoute();
-/** Phone: out of the way while the open tasks tray or a view's bottom panel is open (it would cover their controls). */
-const away = computed(() => isPhone.value && (ui.trayExpanded || ui.panelOpen));
+/** Phone: out of the way while the open tasks tray, a view's bottom panel or a persistent snackbar (update hints) is open (it would cover their controls). */
+const away = computed(() => isPhone.value && (ui.trayExpanded || ui.panelOpen || ui.snackbars.some((s) => s.duration === 0)));
 </script>
 
 <template>

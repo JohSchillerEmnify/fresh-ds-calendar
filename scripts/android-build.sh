@@ -30,6 +30,11 @@ if [[ ! -f "$KEY_DIR/keystore.properties" ]]; then
 fi
 
 cd "$REPO"
+# every build gets a higher versionCode than the one before (commit count); the sidecar tells the server what it offers
+VERSION_CODE="$(git rev-list --count HEAD)"
+VERSION_NAME="1.1.$VERSION_CODE"
+export VERSION_CODE VERSION_NAME
+echo "==> versionCode $VERSION_CODE ($VERSION_NAME)"
 echo "==> pnpm install + cap sync"
 pnpm install --frozen-lockfile
 pnpm exec cap sync android
@@ -40,22 +45,26 @@ mkdir -p "$HOME/.cache/calendar-gradle"
 echo "==> gradle assembleRelease (in $IMAGE)"
 docker run --rm --name cal-apk-build --memory=4g --memory-swap=4g --cpus=3 --cpu-shares=256 \
   -u "$(id -u):$(id -g)" -e HOME=/tmp/h -e GRADLE_USER_HOME=/gradle -e CAL_ANDROID_KEYSTORE_PROPS=/key/keystore.properties \
-  -v "$REPO:$REPO" -v "$KEY_DIR:/key:ro" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
-  bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g assembleRelease testDebugUnitTest \
+  -e VERSION_CODE -e VERSION_NAME -v "$REPO:$REPO" -v "$KEY_DIR:/key:ro" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
+  bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME assembleRelease testDebugUnitTest \
     && $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk | head -2'
 
 APK="$REPO/android/app/build/outputs/apk/release/app-release.apk"
 echo "APK: $APK ($(du -h "$APK" | cut -f1))"
 
+INFO="$REPO/android/app/build/outputs/apk/release/app.json"
+printf '{"versionCode":%s,"versionName":"%s"}\n' "$VERSION_CODE" "$VERSION_NAME" > "$INFO"
 if [[ "${1:-}" == "--no-publish" ]]; then exit 0; fi
 
 echo "==> publishing to $DOWNLOADS/app.apk"
 if [[ -d "$DOWNLOADS" ]]; then
   # on sauron
   cp "$APK" "$DOWNLOADS/app.apk.part" && chmod 644 "$DOWNLOADS/app.apk.part" && mv "$DOWNLOADS/app.apk.part" "$DOWNLOADS/app.apk"
+  cp "$INFO" "$DOWNLOADS/app.json" && chmod 644 "$DOWNLOADS/app.json"
   curl -s --max-time 5 -o /dev/null -w 'http://cal.mordor.lan/app.apk -> %{http_code} %{content_type}\n' -H 'Host: cal.mordor.lan' http://127.0.0.1/app.apk
 else
   # elsewhere: the directory is on sauron, so copy over ssh and move into place there
   scp -q "$APK" "$SAURON:projects/calendar/deploy/data/downloads/app.apk.new"
-  ssh "$SAURON" 'cd projects/calendar/deploy/data/downloads && chmod 644 app.apk.new && mv app.apk.new app.apk && sha256sum app.apk'
+  scp -q "$INFO" "$SAURON:projects/calendar/deploy/data/downloads/app.json.new"
+  ssh "$SAURON" 'cd projects/calendar/deploy/data/downloads && chmod 644 app.apk.new app.json.new && mv app.apk.new app.apk && mv app.json.new app.json && sha256sum app.apk'
 fi

@@ -153,6 +153,10 @@ export default {
     deleted: 'Gelöschd: {title}',
     undo: 'Zurück',
   },
+  apk: {
+    available: 'Neue App-Version da',
+    download: 'Runterladn',
+  },
   update: {
     available: 'Neue Version da',
     reload: 'Neu ladn',

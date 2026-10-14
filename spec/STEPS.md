@@ -1071,6 +1071,21 @@ the app runs the new version
 - "told": snackbar `update-available` with action `update-reload`; "runs the new version": after reload
   `document.documentElement.dataset.appVersion` equals the deployed version.
 
+```
+the app runs inside the Android app with version code {int}
+the server offers the app version code {int}
+I am offered to download the new app version
+I am not offered to download the new app version
+I choose to download the app
+the app download starts
+```
+
+- App update hint (APK): "runs inside the Android app with version code N" adds an init script that fakes
+  `window.Capacitor` (`isNativePlatform: () => true`, `Plugins.ServerChoice.appVersion → { versionCode: N }`); "the server
+  offers the app version code N" is `POST /api/__test/apk { versionCode, versionName }`; "offered": snackbar `apk-available`
+  with action `apk-download`; "download starts": the page requested `/app.apk` (a download navigation, seen as the
+  `download` event). The "add button covers no control of the" map knows "app update hint" (`apk-available`; on a phone the add button slides out while a persistent snackbar shows). Without Capacitor (browser) nothing shows. Real-device behaviour of the bridge is not e2e-testable.
+
 - Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
   until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of

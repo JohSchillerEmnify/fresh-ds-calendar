@@ -1,6 +1,7 @@
 import { api } from '@/api/client';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
+import { apkHintVisible, checkApk } from '@/native/apkHint';
 
 let offered: number | null = null;
 /** The waiting service worker to activate on "Reload" (null: no worker, e.g. insecure context or TEST_MODE). */
@@ -32,6 +33,8 @@ export function isPreviewBuild(version = runningVersion()): boolean {
 export function offerUpdate(): void {
   if (isPreviewBuild()) { reload(); return; }
   const ui = useUiStore();
+  // the APK hint goes first (one snackbar at a time); the reload is offered again by the next check
+  if (apkHintVisible()) return;
   if (offered !== null && ui.snackbars.some((s) => s.id === offered)) return;
   offered = ui.notify(t('calendar.update.available'), {
     duration: 0, testid: 'update-available',
@@ -40,14 +43,22 @@ export function offerUpdate(): void {
 }
 
 /** Offer a reload when the server's build version differs from the running one (empty = unknown, ignored). */
-export function checkVersion(serverVersion: string): void {
-  if (serverVersion && serverVersion !== runningVersion()) offerUpdate();
+export function checkVersion(serverVersion: string, apk?: { versionCode: number; versionName: string } | null): void {
+  // the APK hint is checked first, so that it wins over a pending reload
+  void checkApk(apk).then(() => {
+    if (apkHintVisible()) {
+      if (offered !== null) useUiStore().dismiss(offered);
+      return;
+    }
+    if (serverVersion && serverVersion !== runningVersion()) offerUpdate();
+  });
 }
 
 /** Lightweight `/api/config` fetch for syncs that do not reload the clock; failures are ignored (offline). */
 export async function checkServerVersion(): Promise<void> {
   try {
-    checkVersion((await api.config()).version);
+    const c = await api.config();
+    checkVersion(c.version, c.apk);
   } catch {
     // offline: the next sync checks again
   }

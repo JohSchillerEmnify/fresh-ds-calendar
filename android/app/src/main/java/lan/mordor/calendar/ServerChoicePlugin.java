@@ -2,6 +2,8 @@ package lan.mordor.calendar;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -28,6 +30,17 @@ public class ServerChoicePlugin extends Plugin {
         JSObject res = new JSObject();
         if (base != null) res.put("url", base).put("host", Uri.parse(base).getHost());
         call.resolve(res);
+    }
+
+    /** {@code appVersion()}: {@code { versionCode }} of the installed app, which the web app compares with the published APK. */
+    @PluginMethod
+    public void appVersion(PluginCall call) {
+        try {
+            PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            call.resolve(new JSObject().put("versionCode", (int) info.getLongVersionCode()));
+        } catch (PackageManager.NameNotFoundException e) {
+            call.reject("version unknown");
+        }
     }
 
     /** {@code choose()}: forgets the choice and returns to the chooser (the activity restarts). */

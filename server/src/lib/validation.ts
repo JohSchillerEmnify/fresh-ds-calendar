@@ -164,6 +164,7 @@ export const testMotivationSchema = so({
   checkIns: v.optional(v.array(localDate)),
   plant: v.optional(so({ growth: v.number(), lastWatered: v.nullable(localDate), todayPoints: v.optional(v.number()) })),
 });
+export const testApkSchema = so({ versionCode: v.pipe(v.number(), v.integer(), v.minValue(1)), versionName: v.string() });
 export const testVersionSchema = so({ version: v.pipe(v.string(), v.minLength(1)) });
 export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
 export const outageSchema = so({ down: v.boolean(), status: v.optional(v.picklist([500, 503])) });

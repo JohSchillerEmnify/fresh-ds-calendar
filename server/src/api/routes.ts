@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import type { Category } from './types.js';
 import type { Ctx } from '../context.js';
 import { VERSION } from '../context.js';
+import { readApkInfo } from '../routes/download.js';
 import { ApiException, preconditionFailed, validation, notFound } from '../lib/errors.js';
 import { isLocalDate, formatInZone } from '../lib/time.js';
 import { dayNumber } from '../lib/time.js';
@@ -66,6 +67,7 @@ export function configResponse(ctx: Ctx) {
     testMode: ctx.config.testMode,
     publicUrl: ctx.config.publicUrl,
     version: ctx.overrides.version ?? VERSION,
+    apk: ctx.overrides.apk !== undefined ? ctx.overrides.apk : readApkInfo(ctx.config.dataDir),
   };
 }
 

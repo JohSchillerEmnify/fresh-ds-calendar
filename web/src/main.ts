@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { checkApk } from '@/native/apkHint';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import { applyLanguage, cachedLanguagePref } from './i18n';
@@ -43,6 +44,8 @@ async function bootstrap() {
   app.mount('#app');
   void registerServiceWorker();
   pushWidget();
+  // on start (later syncs check again through checkVersion); a browser never shows the hint
+  void checkApk(clock.config.apk);
 }
 
 void bootstrap();
