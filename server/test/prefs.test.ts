@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { makeApp, type TestApp } from './helpers.js';
+import { freeze, makeApp, type TestApp } from './helpers.js';
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -192,5 +192,19 @@ describe('prefs: Tasks filter', () => {
     expect(r.status).toBe(400);
     expect(r.body.error.code).toBe('VALIDATION_ERROR');
     expect((await t.json('GET', '/api/prefs')).body.tasksFilter).toEqual({ categories: ['a'], when: 'today' });
+  });
+});
+
+describe('GET /api/items excludeHidden (the Android widget fetches with it)', () => {
+  it('leaves out the events of calendars the person switched off, only when asked', async () => {
+    await freeze(t);
+    const cal = (await t.json('POST', '/api/__test/remote/calendars', { summary: 'Work' })).body;
+    const ev = { allDay: false, start: '2026-10-14T09:00:00+02:00', end: '2026-10-14T09:30:00+02:00' };
+    await t.json('POST', '/api/events', { ...ev, title: 'Mine' });
+    await t.json('POST', '/api/events', { ...ev, title: 'Work thing', calendarId: cal.id });
+    await t.json('PATCH', `/api/calendars/${cal.id}`, { hidden: true });
+    const titles = async (q: string) => ((await t.json('GET', `/api/items?from=2026-10-12&to=2026-10-19${q}`)).body.items as { title: string }[]).map((i) => i.title).sort();
+    expect(await titles('')).toEqual(['Mine', 'Work thing']);
+    expect(await titles('&excludeHidden=1')).toEqual(['Mine']);
   });
 });

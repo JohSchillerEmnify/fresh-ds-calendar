@@ -250,6 +250,10 @@ the client's poll stays one request when it also keeps today loaded for the Appr
 alternatives weighed: two requests per poll — breaks the polling budget; refreshing today less often — staler card).
 The response then also carries `also: { from, to }`; items present in both ranges appear once.
 
+Optional `&excludeHidden=1` leaves out the items of the calendars the signed-in person switched off (`PATCH /api/calendars/:id`).
+The web app filters hidden calendars itself, instantly; the Android widget fetches this endpoint natively, cannot see
+that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in the widget).
+
 ### Events
 
 | Method | Path | Body | Success |

@@ -2014,6 +2014,17 @@ production deps. Healthcheck: `wget -qO- http://localhost:3000/api/health`.
 
 ## 9. Owner actions
 
+- **Hidden calendars and no needless redraws (owner bug 2026-10-14).** The person's hidden calendars live on the server
+  (`prefs.json`), not in the WebView, and the native fetch is the widget's data. The fetch therefore sends
+  `excludeHidden=1` and the server drops the hidden calendars' items (the snapshot path filters them too, and the bridge
+  loads the calendar list before its first push). A widget that is redrawn without a change cross-fades in the launcher
+  and looks like flashing, so nothing redraws unchanged: the bridge pushes only when the snapshot differs apart from its
+  `generatedAt` stamp, the plugin skips the redraw for a stamp-only difference, and `WidgetRenderer.render` skips
+  `updateAppWidget` when its content key (data, auth, size, mode, day, minute) equals the last pushed one (forced by the
+  system's `onUpdate`). No timer runs faster than the web sync (30 s) and the widget's own work: the now-line moves at
+  most once a minute, only when something else triggers a draw. Alternatives weighed for hidden calendars: the native side
+  filtering by ids in the snapshot (stale until the app runs, wrong when the app is closed) lost against the server flag.
+
 ### 9.1 HTTPS (prerequisite for full PWA install and for real Google OAuth)
 
 Planned (owner decision): Let's Encrypt **DNS-01** with **Cloudflare DNS** (domain at Namecheap, nameservers moved to
