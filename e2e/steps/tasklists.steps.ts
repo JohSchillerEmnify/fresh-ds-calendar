@@ -290,3 +290,15 @@ Then('the task list {string} shows no overflow count', async function (this: Wor
   await expect(card.getByTestId('tasklist-card-more')).toHaveCount(0);
   expect(await card.innerText()).not.toMatch(/\+\d|\bmore\b/);
 });
+
+Then('the title of the task list {string} is not covered', async function (this: World, list: string) {
+  const t = this.taskCard(list).getByTestId('tasklist-card-title');
+  await expect(t).toBeVisible();
+  await t.scrollIntoViewIfNeeded();
+  // Whatever is on top at the middle of the title must belong to this list's card.
+  await expect.poll(() => t.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!top && el.closest('[data-testid="tasklist-card"]')!.contains(top);
+  })).toBe(true);
+});

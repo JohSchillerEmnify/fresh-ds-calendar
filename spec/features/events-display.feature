@@ -144,6 +144,17 @@ Feature: Displaying events in the calendar views
     Then the title of the event "Foo" is not covered
 
   @day @overlap
+  Scenario: A short task list right before an event stays readable
+    Given the calendar contains a task list "Shopping" on 2026-10-14 at 17:00 for 15 minutes with items:
+      | item  | done |
+      | Chips | no   |
+    And the calendar contains an event "Evening" on 2026-10-14 from 17:15 to 21:30
+    And the calendar contains an event "Rehearsal" on 2026-10-14 from 19:00 to 22:00
+    When I open the day view for 2026-10-14
+    Then the title of the task list "Shopping" is not covered
+    And the title of the event "Evening" is not covered
+
+  @day @overlap
   Scenario: Back-to-back events do not count as overlapping
     Given the calendar contains an event "Gym" on 2026-10-14 from 10:00 to 11:00
     When I open the day view for 2026-10-14
