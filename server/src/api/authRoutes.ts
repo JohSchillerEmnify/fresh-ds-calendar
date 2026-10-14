@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { Ctx } from '../context.js';
+import { logEvent, subHash } from '../lib/diag.js';
 import { ApiException, validation } from '../lib/errors.js';
 import { claimLegacyToken, hasCalendarScope, writeUserToken } from '../auth/people.js';
 import { setSessionCookie } from '../auth/middleware.js';
@@ -12,9 +13,21 @@ const STATE_COOKIE = 'cal_oauth_state';
 /** The Android app's deep link (custom scheme on its application id); the exchange code rides on it. */
 const APP_LINK = 'lan.mordor.calendar://auth';
 
+/** The app's application id: the `package=` of the intent URL pins the launch to this app. */
+const APP_PACKAGE = 'lan.mordor.calendar';
+
 /**
- * The page the system browser lands on after an app sign-in. It opens the deep link by script and offers a button too:
- * Chrome may refuse to launch an app from a bare 302 without a user gesture. The link carries only the one-time code.
+ * The Chrome intent URL for the deep link. Chrome launches an app from a redirect that follows a user-initiated
+ * navigation (the tap on Google's consent), but blocks a script-started launch without a gesture; `package=` pins the
+ * target app and `S.browser_fallback_url` is where Chrome goes when it cannot launch (the page with the manual button).
+ */
+export function appIntentUrl(code: string, fallbackUrl: string): string {
+  return `intent://auth?code=${code}#Intent;scheme=${APP_PACKAGE};package=${APP_PACKAGE};S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+}
+
+/**
+ * The fallback page of an app sign-in, reached when the browser did not launch the app by itself. It tries the deep
+ * link by script and offers a button (a tap is a user gesture). The link carries only the one-time code.
  */
 function openAppPage(link: string): string {
   return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign-in</title>
@@ -44,14 +57,18 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
   const r = new Hono<AuthEnv>();
 
   r.get('/auth/google/start', async (c) => {
+    const started = Date.now();
     const oauth = await backend(ctx);
     // `app=1`: the Android app runs this round trip in the system browser and gets the session by exchange code
-    const state = ctx.auth.states.create(c.req.query('app') === '1');
+    const app = c.req.query('app') === '1';
+    const state = ctx.auth.states.create(app);
     setCookie(c, STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
+    logEvent('auth_flow', { step: 'start', app, durationMs: Date.now() - started });
     return c.redirect(oauth.authUrl(state), 302);
   });
 
   r.get('/auth/google/callback', async (c) => {
+    const started = Date.now();
     const oauth = await backend(ctx);
     const code = c.req.query('code');
     const state = c.req.query('state');
@@ -84,20 +101,37 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const sessionId = ctx.auth.sessions.create({ sub: who.sub, email: who.email.toLowerCase(), ...(who.name ? { name: who.name } : {}) });
     // signed in, but Google's token response (the authority, not the callback's scope query) lacks the calendar: say so instead of pretending
     const target = missing ? '/?calendar=missing' : '/';
+    logEvent('auth_flow', { step: 'callback', app: issued.app, subHash: subHash(who.sub), durationMs: Date.now() - started });
     if (issued.app) {
       // this browser must not keep the session: the app's WebView gets it by redeeming the code
       c.header('Cache-Control', 'no-store');
-      return c.html(openAppPage(`${APP_LINK}?code=${ctx.auth.exchanges.create({ sessionId, redirect: target })}`));
+      const code = ctx.auth.exchanges.create({ sessionId, redirect: target });
+      // answered at once (no page to wait on); a browser that refuses the launch lands on the fallback page
+      const origin = ctx.config.publicUrl ?? new URL(c.req.url).origin;
+      return c.redirect(appIntentUrl(code, `${origin}/api/auth/app-open?code=${code}`), 302);
     }
     setSessionCookie(ctx, c, sessionId);
     return c.redirect(target, 302);
+  });
+
+  // The fallback of the intent redirect: the manual "open the app" page, only while the code is still redeemable.
+  r.get('/auth/app-open', (c) => {
+    c.header('Cache-Control', 'no-store');
+    const code = c.req.query('code');
+    if (!code || !/^[A-Za-z0-9_-]{16,128}$/.test(code) || !ctx.auth.exchanges.has(code)) return c.html(EXCHANGE_FAILED_PAGE, 400);
+    logEvent('auth_flow', { step: 'fallback', app: true });
+    return c.html(openAppPage(`${APP_LINK}?code=${code}`));
   });
 
   // The app's WebView redeems the one-time code from the deep link and gets the normal session cookie.
   r.get('/auth/app-exchange', (c) => {
     c.header('Cache-Control', 'no-store');
     const hit = ctx.auth.exchanges.consume(c.req.query('code'));
-    if (!hit) return c.html(EXCHANGE_FAILED_PAGE, 400);
+    if (!hit) {
+      logEvent('auth_flow', { step: 'exchange_failed', app: true });
+      return c.html(EXCHANGE_FAILED_PAGE, 400);
+    }
+    logEvent('auth_flow', { step: 'exchange', app: true });
     setSessionCookie(ctx, c, hit.sessionId);
     return c.redirect(hit.redirect, 302);
   });

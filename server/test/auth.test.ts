@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { claimLegacyToken, isAllowed, mockSub, parseEmails, userDir, userTokenFile } from '../src/auth/people.js';
 import { ExchangeStore } from '../src/auth/appExchange.js';
 import { EXTEND_EVERY_MS, SESSION_TTL_MS, SessionStore } from '../src/auth/sessions.js';
+import { setDiagSink } from '../src/lib/diag.js';
 import { makeApp } from './helpers.js';
 
 describe('allow-list', () => {
@@ -229,9 +230,9 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
     const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
     const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
     const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
-    const html = await cb.text();
-    const link = /id="open-app" href="([^"]+)"/.exec(html)?.[1] ?? null;
-    return { cb, html, link, code: link ? new URL(link).searchParams.get('code') : null };
+    const location = cb.headers.get('location') ?? '';
+    const code = /^intent:\/\/auth\?code=([A-Za-z0-9_-]+)#/.exec(location)?.[1] ?? null;
+    return { cb, location, code, link: code ? `lan.mordor.calendar://auth?code=${code}` : null };
   }
 
   it('hands the session to the app through a one-time code, not to the browser', async () => {
@@ -239,8 +240,10 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
     try {
       await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
       const r = await appRoundTrip(t, 'jo@example.com');
-      expect(r.cb.status).toBe(200);
-      expect(r.link).toMatch(/^lan\.mordor\.calendar:\/\/auth\?code=[A-Za-z0-9_-]{22,}$/); // >= 128 bit
+      // an immediate 302 to a Chrome intent URL that pins the app and falls back to the manual page
+      expect(r.cb.status).toBe(302);
+      expect(r.code).toMatch(/^[A-Za-z0-9_-]{22,}$/); // >= 128 bit
+      expect(r.location).toBe(`intent://auth?code=${r.code}#Intent;scheme=lan.mordor.calendar;package=lan.mordor.calendar;S.browser_fallback_url=${encodeURIComponent(`http://localhost/api/auth/app-open?code=${r.code}`)};end`);
       expect(r.cb.headers.getSetCookie().some((c) => c.startsWith('cal_session='))).toBe(false);
       expect(r.cb.headers.get('cache-control')).toBe('no-store');
       // the WebView redeems it: session cookie + redirect to the app
@@ -251,6 +254,39 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
       expect((await t.json('GET', '/api/auth/me', undefined, { cookie: session })).body.email).toBe('jo@example.com');
       expect((await t.json('GET', items, undefined, { cookie: session })).status).toBe(200);
     } finally { t.cleanup(); }
+  });
+
+  it('serves the manual open-the-app page as the fallback, for a live code only', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const r = await appRoundTrip(t, 'jo@example.com');
+      const page = await t.req('GET', `/api/auth/app-open?code=${r.code}`);
+      expect(page.status).toBe(200);
+      expect(await page.text()).toContain(`id="open-app" href="${r.link}"`);
+      // looking at the page does not use the code up
+      expect((await t.req('GET', `/api/auth/app-exchange?code=${r.code}`)).status).toBe(302);
+      expect((await t.req('GET', `/api/auth/app-open?code=${r.code}`)).status).toBe(400);
+      expect((await t.req('GET', '/api/auth/app-open?code=nope')).status).toBe(400);
+    } finally { t.cleanup(); }
+  });
+
+  it('logs each step of the app sign-in without codes or tokens', async () => {
+    const lines: Record<string, unknown>[] = [];
+    const restore = setDiagSink((l) => lines.push(JSON.parse(l)));
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const r = await appRoundTrip(t, 'jo@example.com');
+      await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      const flow = lines.filter((l) => l.event === 'auth_flow');
+      expect(flow.map((l) => l.step)).toEqual(['start', 'callback', 'exchange', 'exchange_failed']);
+      expect(flow.every((l) => l.app === true)).toBe(true);
+      expect(flow[1]!.subHash).toMatch(/^[0-9a-f]{8}$/);
+      expect(typeof flow[1]!.durationMs).toBe('number');
+      expect(JSON.stringify(lines)).not.toContain(r.code!);
+    } finally { restore(); t.cleanup(); }
   });
 
   it('works once only, and unknown codes get a friendly page', async () => {

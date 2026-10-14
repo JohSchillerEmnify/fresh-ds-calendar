@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import androidx.browser.customtabs.CustomTabsIntent;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -56,10 +57,17 @@ public class ServerChoicePlugin extends Plugin {
         // Google refuses OAuth in a WebView: the sign-in starts in the system browser instead (see AppSignIn)
         String browser = AppSignIn.browserUrl(ServerConfig.baseUrl(getContext()), url.toString());
         if (browser != null) {
+            Uri start = Uri.parse(browser);
             try {
-                getActivity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(browser)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            } catch (ActivityNotFoundException ignored) {
-                // no browser installed: nothing can sign in
+                // a Custom Tab (the standard OAuth surface) always follows the redirect chain, and the server's final
+                // intent redirect brings the app back to the front, which closes it
+                new CustomTabsIntent.Builder().build().launchUrl(getActivity(), start);
+            } catch (ActivityNotFoundException e) {
+                try {
+                    getActivity().startActivity(new Intent(Intent.ACTION_VIEW, start).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (ActivityNotFoundException ignored) {
+                    // no browser installed: nothing can sign in
+                }
             }
             return true;
         }

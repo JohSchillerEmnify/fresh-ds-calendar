@@ -1205,7 +1205,7 @@ every option of the {string} setting shows a sample icon
 - "every option ... shows a sample": each option of that setting contains a sample event chip drawn in that style.
 - App sign-in (`signin.feature`): the "system browser" is the test's own cookie-keeping HTTP client (`request`), which runs
   `/api/auth/google/start?app=1` -> fake consent -> callback; the page is the app's WebView. "is handed a one-time code" =
-  the callback answer holds an `#open-app` link `lan.mordor.calendar://auth?code=...`; "not signed in" = that client got no
+  the callback answers 302 to an `intent://auth?code=...` URL (the deep link `lan.mordor.calendar://auth?code=...`); "not signed in" = that client got no
   `cal_session` cookie. "exchanges the code" = the page opens `/api/auth/app-exchange?code=...` (the deep link's effect);
   "is asked to sign in again" = that load answered the "expired or already used" page (HTTP 400, link to `/signin`).
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
