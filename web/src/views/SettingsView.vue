@@ -13,7 +13,7 @@ import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, NotifyPrefs, Motivation, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -80,7 +80,7 @@ function back() {
 
 // --- sections -------------------------------------------------------------------------------
 /** Every setting lives in exactly one section (ARCHITECTURE "Settings"); the desktop list links to them. */
-const SECTION_IDS = ['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'labs', 'account'] as const;
+const SECTION_IDS = ['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'notifications', 'labs', 'account'] as const;
 type SectionId = (typeof SECTION_IDS)[number];
 const sections = computed(() => SECTION_IDS.map((id) => ({ id, title: t(`settings.sections.${id}`) })));
 const title = (id: SectionId) => t(`settings.sections.${id}`);
@@ -128,6 +128,12 @@ const undatedDoneOptions = computed(() => [
 ]);
 // --- bedtime ------------------------------------------------------------------------------------
 const bt = computed(() => labs.bedtime);
+const nt = computed(() => labs.notify);
+/** Saves part of the notification preference (the whole object goes to the server, which merges it). */
+function saveNotify(p: Partial<NotifyPrefs>) {
+  if (p.morningTime !== undefined && !/^\d{2}:\d{2}$/.test(p.morningTime)) return;
+  void savePrefs({ notify: { ...nt.value, ...p } });
+}
 /** Saves part of the bedtime preference; a time field only saves a complete `HH:MM`. */
 function saveBedtime(p: Partial<BedtimePrefs>) {
   for (const v of [p.bedtime, p.wake, p.weekendBedtime, p.weekendWake]) if (v !== undefined && !/^\d{2}:\d{2}$/.test(v)) return;
@@ -270,6 +276,16 @@ async function resetDemo() {
             </template>
             <div class="row"><Select class="fw" :model-value="String(bt.reminderMinutes)" :options="reminderOptions" :label="t('bedtime.settings.reminder.label')" data-testid="settings-bedtime-reminder" @update:model-value="saveBedtime({ reminderMinutes: Number($event) })" /></div>
           </template>
+        </section>
+
+        <section id="s-notifications" class="card" data-testid="settings-section" data-section="notifications" aria-labelledby="h-notifications">
+          <h2 id="h-notifications">{{ title('notifications') }}</h2>
+          <p class="sub note" data-testid="settings-notify-hint">{{ t('settings.notifications.hint') }}</p>
+          <div class="row"><span class="lab grow">{{ t('settings.notifications.bedtime') }}</span><Switch :model-value="nt.bedtime" :label="t('settings.notifications.bedtime')" data-testid="settings-notify-bedtime" @update:model-value="saveNotify({ bedtime: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.notifications.events.label') }}</span><span class="sub">{{ t('settings.notifications.events.hint') }}</span></div><Switch :model-value="nt.events" :label="t('settings.notifications.events.label')" data-testid="settings-notify-events" @update:model-value="saveNotify({ events: $event })" /></div>
+          <div class="row"><span class="lab grow">{{ t('settings.notifications.tasklists') }}</span><Switch :model-value="nt.tasklists" :label="t('settings.notifications.tasklists')" data-testid="settings-notify-tasklists" @update:model-value="saveNotify({ tasklists: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.notifications.morning.label') }}</span><span class="sub">{{ t('settings.notifications.morning.hint') }}</span></div><Switch :model-value="nt.morning" :label="t('settings.notifications.morning.label')" data-testid="settings-notify-morning" @update:model-value="saveNotify({ morning: $event })" /></div>
+          <div v-if="nt.morning" class="row"><TextField class="grow" :model-value="nt.morningTime" type="time" :label="t('settings.notifications.morning.time')" data-testid="settings-notify-morning-time" @update:model-value="saveNotify({ morningTime: $event })" /></div>
         </section>
 
         <section id="s-labs" class="card" data-testid="settings-section" data-section="labs" aria-labelledby="h-labs">

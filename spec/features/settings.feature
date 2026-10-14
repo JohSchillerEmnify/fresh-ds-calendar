@@ -124,7 +124,7 @@ Feature: Settings
 
   Scenario: Every setting appears once, in its section
     When I open the settings
-    Then the settings sections are "Appearance, Calendar, Task lists, Focus & motivation, Motion & sound, Bedtime, Labs, Account & data"
+    Then the settings sections are "Appearance, Calendar, Task lists, Focus & motivation, Motion & sound, Bedtime, Notifications, Labs, Account & data"
     And the settings page has no theme mode or seed colour controls
 
   Scenario: The version is shown in the settings and, if I want, in the corner

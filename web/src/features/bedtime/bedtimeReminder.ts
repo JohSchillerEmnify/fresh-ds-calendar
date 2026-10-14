@@ -14,6 +14,7 @@ import { absMinutes, type BedtimeWindow } from './bedtime';
 import { useBedtimeWindows } from './useBedtime';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
+import { remindersPlugin } from '@/native/reminders';
 
 /** A reminder that is due. */
 export interface BedtimeReminder {
@@ -78,18 +79,6 @@ export function upcomingReminder(windows: readonly BedtimeWindow[], nowAbs: numb
   return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11) } : null;
 }
 
-/** The native plugin of the Android app (`android/…/notify/RemindersPlugin.java`); absent in a browser. */
-interface RemindersPlugin {
-  schedule(o: { id: string; at: number; title: string; body: string }): Promise<unknown>;
-  cancel(o: { id: string }): Promise<unknown>;
-}
-
-function remindersPlugin(): RemindersPlugin | null {
-  if (typeof window === 'undefined') return null;
-  const cap = (window as unknown as { Capacitor?: { Plugins?: { Reminders?: RemindersPlugin } } }).Capacitor;
-  return cap?.Plugins?.Reminders ?? null;
-}
-
 /** Id of the bedtime reminder in the native plugin (one pending at a time). */
 export const NATIVE_REMINDER_ID = 'bedtime';
 
@@ -143,10 +132,11 @@ export function startBedtimeReminder(): () => void {
     if (!plugin) return;
     let sent = '';
     watch(
-      () => [clock.nowTick, prefs.bedtime, windows.value, language.value] as const,
+      () => [clock.nowTick, prefs.bedtime, prefs.notify.bedtime, windows.value, language.value] as const,
       () => {
         const nowAbs = absMinutes(clock.today, clock.minutesNow);
-        const next = upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes);
+        // Settings → Notifications can keep the reminder in the app only
+        const next = prefs.notify.bedtime ? upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes) : null;
         if (!next) {
           if (sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
           sent = 'none';

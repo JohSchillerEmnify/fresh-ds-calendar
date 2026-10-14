@@ -3,13 +3,16 @@ import { ref } from 'vue';
 import { api } from '@/api/client';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
-import type { ApproachWindowHours, BedtimePrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
+import type { ApproachWindowHours, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
  * support cat, the version label in the corner (off by default), left-handed mode (off by default), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
  */
+/** The server's default `notify` preference (ARCHITECTURE "Notifications"). */
+export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' };
+
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
   const approachBar = ref(true);
@@ -30,6 +33,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const language = ref<LanguagePref>(cachedLanguagePref());
   /** Bedtime mode (night band and reminder); off until switched on in the settings. */
   const bedtime = ref<BedtimePrefs>({ ...DEFAULT_BEDTIME });
+  /** Which reminders become system notifications (like the server's default: all but the morning overview). */
+  const notify = ref<NotifyPrefs>({ ...DEFAULT_NOTIFY });
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -48,6 +53,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     tasksFilter.value = p.tasksFilter ?? tasksFilter.value;
     language.value = p.language ?? language.value;
     bedtime.value = p.bedtime ? { ...bedtime.value, ...p.bedtime } : bedtime.value;
+    notify.value = p.notify ? { ...notify.value, ...p.notify } : notify.value;
   }
 
   async function load(): Promise<void> {
@@ -61,7 +67,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
     };
     apply(p);
     try {
@@ -72,5 +78,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify, load, set };
 });

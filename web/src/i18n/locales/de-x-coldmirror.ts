@@ -64,6 +64,15 @@ export default {
       bedtime: 'Bettzeit, yo',
       labs: 'Hexenlabor',
       account: 'Konto & Daten, yo',
+      notifications: 'Benachrichtigungen, yo',
+    },
+    notifications: {
+      hint: 'In der Android-App kommen die Erinnerungen auch bei zugeklappter App, Digga. Im Browser nur in der App (da braucht es HTTPS).',
+      bedtime: 'Bettzeit-Alarm',
+      events: { label: 'Vor Terminen', hint: 'So früh wie der Hinweis bei Fokus & Motivation' },
+      tasklists: 'Vor Listen mit Uhrzeit',
+      morning: { label: 'Morgen-Überblick', hint: 'Dein Tag auf einen Blick, wann du willst', time: 'Uhrzeit vom Überblick' },
+      overview: { title: 'Dein Tag, yo', appointments: 'keine Termine | 1 Termin | {count} Termine', lists: 'keine Listen | 1 Liste | {count} Listen', first: 'zuerst: {title} {time}' },
     },
     theme: {
       label: 'Bling-Bling',

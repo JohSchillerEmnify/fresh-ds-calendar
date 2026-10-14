@@ -53,6 +53,15 @@ export default {
       motion: 'Bewegung un Ton',
       bedtime: 'Bettzeit',
       account: 'Konto un Daden',
+      notifications: 'Benachrichdigungen',
+    },
+    notifications: {
+      hint: 'In der Android-App kumma die Erinnerungen a, wenn die App zu is. Im Browser nur in der App (dafür brauchts die HTTPS-Adress).',
+      bedtime: 'Erinnerung vorm Bettgehn',
+      events: { label: 'Vor Termin', hint: 'So früh wie der Hinweis bei Fokus & Motivation' },
+      tasklists: 'Vor Listen mit Uhrzeit',
+      morning: { label: 'Überblick in der Früh', hint: 'Dei Tag auf an Blick, wann du willst', time: 'Uhrzeit vom Überblick' },
+      overview: { title: 'Dei Tag', appointments: 'ka Termin | 1 Termin | {count} Termin', lists: 'ka Listen | 1 Listn | {count} Listen', first: 'zerst: {title} {time}' },
     },
     theme: {
       label: 'Design',

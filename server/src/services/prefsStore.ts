@@ -123,6 +123,45 @@ export function parseBedtimePatch(raw: unknown): Partial<BedtimePrefs> | string 
   return out;
 }
 
+/**
+ * Which reminders reach the person as system notifications (Android app now, Web Push once HTTPS exists), ADHD-RESEARCH
+ * R32: few, chosen ones. The in-app snackbars follow their own settings and are not affected.
+ */
+export interface NotifyPrefs {
+  /** The bedtime reminder (its lead is `bedtime.reminderMinutes`). */
+  bedtime: boolean;
+  /** "Dentist starts in 10 min" before timed events (lead: the transition warning setting). */
+  events: boolean;
+  /** The same before task lists with a time. */
+  tasklists: boolean;
+  /** A morning overview of the day at `morningTime`. */
+  morning: boolean;
+  morningTime: string;
+}
+export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' };
+
+/** Checks a `notify` patch and returns the valid fields, or the message of the first problem. */
+export function parseNotifyPatch(raw: unknown): Partial<NotifyPrefs> | string {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return 'notify must be an object';
+  const b = raw as Record<string, unknown>;
+  const out: Partial<NotifyPrefs> = {};
+  for (const k of ['bedtime', 'events', 'tasklists', 'morning'] as const) {
+    if (b[k] === undefined) continue;
+    if (typeof b[k] !== 'boolean') return `notify.${k} must be a boolean`;
+    out[k] = b[k] as boolean;
+  }
+  if (b.morningTime !== undefined) {
+    if (typeof b.morningTime !== 'string' || !TIME_RE.test(b.morningTime)) return 'notify.morningTime must be HH:MM';
+    out.morningTime = b.morningTime;
+  }
+  return out;
+}
+
+function readNotify(raw: unknown): NotifyPrefs {
+  const parsed = parseNotifyPatch(raw);
+  return { ...DEFAULT_NOTIFY, ...(typeof parsed === 'string' ? {} : parsed) };
+}
+
 /** Fills a stored value up to a complete {@link BedtimePrefs}; anything invalid falls back to the default. */
 function readBedtime(raw: unknown): BedtimePrefs {
   const parsed = parseBedtimePatch(raw);
@@ -155,6 +194,8 @@ export interface Prefs {
   language: LanguagePref;
   /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
   bedtime: BedtimePrefs;
+  /** Which reminders become system notifications (ARCHITECTURE "Notifications"). */
+  notify: NotifyPrefs;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -195,6 +236,7 @@ export class PrefsStore {
       tasksFilter: toTasksFilter(p?.tasksFilter) ?? { ...DEFAULT_TASKS_FILTER, categories: [] },
       language: isLanguagePref(p?.language) ? p.language : 'auto',
       bedtime: readBedtime(p?.bedtime),
+      notify: readNotify(p?.notify),
     };
   }
 
@@ -278,8 +320,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify };
   }
 
   /**

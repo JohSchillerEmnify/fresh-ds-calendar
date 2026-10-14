@@ -67,6 +67,15 @@ export default {
       bedtime: 'Bedtime',
       labs: 'Labs',
       account: 'Account & data',
+      notifications: 'Notifications',
+    },
+    notifications: {
+      hint: 'In the Android app these reminders also arrive while the app is closed. In the browser they appear inside the app only (notifications there need the HTTPS address).',
+      bedtime: 'Bedtime reminder',
+      events: { label: 'Before appointments', hint: 'As early as the warning in Focus & motivation' },
+      tasklists: 'Before task lists with a time',
+      morning: { label: 'Morning overview', hint: 'Your day at a glance at a time you choose', time: 'Time of the overview' },
+      overview: { title: 'Your day', appointments: 'no appointments | 1 appointment | {count} appointments', lists: 'no lists | 1 list | {count} lists', first: 'first: {title} {time}' },
     },
     theme: {
       label: 'Theme',
