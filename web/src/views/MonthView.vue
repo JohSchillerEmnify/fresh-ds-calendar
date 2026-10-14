@@ -8,6 +8,8 @@ import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
 import { allotHeights, CELL_METRICS, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
+import { packWeek } from '@/lib/monthSlots';
+import type { Segment } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
 import { providePreview } from '@/composables/usePreview';
 import { monthGrid, periodTitle, toIsoDate, weekdayLabels } from '@/lib/dates';
@@ -28,15 +30,32 @@ const anchor = computed(() => props.anchor ?? cal.anchor);
 const weeks = computed(() => monthGrid(anchor.value));
 const gridEl = ref<HTMLElement | null>(null);
 const { height: gridH } = useElementSize(gridEl);
-/** Bars per week row: as many lanes as leave one entry row in every cell (`maxLanes`), the rest is reachable through the day. */
+/** Gap between two entries in a cell (px); one slot is a chip plus this gap. */
+const GAP = 2;
+/** One day's render list: an entry, or the empty space left for a bar's slot (`gap` px). */
+type Slotted = { key: string; gap: number } | { key: string; seg: Segment; h?: number };
+/** Bars per week row (as many lanes as leave one entry row in every cell, `maxLanes`; the rest is reachable through the day) and each day's nodes. */
 const rows = computed(() => {
   const cap = maxLanes(gridH.value / weeks.value.length, isPhone.value);
   return weeks.value.map((week) => {
     const dates = week.map(toIsoDate);
-    const all = barsOf(dates).filter((b) => b.lane < cap);
-    return { dates, lanes: laneCount(all), bars: all };
+    const bars = barsOf(dates).filter((b) => b.lane < cap);
+    const perDay = dates.map((d, col) => entries(d, bars.filter((b) => b.startCol <= col && col <= b.endCol).length));
+    const packed = packWeek(bars, perDay.map((l) => l.map((e) => e.span)));
+    const days = packed.map((p, col): Slotted[] => {
+      const out: Slotted[] = [];
+      let end = 0;
+      perDay[col].forEach(({ s, h }, n) => {
+        if (p.slots[n] > end) out.push({ key: `gap${n}`, gap: (p.slots[n] - end) * slotH() - GAP });
+        out.push({ key: s.item.id + s.date, seg: s, h: h === undefined ? undefined : p.spans[n] * slotH() - GAP });
+        end = p.slots[n] + p.spans[n];
+      });
+      return out;
+    });
+    return { dates, lanes: laneCount(bars), bars, days };
   });
 });
+const slotH = () => (isPhone.value ? CELL_METRICS.phone : CELL_METRICS.wide).lane;
 /** Marks the entries container `data-fade` while its content is taller than the space the cell gives it (re-measured on every update and resize). */
 const fadeObservers = new WeakMap<HTMLElement, ResizeObserver>();
 const measureFade = (el: HTMLElement) => { el.dataset.fade = el.scrollHeight > el.clientHeight + 1 ? 'true' : 'false'; };
@@ -52,20 +71,21 @@ const vFade = {
   updated: measureFade,
   unmounted(el: HTMLElement) { fadeObservers.get(el)?.disconnect(); },
 };
-/** Every entry of the day; task lists share the pixels the cell has (by need), whatever does not fit is clipped and faded by the cell. */
-function entries(date: string, lanes: number) {
+/** Every entry of the day with the slots it wants; task lists share the pixels the cell has after the day's bars (by need), whatever does not fit is clipped and faded by the cell. */
+function entries(date: string, taken: number) {
   const all = segs(date);
   const cellH = gridH.value / weeks.value.length;
   let heights: number[] = [];
   if (cellH > 0 && all.length) {
     const phone = isPhone.value;
-    const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18, gap = phone ? 2 : 3;
+    const rowH = phone ? 11 : 14, titleH = phone ? 15 : 17, extra = phone ? 3 : 5, evH = phone ? 16 : 18;
     const needOf = (s: (typeof all)[number]) => (s.item.kind === 'tasklist' ? titleH + s.item.items.filter((i) => !i.done).length * rowH + extra : evH);
     const cm = phone ? CELL_METRICS.phone : CELL_METRICS.wide;
-    const room = cellH - cm.num - cm.pad - lanes * (phone ? 18 : 22) - (all.length - 1) * gap - 2;
+    const room = cellH - cm.num - cm.pad - taken * cm.lane - (all.length - 1) * GAP - 2;
     heights = allotHeights(all.map(needOf), room, evH);
   }
-  return all.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] : undefined }));
+  // a task list card takes whole slots (at least one), so the slots below it stay in line with the bars
+  return all.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? heights[n] ?? 0 : undefined, span: s.item.kind === 'tasklist' ? Math.max(1, Math.floor(((heights[n] ?? 0) + GAP) / slotH())) : 1 }));
 }
 
 /** Empty space in a cell opens the day; on desktop a click on an entry opens the entry instead. */
@@ -87,19 +107,21 @@ function onChipsClick(e: MouseEvent, day: Date): void {
       <div v-for="w in weekdayLabels()" :key="w" class="wd" data-testid="month-weekday-header" role="columnheader">{{ w }}</div>
     </div>
     <div ref="gridEl" class="grid" :style="{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }" role="grid">
-      <div v-for="(row, wi) in rows" :key="row.dates[0]" class="week" :style="{ '--lanes': row.lanes }">
-        <div class="bars" :style="{ gridTemplateRows: `repeat(${row.lanes}, var(--lane-h))` }">
-          <EventBar v-for="b in row.bars" :key="b.item.id" :bar="b" :dates="row.dates" />
+      <div v-for="(row, wi) in rows" :key="row.dates[0]" class="week">
+        <div class="bars" :style="{ gridTemplateRows: `repeat(${row.lanes}, var(--bar-h))` }">
+          <EventBar v-for="b in row.bars" :key="b.item.id" :bar="b" :dates="row.dates" chip />
         </div>
         <div
-          v-for="day in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
+          v-for="(day, di) in weeks[wi]" :key="toIsoDate(day)" class="cell" role="gridcell" data-testid="month-cell" :data-date="toIsoDate(day)"
           :data-today="toIsoDate(day) === clock.today ? 'true' : undefined" :data-outside-month="!isSameMonth(day, anchor) ? 'true' : undefined"
           :class="{ outside: !isSameMonth(day, anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
-          <div v-if="row.lanes" class="lanes" />
           <div v-fade class="chips" data-testid="month-cell-entries" @click.capture="onChipsClick($event, day)">
-            <ItemView v-for="{ s, h } in entries(toIsoDate(day), row.lanes)" :key="s.item.id + s.date" :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
+            <template v-for="nd in row.days[di]" :key="nd.key">
+              <div v-if="'gap' in nd" class="slot-gap" :style="{ height: nd.gap + 'px' }" />
+              <ItemView v-else :segment="nd.seg" :height="nd.h" :variant="nd.seg.allDay ? 'allday' : nd.seg.item.kind === 'tasklist' ? 'card' : 'chip'" />
+            </template>
           </div>
         </div>
       </div>
@@ -116,17 +138,19 @@ function onChipsClick(e: MouseEvent, day: Date): void {
   min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 2px 2px 0; overflow: hidden;
   border-right: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
-.week { position: relative; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); --lane-h: 20px; --bar-h: 20px; grid-template-rows: minmax(0, 1fr); }
-.phone .week { --lane-h: 18px; --bar-h: 16px; }
+.week { position: relative; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); --bar-h: 18px; --pad: 4px; grid-template-rows: minmax(0, 1fr); }
+.phone .week { --bar-h: 16px; --pad: 1px; }
 .cell:nth-child(8) { border-right: 0; }
-.lanes { flex: none; height: calc(var(--lanes) * var(--lane-h)); }
+/* a gap stands in for the slots of bars on this day only; it takes no clicks, so the cell gets them */
+.slot-gap { flex: none; pointer-events: none; }
 /* bars overlay the cells just below the day number (cell padding 2/4px + number 28/20px + gap) */
 .bars { position: absolute; z-index: 2; left: 0; right: 0; top: 34px; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 2px; pointer-events: none; }
-.phone .bars { top: 22px; row-gap: 0; }
-@media (min-width: 768px) { .bars { top: 35px; } .lanes { height: calc(var(--lanes) * (var(--lane-h) + 2px)); } }
+.phone .bars { top: 22px; }
+@media (min-width: 768px) { .bars { top: 35px; } .bars :deep(.bar) { font-size: 12px; } }
 .num { align-self: center; width: 28px; height: 28px; flex: none; border-radius: 50%; font: var(--md-sys-typescale-label-large); display: flex; align-items: center; justify-content: center; }
 .outside .num { color: var(--md-sys-color-on-surface-variant); opacity: 0.55; }
 .today .num { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); opacity: 1; }
+.chips :deep(.ev.chip), .chips :deep(.ev.allday) { height: var(--bar-h); min-height: 0; }
 .chips { flex: 1 1 0; display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: hidden; }
 .chips > :deep(*) { flex: none; }
 /* what does not fit fades out at the bottom (no "+N"); the cell still opens the day */

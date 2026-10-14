@@ -40,6 +40,34 @@ Then('the event {string} is a bar in lane {int}', async function (this: World, t
   await expect(this.eventBars(title).locator('visible=true').first()).toHaveAttribute('data-lane', String(lane));
 });
 
+/** First visible chip or task list card inside the month cell of a date (never a bar: bars are drawn outside the cells). */
+const firstEntry = (w: World, date: string) =>
+  w.byTestId('month-cell', attr('data-date', date)).locator(`${tid('event-chip')}, ${tid('tasklist-card')}`).locator('visible=true').first();
+const firstBar = (w: World, title: string) => w.eventBars(title).locator('visible=true').first();
+
+Then('the first entry of the month cell of {date} is at the height of the bar {string}', async function (this: World, date: string, title: string) {
+  await expect.poll(async () => Math.abs((await box(firstEntry(this, date))).y - (await box(firstBar(this, title))).y), 'top offset in px').toBeLessThanOrEqual(3);
+});
+
+Then('the first entry of the month cell of {date} is in the slot below the bar {string}', async function (this: World, date: string, title: string) {
+  await expect.poll(async () => {
+    const [e, b] = [await box(firstEntry(this, date)), await box(firstBar(this, title))];
+    const gap = e.y - (b.y + b.height);
+    return gap >= -0.5 && gap <= e.height + 4;
+  }, 'entry top is below the bar, within one chip height + 4 px').toBe(true);
+});
+
+Then('the bar {string} has the height of the chip {string}', async function (this: World, bar: string, chip: string) {
+  await expect.poll(async () => Math.abs((await box(firstBar(this, bar))).height - (await box(this.eventChip(chip))).height), 'height difference in px').toBeLessThanOrEqual(1);
+});
+
+Then('the bar {string} shows no continuation arrows', async function (this: World, title: string) {
+  await expect(firstBar(this, title)).toBeVisible();
+  const bars = this.eventBars(title);
+  await expect(bars.locator('.arr')).toHaveCount(0);
+  expect(((await bars.allTextContents()).join('')), 'arrow text in the bar').not.toMatch(/[◂▸]/);
+});
+
 Then('I see the all-day event {string} on {date}', async function (this: World, title: string, date: string) {
   // A multi-day all-day event is drawn as a bar, not as per-day chips.
   await expect.poll(async () => (await this.eventChips(title, date).and(this.page.locator('[data-all-day="true"]')).locator('visible=true').count()) > 0 || (await this.barCovers(title, date)), `${title} on ${date}`).toBe(true);
