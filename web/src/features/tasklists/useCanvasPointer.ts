@@ -109,7 +109,8 @@ export function bindCanvasPointer(el: HTMLElement, h: CanvasPointerHooks): Dispo
   }
   /** The click that ends a drag must not tick a box or open a dialog under the finger. */
   function swallowClick(): void {
-    const off = listen(window, 'click', (e) => { e.stopPropagation(); e.preventDefault(); }, { capture: true, once: true });
+    // only a click inside the canvas is the drop's own; a tap on a control outside it (the create button) within the window is a new tap
+    const off = listen(window, 'click', (e) => { if (el.contains(e.target as Node)) { e.stopPropagation(); e.preventDefault(); } }, { capture: true, once: true });
     stopWindowClick = appTimeout(off, 400);
   }
   function startPinch(): void {
