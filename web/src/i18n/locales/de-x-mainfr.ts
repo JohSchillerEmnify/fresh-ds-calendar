@@ -80,7 +80,9 @@ export default {
       supportAlways: 'Jedes Mal',
     },
     account: {
+      androidApp: { label: 'Android-App', updateLabel: 'App aktualisiern', hint: 'Den Kalender als Android-App mit Wochen-Widget, nur im Heim-WLAN', download: 'Runnerladen' },
       signOut: 'Abmelden',
+      calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehld. Erlaub ihn un setz auf Googles Bildschirm des Häkla beim Kalender.', grant: 'Kalenderzugriff erlaubn' },
       resetDemo: { done: 'Demodaden sin widda da' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },

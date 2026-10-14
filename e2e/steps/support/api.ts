@@ -72,6 +72,8 @@ export class Api {
   chooseGoogleAccount(email: string, driveScope = true) { return this.setup('/api/__test/oauth/account', { email, driveScope }); }
   /** Google answers this person's token refresh with invalid_grant from now on. */
   revokeGoogleAccess(email: string) { return this.setup('/api/__test/oauth/revoke', { email }); }
+  /** The fake consent screen grants the calendar scope (true) or leaves the checkbox unticked (false). */
+  setCalendarGranted(granted: boolean) { return this.setup('/api/__test/oauth/calendar-access', { granted }); }
   setOutage(down: boolean) { return this.setup('/api/__test/outage', down ? { down, status: 503 } : { down }); }
 
   /**

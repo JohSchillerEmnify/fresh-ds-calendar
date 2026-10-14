@@ -604,7 +604,6 @@ the open tasks tray shows the message {string} for {string}
 the task list {string} is shown as carried over from {string}
 the task list {string} is not flagged as overdue
 the overdue label of {string} does not use the error color
-I move the task list to today
 ```
 
 - "shown as carried over from D": `tasklist-card-overdue` of the card is visible and its accessible name is
@@ -633,11 +632,18 @@ I pick {date} in the month picker
 {date} is selected in the month picker
 {date} is marked as having items in the month picker
 {date} is not marked as having items in the month picker
+I drag up and down inside the month picker
+the page is not scrolled
+the bottom bar ends at the bottom of the viewport
 ```
 
 - `I open the month picker` clicks `period-title` (it toggles the picker).
 - Density = `data-density` of `year-day[data-date]`. "selected" = `aria-selected="true"` on `picker-day`; "marked" =
   `data-has-items="true"`.
+- "I drag up and down inside the month picker": touch drag of 150 px up, then 150 px down, over the picker's grid
+  (CDP touch events; falls back to a mouse wheel on non-touch projects).
+- "the page is not scrolled": `document.scrollingElement.scrollTop === 0` and `scrollHeight <= innerHeight`.
+- "the bottom bar ends at the bottom of the viewport": `bottom-bar` bottom edge equals `innerHeight` (±1 px).
 
 ## ADHD support, settings additions
 
@@ -814,6 +820,11 @@ they see the sign-in page
 opening the week view for {date} shows the sign-in page
 the calendar data cannot be read without signing in
 they are asked to sign in with Google again
+Google's consent screen is answered without calendar access
+they are told Google Calendar access is missing
+the settings offer to grant calendar access
+they grant calendar access
+they are no longer told Google Calendar access is missing
 ```
 
 - Google is the mock provider with one calendar per person (`TEST_MODE`); "signs in with Google" completes the OAuth
@@ -821,6 +832,11 @@ they are asked to sign in with Google again
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
+- "answered without calendar access": the fake consent screen returns a token whose `scope` lacks the calendar scope
+  (the person left Google's "Google Calendar" checkbox unticked). "told ... is missing": the banner
+  `calendar-access-banner` with the button `calendar-access-grant` is visible. "the settings offer": Settings -> Account &
+  data shows `settings-calendar-access`. "they grant calendar access": the second consent screen is answered WITH the
+  calendar and the banner button is pressed; the round trip returns to the calendar.
 - "is filled with its color": the chip's computed background colour equals its `data-color` (the item colour as given, in
   both themes); its text is white or black, whichever contrasts more.
 

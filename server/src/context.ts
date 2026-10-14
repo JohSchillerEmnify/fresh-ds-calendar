@@ -52,6 +52,8 @@ export interface Ctx {
   calendarFor(sub: string | null | undefined): CalendarService;
   /** Mock calendar of one person (TEST_MODE): separate data per Google account. */
   mockFor(sub: string): MockGoogleProvider;
+  /** Drops one person's cached CalendarService and provider (and so their OAuth client, calendar list and tasks-calendar id) so the next request rebuilds them from the stored token. */
+  forgetPerson(sub: string): void;
   /** Forgets all per-person calendars (test reset). */
   resetPeople(): void;
   seed(): Promise<void>;
@@ -99,6 +101,9 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
         calendars.set(sub, (c = new CalendarService(p, settings, motivation, clock, config, prefs, sub, shared)));
       }
       return c;
+    },
+    forgetPerson(sub) {
+      calendars.delete(sub);
     },
     resetPeople() {
       calendars.clear();

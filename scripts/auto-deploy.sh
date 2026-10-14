@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy master to http://cal.mordor.local when it changes. Called by the git hooks in scripts/hooks.
+# Deploy main to http://cal.mordor.local when it changes. Called by the git hooks in scripts/hooks.
 # Runs detached, serialized (flock), skips if this commit is already deployed. Log: /tmp/calendar-autodeploy.log
 set -uo pipefail
 REPO="/home/sauron/projects/calendar"
@@ -7,8 +7,8 @@ LOG="/tmp/calendar-autodeploy.log"
 STAMP="/tmp/calendar-deployed-sha"
 
 if [ "${1:-}" != "--run" ]; then
-  # entry from a hook: only on master in the main checkout, then detach
-  [ "$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "master" ] || exit 0
+  # entry from a hook: only on main in the main checkout, then detach
+  [ "$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ] || exit 0
   [ "$(pwd -P)" = "$(cd "$REPO" && pwd -P)" ] || [ -n "${FORCE_AUTODEPLOY:-}" ] || exit 0
   nohup nice -n 19 ionice -c3 "$0" --run >>"$LOG" 2>&1 </dev/null &
   exit 0

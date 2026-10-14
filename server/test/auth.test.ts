@@ -159,3 +159,61 @@ describe('sign-in over HTTP (TEST_MODE double)', () => {
     } finally { t.cleanup(); }
   });
 });
+
+describe('calendar permission (granular consent)', () => {
+  const items = '/api/items?from=2026-10-12&to=2026-10-19';
+
+  /** The OAuth round trip as in the sign-in tests; returns the redirect target and the session cookie. */
+  async function signIn(t: ReturnType<typeof makeApp>, email: string) {
+    await t.json('POST', '/api/__test/oauth/account', { email });
+    const start = await t.req('GET', '/api/auth/google/start');
+    const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
+    const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
+    const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
+    return { location: cb.headers.get('location'), session: cb.headers.getSetCookie().find((c) => c.startsWith('cal_session='))?.split(';')[0] ?? null };
+  }
+
+  it('signs in without the calendar scope, says so, and a re-grant fixes it without a restart', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['anna@example.com'] });
+      await t.json('POST', '/api/__test/oauth/calendar-access', { granted: false });
+      const first = await signIn(t, 'anna@example.com');
+      expect(first.location).toBe('/?calendar=missing');
+      expect(first.session).not.toBeNull();
+      const token = JSON.parse(fs.readFileSync(userTokenFile(t.dir, mockSub('anna@example.com')), 'utf8'));
+      expect(token.scope).toBe('openid email https://www.googleapis.com/auth/drive.appdata'); // the Drive scope was granted, the calendar one not
+      const denied = await t.json('GET', items, undefined, { cookie: first.session! });
+      expect(denied.status).toBe(403);
+      expect(denied.body.error.code).toBe('CALENDAR_PERMISSION_MISSING');
+
+      await t.json('POST', '/api/__test/oauth/calendar-access', { granted: true });
+      const second = await signIn(t, 'anna@example.com');
+      expect(second.location).toBe('/');
+      expect(JSON.parse(fs.readFileSync(userTokenFile(t.dir, mockSub('anna@example.com')), 'utf8')).scope).toContain('auth/calendar');
+      expect((await t.json('GET', items, undefined, { cookie: second.session! })).status).toBe(200);
+    } finally { t.cleanup(); }
+  });
+
+  it('drops the cached per-person provider after sign-in and sign-out so a new token is picked up', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-forget-'));
+    try {
+      const { buildApp } = await import('../src/app.js');
+      const { loadConfig } = await import('../src/config.js');
+      const { MockGoogleProvider } = await import('../src/providers/mock/MockGoogleProvider.js');
+      const built: string[] = [];
+      const config = { ...loadConfig({ TEST_MODE: 'true', DATA_DIR: dir }), webDist: null };
+      const app = buildApp(config, { personProvider: (sub) => { built.push(sub); return new MockGoogleProvider({ dataDir: null, tz: config.tz, clock: app.ctx.clock }); } });
+      const sub = mockSub('anna@example.com');
+      app.ctx.calendarFor(sub); // no auth yet: shared calendar, nothing built
+      app.ctx.auth.on = true;
+      app.ctx.calendarFor(sub);
+      app.ctx.calendarFor(sub);
+      expect(built).toEqual([sub]);
+      app.ctx.forgetPerson(sub);
+      app.ctx.calendarFor(sub);
+      expect(built).toEqual([sub, sub]);
+      app.close();
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+});

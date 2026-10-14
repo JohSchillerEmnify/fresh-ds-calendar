@@ -3,10 +3,10 @@ import type { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError,
-  ReauthRequiredError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
+  ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
-import { getUserClient, hasUserToken } from './auth.js';
+import { calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
 
 type Api = calendar_v3.Calendar;
 type Dt = calendar_v3.Schema$EventDateTime;
@@ -17,12 +17,22 @@ export interface GoogleProviderOptions {
   ready?: () => void;
 }
 
+interface GoogleErrorBody { status?: string; errors?: { reason?: string }[]; details?: { reason?: string }[] }
+
+/** Google's 403 reasons for a token that lacks the needed scope. */
+function isInsufficientScope(body: string | GoogleErrorBody | undefined): boolean {
+  if (!body || typeof body === 'string') return false;
+  return [...(body.errors ?? []), ...(body.details ?? [])].some((x) => x.reason === 'insufficientPermissions' || x.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT');
+}
+
 /** Maps googleapis/gaxios errors to the provider error classes (ARCHITECTURE §2). */
 export function mapGoogleError(e: unknown): Error {
-  if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof ReauthRequiredError || e instanceof NotFoundError || e instanceof PreconditionFailedError) return e;
-  const err = e as { code?: number | string; status?: number; response?: { status?: number; data?: { error?: string } }; message?: string };
+  if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof ReauthRequiredError || e instanceof CalendarPermissionMissingError || e instanceof NotFoundError || e instanceof PreconditionFailedError) return e;
+  const err = e as { code?: number | string; status?: number; response?: { status?: number; data?: { error?: string | GoogleErrorBody } }; message?: string };
   // Google refuses the stored refresh token: only signing in again helps
   if (err.response?.data?.error === 'invalid_grant' || err.message === 'invalid_grant') return new ReauthRequiredError('invalid_grant');
+  // 403 because the calendar scope was not granted (not a quota or sharing problem)
+  if (isInsufficientScope(err.response?.data?.error)) return new CalendarPermissionMissingError(err.message ?? 'insufficient scope');
   const status = Number(err.response?.status ?? err.status ?? (typeof err.code === 'number' ? err.code : NaN));
   const msg = err.message ?? 'Google API error';
   if (status === 401 || status === 403 || status === 429) return new ProviderUnavailableError(msg);
@@ -184,6 +194,7 @@ export function createGoogleProvider(config: AppConfig, sub: string, fetchImplem
       if (!hasUserToken(config, sub) && !auth.credentials.refresh_token && !auth.credentials.access_token) {
         throw new ReauthRequiredError('No Google access stored for this person');
       }
+      if (calendarScopeMissing(config, sub)) throw new CalendarPermissionMissingError('Calendar scope not granted');
     },
   });
 }

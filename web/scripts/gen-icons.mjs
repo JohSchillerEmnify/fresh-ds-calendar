@@ -1,75 +1,64 @@
-// Generates placeholder PNG icons (no dependencies): blue rounded tile with a white
-// calendar glyph. Run: npm run icons -w web. Output: web/public/icons/*.png
+// Renders the app logo (web/public/icons/logo*.svg) to every PNG the app ships: PWA icons, favicon fallback, apple-touch,
+// Android launcher mipmaps and the Google consent-screen logo. Run: pnpm --filter web icons
+// Needs a Chromium binary: $CHROME, or Playwright's cache (~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome).
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import zlib from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 
-const out = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../public/icons');
-fs.mkdirSync(out, { recursive: true });
+const here = path.dirname(new URL(import.meta.url).pathname);
+const icons = path.resolve(here, '../public/icons');
+const root = path.resolve(here, '../..');
+const res = path.join(root, 'android/app/src/main/res');
+const branding = path.join(root, 'docs/branding');
+const svg = (n) => fs.readFileSync(path.join(icons, n), 'utf8');
 
-const crcTable = Array.from({ length: 256 }, (_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-const crc32 = (buf) => {
-  let c = 0xffffffff;
-  for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-};
-const chunk = (type, data) => {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const td = Buffer.concat([Buffer.from(type), data]);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
-  return Buffer.concat([len, td, crc]);
-};
-function png(size, pixel) {
-  const raw = Buffer.alloc((size * 4 + 1) * size);
-  for (let y = 0; y < size; y++) {
-    raw[y * (size * 4 + 1)] = 0;
-    for (let x = 0; x < size; x++) {
-      const [r, g, b, a] = pixel(x / size, y / size);
-      const i = y * (size * 4 + 1) + 1 + x * 4;
-      raw[i] = r; raw[i + 1] = g; raw[i + 2] = b; raw[i + 3] = a;
-    }
-  }
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; ihdr[9] = 6; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
-  return Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0)),
-  ]);
+function findChrome() {
+  if (process.env.CHROME) return process.env.CHROME;
+  const cache = path.join(os.homedir(), '.cache/ms-playwright');
+  const dir = fs.existsSync(cache) ? fs.readdirSync(cache).filter((d) => d.startsWith('chromium-')).sort().pop() : undefined;
+  if (!dir) throw new Error('no Chromium found: set CHROME=/path/to/chrome');
+  return path.join(cache, dir, 'chrome-linux64/chrome');
 }
-const BLUE = [26, 115, 232, 255], WHITE = [255, 255, 255, 255], CLEAR = [0, 0, 0, 0];
-const inRect = (x, y, x0, y0, x1, y1) => x >= x0 && x < x1 && y >= y0 && y < y1;
-// glyph drawn in a unit box; `pad` shrinks it toward the center (maskable safe zone)
-function glyph(x, y, pad) {
-  const s = 1 - 2 * pad, u = (x - pad) / s, v = (y - pad) / s;
-  if (u < 0 || u > 1 || v < 0 || v > 1) return null;
-  const page = inRect(u, v, 0.22, 0.28, 0.78, 0.8);
-  if (!page) return null;
-  if (inRect(u, v, 0.22, 0.28, 0.78, 0.4)) return WHITE; // header bar
-  if (inRect(u, v, 0.25, 0.43, 0.75, 0.77)) {
-    // grid of 3x3 day cells
-    const cu = ((u - 0.25) / 0.5) * 3, cv = ((v - 0.43) / 0.34) * 3;
-    const fu = cu % 1, fv = cv % 1;
-    return fu > 0.12 && fu < 0.88 && fv > 0.12 && fv < 0.88 ? WHITE : BLUE;
-  }
-  return WHITE;
+const chrome = findChrome();
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-icons-'));
+
+/** Screenshots `body` (HTML) at size x size with a transparent page background into `file`. */
+function shot(file, size, body) {
+  const html = path.join(tmp, 'p.html');
+  fs.writeFileSync(html, `<!doctype html><body style="margin:0;background:transparent;overflow:hidden">${body}</body>`);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const r = spawnSync(chrome, ['--headless', '--no-sandbox', '--disable-gpu', '--hide-scrollbars', '--default-background-color=00000000',
+    `--window-size=${size},${size}`, `--screenshot=${file}`, `file://${html}`], { stdio: 'ignore' });
+  if (r.status !== 0 || !fs.existsSync(file)) throw new Error(`render failed: ${file}`);
 }
-function rounded(x, y, r) {
-  const cx = Math.min(Math.max(x, r), 1 - r), cy = Math.min(Math.max(y, r), 1 - r);
-  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+const img = (src, size, extra = '') => `<img src="${src}" width="${size}" height="${size}" style="display:block;${extra}">`;
+const uri = (name) => `data:image/svg+xml;base64,${Buffer.from(svg(name)).toString('base64')}`;
+const asSvg = (s) => `data:image/svg+xml;base64,${Buffer.from(s).toString('base64')}`;
+
+// adaptive-icon foreground: maskable art without the background, shrunk into the 66/108 safe zone
+const foreground = svg('logo-maskable.svg').replace(/<rect id="bg"[^>]*\/>\n?/, '').replace('scale(.8)', 'scale(.62)');
+
+// PWA, favicon, apple-touch
+shot(path.join(icons, 'icon-192.png'), 192, img(uri('logo.svg'), 192));
+shot(path.join(icons, 'icon-512.png'), 512, img(uri('logo.svg'), 512));
+shot(path.join(icons, 'icon-maskable-512.png'), 512, img(uri('logo-maskable.svg'), 512));
+shot(path.join(icons, 'apple-touch-icon-180.png'), 180, `<div style="width:180px;height:180px;background:#1a73e8;overflow:hidden">${img(uri('logo.svg'), 214, 'margin:-17px')}</div>`);
+shot(path.join(icons, 'favicon-32.png'), 32, img(uri('logo-small.svg'), 32));
+
+// Android mipmaps (legacy square, round, adaptive foreground)
+const dens = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+for (const [d, k] of Object.entries(dens)) {
+  const dir = path.join(res, `mipmap-${d}`), l = 48 * k, f = 108 * k;
+  shot(path.join(dir, 'ic_launcher.png'), l, img(uri(l >= 96 ? 'logo.svg' : 'logo-small.svg'), l));
+  shot(path.join(dir, 'ic_launcher_round.png'), l, `<div style="width:${l}px;height:${l}px;border-radius:50%;overflow:hidden">${img(uri('logo-maskable.svg'), l)}</div>`);
+  shot(path.join(dir, 'ic_launcher_foreground.png'), f, img(asSvg(foreground), f));
 }
-const any = (pad, radius) => (x, y) => {
-  if (radius > 0 && !rounded(x, y, radius)) return CLEAR;
-  return glyph(x, y, pad) ?? BLUE;
-};
-const write = (name, size, fn) => fs.writeFileSync(path.join(out, name), png(size, fn));
-write('icon-192.png', 192, any(0, 0.18));
-write('icon-512.png', 512, any(0, 0.18));
-write('icon-maskable-512.png', 512, any(0.12, 0));
-write('apple-touch-icon-180.png', 180, any(0, 0));
-write('favicon-32.png', 32, any(0, 0.18));
-console.log('icons written to', out);
+
+// Google Cloud OAuth consent screen (120x120 is Google's recommended size)
+fs.mkdirSync(branding, { recursive: true });
+fs.copyFileSync(path.join(icons, 'logo.svg'), path.join(branding, 'logo.svg'));
+shot(path.join(branding, 'logo-120.png'), 120, img(uri('logo.svg'), 120));
+
+fs.rmSync(tmp, { recursive: true, force: true });
+console.log('icons written');

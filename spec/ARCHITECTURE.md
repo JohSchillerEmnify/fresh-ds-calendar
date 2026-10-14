@@ -429,7 +429,7 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   title that renames on tap, done count `x/y` that bumps on change, "From <day>", the collapse chevron), tags,
   "All done! 🎉" (no "Next task" hint: owner 2026-10-13, it repeated the first open item), item rows (reward
   checkbox, title that edits on tap with the animated strike-through, up/down/delete), the add field (only while
-  adding, above the footer) and one footer row (Move to today, Add item, Edit, Delete with confirmation).
+  adding, above the footer) and one footer row (Add item, Edit, Delete with confirmation; no "Move to today" — owner 2026-10-13: re-date by dragging in the calendar).
   **Collapsible** (owner 2026-10-13): the chevron `tasklist-collapse` (`aria-expanded`) hides everything below the head;
   the root carries `data-collapsed="true|false"`. The state is per list and per device (`localStorage` key
   `cal.tasklistCollapsed`, a map id → true, every access in try/catch; `features/tasklists/collapse.ts`). The expanded
@@ -455,8 +455,8 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   the FAB slides out of view while it is open.
 - **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
   text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording); mini cards
-  show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". Their expanded
-  view offers `tasklist-move-today` ("Move to today"), which PATCHes the date. Completed lists stay on their own date.
+  show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". There is no "Move to today" button (owner 2026-10-13):
+  the carry-forward already shows them on today; dragging in the calendar re-dates. Completed lists stay on their own date.
 - **Duration estimate**: task list form field (minutes), card badge `tasklist-card-estimate` `"~45 min"` /
   `"~1 h 30 min"`.
 - **Calm mode** (`html[data-calm="true"]`): collapsed cards show title and count only (no item preview, no tags),
@@ -612,7 +612,7 @@ Rules for implementers:
 | `now-marker`, `now-card`, `now-card-line`, `now-card-current`, `now-progress` | timeline (§5b) |
 | `transition-warning`, `transition-warning-dismiss` | snackbar |
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title` (finished rows), `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
-| `tasklist-card-overdue`, `tasklist-move-today`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
+| `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list additions |
 | `tasklist-estimate`, `tasklist-repeat` | task list dialog fields |
 | `reward-effect` (`data-kind`) | effect overlay elements |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
@@ -734,6 +734,11 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   `/signin` and remembers the page asked for (sessionStorage), which `/` returns to after signing in. A 401
   `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
   `/api/auth/google/start`. Settings get `settings-signout`.
+  `CALENDAR_PERMISSION_MISSING` (403) or `/?calendar=missing` shows `calendar-access-banner` (button
+  `calendar-access-grant` back to `/api/auth/google/start`, hint names the checkbox) and Settings -> Account & data
+  shows `settings-calendar-access` while it is missing. The stored scope never replaces Google's own answer: tokens
+  without a recorded scope are judged by Google's 403. Cached per-person providers (they hold the OAuth client with the
+  old access token) are dropped when the callback stores a new token and at sign-out (`ctx.forgetPerson`).
 
 ### All calendars and hiding them
 
@@ -751,6 +756,8 @@ Windows ("Animation effects" off), macOS and phones report `prefers-reduced-moti
 animation level at Reduced (no particles). Settings show a hint while the device asks for less motion and a switch
 `ignoreSystemMotion` (per person, default off) that lets the app's own level apply.
 ### Back closes overlays (owner, 2026-10-12)
+
+In the Android app the system back reaches this through the WebView history ("Android app and widget", System back).
 
 Every overlay (expanded task list, dialogs and sheets, the expanded phone tray, filter bar, month picker, create menu)
 pushes a history entry when it opens (`history.pushState` with an overlay marker, no route change) and closes on
@@ -865,8 +872,13 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   remembered per device (`localStorage` `cal.bedtimeReminded` = the night's wake-up date, plus in memory). The clock tick
   pauses while the app is hidden and the reminder is not raised while `document.hidden`; it shows when the app is visible
   again if bedtime has not started. It uses the app clock only (test clock friendly).
-  **Push later**: the reminder goes out through a list of sinks (`reminderSinks`, the snackbar is the first one); a push
-  notification registers another sink without touching the schedule logic. No push is built now.
+  The reminder goes out through a list of sinks (`reminderSinks`, the snackbar is the first one).
+  **Android notification** (owner, 2026-10-13): a sink fires only while the app is open, so inside the Android app the
+  *next* reminder (`upcomingReminder`: the first night whose bedtime minus the lead is after now) is also scheduled ahead
+  through the native plugin `Reminders.schedule({ id: 'bedtime', at, title, body })` and cancelled when bedtime mode or
+  the reminder is off; see "Android app and widget". Re-sent only when time, text or language change, so after tonight's
+  reminder time the next night is scheduled. In dynamic mode the next night uses the items loaded at that time (the next
+  open of the app corrects it). Web Push (for the PWA) still needs HTTPS and is not built.
 - **Why** (alternatives weighed): one nested `bedtime` pref object instead of ten flat prefs (one validation, one
   Settings group, one place to extend with push); naming the night by its wake-up day instead of its evening because the
   dynamic rule and the weekend rule both start from the morning; the whole fixed pair when dynamic would be later
@@ -1566,6 +1578,115 @@ decided every point below.
 - **i18n.** All new text is in `locales/<lang>/sharing.ts` (`en`, `de`, `de-x-mainfr`, `de-x-coldmirror`).
 - **UI test contract.** `tasklist-shared-badge`, `tasklist-share-person`, `tasklist-share`, `tasklist-unshare`,
   `tasklist-leave`, `category-share-person`.
+### Android app and widget (owner, 2026-10-13)
+
+An Android app that loads the LAN calendar, plus a resizable weekly home-screen widget. Code in `android/`
+(Capacitor 8, Java), `capacitor.config.ts` at the repo root, web side in `web/src/native/`. The web app's behaviour in a
+browser does not change.
+
+- **The app is a Capacitor shell, not a TWA.** `capacitor.config.ts` sets `server.url = http://cal.mordor.lan`, so the
+  WebView shows the deployed web app and updates with every deploy (no re-install). Alternatives weighed: a Trusted Web
+  Activity (Chrome Custom Tabs; needs HTTPS and a Digital Asset Links file, and the LAN deploy has no HTTPS: impossible);
+  a bundled copy of the web app (would need its own build and update path, and the API is on another origin anyway).
+  Plain HTTP is allowed for that one host only, by `res/xml/network_security_config.xml` (`cal.mordor.lan`,
+  cleartext on, every other host HTTPS-only). The Capacitor `cleartext` option is for live reload only and is not set.
+  An offline error page (`android/www/error.html`, `server.errorPath`) shows when the server is unreachable.
+  App name "Calendar", id `lan.mordor.calendar`, icons from the PWA icons (adaptive icon, the maskable glyph).
+- **Widget data: the widget calls the existing API itself, with the app's own session. No new server auth, no key.**
+  Android's `CookieManager` is app-wide and shared with the WebView, so the widget's native code (`RefreshWorker`)
+  reads the `cal_session` cookie for the server and calls `GET /api/items?from=<Monday>&to=<next Monday>`
+  (one request; task lists are in the same response). With `PROVIDER=mock` sign-in is off and no cookie is needed.
+  Refresh: a periodic WorkManager job (every 30 min, network required) plus a one-off job when a widget is added, when
+  the app finishes a sync (through the plugin, at most every 2 min), on the refresh icon, at midnight/time change.
+  Alternatives weighed: a long-lived widget API key (the owner's first choice, then replaced: a second credential to
+  issue, store and revoke), and snapshot-only (the widget would show data only as fresh as the last time the app was
+  open: a week-old view after a quiet week).
+- **The app-written snapshot stays, in a smaller role.** Each time the web app finishes a sync, and when it starts
+  (only inside Capacitor: `window.Capacitor`; `web/src/native/widgetBridge.ts` is loaded lazily, so the first-load JS
+  budget does not change), it calls the native plugin `WidgetBridge.setSnapshot({ json })`. The plugin stores the JSON
+  in SharedPreferences (`calendar_widget`) and asks the widget to redraw. The snapshot (`buildWidgetSnapshot`, a pure
+  function, `web/src/native/widgetSnapshot.ts`) holds: `v`, `generatedAt`, `language`, `dark`, the theme colours
+  (primary, onPrimary, primaryContainer, onPrimaryContainer, surface, surfaceContainer, onSurface, onSurfaceVariant,
+  outlineVariant), `weekStart`, the seven days with their events (`title`, `allDay`, `start`/`end` as `HH:mm`,
+  `color`) and today's task lists (`title`, `done`, `total`, `color`). The widget uses it for the **theme and the
+  language** (always) and as the **fallback data** when the API call fails. The week is read from the server at most
+  every 10 min for the snapshot (an extra request, only in the app).
+- **What the widget shows** (default 4x2, resizable): the week view of the app in miniature (owner, 2026-10-13: "more like
+  the actual weekly calendar view, same with the lists"). Top to bottom: the week range as the header (tap: opens
+  `/week/<Monday>`) and a refresh icon; a weekday + date row (today as a filled pill, like the app's today circle); an
+  **all-day band** (multi-day events as bars across their days in lanes, then per day the all-day events and the untimed
+  task lists, as many rows as fit with a "+N" row; the band takes at most 40 % of the free height); an **hour grid** with
+  hour lines, labels, a tinted today column and a **now line** on today; a footer "Updated HH:MM" / "Stand: HH:MM". Timed
+  events are rounded colour blocks placed and sized by start and end (title, the time when tall enough); timed task lists
+  are blocks of their estimate (30 min without one) in their category colour with a task checkbox, `done/total` and, when
+  tall enough, the names of the open items; blocks that overlap sit side by side or cascade, by a Java port of the web's
+  `packColumns` (`WeekLayout.packColumns`, same constants: 15 min start gap, depth 3). Which items go where mirrors the web
+  (`itemSegments`, `computeBars`): timed lists and events in the grid, untimed lists and all-day events in the band, events
+  of two or more days (timed ones from 24 h) as bars, an undated list nowhere, an open list from the last 30 days carried over
+  to today. The hour range is **fitted** to the earliest start and latest end of the week (whole hours, at least 6 h, within
+  0 to 24; 08 to 18 for an empty week). Colours, the entry style (solid, tinted, outline) and the corner shape follow the
+  snapshot's theme, dark or light; without a snapshot the widget follows the system and the default theme.
+  A tap on a day column (header row to the bottom) opens the app at `/day/<date>` (an intent extra the `MainActivity`
+  turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted). Which data is shown: the last fetch
+  whenever it is for the current week, else the snapshot (owner bug 2026-10-14: the snapshot is stamped when written but its
+  week may be cached up to 10 min, so "newest stamp" let stale snapshots revert the widget; a snapshot triggers a fetch at
+  most every 30 s). The snapshot as data has no timed task lists, so it is only
+  the fallback: events in the grid, today's task lists in the band.
+- **The week is one bitmap, because RemoteViews cannot do a time grid.** A widget's views are the RemoteViews subset
+  (`FrameLayout`, `LinearLayout`, `TextView`, `ImageView`, ...), placed by a layout pass: there is no absolute position, no
+  `top`/`height` in minutes, no overlap, so blocks proportional to time, placed side by side and cut at the hour range cannot
+  be built from views (a `LinearLayout` per column with spacer weights would need one view per block and per gap, a layout
+  per resize, and still no overlap or cascade). `WeekCanvas` therefore draws the whole week with `android.graphics.Canvas`
+  into an `ImageView` at the widget's real pixel size (`AppWidgetManager` options: min width/max height in portrait, max
+  width/min height in landscape; recomputed in `onAppWidgetOptionsChanged`, on every update and every data change). The
+  geometry is in dp and scaled by the density, so the picture is sharp at any size. **Size cap:** RemoteViews carry their
+  bitmaps in a Binder transaction and the system rejects a widget update above 1.5 screens of ARGB_8888 pixels
+  (`RemoteViews` "too much memory"); `WeekLayout.bitmapScale` lowers the pixels per dp, never the dp size, so the bitmap never
+  exceeds one screen of pixels (the density when it fits). The refresh icon is a real `ImageView`, and the header and the seven
+  day columns are transparent `View`s over the bitmap that carry the `PendingIntent`s (their paddings mirror the constants in
+  `WeekCanvas`). Alternatives weighed: nested `LinearLayout`s with weighted spacers (no overlap, one view per block, hits the
+  RemoteViews view-count and memory limits); a `ListView`/`RemoteViewsService` per day (a list, not a time axis); keeping the
+  old compact event-list columns (what the owner rejected). Cost: text is not selectable and does not follow the system font
+  scale (sizes are fixed dp); the picture is redrawn on every update (cheap, a few ms for a week).
+- **Failure states.** API call fails (offline, server down, HTTP error): the last data stays, the footer says when it
+  was current. HTTP 401 (session expired): the footer says "Open the app to sign in again" (tap opens the app);
+  signing in there makes the next refresh work. No snapshot and no fetched data yet: "Open the app once to load your week".
+- **Session lifetime is the trade-off.** The session cookie lives 90 days and is extended on every use (the server
+  pushes it forward at most once per hour and re-sends the cookie); the widget stores the `Set-Cookie` of its own
+  calls back into the WebView's jar, so a widget that keeps refreshing keeps the session alive. After 90 days without
+  any use (app or widget), or after signing out, the widget shows the sign-in hint until the app is opened. The cookie
+  is `HttpOnly; SameSite=Lax` and `Secure` only when `PUBLIC_URL` is https, so a native client over plain HTTP is not
+  blocked and no server security was loosened. The WebView's cookie jar is only readable by this app.
+- **System back** (owner bug, 2026-10-13): without a handler the Android back gesture finished the activity whatever was
+  open. `MainActivity` registers an `OnBackPressedCallback` (works with predictive back, target SDK 36): when the WebView
+  `canGoBack()` it calls `goBack()`, which fires `popstate`, so the overlay back-stack ("Back closes overlays") closes
+  the topmost overlay, else the router returns to the previous view; with no history left, back leaves the app as
+  before. `@capacitor/app` was not added: it would do the same with a JS listener, one more dependency in both bundles.
+- **Reminders as notifications** (`notify/`): the plugin `Reminders` stores each pending reminder in SharedPreferences
+  (`calendar_reminders`, one per id, a new one replaces it) and sets an `AlarmManager` alarm: exact while idle
+  (`USE_EXACT_ALARM`, granted to calendar apps from Android 13; `SCHEDULE_EXACT_ALARM` on 12), else inexact.
+  `ReminderReceiver` shows the notification (channel "Reminders", the moon icon; a tap opens the app) unless the app is
+  in the foreground, where the snackbar shows the same reminder. It sets the stored alarms again after a reboot or an
+  app update; a reminder whose time passed while the phone was off shows at once. The first `schedule` asks for the
+  notification permission (Android 13+); declined, the reminder is stored but not shown. The text is translated by the
+  web app (the app's language), the channel name by Android (the system language). Alternatives weighed:
+  `@capacitor/local-notifications` (a generic plugin with more surface than one reminder needs, and its own permission
+  flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
+- **Distribution: a download link.** `scripts/android-build.sh` builds a release-signed APK (key generated locally in
+  `~/.config/calendar-android/`, never in git; the build falls back to the debug key without it) and copies it to
+  `/home/sauron/projects/calendar/deploy/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
+  server serves it at `GET /app.apk` (API.md); the service worker's navigation fallback excludes `/app.apk`. The APK is
+  not part of the Docker image and is not rebuilt by a deploy.
+- **Build constraints.** minSdk 26 (Android 8, `java.time`), compile/target SDK 36. Capacitor's modules ask for Java 21;
+  `android/build.gradle` pins every module to Java 17 so JDK 17 builds them.
+- **The app's own download button.** Inside the Capacitor app the Settings row is called "Update the app" (otherwise
+  "Android app"; hidden on iOS) and loads `/app.apk`. The WebView has no download handler, so `MainActivity` sets a
+  `DownloadListener` that hands URLs of the calendar's own host to the system (`ACTION_VIEW`: the browser downloads the file and
+  shows its notification); other hosts are ignored.
+- **Tests.** No e2e scenarios: Playwright cannot drive a native widget. The snapshot builder has unit tests
+  (`web/test/widget-snapshot.test.ts`), the native splitting into days and bars that mirrors the web has JUnit tests
+  (`WeekDataTest`), the pure layout maths (column packing, hour range, bitmap scale, text colour) too (`WeekLayoutTest`,
+  `android/app/src/test`, `./gradlew testDebugUnitTest`), the download route a server test. The drawing itself is checked by eye on a device.
 
 ## 8. Configuration (env)
 
@@ -1587,7 +1708,7 @@ decided every point below.
 | `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
 | `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
 
-Deployment: `/home/sauron/docker-compose/calendar/docker-compose.yaml` (style of `filebrowser`): `build:
+Deployment: `deploy/docker-compose.yaml` in the repo (owner 2026-10-14: compose versioned with the app; `.env` and `data/` next to it, git-ignored; `~/docker-compose/calendar` symlinks to it): `build:
 /home/sauron/projects/calendar`, `container_name: calendar`, `restart: unless-stopped`, Traefik labels
 `Host(\`cal.mordor.local\`)` + `loadbalancer.server.port=3000`, `./data:/app/data`, `TZ=Europe/Berlin`,
 `PUBLIC_URL=http://cal.mordor.local`, `PROVIDER=mock`, `TEST_MODE=false`, network `proxy-network` (external).
@@ -1624,6 +1745,8 @@ Requires 9.1 for the full experience; on plain HTTP the result is only a shortcu
   these steps.) Opens standalone. To update: close and reopen the app.
 - Away from home the names do not resolve (by design: LAN only); the installed app opens its cached shell and shows the
   sync error banner.
+- **Android app with widget (plain HTTP, no PWA install needed)**: see "Android app and widget"; install from
+  `http://cal.mordor.lan/app.apk` (README "Android app").
 
 ### 9.3 Enabling real Google Calendar
 

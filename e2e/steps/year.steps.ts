@@ -110,3 +110,24 @@ Then('{date} is not marked as having items in the month picker', async function 
   await expect(pickerDay(this, date)).toBeVisible();
   await expect(pickerDay(this, date)).not.toHaveAttribute('data-has-items', 'true');
 });
+
+When('I drag up and down inside the month picker', async function (this: World) {
+  const b = await box(this.page.getByTestId('month-picker').locator('.grid'));
+  const x = b.x + b.width / 2, y = b.y + b.height / 2;
+  await touchDrag(this.page, { x, y }, { x, y: y - 150 }, { durationMs: 300 });
+  await touchDrag(this.page, { x, y: y - 150 }, { x, y }, { durationMs: 300 });
+});
+
+Then('the page is not scrolled', async function (this: World) {
+  const m = await this.page.evaluate(() => {
+    const e = document.scrollingElement!;
+    return { top: e.scrollTop, over: e.scrollHeight - window.innerHeight };
+  });
+  expect(m).toEqual({ top: 0, over: 0 });
+});
+
+Then('the bottom bar ends at the bottom of the viewport', async function (this: World) {
+  const b = await box(this.page.getByTestId('bottom-bar'));
+  const h = await this.page.evaluate(() => window.innerHeight);
+  expect(Math.abs(b.y + b.height - h)).toBeLessThanOrEqual(1);
+});

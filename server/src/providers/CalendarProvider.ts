@@ -63,6 +63,8 @@ export interface CalendarProvider {
 export class ProviderUnavailableError extends Error {}
 /** Google no longer accepts the person's refresh token (invalid_grant): they must sign in again. */
 export class ReauthRequiredError extends Error {}
+/** Google refuses calendar calls because the person did not grant the calendar scope at sign-in. */
+export class CalendarPermissionMissingError extends Error {}
 export class ProviderError extends Error {}
 export class NotFoundError extends Error {}
 export class PreconditionFailedError extends Error {}

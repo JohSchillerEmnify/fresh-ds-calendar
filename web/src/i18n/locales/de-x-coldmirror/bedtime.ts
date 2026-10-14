@@ -10,7 +10,7 @@ export default {
   sun: 'Aufstehen um {time}, fresh',
   settings: {
     on: { label: 'Bettzeit, yo', hint: 'Zeigt die Nacht im Kalender, und Fresh D. sagt vorher Bescheid, Digga' },
-    mode: { label: 'Bettzeit ist, yo', fixed: 'Feste Zeiten, Schinken!', dynamic: 'Nach meinem ersten Termin, fresh' },
+    mode: { label: 'Bettzeit ist, yo', fixed: 'Fest, Schinken!', dynamic: 'Nach Termin, fresh' },
     bedtime: 'Ab ins Bett',
     wake: 'Aufstehen, yo',
     weekend: { label: 'Am Wochenende anders, du Oberpflaume', hint: 'Für die Nächte vor Samstag und Sonntag, nicht mal Snape kontrolliert da' },

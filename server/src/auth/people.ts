@@ -33,9 +33,20 @@ export function readUserToken(dataDir: string, sub: string): string | null {
 /** The Google scope that lets the app use its own hidden Drive folder (backups, ARCHITECTURE "Backups"). */
 export const DRIVE_APPDATA_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 
-/** Stores the refresh token (0600) and, when known, the scope string Google granted with it. */
+/** The Google calendar scope; without it every calendar call is refused (Google's granular consent lets people untick it). */
+export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar';
+
+/** True when a space-separated scope string (Google's token response `scope`) includes full calendar access. */
+export const hasCalendarScope = (scope: string | null | undefined): boolean => (scope ?? '').split(/\s+/).includes(CALENDAR_SCOPE);
+
+/** The scopes Google granted with the stored token; null for tokens stored before the scope was recorded. */
+export function readUserScope(dataDir: string, sub: string): string | null {
+  return readJson<{ scope?: string }>(userTokenFile(dataDir, sub))?.scope ?? null;
+}
+
+/** Stores the refresh token (0600) together with the scopes Google granted, when known. */
 export function writeUserToken(dataDir: string, sub: string, refreshToken: string, scope?: string | null): void {
-  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken, ...(scope ? { scope } : {}) }, 0o600);
+  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken, ...(scope != null ? { scope } : {}) }, 0o600);
 }
 
 /** Whether the person's token was granted the Drive app-folder scope; tokens stored before backups existed have none. */

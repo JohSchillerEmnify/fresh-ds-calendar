@@ -127,8 +127,10 @@ export default {
     account: {
       signedIn: 'Signed in with Google',
       signOut: 'Sign out',
+      calendarAccess: { label: 'Calendar access', hint: 'Google Calendar access is missing. Grant it, and tick the calendar box on Google\'s screen.', grant: 'Grant calendar access' },
       resetDemo: { label: 'Reset demo data', hint: 'Replaces the mock calendar with fresh demo events', button: 'Reset', done: 'Demo data restored', failed: 'Could not reset demo data' },
       version: 'Version {version}',
+      androidApp: { label: 'Android app', updateLabel: 'Update the app', hint: 'Install the calendar as an Android app with a weekly home-screen widget (home Wi-Fi only)', download: 'Download' },
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },
     leftHanded: { label: 'Left-handed mode', hint: 'Mirrors the phone layout so the main controls sit under the left thumb' },

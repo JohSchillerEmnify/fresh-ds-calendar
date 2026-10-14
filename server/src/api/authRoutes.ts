@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
-import { claimLegacyToken, writeUserToken } from '../auth/people.js';
+import { claimLegacyToken, hasCalendarScope, writeUserToken } from '../auth/people.js';
 import { setSessionCookie } from '../auth/middleware.js';
 import type { OAuthBackend } from '../auth/oauth.js';
 import { SESSION_COOKIE } from '../auth/sessions.js';
@@ -46,15 +46,24 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const claimed = claimLegacyToken(ctx.config.dataDir, who.sub);
     const refresh = who.refreshToken ?? claimed;
     if (!refresh) throw validation('Google did not return a refresh token (revoke access and retry)');
+    // a response without any scope field says nothing, so it does not count as missing
+    const missing = who.scope !== null && !hasCalendarScope(who.scope);
+    // a claimed legacy token was not granted by this round trip, so its scope is unknown
+    const scope = who.refreshToken ? who.scope : null;
     if (ctx.config.provider === 'google') {
-      (await import('../providers/google/auth.js')).storeUserToken(ctx.config, who.sub, refresh, who.scope);
+      (await import('../providers/google/auth.js')).storeUserToken(ctx.config, who.sub, refresh, scope);
     } else {
-      writeUserToken(ctx.config.dataDir, who.sub, refresh, who.scope);
+      writeUserToken(ctx.config.dataDir, who.sub, refresh, scope);
+      // the mock calendar of this person stands in for Google's answer to the missing scope
+      ctx.mockFor(who.sub).setCalendarMissing(missing);
     }
+    // the cached provider still holds the old OAuth client (and its access token without the calendar scope): rebuild it
+    ctx.forgetPerson(who.sub);
     // a new or wiped server gets the person's data back from their Drive backup (never fails the sign-in)
     await ctx.backup.restoreIfEmpty(who.sub);
     setSessionCookie(ctx, c, ctx.auth.sessions.create({ sub: who.sub, email: who.email.toLowerCase(), ...(who.name ? { name: who.name } : {}) }));
-    return c.redirect('/', 302);
+    // signed in, but Google's token response (the authority, not the callback's scope query) lacks the calendar: say so instead of pretending
+    return c.redirect(missing ? '/?calendar=missing' : '/', 302);
   });
 
   // With auth off nobody signs in: answer 200 with nulls so the client can tell "off" from "signed out" (401).
@@ -66,6 +75,8 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
   });
 
   r.post('/auth/signout', (c) => {
+    const p = c.get('person');
+    if (p) ctx.forgetPerson(p.sub);
     ctx.auth.sessions.delete(getCookie(c, SESSION_COOKIE));
     deleteCookie(c, SESSION_COOKIE, { path: '/' });
     return c.body(null, 204);

@@ -213,12 +213,13 @@ describe('Google OAuth routes', () => {
     const state = new URL(res.headers.get('location')!).searchParams.get('state')!;
     return { state, cookie: `cal_oauth_state=${state}` };
   };
-  const mockGoogle = (email: string, refreshToken: string | null = 'rt-1', scope: string | null = null) =>
+  const mockGoogle = (email: string, refreshToken: string | null = 'rt-1', scope: string | null = 'openid email https://www.googleapis.com/auth/calendar') =>
     vi.spyOn(GoogleOAuth.prototype, 'exchange').mockResolvedValue({ sub: 'g-123', email, emailVerified: true, name: 'Jo', refreshToken, scope });
 
   it('start asks for sign-in scopes and binds the state to a cookie', async () => {
     const { app } = mkApp(g);
     const res = await app.request('/api/auth/google/start');
+    expect(new URL(res.headers.get('location')!).searchParams.get('include_granted_scopes')).toBe('true');
     expect(new URL(res.headers.get('location')!).searchParams.get('scope')).toBe('openid email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.appdata');
     expect(res.headers.get('set-cookie')).toMatch(/cal_oauth_state=[0-9a-f]{32}.*HttpOnly.*SameSite=Lax/i);
   });
@@ -254,7 +255,7 @@ describe('Google OAuth routes', () => {
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('/');
     const file = path.join(dir, 'users', 'g-123', 'google-token.json');
-    expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual({ refresh_token: 'rt-1' });
+    expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toEqual({ refresh_token: 'rt-1', scope: 'openid email https://www.googleapis.com/auth/calendar' });
     expect(fs.statSync(file).mode & 0o777).toBe(0o600);
     const set = res.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!;
     expect(set).toMatch(/HttpOnly/i);
@@ -285,5 +286,15 @@ describe('Google OAuth routes', () => {
     expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } })).status).toBe(302);
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'users', 'g-123', 'google-token.json'), 'utf8'))).toEqual({ refresh_token: 'old' });
     expect(fs.existsSync(path.join(dir, 'google-token.json'))).toBe(false);
+  });
+});
+
+describe('insufficient scope', () => {
+  it('maps Google 403 scope reasons to CalendarPermissionMissingError, other 403s stay unavailable', async () => {
+    const { CalendarPermissionMissingError } = await import('../src/providers/CalendarProvider.js');
+    const e = (data: unknown) => Object.assign(new Error('x'), { response: { status: 403, data: { error: data } } });
+    expect(mapGoogleError(e({ errors: [{ reason: 'insufficientPermissions' }] }))).toBeInstanceOf(CalendarPermissionMissingError);
+    expect(mapGoogleError(e({ details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }] }))).toBeInstanceOf(CalendarPermissionMissingError);
+    expect(mapGoogleError(e({ errors: [{ reason: 'rateLimitExceeded' }] }))).toBeInstanceOf(ProviderUnavailableError);
   });
 });

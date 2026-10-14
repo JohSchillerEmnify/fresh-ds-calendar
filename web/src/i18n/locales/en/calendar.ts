@@ -36,6 +36,10 @@ export default {
     message: 'Google no longer accepts your access. Sign in with Google again to see your calendar.',
     signIn: 'Sign in',
   },
+  calendarAccess: {
+    message: 'Google Calendar access was not granted, so your calendar can\'t be loaded. Sign in again and tick the box "See, edit, share, and permanently delete all the calendars you can access using Google Calendar" on Google\'s screen.',
+    grant: 'Grant calendar access',
+  },
   install: {
     button: 'Install app',
     iosHint: 'Tap Share, then Add to Home Screen',

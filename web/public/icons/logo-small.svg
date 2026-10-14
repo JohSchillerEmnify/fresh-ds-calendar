@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="t">
+  <title id="t">Calendar: Fresh D.</title>
+  <defs><clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath></defs>
+  <!-- simplified for 16-32 px: thick shapes, no lettering -->
+  <rect width="512" height="512" rx="112" fill="#1a73e8"/>
+  <rect width="512" height="116" fill="#1557b0" clip-path="url(#tile)"/>
+  <rect x="138" y="26" width="46" height="94" rx="23" fill="#fff"/>
+  <rect x="328" y="26" width="46" height="94" rx="23" fill="#fff"/>
+  <path d="M256 150C172 150 112 218 112 322C112 410 132 468 190 486Q256 502 322 486C380 468 400 410 400 322C400 218 340 150 256 150Z" fill="#d9dee6"/>
+  <ellipse cx="256" cy="312" rx="86" ry="92" fill="#f2b48c"/>
+  <path d="M172 306C186 348 222 356 256 350C290 356 326 348 340 306C352 386 310 464 256 484C202 464 160 386 172 306Z" fill="#fff"/>
+  <rect x="160" y="290" width="92" height="50" rx="18" fill="#111216"/>
+  <rect x="260" y="290" width="92" height="50" rx="18" fill="#111216"/>
+  <rect x="244" y="298" width="24" height="16" fill="#111216"/>
+  <path d="M150 262C148 196 160 146 202 140Q256 132 310 140C352 146 364 196 362 262Z" fill="#17181c"/>
+  <rect x="150" y="272" width="296" height="14" rx="7" fill="#2fa866"/>
+  <path d="M140 246H382Q444 246 448 266Q450 280 436 280H140Z" fill="#111216"/>
+</svg>

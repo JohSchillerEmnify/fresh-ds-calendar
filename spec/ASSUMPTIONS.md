@@ -613,3 +613,72 @@ spec files are named.
   last put; each person's areas stay their own.
 - **A-170 Sharing while sign-in is off**: there is no second person, so `GET /api/people` is empty and sharing answers `400`.
 
+## Android app and widget (owner, 2026-10-13)
+
+- **A-200 Shell and URL** (owner): a Capacitor Android app loading `http://cal.mordor.lan`, because a TWA needs HTTPS.
+  Cleartext only for that host (network security config). App id `lan.mordor.calendar` (my choice, the owner said
+  "e.g."), name "Calendar". If the LAN host name changes, `capacitor.config.ts` and the network security config change.
+- **A-201 Widget data** (owner, refined 2026-10-13): the widget calls `GET /api/items` itself with the app's session
+  cookie (no key); the app-written snapshot supplies theme, language and a fallback. Replaces the owner's first choice
+  (snapshot only).
+- **A-202 Which tasks** (my reading of "today's task lists"): task lists dated today in the week response. Carried-over
+  open lists from earlier days and undated lists are not shown (the widget makes no second request for
+  `/api/tasklists/open`).
+- **A-203 Multi-day events** (my choice): shown in every day column they cover; a timed event shows its time only on its
+  first day, later days show it like an all-day event.
+- **A-204 Time zone** (my choice): event times are the wall-clock times of the server's calendar zone (as the API sends
+  them); "today" and the week are the device's date. They differ only if the phone is in another zone than the server.
+- **A-205 Refresh cadence** (owner: about 30 min): WorkManager periodic, 30 min, only with a network; plus on add, on the
+  app's sync (at most every 2 min), on the refresh icon, at midnight and on time or zone change. Android may delay the
+  periodic job in Doze or battery saver.
+- **A-206 Start time in a column** (my choice): shown only when a column is at least 75 dp wide; on a default 4x2 widget
+  the columns are narrower, so rows show the colour bar and title; widening the widget shows the times.
+- **A-207 Rows per column** (my choice): as many as the height allows (about 12 dp each, at most 10), the last one "+N".
+- **A-208 No snapshot yet** (owner text, my reading): "Open the app once to load your week" shows only while there is
+  neither a snapshot nor fetched data; with sign-in off the widget can fetch without the app having run, and then shows
+  the week with the default theme.
+- **A-209 Signing** (owner: debug-signed or a local keystore): release-signed with a locally generated key
+  (`~/.config/calendar-android/`, outside git); without it the debug key is used. The key must be kept: an update over
+  an installed app needs the same key.
+- **A-210 Open from the widget** (my choice): the app navigates the WebView by loading the URL, which reloads the page
+  if the app is already open (about a second); it does not use the router.
+- **A-211 SDK level** (my choice): minSdk 26 (Android 8.0), target and compile SDK 36.
+- **A-212 `/app.apk` is public** (my choice): no sign-in needed to download it, because the APK has no secrets and the
+  route is outside `/api`; with Google sign-in on, anyone on the LAN could download the app, not use it.
+- **A-213 Widget = bitmap** (my choice): the widget draws the week as one bitmap (hour grid, blocks, bars); RemoteViews
+  cannot place views by time. Text sizes are fixed dp, not the system font scale.
+- **A-214 "Like the week view"** (my reading of "same with the lists"): the grid, the all-day band with bars, blocks in the
+  item colour, side-by-side/cascade packing (port of `packColumns`), task lists as blocks with checkbox and `done/total` and,
+  when tall enough, the open item names; the web's entry style (solid, tinted, outline) and corner shape from the snapshot.
+  Not drawn: drag, resize, glow, the "past" strike on lists, category emoji, location and description lines.
+- **A-215 Hour range** (my reading of "auto-fits, clamped (e.g. 7-22)"): the grid spans the earliest start to the latest
+  end of the week, whole hours, at least 6 h, within 0 to 24, so no item is ever cut off; 08 to 18 for a week without timed
+  items. 7 to 22 are example values, not hard limits.
+- **A-216 Band height** (my choice): the all-day band takes at most 40 % of the height below the weekday row; rows beyond
+  that become "+N" per day, bars beyond it are dropped.
+- **A-217 Tapping** (my choice): the whole day column (weekday row to the bottom) opens `/day/<date>`; there is no separate
+  tap on a block (the widget cannot know what is under a finger on a bitmap, and a day is the app's own landing for it).
+- **A-218 Carried-over lists** (my choice): open task lists from earlier days of the same week are shown on today without
+  a time like the web; lists from before this Monday are not (the widget fetches only the week, one request).
+- **A-219 Now line** (my choice): drawn at the time of the last redraw; it moves when the widget is redrawn (a data refresh
+  every 30 min, a resize, midnight), not every minute.
+- **A-220 Size cap** (my choice): the bitmap never has more pixels than the screen (the system limit is 1.5 screens); on a
+  large widget the picture is drawn at a lower resolution, not smaller.
+- **A-221 Download button in the app** (my choice): "Update the app" hands `/app.apk` to the system browser
+  (`ACTION_VIEW`) instead of using `DownloadManager`: no permission, no notification channel code, and Chrome shows progress
+  and the install prompt. Only URLs of the calendar's own host are handed over. The label switch is by `window.Capacitor`.
+
+## Missing calendar permission (owner report, 2026-10-14)
+
+- **A-240 Cause** (found): a person who ticked no calendar box got a token without the calendar scope; signing in again
+  with it stored the new token, but the running server kept the old per-person provider (old access token) until a restart.
+- **A-241 Scope source** (my choice): the token response `scope` is the authority and is stored in `google-token.json`;
+  the callback's `scope` query is ignored. Tokens stored before this have no scope and are judged by Google's 403.
+- **A-242 Still signed in** (owner instruction): a person without calendar access may sign in; the app says what is
+  missing and offers the re-grant instead of "unreachable".
+- **A-243 Status 403** (my choice): `CALENDAR_PERMISSION_MISSING` answers 403 (not 401): the session is fine, the grant is not.
+- **A-244 Re-grant** (my choice): the existing start route with `include_granted_scopes=true` and `prompt=consent`, so
+  Google shows the checkbox again; the banner and the Settings row use it.
+- **A-245 Cache** (my choice): the per-person CalendarService (and so provider, OAuth client, calendar list, tasks-calendar
+  id) is dropped after the callback stores a token and at sign-out; mock calendar data stays.
+- **A-246 Wording** (my choice): the banner quotes the start of Google's checkbox label, which Google may reword.

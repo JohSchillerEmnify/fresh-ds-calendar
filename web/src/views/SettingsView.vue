@@ -1,4 +1,9 @@
 <script setup lang="ts">
+// iPhones and iPads cannot install the Android app, so the download row is hidden there
+const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+/** Starts the APK download (`GET /app.apk`, served by the server, excluded from the service worker's fallback). */
+function downloadApk(): void { location.href = '/app.apk'; }
+import { androidAppLabelKey, isNativeApp } from '@/native/app';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
@@ -293,6 +298,7 @@ async function resetDemo() {
         <section id="s-account" class="card" data-testid="settings-section" data-section="account" aria-labelledby="h-account">
           <h2 id="h-account">{{ title('account') }}</h2>
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
+          <div v-if="auth.calendarMissing" class="row"><div class="grow"><span class="lab">{{ t('settings.account.calendarAccess.label') }}</span><span class="sub">{{ t('settings.account.calendarAccess.hint') }}</span></div><Button variant="tonal" data-testid="settings-calendar-access" @click="auth.grantCalendar()">{{ t('settings.account.calendarAccess.grant') }}</Button></div>
           <template v-if="backup.status?.available">
             <div v-if="backup.status.permission === 'missing'" class="row">
               <div class="grow" data-testid="settings-backup-status" data-state="off"><span class="lab">{{ t('backup.allow.label') }}</span><span class="sub">{{ t('backup.allow.hint') }}</span></div>
@@ -307,6 +313,7 @@ async function resetDemo() {
             </template>
           </template>
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">{{ t('settings.account.resetDemo.label') }}</span><span class="sub">{{ t('settings.account.resetDemo.hint') }}</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button></div>
+          <div v-if="!isIos" class="row"><div class="grow"><span class="lab">{{ t(androidAppLabelKey(isNativeApp())) }}</span><span class="sub">{{ t('settings.account.androidApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-android-app" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.versionCorner.label') }}</span><span class="sub">{{ t('settings.account.versionCorner.hint') }}</span></div><Switch :model-value="labs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>

@@ -1,7 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import type { OAuthBackend, OAuthResult } from '../../auth/oauth.js';
-import { DRIVE_APPDATA_SCOPE, readUserToken, writeUserToken } from '../../auth/people.js';
+import { DRIVE_APPDATA_SCOPE, hasCalendarScope, readUserScope, readUserToken, writeUserToken } from '../../auth/people.js';
 
 /** One OAuth round trip signs in (`openid email`), connects the calendar and the hidden Drive app folder (backups). */
 export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar', DRIVE_APPDATA_SCOPE];
@@ -25,11 +25,17 @@ export function getUserClient(config: Cfg, sub: string): OAuth2Client {
   return c;
 }
 
-/** Stores a person's refresh token (0600) and drops the cached client so the next call uses it. */
+/** Stores a person's refresh token and granted scopes (0600) and drops the cached client so the next call uses it. */
 export function storeUserToken(config: Cfg, sub: string, refreshToken: string, scope?: string | null): void {
   writeUserToken(config.dataDir, sub, refreshToken, scope);
   clients.delete(`${config.dataDir}\u0000${sub}`);
 }
+
+/** True only when the stored grant is known to lack the calendar scope (tokens without a recorded scope are judged by Google's answer). */
+export const calendarScopeMissing = (config: Cfg, sub: string): boolean => {
+  const scope = readUserScope(config.dataDir, sub);
+  return scope !== null && !hasCalendarScope(scope);
+};
 
 export const hasUserToken = (config: Cfg, sub: string): boolean => readUserToken(config.dataDir, sub) !== null;
 
@@ -38,7 +44,7 @@ export class GoogleOAuth implements OAuthBackend {
   constructor(private readonly config: Cfg) {}
 
   authUrl(state: string): string {
-    return newClient(this.config).generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state });
+    return newClient(this.config).generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state, include_granted_scopes: true });
   }
 
   async exchange(code: string): Promise<OAuthResult> {
