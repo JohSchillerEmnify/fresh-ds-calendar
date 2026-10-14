@@ -165,6 +165,8 @@ function fromApi(e: calendar_v3.Schema$Event, calendarId: string): GoogleEvent {
   if (e.sequence != null) ev.sequence = e.sequence;
   if (e.recurrence) ev.recurrence = e.recurrence;
   if (e.recurringEventId) ev.recurringEventId = e.recurringEventId;
+  if (e.eventType) ev.eventType = e.eventType;
+  if (e.birthdayProperties) ev.birthdayProperties = { ...e.birthdayProperties } as NonNullable<GoogleEvent['birthdayProperties']>;
   if (e.extendedProperties) {
     ev.extendedProperties = {};
     if (e.extendedProperties.private) ev.extendedProperties.private = { ...e.extendedProperties.private };

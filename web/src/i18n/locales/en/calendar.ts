@@ -68,6 +68,8 @@ export default {
   item: {
     noItems: 'No items',
     range: '{title}, {start} to {end}',
+    birthday: 'Birthday',
+    anniversary: 'Anniversary',
   },
   now: {
     label: 'Approaching',
@@ -95,6 +97,7 @@ export default {
     days: '{count} day | {count} days',
     saving: 'Saving…',
     loadFailed: 'Could not load the event',
+    readOnly: 'Comes from Google Contacts. Change it there.',
     genericError: 'Something went wrong',
     rollback: '{what} was not saved. It is back as it was.',
     fields: {

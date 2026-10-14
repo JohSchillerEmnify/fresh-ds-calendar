@@ -8,6 +8,7 @@ import { computed, ref } from 'vue';
 import { onColor } from '@/api/colors';
 import { openItem } from '@/extensions/registry';
 import { inPreview } from '@/composables/usePreview';
+import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
 import { barSegment, type Bar } from '@/lib/spans';
 import { useCalendarDrag } from './dnd';
@@ -24,7 +25,8 @@ function onDown(e: PointerEvent) {
   grab = props.dates[props.bar.startCol + i];
 }
 // a preview copy (swipe neighbour) is inert: no drag handlers
-if (!inPreview()) useCalendarDrag(root, () => barSegment(ev.value, grab), () => 'allday');
+if (!inPreview()) useCalendarDrag(root, () => barSegment(ev.value, grab), () => 'allday', () => !!ev.value.special);
+const marker = computed(() => specialMarker(ev.value));
 let dragged = false;
 function onClick(e: MouseEvent) {
   e.stopPropagation();
@@ -36,11 +38,11 @@ function onClick(e: MouseEvent) {
   <button
     ref="root" v-ripple class="bar skin" :class="{ from: bar.continuedFromPrev, next: bar.continuesToNext }" type="button" data-testid="event-bar"
     :data-event-id="ev.id" :data-title="ev.title" :data-start="bar.startDate" :data-end="bar.endDate" :data-lane="bar.lane" :data-all-day="ev.allDay"
-    :data-color="ev.color" :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`, gridRow: bar.lane + 1 }"
+    :data-color="ev.color" :data-special="ev.special" :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`, gridRow: bar.lane + 1 }"
     :aria-label="t('calendar.item.range', { title: ev.title, start: bar.startDate, end: bar.endDate })" @pointerdown.capture="onDown" @click="onClick"
   >
     <span v-if="bar.continuedFromPrev" class="arr" aria-hidden="true">◂</span>
-    <span class="title" data-testid="event-bar-title">{{ ev.title }}</span>
+    <span class="title" data-testid="event-bar-title"><span v-if="marker" data-testid="event-marker" aria-hidden="true">{{ marker }} </span>{{ ev.title }}</span>
     <span v-if="bar.continuesToNext" class="arr" aria-hidden="true">▸</span>
   </button>
 </template>

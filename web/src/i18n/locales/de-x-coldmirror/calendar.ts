@@ -70,6 +70,8 @@ export default {
   item: {
     noItems: 'Nix drin, Schinken!',
     range: '{title}, {start} bis {end}',
+    birthday: 'Geburtstag, yo',
+    anniversary: 'Jahrestag, yo',
   },
   now: {
     label: 'Gleich, yo',
@@ -97,6 +99,7 @@ export default {
     days: '{count} Tag, yo | {count} Tage, yo',
     saving: 'Speichert … Ey Mann, wo\'s mein Hörgerät?',
     loadFailed: 'Der Termin ließ sich nicht laden, Schinken!',
+    readOnly: 'Kommt aus Google Kontakte. Da ändern, Schinken!',
     genericError: 'Voldemort war\'s, nicht Fresh D.',
     rollback: '{what} wurde nicht gespeichert. Alles wieder wie vorher, Digga.',
     fields: {

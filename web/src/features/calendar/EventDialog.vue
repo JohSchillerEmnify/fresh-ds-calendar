@@ -26,6 +26,7 @@ import { calendars, loadCalendars } from './calendars';
 import { createContext } from '@/extensions/create';
 import { diffInput, formFromEvent, newForm, toInput, validate, withStart, type EventForm } from './eventForm';
 import { formatDuration } from './timeline';
+import { specialMarker } from '@/lib/items';
 import { wallMinutes } from './zone';
 import { t, type MessageKey } from '@/i18n';
 
@@ -40,6 +41,8 @@ const original = ref<CalendarEvent | null>(null);
 const loading = ref(false);
 const loadError = ref('');
 const isEdit = computed(() => !!props.id);
+/** A Google birthday entry opens as plain details: Google owns it, so there is nothing to edit or delete. */
+const special = computed(() => original.value?.special ?? null);
 
 function blank(): EventForm {
   const ctx = createContext(props.date, props.time);
@@ -173,8 +176,20 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet :open="true" :label="isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle')" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
-    <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save" @keydown.enter="enterNext">
+  <AdaptiveSheet :open="true" :label="special ? t(`calendar.item.${special}`) : isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle')" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
+    <section v-if="original && special" class="f" data-testid="event-readonly" :style="{ '--accent': original.color }">
+      <header class="hd">
+        <span class="dot" aria-hidden="true" />
+        <h2 class="t" data-testid="event-readonly-title">{{ specialMarker(original) }} {{ original.title }}</h2>
+      </header>
+      <p class="lab" data-testid="event-readonly-date">{{ t(`calendar.item.${special}`) }} · {{ original.start }}</p>
+      <p class="lab">{{ t('calendar.event.readOnly') }}</p>
+      <div class="actions">
+        <span class="sp" />
+        <Button variant="text" data-testid="event-cancel" @click="emit('close')">{{ t('calendar.actions.dismiss') }}</Button>
+      </div>
+    </section>
+    <form v-else ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />

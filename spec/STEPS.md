@@ -881,6 +881,26 @@ they hide the calendar {string} in the filter bar
   into the faded band. "shows no overflow count": no `+N` / `+k more` text and no `month-cell-more` /
   `tasklist-card-more` element.
 
+## Birthdays (`@birthdays`)
+
+```
+the Birthdays calendar has a birthday {string} on {date}
+the Birthdays calendar has an anniversary {string} on {date}
+the event {string} is marked as a birthday
+the event {string} is marked as an anniversary
+the event {string} is not marked as a birthday
+the event dialog is read-only
+the event dialog has no save or delete button
+```
+
+- "the Birthdays calendar has ...": adds Google's contacts calendar (`addressbook#contacts@group.v.calendar.google.com`,
+  read-only, colour `#9fc6e7`) on first use and inserts a yearly all-day entry with `eventType` birthday and
+  `birthdayProperties.type` birthday / anniversary, as Google makes it from a contact.
+- "is marked as a birthday / an anniversary": the first visible chip of the event has `data-special` birthday /
+  anniversary and a marker (`event-marker`) 🎂 / 💍; "is not marked": no `data-special` and no marker.
+- "the event dialog is read-only": the details view (`event-readonly`) is shown instead of the form; "no save or delete
+  button": neither `event-save` nor `event-delete` exists.
+
 ## Reduced motion override
 
 ```

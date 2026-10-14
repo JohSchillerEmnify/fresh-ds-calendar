@@ -70,6 +70,8 @@ export default {
   item: {
     noItems: 'Keine Einträge',
     range: '{title}, {start} bis {end}',
+    birthday: 'Geburtstag',
+    anniversary: 'Jahrestag',
   },
   now: {
     label: 'Gleich',
@@ -97,6 +99,7 @@ export default {
     days: '{count} Tag | {count} Tage',
     saving: 'Speichert …',
     loadFailed: 'Der Termin konnte nicht geladen werden',
+    readOnly: 'Stammt aus Google Kontakte. Dort kannst du es ändern.',
     genericError: 'Etwas ist schiefgelaufen',
     rollback: '{what} wurde nicht gespeichert. Alles ist wieder wie vorher.',
     fields: {

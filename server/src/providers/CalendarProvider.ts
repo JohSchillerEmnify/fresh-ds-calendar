@@ -9,8 +9,12 @@ export interface GoogleEvent {
   recurrence?: string[];
   /** Set on instances/exceptions of a recurring event. */
   recurringEventId?: string;
+  /** Google `eventType` (`default`, `birthday`, ...); only read, never written. */
+  eventType?: string;
+  /** Google `birthdayProperties` of a birthday event: `type` is birthday / anniversary / custom / other / self. */
+  birthdayProperties?: { type?: string; customTypeName?: string; contact?: string };
 }
-export type GoogleEventInput = Omit<GoogleEvent, 'id' | 'calendarId' | 'etag' | 'created' | 'updated' | 'status'>
+export type GoogleEventInput = Omit<GoogleEvent, 'id' | 'calendarId' | 'etag' | 'created' | 'updated' | 'status' | 'eventType' | 'birthdayProperties'>
   & { status?: GoogleEvent['status'] };
 
 /**

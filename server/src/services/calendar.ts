@@ -24,6 +24,16 @@ import { TasksCalendar } from './tasksCalendar.js';
 
 const DAY = 86_400_000;
 const CAL_TTL_MS = 30_000;
+/** Calendar id prefix of Google's contacts "Birthdays" calendar (`addressbook#contacts@group.v.calendar.google.com`). */
+const BIRTHDAY_CALENDAR_PREFIX = 'addressbook#contacts@';
+
+/** Birthday kind of a Google event: by `eventType`, or by living in the contacts Birthdays calendar; `undefined` for ordinary events. */
+function specialOf(ev: GoogleEvent): CalendarEvent['special'] {
+  if (ev.eventType !== 'birthday' && !ev.calendarId.startsWith(BIRTHDAY_CALENDAR_PREFIX)) return undefined;
+  return ev.birthdayProperties?.type === 'anniversary' ? 'anniversary' : 'birthday';
+}
+
+const readOnlyBirthday = () => validation('Birthdays are read-only');
 
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
@@ -91,11 +101,13 @@ export class CalendarService {
   }
 
   private toEvent(ev: GoogleEvent, calColor: string): CalendarEvent {
-    const colorId = ev.colorId && GOOGLE_COLORS[ev.colorId] ? ev.colorId : null;
+    const special = specialOf(ev);
+    // birthdays always use the colour of their calendar (a stray event colour would hide where they come from)
+    const colorId = !special && ev.colorId && GOOGLE_COLORS[ev.colorId] ? ev.colorId : null;
     return {
       kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '',
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
-      color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, etag: ev.etag, updated: ev.updated,
+      color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}), etag: ev.etag, updated: ev.updated,
     };
   }
 
@@ -228,6 +240,7 @@ export class CalendarService {
 
   async updateEvent(id: string, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
     const cur = await this.locateKind(id, false);
+    if (specialOf(cur)) throw readOnlyBirthday();
     const curApi = this.toEvent(cur, '');
     const m = {
       title: input.title ?? curApi.title,
@@ -253,6 +266,7 @@ export class CalendarService {
 
   async deleteEvent(id: string, ifMatch?: string): Promise<void> {
     const cur = await this.locateKind(id, false);
+    if (specialOf(cur)) throw readOnlyBirthday();
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This event was changed elsewhere. Reload it and try again.');
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
   }

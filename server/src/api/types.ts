@@ -26,6 +26,8 @@ export interface CalendarEvent {
   end: DateTime | LocalDate;
   colorId: string | null;
   color: string;
+  /** Set only on Google birthday entries (read-only): `anniversary` for a contact's anniversary, `birthday` for every other special date. */
+  special?: 'birthday' | 'anniversary';
   etag: string;
   updated: DateTime;
 }

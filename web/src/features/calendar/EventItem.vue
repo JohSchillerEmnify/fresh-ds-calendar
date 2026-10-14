@@ -11,6 +11,7 @@ import type { CalendarEvent } from '@/api/types';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { isPhone } from '@/composables/useViewport';
 import { inPreview } from '@/composables/usePreview';
+import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
@@ -18,6 +19,7 @@ import { cardClick, useCalendarDrag } from './dnd';
 import ResizeHandles from './ResizeHandles.vue';
 import { blockBudget } from './lineBudget';
 import { formatDuration } from './timeline';
+import { t } from '@/i18n';
 
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
@@ -26,7 +28,9 @@ const ui = useUiStore();
 const root = ref<HTMLElement | null>(null);
 const ev = computed(() => props.segment.item as CalendarEvent);
 // a preview copy (swipe neighbour) is inert: no drag handlers
-if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant);
+// birthdays are read-only: they do not drag
+const marker = computed(() => specialMarker(ev.value));
+if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special);
 /** Resize handles show after a release without moving (time grid blocks only). */
 const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'event' && ui.resizing.id === ev.value.id && ui.resizing.date === props.segment.date);
 
@@ -62,12 +66,12 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
   <button
     ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
-    :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-past="past || undefined" :data-current="current || undefined"
-    :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
+    :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-current="current || undefined"
+    :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
   >
     <template v-if="variant === 'dot'"><span class="dotc" /></template>
     <template v-else-if="variant === 'block'">
-      <span class="title" data-testid="event-chip-title">{{ ev.title }}</span>
+      <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
       <span v-if="showTime" class="meta">
         <span class="time" data-testid="event-chip-time">{{ timeText }}</span><span v-if="showDuration" class="dur"> · {{ duration }}</span>
       </span>
@@ -77,7 +81,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
     </template>
     <template v-else>
       <span v-if="showChipTime" class="time" data-testid="event-chip-time">{{ timeText }}</span>
-      <span class="title" data-testid="event-chip-title">{{ ev.title }}</span>
+      <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
     </template>
   </button>
 </template>
@@ -89,6 +93,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
   padding: 1px 4px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .ev[data-dragging='true'] { cursor: grabbing; }
+.mark { margin-right: 3px; font-size: 0.9em; }
 /* the handles stick out of the block: the title and meta lines clip themselves */
 .ev.resizing { position: relative; overflow: visible; }
 .ev.past { opacity: 0.62; }

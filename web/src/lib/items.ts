@@ -13,6 +13,12 @@ export function displayTitle(item: Pick<CalendarItem, 'kind' | 'title'>): string
   return item.kind === 'tasklist' && !item.title.trim() ? t('tasklist.untitled') : item.title;
 }
 
+/** Marker of a Google birthday entry (cake, ring for an anniversary); '' for every other item. */
+export function specialMarker(item: CalendarItem): string {
+  if (item.kind !== 'event' || !item.special) return '';
+  return item.special === 'anniversary' ? '💍' : '🎂';
+}
+
 export interface Segment {
   item: CalendarItem;
   /** Local date this segment is on. */
