@@ -26,14 +26,14 @@ Feature: A task list card grows in place over the calendar
       | Salt   | no   |
     And the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
 
-  Scenario: The card grows in place with the left and width of its card, over the next event
+  Scenario: The card grows in place over the full width of its day column, over the next event
     When I open the day view for 2026-10-14
     And I note where the task list cards are
     And I note where the event "Standup" is
     Then the task list card "Groceries" is still the one-row inline card of its time block
     When I tap the task list "Groceries"
     Then the task list "Groceries" is expanded over the calendar
-    And the expanded task list has the left and width of the card "Groceries"
+    And the expanded task list has the left and width of the day column of "Groceries"
     And the expanded task list items are "Milk, Eggs, Bread, Butter, Cheese, Apples, Rice, Salt"
     And the expanded task list shows the real time block of the card "Groceries" and a slimmer extension starting at its end
     And the expanded task list fits within the viewport
@@ -49,8 +49,26 @@ Feature: A task list card grows in place over the calendar
     When I open the week view for 2026-10-12
     And I tap the task list "Weekly shopping for the big family barbecue"
     Then the task list "Weekly shopping for the big family barbecue" is expanded over the calendar
-    And the expanded task list has the left and width of the card "Weekly shopping for the big family barbecue"
+    And the expanded task list has the left and width of the day column of "Weekly shopping for the big family barbecue"
     And the expanded task list shows the full title "Weekly shopping for the big family barbecue"
+
+  Scenario: A task list beside an overlapping event grows over the full column width, the event included
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 09:00 to 10:00
+    When I open the week view for 2026-10-12
+    Then the task list card "Groceries" is narrower than its day column
+    When I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+    And the expanded task list has the left and width of the day column of "Groceries"
+    And the expanded task list shows the full title "Groceries"
+    And the expanded task list overlaps the event "Abend zu zweit"
+
+  @mobile
+  Scenario: The grown card shows no scrollbars and never overflows sideways
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 09:00 to 10:00
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+    And the expanded task list has no scrollbars and no sideways overflow
 
   Scenario: The grown card is read-only in the day view too
     When I open the day view for 2026-10-14
@@ -76,6 +94,34 @@ Feature: A task list card grows in place over the calendar
     And the expanded task list has no checkboxes
     And the expanded task list fits within the viewport
 
+  @desktop
+  Scenario: A task list in the month view grows only to its content
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 21:30
+    When I open the month view for 2026-10
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+    And the expanded task list is as tall as its content
+    And the expanded task list has the left and width of the card "Groceries"
+    And the expanded task list has no time extension
+
+  @desktop
+  Scenario: The month view shows no time blocks
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 21:30
+    When I open the month view for 2026-10
+    Then the month view shows no time blocks
+    When I tap the task list "Groceries"
+    Then the month view shows no time blocks
+
+  @desktop
+  Scenario: A task list in the zoom month grows only to its content
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 21:30
+    When I open the zoom month for 2026-10-14
+    And I zoom the zoom month in until the task list items show
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+    And the expanded task list is as tall as its content
+    And the expanded task list has no time extension
+
   Scenario: Tapping an expanded task list opens the list, where items can be ticked
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
@@ -84,6 +130,23 @@ Feature: A task list card grows in place over the calendar
     When I tick the item "Eggs"
     Then the item "Eggs" is ticked
     And the task list "Groceries" shows the done count "2/8"
+
+  Scenario: Tapping the title of an expanded task list collapses it
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    And I tap the title of the expanded task list
+    Then the task list "Groceries" is collapsed
+    And no list sheet is open
+
+  Scenario: The first item is clear of the header and the card's top edge
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    Then the expanded task list has its first item below the header
+
+  Scenario: The grown card scrolls with the time grid
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    Then the expanded task list keeps its offset to the card "Groceries" when the grid scrolls by 40 px
 
   Scenario: A tap on an item row of the grown card opens the list and changes nothing
     When I open the day view for 2026-10-14

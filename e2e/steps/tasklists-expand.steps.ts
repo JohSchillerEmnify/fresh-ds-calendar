@@ -25,8 +25,9 @@ const rectOf = (l: Locator) => l.evaluate((e) => { const b = e.getBoundingClient
 const notedEvents = new WeakMap<World, Record<string, Rect>>();
 
 When('I tap the expanded task list {string}', async function (this: World, title: string) {
-  // the grown card covers the collapsed one: a tap anywhere on it
-  await grown(this, title).getByTestId('tasklist-card-grown').click();
+  // near the bottom edge of the grown card: a tap on its title row folds it back up instead
+  const card = grown(this, title).getByTestId('tasklist-card-grown');
+  await card.click({ position: { x: 6, y: (await card.boundingBox())!.height - 3 } });
 });
 
 When('I tap the item {string} of the expanded task list', async function (this: World, item: string) {
@@ -162,4 +163,73 @@ Then('the card of the task list {string} says it is expanded', async function (t
 
 Then('the card of the task list {string} says it is collapsed', async function (this: World, title: string) {
   await expect(this.taskCard(title)).toHaveAttribute('aria-expanded', 'false');
+});
+
+Then('the expanded task list is as tall as its content', async function (this: World) {
+  // the card ends right below its last item (a few px of padding), however tall the collapsed card or the cell was
+  await expect.poll(() => grown(this).evaluate((e) => {
+    const b = e.getBoundingClientRect();
+    const items = e.querySelectorAll('[data-testid="tasklist-card-item"]');
+    return Math.round(b.bottom - items[items.length - 1]!.getBoundingClientRect().bottom);
+  })).toBeLessThanOrEqual(12);
+});
+
+Then('the expanded task list has no time extension', async function (this: World) {
+  await expect(grown(this).getByTestId('tasklist-grown-ext')).toHaveCount(0);
+});
+
+Then('the month view shows no time blocks', async function (this: World) {
+  await expect(this.page.locator('[data-testid="month-view"] .block, [data-testid="zoom-timeline"]')).toHaveCount(0);
+});
+
+const columnOf = (w: World, title: string) => w.taskCard(title).locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " col ")][1]');
+
+Then('the task list card {string} is narrower than its day column', async function (this: World, title: string) {
+  const [c, col] = [await rectOf(this.taskCard(title)), await rectOf(columnOf(this, title))];
+  expect(c.width, 'side by side slot').toBeLessThan(col.width - 10);
+});
+
+Then('the expanded task list has the left and width of the day column of {string}', async function (this: World, title: string) {
+  const col = await rectOf(columnOf(this, title));
+  // inside the column's border and the block's 1 px inset
+  await expect.poll(async () => { const g = await rectOf(grown(this, title)); return Math.max(Math.abs(g.x - (col.x + 2)), Math.abs(g.right - (col.right - 1))); }).toBeLessThanOrEqual(2);
+});
+
+Then('the expanded task list has no scrollbars and no sideways overflow', async function (this: World) {
+  await expect.poll(() => grown(this).evaluate((e) => {
+    const cs = getComputedStyle(e);
+    const bar = (e as HTMLElement).offsetWidth - e.clientWidth; // a visible vertical bar takes width; overlay bars take none
+    const card = e.firstElementChild as HTMLElement;
+    return { sideways: e.scrollWidth > e.clientWidth || card.scrollWidth > card.clientWidth, bar, hidden: cs.scrollbarWidth };
+  })).toEqual(expect.objectContaining({ sideways: false, bar: 0, hidden: 'none' }));
+});
+
+When('I tap the title of the expanded task list', async function (this: World) {
+  await grown(this).getByTestId('tasklist-card-title').click();
+});
+
+Then('no list sheet is open', async function (this: World) {
+  await expect(this.page.locator(`${tid('tasklist-expanded')}:not(${attr('data-presentation', 'overlay')})`)).toHaveCount(0);
+});
+
+Then('the expanded task list has its first item below the header', async function (this: World) {
+  await expect.poll(() => grown(this).evaluate((e) => {
+    const row = e.querySelector('.row')!.getBoundingClientRect();
+    const item = e.querySelector('[data-testid="tasklist-card-item"]')!.getBoundingClientRect();
+    return item.top >= row.bottom;
+  })).toBe(true);
+});
+
+Then('the expanded task list keeps its offset to the card {string} when the grid scrolls by {int} px', async function (this: World, title: string, px: number) {
+  // measured in the same task as the scroll, before any scroll event or frame: only content that scrolls natively keeps up
+  const r = await grown(this, title).evaluate((g, { t, px }) => {
+    const card = document.querySelector(`[data-testid="tasklist-card"][data-title="${t}"]`)!;
+    const sc = document.querySelector('[data-scroll-area]') as HTMLElement;
+    const off = () => g.getBoundingClientRect().top - card.getBoundingClientRect().top;
+    const before = off(), y0 = sc.scrollTop;
+    sc.scrollTop = y0 + px;
+    return { moved: sc.scrollTop - y0, drift: Math.abs(off() - before) };
+  }, { t: title, px });
+  expect(r.moved, 'the grid scrolled').toBeGreaterThan(0);
+  expect(r.drift, 'offset to the collapsed card').toBeLessThanOrEqual(1);
 });

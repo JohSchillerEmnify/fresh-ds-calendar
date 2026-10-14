@@ -14,7 +14,7 @@
  * `open-list` (the host opens the list sheet).
  */
 import { badgeInitial } from './sharing';
-import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { t } from '@/i18n';
 import { onColor } from '@/api/colors';
@@ -41,7 +41,7 @@ const INLINE_BELOW_PX = 62;
 /** Cards narrower than this (border box) use the mini tier; about the old content-box 84 px of a full-padding card. */
 const MINI_BELOW_PX = 92;
 const props = defineProps<ItemRendererProps & { grown?: boolean; /** Where a grown card extends beyond its real time block. */ growDir?: 'down' | 'up' }>();
-const emit = defineEmits<{ open: []; el: [el: HTMLElement]; openList: [] }>();
+const emit = defineEmits<{ open: []; el: [el: HTMLElement]; openList: []; collapse: [] }>();
 const settings = useSettingsStore();
 const ui = useUiStore();
 const el = ref<HTMLElement | null>(null);
@@ -52,8 +52,18 @@ if (!inPreview() && !props.grown) useCalendarDrag(el, () => props.segment, () =>
 // Border box, not content box: the mini tier changes the card's padding, so a content-box width flips the tier it decides (a loop).
 const { width } = useElementSize(el, undefined, { box: 'border-box' });
 /** Expanded in place over the calendar (a swipe preview copy never is); tap toggles, items change only in the day view. */
-const expanded = computed(() => !props.grown && !inPreview() && ui.expandedCard?.id === props.segment.item.id && ui.expandedCard.date === props.segment.date);
+/** This very card was tapped: a view may hold the same list twice (the zoom month's chip layer and its timeline), only the tapped one grows. */
+const tapped = ref(false);
+const sameCard = (c: { id: string; date: string } | null) => !!c && c.id === props.segment.item.id && c.date === props.segment.date;
+const expanded = computed(() => !props.grown && !inPreview() && tapped.value && sameCard(ui.expandedCard));
+watch(() => ui.expandedCard, (c) => { if (!sameCard(c)) tapped.value = false; });
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
+/** A tap toggles the expansion; the card that was tapped is the one that grows. */
+function toggle() { tapped.value = true; ui.toggleCard(cardKey()); }
+/** A tap on the grown card's title row folds it back up; anywhere else on it opens the list. */
+function onGrownTap(e: MouseEvent) { if ((e.target as Element).closest('.row')) emit('collapse'); else emit('openList'); }
+/** The month (and zoom month) cell card has no time axis: grown it is a plain card as tall as its content, no real block and extension. */
+const flat = computed(() => !!props.grown && props.variant === 'card');
 onBeforeUnmount(() => { if (!inPreview() && !props.grown) ui.collapseCard(cardKey()); });
 
 const tl = computed(() => {
@@ -124,12 +134,12 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
   <button
-    ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing, grown, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'"
+    ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? emit('openList') : cardClick($event, () => ui.toggleCard(cardKey()))"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
   >
-    <template v-if="grown">
+    <template v-if="grown && !flat">
       <span class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     </template>
@@ -252,7 +262,10 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .grown > * { flex: none; }
 /* the grown card is drawn by two layers: the real time block (the normal card look) and, slimmer and lighter, the part that only
    extends it (below the real end, above the real start when it grows up); the seam between them marks the real end time */
-.tl.grown { background: transparent; border-color: transparent; box-shadow: none; animation: none; isolation: isolate; border-radius: inherit; }
+.tl.grown { min-width: 0; animation: none; isolation: isolate; border-radius: inherit; }
+.tl.grown:not(.flat) { background: transparent; border-color: transparent; box-shadow: none; }
+/* flat (month cell card): the card's own look, as tall as its content */
+.tl.grown.flat { min-height: 0; }
 .gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }
 .real {
   top: calc(-1 * var(--bw)); left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: var(--min-h, 0px);
@@ -272,9 +285,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .grown .row { align-items: flex-start; flex-wrap: wrap; }
 /* a narrow column wraps the badges below the title instead of squeezing it to a stub */
 .grown .title { flex: 1 1 10ch; min-width: min(10ch, 100%); }
-.grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; -webkit-mask-image: none; mask-image: none; }
-.grown .items { overflow: visible; }
-.grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; -webkit-mask-image: none; mask-image: none; }
+.grown .items { overflow: visible; margin-top: 4px; }
+.grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
 .grown .foot { overflow: visible; margin-top: auto; }
 
 /* card: month cell. Foot hidden, the cell is small */

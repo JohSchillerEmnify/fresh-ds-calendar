@@ -1592,6 +1592,13 @@ actually longer". Owner decisions (final):
   (`useOverlayHistory`), a change of view or date, a scroll that takes the card out of sight, a dialog or the sheet opening,
   the list being deleted, or another card growing. One at a time; `ui.expandedCard` (`{ id, date }`), never stored.
 - **Long press stays as it is**: pick up for drag, release in place shows the resize handles (`useCalendarDrag`).
+- **Fix 2026-10-14 (owner: month "wtf", narrow column, scrollbars, lag)**: a time block's grown card spans its whole day column
+  (inside the border, over side-by-side neighbours; the collapsed card keeps its slot); the real/extension layers are only for time
+  blocks. A month (and zoom month) `card` has no time axis: it grows to its content height at the cell's width, one plain card, no
+  layers (`flat`). Only the tapped card grows (the zoom month holds the same list in two layers). No scrollbars and no sideways
+  overflow (`overflow-x: hidden`, hidden bar, words wrap). A tap on the grown card's title row collapses it, anywhere else
+  opens the sheet. A time block's card is teleported into the time grid's own `.grid` (absolute, content coordinates) so the browser
+  scrolls it natively, without lag; other cards stay a fixed body overlay re-placed on scroll.
 
 **Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.toggleCard`, collapse on unmount; a
 swipe preview copy never grows). It mounts `ExpandedCard.vue` (lazy chunk), a `position: fixed` wrapper teleported to the
