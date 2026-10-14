@@ -2,7 +2,7 @@
 /**
  * Mini day timeline of one big zoom month cell: an upper band with the all-day and untimed entries (task lists as full
  * cards, so every item shows) over a time grid whose timed blocks sit at their real time and are as tall as they last. The grid
- * covers only the hours the day's items span (`timeSpan`), so the room goes to the items, not to an empty night. It measures its
+ * covers only the hours its week row's items span (`rowSpan`, passed in; else the day's own `timeSpan`), so the room goes to the items, not to an empty night. It measures its
  * own border box (its height does not depend on its content: no measuring loop) and derives the pixels per hour from it.
  */
 import { computed, ref } from 'vue';
@@ -11,11 +11,11 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { timeSpan } from './zoom';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, type Segment } from '@/lib/items';
 
-const props = defineProps<{ segments: Segment[] }>();
+const props = defineProps<{ segments: Segment[]; span?: { start: number; end: number } | null }>();
 const grid = ref<HTMLElement | null>(null);
 const { height } = useElementSize(grid, undefined, { box: 'border-box' });
 /** The minutes of the day the grid covers (a day without timed items shows the whole day). */
-const span = computed(() => timeSpan(props.segments) ?? { start: 0, end: 24 * 60 });
+const span = computed(() => props.span ?? timeSpan(props.segments) ?? { start: 0, end: 24 * 60 });
 const hours = computed(() => Array.from({ length: (span.value.end - span.value.start) / 60 }, (_, i) => i));
 /** Pixels per hour of the grid (an unmeasured grid counts as 1 so nothing divides by zero). */
 const hh = computed(() => Math.max(1, height.value) / ((span.value.end - span.value.start) / 60));
@@ -26,7 +26,7 @@ const variantOf = (s: Segment) => (s.allDay ? 'allday' : s.item.kind === 'taskli
 </script>
 
 <template>
-  <div class="zt" data-testid="zoom-timeline">
+  <div class="zt" data-testid="zoom-timeline" :data-start-hour="span.start / 60">
     <div v-if="top.length" class="band">
       <div v-for="s in top" :key="s.item.id + s.date" class="row" data-zoom-nopan><ItemView :segment="s" :variant="variantOf(s)" /></div>
     </div>

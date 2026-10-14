@@ -37,11 +37,19 @@ Then('the zoom month shows no start times', async function (this: World) {
   await expect(this.byTestId('zoom-time')).toHaveCount(0);
 });
 
-/** Presses the + button until the named detail has fully faded in (the zoom steps by a quarter, so a bounded loop reaches it). */
+/**
+ * Zooms in with small Ctrl+wheel steps (about the cell of the opened day) until the named detail has fully faded in. The
+ * timeline follows only a little later, so a button step (x1.25) would jump over the window where the chips show it.
+ */
 async function zoomUntil(world: World, name: 'times' | 'lists') {
-  for (let i = 0; i < 14 && (await weight(world, name)) < 0.99; i++) {
-    await world.byTestId('zoom-in').click();
-    await expect.poll(() => zoomOf(world)).toBeGreaterThan(0);
+  for (let i = 0; i < 120 && (await weight(world, name)) < 0.99; i++) {
+    const before = await zoomOf(world);
+    await world.byTestId('zoom-cell', '[data-date="2026-10-14"]').evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      el.dispatchEvent(new WheelEvent('wheel', { deltaY: -6, ctrlKey: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true }));
+    });
+    // the step is committed a moment after the wheel event, and the detail weights follow the committed zoom
+    await expect.poll(() => zoomOf(world)).toBeGreaterThan(before);
   }
   expect(await weight(world, name)).toBeGreaterThanOrEqual(0.99);
 }
@@ -147,4 +155,46 @@ Then('the zoom month heights of {string} and {string} are proportional to their 
   const ratio = (await blockBox(this, a)).height / (await blockBox(this, b)).height;
   expect(ratio).toBeGreaterThan((255 / 180) * 0.9);
   expect(ratio).toBeLessThan((255 / 180) * 1.1);
+});
+
+/** The zoom (spec/STEPS.md "Zoom switch") at which a day cell is as wide as a 3.5th of the viewport: the cell width is viewport x zoom / 7. */
+const SWITCH_ZOOM = 7 / 3.5;
+
+When('I zoom the zoom month in until three and a half day columns fit across the screen', async function (this: World) {
+  // Ctrl+wheel at the middle of the cell of the opened date, as a trackpad pinch does
+  for (let i = 0; i < 20 && (await zoomOf(this)) < SWITCH_ZOOM - 1e-6; i++) {
+    const before = await zoomOf(this);
+    await this.byTestId('zoom-cell', '[data-date="2026-10-14"]').evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      el.dispatchEvent(new WheelEvent('wheel', { deltaY: -300, ctrlKey: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true }));
+    });
+    await expect.poll(() => zoomOf(this)).toBeGreaterThan(before);
+  }
+  expect(await zoomOf(this)).toBeGreaterThanOrEqual(SWITCH_ZOOM - 1e-6);
+  // the gesture settles: the zoom is committed (remembered) and the layers have their weights
+  await expect.poll(() => this.page.evaluate(() => Number(sessionStorage.getItem('cal.zoomMonth')))).toBeGreaterThanOrEqual(SWITCH_ZOOM - 1e-6);
+  await expect.poll(() => view(this).getAttribute('data-timeline')).toBe('1.00');
+});
+
+Then('the zoom month cells of {date} and {date} both show the timeline', async function (this: World, a: string, b: string) {
+  for (const date of [a, b]) {
+    await expect(this.byTestId('zoom-cell', `[data-date="${date}"]`).locator('[data-testid="zoom-timeline"]')).toBeVisible();
+  }
+});
+
+Then('no visible zoom month cell shows chips', async function (this: World) {
+  await expect.poll(() => this.page.evaluate(() => {
+    const port = document.querySelector('[data-testid="zoom-port"]')!.getBoundingClientRect();
+    return [...document.querySelectorAll('[data-testid="zoom-cell"]')].filter((c) => {
+      const r = c.getBoundingClientRect();
+      return r.right > port.left && r.left < port.right && r.bottom > port.top && r.top < port.bottom;
+    }).filter((c) => [...c.querySelectorAll('[data-testid="zoom-entries"]')].some((e) => Number(getComputedStyle(e).opacity) > 0.5)).length;
+  })).toBe(0);
+});
+
+Then('the timelines of {date} and {date} start at the same hour', async function (this: World, a: string, b: string) {
+  const hour = (date: string) => this.byTestId('zoom-cell', `[data-date="${date}"]`).locator('[data-testid="zoom-timeline"]').getAttribute('data-start-hour');
+  const ha = await hour(a);
+  expect(ha).not.toBeNull();
+  expect(await hour(b)).toBe(ha);
 });

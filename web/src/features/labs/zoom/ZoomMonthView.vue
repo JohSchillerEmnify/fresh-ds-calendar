@@ -22,7 +22,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { t } from '@/i18n';
 import ZoomTimeline from './ZoomTimeline.vue';
-import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, MONTH_MODEL, readStoredZoom, realTimeFits, stepZoom, writeStoredZoom } from './zoom';
+import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, MONTH_MODEL, readStoredZoom, rowSpan, stepZoom, writeStoredZoom } from './zoom';
 import { createZoomController } from './zoomGestures';
 
 const route = useRoute();
@@ -114,17 +114,10 @@ function entriesOf(date: string) {
   const hs = all.length ? allotHeights(all.map(needOf), room, evH) : [];
   return all.map((s, n) => ({ s, h: s.item.kind === 'tasklist' ? hs[n] : undefined }));
 }
-/** Whether a day's timed items fit the cell at their real time (else the compact chips); the band above the grid takes what its untimed entries need, at most 45%. */
-function realOf(date: string): boolean {
-  const all = segsOf(date);
-  const untimed = all.filter((s) => s.allDay || s.startTime === null);
-  const need = untimed.reduce((n, s) => n + (s.item.kind === 'tasklist' ? 17 + s.item.items.filter((i) => !i.done).length * 14 + 5 : 18) + 2, 0);
-  const body = cell.value.h - numPx.value - 6;
-  const band = Math.min(need, body * 0.45);
-  return realTimeFits(all, body - band - (untimed.length ? 2 : 0));
-}
-/** How much of the real-time layer a day shows: the timeline weight, but only where the day's items fit. */
-const timelineOf = (date: string): number => (realOf(date) ? detail.value.timeline : 0);
+/** The hour span of each week row (shared by its cells so side-by-side days are comparable); only worked out while the timeline shows. */
+const rowSpans = computed(() => (detail.value.timeline > 0.01 ? weeks.value.map((w) => rowSpan(w.map((d) => segsOf(toIsoDate(d))))) : []));
+/** The timeline replaces the chips for every cell alike: its weight depends on the zoom only. */
+const timelineW = computed(() => detail.value.timeline);
 const dotsOf = (date: string) => segsOf(date).slice(0, 12);
 
 const today = computed(() => clock.today);
@@ -182,7 +175,7 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
             </div>
             <template v-if="isNear(i)">
               <div
-                v-if="detail.chips > 0.01 && timelineOf(toIsoDate(day)) < 0.99" class="entries" :style="{ opacity: detail.chips * (1 - timelineOf(toIsoDate(day))) }" :class="{ off: timelineOf(toIsoDate(day)) > 0.5 }"
+                v-if="detail.chips > 0.01 && timelineW < 0.99" class="entries" :style="{ opacity: detail.chips * (1 - timelineW) }" :class="{ off: timelineW > 0.5 }"
                 data-testid="zoom-entries" @click.capture="onEntriesClick($event, day)"
               >
                 <div v-for="{ s, h } in entriesOf(toIsoDate(day))" :key="s.item.id + s.date" class="row" data-zoom-nopan>
@@ -190,8 +183,8 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
                   <ItemView :segment="s" :height="h" :variant="s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip'" />
                 </div>
               </div>
-              <div v-if="timelineOf(toIsoDate(day)) > 0.01" class="tlayer" :style="{ opacity: timelineOf(toIsoDate(day)) }" :class="{ off: timelineOf(toIsoDate(day)) < 0.5 }" @click.capture="onEntriesClick($event, day)">
-                <ZoomTimeline :segments="segsOf(toIsoDate(day))" />
+              <div v-if="timelineW > 0.01" class="tlayer" :style="{ opacity: timelineW }" :class="{ off: timelineW < 0.5 }" @click.capture="onEntriesClick($event, day)">
+                <ZoomTimeline :segments="segsOf(toIsoDate(day))" :span="rowSpans[Math.floor(i / COLS)]" />
               </div>
             </template>
           </div>

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Segment } from '@/lib/items';
 import {
   BUTTON_FACTOR, cellNear, cellSize, centerOnCell, clampPan, clampZoom, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, panAfterZoom, parseStoredZoom,
-  pinchZoom, realTimeFits, smooth, stepZoom, timeSpan,
+  pinchZoom, rowSpan, smooth, stepZoom, TIMELINE_REF, timeSpan,
 } from '@/features/labs/zoom/zoom';
 
 describe('zoom range', () => {
@@ -83,9 +83,12 @@ describe('detail thresholds', () => {
   it('shows dots in tiny cells, chips, then times, lists, and the timeline in big ones', () => {
     expect(detailAt(40, 60).level).toBe('dots');
     expect(detailAt(40, 60).dots).toBe(1);
-    expect(detailAt(130, 130).level).toBe('chips');
-    expect(detailAt(185, 185).level).toBe('times');
-    expect(detailAt(220, 220).level).toBe('lists');
+    expect(detailAt(100, 100).level).toBe('chips');
+    expect(detailAt(155, 155).level).toBe('times');
+    expect(detailAt(157, 157).times).toBe(1);
+    // the task list items are fully in while the chips still carry the cell (the timeline is less than half in)
+    expect(detailAt(158, 158).lists).toBe(1);
+    expect(detailAt(158, 158).timeline).toBeLessThan(0.5);
     expect(detailAt(450, 600).level).toBe('timeline');
     const huge = detailAt(900, 900);
     expect([huge.chips, huge.times, huge.lists, huge.timeline]).toEqual([1, 1, 1, 1]);
@@ -99,6 +102,17 @@ describe('detail thresholds', () => {
   });
   it('smooth is 0 below, 1 above and 0.5 in the middle', () => {
     expect([smooth(0, 10, 20), smooth(30, 10, 20), smooth(15, 10, 20)]).toEqual([0, 1, 0.5]);
+  });
+  it('shows the timeline fully at the owner\'s 3.5-columns-across-a-phone cell (115 x 245), not yet at half that', () => {
+    expect(detailAt(115, 245).timeline).toBe(1);
+    expect(detailAt(115, 245).level).toBe('timeline');
+    expect(detailAt(60, 130).timeline).toBe(0);
+    expect(TIMELINE_REF).toBeCloseTo(167.9, 0);
+  });
+  it('the timeline weight depends on the cell size only, so equal cells always switch alike', () => {
+    expect(detailAt(130, 200)).toEqual(detailAt(130, 200));
+    expect(detailAt(150, 180).timeline).toBeGreaterThan(0);
+    expect(detailAt(150, 180).timeline).toBeLessThan(1);
   });
   it('the largest zoom of a phone month gives the timeline, the whole month the dots', () => {
     const [vw, vh, rows] = [390, 600, 5];
@@ -115,24 +129,29 @@ const seg = (from: string | null, to = from): Segment => {
   return { allDay: from === null, startTime: from, startMin: from ? m(from) : 0, endMin: to ? m(to) : 0 } as unknown as Segment;
 };
 
-describe('real time layout threshold', () => {
+describe('time span', () => {
   const day = [seg('17:00', '17:15'), seg('17:15', '21:30'), seg('19:00', '22:00')];
   it('the time grid spans the whole hours of the timed items only', () => {
     expect(timeSpan(day)).toEqual({ start: 17 * 60, end: 22 * 60 });
     expect(timeSpan([seg(null), seg('09:20', '09:30')])).toEqual({ start: 9 * 60, end: 10 * 60 });
     expect(timeSpan([seg(null)])).toBeNull();
   });
-  it('fits when the shortest item (15 min of 5 h) gets the minimum block height, not before', () => {
-    // 5 h at 100 px/h: 15 min = 25 px = the minimum block
-    expect(realTimeFits(day, 500)).toBe(true);
-    expect(realTimeFits(day, 499)).toBe(false);
+  it('an item shorter than 15 min counts as 15 min', () => {
+    expect(timeSpan([seg('09:10', '09:10')])).toEqual({ start: 9 * 60, end: 10 * 60 });
   });
-  it('an item shorter than 15 min counts as 15 min; a day without timed items always fits', () => {
-    expect(realTimeFits([seg('09:00', '09:00')], 100)).toBe(true);
-    expect(realTimeFits([seg('09:00', '09:05')], 99)).toBe(false);
-    expect(realTimeFits([seg(null)], 0)).toBe(true);
+});
+
+describe('week row span', () => {
+  it('runs from the earliest start to the latest end over every day of the row', () => {
+    expect(rowSpan([[seg('08:00', '09:00')], [seg('17:00', '18:30')], []])).toEqual({ start: 8 * 60, end: 19 * 60 });
   });
-  it('a longer shortest item needs less room', () => {
-    expect(realTimeFits([seg('09:00', '10:00'), seg('09:00', '12:00')], 75)).toBe(true);
+  it('is at least 4 hours long', () => {
+    expect(rowSpan([[seg('09:20', '09:30')], []])).toEqual({ start: 9 * 60, end: 13 * 60 });
+  });
+  it('moves up against midnight instead of running past it', () => {
+    expect(rowSpan([[seg('22:30', '23:30')]])).toEqual({ start: 20 * 60, end: 24 * 60 });
+  });
+  it('is null for a row without timed items', () => {
+    expect(rowSpan([[seg(null)], []])).toBeNull();
   });
 });
