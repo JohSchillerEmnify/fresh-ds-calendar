@@ -2098,6 +2098,28 @@ browser does not change.
   web app (the app's language), the channel name by Android (the system language). Alternatives weighed:
   `@capacitor/local-notifications` (a generic plugin with more surface than one reminder needs, and its own permission
   flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
+- **Birthdays like Google Calendar (owner, 2026-10-14: "the birthdays are not from contacts, they are created via the
+  birthday category in Google Calendar; handle them the same way, and let me create birthdays the same way")**. Google
+  (since 2024) stores a birthday as an event with `eventType: "birthday"` in a normal calendar (usually the primary one):
+  all-day, one day, `RRULE:FREQ=YEARLY` (29 Feb: `RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1`), `visibility: private`,
+  `transparency: transparent`, `birthdayProperties.type` birthday / anniversary / custom / self, `contact` set when it
+  comes from Google Contacts. The old contacts calendar (`addressbook#contacts@…`) stays read-only as before.
+  - **Shown** as today: an all-day chip with 🎂 (💍 for an anniversary), in every view. Colour: the birthday's own colour
+    if it has one, else its calendar's (was: always the calendar's).
+  - **Editable** (in a writable calendar), as the Google API allows: name (`summary`) and colour always; the date unless
+    the birthday is linked to a contact or is the person's own (`type: self`), then the date row is read-only with the
+    hint "Change it in Google Contacts" (`birthday-date-locked`). Every change applies to the whole yearly birthday, never
+    one year (the instance's `recurringEventId` is what gets patched). No drag to move; dialog only. Only these fields
+    are sent (the API rejects other event properties on a birthday). Reminders on birthdays are left as Google has them
+    (not edited in this slice; assumption, logged).
+  - **Deletable**: deletes the whole birthday (Google: does not touch Contacts).
+  - **Create** (owner: "the same way as in Google Calendar" = Google's create menu offers "Birthday" next to "Event"):
+    the "+" menu gets "Birthday" (`create-birthday`), which opens the event dialog in birthday mode (`birthday-dialog`):
+    a name field, a date, a colour; no time, no repeat, no calendar picker. It is created in the person's primary
+    calendar with exactly the fields above (`eventType`, one-day all-day `start`/`end`, the yearly rule, private,
+    transparent, `summary`, optional `colorId`). Shared/other calendars cannot get birthdays from this app.
+  - Server: `GoogleEventInput` gains `eventType`, `recurrence`, `visibility`, `transparency` for this create only; the
+    events API takes `kind: "birthday"` on create. The mock Google enforces the same rules (rejects other properties).
 - **Reminders, several per event (owner, 2026-10-14: "remind me 1 h 30, then 30 min, then 15 min before")**. Slice 1 of 2
   (slice 2 = Web Push, see below). Owner decisions, in order:
   - **Google is the source of truth for event reminders** (owner: "careful with events we already have in Google Calendar,
