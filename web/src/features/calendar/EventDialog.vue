@@ -188,11 +188,11 @@ function remove() {
         <span>{{ t('calendar.event.fields.allDay') }}</span>
       </label>
       <div class="pair rise" style="--i: 3">
-        <TextField v-model="startDate" type="date" :label="t('calendar.event.fields.startDate')" data-testid="event-start-date" data-field="startDate" />
+        <TextField v-model="startDate" type="date" :label="t('calendar.event.fields.startDate')" data-testid="event-start-date" data-field="startDate" data-enter-skip />
         <TextField v-if="!form.allDay" v-model="startTime" type="time" :label="t('calendar.event.fields.startTime')" data-testid="event-start-time" data-field="startTime" />
       </div>
       <div class="pair rise" style="--i: 4">
-        <TextField v-model="form.endDate" type="date" :label="t('calendar.event.fields.endDate')" data-testid="event-end-date" data-field="endDate" />
+        <TextField v-model="form.endDate" type="date" :label="t('calendar.event.fields.endDate')" data-testid="event-end-date" data-field="endDate" data-enter-skip />
         <TextField v-if="!form.allDay" v-model="form.endTime" type="time" :label="t('calendar.event.fields.endTime')" data-testid="event-end-time" data-field="endTime" />
       </div>
       <Select v-model="form.calendarId" class="rise" style="--i: 5" :label="t('calendar.event.fields.calendar')" :options="calOptions" data-testid="event-calendar" />

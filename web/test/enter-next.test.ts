@@ -8,6 +8,7 @@ const Form = defineComponent({
     h('input', { id: 'a', type: 'text' }),
     h('input', { id: 'box', type: 'checkbox' }),
     h('input', { id: 'b', type: 'time', disabled: true }),
+    h('input', { id: 'skip', type: 'date', 'data-enter-skip': '' }),
     h('input', { id: 'c', type: 'date' }),
     h('textarea', { id: 'd' }),
   ]),
@@ -21,7 +22,7 @@ function press(el: Element, init: KeyboardEventInit = {}) {
 }
 
 describe('enterNext', () => {
-  it('moves focus to the next enabled text-like field, skipping checkboxes and disabled fields, and never submits', () => {
+  it('moves focus to the next enabled text-like field, skipping checkboxes, disabled and data-enter-skip fields, and never submits', () => {
     const w = mount(Form, { attachTo: document.body });
     const a = w.get('#a').element as HTMLInputElement;
     const scroll = vi.fn();

@@ -10,8 +10,8 @@ const FIELD_TYPES = new Set(['text', 'search', 'email', 'tel', 'url', 'number', 
 /** Whether `el` is a single-line field that Enter should hand over from. */
 const isSingleLine = (el: EventTarget | null): el is HTMLInputElement => el instanceof HTMLInputElement && FIELD_TYPES.has(el.type);
 
-/** Whether `el` can receive focus as the next field. */
-const isFocusable = (el: HTMLInputElement | HTMLTextAreaElement) => !el.disabled && !el.readOnly;
+/** Whether `el` can receive focus as the next field; `data-enter-skip` opts a field out (Enter passes over it). */
+const isFocusable = (el: HTMLInputElement | HTMLTextAreaElement) => !el.disabled && !el.readOnly && !el.hasAttribute('data-enter-skip');
 
 /** Keydown handler for a `<form>`: Enter in a single-line field focuses the next field instead of submitting. */
 export function enterNext(e: KeyboardEvent): void {

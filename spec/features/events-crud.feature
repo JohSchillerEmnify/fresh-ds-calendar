@@ -222,7 +222,7 @@ Feature: Creating, editing and deleting events
       | title | Dentist |
     And I press Enter in the event field "title"
     Then the event dialog is open
-    And the event field "start date" has focus
+    And the event field "start time" has focus
     And Google contains no event "Dentist"
 
   Scenario: Enter in the last single-line field moves on to the description, and Enter there adds a line
