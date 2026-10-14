@@ -734,6 +734,11 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   `/signin` and remembers the page asked for (sessionStorage), which `/` returns to after signing in. A 401
   `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
   `/api/auth/google/start`. Settings get `settings-signout`.
+  `CALENDAR_PERMISSION_MISSING` (403) or `/?calendar=missing` shows `calendar-access-banner` (button
+  `calendar-access-grant` back to `/api/auth/google/start`, hint names the checkbox) and Settings -> Account & data
+  shows `settings-calendar-access` while it is missing. The stored scope never replaces Google's own answer: tokens
+  without a recorded scope are judged by Google's 403. Cached per-person providers (they hold the OAuth client with the
+  old access token) are dropped when the callback stores a new token and at sign-out (`ctx.forgetPerson`).
 
 ### All calendars and hiding them
 
@@ -1477,8 +1482,10 @@ browser does not change.
   0 to 24; 08 to 18 for an empty week). Colours, the entry style (solid, tinted, outline) and the corner shape follow the
   snapshot's theme, dark or light; without a snapshot the widget follows the system and the default theme.
   A tap on a day column (header row to the bottom) opens the app at `/day/<date>` (an intent extra the `MainActivity`
-  turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted). Which data is shown: the newer
-  of snapshot and last fetch, if it is for the current week. The snapshot as data has no timed task lists, so it is only
+  turns into a WebView navigation; only `/day/` and `/week/` paths with a date are accepted). Which data is shown: the last fetch
+  whenever it is for the current week, else the snapshot (owner bug 2026-10-14: the snapshot is stamped when written but its
+  week may be cached up to 10 min, so "newest stamp" let stale snapshots revert the widget; a snapshot triggers a fetch at
+  most every 30 s). The snapshot as data has no timed task lists, so it is only
   the fallback: events in the grid, today's task lists in the band.
 - **The week is one bitmap, because RemoteViews cannot do a time grid.** A widget's views are the RemoteViews subset
   (`FrameLayout`, `LinearLayout`, `TextView`, `ImageView`, ...), placed by a layout pass: there is no absolute position, no
@@ -1540,7 +1547,7 @@ browser does not change.
   fetch does not schedule; a later step if needed). Same channel "Reminders" as the bedtime reminder.
 - **Distribution: a download link.** `scripts/android-build.sh` builds a release-signed APK (key generated locally in
   `~/.config/calendar-android/`, never in git; the build falls back to the debug key without it) and copies it to
-  `/home/sauron/docker-compose/calendar/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
+  `/home/sauron/projects/calendar/deploy/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
   server serves it at `GET /app.apk` (API.md); the service worker's navigation fallback excludes `/app.apk`. The APK is
   not part of the Docker image and is not rebuilt by a deploy.
 - **Build constraints.** minSdk 26 (Android 8, `java.time`), compile/target SDK 36. Capacitor's modules ask for Java 21;
@@ -1574,7 +1581,7 @@ browser does not change.
 | `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
 | `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
 
-Deployment: `/home/sauron/docker-compose/calendar/docker-compose.yaml` (style of `filebrowser`): `build:
+Deployment: `deploy/docker-compose.yaml` in the repo (owner 2026-10-14: compose versioned with the app; `.env` and `data/` next to it, git-ignored; `~/docker-compose/calendar` symlinks to it): `build:
 /home/sauron/projects/calendar`, `container_name: calendar`, `restart: unless-stopped`, Traefik labels
 `Host(\`cal.mordor.local\`)` + `loadbalancer.server.port=3000`, `./data:/app/data`, `TZ=Europe/Berlin`,
 `PUBLIC_URL=http://cal.mordor.local`, `PROVIDER=mock`, `TEST_MODE=false`, network `proxy-network` (external).

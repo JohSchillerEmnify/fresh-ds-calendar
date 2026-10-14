@@ -1,13 +1,15 @@
 /**
  * Transition warnings: a dismissible snackbar "<title> starts in <N> min" once per event when now is within the
  * configured minutes (Settings, 0 = off). Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
- * It sees the events of the loaded range only, i.e. while a calendar view showing today is cached.
+ * Events of hidden calendars are skipped, also in the scheduled notifications. It sees the events of the loaded range only,
+ * i.e. while a calendar view showing today is cached.
  * Inside the Android app the next warnings (today and tomorrow, as far as loaded) are also scheduled ahead with the native
  * `Reminders` plugin, so they arrive as notifications while the app is closed: before events and before task lists with
  * a time, each as chosen in Settings → Notifications (`prefs.notify`), plus the optional morning overview of the day
  * (ARCHITECTURE "Notifications").
  */
 import { effectScope, watch, type EffectScope } from 'vue';
+import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
@@ -83,6 +85,7 @@ export function startTransitionWarnings(): () => void {
   stopTransitionWarnings();
   const clock = useClockStore();
   const items = useItemsStore();
+  const cals = useCalendarsStore();
   const settings = useSettingsStore();
   const ui = useUiStore();
   const warned = new Set<string>();
@@ -93,12 +96,13 @@ export function startTransitionWarnings(): () => void {
   scope = effectScope(true);
   scope.run(() => {
     watch(
-      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate] as const,
+      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate, cals.hidden] as const,
       () => {
         if (clock.today !== day) { day = clock.today; warned.clear(); }
         const now = clock.minutesNow;
         const n = settings.settings.transitionWarningMinutes;
-        const segs = items.byDate.get(clock.today) ?? [];
+        // events of calendars the person switched off never warn (same filter as the views)
+        const segs = (items.byDate.get(clock.today) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
         // refresh / auto-hide what is on screen
         for (const [key, w] of shown) {
           if (n <= 0 || now >= w.startMin || !ui.snackbars.some((s) => s.id === w.id)) {
@@ -125,13 +129,15 @@ export function startTransitionWarnings(): () => void {
     const prefs = usePrefsStore();
     const sent = new Map<string, string>();
     watch(
-      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate, language.value, prefs.notify] as const,
+      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate, cals.hidden, language.value, prefs.notify] as const,
       () => {
         if (typeof document !== 'undefined' && document.hidden) return; // the schedule stays as it was left
         const n = settings.settings.transitionWarningMinutes;
         const tomorrow = toIsoDate(addDays(clock.todayDate, 1));
+        const visible = (segs: Segment[]) => segs.filter((s) => !cals.isHidden(s.item.calendarId));
+        const today = items.byDate.get(clock.today) ?? [];
         const kinds = { events: prefs.notify.events, tasklists: prefs.notify.tasklists };
-        const next = upcomingWarnings([items.byDate.get(clock.today) ?? [], items.byDate.get(tomorrow) ?? []], clock.minutesNow, n, NATIVE_WARNING_LIMIT, kinds);
+        const next = upcomingWarnings([today, items.byDate.get(tomorrow) ?? []].map(visible), clock.minutesNow, n, NATIVE_WARNING_LIMIT, kinds);
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
         const want = new Map<string, { at: number; title: string; body: string }>(next.map((w) => [NATIVE_WARNING_PREFIX + w.key, {
           at: minuteStart + w.inMin * 60_000, title: warningText(w.title, n), body: w.start,
@@ -142,7 +148,7 @@ export function startTransitionWarnings(): () => void {
           const at = h * 60 + m;
           const day = at > clock.minutesNow ? clock.today : tomorrow;
           if (day === tomorrow) items.prefetch(tomorrow, toIsoDate(addDays(clock.todayDate, 2)));
-          const o = morningOverview((items.byDate.get(day) ?? []).filter((s) => !s.carriedFrom));
+          const o = morningOverview(visible(items.byDate.get(day) ?? []).filter((s) => !s.carriedFrom));
           want.set(NATIVE_MORNING_ID, { at: minuteStart + ((day === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, ...o });
         }
         for (const id of [...sent.keys()]) {

@@ -4,7 +4,7 @@ import { googleEventId } from '../../lib/ids.js';
 import { addDays, addMonthsClamp, dayNumber, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
 import type { Clock } from '../../lib/clock.js';
 import {
-  NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError,
+  NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
   type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
@@ -30,6 +30,7 @@ export class MockGoogleProvider implements CalendarProvider {
   private seq = 0;
   private outage: { status: 500 | 503 } | null = null;
   private revoked = false;
+  private calendarMissing = false;
   private calendars: ProviderCalendar[] = MOCK_CALENDARS.map((c) => ({ ...c }));
   private timer: NodeJS.Timeout | null = null;
   private readonly file: string | null;
@@ -64,6 +65,11 @@ export class MockGoogleProvider implements CalendarProvider {
     this.outage = down ? { status } : null;
   }
   /** Simulates Google answering this person's token refresh with `invalid_grant`. */
+  /** Simulates Google refusing calls because the calendar scope was not granted. */
+  setCalendarMissing(missing: boolean): void {
+    this.calendarMissing = missing;
+  }
+
   setRevoked(revoked: boolean): void {
     this.revoked = revoked;
   }
@@ -101,6 +107,7 @@ export class MockGoogleProvider implements CalendarProvider {
 
   private check(): void {
     if (this.revoked) throw new ReauthRequiredError('invalid_grant');
+    if (this.calendarMissing) throw new CalendarPermissionMissingError('Calendar scope not granted');
     if (!this.outage) return;
     if (this.outage.status === 500) throw new ProviderError('Simulated provider error');
     throw new ProviderUnavailableError('Simulated outage');

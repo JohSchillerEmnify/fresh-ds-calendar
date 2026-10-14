@@ -18,7 +18,7 @@ Tracked here so it survives across sessions. Newest first within each section. M
 - `perf-budget2` — first-load JS 167 → 135 KB, Lighthouse budget = median of 3 runs ≥ 70.
 
 Prerequisites (owner): HTTPS on a real domain (Cloudflare DNS + token in `~/docker-compose/traefik/.env.cloudflare`),
-Google Cloud OAuth client (values in `~/docker-compose/calendar/.env`). See [DEPLOYMENT.md](DEPLOYMENT.md).
+Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Features
 

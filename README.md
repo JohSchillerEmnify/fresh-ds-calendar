@@ -25,7 +25,7 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 
 ## Quick facts
 
-- Deployment: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (`http://cal.mordor.lan`, Traefik, compose in `/home/sauron/docker-compose/calendar/`).
+- Deployment: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (`http://cal.mordor.lan`, Traefik, compose in `deploy/` of the repo; `.env` and `data/` there are git-ignored).
   HTTPS on `https://cal.<subdomain>.<owner-domain>` is planned (owner action), needed for full PWA install and real Google OAuth.
 - Key env: `PROVIDER=mock|google`, `DATA_DIR`, `SEED`, `TEST_MODE`, `PUBLIC_URL`, `POLL_INTERVAL_MS`, `TZ`.
 - Toolchain: Node 24.21.0 at `~/.local/opt/node-v24.21.0-linux-x64/bin` + pnpm 12.11.2. `pnpm install`, `pnpm test`,

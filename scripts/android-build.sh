@@ -9,8 +9,8 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export PATH="$HOME/.local/opt/node-v24.21.0-linux-x64/bin:$PATH"
-# the compose mounts ./data of /home/sauron/docker-compose/calendar as /data (DATA_DIR) in the container
-DOWNLOADS="/home/sauron/docker-compose/calendar/data/downloads"
+# the compose mounts deploy/data of the repo on sauron as /data (DATA_DIR) in the container
+DOWNLOADS="/home/sauron/projects/calendar/deploy/data/downloads"
 # not under a dot directory: the build container cannot mount those here; mounted as /key, so storeFile=/key/release.jks
 KEY_DIR="${CAL_ANDROID_KEY_DIR:-$HOME/calendar-android-key}"
 IMAGE="calendar-android-build"

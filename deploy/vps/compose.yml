@@ -1,0 +1,31 @@
+# Public instance on the netcup VPS (A-67): Caddy terminates HTTPS, the app is reachable only inside this network.
+# Only Caddy publishes ports: Docker-published ports bypass ufw.
+services:
+  app:
+    image: calendar:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PROVIDER: google
+      SEED: "false"
+    volumes:
+      - data:/data
+    mem_limit: 512m
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  data:
+  caddy-data:
+  caddy-config:

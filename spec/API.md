@@ -568,10 +568,18 @@ file holds no secrets). The file is put there by `scripts/android-build.sh`, not
 |---|---|---|
 | `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
 | `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid `state`. |
+| `GET` | `/api/auth/google/start` (while signed in) | Works with an existing session too (re-grant); the URL carries `include_granted_scopes=true`, so a newly granted scope adds to the old ones. |
 | `GET` | `/api/auth/me` | `{ email, name }` of the signed-in person; 401 without a session; `{ email: null, name: null }` while auth is off (so the client can tell "off" from "signed out"). Public. |
 | `POST` | `/api/auth/signout` | Ends the session (server side) and clears the cookie; 204. |
 
 While auth is on, every other `/api/*` route except `/api/health` and the two OAuth routes answers **401
 `UNAUTHENTICATED`** without a valid session. When a person's Google refresh fails with `invalid_grant`, the API answers
-**401 `GOOGLE_REAUTH`** for that person; the client then shows "sign in with Google again". Redirect URI =
+**401 `GOOGLE_REAUTH`** for that person; the client then shows "sign in with Google again". When the person did not
+tick Google's calendar checkbox (granular consent), the callback reads the granted `scope` from the token response
+(authoritative; the `scope` query parameter is only a hint), stores it in `google-token.json` next to the refresh token,
+signs the person in and redirects to `/?calendar=missing`; calendar calls then answer **403
+`CALENDAR_PERMISSION_MISSING`** (stored scope lacks calendar, or Google answers 403 `insufficientPermissions` /
+`ACCESS_TOKEN_SCOPE_INSUFFICIENT`, also for tokens stored before the scope was recorded). The client then shows
+"grant calendar access". After sign-in and sign-out the server drops that person's cached provider so a new token
+applies without a restart. Redirect URI =
 `GOOGLE_REDIRECT_URI` (default `${PUBLIC_URL}/api/auth/google/callback`).

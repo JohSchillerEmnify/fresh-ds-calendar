@@ -6,6 +6,7 @@ import NowCard from '@/features/calendar/NowCard.vue';
 import { morningOverview, NATIVE_MORNING_ID, NATIVE_WARNING_PREFIX, startTransitionWarnings, stopTransitionWarnings, upcomingWarnings } from '@/features/calendar/transitionWarning';
 import { enableTimerCounting } from '@/lib/timers';
 import { useCalendarStore } from '@/stores/calendar';
+import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
@@ -169,6 +170,24 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     useItemsStore().applyResponse(D, '2026-10-13', [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later' })], 's');
     await vi.advanceTimersByTimeAsync(50 * 60000);
     expect(ui.snackbars).toHaveLength(0);
+  });
+
+  it('stays quiet for an event of a hidden calendar and speaks up when it is shown again', async () => {
+    const { clock, items } = await boot('10:25', true);
+    const cals = useCalendarsStore();
+    const calId = items.all.find((i) => i.id === 'dentist')!.calendarId;
+    cals.list = [{ id: calId, name: 'Work', color: '#1a73e8', primary: false, writable: true, hidden: true }];
+    const ui = useUiStore();
+    useSettingsStore().settings = settingsFixture();
+    startTransitionWarnings();
+    clock.startTicker();
+    await vi.advanceTimersByTimeAsync(5 * 60000);
+    await flushPromises();
+    expect(ui.snackbars.filter((s) => s.testid === 'transition-warning')).toHaveLength(0);
+    cals.list = [{ ...cals.list[0]!, hidden: false }];
+    await vi.advanceTimersByTimeAsync(60000);
+    await flushPromises();
+    expect(ui.snackbars.filter((s) => s.testid === 'transition-warning').map((s) => s.text)).toEqual(['Dentist starts in 9 min']);
   });
 });
 

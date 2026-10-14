@@ -4,7 +4,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE_FILE="/home/sauron/docker-compose/calendar/docker-compose.yaml"
+COMPOSE_FILE="$REPO/deploy/docker-compose.yaml"   # .env and data/ next to it, git-ignored
 HOST="cal.mordor.local"
 NODE_BIN="$HOME/.local/opt/node-v24.21.0-linux-x64/bin"
 export PATH="$NODE_BIN:$PATH"
@@ -27,8 +27,8 @@ if [[ "$(git -C "$REPO" branch --show-current)" == "main" ]] && ! git -C "$REPO"
 fi
 APP_VERSION="$VERSION+$(git -C "$REPO" rev-parse --short HEAD)"
 echo "==> docker compose build (APP_VERSION=$APP_VERSION) + up -d"
-docker compose -f "$COMPOSE_FILE" build --build-arg "APP_VERSION=$APP_VERSION"
-docker compose -f "$COMPOSE_FILE" up -d --force-recreate  # compose v2.3 sometimes keeps the old container
+docker compose -p calendar -f "$COMPOSE_FILE" build --build-arg "APP_VERSION=$APP_VERSION"
+docker compose -p calendar -f "$COMPOSE_FILE" up -d --force-recreate  # compose v2.3 sometimes keeps the old container
 
 echo "==> waiting for http://$HOST/api/health"
 for i in $(seq 1 60); do
@@ -41,5 +41,5 @@ for i in $(seq 1 60); do
   sleep 2
 done
 echo "!! health check failed after 120s" >&2
-docker compose -f "$COMPOSE_FILE" logs --tail 50 >&2
+docker compose -p calendar -f "$COMPOSE_FILE" logs --tail 50 >&2
 exit 1

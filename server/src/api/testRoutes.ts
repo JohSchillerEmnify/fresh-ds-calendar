@@ -161,6 +161,14 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.redirect(`/api/auth/google/callback?code=${encodeURIComponent(fake.codeFor(fake.account))}&state=${encodeURIComponent(state)}`, 302);
   });
 
+  // The fake consent screen leaves the "Google Calendar" checkbox unticked (granted: false) or ticked again.
+  t.post('/oauth/calendar-access', async (c) => {
+    const b = (await body(c)) as { granted?: unknown } | undefined;
+    if (typeof b?.granted !== 'boolean') throw validation('granted must be a boolean', 'granted');
+    ctx.auth.fake!.calendarGranted = b.granted;
+    return c.json({ granted: b.granted });
+  });
+
   // Google answers this person's token refresh with invalid_grant from now on.
   t.post('/oauth/revoke', async (c) => {
     const b = (await body(c)) as { email?: unknown } | undefined;
