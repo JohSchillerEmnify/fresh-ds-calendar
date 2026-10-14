@@ -172,8 +172,18 @@ function readBedtime(raw: unknown): BedtimePrefs {
   return { ...DEFAULT_BEDTIME, ...(typeof parsed === 'string' ? {} : parsed) };
 }
 
+/** Parses a `labsViews` value: an object of at most 32 view ids (lowercase, digits, hyphens) mapped to booleans, or `null` when it is anything else. */
+export function toLabsViews(raw: unknown): Record<string, boolean> | null {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  const entries = Object.entries(raw);
+  if (entries.length > 32 || !entries.every(([k, v]) => /^[a-z][a-z0-9-]{0,31}$/.test(k) && typeof v === 'boolean')) return null;
+  return Object.fromEntries(entries) as Record<string, boolean>;
+}
+
 /** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat, Tasks view grouping and sorting, language). */
 export interface Prefs {
+  /** Which Labs views the switcher offers, per view id; an id that is missing follows the client's registry default (ARCHITECTURE "Labs"). */
+  labsViews: Record<string, boolean>;
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
   /** The Approaching card above the calendar views (ARCHITECTURE "Approaching card"). */
   approachingCard: boolean;
@@ -230,6 +240,7 @@ export class PrefsStore {
       ...p,
       hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
       labs: p?.labs === true,
+      labsViews: toLabsViews(p?.labsViews) ?? {},
       approachBar: p?.approachBar !== false,
       approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
       approachingCard: p?.approachingCard !== false,
@@ -334,8 +345,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify };
   }
 
   /**

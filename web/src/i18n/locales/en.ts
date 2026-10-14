@@ -134,6 +134,7 @@ export default {
     },
     labs: {
       experimental: { label: 'Experimental views', hint: 'Clock, Timeline and Strip in the view switcher' },
+      views: { title: 'Experimental views to offer' },
     },
     account: {
       signedIn: 'Signed in with Google',

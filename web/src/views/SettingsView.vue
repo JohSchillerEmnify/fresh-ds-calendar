@@ -25,6 +25,7 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import CategoryDialog from '@/components/settings/CategoryDialog.vue';
+import { LABS_VIEWS, isLabsViewOn } from '@/features/labs/labs';
 import { StreakFlame } from '@/features/motivation';
 import { useMotivationStore } from '@/features/motivation/store';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
@@ -323,6 +324,10 @@ async function resetDemo() {
         <section id="s-labs" class="card" data-testid="settings-section" data-section="labs" aria-labelledby="h-labs">
           <h2 id="h-labs">{{ title('labs') }}</h2>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.labs.experimental.label') }}</span><span class="sub">{{ t('settings.labs.experimental.hint') }}</span></div><Switch :model-value="labs.labs" :label="t('settings.labs.experimental.label')" data-testid="settings-labs" @update:model-value="savePrefs({ labs: $event })" /></div>
+          <template v-if="labs.labs">
+            <span class="lab sublab">{{ t('settings.labs.views.title') }}</span>
+            <div v-for="v in LABS_VIEWS" :key="v.id" class="row"><div class="grow"><span class="lab">{{ t(v.labelKey) }}</span></div><Switch :model-value="isLabsViewOn(v.id, labs.labsViews)" :label="t(v.labelKey)" :data-testid="`settings-labs-view-${v.id}`" @update:model-value="savePrefs({ labsViews: { [v.id]: $event } })" /></div>
+          </template>
         </section>
 
         <section id="s-account" class="card" data-testid="settings-section" data-section="account" aria-labelledby="h-account">

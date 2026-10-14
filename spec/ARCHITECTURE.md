@@ -794,7 +794,16 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   `settings-approach-bar`. `labsOwnThemes` (default off) shows the own-theme part of the theme menu (see "Theme engine
   and AI themes").
 - Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
-  flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered.
+  flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered. A hidden
+  view stays reachable by URL; switching off the view in use only drops its tab, the person stays on the page.
+- **Which Labs views (owner 2026-10-14).** With `labs` on, the Labs section lists one switch per Labs view
+  (`settings-labs-view-<id>`). The views are one registry, `LABS_VIEWS` in `web/src/features/labs/labs.ts` (id, label
+  key, icon, route, `defaultOn`): a new view appears as a switch and a tab by adding one entry. Defaults: Clock on,
+  Timeline on, Strip off (kept, not removed). The per-person pref `labsViews` (`Record<id, boolean>`) stores only
+  explicit choices; an id without a choice follows the registry's `defaultOn`, an id the registry does not know is on.
+  Why a record of choices and not a list of disabled ids: Strip is off by default, so a plain disabled list would make
+  the server know the registry's defaults; with explicit choices the registry stays the one source of defaults and a
+  new view still defaults to on (assumption: that is why the owner preferred disabled ids).
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
 - Clock: SVG 24-hour circle as large as the view allows (owner, 2026-10-13), events as arcs labelled with their

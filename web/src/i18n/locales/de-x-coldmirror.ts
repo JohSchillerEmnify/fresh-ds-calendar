@@ -130,6 +130,7 @@ export default {
       sounds: 'Sounds (ich rappe hier, ich rappe dort)',
     },
     labs: {
+      views: { title: 'Welche Experimente sollen mit, yo' },
       experimental: { label: 'Experimentelle Ansichten, yo', hint: 'Uhr, Zeitstrahl und Streifen in der Ansichtswahl. Fresh D. hat das gecheckt, seit Billionen Jahren.' },
     },
     account: {

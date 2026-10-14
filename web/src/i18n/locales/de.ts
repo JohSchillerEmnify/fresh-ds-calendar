@@ -127,6 +127,7 @@ export default {
       sounds: 'Töne',
     },
     labs: {
+      views: { title: 'Anzubietende experimentelle Ansichten' },
       experimental: { label: 'Experimentelle Ansichten', hint: 'Uhr, Zeitstrahl und Streifen in der Ansichtswahl' },
     },
     account: {

@@ -980,7 +980,10 @@ I allow full animations despite the device setting
 
 ```
 I turn on experimental views in the settings
-the view switcher offers {string}, {string} and {string} marked as experimental
+the view switcher offers the experimental views {string}
+the view switcher does not offer {string}
+I switch the Labs view {string} on in the settings
+I switch the Labs view {string} off in the settings
 I open the clock view for {date}
 the event {string} is an arc from {time} to {time}
 the clock hand points at {time}

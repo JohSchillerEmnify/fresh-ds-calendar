@@ -172,6 +172,9 @@ the field). Other presets and overrides stay as they were. The Default and Neon 
 stored `categoryId`s are untouched), the person pref `leftHanded` (boolean, default `false`; a
 non-boolean is a 400) turns on the mirrored phone and touch-tablet layout (ARCHITECTURE "Left-handed mode"), and `showCarriedFrom` (boolean,
 default `true`) shows the "From <day>" label on task lists carried over to today.
+The person pref `labsViews` (object, default `{}`): per Labs view id (`clock`, `timeline`, `strip`, …) whether the view
+switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; anything else is a 400). `PATCH` merges
+per id. A missing id follows the client's registry default (Strip off, others on; ARCHITECTURE "Labs").
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; any other value is a 400; ARCHITECTURE "View switcher position").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,

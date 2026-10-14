@@ -15,6 +15,8 @@ export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, taskli
 
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
+  /** Which Labs views the switcher offers, per view id (see `visibleLabsViews`). */
+  const labsViews = ref<Record<string, boolean>>({});
   const approachBar = ref(true);
   const approachWindowHours = ref<ApproachWindowHours>(3);
   const approachingCard = ref(true);
@@ -45,6 +47,7 @@ export const usePrefsStore = defineStore('prefs', () => {
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
+    labsViews.value = p.labsViews ? { ...labsViews.value, ...p.labsViews } : labsViews.value;
     approachBar.value = p.approachBar ?? approachBar.value;
     approachWindowHours.value = p.approachWindowHours ?? approachWindowHours.value;
     approachingCard.value = p.approachingCard ?? approachingCard.value;
@@ -76,7 +79,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   /** Optimistic change; rolls back when the server refuses. */
   async function set(p: Partial<Prefs>): Promise<void> {
     const before = {
-      labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
+      labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
       versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
     };
@@ -89,5 +92,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify, load, set };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify, load, set };
 });

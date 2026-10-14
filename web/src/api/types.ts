@@ -176,6 +176,8 @@ export type ApproachWindowHours = number;
  */
 export interface Prefs {
   labs: boolean;
+  /** Per Labs view id: shown in the view switcher or not; a missing id follows the registry default (`LABS_VIEWS`). */
+  labsViews: Record<string, boolean>;
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;
   approachingCard: boolean;

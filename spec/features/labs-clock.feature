@@ -19,7 +19,21 @@ Feature: Labs: experimental views and the 24-hour clock
   Scenario: Experimental views appear only with Labs on
     When I open the week view for 2026-10-12
     And I turn on experimental views in the settings
-    Then the view switcher offers "Clock", "Timeline" and "Strip" marked as experimental
+    Then the view switcher offers the experimental views "Clock, Timeline"
+
+  Scenario: Strip is off by default
+    When I open the week view for 2026-10-12
+    And I turn on experimental views in the settings
+    Then the view switcher does not offer "Strip"
+
+  Scenario: Choosing which Labs views appear
+    When I open the week view for 2026-10-12
+    And I turn on experimental views in the settings
+    And I switch the Labs view "Strip" on in the settings
+    Then the view switcher offers the experimental views "Clock, Timeline, Strip"
+    When I switch the Labs view "Clock" off in the settings
+    Then the view switcher offers the experimental views "Timeline, Strip"
+    And the view switcher does not offer "Clock"
 
   Scenario: The clock shows the day as a 24-hour circle
     Given the time is 2026-10-14 09:30

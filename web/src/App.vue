@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconChecklist as IconTasks, IconSchedule as IconClock, IconTimeline, IconViewColumn as IconStrip } from '@/components/icons';
+import { IconCalendarMonth as IconYear, IconCalendarViewMonth as IconMonth, IconCalendarViewWeek as IconWeek, IconCalendarViewDay as IconDay, IconChecklist as IconTasks } from '@/components/icons';
+import { visibleLabsViews } from '@/features/labs/labs';
 import AppTopBar from '@/components/shell/AppTopBar.vue';
 import CreateFab from '@/components/shell/CreateFab.vue';
 import FilterBar from '@/components/shell/FilterBar.vue';
@@ -64,12 +65,11 @@ const baseItems = computed<NavItem[]>(() => [
   { id: 'day', label: t('views.day'), icon: IconDay, testid: 'view-switch-day' },
   { id: 'tasks', label: t('views.tasks'), icon: IconTasks, testid: 'view-switch-tasks' },
 ]);
-/** Each Labs view has an icon of its own. */
-const LAB_ICONS = { clock: IconClock, timeline: IconTimeline, strip: IconStrip } as const;
-// Labs views are offered only with the Labs switch on, marked as experimental.
-const items = computed<NavItem[]>(() => labs.labs
-  ? [...baseItems.value, ...(['clock', 'timeline', 'strip'] as const).map((id) => ({ id, label: t(`views.${id}`), icon: LAB_ICONS[id], testid: `view-switch-${id}`, experimental: true }))]
-  : baseItems.value);
+// Labs views are offered only with the Labs switch on and the view's own switch on, marked as experimental.
+const items = computed<NavItem[]>(() => [
+  ...baseItems.value,
+  ...visibleLabsViews(labs.labs, labs.labsViews).map((v) => ({ id: v.id, label: t(v.labelKey), icon: v.icon, testid: `view-switch-${v.id}`, experimental: true })),
+]);
 /** A phone without a bottom bar and without the tray (Tasks, Labs views) still keeps clear of the bottom safe area. */
 const edgePad = computed(() => hasShell.value && isPhone.value && navPosition.value !== 'bottom' && !route.meta.view);
 const switchTo = (id: string) => { void nav.switchView(id as ViewKind | 'tasks'); };

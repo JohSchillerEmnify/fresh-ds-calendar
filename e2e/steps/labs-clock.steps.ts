@@ -2,23 +2,32 @@
 import { expect } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { exactText, tid, type World } from './support/world.js';
-import { turnOnLabsSwitch } from './support/ui.js';
+import { setLabsSwitch, turnOnLabsSwitch } from './support/ui.js';
 
 When('I turn on experimental views in the settings', async function (this: World) {
   await turnOnLabsSwitch(this.page, 'settings-labs');
 });
 
-Then(
-  'the view switcher offers {string}, {string} and {string} marked as experimental',
-  async function (this: World, a: string, b: string, c: string) {
-    for (const label of [a, b, c]) {
-      const entry = this.page.getByTestId(`view-switch-${label.toLowerCase()}`);
-      await expect(entry).toBeVisible();
-      await expect(entry).toContainText(label);
-      await expect(entry).toHaveAttribute('data-experimental', 'true');
-    }
-  },
-);
+Then('the view switcher offers the experimental views {string}', async function (this: World, labels: string) {
+  for (const label of labels.split(', ')) {
+    const entry = this.page.getByTestId(`view-switch-${label.toLowerCase()}`);
+    await expect(entry).toBeVisible();
+    await expect(entry).toContainText(label);
+    await expect(entry).toHaveAttribute('data-experimental', 'true');
+  }
+});
+
+Then('the view switcher does not offer {string}', async function (this: World, label: string) {
+  await expect(this.page.getByTestId(`view-switch-${label.toLowerCase()}`)).toHaveCount(0);
+});
+
+When('I switch the Labs view {string} on in the settings', async function (this: World, label: string) {
+  await setLabsSwitch(this.page, `settings-labs-view-${label.toLowerCase()}`, true);
+});
+
+When('I switch the Labs view {string} off in the settings', async function (this: World, label: string) {
+  await setLabsSwitch(this.page, `settings-labs-view-${label.toLowerCase()}`, false);
+});
 
 When('I open the clock view for {date}', async function (this: World, date: string) {
   await this.page.goto(`/clock/${date}`);

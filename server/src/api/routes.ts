@@ -14,7 +14,7 @@ import {
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -127,6 +127,12 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
     for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    if (b.labsViews !== undefined) {
+      const v = toLabsViews(b.labsViews);
+      if (!v) throw validation('labsViews must map view ids to booleans', 'labsViews');
+      // merge per id, so a switch changed on one device keeps the others
+      patch.labsViews = { ...ctx.prefs.labsPrefs(person(c)).labsViews, ...v };
+    }
     if (b.approachWindowHours !== undefined) {
       if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
       patch.approachWindowHours = b.approachWindowHours;
