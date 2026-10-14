@@ -60,10 +60,10 @@ export function allotHeights(needs: number[], avail: number, min: number): numbe
   return out.map((v) => Math.floor(v));
 }
 
-/** Month cell metrics in px, per tier: day number row, cell padding, one bar lane, one event chip (the smallest entry). */
+/** Month cell metrics in px, per tier: day number row, cell padding, one slot (chip height + the 2 px gap between entries; bars sit in slots), one event chip (the smallest entry). */
 export const CELL_METRICS = {
   phone: { num: 20, pad: 1, lane: 18, chip: 16 },
-  wide: { num: 28, pad: 8, lane: 22, chip: 18 },
+  wide: { num: 28, pad: 8, lane: 20, chip: 18 },
 } as const;
 
 /**

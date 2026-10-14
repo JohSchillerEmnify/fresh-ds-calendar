@@ -82,6 +82,33 @@ Feature: Displaying events in the calendar views
     And I do not see the event "Trip" on 2026-10-16
     And I do not see the event "Trip" on 2026-10-21
 
+  @month @month-lanes
+  Scenario: A multi-day bar does not push down the days it does not cover
+    Given the calendar contains an all-day event "Summit" from 2026-10-05 to 2026-10-08
+    And the calendar contains an event "Verena" on 2026-10-09 from 10:00 to 11:00
+    And the calendar contains an event "Fitti" on 2026-10-07 from 18:00 to 19:00
+    When I open the month view for 2026-10
+    Then the first entry of the month cell of 2026-10-09 is at the height of the bar "Summit"
+    And the first entry of the month cell of 2026-10-07 is in the slot below the bar "Summit"
+
+  @month @month-lanes
+  Scenario: A day's entries fill the free slot above a bar
+    Given the calendar contains an all-day event "Trip" from 2026-10-13 to 2026-10-16
+    And the calendar contains an all-day event "Course" from 2026-10-14 to 2026-10-17
+    And the calendar contains an event "Fitti" on 2026-10-17 from 17:00 to 18:00
+    When I open the month view for 2026-10
+    Then the event "Trip" is a bar in lane 0
+    And the event "Course" is a bar in lane 1
+    And the first entry of the month cell of 2026-10-17 is at the height of the bar "Trip"
+
+  @month @month-lanes
+  Scenario: Bars look like the chips in the month view
+    Given the calendar contains an all-day event "Trip" from 2026-10-17 to 2026-10-20
+    And the calendar contains an event "Fitti" on 2026-10-16 from 17:00 to 18:00
+    When I open the month view for 2026-10
+    Then the bar "Trip" has the height of the chip "Fitti"
+    And the bar "Trip" shows no continuation arrows
+
   @week
   Scenario: A multi-day all-day event crossing a week boundary is cut at the week edge
     Given the calendar contains an all-day event "Trip" from 2026-10-17 to 2026-10-20

@@ -138,6 +138,10 @@ I see the event {string} on {weekday}
 I see the event {string} on each day from {date} to {date}
 I see the event {string} as a bar from {date} to {date}
 the event {string} is a bar in lane {int}
+the first entry of the month cell of {date} is at the height of the bar {string}
+the first entry of the month cell of {date} is in the slot below the bar {string}
+the bar {string} has the height of the chip {string}
+the bar {string} shows no continuation arrows
 I see the all-day event {string} on {date}
 I do not see the event {string}
 I do not see the event {string} on {date}
@@ -156,6 +160,11 @@ the items on {date} are shown in the order {string}
 
 - "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
   `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
+- Month slots (ARCHITECTURE "Month view rows, like Google Calendar"): "the first entry of the month cell of D" is the
+  first visible chip or card inside the month cell of D (not a bar). "at the height of the bar B": its top equals the
+  top of B's `event-bar` segment within 3 px. "in the slot below the bar B": its top is below B's bottom and within one
+  chip height + 4 px of it. "the bar B has the height of the chip C": heights equal within 1 px. "shows no continuation
+  arrows": no `.arr` element and no ◂ ▸ text in any `event-bar` segment of B.
 - "positioned" checks `data-start-time`/`data-end-time` of the chip segment and that its top/height match the time
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span

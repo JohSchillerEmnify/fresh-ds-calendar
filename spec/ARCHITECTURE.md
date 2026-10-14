@@ -335,6 +335,18 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
 - **Month view on phone**: cells show the day number and compact chips (colored, title only, truncated) as many as fit,
   the rest fading out at the bottom. Tapping anywhere in a cell opens `/day/<date>` (the day agenda). Desktop: day number → day view, chip → opens
   the event / expands the task list.
+- **Month view rows, like Google Calendar (owner, 2026-10-14, screenshot of Google Calendar's month view)**: a week row
+  has **one shared set of entry rows** ("slots", one chip height each). Multi-day bars are packed into the lowest free
+  slots of the days they cover (`laneCount`/lanes as before), and **a bar occupies its slot only on the days it spans**.
+  Each day's own entries (all-day, timed, task lists, in the existing order) then fill **that day's** free slots from the
+  top, gaps under or between bars included, then the rows below. A day no bar touches starts its entries right under the
+  day number; bars never push down the cells of days they don't cover. The day's line budget (`entries`, fade-out of the
+  rest) counts only the slots that day actually uses. Bars look like chips (same height, font, padding and radius as a
+  chip in that cell; owner: "it's visible that they are multi-day because they span multiple days, we don't need an extra
+  distinction"): no ◂ ▸ arrows; a bar cut at a week edge only has square ends there. Applies to the month view on phone and
+  desktop; the week view's all-day row and the zoom month are unchanged (assumption: the screenshot and request are
+  about the month view). **Why**: a reserved lane band per week wasted most of every cell in a busy month; packing per day
+  is what the owner's reference does and uses the cells' space efficiently.
 - **Week view on phone**: 7 narrow columns, all fit (no horizontal scroll); chips show truncated title; tap opens.
 - **Dialogs**: phone = bottom sheet (full width, anchored to the bottom, rounded top, max-height 90dvh, internal scroll,
   drag handle; padding-bottom includes safe-area inset); desktop = centered modal ≤ 520 px. Escape and the Cancel
