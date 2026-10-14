@@ -519,6 +519,10 @@ the server reports the build version {string}
 the settings show the version {string}
 the corner shows the version {string}
 the settings screen is shown
+the screen is {int} pixels wide
+I open the settings page {string}
+the page cannot be scrolled sideways
+no settings row is wider than the screen
 I leave the settings
 I choose the theme mode {string}
 the theme mode {string} is selected

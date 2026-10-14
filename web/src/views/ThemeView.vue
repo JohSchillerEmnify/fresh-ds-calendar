@@ -280,7 +280,7 @@ function back() {
 </template>
 
 <style scoped>
-.page { height: 100%; overflow-y: auto; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
+.page { height: 100%; overflow-y: auto; overflow-x: clip; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
 .bar { display: flex; align-items: center; gap: 4px; padding: calc(var(--safe-top) + 8px) 8px 8px; position: sticky; top: 0; background: var(--md-sys-color-surface); z-index: 2; }
 h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 720px; margin: 0 auto; }
@@ -293,12 +293,12 @@ h2 { margin: 0; padding: 12px 4px 8px; font: var(--md-sys-typescale-title-medium
   .content > .live-slot { grid-column: 2; grid-row: 1 / span 4; }
 }
 
-.gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-@media (min-width: 560px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
+.gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 560px) { .gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 .group { padding: 4px 0 8px; }
 .lab { display: block; font: var(--md-sys-typescale-body-large); padding: 4px 4px 6px; }
-.opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .opt { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 8px; border-radius: var(--md-sys-shape-corner-medium); border: 2px solid transparent; background: var(--md-sys-color-surface-container); text-align: center; transition: border-color 150ms, box-shadow 150ms; }
 .opt[aria-pressed='true'] { border-color: var(--md-sys-color-primary); background: color-mix(in srgb, var(--md-sys-color-primary) 10%, var(--md-sys-color-surface-container)); }
 .sample { display: flex; align-items: center; justify-content: center; min-height: 40px; border-radius: var(--md-sys-shape-corner-small); background: var(--md-sys-color-surface); padding: 6px; min-width: 0; overflow: hidden; }

@@ -301,3 +301,35 @@ Then('the settings show the version {string}', async function (this: World, vers
 Then('the corner shows the version {string}', async function (this: World, version: string) {
   await expect(this.page.getByTestId('app-version')).toHaveText(version);
 });
+
+Given('the screen is {int} pixels wide', async function (this: World, width: number) {
+  await this.page.setViewportSize({ width, height: 700 });
+});
+
+When('I open the settings page {string}', async function (this: World, path: string) {
+  await this.page.goto(path);
+  await expect(this.page.locator('section.page')).toBeVisible();
+  await this.page.waitForLoadState('networkidle'); // the settings are loaded and the rows are laid out
+});
+
+Then('the page cannot be scrolled sideways', async function (this: World) {
+  const page = this.page.locator('section.page');
+  const m = await page.evaluate((el) => ({
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+    overflowX: getComputedStyle(el).overflowX,
+  }));
+  expect(m.scrollWidth, `page scrollWidth ${m.scrollWidth} vs clientWidth ${m.clientWidth}`).toBeLessThanOrEqual(m.clientWidth);
+  expect(['clip', 'hidden'], 'the page clips sideways overflow').toContain(m.overflowX);
+});
+
+Then('no settings row is wider than the screen', async function (this: World) {
+  const wide = await this.page.locator('section.page').evaluate((el) => {
+    const vw = document.documentElement.clientWidth;
+    return [...el.querySelectorAll('*')]
+      .map((e) => ({ e, r: e.getBoundingClientRect() }))
+      .filter(({ r }) => r.width > 0 && (r.right > vw + 0.5 || r.left < -0.5))
+      .map(({ e, r }) => `${e.tagName.toLowerCase()}.${String((e as HTMLElement).className).slice(0, 40)} left=${r.left.toFixed(1)} right=${r.right.toFixed(1)} w=${r.width.toFixed(1)}`);
+  });
+  expect(wide, 'elements outside the screen').toEqual([]);
+});

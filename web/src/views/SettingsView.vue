@@ -341,7 +341,7 @@ async function resetDemo() {
             </div>
             <template v-else>
               <div class="row"><div class="grow" data-testid="settings-backup-status" :data-state="backup.status.state" :data-last-backup="backup.status.lastBackupAt ?? ''"><span class="lab">{{ t('backup.label') }}</span><span class="sub">{{ backupText }}</span></div></div>
-              <div class="row">
+              <div class="row wrap">
                 <Button variant="outlined" :disabled="backup.busy !== null" data-testid="settings-backup-now" @click="runBackup">{{ t('backup.now') }}</Button>
                 <Button variant="outlined" :disabled="backup.busy !== null" data-testid="settings-backup-restore" @click="confirmRestore = true">{{ t('backup.restore') }}</Button>
               </div>
@@ -366,7 +366,7 @@ async function resetDemo() {
 </template>
 
 <style scoped>
-.page { height: 100%; overflow-y: auto; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
+.page { height: 100%; overflow-y: auto; overflow-x: clip; background: var(--md-sys-color-surface); padding-bottom: calc(24px + var(--safe-bottom)); }
 .bar { display: flex; align-items: center; gap: 4px; padding: calc(var(--safe-top) + 8px) 8px 8px; position: sticky; top: 0; background: var(--md-sys-color-surface); z-index: 2; }
 h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .layout { max-width: 900px; margin: 0 auto; }
@@ -381,6 +381,7 @@ h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .card { scroll-margin-top: calc(var(--safe-top) + 64px); background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 4px 8px; }
 h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-primary); }
 .row { display: flex; align-items: center; gap: 12px; padding: 8px 16px; min-height: 56px; }
+.row.wrap { flex-wrap: wrap; }
 .row.col { flex-direction: column; align-items: stretch; gap: 8px; }
 .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .fw { width: 100%; }
