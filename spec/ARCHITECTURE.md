@@ -278,9 +278,10 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
 
 - **Top app bar** (compact): period title, Today button, prev/next buttons (secondary to swiping), sync status, install
   button when available.
-- **Bottom bar** (`bottom-bar`, fixed, thumb zone): view switcher Year | Month | Week | Day as tabs. On desktop the switcher
-  moves into the top bar (same testids).
-- **FAB** `create-button`: floating "+" bottom-right, above the bottom bar, opens a small menu (Event / Task list).
+- **View switcher** (`view-switcher`, `data-position` = `bottom` | `top` | `rail`): Year | Month | Week | Day | Tasks (plus
+  the Labs views) as tabs. Where it sits is a setting (see "View switcher position"). Default: phone = **bottom bar**
+  (`bottom-bar`, fixed, thumb zone); desktop and tablet = **rail** at the left (also `bottom-bar`, a legacy testid).
+- **FAB** `create-button`: floating "+" bottom-right, above the bottom bar, opens the one "new" dialog.
 - **Touch targets** ≥ 44 × 44 px for all buttons, checkboxes (hit area), chips that open things.
 - **Swipe**: horizontal swipe on `calendar-swipe-area` (touch events; ≥ 60 px horizontal, |dx| > 1.5·|dy|, < 600 ms)
   changes period: left = next, right = previous. Vertical movement scrolls normally (`touch-action: pan-y`).
@@ -621,7 +622,7 @@ Rules for implementers:
 | `period-title` | text per §5 |
 | `nav-prev`, `nav-next`, `nav-today` | buttons |
 | `view-switch-month`, `view-switch-week`, `view-switch-day` | tabs (`aria-selected`) |
-| `view-switcher` | container of the three tabs |
+| `view-switcher` | container of the tabs (`data-position` = `bottom` \| `top` \| `rail`); `bottom-bar` carries `data-position` too; the top tabs row is `nav-tabs` |
 | `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | FAB and the one "new" dialog (no create menu) |
 | `calendar-swipe-area` | swipe target wrapping the active view |
 | `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
@@ -906,6 +907,42 @@ It never reloads by itself and never interrupts an open dialog.
   version in the corner" (`settings-version-corner`, a person pref `versionInCorner` in `Prefs`, default off) shows a small label
   `app-version` ("0.4.2") in the bottom-left corner of the main UI (bottom right in left-handed mode on the phone; above the safe area, below dialogs, never covering
   the bottom bar or the FAB).
+
+### View switcher position (owner, 2026-10-14; see A-253)
+
+- A setting (Settings → Calendar, two rows: "On phones" `settings-nav-phone`, "On desktop and tablets"
+  `settings-nav-desktop`, segmented buttons Bottom | Top | Side rail) decides where the view switcher sits. Person prefs
+  `navPhone` (default `bottom`) and `navDesktop` (default `rail`) in `Prefs`; the server accepts only `bottom`, `top`,
+  `rail` (anything else is a 400). There is no quick toggle in the UI. Per device type, with the same split as
+  `useViewport`: `isPhone` (< 768 px) uses `navPhone`; everything else (desktop and touch tablet, >= 768 px) uses
+  `navDesktop`.
+- Resolution is a pure function (`resolveNavPosition(phone, prefs)` and `railSide(phone, leftHanded)` in
+  `web/src/lib/navPosition.ts`); `useNavPosition()` wraps it with `isPhone` and `useLeftHand()`. The shell renders
+  exactly one switcher: `NavigationBar` (`bottom`), `NavigationTabs` (`top`) or `NavigationRail` (`rail`); all three
+  share the tab markup (`role=tab`, same `view-switch-*` testids, same pill/ripple animation) and publish
+  `data-position` on the `view-switcher` container. The shell also publishes `html[data-nav-pos]` so CSS (FAB, tray,
+  snackbar) follows without repeated logic.
+- `bottom`: the bottom navigation bar (full width at the bottom of the shell). Phone: as always. Desktop and tablet: the
+  same bar below the whole row (the tray side panel stays above it); the "+" lifts by the bar height.
+- `top`: a tabs row (`nav-tabs`, text tabs with an active indicator, horizontally scrollable if it overflows) directly
+  under the top app bar, above hints, banners and the calendar. The bottom bar does not exist.
+- `rail`: a slim vertical rail. Desktop and tablet: left, 80 px, as before (also in left-handed mode: it already is under
+  the left thumb). Phone: 64 px wide, on the **thumb side** = right, or left in left-handed mode (`railSide`), it spans
+  the body (below the top bar, down to the bottom edge, safe-area padded on its outer side); the shell body is a row
+  `[rail?][column][rail?]`. The "+" sits on the same side, clear of the rail (`--rail-w` plus the safe inset), so it never
+  covers a rail control.
+- Phone without a bottom bar (`top`, `rail`): `--navbar-h` is 0 (Snackbar, version label and the tray's max height follow);
+  the **open tasks tray moves to the bottom edge** (it is the last child of the column, so it is the bottom element; it
+  pads its bottom by the safe inset itself); the "+" floats **above the tray bar** (`bottom = max(--tray-h, safe-bottom) +
+  12px`, `--tray-h` is the tray's measured height) and slides away while the tray is expanded, as before. On views
+  without the tray (Tasks, Labs) the body pads the safe inset.
+- Left-handed mode in every combination: "+" and tray toggle at the left on the phone (also with `top` and `rail`);
+  `rail` on the phone moves to the left; on a touch tablet the "+" is right of the rail with `rail`, and at the left
+  edge (24 px) with `top` / `bottom`.
+- Reasoning: one resolved position attribute + one rail component (instead of per-view conditionals) keeps the existing
+  testids and the Swipe/animation code untouched; a global `--navbar-h: 0` on a phone without a bar reuses all existing
+  offsets instead of per-component special cases. Alternatives weighed: moving the tray with a new component (rejected:
+  it is already the last flex child); a quick toggle in the top bar (excluded by the owner).
 
 ### Left-handed mode (owner, 2026-10-13)
 

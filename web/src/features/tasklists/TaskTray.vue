@@ -141,6 +141,8 @@ function toggleFold(id: string) {
 .mv :deep(svg) { width: 22px; height: 22px; }
 .empty { padding: 12px 16px; color: var(--md-sys-color-on-surface-variant); }
 .phone { border-top: 1px solid var(--md-sys-color-outline-variant); }
+/* Phone without a bottom bar: the tray is the bottom edge and pads the safe area itself. */
+@media (max-width: 767.98px) { html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); } }
 @media (min-width: 768px) {
   .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; }
   .bar { cursor: default; padding-right: 12px; }

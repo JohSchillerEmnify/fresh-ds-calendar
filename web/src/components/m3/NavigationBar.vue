@@ -9,8 +9,8 @@ defineEmits<{ 'update:modelValue': [id: string] }>();
 </script>
 
 <template>
-  <nav class="nav-bar" data-testid="bottom-bar" data-safe-area="true" :aria-label="t('nav.views')">
-    <div class="tabs" role="tablist" data-testid="view-switcher">
+  <nav class="nav-bar" data-testid="bottom-bar" data-position="bottom" data-safe-area="true" :aria-label="t('nav.views')">
+    <div class="tabs" role="tablist" data-testid="view-switcher" data-position="bottom">
       <button
         v-for="it in items" :key="it.id" v-ripple class="dest" role="tab" type="button"
         :aria-selected="it.id === modelValue" :class="{ active: it.id === modelValue }" :data-testid="it.testid" :data-experimental="it.experimental ? 'true' : undefined"

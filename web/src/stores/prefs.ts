@@ -3,12 +3,12 @@ import { ref } from 'vue';
 import { api } from '@/api/client';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
-import type { ApproachWindowHours, BedtimePrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
+import type { ApproachWindowHours, NavPosition, BedtimePrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
- * support cat, the version label in the corner (off by default), left-handed mode (off by default), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
+ * support cat, the version label in the corner (off by default), left-handed mode (off by default), where the view switcher sits (phone, desktop), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
  */
 export const usePrefsStore = defineStore('prefs', () => {
   const labs = ref(false);
@@ -19,6 +19,9 @@ export const usePrefsStore = defineStore('prefs', () => {
   const supportCat = ref<SupportCatSetting>('sometimes');
   const versionInCorner = ref(false);
   const leftHanded = ref(false);
+  /** Where the view switcher sits on phones / on desktop and tablets (ARCHITECTURE "View switcher position"). */
+  const navPhone = ref<NavPosition>('bottom');
+  const navDesktop = ref<NavPosition>('rail');
   const tasksGroupBy = ref<TasksGroupBy>('time');
   const tasksSortBy = ref<TasksSortBy>('date');
   const labsOwnThemes = ref(false);
@@ -40,6 +43,8 @@ export const usePrefsStore = defineStore('prefs', () => {
     supportCat.value = p.supportCat ?? supportCat.value;
     versionInCorner.value = p.versionInCorner ?? versionInCorner.value;
     leftHanded.value = p.leftHanded ?? leftHanded.value;
+    navPhone.value = p.navPhone ?? navPhone.value;
+    navDesktop.value = p.navDesktop ?? navDesktop.value;
     tasksGroupBy.value = p.tasksGroupBy ?? tasksGroupBy.value;
     tasksSortBy.value = p.tasksSortBy ?? tasksSortBy.value;
     labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
@@ -61,7 +66,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value,
     };
     apply(p);
     try {
@@ -72,5 +77,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, load, set };
+  return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, load, set };
 });

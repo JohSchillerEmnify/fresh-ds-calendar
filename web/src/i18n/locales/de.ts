@@ -125,6 +125,7 @@ export default {
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegelt das Handy-Layout, sodass die wichtigsten Bedienelemente unter dem linken Daumen liegen' },
+    navPosition: { label: 'Ansichtswechsel', hint: 'Wo Jahr, Monat, Woche und Tag liegen', phone: 'Auf dem Handy', desktop: 'Auf Desktop und Tablet', bottom: 'Unten', top: 'Oben', rail: 'Seitenleiste' },
     plant: 'Pflanze',
     sunflowers: { label: 'Sonnenblumen', hint: 'Gilt für die Szene Sonnenblumenfeld', grow: 'Wachsen mit Punkten', full: 'Volles Feld' },
     ownThemes: { label: 'Eigene Designs (KI und Import)', hint: 'Experimentell: ein Prompt für eine KI und der Import ihrer Design-Datei im Design-Menü' },

@@ -23,6 +23,10 @@ export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {}, seas
 export type SupportCat = 'off' | 'sometimes' | 'always';
 export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'always'];
 
+/** Where the view switcher sits (ARCHITECTURE "View switcher position"): bottom bar, tabs row under the top bar, or side rail. */
+export type NavPosition = 'bottom' | 'top' | 'rail';
+export const NAV_POSITION_VALUES: readonly NavPosition[] = ['bottom', 'top', 'rail'];
+
 /** How the Tasks view groups its lists (ARCHITECTURE "Tasks view"). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category', 'none'];
@@ -141,6 +145,9 @@ export interface Prefs {
   versionInCorner: boolean;
   /** Left-handed mode: the phone layout is mirrored (ARCHITECTURE "Left-handed mode"; off by default). */
   leftHanded: boolean;
+  /** Where the view switcher sits on phones (default `bottom`) and on desktop and tablets (default `rail`). */
+  navPhone: NavPosition;
+  navDesktop: NavPosition;
   /** Tasks view grouping and sorting, remembered per person. */
   tasksGroupBy: TasksGroupBy;
   tasksSortBy: TasksSortBy;
@@ -187,6 +194,8 @@ export class PrefsStore {
       supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
       versionInCorner: p?.versionInCorner === true,
       leftHanded: p?.leftHanded === true,
+      navPhone: NAV_POSITION_VALUES.includes(p?.navPhone as NavPosition) ? (p!.navPhone as NavPosition) : 'bottom',
+      navDesktop: NAV_POSITION_VALUES.includes(p?.navDesktop as NavPosition) ? (p!.navDesktop as NavPosition) : 'rail',
       tasksGroupBy: TASKS_GROUP_BY_VALUES.includes(p?.tasksGroupBy as TasksGroupBy) ? (p!.tasksGroupBy as TasksGroupBy) : 'time',
       tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
       labsOwnThemes: p?.labsOwnThemes === true,
@@ -278,8 +287,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime } = this.read(sub);
-    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime };
+    const { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime } = this.read(sub);
+    return { labs, approachBar, approachWindowHours, approachingCard, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime };
   }
 
   /**

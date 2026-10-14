@@ -626,3 +626,14 @@ spec files are named.
   bootstrap calls, which therefore ignored the refusal), and a failed `/api/auth/me` counted as "sign-in is off". The
   listener is now registered before the first call, the default provider is `null`, and a failed check stays
   `unknown` (asked again on the next navigation).
+- **A-253 View switcher position** (owner 2026-10-14, final): a Settings option for where the view switcher sits, a
+  setting only (no quick toggle). Default = current behaviour (phone bottom bar, desktop/tablet rail). One setting per
+  device type, split like `useViewport` (`isPhone` < 768 px vs. the rest; A-250). Options: `bottom` (phone = the bottom
+  bar, as now), `top` (M3 tabs row directly under the top app bar; the bottom bar disappears), `rail` (slim side rail,
+  also on phones, on the thumb side: right, or left in left-handed mode; desktop/tablet rail stays at the left as now).
+  When the phone has no bottom bar the open tasks tray moves to the bottom edge and the "+" floats above it, safe area
+  respected. Stored per person (`navPhone`, `navDesktop`), validated server-side. My choices: (a) desktop and tablet offer
+  all three options; `bottom` there is the same bar full width below the tray panel (simple, so not withheld);
+  (b) both rows are shown on every device, because the choice is per person and follows them; (c) the tabs row shows text
+  labels only (icons would not fit 8 Labs tabs at 360 px); (d) the phone rail is 64 px wide (the desktop rail is 80 px).
+
