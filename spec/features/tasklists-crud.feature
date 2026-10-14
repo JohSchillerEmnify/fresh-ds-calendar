@@ -108,6 +108,16 @@ Feature: Creating, editing and deleting task lists
     And I do not see the task list "Never mind"
     And Google contains no event "Never mind"
 
+  Scenario: Enter in the task list title moves to the next field and does not save
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    And I fill in the task list form with:
+      | title | Groceries |
+    And I press Enter in the task list field "title"
+    Then the task list dialog is open
+    And the task list field "date" has focus
+    And Google contains no event "Groceries"
+
   Scenario: Rename a task list
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:
       | item | done |

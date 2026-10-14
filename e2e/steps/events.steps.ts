@@ -184,6 +184,14 @@ Then('the event form shows:', async function (this: World, table: DataTable) {
   }
 });
 
+When('I press Enter in the event field {string}', async function (this: World, name: string) {
+  await field(dialog(this), EVENT_FIELDS, name).press('Enter');
+});
+
+Then('the event field {string} has focus', async function (this: World, name: string) {
+  await expect(field(dialog(this), EVENT_FIELDS, name)).toBeFocused();
+});
+
 When('I save the event', async function (this: World) {
   await dialog(this).getByTestId('event-save').click();
 });
