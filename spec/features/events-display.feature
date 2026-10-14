@@ -177,6 +177,20 @@ Feature: Displaying events in the calendar views
     Then the URL path is "/day/2026-10-14"
     And I see the event "H" on 2026-10-14
 
+  @month @desktop
+  Scenario: Task list cards in a narrow month grid do not flicker
+    Given the browser window is 672 by 1180 pixels wide and high
+    And the calendar contains a task list "Groceries" on 2026-10-14 with items:
+      | item  | done |
+      | Milk  | no   |
+      | Bread | no   |
+      | Eggs  | no   |
+    And the calendar contains a task list "Chores" on 2026-10-15 with items:
+      | item    | done |
+      | Laundry | no   |
+    When I open the month view for 2026-10
+    Then the month cells stay unchanged for 3 seconds
+
   Scenario: Events take the color of their calendar
     Given the calendar contains an event "Team sync" in the calendar "Work" on 2026-10-13 from 10:00 to 11:00
     When I open the week view for 2026-10-12

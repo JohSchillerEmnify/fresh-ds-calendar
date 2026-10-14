@@ -59,3 +59,20 @@ export function allotHeights(needs: number[], avail: number, min: number): numbe
   }
   return out.map((v) => Math.floor(v));
 }
+
+/** Month cell metrics in px, per tier: day number row, cell padding, one bar lane, one event chip (the smallest entry). */
+export const CELL_METRICS = {
+  phone: { num: 26, pad: 2, lane: 18, chip: 16 },
+  wide: { num: 28, pad: 8, lane: 22, chip: 18 },
+} as const;
+
+/**
+ * How many multi-day bar lanes a month cell can reserve while still leaving room for one entry row below them.
+ * Without the cap a tall week of bars (or a short phone grid) leaves the entries zero height and the cell looks empty.
+ * An unmeasured grid (`cellH` <= 0) is uncapped.
+ */
+export function maxLanes(cellH: number, phone: boolean): number {
+  if (!(cellH > 0)) return Infinity;
+  const m = phone ? CELL_METRICS.phone : CELL_METRICS.wide;
+  return Math.max(0, Math.floor((cellH - m.num - m.pad - 2 - m.chip) / m.lane));
+}

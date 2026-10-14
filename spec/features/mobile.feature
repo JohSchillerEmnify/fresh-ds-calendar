@@ -25,6 +25,14 @@ Feature: Mobile-first layout
       | week  | 2026-10-12 |
       | day   | 2026-10-14 |
 
+  Scenario: Month view on a phone shows the day's events in the cell
+    Given the calendar contains an all-day event "Trip" from 2026-08-10 to 2026-08-14
+    And the calendar contains an all-day event "Conference" from 2026-08-11 to 2026-08-13
+    And the calendar contains an all-day event "Camp" from 2026-08-12 to 2026-08-16
+    And the calendar contains an event "Meeting" on 2026-08-12 from 10:00 to 11:00
+    When I open the month view for 2026-08
+    Then the month cell of 2026-08-12 shows its first entry
+
   Scenario: The view switcher sits in a bottom bar within thumb reach
     When I open the month view for 2026-10
     Then the view switcher is at the bottom of the screen
