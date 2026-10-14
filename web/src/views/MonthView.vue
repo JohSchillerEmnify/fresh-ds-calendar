@@ -6,7 +6,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
-import { allotHeights } from '@/features/tasklists/layout';
+import { allotHeights, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { laneCount } from '@/lib/spans';
 import { providePreview } from '@/composables/usePreview';
@@ -26,14 +26,17 @@ const barsOf = useBars();
 
 const anchor = computed(() => props.anchor ?? cal.anchor);
 const weeks = computed(() => monthGrid(anchor.value));
-/** Bars per week row: every lane is drawn, what does not fit the cell is clipped and fades out. */
-const rows = computed(() => weeks.value.map((week) => {
-  const dates = week.map(toIsoDate);
-  const all = barsOf(dates);
-  return { dates, lanes: laneCount(all), bars: all };
-}));
 const gridEl = ref<HTMLElement | null>(null);
 const { height: gridH } = useElementSize(gridEl);
+/** Bars per week row: as many lanes as leave one entry row in every cell (`maxLanes`), the rest is reachable through the day. */
+const rows = computed(() => {
+  const cap = maxLanes(gridH.value / weeks.value.length, isPhone.value);
+  return weeks.value.map((week) => {
+    const dates = week.map(toIsoDate);
+    const all = barsOf(dates).filter((b) => b.lane < cap);
+    return { dates, lanes: laneCount(all), bars: all };
+  });
+});
 /** Marks the entries container `data-fade` while its content is taller than the space the cell gives it (re-measured on every update and resize). */
 const fadeObservers = new WeakMap<HTMLElement, ResizeObserver>();
 const measureFade = (el: HTMLElement) => { el.dataset.fade = el.scrollHeight > el.clientHeight + 1 ? 'true' : 'false'; };

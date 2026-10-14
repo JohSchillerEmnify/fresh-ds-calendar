@@ -168,6 +168,16 @@ When('the browser window is {int} by {int} pixels wide and high', async function
   await this.page.setViewportSize({ width, height });
 });
 
+Then('the month cell of {date} shows its first entry', async function (this: World, date: string) {
+  const box = this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-entries');
+  // a visible entry: the container has room for a chip and the first entry starts inside it, above the faded band
+  await expect.poll(() => box.evaluate((el) => {
+    const first = el.firstElementChild?.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return !!first && r.height >= 16 && first.top >= r.top - 1 && first.top < r.bottom - 10;
+  })).toBe(true);
+});
+
 Then('the month cells stay unchanged for {int} seconds', async function (this: World, seconds: number) {
   // layout tiers (`data-tier`, `data-fit`, `data-fade`) and cell content must settle: a measuring loop flips them every frame
   await this.page.getByTestId('month-view').evaluate((root) => {
