@@ -12,12 +12,14 @@ import { listen, type Disposer } from '@/lib/timers';
 import { displayTitle } from '@/lib/items';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
+import { useTaskCategories } from './categories';
 import TaskListView from './TaskListView.vue';
 
 const props = defineProps<{ id: string }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const ui = useUiStore();
+const cats = useTaskCategories();
 
 const tl = computed(() => {
   const i = items.get(props.id);
@@ -76,7 +78,7 @@ onBeforeUnmount(() => {
   <AdaptiveSheet
     ref="sheet" :open="!!tl" :label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')" testid="tasklist-expanded" :anchor="pos" :escape="false"
     :panel-attrs="{ 'data-tasklist-id': tl?.id ?? '', 'data-title': tl ? displayTitle(tl) : '' }"
-    :panel-style="{ '--c': tl?.color ?? 'transparent', borderTop: '4px solid var(--c)', background: 'color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low))' }"
+    :panel-style="{ '--c': tl ? cats.color(tl) : 'transparent', borderTop: '4px solid var(--c)', background: 'color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low))' }"
     @close="emit('close')"
   >
     <TaskListView v-if="tl" :id="id" ref="view" closable @close="emit('close')" @deleted="emit('close')" />

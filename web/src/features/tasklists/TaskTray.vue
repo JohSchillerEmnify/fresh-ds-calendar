@@ -15,11 +15,13 @@ import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import { useUiStore } from '@/stores/ui';
 import { compareOpen, useTaskListsStore } from './store';
+import { useTaskCategories } from './categories';
 import TaskListView from './TaskListView.vue';
 
 const route = useRoute();
 const lists = useTaskListsStore();
 const ui = useUiStore();
+const cats = useTaskCategories();
 const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
 const root = ref<HTMLElement | null>(null);
@@ -91,7 +93,7 @@ function toggleFold(id: string) {
     <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
         v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)"
-        :data-date="r.list.date" :data-finished="r.fin ? 'true' : undefined" :style="{ '--c': r.list.color }"
+        :data-date="r.list.date" :data-finished="r.fin ? 'true' : undefined" :style="{ '--c': cats.color(r.list) }"
       >
         <div v-if="r.fin" class="head">
           <span class="t" data-testid="task-tray-title">{{ displayTitle(r.list) }}</span>

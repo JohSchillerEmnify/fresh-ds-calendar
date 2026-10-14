@@ -14,6 +14,7 @@ import { t } from '@/i18n';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
+import { useTaskCategories } from './categories';
 import SupportCat from '@/features/motivation/SupportCat.vue';
 import { catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motivation/supportCat';
 import { displayTitle } from '@/lib/items';
@@ -67,9 +68,10 @@ const complete = computed(() => !!tl.value && tl.value.totalCount > 0 && tl.valu
 const collapsed = computed(() => !props.closable && isCollapsed(props.id));
 watch(collapsed, (c) => { if (c) { adding.value = false; editingItem.value = null; } });
 const carried = computed(() => !!tl.value && lists.isCarried(tl.value) && prefs.showCarriedFrom);
-const category = computed(() => settings.categoryById(tl.value?.categoryId));
+const cats = useTaskCategories();
+const category = computed(() => settings.categoryById(tl.value ? cats.categoryId(tl.value) : null));
 /** A shared list carries its owner's category look; the requester's own categories may differ. */
-const icon = computed(() => (tl.value?.categoryInfo === undefined ? category.value?.icon : tl.value.categoryInfo?.icon) ?? null);
+const icon = computed(() => (!cats.on.value ? null : (tl.value?.categoryInfo === undefined ? category.value?.icon : tl.value.categoryInfo?.icon)) ?? null);
 const badge = computed(() => (tl.value ? badgeInitial(tl.value) : null));
 const badgeText = computed(() => {
   const s = tl.value?.shared;
@@ -220,7 +222,7 @@ defineExpose({ root, busy });
 <template>
   <section
     v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
-    :style="{ '--c': tl.color }"
+    :style="{ '--c': cats.color(tl) }"
     :data-collapsed="collapsed ? 'true' : 'false'"
   >
     <header class="head">

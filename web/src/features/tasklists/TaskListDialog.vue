@@ -18,6 +18,7 @@ import { useUiStore } from '@/stores/ui';
 import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
+import { useTaskCategories } from './categories';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null }>();
 const emit = defineEmits<{ close: [] }>();
@@ -69,6 +70,7 @@ onMounted(async () => {
 });
 
 const dirty = computed(() => JSON.stringify(form) !== original);
+const cats = useTaskCategories();
 const catOptions = computed(() => [{ value: 'none', label: t('tasks.noCategory') }, ...settings.categories.map((c) => ({ value: c.id, label: c.name }))]);
 const cat = computed(() => settings.categoryById(form.categoryId === 'none' ? null : form.categoryId));
 const repeatOptions = computed(() => [
@@ -93,7 +95,8 @@ async function save() {
   const body = {
     title: form.title.trim(), date: form.noDate ? null : form.date, time: form.noDate ? null : form.time || null,
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
-    categoryId: form.categoryId === 'none' ? null : form.categoryId,
+    // categories off: the picker is hidden, so the stored category is left alone
+    ...(cats.on.value ? { categoryId: form.categoryId === 'none' ? null : form.categoryId } : {}),
   };
   try {
     if (editing.value) await items.updateTaskList(props.id!, body, etag);
@@ -156,7 +159,7 @@ function remove() {
       </div>
       <Button :variant="form.noDate ? 'tonal' : 'text'" class="nodate" :aria-pressed="form.noDate" data-testid="tasklist-no-date" @click="toggleNoDate">{{ t('tasks.dialog.noDate') }}</Button>
       <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
-      <div class="catrow">
+      <div v-if="cats.on.value" class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" />
       </div>

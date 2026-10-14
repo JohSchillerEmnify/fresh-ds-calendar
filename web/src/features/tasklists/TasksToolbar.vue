@@ -20,6 +20,7 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import type { TasksTab } from './tasksStore';
+import { useTaskCategories } from './categories';
 import { filterActive, NO_FILTER, toggleCategory, WHEN_VALUES } from './tasksFilter';
 
 const props = defineProps<{ tab: TasksTab; allCollapsed: boolean; canCollapse: boolean }>();
@@ -29,7 +30,8 @@ const prefs = usePrefsStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 
-const filter = computed(() => prefs.tasksFilter);
+const cats = useTaskCategories();
+const filter = computed(() => cats.filter.value);
 const active = computed(() => filterActive(filter.value));
 const whenLabel = (w: TasksWhen): string => t(`tasks.filter.whenOption.${w}`);
 const categoryName = (id: string): string => (id === 'none' ? t('tasks.noCategory') : settings.categories.find((c) => c.id === id)?.name ?? id);
@@ -46,7 +48,8 @@ onBeforeUnmount(() => { ui.setPanel('tasks-filter-sheet', false); ui.setPanel('t
 // --- filter ------------------------------------------------------------------------------------------------------------
 /** Saves a choice: the chips change at once, and snap back with a snackbar when the server refuses. */
 function choose(next: TasksFilter): void {
-  prefs.set({ tasksFilter: next }).catch(() => ui.notify(t('tasks.filter.saveFailed')));
+  // categories off: the stored category chips stay, only the shown filter changed
+  prefs.set({ tasksFilter: cats.on.value ? next : { ...next, categories: prefs.tasksFilter.categories } }).catch(() => ui.notify(t('tasks.filter.saveFailed')));
 }
 const clear = (): void => choose({ ...NO_FILTER, categories: [] });
 const chooseWhen = (w: TasksWhen): void => { if (w !== filter.value.when) choose({ ...filter.value, when: w }); };
@@ -59,14 +62,14 @@ const chips = computed(() => [
 
 // --- group and sort ----------------------------------------------------------------------------------------------------
 const groupOptions = computed<{ value: TasksGroupBy; label: string }[]>(() => [
-  { value: 'time', label: t('tasks.view.group.time') }, { value: 'category', label: t('tasks.view.group.category') }, { value: 'none', label: t('tasks.view.group.none') },
+  { value: 'time', label: t('tasks.view.group.time') }, ...(cats.on.value ? [{ value: 'category' as const, label: t('tasks.view.group.category') }] : []), { value: 'none', label: t('tasks.view.group.none') },
 ]);
 const sortOptions = computed<{ value: TasksSortBy; label: string }[]>(() => [
-  { value: 'date', label: t('tasks.view.sort.date') }, { value: 'name', label: t('tasks.view.sort.name') }, { value: 'category', label: t('tasks.view.sort.category') },
+  { value: 'date', label: t('tasks.view.sort.date') }, { value: 'name', label: t('tasks.view.sort.name') }, ...(cats.on.value ? [{ value: 'category' as const, label: t('tasks.view.sort.category') }] : []),
   { value: 'changed', label: t('tasks.view.sort.changed') }, { value: 'progress', label: t('tasks.view.sort.progress') },
 ]);
 /** "Category · Date", with a mark when the order is reversed (A-146). */
-const summary = computed(() => `${t(`tasks.view.group.${prefs.tasksGroupBy}`)} · ${t(`tasks.view.sort.${prefs.tasksSortBy}`)}${prefs.tasksSortDir === 'reversed' ? ' ↕' : ''}`);
+const summary = computed(() => `${t(`tasks.view.group.${cats.groupBy.value}`)} · ${t(`tasks.view.sort.${cats.sortBy.value}`)}${prefs.tasksSortDir === 'reversed' ? ' ↕' : ''}`);
 function chooseOrder(p: { tasksGroupBy: TasksGroupBy } | { tasksSortBy: TasksSortBy } | { tasksSortDir: TasksSortDir }): void {
   prefs.set(p).catch(() => ui.notify(t('tasks.view.choiceNotSaved')));
 }
@@ -98,8 +101,8 @@ const orderDisabled = computed(() => props.tab !== 'open');
     <AdaptiveSheet :open="filterOpen" :label="t('tasks.filter.label')" testid="tasks-filter-sheet" @close="filterOpen = false">
       <div class="sheet">
         <h2 class="t">{{ t('tasks.filter.label') }}</h2>
-        <h3 class="h">{{ t('tasks.filter.category') }}</h3>
-        <div class="chips">
+        <h3 v-if="cats.on.value" class="h">{{ t('tasks.filter.category') }}</h3>
+        <div v-if="cats.on.value" class="chips">
           <Chip
             v-for="c in settings.categories" :key="c.id" :selected="filter.categories.includes(c.id)" data-testid="tasks-filter-category" :data-id="c.id"
             @click="choose(toggleCategory(filter, c.id))"
@@ -125,11 +128,11 @@ const orderDisabled = computed(() => props.tab !== 'open');
       <div class="sheet">
         <h2 class="t">{{ t('tasks.view.sortTitle') }}</h2>
         <SegmentedButton
-          :model-value="prefs.tasksGroupBy" :options="groupOptions" :label="t('tasks.view.groupBy')" data-testid="tasks-group-by"
+          :model-value="cats.groupBy.value" :options="groupOptions" :label="t('tasks.view.groupBy')" data-testid="tasks-group-by"
           @update:model-value="chooseOrder({ tasksGroupBy: $event })"
         />
         <Select
-          :model-value="prefs.tasksSortBy" :options="sortOptions" :label="t('tasks.view.sortBy')" data-testid="tasks-sort-by"
+          :model-value="cats.sortBy.value" :options="sortOptions" :label="t('tasks.view.sortBy')" data-testid="tasks-sort-by"
           @update:model-value="chooseOrder({ tasksSortBy: $event })"
         />
         <Button

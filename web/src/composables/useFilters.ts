@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter, type LocationQuery } from 'vue-router';
 import { filterActive, matchesFilters, type Filters } from '@/lib/items';
 import type { CalendarItem } from '@/api/types';
+import { usePrefsStore } from '@/stores/prefs';
 
 function list(v: LocationQuery[string]): string[] {
   const s = Array.isArray(v) ? v[0] : v;
@@ -12,7 +13,9 @@ function list(v: LocationQuery[string]): string[] {
 export function useFilters() {
   const route = useRoute();
   const router = useRouter();
-  const filters = computed<Filters>(() => ({ categories: list(route.query.categories), tags: list(route.query.tags) }));
+  const prefs = usePrefsStore();
+  // task categories off: a category in the URL is ignored, so no list silently vanishes
+  const filters = computed<Filters>(() => ({ categories: prefs.taskCategories ? list(route.query.categories) : [], tags: list(route.query.tags) }));
   const active = computed(() => filterActive(filters.value));
   const count = computed(() => filters.value.categories.length + filters.value.tags.length);
 

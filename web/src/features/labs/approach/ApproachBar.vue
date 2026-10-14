@@ -14,9 +14,11 @@ import { formatDuration } from '@/features/calendar/timeline';
 import BedtimeTrack from '@/features/bedtime/BedtimeTrack.vue';
 import type { TrackBand } from '@/features/bedtime/bedtime';
 import { approachLayout, approachTicks, type ApproachSizes } from './approach';
+import { useTaskCategories } from '@/features/tasklists/categories';
 import { t } from '@/i18n';
 
 const props = defineProps<{ entries: Segment[]; atEnd: boolean; nowMin: number; windowMin: number; bands?: TrackBand[] }>();
+const cats = useTaskCategories();
 /** Width of the waiting entry at the end of the track. */
 const CHIP_PX = 96;
 /** Room a block needs around its title (padding and border). */
@@ -62,7 +64,7 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
       >
         <button
           type="button" class="block skin" :class="{ bare: c.titleOutside }" data-testid="approach-block" :aria-label="displayTitle(c.segment.item)"
-          :style="{ width: `${c.width}px`, '--c': c.segment.item.color, '--on-solid': onColor(c.segment.item.color) }" @click="openItem(c.segment.item)"
+          :style="{ width: `${c.width}px`, '--c': cats.itemColor(c.segment.item), '--on-solid': onColor(cats.itemColor(c.segment.item)) }" @click="openItem(c.segment.item)"
         ><span v-if="!c.titleOutside" class="label">{{ displayTitle(c.segment.item) }}</span></button>
         <!-- the block carries the entry's label; the title beside it is a second tap target only -->
         <span

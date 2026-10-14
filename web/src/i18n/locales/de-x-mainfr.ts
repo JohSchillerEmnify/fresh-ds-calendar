@@ -80,6 +80,7 @@ export default {
     tasklists: {
       carriedFrom: { label: 'Zeigen, wo verschobne Listen herkumma', hint: 'Des „Vom Sa., 10. Okt.“ an offne Listen, die auf heut grutscht sin. Aus: Die stehn halt bei heut.' },
       categories: 'Kadegorien',
+      taskCategories: { label: 'Kadegorien für Aufgabnlisdn', hint: 'Aufgabnlisdn nach Kadegorie grubbieren, sordiern, fildern un einfärbn. Ausschalddn blendes nur aus, nix wird gelöschd.' },
       addCategory: 'Kadegorie dazu',
     },
     motivation: {

@@ -105,6 +105,7 @@ export default {
     tasklists: {
       carriedFrom: { label: 'Show where carried-over lists come from', hint: 'The “From Sat 10 Oct” label on open lists moved to today. Off: they simply show up today.' },
       categories: 'Categories',
+      taskCategories: { label: 'Task list categories', hint: 'Group, sort, filter and color task lists by category. Switching off only hides them, nothing is deleted.' },
       addCategory: 'Add category',
       editCategory: 'Edit {name}',
       moveUp: 'Move {name} up',

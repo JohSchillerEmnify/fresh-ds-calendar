@@ -16,6 +16,7 @@ import { useItemsStore } from '@/stores/items';
 import { clockSegments, clockText, focusWedge, SNAP_MIN, tappedTime } from './clock';
 import { angleOf, arcPath, CENTER, clip, labelSizing, minuteAt, placeLabels, pointAt, radiusAt, sectorPath, VIEW } from './geometry';
 import { useDialGesture } from './useDialGesture';
+import { useTaskCategories } from '@/features/tasklists/categories';
 import { t } from '@/i18n';
 
 const cal = useCalendarStore();
@@ -27,6 +28,7 @@ const date = computed(() => toIsoDate(cal.anchor));
 const dateLabel = computed(() => formatDate(cal.anchor, 'weekdayDayMonthLong'));
 
 const segments = computed(() => (items.byDate.get(date.value) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)));
+const cats = useTaskCategories();
 const split = computed(() => clockSegments(segments.value));
 
 /** The dial is a square as large as the area below the date allows (owner, 2026-10-13). */
@@ -56,7 +58,7 @@ const arcs = computed(() =>
     const start = p ? minutesToTime(startMin) : s.startTime!, end = p ? minutesToTime(endMin % 1440) : s.endTime!;
     return {
       key, seg: s as Segment, kind: s.item.kind, title: displayTitle(s.item), text: clockText(s.item),
-      start, end, startMin, endMin, color: s.item.color, mid: (startMin + endMin) / 2, r, d: arcPath(startMin, endMin, r),
+      start, end, startMin, endMin, color: cats.itemColor(s.item), mid: (startMin + endMin) / 2, r, d: arcPath(startMin, endMin, r),
       width: tasklist ? ARC_W / 2 : ARC_W, dash: tasklist ? '5 4' : undefined,
       done: s.item.kind === 'tasklist' && s.item.doneCount >= s.item.totalCount,
       lifted: !!p, selected: selected.value === key,
@@ -93,8 +95,8 @@ const labels = computed(() => {
   });
 });
 /** Untimed task lists and all-day events: chips next to the dial (below/above it upright, beside it on a wide screen). */
-const untimed = computed(() => split.value.untimed.map((s) => ({ key: s.item.id, item: s.item, text: clockText(s.item), color: s.item.color })));
-const allDay = computed(() => split.value.allDay.map((s) => ({ key: `${s.item.id}-${s.date}`, item: s.item, title: displayTitle(s.item), color: s.item.color })));
+const untimed = computed(() => split.value.untimed.map((s) => ({ key: s.item.id, item: s.item, text: clockText(s.item), color: cats.itemColor(s.item) })));
+const allDay = computed(() => split.value.allDay.map((s) => ({ key: `${s.item.id}-${s.date}`, item: s.item, title: displayTitle(s.item), color: cats.itemColor(s.item) })));
 
 const isToday = computed(() => date.value === clock.today);
 /** Minutes of the day that have passed on the shown date. */

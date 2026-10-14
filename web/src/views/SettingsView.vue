@@ -243,8 +243,9 @@ async function resetDemo() {
 
         <section id="s-tasklists" class="card" data-testid="settings-section" data-section="tasklists" aria-labelledby="h-cats">
           <h2 id="h-cats">{{ title('tasklists') }}</h2>
-          <span class="lab sublab">{{ t('settings.tasklists.categories') }}</span>
-          <ul class="cats">
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.taskCategories.label') }}</span><span class="sub">{{ t('settings.tasklists.taskCategories.hint') }}</span></div><Switch :model-value="labs.taskCategories" :label="t('settings.tasklists.taskCategories.label')" data-testid="settings-task-categories" @update:model-value="savePrefs({ taskCategories: $event })" /></div>
+          <span v-if="labs.taskCategories" class="lab sublab">{{ t('settings.tasklists.categories') }}</span>
+          <ul v-if="labs.taskCategories" class="cats">
             <li v-for="(c, i) in settings.categories" :key="c.id" class="cat" data-testid="settings-category" :data-category-id="c.id" :data-name="c.name" :data-color="c.color">
               <button class="catmain" type="button" :aria-label="t('settings.tasklists.editCategory', { name: c.name })" @click="editing = c">
                 <i class="dot" :style="{ background: c.color }" /><span v-if="c.icon" class="em">{{ c.icon }}</span><span class="nm">{{ c.name }}</span>
@@ -255,7 +256,7 @@ async function resetDemo() {
           </ul>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.carriedFrom.label') }}</span><span class="sub">{{ t('settings.tasklists.carriedFrom.hint') }}</span></div><Switch :model-value="labs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
-          <div class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
+          <div v-if="labs.taskCategories" class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>
 
         <section id="s-motivation" class="card" data-testid="settings-section" data-section="motivation" aria-labelledby="h-focus">

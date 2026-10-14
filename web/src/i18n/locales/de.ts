@@ -99,6 +99,7 @@ export default {
     tasklists: {
       carriedFrom: { label: 'Herkunft verschobener Listen zeigen', hint: 'Das Etikett „Vom Sa., 10. Okt.“ an offenen Listen, die auf heute gerückt sind. Aus: Sie stehen einfach bei heute.' },
       categories: 'Kategorien',
+      taskCategories: { label: 'Kategorien für Aufgabenlisten', hint: 'Aufgabenlisten nach Kategorie gruppieren, sortieren, filtern und einfärben. Ausschalten blendet nur aus, nichts wird gelöscht.' },
       addCategory: 'Kategorie hinzufügen',
       editCategory: '{name} bearbeiten',
       moveUp: '{name} nach oben',

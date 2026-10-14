@@ -229,3 +229,48 @@ Feature: Task list categories, tags and filters
     When I open the week view for 2026-10-12
     And I show the filters
     Then the page has no horizontal scroll
+
+  # --- Switching task categories off (owner, 2026-10-14: users find them confusing) -----------------------------
+  # Setting "Task list categories" (per person, default on). Off hides every category UI of task lists: the picker in the
+  # task list dialog, the filter chips (Tasks view and calendar), "Category" grouping and sorting, the icon and the
+  # category colour (a list then shows the colour of its calendar), and the category list in Settings. A stored filter,
+  # grouping or sorting by category is ignored (default grouping and sorting apply). Stored categories on lists are kept,
+  # so switching it on again brings everything back. Events have no categories and are not touched.
+
+  Scenario: Switching task categories off hides them everywhere
+    Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
+    And the calendar contains a task list "Plain" on 2026-10-14 with items:
+      | item | done |
+      | One  | no   |
+    When I open the path "/settings"
+    And I turn the task categories "off"
+    Then the settings page shows no categories
+    And the Tasks view offers no category filter, grouping or sorting
+    When I open the new task list dialog in the Tasks view
+    Then the task list dialog has no category field
+    When I cancel the task list dialog
+    And I open the path "/day/2026-10-14"
+    Then the task list "Milk" shows no icon
+    And the task lists "Milk" and "Plain" have the same color
+
+  Scenario: An active category filter and a category grouping are ignored while off
+    Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
+    And the calendar contains a task list "Report" in the category "Work" on 2026-10-13
+    When I filter the Tasks view by the category "Shopping"
+    And I group the Tasks view by "Category"
+    And I open the path "/settings"
+    And I turn the task categories "off"
+    Then the Open tab lists "Milk"
+    And the Open tab lists "Report"
+    And the Tasks view is grouped by "Time"
+
+  Scenario: Switching back on restores the category of a list
+    Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
+    When I open the path "/settings"
+    And I turn the task categories "off"
+    And I retitle the task list "Milk" to "Oat milk" in the Tasks view
+    And I open the path "/settings"
+    And I turn the task categories "on"
+    And I open the path "/day/2026-10-14"
+    Then the task list "Oat milk" has the color "#0b8043"
+    And the task list "Oat milk" shows the icon "🛒"

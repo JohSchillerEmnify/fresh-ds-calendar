@@ -126,7 +126,7 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
-      tags: d.tags, color: cat ? cat.color : calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
+      tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
     };
   }
 
@@ -139,7 +139,7 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: SHARED_PREFIX + doc.id, calendarId: SHARED_CALENDAR, title: d.title, date: d.date, time: d.time, items: d.items,
       doneCount: done, totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: null, categoryId: d.categoryId, tags: d.tags,
-      color: info?.color ?? fallbackColor, completedOn: d.completedOn, canvas: d.canvas, etag: `"${doc.rev}"`, updated: doc.updated,
+      color: info?.color ?? fallbackColor, calendarColor: fallbackColor, completedOn: d.completedOn, canvas: d.canvas, etag: `"${doc.rev}"`, updated: doc.updated,
       shared: this.shared!.info(doc, this.sub), categoryInfo: info,
     };
   }
