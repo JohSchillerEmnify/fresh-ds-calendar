@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="t">
+  <title id="t">Calendar: Fresh D., the old rapper wizard</title>
+  <defs><clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath></defs>
+  <!-- calendar tile with header bar and two binder rings -->
+  <rect width="512" height="512" rx="112" fill="#1a73e8"/>
+  <rect width="512" height="104" fill="#1557b0" clip-path="url(#tile)"/>
+  <rect x="148" y="34" width="30" height="78" rx="15" fill="#fff"/>
+  <rect x="334" y="34" width="30" height="78" rx="15" fill="#fff"/>
+  <!-- long white hair, face, beard -->
+  <path d="M256 156C176 156 116 222 116 322C116 410 134 466 190 484Q256 500 322 484C378 466 396 410 396 322C396 222 336 156 256 156Z" fill="#d9dee6"/>
+  <ellipse cx="256" cy="298" rx="80" ry="88" fill="#f2b48c"/>
+  <path d="M176 296C190 330 222 340 256 334C290 340 322 330 336 296C346 376 308 462 256 482C204 462 166 376 176 296Z" fill="#fff"/>
+  <ellipse cx="256" cy="358" rx="13" ry="7" fill="#d98a76"/>
+  <!-- black shades -->
+  <rect x="168" y="278" width="84" height="46" rx="16" fill="#111216"/>
+  <rect x="260" y="278" width="84" height="46" rx="16" fill="#111216"/>
+  <rect x="248" y="286" width="16" height="10" fill="#111216"/>
+  <path d="M180 290H204L194 308H180Z M272 290H296L286 308H272Z" fill="#fff" opacity=".35"/>
+  <!-- snapback cap: dome, flat brim, green under-brim -->
+  <path d="M160 258C158 202 170 160 206 152Q256 144 306 152C342 160 356 202 354 258Z" fill="#17181c"/>
+  <rect x="164" y="266" width="270" height="9" rx="4.5" fill="#2fa866"/>
+  <path d="M150 244H372Q430 244 436 260Q438 270 428 270H150Z" fill="#111216"/>
+  <path d="M256 150V240" stroke="#2c2e36" stroke-width="4"/>
+  <text x="256" y="212" text-anchor="middle" textLength="118" lengthAdjust="spacingAndGlyphs" font-family="Helvetica, Arial, sans-serif" font-size="34" font-weight="700" font-style="italic" fill="#fff">Fresh D.</text>
+</svg>
