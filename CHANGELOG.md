@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-14
+- Birthdays work like in Google Calendar: create one with "Birthday" in the new dialog, and rename, recolour, move or delete birthdays (the birth year stays; birthdays from Google Contacts keep their date).
 - Settings no longer slide sideways on small phones (the season choices on the Theme page were too wide).
 - Reminders can now also arrive in the browser while the app is closed: switch on "Reminders in this browser" under Settings → Reminders.
 
