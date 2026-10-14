@@ -95,6 +95,10 @@ export class World {
   person?: string;
   /** The week the last "without signing in" step opened. */
   weekOpened?: string;
+  /** App sign-in (signin.steps.ts): the deep link the system browser ended on, the code in it, and the last exchange's HTTP status/body. */
+  appLink?: string;
+  appCode?: string;
+  appExchange?: { status: number; text: string };
   /** Hour height of the time grid captured before the last pinch ("as before" / "at the start"). */
   hourHeightBefore?: number;
   lastResponse?: { status: number; json: unknown; url: string };

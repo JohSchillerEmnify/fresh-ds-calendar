@@ -29,6 +29,11 @@ final class WidgetStore {
         return prefs.getLong("snapshotAt", 0);
     }
 
+    /** Drops the snapshot, the fetched week and the fetch state (the server changed). */
+    void clearAll() {
+        prefs.edit().clear().apply();
+    }
+
     /** The snapshot as written by the app, or null. */
     JSONObject snapshot() {
         return parse(prefs.getString("snapshot", null));

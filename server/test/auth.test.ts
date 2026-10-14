@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { claimLegacyToken, isAllowed, mockSub, parseEmails, userDir, userTokenFile } from '../src/auth/people.js';
+import { ExchangeStore } from '../src/auth/appExchange.js';
 import { EXTEND_EVERY_MS, SESSION_TTL_MS, SessionStore } from '../src/auth/sessions.js';
 import { makeApp } from './helpers.js';
 
@@ -215,5 +216,108 @@ describe('calendar permission (granular consent)', () => {
       expect(built).toEqual([sub, sub]);
       app.close();
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+});
+
+describe('app sign-in (Android app, one-time exchange code)', () => {
+  const items = '/api/items?from=2026-10-12&to=2026-10-19';
+
+  /** The round trip in the "system browser" (own cookie jar) with `app=1`; returns its callback response. */
+  async function appRoundTrip(t: ReturnType<typeof makeApp>, email: string) {
+    await t.json('POST', '/api/__test/oauth/account', { email });
+    const start = await t.req('GET', '/api/auth/google/start?app=1');
+    const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
+    const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
+    const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
+    const html = await cb.text();
+    const link = /id="open-app" href="([^"]+)"/.exec(html)?.[1] ?? null;
+    return { cb, html, link, code: link ? new URL(link).searchParams.get('code') : null };
+  }
+
+  it('hands the session to the app through a one-time code, not to the browser', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const r = await appRoundTrip(t, 'jo@example.com');
+      expect(r.cb.status).toBe(200);
+      expect(r.link).toMatch(/^lan\.mordor\.calendar:\/\/auth\?code=[A-Za-z0-9_-]{22,}$/); // >= 128 bit
+      expect(r.cb.headers.getSetCookie().some((c) => c.startsWith('cal_session='))).toBe(false);
+      expect(r.cb.headers.get('cache-control')).toBe('no-store');
+      // the WebView redeems it: session cookie + redirect to the app
+      const ex = await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      expect(ex.status).toBe(302);
+      expect(ex.headers.get('location')).toBe('/');
+      const session = ex.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!;
+      expect((await t.json('GET', '/api/auth/me', undefined, { cookie: session })).body.email).toBe('jo@example.com');
+      expect((await t.json('GET', items, undefined, { cookie: session })).status).toBe(200);
+    } finally { t.cleanup(); }
+  });
+
+  it('works once only, and unknown codes get a friendly page', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const r = await appRoundTrip(t, 'jo@example.com');
+      expect((await t.req('GET', `/api/auth/app-exchange?code=${r.code}`)).status).toBe(302);
+      const again = await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      expect(again.status).toBe(400);
+      expect(again.headers.getSetCookie()).toEqual([]);
+      expect(await again.text()).toContain('/signin');
+      expect((await t.req('GET', '/api/auth/app-exchange?code=nope')).status).toBe(400);
+      expect((await t.req('GET', '/api/auth/app-exchange')).status).toBe(400);
+    } finally { t.cleanup(); }
+  });
+
+  it('expires a code after 60 seconds (ExchangeStore)', () => {
+    let now = 1_000_000;
+    const store = new ExchangeStore(() => now);
+    const a = store.create({ sessionId: 's', redirect: '/' });
+    now += 60_000;
+    expect(store.consume(a)).toEqual({ sessionId: 's', redirect: '/' });
+    const b = store.create({ sessionId: 's', redirect: '/' });
+    now += 60_001;
+    expect(store.consume(b)).toBeNull();
+    expect(store.create({ sessionId: 's', redirect: '/' })).not.toBe(store.create({ sessionId: 's', redirect: '/' }));
+  });
+
+  it('mints codes only for app flows: a plain sign-in still sets the cookie and redirects', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      await t.json('POST', '/api/__test/oauth/account', { email: 'jo@example.com' });
+      const start = await t.req('GET', '/api/auth/google/start');
+      const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
+      const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
+      const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
+      expect(cb.status).toBe(302);
+      expect(cb.headers.get('location')).toBe('/');
+      expect(cb.headers.getSetCookie().some((c) => c.startsWith('cal_session='))).toBe(true);
+      // a session id is not a code
+      const session = cb.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!.split('=')[1]!;
+      expect((await t.req('GET', `/api/auth/app-exchange?code=${session}`)).status).toBe(400);
+    } finally { t.cleanup(); }
+  });
+
+  it('keeps the state check in the app flow (no cookie, no session)', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      await t.json('POST', '/api/__test/oauth/account', { email: 'jo@example.com' });
+      const start = await t.req('GET', '/api/auth/google/start?app=1');
+      const consent = await t.req('GET', start.headers.get('location')!);
+      const cb = await t.json('GET', consent.headers.get('location')!);
+      expect(cb.status).toBe(400);
+    } finally { t.cleanup(); }
+  });
+
+  it('turns away a person who is not allowed without minting a code', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const r = await appRoundTrip(t, 'stranger@example.com');
+      expect(r.cb.status).toBe(302);
+      expect(r.cb.headers.get('location')).toBe('/signin?error=private');
+      expect(r.code).toBeNull();
+    } finally { t.cleanup(); }
   });
 });

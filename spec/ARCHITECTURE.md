@@ -1641,21 +1641,81 @@ decided every point below.
   `tasklist-leave`, `category-share-person`.
 ### Android app and widget (owner, 2026-10-13)
 
-An Android app that loads the LAN calendar, plus a resizable weekly home-screen widget. Code in `android/`
+An Android app that loads the calendar server the person chooses (the public one or the LAN one), plus a resizable weekly
+home-screen widget. Code in `android/`
 (Capacitor 8, Java), `capacitor.config.ts` at the repo root, web side in `web/src/native/`. The web app's behaviour in a
 browser does not change.
 
-- **The app is a Capacitor shell, not a TWA.** `capacitor.config.ts` sets `server.url = http://cal.mordor.lan`, so the
-  WebView shows the deployed web app and updates with every deploy (no re-install). Alternatives weighed: a Trusted Web
-  Activity (Chrome Custom Tabs; needs HTTPS and a Digital Asset Links file, and the LAN deploy has no HTTPS: impossible);
-  a bundled copy of the web app (would need its own build and update path, and the API is on another origin anyway).
-  Plain HTTP is allowed for that one host only, by `res/xml/network_security_config.xml` (`cal.mordor.lan`,
-  cleartext on, every other host HTTPS-only). The Capacitor `cleartext` option is for live reload only and is not set.
-  An offline error page (`android/www/error.html`, `server.errorPath`) shows when the server is unreachable.
-  App name "Calendar", id `lan.mordor.calendar`, icons from the PWA icons (adaptive icon, the maskable glyph).
+- **The app is a Capacitor shell, not a TWA.** The WebView shows the deployed web app of the chosen server and updates with
+  every deploy (no re-install). Alternatives weighed: a Trusted Web Activity (Chrome Custom Tabs; needs HTTPS and a Digital
+  Asset Links file, and the LAN deploy has no HTTPS: impossible there); a bundled copy of the web app (would need its own
+  build and update path, and the API is on another origin anyway). Cleartext is allowed for one host only, by
+  `res/xml/network_security_config.xml` (`cal.mordor.lan`; every other host, `cal.example.org` included, is HTTPS-only).
+  The Capacitor `cleartext` option is for live reload only and is not set. An offline page (`android/www/error.html`,
+  `errorPath`) shows when the server is unreachable. App name "Calendar", id `lan.mordor.calendar`, icons from the PWA icons.
+- **Server choice (owner, 2026-10-14: one app, the server selectable).** Two servers are on offer, in `widget/ServerConfig`
+  (the one place that knows them; any other URL is rejected): `https://cal.example.org` ("everywhere (internet)",
+  recommended, listed first) and `http://cal.mordor.lan` ("home network only"). The choice is stored in SharedPreferences
+  (`calendar_server`, key `baseUrl`). On the first start (nothing stored) the bundled page `android/www/index.html`
+  ("Which calendar?", English or German by the phone's language) shows; later starts load the stored server directly.
+  - **How the chosen origin is loaded.** Capacitor's `server.url` is static in `capacitor.config.ts`, so it is not set there.
+    `MainActivity` builds the runtime config instead (`CapConfig.Builder`, assigned to `BridgeActivity.config` before
+    `super.onCreate`): `setServerUrl(<chosen>)` with a choice, no URL without one (then the bridge serves `android/www`).
+    A choice or a switch calls `Activity.recreate()`, which builds the bridge again for the new origin.
+    Alternatives weighed: (a) `server.url` = the local chooser page plus `allowNavigation` for both hosts, then
+    `loadUrl(chosen)`: rejected, because Capacitor injects its JavaScript bridge (`native-bridge.js`, which fills
+    `window.Capacitor.Plugins`) with `WebViewCompat.addDocumentStartJavaScript` for the origin of `appUrl` only
+    (`Bridge.loadWebView`: `allowedOrigin` = origin of `appUrl`; `allowNavigation` hosts are only added to the
+    `addWebMessageListener` allow-list in `setAllowedOriginRules`), so on the other origins `window.Capacitor` would not
+    exist and every plugin (widget snapshot, reminders, the Settings row) would silently stop working; (b) `loadUrl` from
+    `MainActivity` on a bridge made for the local page: same problem. With the chosen server as `appUrl` the bridge is
+    injected there, `window.Capacitor.isNativePlatform()` and all plugins work on **both** origins (verified in
+    `@capacitor/android` 8.5.3 source: `Bridge.java`, `MessageHandler.java`; not verified on a device by me). Limit: the
+    WebView history is lost on a switch.
+  - **The chooser and the offline page have no JavaScript bridge** (their origin, `https://localhost`, is not `appUrl` once
+    a server is chosen; at the first start they could, but one mechanism serves both). Their buttons are plain links to
+    `https://localhost/__server/<fresh|mordor|choose|retry>`, which the plugin `ServerChoice` intercepts in
+    `shouldOverrideLoad` (Capacitor asks every plugin before it opens a URL): choose stores and recreates, `choose`
+    clears and recreates, `retry` reloads the stored server. The offline page offers "Try again" and "Choose another
+    calendar", so someone who picked the LAN server while away is never stuck.
+  - **Switching later.** In the web app, Settings → Account & data shows "Server: cal.example.org" with a **Change** button,
+    only inside the app (`window.Capacitor`; the host comes from `ServerChoice.get()`). **Change** calls
+    `ServerChoice.choose()`: the choice is cleared and the chooser shows again. Keys `settings.account.server.*` in all four
+    locales.
+  - **Widget and deep links follow the server.** The widget's API call uses the stored base URL and `CookieManager`'s
+    cookie for that host (the jar is per host, so each server keeps its own session). When the choice changes or is cleared,
+    `WeekWidgetProvider.onServerChanged` drops the cached week, the snapshot and the fetch state, redraws and fetches
+    again; a fetch still running for the old server discards its answer. `/day/<date>` and `/week/<date>` from the widget
+    open on the stored server (`MainActivity.openPathFrom`); with no server chosen they are ignored.
+  - **Google sign-in (owner bug, 2026-10-14: "invalid state").** Cause: Capacitor opens every navigation to a host other
+    than the app's own in the system browser (`Bridge.launchIntent` -> `ACTION_VIEW`; `@capacitor/android` 8.5.3
+    `BridgeWebViewClient.shouldOverrideUrlLoading`, which also sees server redirects). So `/api/auth/google/start` ran in the
+    WebView (state cookie set there), the redirect to `accounts.google.com` left for Chrome, and the callback landed in
+    Chrome without the `cal_oauth_state` cookie -> `Invalid state`; the session cookie would have ended up in Chrome too.
+    Letting the WebView open Google is no fix: Google refuses OAuth in embedded WebViews (`disallowed_useragent`).
+    Design (the standard native-app pattern): the whole round trip runs in the **system browser**, the session comes back by
+    **deep link + one-time code**:
+    1. `ServerChoicePlugin.shouldOverrideLoad` catches the WebView's navigation to `<server>/api/auth/google/start` (all
+       three web entry points: sign-in page, re-auth banner, grant calendar) and opens `<server>/api/auth/google/start?app=1`
+       with `ACTION_VIEW` (`AppSignIn.browserUrl`). No web change, no extra plugin.
+    2. The server remembers `app` with the `state`; the callback (state cookie lives in Chrome, so the check holds) creates the
+       session, but instead of the cookie it mints a 128-bit, single-use, 60 s code (`auth/appExchange.ts`, in memory) and
+       answers an HTML page that opens `lan.mordor.calendar://auth?code=...`.
+    3. `MainActivity` declares an intent-filter for that scheme/host (`singleTask`, so `onNewIntent`/`onCreate` get it) and
+       loads `<server>/api/auth/app-exchange?code=...` in the WebView (`AppSignIn.exchangeUrl` accepts only a well-formed code
+       of the chosen server); the server sets the normal session cookie and redirects to `/`. An unknown or used code shows
+       a friendly "sign in again" page.
+    Alternatives weighed: `@capacitor/browser` (Custom Tab; needs a new dependency, JS bridge call from every sign-in entry
+    point and a Gradle sync, for the same effect as an `ACTION_VIEW`; Custom Tabs would only add the in-app look); a Custom
+    Tab/`AppAuth` client with a native redirect URI (Google's Android OAuth client type would need a second client and token
+    handling in the app, while the server holds the refresh tokens by design); `appUrlOpen` from `@capacitor/app` (a second
+    dependency; the activity gets the intent natively anyway). Cookie jar sharing between Chrome and the WebView does not
+    exist, hence the code. The browser flow (no `app=1`) is unchanged. Known limit: any app can fire the deep link, so a
+    foreign code would sign the owner in as someone else (login CSRF); a PKCE-style verifier would close it, not done (the
+    code is bound to an allow-listed person and lives 60 s). Not verified on a device (no Android build locally).
 - **Widget data: the widget calls the existing API itself, with the app's own session. No new server auth, no key.**
   Android's `CookieManager` is app-wide and shared with the WebView, so the widget's native code (`RefreshWorker`)
-  reads the `cal_session` cookie for the server and calls `GET /api/items?from=<Monday>&to=<next Monday>`
+  reads the `cal_session` cookie for the chosen server and calls `GET /api/items?from=<Monday>&to=<next Monday>`
   (one request; task lists are in the same response). With `PROVIDER=mock` sign-in is off and no cookie is needed.
   Refresh: a periodic WorkManager job (every 30 min, network required) plus a one-off job when a widget is added, when
   the app finishes a sync (through the plugin, at most every 2 min), on the refresh icon, at midnight/time change.
@@ -1776,6 +1836,14 @@ browser does not change.
   `/home/sauron/projects/calendar/deploy/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
   server serves it at `GET /app.apk` (API.md); the service worker's navigation fallback excludes `/app.apk`. The APK is
   not part of the Docker image and is not rebuilt by a deploy.
+- **Distribution: a download link, on both servers.** `scripts/android-build.sh` builds a release-signed APK (key generated
+  locally, never in git; the build falls back to the debug key without it) and copies it to
+  `/home/sauron/projects/calendar/deploy/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`; from
+  another machine the script copies it over scp/ssh). The LAN server serves it at `GET /app.apk` (API.md); the service
+  worker's navigation fallback excludes `/app.apk`. The public server's `/data` is a named Docker volume on the VPS, so
+  `scripts/vps.sh deploy` also takes sauron's `deploy/data/downloads/app.apk` and puts it into the running app container
+  (`docker compose cp` to `/data/downloads/app.apk`, written as `.part` and renamed). The APK is not part of the Docker
+  image and is not rebuilt by a deploy; a deploy without an APK on sauron leaves the VPS's file as it is.
 - **Build constraints.** minSdk 26 (Android 8, `java.time`), compile/target SDK 36. Capacitor's modules ask for Java 21;
   `android/build.gradle` pins every module to Java 17 so JDK 17 builds them.
 - **The app's own download button.** Inside the Capacitor app the Settings row is called "Update the app" (otherwise
@@ -1892,8 +1960,8 @@ Requires 9.1 for the full experience; on plain HTTP the result is only a shortcu
   these steps.) Opens standalone. To update: close and reopen the app.
 - Away from home the names do not resolve (by design: LAN only); the installed app opens its cached shell and shows the
   sync error banner.
-- **Android app with widget (plain HTTP, no PWA install needed)**: see "Android app and widget"; install from
-  `http://cal.mordor.lan/app.apk` (README "Android app").
+- **Android app with widget (no PWA install needed)**: see "Android app and widget"; install from
+  `https://cal.example.org/app.apk` or `http://cal.mordor.lan/app.apk` (README "Android app"); the app asks which one to use.
 
 ### 9.3 Enabling real Google Calendar
 
