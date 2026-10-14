@@ -5,7 +5,7 @@
  * `grown` mode (full height, every item). It is placed by `placeExpanded` (down, up or scrolling inside, within the visible
  * scroll area), so the calendar underneath never moves. Read-only: a tap anywhere on it opens the normal list sheet. Closes on
  * Escape, the system back, a tap elsewhere or on its title, a change of view or date, or when a dialog opens (a fixed one also when a
- * scroll takes it out of sight; one inside the time grid scrolls natively with it). The focus moves in and returns to the card.
+ * scroll takes it out of sight, and so does a zoom that moves both the card and its time out of view; one inside the time grid scrolls natively with it). The focus moves in and returns to the card.
  * A time block of the week/day grid is placed in time units instead (see `timed`): teleported into its day column, its top and
  * the real layer's height come from the list's minutes and the shared `hourHeight` (as `TimeGrid` lays a block out), so it follows
  * the zoom preview and every zoom commit by construction; only grow direction and max height are measured.
@@ -75,7 +75,8 @@ function place() {
   if (!el || !card || !props.anchor.isConnected) return;
   const a = props.anchor.getBoundingClientRect();
   const b = bounds();
-  if (!anchorVisible(a, b)) { emit('close'); return; }
+  // gone only when neither the collapsed card nor the grown one is on screen: a zoom around a point below the card moves its time up while the card stays in view
+  if (!anchorVisible(a, b) && !anchorVisible(el.getBoundingClientRect(), b)) { emit('close'); return; }
   // a time block sits in a narrow side-by-side slot; grown it takes its whole day column, over the neighbours (inside the column's border, with the block's 1 px inset)
   const colEl = props.variant === 'block' ? props.anchor.closest('.col') : null;
   const cr = colEl?.getBoundingClientRect();

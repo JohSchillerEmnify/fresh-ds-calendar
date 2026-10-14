@@ -1625,6 +1625,12 @@ actually longer". Owner decisions (final):
     height watch) would fix this one trigger but stay a separate positioning system that can drift again. Laying the copy out
     in the grid's own time coordinates makes it scale like every other block by construction (owner: "it can't be a
     completely separate component, it should be the same scaling-wise as any other inline calendar event").
+  - *Zoom keeps the card (owner: "zooming closes the card")*: the "out of sight" close in `place()` looked at the collapsed
+    card only. A zoom around a point below the anchor (a pinch on the grown card's extension) moves the anchor's time up and
+    off the top while the grown card, which hangs down from it, is still on screen. **To Be**: the expansion closes only when
+    neither the collapsed card nor the grown card intersects the visible scroll area (`anchorVisible` on both rects). A zoom
+    that really takes the card's time out of view still closes it; one tap on the card then grows it again (`ui.expandedCard` is
+    null after every close path, covered by the `@expand-zoom` scenarios for Escape, tap elsewhere and zoom).
 
 **Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.toggleCard`, collapse on unmount; a
 swipe preview copy never grows). It mounts `ExpandedCard.vue` (lazy chunk), a `position: fixed` wrapper teleported to the
