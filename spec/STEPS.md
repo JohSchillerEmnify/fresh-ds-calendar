@@ -167,6 +167,8 @@ the items on {date} are shown in the order {string}
 I start creating an event
 I click the time slot {time} on {date}
 I fill in the event form with:
+I press Enter in the event field {string}
+the event field {string} has focus
 I save the event
 I cancel the event dialog
 I press Escape
@@ -191,6 +193,8 @@ the event dialog fits within the viewport
 I start creating a task list
 I switch the new dialog to {string}
 I fill in the task list form with:
+I press Enter in the task list field {string}
+the task list field {string} has focus
 I save the task list
 I cancel the task list dialog
 the task list dialog is open
