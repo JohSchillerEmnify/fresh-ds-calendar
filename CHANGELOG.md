@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-14
+- Settings no longer slide sideways on small phones (the season choices on the Theme page were too wide).
 - Reminders can now also arrive in the browser while the app is closed: switch on "Reminders in this browser" under Settings → Reminders.
 
 - Google rate limits no longer break syncing: calendars are cached per person and the app backs off after a failed sync.
