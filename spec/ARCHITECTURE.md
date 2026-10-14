@@ -1524,7 +1524,7 @@ browser does not change.
   flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
 - **Distribution: a download link.** `scripts/android-build.sh` builds a release-signed APK (key generated locally in
   `~/.config/calendar-android/`, never in git; the build falls back to the debug key without it) and copies it to
-  `/home/sauron/docker-compose/calendar/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
+  `/home/sauron/projects/calendar/deploy/data/downloads/app.apk` on sauron (the container's `DATA_DIR/downloads/`). The
   server serves it at `GET /app.apk` (API.md); the service worker's navigation fallback excludes `/app.apk`. The APK is
   not part of the Docker image and is not rebuilt by a deploy.
 - **Build constraints.** minSdk 26 (Android 8, `java.time`), compile/target SDK 36. Capacitor's modules ask for Java 21;
@@ -1558,7 +1558,7 @@ browser does not change.
 | `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
 | `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
 
-Deployment: `/home/sauron/docker-compose/calendar/docker-compose.yaml` (style of `filebrowser`): `build:
+Deployment: `deploy/docker-compose.yaml` in the repo (owner 2026-10-14: compose versioned with the app; `.env` and `data/` next to it, git-ignored; `~/docker-compose/calendar` symlinks to it): `build:
 /home/sauron/projects/calendar`, `container_name: calendar`, `restart: unless-stopped`, Traefik labels
 `Host(\`cal.mordor.local\`)` + `loadbalancer.server.port=3000`, `./data:/app/data`, `TZ=Europe/Berlin`,
 `PUBLIC_URL=http://cal.mordor.local`, `PROVIDER=mock`, `TEST_MODE=false`, network `proxy-network` (external).

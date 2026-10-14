@@ -11,3 +11,6 @@ playwright-report/
 *.keystore
 keystore.properties
 local.properties
+
+# deploy/: compose backups next to the versioned compose file (.env and data/ are ignored above)
+deploy/*.bak*

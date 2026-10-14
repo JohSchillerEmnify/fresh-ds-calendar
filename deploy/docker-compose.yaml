@@ -1,0 +1,30 @@
+# The calendar app on sauron. Lives in the repo (owner, 2026-10-14); `.env` (secrets) and `data/` (DATA_DIR) sit next
+# to this file but are git-ignored. Deploy with scripts/deploy.sh (project name `calendar`).
+services:
+  calendar:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: calendar:latest
+    container_name: calendar
+    restart: unless-stopped
+    mem_limit: 192m
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.calendar.rule=Host(`cal.mordor.local`) || Host(`cal.mordor.lan`)
+      - traefik.http.services.calendar.loadbalancer.server.port=3000
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Berlin
+      PORT: 3000
+      DATA_DIR: /data
+      NODE_OPTIONS: --max-old-space-size=96 --heapsnapshot-signal=SIGUSR2 --diagnostic-dir=/data
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true

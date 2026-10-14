@@ -20,7 +20,7 @@ containers.
 - Main checkout: `~/projects/calendar` (branch **`main`**). Git hooks live in `scripts/hooks`
   (`core.hooksPath=scripts/hooks`).
 - Worktrees: `~/projects/calendar-wt/<branch>`; the preview worktree is `~/projects/calendar-wt/preview`.
-- Compose: `~/docker-compose/calendar/docker-compose.yaml`; data volume `~/docker-compose/calendar/data` → `/data` in the
+- Compose: `deploy/docker-compose.yaml` in the repo (`~/projects/calendar/deploy/`; `~/docker-compose/calendar` is a symlink to it); data volume `deploy/data` (git-ignored) → `/data` in the
   container (`DATA_DIR`).
 
 ## Production deploy
@@ -69,12 +69,12 @@ scripts/preview-branch.sh status         # what `preview` has on top of main
 Log: `/tmp/calendar-autopreview.log`. Preview builds (version `…-preview+<sha>`) reload themselves in the browser when a
 new build is out.
 
-## Configuration (`~/docker-compose/calendar/.env`)
+## Configuration (`~/projects/calendar/deploy/.env`)
 
 The compose file reads `.env` (mode 600, not in git). Edit on sauron, then redeploy:
 
 ```bash
-nano ~/docker-compose/calendar/.env
+nano ~/projects/calendar/deploy/.env
 cd ~/projects/calendar && pnpm redeploy
 ```
 
