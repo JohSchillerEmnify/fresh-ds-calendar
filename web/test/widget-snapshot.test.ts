@@ -63,4 +63,11 @@ describe('buildWidgetSnapshot', () => {
     expect(s.tasklists).toEqual([{ title: 'Groceries', done: 2, total: 5, color: '#0b8043' }]);
     expect(s.days.every((d) => d.events.length === 0)).toBe(true);
   });
+
+  it('leaves out events of hidden calendars', () => {
+    const hidden = { ...ev('h', 'Secret', '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00'), calendarId: 'work' };
+    const shown = ev('s', 'Open', '2026-10-14T11:00:00+02:00', '2026-10-14T12:00:00+02:00');
+    const s = buildWidgetSnapshot({ items: [hidden, shown], today: '2026-10-14', theme, dark: true, language: 'de', now: new Date('2026-10-14T08:30:00Z'), hiddenCalendars: new Set(['work']) });
+    expect(s.days[2].events.map((e) => e.title)).toEqual(['Open']);
+  });
 });

@@ -36,6 +36,9 @@ export class AuthState {
     this.allowedEmails = [...this.config.allowedEmails];
     this.sessions.clear();
     this.states.clear();
-    if (this.fake) this.fake.account = null;
+    if (this.fake) {
+      this.fake.account = null;
+      this.fake.calendarGranted = true;
+    }
   }
 }

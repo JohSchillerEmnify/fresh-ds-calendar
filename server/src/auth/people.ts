@@ -30,8 +30,20 @@ export function readUserToken(dataDir: string, sub: string): string | null {
   return readJson<{ refresh_token?: string }>(userTokenFile(dataDir, sub))?.refresh_token ?? null;
 }
 
-export function writeUserToken(dataDir: string, sub: string, refreshToken: string): void {
-  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken }, 0o600);
+/** The Google calendar scope; without it every calendar call is refused (Google's granular consent lets people untick it). */
+export const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar';
+
+/** True when a space-separated scope string (Google's token response `scope`) includes full calendar access. */
+export const hasCalendarScope = (scope: string | null | undefined): boolean => (scope ?? '').split(/\s+/).includes(CALENDAR_SCOPE);
+
+/** The scopes Google granted with the stored token; null for tokens stored before the scope was recorded. */
+export function readUserScope(dataDir: string, sub: string): string | null {
+  return readJson<{ scope?: string }>(userTokenFile(dataDir, sub))?.scope ?? null;
+}
+
+/** Stores the refresh token (0600) together with the scopes Google granted, when known. */
+export function writeUserToken(dataDir: string, sub: string, refreshToken: string, scope?: string | null): void {
+  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken, ...(scope != null ? { scope } : {}) }, 0o600);
 }
 
 /**

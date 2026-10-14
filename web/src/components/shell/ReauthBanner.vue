@@ -14,6 +14,11 @@ const signIn = () => window.location.assign('/api/auth/google/start');
     <span class="msg">{{ t('calendar.reauth.message') }}</span>
     <Button variant="text" data-testid="reauth-signin" @click="signIn">{{ t('calendar.reauth.signIn') }}</Button>
   </div>
+  <div v-else-if="auth.calendarMissing" class="banner" role="alert" data-testid="calendar-access-banner">
+    <IconOff class="ico" aria-hidden="true" />
+    <span class="msg">{{ t('calendar.calendarAccess.message') }}</span>
+    <Button variant="text" data-testid="calendar-access-grant" @click="auth.grantCalendar()">{{ t('calendar.calendarAccess.grant') }}</Button>
+  </div>
 </template>
 
 <style scoped>

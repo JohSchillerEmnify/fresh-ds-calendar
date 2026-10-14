@@ -5,7 +5,7 @@
  * - Etags: pass `ifMatch` to send `If-Match` (events, task list details, settings version).
  * - Every call accepts an optional `AbortSignal`.
  * - Mutation responses with `X-Motivation-Changed: 1` notify `onMotivationChanged` listeners.
- * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
+ * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
   AppConfig, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
@@ -128,8 +128,8 @@ export class ApiClient {
     }
     if (!res.ok) {
       const err = (data as { error?: { code?: ErrorCode; message?: string; key?: string; details?: [] } } | null)?.error;
-      if (res.status === 401 && (err?.code === 'UNAUTHENTICATED' || err?.code === 'GOOGLE_REAUTH')) {
-        for (const fn of this.authListeners) fn(err.code);
+      if ((res.status === 401 && (err?.code === 'UNAUTHENTICATED' || err?.code === 'GOOGLE_REAUTH')) || (res.status === 403 && err?.code === 'CALENDAR_PERMISSION_MISSING')) {
+        for (const fn of this.authListeners) fn(err!.code!);
       }
       throw new ApiError(res.status, err?.code ?? 'HTTP', err?.message ?? `HTTP ${res.status}`, err?.details ?? [], err?.key);
     }

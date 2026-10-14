@@ -820,6 +820,11 @@ they see the sign-in page
 opening the week view for {date} shows the sign-in page
 the calendar data cannot be read without signing in
 they are asked to sign in with Google again
+Google's consent screen is answered without calendar access
+they are told Google Calendar access is missing
+the settings offer to grant calendar access
+they grant calendar access
+they are no longer told Google Calendar access is missing
 ```
 
 - Google is the mock provider with one calendar per person (`TEST_MODE`); "signs in with Google" completes the OAuth
@@ -827,6 +832,11 @@ they are asked to sign in with Google again
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
+- "answered without calendar access": the fake consent screen returns a token whose `scope` lacks the calendar scope
+  (the person left Google's "Google Calendar" checkbox unticked). "told ... is missing": the banner
+  `calendar-access-banner` with the button `calendar-access-grant` is visible. "the settings offer": Settings -> Account &
+  data shows `settings-calendar-access`. "they grant calendar access": the second consent screen is answered WITH the
+  calendar and the banner button is pressed; the round trip returns to the calendar.
 - "is filled with its color": the chip's computed background colour equals its `data-color` (the item colour as given, in
   both themes); its text is white or black, whichever contrasts more.
 
