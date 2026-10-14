@@ -147,32 +147,35 @@ Then('the month view was rendered within {int} ms of navigation start', async fu
 
 // --- Lighthouse ------------------------------------------------------------------------------------------------
 
-When('I run a phone performance audit of the app', async function (this: World) {
-  this.extendTimeout(180_000);
+/** One Lighthouse run (mobile preset, simulated throttling) in a fresh browser; the performance score x 100. */
+async function auditOnce(world: World): Promise<number> {
   const port = 9222 + Math.floor(Math.random() * 500);
   const browser = await chromium.launch({ args: [`--remote-debugging-port=${port}`] });
   try {
     const { default: lighthouse } = await import('lighthouse');
-    // Default config = mobile form factor with simulated throttling.
-    const result = await lighthouse(`${this.baseURL}/`, {
-      port,
-      onlyCategories: ['performance'],
-      logLevel: 'error',
-      output: 'json',
-    });
+    const result = await lighthouse(`${world.baseURL}/`, { port, onlyCategories: ['performance'], logLevel: 'error', output: 'json' });
     const score = result?.lhr.categories.performance.score;
     if (score == null) throw new Error(`Lighthouse returned no performance score: ${result?.lhr.runtimeError?.message ?? ''}`);
-    this.lighthouseScore = Math.round(score * 100);
-    this.testInfo.annotations.push({ type: 'lighthouse performance', description: String(this.lighthouseScore) });
     if (typeof result?.report === 'string') {
-      await this.testInfo.attach('lighthouse.json', { body: result.report, contentType: 'application/json' });
+      await world.testInfo.attach('lighthouse.json', { body: result.report, contentType: 'application/json' });
     }
+    return Math.round(score * 100);
   } finally {
     await browser.close();
   }
+}
+
+When('I run a phone performance audit of the app {int} times', async function (this: World, runs: number) {
+  this.extendTimeout(180_000 * runs);
+  const scores: number[] = [];
+  // one after the other: parallel runs would disturb each other's timings
+  for (let i = 0; i < runs; i++) scores.push(await auditOnce(this));
+  const sorted = [...scores].sort((a, b) => a - b);
+  this.lighthouseScore = sorted[Math.floor(sorted.length / 2)];
+  this.testInfo.annotations.push({ type: 'lighthouse performance', description: `median ${this.lighthouseScore} of ${scores.join(', ')}` });
 });
 
-Then('the performance score is at least {int}', async function (this: World, min: number) {
+Then('the median performance score is at least {int}', async function (this: World, min: number) {
   if (this.lighthouseScore === undefined) throw new Error('No performance audit ran');
   expect(this.lighthouseScore).toBeGreaterThanOrEqual(min);
 });

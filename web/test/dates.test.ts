@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { format as dateFnsFormat } from 'date-fns';
 import { applyLanguage } from '@/i18n';
 import {
-  fetchRange, formatDate, monthGrid, nextFocus, parseParam, periodTitle, routePath, shiftPeriod, toIsoDate, weekDays,
+  fetchRange, format, formatDate, parseIsoDate, parseIsoMonth, monthGrid, nextFocus, parseParam, periodTitle, routePath, shiftPeriod, toIsoDate, weekDays,
 } from '@/lib/dates';
 
 const d = (s: string) => parseParam('day', s)!;
@@ -56,6 +57,31 @@ describe('focus date', () => {
   it('week from a December month opens the week of its first day', () => {
     const f = nextFocus('month', d('2026-12-01'), null, today);
     expect(routePath('week', f)).toBe('/week/2026-11-30');
+  });
+});
+
+describe('own format and ISO parsers (kept small instead of date-fns format/parse)', () => {
+  it('format equals date-fns format for every token the app uses', () => {
+    const patterns = ['yyyy-MM-dd', 'yyyy-MM', 'yyyy', 'MMMM yyyy', 'EEEE, d MMMM yyyy', 'd MMM yyyy', 'd MMM', 'd', 'EEE d MMM', 'EEE', 'dd'];
+    for (let t = Date.UTC(2020, 0, 1); t < Date.UTC(2030, 0, 1); t += 86_400_000 * 5 + 3_600_000 * 7) {
+      for (const p of patterns) expect(format(new Date(t), p), p).toBe(dateFnsFormat(new Date(t), p));
+    }
+    const early = new Date(2000, 5, 15);
+    early.setFullYear(5);
+    expect(format(early, 'yyyy-MM-dd')).toBe(dateFnsFormat(early, 'yyyy-MM-dd'));
+    expect(() => format(new Date(NaN), 'yyyy')).toThrow(RangeError);
+  });
+
+  it('parses only dates that exist', () => {
+    expect(parseIsoDate('2026-02-28')).toEqual(new Date(2026, 1, 28));
+    expect(parseIsoDate('2024-02-29')).toEqual(new Date(2024, 1, 29));
+    for (const bad of ['2026-02-29', '2026-02-30', '2026-13-01', '2026-00-10', '2026-01-00', '0000-01-01', '26-01-01', '2026-1-1', '', null, undefined]) {
+      expect(parseIsoDate(bad), String(bad)).toBeNull();
+    }
+    expect(parseIsoMonth('2026-10')).toEqual(new Date(2026, 9, 1));
+    expect(parseIsoMonth('2026-13')).toBeNull();
+    expect(parseIsoMonth('2026-00')).toBeNull();
+    expect(parseIsoDate('0050-03-04')!.getFullYear()).toBe(50);
   });
 });
 

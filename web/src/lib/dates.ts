@@ -1,6 +1,6 @@
 import {
   addDays, addMonths, addWeeks, addYears, differenceInCalendarDays, eachDayOfInterval, endOfMonth, endOfWeek,
-  format, isValid, parse, startOfMonth, startOfWeek,
+  startOfMonth, startOfWeek,
 } from 'date-fns';
 import { dateLocale, language } from '@/i18n/language';
 
@@ -12,7 +12,30 @@ export const VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
 export const VIEW_LABEL: Record<ViewKind, string> = { year: 'Year', month: 'Month', week: 'Week', day: 'Day' };
 
 const EN_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const EN_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/**
+ * English date formatting for the date-fns tokens the app uses (yyyy, MM, MMM, MMMM, dd, d, EEE, EEEE); output equals
+ * date-fns `format` with its default en-US locale. Written out because `format` + locale cost ~9 KB gzipped on the first load.
+ *
+ * @throws RangeError For an invalid date, like date-fns.
+ */
+export function format(d: Date, pattern: string): string {
+  if (Number.isNaN(d.getTime())) throw new RangeError('Invalid time value');
+  return pattern.replace(/yyyy|MMMM|MMM|MM|EEEE|EEE|dd|d/g, (token) => {
+    switch (token) {
+      case 'yyyy': return String(d.getFullYear()).padStart(4, '0');
+      case 'MM': return String(d.getMonth() + 1).padStart(2, '0');
+      case 'MMM': return EN_MONTHS[d.getMonth()].slice(0, 3);
+      case 'MMMM': return EN_MONTHS[d.getMonth()];
+      case 'dd': return String(d.getDate()).padStart(2, '0');
+      case 'd': return String(d.getDate());
+      case 'EEE': return EN_DAYS[d.getDay()].slice(0, 3);
+      default: return EN_DAYS[d.getDay()];
+    }
+  });
+}
 
 /** An `Intl` formatter for the active language's date locale (de-DE for German and the fun languages). */
 const intl = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(dateLocale(), o);
@@ -56,17 +79,23 @@ export function toIsoMonth(d: Date): string {
   return format(d, 'yyyy-MM');
 }
 
-const REF = new Date(2000, 0, 1);
-/** Strict `yyyy-MM-dd` parser; null for anything invalid (e.g. 2026-02-30). */
+/** The local date `y-m-d` at 00:00, or null when it does not exist (month 13, 30 February, year 0). */
+function localDate(y: number, m: number, d: number): Date | null {
+  if (y < 1) return null;
+  const date = new Date(y, m - 1, d);
+  // years 0-99 would otherwise map to 1900-1999
+  date.setFullYear(y);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+}
+
+/** Strict `yyyy-MM-dd` parser; null for anything invalid (e.g. 2026-02-30). (No date-fns `parse`: it is ~11 KB gzipped.) */
 export function parseIsoDate(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-  const d = parse(s, 'yyyy-MM-dd', REF);
-  return isValid(d) ? d : null;
+  return localDate(Number(s.slice(0, 4)), Number(s.slice(5, 7)), Number(s.slice(8, 10)));
 }
 export function parseIsoMonth(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}-\d{2}$/.test(s)) return null;
-  const d = parse(s, 'yyyy-MM', REF);
-  return isValid(d) ? d : null;
+  return localDate(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 1);
 }
 export function parseYear(s: string | undefined | null): Date | null {
   if (!s || !/^\d{4}$/.test(s)) return null;

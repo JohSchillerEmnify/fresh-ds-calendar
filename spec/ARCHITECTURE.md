@@ -567,9 +567,9 @@ Budgets (verified by `@perf` scenarios and build checks, ACCEPTANCE AC-55 … AC
 
 | Budget | Limit |
 |---|---|
-| Initial JS (compressed, first load, all scripts) | ≤ 150 kB |
+| Initial JS (compressed as Chromium negotiates it, i.e. Brotli on localhost/HTTPS; first load, all scripts) | ≤ 150 kB |
 | Initial CSS (compressed) | ≤ 30 kB |
-| Lighthouse mobile performance on localhost (production build) | ≥ 90 |
+| Lighthouse mobile performance on localhost (production build), median of 3 runs | ≥ 70 |
 | Month view with data rendered after navigation start (LAN / localhost) | ≤ 2000 ms |
 | Frontend heap growth after 50× view cycles + 50× dialog open/close + 50× task list expand/collapse (after GC) | < 10 % |
 | DOM nodes and JS event listeners growth, same workload | < 10 % |

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
-import { format } from 'date-fns';
 import { useNav } from '@/composables/useNav';
 import { providePreview } from '@/composables/usePreview';
-import { monthGrid, monthNames, toIsoDate } from '@/lib/dates';
+import { format, monthGrid, monthNames, toIsoDate } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';

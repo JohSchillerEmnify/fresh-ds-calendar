@@ -16,6 +16,15 @@ const lazy = {
   day: () => import('@/views/DayView.vue'),
 };
 
+/**
+ * Starts downloading the calendar view the page is about to show, while the settings and the session check are still
+ * on the wire (the route resolves only after them). `/` opens the default view, assumed to be the month.
+ */
+export function warmView(path: string): void {
+  const name = path === '/' ? 'month' : path.split('/')[1];
+  if (name in lazy) void lazy[name as ViewKind]();
+}
+
 function viewRoute(view: ViewKind): RouteRecordRaw {
   return {
     path: `/${view}/:param`,

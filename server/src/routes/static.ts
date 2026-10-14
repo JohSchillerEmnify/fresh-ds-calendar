@@ -8,7 +8,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 export function staticRoutes(webDist: string, versionOverride: () => string | undefined = () => undefined) {
   const root = path.resolve(webDist);
   return new Hono()
-    .use('*', compress()) // gzip: the first-load JS budget is measured compressed
+    .use('*', compress()) // gzip for whatever has no precompressed file; the first-load JS budget is measured compressed
     // TEST_MODE "deploy" (`/api/__test/version`): the shell reports the overridden build version after a reload.
     .use('*', async (c, next) => {
       const version = versionOverride();
@@ -17,6 +17,7 @@ export function staticRoutes(webDist: string, versionOverride: () => string | un
       const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/data-app-version="[^"]*"/, `data-app-version="${version}"`);
       return c.html(html);
     })
-    .use('*', serveStatic({ root }))
-    .get('*', serveStatic({ root, path: 'index.html' }));
+    // `<file>.br` / `<file>.gz` written by web/scripts/precompress.mjs are served as is when the browser accepts them
+    .use('*', serveStatic({ root, precompressed: true }))
+    .get('*', serveStatic({ root, path: 'index.html', precompressed: true }));
 }

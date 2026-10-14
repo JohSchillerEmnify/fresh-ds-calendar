@@ -36,9 +36,13 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   async function load(signal?: AbortSignal): Promise<void> {
+    // both requests go out together (one round trip fewer before the first paint)
+    const themes = api.themes({ signal }).then((r) => r.themes, () => custom.value);
+    const choice = api.themePref({ signal });
+    choice.catch(() => {}); // a refusal is rethrown below, after the themes were applied
     // imported themes first, so a chosen one resolves as soon as the choice is known; without them it falls back to Default
-    custom.value = await api.themes({ signal }).then((r) => r.themes, () => custom.value);
-    pref.value = sanitizePref(await api.themePref({ signal }));
+    custom.value = await themes;
+    pref.value = sanitizePref(await choice);
     remember();
   }
 
