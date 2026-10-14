@@ -76,7 +76,7 @@ Then('the day rows of the horizontal view are taller than noted', async function
 });
 
 /** A wheel event on the port, as a trackpad or mouse wheel sends it. */
-const wheel = (w: World, init: WheelEventInit) =>
+const wheel = (w: World, init: { deltaX?: number; deltaY?: number; ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean; altKey?: boolean }) =>
   port(w).evaluate((el, i) => {
     const r = el.getBoundingClientRect();
     el.dispatchEvent(new WheelEvent('wheel', { clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true, ...i }));
