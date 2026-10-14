@@ -7,14 +7,16 @@ import android.os.Bundle;
 import android.webkit.WebView;
 import androidx.activity.OnBackPressedCallback;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.CapConfig;
 import java.util.regex.Pattern;
 import lan.mordor.calendar.notify.RemindersPlugin;
 import lan.mordor.calendar.widget.ServerConfig;
 import lan.mordor.calendar.widget.WidgetBridgePlugin;
 
 /**
- * The Capacitor shell: loads the LAN calendar, registers the widget and reminder plugins, opens widget deep links and
- * turns the system back gesture into a back step inside the web app.
+ * The Capacitor shell: loads the calendar server the person chose (or the bundled chooser while there is none), registers
+ * the widget, reminder and server-choice plugins, opens widget deep links and turns the system back gesture into a back
+ * step inside the web app.
  */
 public class MainActivity extends BridgeActivity {
     /** Intent extra set by the widget's tap targets: the app path to open, e.g. {@code /day/2026-10-14}. */
@@ -31,10 +33,24 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(RemindersPlugin.class);
+        registerPlugin(ServerChoicePlugin.class);
+        config = capConfig();
         super.onCreate(savedInstanceState);
         handDownloadsToTheSystem();
         goBackInTheWebView();
         openPathFrom(getIntent());
+    }
+
+    /**
+     * Capacitor's {@code server.url} is static, but the server is chosen at run time, so the config is built here: with a
+     * chosen server it is the {@code server.url}, which makes that origin the app's origin (the JavaScript bridge is
+     * injected there and plugins work); without one there is no URL and the bundled chooser page ({@code android/www}) loads.
+     */
+    private CapConfig capConfig() {
+        CapConfig.Builder builder = new CapConfig.Builder(this).setErrorPath("error.html");
+        String base = ServerConfig.baseUrl(this);
+        if (base != null) builder.setServerUrl(base);
+        return builder.create();
     }
 
     /**
@@ -45,7 +61,7 @@ public class MainActivity extends BridgeActivity {
     private void handDownloadsToTheSystem() {
         String base = ServerConfig.baseUrl(this);
         getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
-            if (url == null || !(url.equals(base) || url.startsWith(base + "/"))) return;
+            if (base == null || url == null || !(url.equals(base) || url.startsWith(base + "/"))) return;
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (ActivityNotFoundException ignored) {
@@ -96,10 +112,12 @@ public class MainActivity extends BridgeActivity {
     /** Navigates the WebView to the widget's path; only a day or week path of the calendar itself is accepted. */
     private void openPathFrom(Intent intent) {
         String path = intent == null ? null : intent.getStringExtra(EXTRA_PATH);
-        if (path == null || !PATH.matcher(path).matches()) return;
+        String base = ServerConfig.baseUrl(this);
+        // no server chosen yet: the chooser is showing, there is nothing to open
+        if (base == null || path == null || !PATH.matcher(path).matches()) return;
         intent.removeExtra(EXTRA_PATH);
         WebView web = getBridge().getWebView();
         // posted so that it runs after the initial load of a cold start
-        web.post(() -> web.loadUrl(ServerConfig.baseUrl(this) + path));
+        web.post(() -> web.loadUrl(base + path));
     }
 }
