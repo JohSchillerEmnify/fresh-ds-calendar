@@ -22,6 +22,10 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 
 ## Features
 
+- Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
+  cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
+  render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
+  frames also drop, so check the ambient scene/top-bar animations with remote debugging on the phone.
 - Push notifications in the PWA (Web Push, needs HTTPS). The Android app shows the bedtime reminder as a notification
   (branch `android-back-notify`; needs an APK build and a check on the phone).
 - Tags (shelved earlier).

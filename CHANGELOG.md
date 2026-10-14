@@ -5,7 +5,11 @@
 - Google rate limits no longer break syncing: calendars are cached per person and the app backs off after a failed sync.
 - The "New version available" prompt no longer comes back after you reload.
 - In the Horizontal view, dragging sideways moves through time instead of jumping to the next week.
-- A tapped task list grows over its whole day column, without scrollbars.
+- A tapped task list grows in place only as much as it needs, stays on its card when you zoom, and opens the list directly when nothing is cut off.
+- In the Horizontal view, titles of long events stay visible while you scroll sideways, and sideways scrolling is smoother.
+- In the zoom month, task lists are no longer hidden behind events, and events show at their real time when there is room.
+- In the month view, multi-day events only take room on the days they cover, so every day uses its space for its own events.
+- Settings show what's new, and after an update the app tells you once what changed.
 
 ## Older history
 
