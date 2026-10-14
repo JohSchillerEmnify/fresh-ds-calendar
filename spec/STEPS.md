@@ -1033,6 +1033,20 @@ in the strip {string} is about {int} times as tall as {string}
 {string} is in the strip's all-day band
 the hour lines of the strip columns of {date} and {date} are at the same height
 the all-day bands of the strip columns of {date} and {date} are equally tall
+I open the zoom month for {date}
+the zoom month shows {string}
+the zoom month shows the whole month
+the zoom month cell of {date} has {int} entries
+the zoom month shows no start times
+I zoom the zoom month in until the start times show
+I zoom the zoom month in until the task list items show
+{string} shows its start time {string} in the zoom month
+the task list {string} shows the item {string} in the zoom month
+I press the zoom in button of the zoom month
+I press the zoom out button of the zoom month
+the zoom month is zoomed in
+I zoom the zoom month in with Ctrl+wheel
+I tap the day number {date} in the zoom month
 ```
 
 - Clock: `clock-arc` per event and per timed task list (`data-title`, `data-start`, `data-end` as HH:MM, `data-kind`
@@ -1056,6 +1070,11 @@ the all-day bands of the strip columns of {date} and {date} are equally tall
 - Labs v2 (owner feedback): sizes are always proportional to duration (time blindness), "about N times" allows ±15 %;
   all-day bands are `timeline-allday` / `strip-allday` above the timed area; clock labels are `clock-label`
   (`data-title`) next to or along each arc.
+- Zoom month: `zoom-view` carries `data-month` (title), `data-zoom` (1..7), `data-times` / `data-lists` / `data-timeline`
+  (detail weights 0..1, "until ... show" presses `zoom-in` until the weight is 1; each press multiplies the zoom by 1.25) and
+  `data-detail`; `zoom-cell` (`data-date`, `data-count` = entries of the day), `zoom-time` (`data-weight`) before a timed event
+  in `zoom-entries`. "shows the whole month": zoom 1 and the last cell lies inside `zoom-port`. "Ctrl+wheel": a `wheel`
+  event with `ctrlKey` on `zoom-port`; the zoom is remembered in `sessionStorage` `cal.zoomMonth`.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 

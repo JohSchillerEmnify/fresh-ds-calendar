@@ -25,6 +25,11 @@ export default {
     clock: 'Uhr',
     timeline: 'Zeitstrahl',
     strip: 'Streifen',
+    zoom: 'Zoom-Monat',
+  },
+  zoomMonth: {
+    zoomIn: 'Vergrößern',
+    zoomOut: 'Verkleinern',
   },
   nav: {
     views: 'Ansichten',

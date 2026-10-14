@@ -28,6 +28,11 @@ export default {
     clock: 'Uhr, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
+    zoom: 'Zoom-Monat, yo',
+  },
+  zoomMonth: {
+    zoomIn: 'Reinzoomen, yo',
+    zoomOut: 'Rauszoomen, yo',
   },
   nav: {
     views: 'Ansichten, yo',
