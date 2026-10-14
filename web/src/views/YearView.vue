@@ -44,11 +44,15 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
         <span class="name">{{ m.name }}</span>
         <span class="mini">
           <template v-for="week in m.weeks" :key="toIsoDate(week[0])">
-            <span
-              v-for="d in week" :key="toIsoDate(d)" class="d" :class="{ out: d.getMonth() !== m.first.getMonth(), today: toIsoDate(d) === clock.today }"
-              :data-testid="d.getMonth() === m.first.getMonth() ? 'year-day' : undefined" :data-date="toIsoDate(d)" :data-density="density(toIsoDate(d))"
-              :data-today="d.getMonth() === m.first.getMonth() && toIsoDate(d) === clock.today ? 'true' : undefined"
-            ><i>{{ d.getMonth() === m.first.getMonth() ? d.getDate() : '' }}</i></span>
+            <template v-for="d in week" :key="toIsoDate(d)">
+              <!-- days of the neighbouring months keep the grid aligned but draw nothing -->
+              <span v-if="d.getMonth() !== m.first.getMonth()" class="d out" data-testid="year-day-out" aria-hidden="true" />
+              <span
+                v-else class="d" :class="{ today: toIsoDate(d) === clock.today }"
+                data-testid="year-day" :data-date="toIsoDate(d)" :data-density="density(toIsoDate(d))"
+                :data-today="toIsoDate(d) === clock.today ? 'true' : undefined"
+              ><i>{{ d.getDate() }}</i></span>
+            </template>
           </template>
         </span>
       </button>
