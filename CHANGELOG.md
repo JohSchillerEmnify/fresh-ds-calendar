@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-14
+- Reminders can now also arrive in the browser while the app is closed: switch on "Reminders in this browser" under Settings → Reminders.
 
 - Google rate limits no longer break syncing: calendars are cached per person and the app backs off after a failed sync.
 - The "New version available" prompt no longer comes back after you reload.
