@@ -231,6 +231,7 @@ async function resetDemo() {
               <IconButton :label="t('settings.tasklists.moveDown', { name: c.name })" :disabled="i === settings.categories.length - 1" data-testid="settings-category-down" @click="move(c.id, 1)"><IconDown /></IconButton>
             </li>
           </ul>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.carriedFrom.label') }}</span><span class="sub">{{ t('settings.tasklists.carriedFrom.hint') }}</span></div><Switch :model-value="labs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
           <div class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>

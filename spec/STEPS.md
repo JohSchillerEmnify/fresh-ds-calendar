@@ -616,10 +616,13 @@ I add the item {string} to {string} in the open tasks tray
 I edit the details of {string} in the open tasks tray
 the open tasks tray shows the message {string} for {string}
 the task list {string} is shown as carried over from {string}
+I hide where carried-over task lists come from in the settings
 the task list {string} is not flagged as overdue
 the overdue label of {string} does not use the error color
 ```
 
+- "I hide where carried-over task lists come from in the settings": settings → `settings-carried-from` off (waiting for
+  the prefs `PATCH`) → back.
 - "shown as carried over from D": `tasklist-card-overdue` of the card is visible and its accessible name is
   "From D" (the text itself in roomy cards, the `aria-label` of the badge in narrow ones).
 - "does not use the error color": the computed `color` and `background-color` of `tasklist-card-overdue` differ from

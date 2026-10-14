@@ -66,7 +66,7 @@ const complete = computed(() => !!tl.value && tl.value.totalCount > 0 && tl.valu
 /** Collapsed to the head, remembered per list and device; the expanded list's sheet (`closable`) never collapses. */
 const collapsed = computed(() => !props.closable && isCollapsed(props.id));
 watch(collapsed, (c) => { if (c) { adding.value = false; editingItem.value = null; } });
-const carried = computed(() => !!tl.value && lists.isCarried(tl.value));
+const carried = computed(() => !!tl.value && lists.isCarried(tl.value) && prefs.showCarriedFrom);
 const category = computed(() => settings.categoryById(tl.value?.categoryId));
 /** A shared list carries its owner's category look; the requester's own categories may differ. */
 const icon = computed(() => (tl.value?.categoryInfo === undefined ? category.value?.icon : tl.value.categoryInfo?.icon) ?? null);

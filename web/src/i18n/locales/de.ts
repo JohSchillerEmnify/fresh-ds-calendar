@@ -95,6 +95,7 @@ export default {
       tasksCalendar: { label: 'Aufgabenkalender in Google zeigen', hint: 'Aufgabenlisten bleiben in jedem Fall in der App' },
     },
     tasklists: {
+      carriedFrom: { label: 'Herkunft verschobener Listen zeigen', hint: 'Das Etikett „Vom Sa., 10. Okt.“ an offenen Listen, die auf heute gerückt sind. Aus: Sie stehen einfach bei heute.' },
       categories: 'Kategorien',
       addCategory: 'Kategorie hinzufügen',
       editCategory: '{name} bearbeiten',

@@ -3,7 +3,9 @@ Feature: Open tasks stay in sight
   Out of sight is out of mind. An "open tasks" tray is visible in every view and lists today's
   and overdue task lists that still have unticked items. Open task lists from the past 30 days are
   carried forward to today with a gentle "From <day>" label instead of disappearing in the past; in narrow
-  columns (phone week) the label shrinks to a small "carried over" badge that still names the day.
+  columns (phone week) the label shrinks to a small "carried over" badge that still names the day. The label can be
+  switched off in Settings → Task lists (owner, 2026-10-14: no reminder of the past, against guilt); the list then simply
+  shows up today.
   Overdue is never shown in the error color.
   Every list in the tray shows all of its items (ticked ones struck through), on phones once the tray
   is opened; long lists make the tray scroll rather than hide items. Lists finished today follow the
@@ -130,6 +132,12 @@ Feature: Open tasks stay in sight
     Then I see the task list "Laundry" on 2026-10-12
     And the task list "Laundry" is shown as carried over from "Sat 10 Oct"
     And the overdue label of "Laundry" does not use the error color
+
+  Scenario: Where a carried-over list comes from can be hidden
+    When I hide where carried-over task lists come from in the settings
+    And I open the week view for 2026-10-12
+    Then I see the task list "Laundry" on 2026-10-12
+    And the task list "Laundry" is not flagged as overdue
 
   Scenario Outline: Carried-over task lists appear on today in every view
     When I open the <view> view for <period>
