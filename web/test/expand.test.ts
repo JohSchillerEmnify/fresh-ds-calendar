@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anchorVisible, placeExpanded, type Box } from '@/features/tasklists/expand';
+import { anchorVisible, growPlan, placeExpanded, type Box } from '@/features/tasklists/expand';
 
 const view: Box = { left: 0, top: 0, right: 400, bottom: 800 };
 const box = (left: number, top: number, w: number, h: number): Box => ({ left, top, right: left + w, bottom: top + h });
@@ -34,5 +34,16 @@ describe('anchorVisible', () => {
   it('is false once scrolled out', () => {
     expect(anchorVisible(box(0, -60, 100, 40), view)).toBe(false);
     expect(anchorVisible(box(0, 800, 100, 40), view)).toBe(false);
+  });
+});
+
+describe('growPlan', () => {
+  it('does not grow a card that shows its whole title and every open item', () => {
+    expect(growPlan({ title: false, names: false, rows: false })).toEqual({ grow: false, wide: false });
+  });
+  it('takes the full column when anything is cut', () => {
+    for (const c of [{ title: true, names: false, rows: false }, { title: false, names: true, rows: false }, { title: false, names: false, rows: true }]) {
+      expect(growPlan(c)).toEqual({ grow: true, wide: true });
+    }
   });
 });

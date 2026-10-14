@@ -30,6 +30,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
+import { growPlan, measureCut } from './expand';
 import { fitItems } from './layout';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
@@ -58,8 +59,19 @@ const sameCard = (c: { id: string; date: string } | null) => !!c && c.id === pro
 const expanded = computed(() => !props.grown && !inPreview() && tapped.value && sameCard(ui.expandedCard));
 watch(() => ui.expandedCard, (c) => { if (!sameCard(c)) tapped.value = false; });
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
-/** A tap toggles the expansion; the card that was tapped is the one that grows. */
-function toggle() { tapped.value = true; ui.toggleCard(cardKey()); }
+/**
+ * A tap toggles the expansion; the card that was tapped is the one that grows. A time block that already shows its whole title and
+ * every open item has nothing to grow into: the tap opens the list sheet directly (focus on the card first, as `ExpandedCard.openList`).
+ */
+function toggle() {
+  if (props.variant === 'block' && !inPreview() && el.value && !sameCard(ui.expandedCard) && !growPlan(measureCut(el.value)).grow) {
+    el.value.focus({ preventScroll: true });
+    ui.openDialog('tasklist-expanded', { id: tl.value.id });
+    return;
+  }
+  tapped.value = true;
+  ui.toggleCard(cardKey());
+}
 /** A tap on the grown card's title row folds it back up; anywhere else on it opens the list. */
 function onGrownTap(e: MouseEvent) { if ((e.target as Element).closest('.row')) emit('collapse'); else emit('openList'); }
 /** The month (and zoom month) cell card has no time axis: grown it is a plain card as tall as its content, no real block and extension. */
@@ -282,12 +294,12 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
   top: calc(-1 * var(--bw)); bottom: calc(var(--min-h, 0px) - var(--bw));
   border-radius: var(--xr, var(--r-block)) var(--xr, var(--r-block)) 0 0; box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--on) 28%, transparent);
 }
-.grown .row { align-items: flex-start; flex-wrap: wrap; }
+.grown .row { align-items: flex-start; flex-wrap: wrap; max-width: 100%; }
 /* a narrow column wraps the badges below the title instead of squeezing it to a stub */
 .grown .title { flex: 1 1 10ch; min-width: min(10ch, 100%); }
-.grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; -webkit-mask-image: none; mask-image: none; }
+.grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; -webkit-mask-image: none; mask-image: none; }
 .grown .items { overflow: visible; margin-top: 4px; }
-.grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+.grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; }
 .grown .foot { overflow: visible; margin-top: auto; }
 
 /* card: month cell. Foot hidden, the cell is small */

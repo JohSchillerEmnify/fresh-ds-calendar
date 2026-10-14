@@ -201,7 +201,8 @@ Then('the task list {string} is collapsed', async function (this: World, title: 
 });
 
 Then('no task list is expanded', async function (this: World) {
-  await expect(this.page.getByTestId('tasklist-expanded')).toHaveCount(0);
+  // the grown card only: the list sheet has the same test id but is not an expansion
+  await expect(this.page.locator(`${tid('tasklist-expanded')}${attr('data-presentation', 'overlay')}`)).toHaveCount(0);
 });
 
 // --- items (act on the expanded list) -------------------------------------------------------------------------

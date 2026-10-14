@@ -37,3 +37,30 @@ export function placeExpanded(anchor: Box, bounds: Box, contentH: number): Place
 export function anchorVisible(anchor: Box, bounds: Box): boolean {
   return anchor.bottom > bounds.top && anchor.top < bounds.bottom && anchor.right > bounds.left && anchor.left < bounds.right;
 }
+
+/** What the collapsed card of a time block cuts off (decided from its own layout, see `measureCut`). */
+export interface Cut {
+  /** The title is ellipsised. */
+  title: boolean;
+  /** An open item name is ellipsised or runs out of the slot's width. */
+  names: boolean;
+  /** Open items are hidden or only run inline (the card's own fit says `more` or `inline`). */
+  rows: boolean;
+}
+
+/**
+ * Grow only what is needed (owner decision): a card that already shows its whole title and every open item does not grow at all;
+ * one whose own slot cuts something (title, a name, or open items hidden / run inline) takes the full day column and as much
+ * height as its items need.
+ */
+export function growPlan(c: Cut): { grow: boolean; wide: boolean } {
+  const cut = c.title || c.names || c.rows;
+  return { grow: cut, wide: cut };
+}
+
+/** Measure what the collapsed card `card` cuts off: ellipsised title or names (scrollWidth) and its fit (`data-fit`). */
+export function measureCut(card: HTMLElement): Cut {
+  const over = (e: Element | null) => !!e && e.scrollWidth > e.clientWidth + 1;
+  const names = over(card.querySelector('[data-testid="tasklist-card-items"]')) || Array.from(card.querySelectorAll('.it:not(.over)')).some(over);
+  return { title: over(card.querySelector('.title')) || over(card.querySelector('.tx')), names, rows: card.dataset.fit !== 'all' };
+}
