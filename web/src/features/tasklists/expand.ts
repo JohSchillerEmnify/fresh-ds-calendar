@@ -64,3 +64,31 @@ export function measureCut(card: HTMLElement): Cut {
   const names = over(card.querySelector('[data-testid="tasklist-card-items"]')) || Array.from(card.querySelectorAll('.it:not(.over)')).some(over);
   return { title: over(card.querySelector('.title')) || over(card.querySelector('.tx')), names, rows: card.dataset.fit !== 'all' };
 }
+
+/**
+ * Horizontal extent of a grown time block card: only as wide as its content needs (`natural`, the unwrapped content width incl.
+ * padding), never narrower than its own `slot`, never wider than the day column `col`. It keeps the slot's left edge and only
+ * widens to the right; when that would leave the column it shifts left just enough. All values in the same (px) coordinates.
+ */
+export function fitWidth(slot: { left: number; width: number }, natural: number, col: { left: number; right: number }): { left: number; width: number } {
+  const width = Math.min(Math.max(natural, slot.width), col.right - col.left);
+  const left = Math.max(col.left, Math.min(slot.left, col.right - width));
+  return { left, width };
+}
+
+/**
+ * Natural (unwrapped) border-box width of a grown card: a detached-style clone laid out at `max-content` with nowrap title and
+ * item rows and no inline-size containment (which would make its intrinsic width 0). `host` is where the clone is measured in.
+ */
+export function measureNatural(card: HTMLElement, host: HTMLElement): number {
+  const c = card.cloneNode(true) as HTMLElement;
+  c.removeAttribute('data-testid');
+  c.querySelectorAll('[data-testid]').forEach((e) => e.removeAttribute('data-testid'));
+  Object.assign(c.style, { position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: '0', top: '0', width: 'max-content', maxWidth: 'none', minHeight: '0', containerType: 'normal' });
+  c.querySelectorAll<HTMLElement>('.title, .tx, .it, .items').forEach((e) => { e.style.whiteSpace = 'nowrap'; e.style.flex = 'none'; });
+  c.querySelectorAll<HTMLElement>('.row').forEach((e) => { e.style.flexWrap = 'nowrap'; });
+  host.appendChild(c);
+  const w = c.getBoundingClientRect().width;
+  c.remove();
+  return Math.ceil(w);
+}

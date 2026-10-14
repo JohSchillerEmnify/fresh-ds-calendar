@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anchorVisible, growPlan, placeExpanded, type Box } from '@/features/tasklists/expand';
+import { anchorVisible, fitWidth, growPlan, placeExpanded, type Box } from '@/features/tasklists/expand';
 
 const view: Box = { left: 0, top: 0, right: 400, bottom: 800 };
 const box = (left: number, top: number, w: number, h: number): Box => ({ left, top, right: left + w, bottom: top + h });
@@ -45,5 +45,21 @@ describe('growPlan', () => {
     for (const c of [{ title: true, names: false, rows: false }, { title: false, names: true, rows: false }, { title: false, names: false, rows: true }]) {
       expect(growPlan(c)).toEqual({ grow: true, wide: true });
     }
+  });
+});
+
+describe('fitWidth', () => {
+  const col = { left: 2, right: 300 };
+  it('is as wide as the content needs and keeps the slot left edge', () => {
+    expect(fitWidth({ left: 100, width: 60 }, 120, col)).toEqual({ left: 100, width: 120 });
+  });
+  it('is never narrower than its own slot', () => {
+    expect(fitWidth({ left: 100, width: 60 }, 40, col)).toEqual({ left: 100, width: 60 });
+  });
+  it('shifts left just enough when widening would leave the column', () => {
+    expect(fitWidth({ left: 200, width: 60 }, 160, col)).toEqual({ left: 140, width: 160 });
+  });
+  it('takes the whole column when the content is wider', () => {
+    expect(fitWidth({ left: 200, width: 60 }, 999, col)).toEqual({ left: 2, width: 298 });
   });
 });

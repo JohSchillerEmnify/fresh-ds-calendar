@@ -1632,7 +1632,7 @@ actually longer". Owner decisions (final):
     that really takes the card's time out of view still closes it; one tap on the card then grows it again (`ui.expandedCard` is
     null after every close path, covered by the `@expand-zoom` scenarios for Escape, tap elsewhere and zoom).
 
-**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.toggleCard`, collapse on unmount; a
+**Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.expandCard` (a set: a tap on a collapsed card always expands), collapse on unmount; a
 swipe preview copy never grows). It mounts `ExpandedCard.vue` (lazy chunk), a `position: fixed` wrapper teleported to the
 body (so no ancestor's `overflow: hidden`, such as a month cell, clips it) at the collapsed card's box, re-placed on scroll,
 resize and content size change. Inside it renders `TaskListCard` again with `grown`: every item shown, nothing cut or faded,

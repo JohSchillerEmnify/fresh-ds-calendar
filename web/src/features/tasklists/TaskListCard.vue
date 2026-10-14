@@ -52,7 +52,7 @@ onMounted(() => { if (el.value) emit('el', el.value); });
 if (!inPreview() && !props.grown) useCalendarDrag(el, () => props.segment, () => props.variant);
 // Border box, not content box: the mini tier changes the card's padding, so a content-box width flips the tier it decides (a loop).
 const { width } = useElementSize(el, undefined, { box: 'border-box' });
-/** Expanded in place over the calendar (a swipe preview copy never is); tap toggles, items change only in the day view. */
+/** Expanded in place over the calendar (a swipe preview copy never is); a tap expands, items change only in the day view. */
 /** This very card was tapped: a view may hold the same list twice (the zoom month's chip layer and its timeline), only the tapped one grows. */
 const tapped = ref(false);
 const sameCard = (c: { id: string; date: string } | null) => !!c && c.id === props.segment.item.id && c.date === props.segment.date;
@@ -60,7 +60,7 @@ const expanded = computed(() => !props.grown && !inPreview() && tapped.value && 
 watch(() => ui.expandedCard, (c) => { if (!sameCard(c)) tapped.value = false; });
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
 /**
- * A tap toggles the expansion; the card that was tapped is the one that grows. A time block that already shows its whole title and
+ * A tap on the collapsed card always expands it (collapsing happens on the grown card, elsewhere, Escape or back); the card that was tapped is the one that grows. A time block that already shows its whole title and
  * every open item has nothing to grow into: the tap opens the list sheet directly (focus on the card first, as `ExpandedCard.openList`).
  */
 function toggle() {
@@ -70,7 +70,7 @@ function toggle() {
     return;
   }
   tapped.value = true;
-  ui.toggleCard(cardKey());
+  ui.expandCard(cardKey());
 }
 /** A tap on the grown card's title row folds it back up; anywhere else on it opens the list. */
 function onGrownTap(e: MouseEvent) { if ((e.target as Element).closest('.row')) emit('collapse'); else emit('openList'); }
