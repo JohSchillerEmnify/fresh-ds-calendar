@@ -38,6 +38,10 @@ export default {
     message: 'Google lässt dich nicht mehr rein, du Oberpflaume. Meld dich nochmal an, dann siehst du den Kalender wieder, yo.',
     signIn: 'Anmelden, yo',
   },
+  calendarAccess: {
+    message: 'Du Oberpflaume hast Google Kalender nicht erlaubt, deshalb kann Fresh D. deinen Kalender nicht laden, Digga. Melde dich nochmal an und setz auf Googles Bildschirm den Haken bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“, sonst schaut Fresh D. in die Röhre wie Dobby ohne Socke.',
+    grant: 'Kalender erlauben, yo',
+  },
   install: {
     button: 'App holen, fresh',
     iosHint: 'Tipp auf Teilen, dann auf „Zum Home-Bildschirm“. Fresh D. hat das gecheckt, Digga.',

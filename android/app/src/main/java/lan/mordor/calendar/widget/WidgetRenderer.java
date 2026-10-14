@@ -81,23 +81,27 @@ final class WidgetRenderer {
         return rv;
     }
 
-    /** The newer of the app's snapshot and the fetched week, whichever is for the current week. */
-    private static WeekData pickData(WidgetStore store, JSONObject snapshot, LocalDate today, LocalDate monday) {
-        WeekData best = null;
+    /**
+     * The week to draw: the fetched week whenever there is one for the current week, else the app's snapshot. The fetch is
+     * authoritative: the snapshot is stamped when the app writes it (after every sync), but its week can come from a cache
+     * up to 10 minutes old, so "newer" by stamp let a stale snapshot hide a fresh fetch (owner bug 2026-10-14: widgets
+     * reverting to an earlier state). The app still triggers a fetch when it writes a snapshot (see onSnapshot).
+     */
+    static WeekData pickData(WidgetStore store, JSONObject snapshot, LocalDate today, LocalDate monday) {
         try {
-            if (snapshot != null && monday.equals(WidgetStore.weekOf(snapshot))) best = WeekData.fromSnapshot(snapshot, today, store.snapshotAtMillis());
+            JSONObject fetched = store.fetched();
+            if (fetched != null && monday.equals(WidgetStore.weekOf(fetched))) {
+                return WeekData.fromItems(fetched.getJSONArray("items"), today, monday, store.fetchedAtMillis());
+            }
+        } catch (Exception ignored) {
+            // unreadable fetch result: fall back to the snapshot
+        }
+        try {
+            if (snapshot != null && monday.equals(WidgetStore.weekOf(snapshot))) return WeekData.fromSnapshot(snapshot, today, store.snapshotAtMillis());
         } catch (Exception ignored) {
             // an unreadable snapshot is treated as absent
         }
-        try {
-            JSONObject fetched = store.fetched();
-            if (fetched != null && monday.equals(WidgetStore.weekOf(fetched)) && (best == null || store.fetchedAtMillis() >= best.timeMillis)) {
-                best = WeekData.fromItems(fetched.getJSONArray("items"), today, monday, store.fetchedAtMillis());
-            }
-        } catch (Exception ignored) {
-            // unreadable fetch result: keep the snapshot
-        }
-        return best;
+        return null;
     }
 
     /** A tap target that opens the app at {@code path} (a day or the week). */

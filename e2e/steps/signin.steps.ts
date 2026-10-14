@@ -103,3 +103,30 @@ Then('they are asked to sign in with Google again', async function (this: World)
   await expect(banner).toBeVisible();
   await expect(banner.getByRole('button')).toBeVisible();
 });
+
+Given("Google's consent screen is answered without calendar access", async function (this: World) {
+  await this.api.setCalendarGranted(false);
+});
+
+Then('they are told Google Calendar access is missing', async function (this: World) {
+  const banner = this.page.getByTestId('calendar-access-banner');
+  await expect(banner).toBeVisible();
+  await expect(banner.getByTestId('calendar-access-grant')).toBeVisible();
+});
+
+Then('the settings offer to grant calendar access', async function (this: World) {
+  await this.page.getByTestId('settings-button').click();
+  await expect(this.page.getByTestId('settings-calendar-access')).toBeVisible();
+  await this.page.goBack();
+});
+
+When('they grant calendar access', async function (this: World) {
+  await this.api.setCalendarGranted(true);
+  await this.page.getByTestId('calendar-access-grant').click();
+  await this.page.waitForURL((u) => u.pathname !== '/signin' && !u.pathname.startsWith('/api/'));
+  await this.calendarShown();
+});
+
+Then('they are no longer told Google Calendar access is missing', async function (this: World) {
+  await expect(this.page.getByTestId('calendar-access-banner')).toHaveCount(0);
+});

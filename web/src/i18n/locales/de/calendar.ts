@@ -38,6 +38,10 @@ export default {
     message: 'Google akzeptiert deinen Zugriff nicht mehr. Melde dich erneut mit Google an, um deinen Kalender zu sehen.',
     signIn: 'Anmelden',
   },
+  calendarAccess: {
+    message: 'Der Zugriff auf Google Kalender wurde nicht erlaubt, deshalb kann dein Kalender nicht geladen werden. Melde dich nochmal an und setz auf Googles Bildschirm den Haken bei „Alle Kalender in Google Kalender ansehen, bearbeiten, freigeben und endgültig löschen“.',
+    grant: 'Kalenderzugriff erlauben',
+  },
   install: {
     button: 'App installieren',
     iosHint: 'Tippe auf Teilen und dann auf „Zum Home-Bildschirm“',

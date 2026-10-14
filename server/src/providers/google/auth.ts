@@ -1,7 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import type { OAuthBackend, OAuthResult } from '../../auth/oauth.js';
-import { readUserToken, writeUserToken } from '../../auth/people.js';
+import { hasCalendarScope, readUserScope, readUserToken, writeUserToken } from '../../auth/people.js';
 
 /** One OAuth round trip signs in (`openid email`) and connects the calendar. */
 export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar'];
@@ -25,11 +25,17 @@ export function getUserClient(config: Cfg, sub: string): OAuth2Client {
   return c;
 }
 
-/** Stores a person's refresh token (0600) and drops the cached client so the next call uses it. */
-export function storeUserToken(config: Cfg, sub: string, refreshToken: string): void {
-  writeUserToken(config.dataDir, sub, refreshToken);
+/** Stores a person's refresh token and granted scopes (0600) and drops the cached client so the next call uses it. */
+export function storeUserToken(config: Cfg, sub: string, refreshToken: string, scope?: string | null): void {
+  writeUserToken(config.dataDir, sub, refreshToken, scope);
   clients.delete(`${config.dataDir}\u0000${sub}`);
 }
+
+/** True only when the stored grant is known to lack the calendar scope (tokens without a recorded scope are judged by Google's answer). */
+export const calendarScopeMissing = (config: Cfg, sub: string): boolean => {
+  const scope = readUserScope(config.dataDir, sub);
+  return scope !== null && !hasCalendarScope(scope);
+};
 
 export const hasUserToken = (config: Cfg, sub: string): boolean => readUserToken(config.dataDir, sub) !== null;
 
@@ -38,7 +44,7 @@ export class GoogleOAuth implements OAuthBackend {
   constructor(private readonly config: Cfg) {}
 
   authUrl(state: string): string {
-    return newClient(this.config).generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state });
+    return newClient(this.config).generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state, include_granted_scopes: true });
   }
 
   async exchange(code: string): Promise<OAuthResult> {
@@ -47,6 +53,6 @@ export class GoogleOAuth implements OAuthBackend {
     if (!tokens.id_token) throw new Error('Google did not return an id_token');
     const payload = (await client.verifyIdToken({ idToken: tokens.id_token, audience: this.config.google.clientId ?? undefined })).getPayload();
     if (!payload?.sub || !payload.email) throw new Error('Google id_token has no email');
-    return { sub: payload.sub, email: payload.email, emailVerified: payload.email_verified === true, name: payload.name ?? null, refreshToken: tokens.refresh_token ?? null };
+    return { sub: payload.sub, email: payload.email, emailVerified: payload.email_verified === true, name: payload.name ?? null, refreshToken: tokens.refresh_token ?? null, scope: tokens.scope ?? null };
   }
 }

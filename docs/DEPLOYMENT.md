@@ -20,7 +20,7 @@ containers.
 - Main checkout: `~/projects/calendar` (branch **`main`**). Git hooks live in `scripts/hooks`
   (`core.hooksPath=scripts/hooks`).
 - Worktrees: `~/projects/calendar-wt/<branch>`; the preview worktree is `~/projects/calendar-wt/preview`.
-- Compose: `~/docker-compose/calendar/docker-compose.yaml`; data volume `~/docker-compose/calendar/data` → `/data` in the
+- Compose: `deploy/docker-compose.yaml` in the repo (`~/projects/calendar/deploy/`; `~/docker-compose/calendar` is a symlink to it); data volume `deploy/data` (git-ignored) → `/data` in the
   container (`DATA_DIR`).
 
 ## Production deploy
@@ -69,12 +69,12 @@ scripts/preview-branch.sh status         # what `preview` has on top of main
 Log: `/tmp/calendar-autopreview.log`. Preview builds (version `…-preview+<sha>`) reload themselves in the browser when a
 new build is out.
 
-## Configuration (`~/docker-compose/calendar/.env`)
+## Configuration (`~/projects/calendar/deploy/.env`)
 
 The compose file reads `.env` (mode 600, not in git). Edit on sauron, then redeploy:
 
 ```bash
-nano ~/docker-compose/calendar/.env
+nano ~/projects/calendar/deploy/.env
 cd ~/projects/calendar && pnpm redeploy
 ```
 
@@ -100,6 +100,9 @@ Google only accepts an HTTPS redirect URI on a real domain, so HTTPS comes first
    - enable **Google Calendar API**;
    - OAuth consent screen: *External*; scopes `…/auth/calendar` and `…/auth/drive.appdata` (backups);
      **Publish → In production** (in *Testing*, sign-ins expire after 7 days; unverified is fine for personal use);
+   - App logo (optional): `docs/branding/logo-120.png` (120×120, as Google recommends; vector in `logo.svg`). Uploading a
+     logo on the consent screen triggers Google's app verification, so only upload it if verification is wanted;
+     without it the app works as before (unverified is fine for personal use);
    - Credentials → OAuth client ID → *Web application*, redirect URI `https://cal.<sub>.<domain>/api/auth/google/callback`.
 4. Fill `PROVIDER=google`, `PUBLIC_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS` in `.env`; redeploy.
 5. Sign in; in Settings → Account & data press **Allow backups to Google Drive** once.
