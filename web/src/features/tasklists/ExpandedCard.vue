@@ -6,17 +6,21 @@
  * scroll area), so the calendar underneath never moves. Read-only: a tap anywhere on it opens the normal list sheet. Closes on
  * Escape, the system back, a tap elsewhere or on its title, a change of view or date, or when a dialog opens (a fixed one also when a
  * scroll takes it out of sight; one inside the time grid scrolls natively with it). The focus moves in and returns to the card.
+ * A time block of the week/day grid is placed in time units instead (see `timed`): teleported into its day column, its top and
+ * the real layer's height come from the list's minutes and the shared `hourHeight` (as `TimeGrid` lays a block out), so it follows
+ * the zoom preview and every zoom commit by construction; only grow direction and max height are measured.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { t } from '@/i18n';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
-import { displayTitle } from '@/lib/items';
+import { blockGeometry, displayTitle } from '@/lib/items';
+import { hourHeight } from '@/composables/useHourHeight';
 import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
-import { anchorVisible, placeExpanded, type Box } from './expand';
+import { anchorVisible, growPlan, measureCut, placeExpanded, type Box } from './expand';
 import TaskListCard from './TaskListCard.vue';
 
 const props = defineProps<{ id: string; anchor: HTMLElement; segment: ItemRendererProps['segment']; variant: ItemRendererProps['variant'] }>();
@@ -29,8 +33,25 @@ useOverlayHistory(() => true, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
 // A time block's card lives inside the scrolling time grid (absolute, in content coordinates), so the browser scrolls it with the
 // calendar natively; anywhere else (month cells, all-day areas) it is a fixed overlay on the body.
-const host = props.variant === 'block' ? props.anchor.closest<HTMLElement>('.grid') : null;
-const pos = ref<{ left: number; top: number; width: number; maxHeight: number; minHeight: number; radius: string; dir: 'down' | 'up' } | null>(null);
+// Week/day time grid: the block's day column (the card lives in it, positioned in time units); other time views keep the pixel placement in `.grid`.
+const col = props.variant === 'block' ? props.anchor.closest<HTMLElement>('.grid > .col') : null;
+const slot = props.anchor.parentElement;
+const timed = !!col && !!slot?.classList.contains('blk');
+const host = timed ? col : props.variant === 'block' ? props.anchor.closest<HTMLElement>('.grid') : null;
+interface Pos { left: number; top: number; width: number; maxHeight: number; minHeight: number; radius: string; dir: 'down' | 'up'; wide: boolean; slotLeft: string; slotWidth: string; upH: number }
+const pos = ref<Pos | null>(null);
+// the list's own time block at the current zoom (TimeGrid's geometry; the card is 1 px shorter than its `.blk`, which has a bottom gap)
+const geo = computed(() => blockGeometry(props.segment.startMin, props.segment.endMin, hourHeight.value));
+/** Style of a time-unit placed card: top and real height from minutes, horizontal from the block's slot or the whole column. */
+const timedStyle = computed(() => {
+  const p = pos.value;
+  if (!p) return { visibility: 'hidden' } as const;
+  const real = geo.value.height - 1;
+  return {
+    left: p.wide ? '1px' : `calc(${p.slotLeft} + 1px)`, width: p.wide ? 'calc(100% - 2px)' : `calc(${p.slotWidth} - 2px)`,
+    top: (p.dir === 'up' ? geo.value.top + real - p.upH : geo.value.top) + 'px', maxHeight: p.maxHeight + 'px', '--min-h': real + 'px', borderRadius: p.radius, '--xr': p.radius,
+  };
+});
 const tl = computed(() => {
   const i = items.get(props.id);
   return i?.kind === 'tasklist' ? i : null;
@@ -56,13 +77,22 @@ function place() {
   const b = bounds();
   if (!anchorVisible(a, b)) { emit('close'); return; }
   // a time block sits in a narrow side-by-side slot; grown it takes its whole day column, over the neighbours (inside the column's border, with the block's 1 px inset)
-  const col = props.variant === 'block' ? props.anchor.closest('.col') : null;
-  const cr = col?.getBoundingClientRect();
+  const colEl = props.variant === 'block' ? props.anchor.closest('.col') : null;
+  const cr = colEl?.getBoundingClientRect();
   const box: Box = cr ? { left: cr.left + 2, right: cr.right - 1, top: a.top, bottom: a.bottom } : a;
+  if (timed) {
+    // only the screen dependent parts are measured: grow direction and room (the position itself is in time units, `timedStyle`)
+    const wide = growPlan(measureCut(props.anchor)).wide;
+    const q = placeExpanded(box, b, Math.max(card.offsetHeight, a.height));
+    const n: Pos = { left: 0, top: 0, width: 0, maxHeight: q.maxHeight, minHeight: a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: q.dir, wide, slotLeft: slot!.style.left, slotWidth: slot!.style.width, upH: Math.min(Math.max(card.offsetHeight, a.height), q.maxHeight) };
+    const o = pos.value;
+    if (!o || o.maxHeight !== n.maxHeight || o.radius !== n.radius || o.dir !== n.dir || o.wide !== n.wide || o.slotLeft !== n.slotLeft || o.slotWidth !== n.slotWidth || o.upH !== n.upH) pos.value = n;
+    return;
+  }
   // natural height of the grown card (the panel scrolls when it is cut to maxHeight), never less than the collapsed card
   const p = placeExpanded(box, b, props.variant === 'card' ? card.offsetHeight : Math.max(card.offsetHeight, a.height));
   const hr = host?.getBoundingClientRect();
-  const n = { left: p.left - (hr?.left ?? 0), top: p.top - (hr?.top ?? 0), width: p.width, maxHeight: p.maxHeight, minHeight: props.variant === 'card' ? 0 : a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: p.dir };
+  const n: Pos = { left: p.left - (hr?.left ?? 0), top: p.top - (hr?.top ?? 0), width: p.width, maxHeight: p.maxHeight, minHeight: props.variant === 'card' ? 0 : a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: p.dir, wide: false, slotLeft: '', slotWidth: '', upH: 0 };
   const o = pos.value;
   if (!o || o.left !== n.left || o.top !== n.top || o.width !== n.width || o.maxHeight !== n.maxHeight || o.minHeight !== n.minHeight || o.radius !== n.radius || o.dir !== n.dir) pos.value = n;
 }
@@ -85,7 +115,7 @@ onMounted(() => {
     ...(host ? [] : [listen(window, 'scroll', place, { capture: true, passive: true })]),
     listen(window, 'resize', place),
   );
-  if (typeof ResizeObserver !== 'undefined' && panel.value?.firstElementChild) { ro = new ResizeObserver(place); ro.observe(panel.value.firstElementChild); }
+  if (typeof ResizeObserver !== 'undefined' && panel.value?.firstElementChild) { ro = new ResizeObserver(place); ro.observe(panel.value.firstElementChild); if (timed) ro.observe(props.anchor); }
 });
 onBeforeUnmount(() => {
   stops.forEach((s) => s());
@@ -104,6 +134,8 @@ watch(() => ui.dialog, (d) => { if (d) emit('close'); });
 watch(tl, (now, before) => { if (before && !now) emit('close'); });
 // The card moved on screen (the calendar re-laid out): follow it.
 watch(() => props.anchor, place);
+// A zoom commit lays the blocks out again: the position follows by itself (time units), the direction and room are measured again once the new layout is in.
+watch(hourHeight, () => { void nextTick(place); });
 
 // A tap anywhere on the grown card opens the normal list sheet (ticking and editing happen there). The focus goes back to
 // the card first, so the sheet remembers it as its opener.
@@ -119,7 +151,7 @@ function openList() {
     <div
       ref="panel" class="xc" :class="{ inGrid: !!host }" role="group" data-testid="tasklist-expanded" data-presentation="overlay" data-readonly="true"
       :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')"
-      :style="pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
+      :style="timed ? timedStyle : pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
     >
       <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" @open-list="openList" @collapse="emit('close')" />
     </div>

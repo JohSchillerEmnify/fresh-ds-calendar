@@ -14,6 +14,11 @@ export async function expandTaskList(world: World, title: string) {
   // would never pass: tap the card's position instead.
   const phoneMonth = monthView && world.isPhoneProject;
   await world.taskCard(title).click({ force: phoneMonth });
+  // a time block that already shows its whole title and every open item does not grow: the first tap opens the sheet
+  if (!phoneMonth) {
+    await sheet.or(grown).first().waitFor();
+    if (await sheet.isVisible()) return;
+  }
   if (phoneMonth) {
     await expect(grown.or(world.page.getByTestId('day-view')).first()).toBeVisible();
     if (!(await grown.isVisible())) await world.taskCard(title).click();

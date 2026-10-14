@@ -216,10 +216,17 @@ Feature: A task list card grows in place over the calendar
 
   @expand-zoom
   Scenario: A card as wide as its column whose items are cut only grows taller
+    Given the calendar contains a task list "Pantry" on 2026-10-14 at 15:00 for 30 minutes with items:
+      | item   | done |
+      | Flour  | no   |
+      | Sugar  | no   |
+      | Oats   | no   |
+      | Rice   | no   |
+      | Beans  | no   |
     When I open the day view for 2026-10-14
-    And I tap the task list "Groceries"
-    Then the task list "Groceries" is expanded over the calendar
-    And the expanded task list has the left and width of the card "Groceries"
+    And I tap the task list "Pantry"
+    Then the task list "Pantry" is expanded over the calendar
+    And the expanded task list has the left and width of the card "Pantry"
 
   @mobile
   Scenario: The add button never covers the grown task list

@@ -233,3 +233,28 @@ Then('the expanded task list keeps its offset to the card {string} when the grid
   expect(r.moved, 'the grid scrolled').toBeGreaterThan(0);
   expect(r.drift, 'offset to the collapsed card').toBeLessThanOrEqual(1);
 });
+
+/** One Ctrl+wheel gesture on the time grid scroller; the grid commits (`data-hour-height` changes) once the gesture settled. */
+async function zoomTimeGrid(w: World, deltaY: number) {
+  const grid = w.byTestId('time-grid');
+  const before = await grid.getAttribute('data-hour-height');
+  // over the grown card when there is one: the time under the pointer stays in place, so the card stays in view
+  const g = grown(w);
+  const at = (await g.count()) ? await rectOf(g) : await rectOf(w.page.locator('[data-scroll-area]'));
+  await w.page.locator('[data-scroll-area]').evaluate((el, p) => {
+    el.dispatchEvent(new WheelEvent('wheel', { deltaY: p.deltaY, ctrlKey: true, clientX: p.x, clientY: p.y, bubbles: true, cancelable: true }));
+  }, { deltaY, x: at.x + at.width / 2, y: at.y + Math.min(at.height / 2, 40) });
+  await expect(grid).not.toHaveAttribute('data-hour-height', before ?? '');
+}
+
+When('I zoom the time grid in', async function (this: World) { await zoomTimeGrid(this, -300); });
+When('I zoom the time grid out', async function (this: World) { await zoomTimeGrid(this, 300); });
+
+Then('the real time block of the expanded task list matches the card {string}', async function (this: World, title: string) {
+  await expect.poll(async () => {
+    const card = await rectOf(this.taskCard(title));
+    const real = await rectOf(grown(this, title).getByTestId('tasklist-grown-real'));
+    return Math.max(Math.abs(real.y - card.y), Math.abs(real.height - card.height));
+  }).toBeLessThanOrEqual(2);
+  await expect(this.page.locator(`${tid('tasklist-card-grown')}:visible`)).toHaveCount(1);
+});
