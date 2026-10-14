@@ -237,6 +237,20 @@ export class ApiClient {
   tasksCalendarReminders(o?: RequestOptions) {
     return this.request<{ defaultReminders: number[] }>('GET', '/api/reminders/tasks-calendar', undefined, o);
   }
+  /** The server's public VAPID key for `pushManager.subscribe` (API.md "Web Push"). */
+  pushKey(o?: RequestOptions) {
+    return this.request<{ key: string }>('GET', '/api/push/key', undefined, o);
+  }
+  pushSubscribe(sub: { endpoint: string; keys: { p256dh: string; auth: string } }, o?: RequestOptions) {
+    return this.request<void>('POST', '/api/push/subscriptions', { endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } }, o);
+  }
+  pushUnsubscribe(endpoint: string, o?: RequestOptions) {
+    return this.request<void>('DELETE', '/api/push/subscriptions', { endpoint }, o);
+  }
+  /** Replaces this browser's push plan (the next 7 days of reminders). */
+  putReminderPlan(endpoint: string, plan: Array<{ at: number; title: string; body: string; key: string }>, o?: RequestOptions) {
+    return this.request<void>('PUT', '/api/reminders/plan', { endpoint, plan }, o);
+  }
   setTasksCalendarReminders(defaultReminders: number[], o?: RequestOptions) {
     return this.request<{ defaultReminders: number[] }>('PATCH', '/api/reminders/tasks-calendar', { defaultReminders }, o);
   }

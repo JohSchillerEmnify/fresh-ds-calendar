@@ -1925,9 +1925,14 @@ the event {string} does not use the calendar default in Google
 the event {string} uses the calendar default in Google
 the event {string} still has the email reminder {string} in Google
 I open the reminder settings
+I open the reminders settings
 the reminder settings show {string} for the calendar {string}
 I add the default reminder {string} for the calendar {string}
 I switch on reminders for task lists
+I switch on reminders in this browser
+this browser has a push subscription on the server
+the server has {int} planned pushes for this browser
+the push {string} was sent once
 ```
 
 - Minutes lists are comma-separated integers (`"90, 30, 15"`, `""` = none); labels use the app's duration format
@@ -1942,5 +1947,13 @@ I switch on reminders for task lists
 - "I open the reminder settings": `/settings` → `settings-reminders` → `reminders-settings` visible. "show X for the calendar
   C": the `reminders-calendar` named C lists X; "add the default reminder R for C": its add button, pick R (saves at once).
   "switch on reminders for task lists": `reminders-tasklists` on.
+- Web Push: "I open the reminders settings" is the same as "I open the reminder settings". "I switch on reminders in this
+  browser" replaces the browser's permission and subscription with a fake (headless Chromium has no push service:
+  `Notification.requestPermission` → `granted`, `PushManager.prototype.subscribe` / `getSubscription` → a fake subscription with a
+  unique `https://push.example.test/...` endpoint kept in `window.__e2ePushEndpoint`), then turns `reminders-push` on (`aria-checked`).
+  The server side is read from the TEST_MODE routes `GET /api/__test/push-subscriptions` ("has a push subscription": one with this
+  endpoint exists; "N planned pushes": its plan has N entries) and `GET /api/__test/pushes` (the recorder that replaces the push
+  service; "was sent once": exactly one recorded push with this title for this endpoint). `POST /api/__test/clock` (the step "the
+  time is D T") runs the server's push loop once on the new app time, so a push that became due is sent before the step returns.
 - Warnings reuse "I see the transition warning X" / "I do not see a transition warning" / "N minutes pass".
 

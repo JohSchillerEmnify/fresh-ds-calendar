@@ -17,6 +17,7 @@ import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
+import { disablePush, enablePush, pushEndpoint, pushSupported, refreshPushState } from '@/pwa/push';
 
 const router = useRouter();
 const cals = useCalendarsStore();
@@ -28,7 +29,20 @@ const items = useItemsStore();
 const shown = computed(() => cals.list.filter((c) => !c.hidden));
 const tasksDefault = ref<number[]>([]);
 
+/** `reminders-push`: this browser gets the reminders as Web Push while the app is closed (hidden where push is unavailable). */
+const pushAvailable = pushSupported();
+const pushDenied = ref(false);
+
+async function setPush(on: boolean) {
+  pushDenied.value = false;
+  if (!on) { await disablePush().catch(() => ui.notify(t('settings.saveFailed'))); return; }
+  const r = await enablePush();
+  if (r === 'denied') pushDenied.value = true;
+  else if (r === 'failed') ui.notify(t('settings.reminders.push.failed'));
+}
+
 onMounted(() => {
+  void refreshPushState();
   void cals.load().catch(() => undefined);
   api.tasksCalendarReminders().then((r) => { tasksDefault.value = r.defaultReminders; }, () => undefined);
 });
@@ -81,6 +95,11 @@ async function setTaskListSwitch(on: boolean) {
         <h2><i class="dot" :style="{ background: c.color }" aria-hidden="true" />{{ c.name }}</h2>
         <p v-if="!c.writable" class="sub note">{{ t('settings.reminders.readOnly') }}</p>
         <ReminderEditor :model-value="{ useDefault: false, minutes: c.defaultReminders ?? [] }" prefix="calendar-default" :readonly="!c.writable" data-testid="reminders-calendar-list" @update:model-value="saveCalendar(c.id, $event.minutes)" />
+      </section>
+      <section v-if="pushAvailable" class="card" data-testid="reminders-push-section">
+        <h2>{{ t('settings.reminders.push.title') }}</h2>
+        <div class="row"><div class="grow"><span class="lab">{{ t('settings.reminders.push.label') }}</span><span class="sub">{{ t('settings.reminders.push.hint') }}</span></div><Switch :model-value="pushEndpoint !== null" :label="t('settings.reminders.push.label')" data-testid="reminders-push" @update:model-value="setPush" /></div>
+        <p v-if="pushDenied" class="sub note" data-testid="reminders-push-denied">{{ t('settings.reminders.push.denied') }}</p>
       </section>
       <section class="card" data-testid="reminders-tasklists-section">
         <h2>{{ t('settings.reminders.tasklists.title') }}</h2>

@@ -84,6 +84,13 @@ export default {
       intro: 'Das sind die Erinnerungen von Google Kalender. Der Standard eines Kalenders gilt für jeden Termin ohne eigene Liste.',
       readOnly: 'Schreibgeschützter Kalender',
       defaultFor: 'Standard-Erinnerungen von {name}',
+      push: {
+        title: 'Browser',
+        label: 'Erinnerungen in diesem Browser, wenn die App geschlossen ist',
+        hint: 'Dieser Browser bekommt die Erinnerungen als Benachrichtigung, zusätzlich zu denen in der App.',
+        denied: 'Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Browser-Einstellungen und schalte das danach wieder ein.',
+        failed: 'Die Browser-Erinnerungen ließen sich nicht einschalten. Versuche es noch einmal.',
+      },
       tasklists: {
         title: 'Aufgabenlisten',
         switch: { label: 'An Aufgabenlisten erinnern', hint: 'Aufgabenlisten mit Uhrzeit klingeln wie Termine. Die eigenen Erinnerungen einer Liste stellst du in der Liste ein.' },

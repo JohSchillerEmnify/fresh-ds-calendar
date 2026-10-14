@@ -42,13 +42,10 @@ export default defineConfig({
           { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        clientsClaim: true, // first visit: the worker controls the page right after install (offline shell)
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/app\.apk$/, /^\/privacy\.html$/], // the Android app download is a file, not a client route
-        // /api is never cached: no runtime caching rules at all.
-        runtimeCaching: [{ urlPattern: /^\/api\//, handler: 'NetworkOnly' }],
-      },
+      // The worker is `src/sw.ts` (precache, navigation fallback, /api NetworkOnly, update prompt, Web Push).
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
     }),
   ],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },

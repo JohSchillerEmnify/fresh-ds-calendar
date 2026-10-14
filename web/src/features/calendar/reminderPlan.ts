@@ -80,3 +80,22 @@ export function reminderPlan(days: Segment[][], nowMs: number, nowMin: number, k
   });
   return out.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key));
 }
+
+/** The Web Push plan covers this many days ahead (ARCHITECTURE "Reminders, several per event"). */
+export const PUSH_PLAN_DAYS = 7;
+
+/** One push the server sends at `at` (epoch ms); `key` is `reminder:<itemId>@<date>T<start>-<lead>`. */
+export interface PushPlanEntry { at: number; title: string; body: string; key: string }
+
+/**
+ * The reminders the server pushes while the app is closed: the ones still ahead within the next 7 days, with the same
+ * titles and bodies as the in-app and native reminders and the native reminder id as key.
+ *
+ * @param plan The output of {@link reminderPlan}.
+ * @param nowMs Now, epoch ms.
+ */
+export function pushPlan(plan: readonly PlannedReminder[], nowMs: number): PushPlanEntry[] {
+  const minuteStart = nowMs - (nowMs % 60_000);
+  const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
+  return plan.filter((p) => p.at > minuteStart && p.at <= until).map((p) => ({ at: p.at, title: p.title, body: p.body, key: `reminder:${p.key}` }));
+}

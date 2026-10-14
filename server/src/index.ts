@@ -26,6 +26,7 @@ if (config.provider === 'mock' && config.seed && !config.testMode && app.ctx.moc
 }
 
 app.ctx.backup.start();
+app.ctx.push.start();
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   console.log(`calendar server listening on http://${info.address}:${info.port} (provider=${config.provider}${config.testMode ? ', TEST_MODE' : ''})`);

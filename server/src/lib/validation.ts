@@ -191,3 +191,14 @@ export function parse<S extends v.GenericSchema>(schema: S, data: unknown): v.In
   const message = bad && !bad.path ? 'Request body must be a JSON object' : describe(r.issues[0]!);
   throw new ApiException('VALIDATION_ERROR', 400, message, details);
 }
+
+const endpoint = v.pipe(v.string('endpoint must be a URL'), v.url('endpoint must be a URL'), v.startsWith('https://', 'endpoint must be https'), v.maxLength(2048, 'endpoint is too long'));
+/** `POST /api/push/subscriptions`: a browser's `PushSubscription.toJSON()`. */
+export const pushSubscribeSchema = so({ endpoint, keys: so({ p256dh: str(256, 'p256dh'), auth: str(64, 'auth') }) });
+/** `DELETE /api/push/subscriptions`. */
+export const pushUnsubscribeSchema = so({ endpoint });
+/** `PUT /api/reminders/plan`: the browser's endpoint and the pushes it wants, soonest first. */
+export const reminderPlanSchema = so({
+  endpoint,
+  plan: v.pipe(v.array(so({ at: v.pipe(v.number('at must be a number'), v.integer('at must be whole ms')), title: str(300, 'title'), body: str(300, 'body'), key: str(200, 'key') })), v.maxLength(500, 'At most 500 reminders')),
+});

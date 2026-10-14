@@ -113,7 +113,7 @@ Then('the event {string} still has the email reminder {string} in Google', async
 
 // --- Settings → Reminders ----------------------------------------------------------------------------------------
 
-When('I open the reminder settings', async function (this: World) {
+async function openReminderSettings(this: World) {
   if (!this.page.url().startsWith('http')) {
     await this.page.goto('/');
     await this.calendarShown();
@@ -121,7 +121,9 @@ When('I open the reminder settings', async function (this: World) {
   if (!(await this.page.getByTestId('settings-view').isVisible())) await this.page.getByTestId('settings-button').click();
   await this.page.getByTestId('settings-reminders').click();
   await expect(this.page.getByTestId('reminders-settings')).toBeVisible();
-});
+}
+When('I open the reminder settings', openReminderSettings);
+When('I open the reminders settings', openReminderSettings);
 
 const calendarSection = (w: World, name: string): Locator => w.page.getByTestId('reminders-calendar').filter({ has: w.page.getByRole('heading', { name, exact: true }) });
 
@@ -146,4 +148,48 @@ When('I switch on reminders for task lists', async function (this: World) {
   await control.click();
   expect((await saved).status(), 'prefs saved').toBe(200);
   await expect(control).toHaveAttribute('aria-checked', 'true');
+});
+
+// --- Web Push ----------------------------------------------------------------------------------------------------
+
+/** Where the server-side push state of the test double is read. */
+interface PushState { subscriptions: Array<{ endpoint: string; plan: unknown[] }> }
+const pushesOf = async (w: World) => (await w.api.call<{ pushes: Array<{ endpoint: string; title: string }> }>('GET', '/api/__test/pushes')).pushes;
+const browserEndpoint = (w: World): Promise<string> => w.page.evaluate(() => (window as unknown as { __e2ePushEndpoint?: string }).__e2ePushEndpoint ?? '');
+const subscriptionOf = async (w: World) => {
+  const endpoint = await browserEndpoint(w);
+  return endpoint ? (await w.api.call<PushState>('GET', '/api/__test/push-subscriptions')).subscriptions.find((s) => s.endpoint === endpoint) : undefined;
+};
+
+When('I switch on reminders in this browser', async function (this: World) {
+  // headless Chromium has no push service: the browser's permission and subscription are replaced by a fake with a unique https endpoint
+  await this.page.evaluate(() => {
+    const endpoint = `https://push.example.test/e2e-${Math.random().toString(36).slice(2)}`;
+    let sub: unknown = null;
+    const fake = { endpoint, toJSON: () => ({ endpoint, keys: { p256dh: 'e2e-p256dh', auth: 'e2e-auth' } }), unsubscribe: async () => { sub = null; return true; } };
+    Notification.requestPermission = async () => 'granted';
+    Object.defineProperty(Notification, 'permission', { get: () => 'granted', configurable: true });
+    PushManager.prototype.subscribe = async () => (sub = fake) as unknown as PushSubscription;
+    PushManager.prototype.getSubscription = async () => sub as PushSubscription | null;
+    (window as unknown as { __e2ePushEndpoint: string }).__e2ePushEndpoint = endpoint;
+  });
+  const control = this.page.getByTestId('reminders-push');
+  await expect(control).toBeVisible();
+  await control.click();
+  await expect(control).toHaveAttribute('aria-checked', 'true');
+});
+
+Then('this browser has a push subscription on the server', async function (this: World) {
+  await expect.poll(async () => !!(await subscriptionOf(this))).toBe(true);
+});
+
+Then('the server has {int} planned pushes for this browser', async function (this: World, count: number) {
+  await expect.poll(async () => (await subscriptionOf(this))?.plan.length).toBe(count);
+});
+
+Then('the push {string} was sent once', async function (this: World, title: string) {
+  const endpoint = await browserEndpoint(this);
+  const sent = async () => (await pushesOf(this)).filter((p) => p.endpoint === endpoint && p.title === title).length;
+  await expect.poll(sent).toBeGreaterThanOrEqual(1);
+  expect(await sent()).toBe(1);
 });

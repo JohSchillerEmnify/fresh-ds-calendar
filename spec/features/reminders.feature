@@ -94,3 +94,20 @@ Feature: Several reminders per event, read from and written to Google
     And I switch on reminders for task lists
     And I open the week view for 2026-10-12
     Then I see the transition warning "Taxes starts in 30 min"
+
+  @web-push
+  Scenario: The browser push switch subscribes this browser
+    When I open the reminders settings
+    And I switch on reminders in this browser
+    Then this browser has a push subscription on the server
+
+  @web-push
+  Scenario: A subscribed browser sends its reminder plan and gets the push at its time
+    Given the calendar "Personal" has the default reminders "30, 10"
+    And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
+    And the time is 2026-10-12 10:00
+    When I open the reminders settings
+    And I switch on reminders in this browser
+    Then the server has 2 planned pushes for this browser
+    When the time is 2026-10-12 10:10
+    Then the push "Dentist starts in 30 min" was sent once
