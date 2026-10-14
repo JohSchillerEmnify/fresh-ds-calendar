@@ -804,7 +804,7 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   Why a record of choices and not a list of disabled ids: Strip is off by default, so a plain disabled list would make
   the server know the registry's defaults; with explicit choices the registry stays the one source of defaults and a
   new view still defaults to on (assumption: that is why the owner preferred disabled ids).
-- Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`, `/zoom/:date`. With `labs` on, the view switcher adds them with a
+- Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`, `/zoom/:date`, `/horizontal/:date`. With `labs` on, the view switcher adds them with a
   flask mark (`view-switch-clock|timeline|strip|zoom`, `data-experimental="true"`); off, they are not offered.
 - Each experiment is its own component folder under `web/src/features/labs/<name>/` and reads the existing items
   store (no new server API). Tracer bullets: correct placement and navigation first, polish later.
@@ -886,6 +886,29 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   - *No bottom control*: the zoom buttons sit in the view header, so the "+" FAB cannot cover them (no overlap scenario).
   - Why not discrete levels (rejected): owner asked for "stufenlos"; why a transform and not native scroll: pinch anchoring and
     smooth live zoom need one transform; why `sessionStorage`: owner, "per session, not on the server".
+- Horizontal view (owner, 2026-10-14: "time runs horizontally"; route `/horizontal/:date`, `?mode=day` for the day, Labs registry
+  entry `horizontal`, `web/src/features/labs/htime/`): the week is seven day rows with the hours as columns, the day one row with
+  lanes. Cards get wider instead of taller, so a task list has room for its items. It is the zoom month's world again: laid out
+  once per committed zoom, moved by one CSS transform while a gesture runs, with the sticky hour axis (top) and day labels (left)
+  following the same transform on one axis each; viewport measured with `box: 'border-box'`, no measuring loop.
+  - *Two zooms* (`htime.ts`, pure): time `x` (1 = 24 h fit the width, up to 24; pixels per hour = `vw * x / 24`) and days `y`
+    (1 = the mode's rows fit the height, week 7, day an assumed 4; up to 8). The gesture controller (`zoomGestures.ts`) now keeps
+    a zoom per axis and takes a `ZoomModel` (limits, world size, which axes the wheel zooms): the zoom month's model zooms both
+    alike. Pinch zooms both axes by the finger distance ratio; Ctrl/Cmd+wheel zooms time, Shift+Ctrl/Cmd+wheel or Alt+wheel the
+    day height; `htime-time-in/out` and `htime-day-in/out` in the header; drag and wheel pan (Shift+wheel pans sideways).
+    Remembered per session in `sessionStorage` `cal.zoomHTime` (`{x, y}`).
+  - *Layout*: x from the start minute, width = duration (at least 28 px); all-day and untimed entries are full-width bars above
+    the lanes; overlapping entries share lanes, the vertical sub-rows of the room under the bars (`packColumns(..., stack=false)`:
+    no cascading, so a cluster never overlaps itself); a row grows when its bars and lanes need more than the base height. All
+    of it is computed from viewport and zoom (`layoutRows`), never measured.
+  - *Entries* are `ItemView` (events as `block`, bars as `allday`/`chip`/`card`). Tapping an event opens it as in the week view; a
+    tap on a day label opens that day's Day view. A task list tap uses the week view's expansion unchanged: `ExpandedCard`
+    overlays a copy of the card at the card's left, top and width (its real duration), growing down (up when the screen ends)
+    over the rows below, read-only; a second tap opens the list sheet. Any pan or zoom ends the expansion.
+  - *No bottom control*: all buttons sit in the header, so the "+" FAB cannot cover them (no overlap scenario).
+  - Why a second set of rows rather than a rotated month: the owner's goal is room beside the card for task items, and the
+    lane transposition needs real durations on x; why `packColumns` with `stack=false`: its cascade would offset blocks
+    by their start gap, but lanes must never overlap. Assumption: the day mode counts four lanes per viewport at day zoom 1.
 - Timeline (owner: vertical everywhere, a horizontal axis cannot show titles at scale): time runs down through all
   days with a date divider and an all-day band per day that takes its own room, items as long as they last with
   horizontal readable titles, overlaps side by side (wider on desktop), `timeline-now` as a line, zoom on desktop.

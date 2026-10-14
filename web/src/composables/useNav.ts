@@ -28,8 +28,8 @@ export function useNav() {
       cal.setFocus(clock.todayDate);
       return go(cal.view, clock.todayDate);
     },
-    switchView: (v: ViewKind | 'tasks' | 'clock' | 'timeline' | 'strip' | 'zoom') =>
-      v === 'tasks' ? router.push({ path: '/tasks', query: { ...route.query } }) : v === 'clock' || v === 'timeline' || v === 'strip' || v === 'zoom' ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v, cal.focusDate, false),
+    switchView: (v: ViewKind | 'tasks' | 'clock' | 'timeline' | 'strip' | 'zoom' | 'horizontal') =>
+      v === 'tasks' ? router.push({ path: '/tasks', query: { ...route.query } }) : v === 'clock' || v === 'timeline' || v === 'strip' || v === 'zoom' || v === 'horizontal' ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v, cal.focusDate, false),
     /** Pick a date (month picker): focus it and jump the current view (the year view opens that month). */
     pickDay: (d: Date) => {
       cal.setFocus(d);

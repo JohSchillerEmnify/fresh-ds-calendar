@@ -22,7 +22,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { t } from '@/i18n';
 import ZoomTimeline from './ZoomTimeline.vue';
-import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, readStoredZoom, stepZoom, writeStoredZoom } from './zoom';
+import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, MONTH_MODEL, readStoredZoom, stepZoom, writeStoredZoom } from './zoom';
 import { createZoomController } from './zoomGestures';
 
 const route = useRoute();
@@ -57,17 +57,17 @@ function applyTransform(x: number, y: number, k: number): void {
   if (world.value) world.value.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${k})`;
   if (head.value) head.value.style.transform = `translateX(${x}px) scaleX(${k})`;
 }
-const ctl = createZoomController({ z: z.value, x: 0, y: 0 }, {
+const ctl = createZoomController({ z: { x: z.value, y: z.value }, x: 0, y: 0 }, {
   size: () => ({ w: vw.value, h: vh.value }),
   origin: () => { const r = port.value?.getBoundingClientRect(); return { x: r?.left ?? 0, y: r?.top ?? 0 }; },
   live: (x, y, k) => { applyTransform(x, y, k); pan.value = { x, y }; },
   commit: (nz, x, y) => {
-    z.value = nz;
+    z.value = nz.x;
     pan.value = { x, y };
     applyTransform(x, y, 1);
-    writeStoredZoom(nz);
+    writeStoredZoom(nz.x);
   },
-});
+}, MONTH_MODEL);
 
 /** Cells within half a viewport of the visible part draw their entries; the others only their number (key is stable while panning inside a cell). */
 const nearKey = computed(() => {
@@ -81,7 +81,7 @@ const isNear = (i: number): boolean => nearKey.value[i] === '1';
 function centerOnAnchor(): void {
   const i = days.value.findIndex((d) => toIsoDate(d) === toIsoDate(anchorDate.value));
   const c = centerOnCell(Math.max(0, i) % COLS, Math.floor(Math.max(0, i) / COLS), rows.value, vw.value, vh.value, z.value);
-  ctl.set(z.value, c.x, c.y);
+  ctl.set({ x: z.value, y: z.value }, c.x, c.y);
 }
 let placed = false;
 watch([vw, vh], ([w, h]) => {
@@ -137,7 +137,7 @@ function onEntriesClick(e: MouseEvent, day: Date): void {
   openDay(day);
 }
 
-const zoomBy = (dir: 1 | -1) => ctl.zoomTo(stepZoom(z.value, dir), vw.value / 2, vh.value / 2);
+const zoomBy = (dir: 1 | -1) => { const n = stepZoom(z.value, dir); ctl.zoomTo({ x: n, y: n }, vw.value / 2, vh.value / 2); };
 const shiftMonth = (dir: 1 | -1) => router.push({ path: `/zoom/${toIsoDate(addMonths(anchorDate.value, dir))}`, query: { ...route.query } });
 const back = () => router.push({ path: routePath('month', anchorDate.value), query: { ...route.query } });
 </script>

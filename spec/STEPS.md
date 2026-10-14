@@ -1065,6 +1065,25 @@ I press the zoom out button of the zoom month
 the zoom month is zoomed in
 I zoom the zoom month in with Ctrl+wheel
 I tap the day number {date} in the zoom month
+I open the horizontal view for {date}
+I open the horizontal day view for {date}
+the horizontal view shows {int} day rows
+in the horizontal view {string} is left of {string} in the same row
+in the horizontal view {string} and {string} are in separate lanes of the same row
+I note the width of {string} in the horizontal view
+{string} is wider in the horizontal view than noted
+in the horizontal view {string} is about {int} times as wide as {string}
+I note the height of the day rows of the horizontal view
+the day rows of the horizontal view are taller than noted
+I zoom the horizontal view in time with Ctrl+wheel
+I zoom the horizontal view in days with Alt+wheel
+I press the horizontal view's time zoom in button
+I press the horizontal view's day zoom in button
+the horizontal view is zoomed in time
+the horizontal view does not show the hour {time}
+the horizontal view shows the hour {time}
+I scroll the horizontal view sideways
+I tap the day label {date} in the horizontal view
 ```
 
 - Clock: `clock-arc` per event and per timed task list (`data-title`, `data-start`, `data-end` as HH:MM, `data-kind`
@@ -1093,6 +1112,15 @@ I tap the day number {date} in the zoom month
   `data-detail`; `zoom-cell` (`data-date`, `data-count` = entries of the day), `zoom-time` (`data-weight`) before a timed event
   in `zoom-entries`. "shows the whole month": zoom 1 and the last cell lies inside `zoom-port`. "Ctrl+wheel": a `wheel`
   event with `ctrlKey` on `zoom-port`; the zoom is remembered in `sessionStorage` `cal.zoomMonth`.
+- Horizontal view: `htime-view` carries `data-mode` (`week|day`), `data-zoom-x` (time) and `data-zoom-y` (days);
+  `htime-row` (`data-date`) per day, `htime-day-label` (`data-date`), `htime-hour` (`data-hour`) in the sticky axis,
+  `htime-port` the viewport; events are the usual `event-chip`. "left of ... in the same row": both chips lie in the same
+  `htime-row` and the first one's left edge is smaller. "separate lanes": same row, their boxes overlap in x and not in y.
+  "wider / taller than noted" compares with the box noted before. "about N times as wide": a ±15 % ratio of the chips'
+  widths. "Ctrl+wheel" / "Alt+wheel": a `wheel` event on `htime-port` with `ctrlKey` / `altKey` (deltaY -300); the zoom is
+  remembered in `sessionStorage` `cal.zoomHTime`. "shows the hour H": the `htime-hour` label's box lies inside the port's
+  horizontal span. "scroll sideways": a plain `wheel` event with a large `deltaX` on the port. The time buttons are
+  `htime-time-in`, the day buttons `htime-day-in`.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 

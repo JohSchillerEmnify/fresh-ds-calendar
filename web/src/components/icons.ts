@@ -76,6 +76,9 @@ import ChecklistS from '~icons/material-symbols/checklist-sharp';
 import SwapVertO from '~icons/material-symbols/swap-vert';
 import SwapVertR from '~icons/material-symbols/swap-vert-rounded';
 import SwapVertS from '~icons/material-symbols/swap-vert-sharp';
+import SwapHorizO from '~icons/material-symbols/swap-horiz';
+import SwapHorizR from '~icons/material-symbols/swap-horiz-rounded';
+import SwapHorizS from '~icons/material-symbols/swap-horiz-sharp';
 import ScheduleO from '~icons/material-symbols/schedule';
 import ScheduleR from '~icons/material-symbols/schedule-rounded';
 import ScheduleS from '~icons/material-symbols/schedule-sharp';
@@ -138,6 +141,7 @@ export const IconKeyboardArrowDown = appIcon('IconKeyboardArrowDown', { outlined
 export const IconKeyboardArrowUp = appIcon('IconKeyboardArrowUp', { outlined: KeyboardArrowUpO, rounded: KeyboardArrowUpR, sharp: KeyboardArrowUpS });
 export const IconChecklist = appIcon('IconChecklist', { outlined: ChecklistO, rounded: ChecklistR, sharp: ChecklistS });
 export const IconSwapVert = appIcon('IconSwapVert', { outlined: SwapVertO, rounded: SwapVertR, sharp: SwapVertS });
+export const IconSwapHoriz = appIcon('IconSwapHoriz', { outlined: SwapHorizO, rounded: SwapHorizR, sharp: SwapHorizS });
 export const IconSchedule = appIcon('IconSchedule', { outlined: ScheduleO, rounded: ScheduleR, sharp: ScheduleS });
 export const IconTimeline = appIcon('IconTimeline', { outlined: TimelineO, rounded: TimelineR, sharp: TimelineS });
 export const IconZoomIn = appIcon('IconZoomIn', { outlined: ZoomInO, rounded: ZoomInR, sharp: ZoomInS });

@@ -26,6 +26,13 @@ export default {
     day: 'Dag',
     tasks: 'Aufgabn',
     zoom: 'Zoom-Monad',
+    horizontal: 'Waagrechd',
+  },
+  horizontal: {
+    timeIn: 'Zeid nei zoomma',
+    timeOut: 'Zeid naus zoomma',
+    dayIn: 'Dag hecher',
+    dayOut: 'Dag niedriger',
   },
   zoomMonth: {
     zoomIn: 'Nei zoomma',

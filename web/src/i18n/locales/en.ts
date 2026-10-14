@@ -32,6 +32,13 @@ export default {
     timeline: 'Timeline',
     strip: 'Strip',
     zoom: 'Zoom month',
+    horizontal: 'Horizontal',
+  },
+  horizontal: {
+    timeIn: 'Zoom in time',
+    timeOut: 'Zoom out time',
+    dayIn: 'Taller days',
+    dayOut: 'Shorter days',
   },
   zoomMonth: {
     zoomIn: 'Zoom in',
