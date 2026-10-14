@@ -27,7 +27,7 @@ case "${1:-}" in
     read -rp "GOOGLE_CLIENT_ID: " id
     read -rsp "GOOGLE_CLIENT_SECRET: " secret; echo
     read -rp "ALLOWED_EMAILS (comma-separated): " emails
-    printf 'PUBLIC_URL=https://example.org\nGOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nALLOWED_EMAILS=%s\nTZ=Europe/Berlin\n' \
+    printf 'PUBLIC_URL=https://cal.example.org\nGOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nALLOWED_EMAILS=%s\nTZ=Europe/Berlin\n' \
       "$id" "$secret" "$emails" | on_vps 'mkdir -p /opt/calendar && umask 077 && cat > /opt/calendar/.env'
     echo "written /opt/calendar/.env"
     ;;
