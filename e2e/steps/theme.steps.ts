@@ -296,7 +296,14 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   }
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
-  for (const part of parts) await expect(scene.locator(`[data-part="${part}"]`).first(), part).toBeVisible();
+  for (const part of parts) {
+    const el = scene.locator(`[data-part="${part}"]`).first();
+    await expect(el, part).toBeAttached();
+    // fireworks and confetti are 0x0 anchors whose pieces are drawn around them: a box-less anchor is judged by its first piece
+    const box = await el.boundingBox();
+    const target = box && box.width > 0 && box.height > 0 ? el : el.locator('> *').first();
+    await expect(target, part).toBeVisible();
+  }
 });
 
 Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
@@ -344,6 +351,12 @@ When('I set the seasons and holidays to {string}', async function (this: World, 
 Given('the seasons and holidays are off', async function (this: World) {
   // the current session's person (the page may be signed in as someone else), so not this.api
   const res = await this.page.request.patch('/api/prefs/theme', { data: { seasonal: 'off' } });
+  expect(res.ok(), await res.text()).toBe(true);
+});
+
+Given('the seasons and holidays follow the calendar', async function (this: World) {
+  // the default of a new person, put back after a Background turned it off
+  const res = await this.page.request.patch('/api/prefs/theme', { data: { seasonal: 'all' } });
   expect(res.ok(), await res.text()).toBe(true);
 });
 

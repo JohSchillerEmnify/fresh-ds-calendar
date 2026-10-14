@@ -90,6 +90,7 @@ Feature: Choosing and fine-tuning a theme
 
   Scenario: A new person sees the season's colours and header
     Given today is 2026-10-12
+    And the seasons and holidays follow the calendar
     When I open the week view for 2026-10-12
     And I open the theme menu
     Then the seasons and holidays are set to "Header + colours"
@@ -97,6 +98,7 @@ Feature: Choosing and fine-tuning a theme
 
   Scenario Outline: With Header + colours the colours and the header follow the calendar
     Given today is <date>
+    And the seasons and holidays follow the calendar
     When I open the week view for <date>
     Then the theme "<theme>" is in use
     And the top bar shows the "<scene>" scene
@@ -118,6 +120,7 @@ Feature: Choosing and fine-tuning a theme
 
   Scenario Outline: The Advent timeline lights a candle each Advent Sunday and the tree lights come on at Christmas Eve
     Given today is <date>
+    And the seasons and holidays follow the calendar
     When I open the week view for <date>
     Then the advent timeline shows <candles> lit candles
     And the Christmas tree lights are <lights>
@@ -150,12 +153,14 @@ Feature: Choosing and fine-tuning a theme
 
   Scenario: New Year's Eve is dark even when I chose light
     Given today is 2026-12-31
+    And the seasons and holidays follow the calendar
     When I open the theme menu
     And I choose the theme mode "Light"
     Then the app uses the dark theme
 
   Scenario: Choosing Neon keeps the seasonal header
     Given today is 2026-12-24
+    And the seasons and holidays follow the calendar
     When I choose the theme "Neon"
     Then the color role "primary" has a hue within 15 degrees of "#9d4dff"
     And the top bar shows the "christmas" scene
@@ -163,6 +168,7 @@ Feature: Choosing and fine-tuning a theme
 
   Scenario: Choosing a preset steps Header + colours down to Header only
     Given today is 2026-12-24
+    And the seasons and holidays follow the calendar
     When I choose the theme "Neon"
     Then the seasons and holidays are set to "Header only"
 
@@ -224,6 +230,7 @@ Feature: Choosing and fine-tuning a theme
 
   Scenario Outline: The settings show what follows the calendar
     Given today is 2026-12-24
+    And the seasons and holidays follow the calendar
     When I choose the theme "Neon"
     And I set the seasons and holidays to "<setting>"
     And I open the settings

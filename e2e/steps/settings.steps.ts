@@ -39,7 +39,9 @@ When('I open the settings', async function (this: World) {
     await this.page.goto('/');
     await this.calendarShown();
   }
-  await this.page.getByTestId('settings-button').click();
+  // The theme menu is a page of the settings: back to them, as a person would (the calendar's gear is not on it).
+  if (await this.page.getByTestId('theme-view').isVisible()) await this.page.getByRole('button', { name: 'Back' }).click();
+  else await this.page.getByTestId('settings-button').click();
   await expect(this.page.getByTestId('settings-view')).toBeVisible();
 });
 

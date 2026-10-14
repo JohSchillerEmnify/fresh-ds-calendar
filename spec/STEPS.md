@@ -1256,6 +1256,7 @@ the top bar shows no scene
 the settings show the theme {string}
 I set the seasons and holidays to {string}
 the seasons and holidays are off
+the seasons and holidays follow the calendar
 the seasons and holidays are set to {string}
 the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
@@ -1346,6 +1347,7 @@ every option of the {string} setting shows a sample icon
   "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
   "Seasons & holidays" section and waits for the save. "the seasons and holidays are set to X": that option has
   `aria-pressed` `true`. A new person has "Header + colours", so scenarios that want a plain look set "Off" first.
+  "the seasons and holidays follow the calendar" (Given): the same with `seasonal: 'all'`, the default of a new person, for a scenario whose Background turned them off;
   "the seasons and holidays are off" (Given, for Backgrounds): `PATCH /api/prefs/theme { seasonal: 'off' }` directly, without the
   theme menu and before or after the page loads (a later load reads it).
 - "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also
