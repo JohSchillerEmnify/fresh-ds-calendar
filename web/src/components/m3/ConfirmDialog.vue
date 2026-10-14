@@ -24,5 +24,5 @@ defineEmits<{ ok: []; cancel: [] }>();
 .m { margin: 8px 0 0; color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 /* Left-handed mode (phone): the primary action is at the bottom left. */
-@media (max-width: 767.98px) { html[data-hand='left'] .actions { flex-direction: row-reverse; } }
+html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
 </style>

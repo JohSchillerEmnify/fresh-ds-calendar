@@ -609,3 +609,38 @@ spec files are named.
 - **A-227 APK on the VPS** (my choice): `scripts/vps.sh deploy` copies sauron's `deploy/data/downloads/app.apk` into the
   running app container's `/data/downloads/` (`docker compose cp`), because `/data` there is a named volume; no APK on
   sauron means the VPS's file stays. Version 1.1 (versionCode 2) for this change.
+
+## Missing calendar permission (owner report, 2026-10-14)
+
+- **A-240 Cause** (found): a person who ticked no calendar box got a token without the calendar scope; signing in again
+  with it stored the new token, but the running server kept the old per-person provider (old access token) until a restart.
+- **A-241 Scope source** (my choice): the token response `scope` is the authority and is stored in `google-token.json`;
+  the callback's `scope` query is ignored. Tokens stored before this have no scope and are judged by Google's 403.
+- **A-242 Still signed in** (owner instruction): a person without calendar access may sign in; the app says what is
+  missing and offers the re-grant instead of "unreachable".
+- **A-243 Status 403** (my choice): `CALENDAR_PERMISSION_MISSING` answers 403 (not 401): the session is fine, the grant is not.
+- **A-244 Re-grant** (my choice): the existing start route with `include_granted_scopes=true` and `prompt=consent`, so
+  Google shows the checkbox again; the banner and the Settings row use it.
+- **A-245 Cache** (my choice): the per-person CalendarService (and so provider, OAuth client, calendar list, tasks-calendar
+  id) is dropped after the callback stores a token and at sign-out; mock calendar data stays.
+- **A-246 Wording** (my choice): the banner quotes the start of Google's checkbox label, which Google may reword.
+- **A-250 Left-handed mode on tablets** (owner 2026-10-14: "make it so that left-hand mode also works for tablets like the
+  iPad"; the choices below are mine): (a) a tablet is a touch device up to 1366 px: `(pointer: coarse) and (max-width:
+  1366px)`; the phone width (< 768 px) counts on its own, so a narrow desktop window stays mirrored as before; a mouse
+  desktop above 767 px never changes. (b) ONE condition, published by JS as `html[data-touch]` (name per the owner's
+  example; it also stands for the phone width); all CSS uses `html[data-hand='left'][data-touch]`. (c) The rail stays
+  at the left. (d) The "+" goes to the bottom left, right of the rail. (e) The tray side panel stays at the right edge; I first moved
+  it between the rail and the calendar, but its 380 px push the "+" past the middle of an 820 px screen (the e2e side
+  check failed), and floating the "+" over the tray's list would cover rows. Open for the owner: move the tray left and
+  accept the "+" over it? (f) The top bar mirrors in a single row. (g) Dialogs on a tablet are
+  centred modals, but their action bars mirror like the phone's, for one consistent rule. (h) The tray's inner rows
+  (move/fold buttons) are not mirrored on a tablet (the chevron does not exist there). (i) The e2e `tablet` project
+  (820x1180, touch, isMobile) runs only `@tablet` scenarios.
+- **A-251 Provider before the config** (my choice): `clock.config.provider` is `null` until `/api/config` has answered; the
+  mock-only UI (Settings "Reset demo data") shows only for `'mock'`. Alternative: keep `'mock'` as the offline default
+  (rejected: a signed-out or failing public server then looks like the demo).
+- **A-252 Root cause of the fake demo state** (item 3): `/api/config` is refused with 401 without a session, the clock
+  store then kept its default provider `'mock'`, the 401 listener was registered only when App mounted (after the first
+  bootstrap calls, which therefore ignored the refusal), and a failed `/api/auth/me` counted as "sign-in is off". The
+  listener is now registered before the first call, the default provider is `null`, and a failed check stays
+  `unknown` (asked again on the next navigation).

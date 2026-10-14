@@ -9,6 +9,7 @@
 import { api } from '@/api/client';
 import { addDays, toIsoDate, WEEK_OPTS } from '@/lib/dates';
 import { language } from '@/i18n/language';
+import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { buildWidgetSnapshot, type WidgetTheme } from './widgetSnapshot';
 import type { CalendarItem } from '@/api/types';
@@ -56,7 +57,7 @@ async function push(): Promise<void> {
   }
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
-    language: language.value, now: new Date(),
+    language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden,
   });
   await plugin.setSnapshot({ json: JSON.stringify(snapshot) });
 }

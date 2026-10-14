@@ -734,6 +734,11 @@ offline support. Full installability therefore needs HTTPS — an owner action (
   `/signin` and remembers the page asked for (sessionStorage), which `/` returns to after signing in. A 401
   `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
   `/api/auth/google/start`. Settings get `settings-signout`.
+  `CALENDAR_PERMISSION_MISSING` (403) or `/?calendar=missing` shows `calendar-access-banner` (button
+  `calendar-access-grant` back to `/api/auth/google/start`, hint names the checkbox) and Settings -> Account & data
+  shows `settings-calendar-access` while it is missing. The stored scope never replaces Google's own answer: tokens
+  without a recorded scope are judged by Google's 403. Cached per-person providers (they hold the OAuth client with the
+  old access token) are dropped when the callback stores a new token and at sign-out (`ctx.forgetPerson`).
 
 ### All calendars and hiding them
 
@@ -905,11 +910,15 @@ It never reloads by itself and never interrupts an open dialog.
 ### Left-handed mode (owner, 2026-10-13)
 
 - A switch "Left-handed mode" (`settings-left-handed`, Settings → Calendar; person pref `leftHanded` in `Prefs`,
-  default off) mirrors the **phone layout** (< 768 px) so the main controls sit under the left thumb. The desktop layout
-  never changes. The pref follows the person to every device.
+  default off) mirrors the **phone layout** (< 768 px) and the **touch tablet layout** (a coarse pointer, up to 1366 px,
+  e.g. an iPad; owner 2026-10-14) so the main controls sit under the left thumb. The desktop layout (a mouse) never
+  changes. The pref follows the person to every device.
 - Mechanism: the settings store sets `html[data-hand="left"]` from the pref (like `data-calm`; prefs load after mount).
-  Components carry their own `html[data-hand='left']` overrides inside the phone media query (`max-width: 767.98px`,
-  the same as `isPhone`); positions computed in JS (the cats) read `useLeftHand()` (pref and phone layout).
+  `useViewport` publishes ONE shared condition as `html[data-touch]`: `(max-width: 767.98px), (pointer: coarse) and
+  (max-width: 1366px)` (detected by pointer and width, never by user agent; the phone clause keeps a narrow desktop
+  window mirrored as before). Components carry their own `html[data-hand='left'][data-touch]` overrides (no repeated
+  media queries); where phone and tablet differ they add the layout breakpoint (768 px) they already use. Positions
+  computed in JS (the cats) read `useLeftHand()` (pref and `isTouchLayout`).
   Alternatives weighed: `dir="rtl"` (rejected: it would also flip text, the time gutter, swipe and grid order);
   a second set of components (rejected: duplication).
 - Mirrored: the "+" button (and its menu, and the side it slides away to), the open tasks tray (chevron, FAB clearance,
@@ -919,6 +928,11 @@ It never reloads by itself and never interrupts an open dialog.
   on the left; the arrows keep their meaning: left = previous), the rows of the settings and the theme menu (switch,
   segmented button or trailing control at the left start, label after it), the support cat (walks in from the left,
   drawn mirrored; `data-from="left"`) and the drag helper cat (its default side, the hop away and the ask mark).
+- Touch tablet (>= 768 px, owner 2026-10-14; see A-250): the navigation rail stays at the left (already under the left
+  thumb); the "+" sits at the bottom left, right of the rail (a 380 px tray on the left would push it past the middle of an
+  820 px screen); the tray side panel stays at the right edge (a persistent panel, no thumb toggle); the top bar is mirrored in one row
+  (settings group, widgets, Previous/Today/Next, title); snackbar and dialog action bars, the version label (bottom
+  right), settings rows and the cats mirror as on the phone. The tray's chevron does not exist on a tablet.
 - Not mirrored: the time gutter and grid, month/week/year order, swipe directions, the approaching card track, resize
   handles, the now marker, text alignment.
 

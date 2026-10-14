@@ -34,6 +34,14 @@ Feature: Signing in with Google
     Then they see the sign-in page
     And opening the week view for 2026-10-12 shows the sign-in page
 
+  Scenario: An expired session shows the sign-in page, not an empty calendar
+    Given "jo@example.com" has an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    And "jo@example.com" is signed in
+    When their session expires
+    And they open the week view for 2026-10-12
+    Then they see the sign-in page
+    And they see no events
+
   Scenario: Each person sees their own Google calendar
     Given "jo@example.com" has an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     And "anna@example.com" has an event "Yoga" on 2026-10-14 from 18:00 to 19:00
@@ -46,3 +54,13 @@ Feature: Signing in with Google
     And Google no longer accepts the access of "jo@example.com"
     When they open the week view for 2026-10-12
     Then they are asked to sign in with Google again
+
+  Scenario: Signing in without calendar access shows how to grant it, and granting fixes it
+    Given "anna@example.com" has an event "Yoga" on 2026-10-14 from 18:00 to 19:00
+    And Google's consent screen is answered without calendar access
+    When "anna@example.com" signs in with Google
+    Then they are told Google Calendar access is missing
+    And the settings offer to grant calendar access
+    When they grant calendar access
+    Then they see the event "Yoga" on 2026-10-14
+    And they are no longer told Google Calendar access is missing

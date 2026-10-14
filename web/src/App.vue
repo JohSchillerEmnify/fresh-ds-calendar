@@ -25,7 +25,6 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useMotivationStore } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
-import { useAuthStore } from '@/stores/auth';
 import { useCalendarStore } from '@/stores/calendar';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
@@ -36,7 +35,6 @@ import { useUiStore } from '@/stores/ui';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 
 const route = useRoute();
-const auth = useAuthStore();
 const cal = useCalendarStore();
 const ui = useUiStore();
 const nav = useNav();
@@ -76,7 +74,7 @@ const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefin
 const swipeDisabled = () => isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
 let undo: Array<() => void> = [];
 onMounted(() => {
-  undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }), auth.listen());
+  undo.push(acquireViewport(), initInstall(), api.onMotivationChanged(() => { void motivation.refresh(); }));
   clock.startTicker();
   // the sign-in page has no data to sync (and every call would be refused)
   if (!route.meta.public) {

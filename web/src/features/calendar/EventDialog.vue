@@ -14,6 +14,7 @@ import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
+import { enterNext } from '@/composables/useEnterNext';
 import { isPhone } from '@/composables/useViewport';
 import { pop } from '@/motion';
 import { useClockStore } from '@/stores/clock';
@@ -173,7 +174,7 @@ function remove() {
 
 <template>
   <AdaptiveSheet :open="true" :label="isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle')" testid="event-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
-    <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save">
+    <form ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
@@ -181,17 +182,17 @@ function remove() {
         <span v-if="duration" class="dur" data-testid="event-duration">{{ duration }}</span>
       </header>
       <p v-if="loadError" class="err" role="alert" data-testid="event-error">{{ loadError }}</p>
-      <TextField v-model="form.title" class="rise" style="--i: 1" :label="t('calendar.event.fields.title')" data-testid="event-title" data-field="title" autocomplete="off" enterkeyhint="done" />
+      <TextField v-model="form.title" class="rise" style="--i: 1" :label="t('calendar.event.fields.title')" data-testid="event-title" data-field="title" autocomplete="off" enterkeyhint="next" />
       <label class="check rise" style="--i: 2">
         <input v-model="form.allDay" type="checkbox" data-testid="event-all-day" data-field="allDay">
         <span>{{ t('calendar.event.fields.allDay') }}</span>
       </label>
       <div class="pair rise" style="--i: 3">
-        <TextField v-model="startDate" type="date" :label="t('calendar.event.fields.startDate')" data-testid="event-start-date" data-field="startDate" />
+        <TextField v-model="startDate" type="date" :label="t('calendar.event.fields.startDate')" data-testid="event-start-date" data-field="startDate" data-enter-skip />
         <TextField v-if="!form.allDay" v-model="startTime" type="time" :label="t('calendar.event.fields.startTime')" data-testid="event-start-time" data-field="startTime" />
       </div>
       <div class="pair rise" style="--i: 4">
-        <TextField v-model="form.endDate" type="date" :label="t('calendar.event.fields.endDate')" data-testid="event-end-date" data-field="endDate" />
+        <TextField v-model="form.endDate" type="date" :label="t('calendar.event.fields.endDate')" data-testid="event-end-date" data-field="endDate" data-enter-skip />
         <TextField v-if="!form.allDay" v-model="form.endTime" type="time" :label="t('calendar.event.fields.endTime')" data-testid="event-end-time" data-field="endTime" />
       </div>
       <Select v-model="form.calendarId" class="rise" style="--i: 5" :label="t('calendar.event.fields.calendar')" :options="calOptions" data-testid="event-calendar" />
@@ -199,7 +200,7 @@ function remove() {
         <span class="lab">{{ t('calendar.event.fields.color') }}</span>
         <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" :label="t('calendar.event.fields.color')" radio data-testid="event-color" />
       </div>
-      <TextField v-model="form.location" class="rise" style="--i: 7" :label="t('calendar.event.fields.location')" data-testid="event-location" data-field="location" autocomplete="off" />
+      <TextField v-model="form.location" class="rise" style="--i: 7" :label="t('calendar.event.fields.location')" data-testid="event-location" data-field="location" autocomplete="off" enterkeyhint="next" />
       <TextField v-model="form.description" class="rise" style="--i: 8" :label="t('calendar.event.fields.description')" data-testid="event-description" data-field="description" multiline :rows="3" />
       <p v-if="error" class="err" role="alert" data-testid="event-error">{{ error }}</p>
       <div class="actions">
@@ -231,5 +232,5 @@ function remove() {
 :global(html[data-motion='full'] .rise) { animation: rise 300ms var(--md-sys-motion-emphasized) both; animation-delay: calc(var(--i) * 28ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
 /* Left-handed mode (phone): the primary action is at the bottom left. */
-@media (max-width: 767.98px) { html[data-hand='left'] .actions { flex-direction: row-reverse; } }
+html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
 </style>

@@ -1,9 +1,10 @@
 /**
  * Transition warnings: a dismissible snackbar "<title> starts in <N> min" once per event when now is within the
  * configured minutes (Settings, 0 = off). Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
- * It sees the events of the loaded range only, i.e. while a calendar view showing today is cached.
+ * Events of hidden calendars are skipped. It sees the events of the loaded range only, i.e. while a calendar view showing today is cached.
  */
 import { effectScope, watch, type EffectScope } from 'vue';
+import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
@@ -20,6 +21,7 @@ export function startTransitionWarnings(): () => void {
   stopTransitionWarnings();
   const clock = useClockStore();
   const items = useItemsStore();
+  const cals = useCalendarsStore();
   const settings = useSettingsStore();
   const ui = useUiStore();
   const warned = new Set<string>();
@@ -30,12 +32,13 @@ export function startTransitionWarnings(): () => void {
   scope = effectScope(true);
   scope.run(() => {
     watch(
-      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate] as const,
+      () => [clock.nowTick, settings.settings.transitionWarningMinutes, items.byDate, cals.hidden] as const,
       () => {
         if (clock.today !== day) { day = clock.today; warned.clear(); }
         const now = clock.minutesNow;
         const n = settings.settings.transitionWarningMinutes;
-        const segs = items.byDate.get(clock.today) ?? [];
+        // events of calendars the person switched off never warn (same filter as the views)
+        const segs = (items.byDate.get(clock.today) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
         // refresh / auto-hide what is on screen
         for (const [key, w] of shown) {
           if (n <= 0 || now >= w.startMin || !ui.snackbars.some((s) => s.id === w.id)) {

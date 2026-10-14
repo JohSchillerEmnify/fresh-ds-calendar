@@ -25,7 +25,7 @@ failing test-endpoint setup call warns instead of failing). Fallback if the 1.64
 `v1.63.0-noble` and pin both `@playwright/test` and the image to 1.63.0.
 
 Projects: `mobile` (default, 375x812 touch, everything except `@desktop`), `desktop` (1280x800, everything except
-`@mobile` and `@perf`). `workers: 1` (one shared mock backend), timezone Europe/Berlin, locale en-GB.
+`@mobile`, `@tablet` and `@perf`), `tablet` (820x1180 touch, an iPad; only scenarios tagged `@tablet`). `workers: 1` (one shared mock backend), timezone Europe/Berlin, locale en-GB.
 
 ## Layout
 

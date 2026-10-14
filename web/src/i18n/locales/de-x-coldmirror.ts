@@ -120,10 +120,12 @@ export default {
     account: {
       signedIn: 'Mit Google am Start. Post für mich, Post für mich!',
       signOut: 'Schönen Day noch!',
+      calendarAccess: { label: 'Kalenderzugriff', hint: 'Google Kalender ist nicht erlaubt, Schinken! Erlaub ihn und setz auf Googles Bildschirm den Haken beim Kalender.', grant: 'Kalender erlauben, yo' },
       resetDemo: { label: 'Demodaten resetten, yo', hint: 'Ersetzt den Testkalender durch frische Demotermine. Kind auf die Türmatte, klingeln, wegrennen.', button: 'Hokus Pokus', done: 'Back from the Underground: Der Phönix ersteht aus seiner Asche, Demodaten sind da. Yo, vielen lieben thank und schönen day noch!', failed: 'Ich bin alt, ich bin bald tot, aus Grün wird Rot: Demodaten nicht resettet' },
       version: 'Version {version}, yo',
       androidApp: { label: 'Android-App, fresh', updateLabel: 'App-Update, yo', hint: 'Fresh D. auf dein Handy, mit Wochen-Widget. Läuft überall, Digga', download: 'Runterladen, yo' },
       server: { label: 'Server: {host}', hint: 'Auf welchem Fresh-D.-Server dein Kalender hängt, yo', change: 'Wechseln, yo' },
+      installApp: { label: 'App installieren, yo', hint: 'Fresh D. auf deinen Home-Bildschirm, Digga', button: 'Zeig mal', title: 'Fresh D. installieren', step1: 'Tipp auf den Teilen-Button, yo', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügen, BÄMbus!', close: 'Alles klar, Digga' },
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },
     leftHanded: { label: 'Linkshänder-Modus, yo', hint: 'Spiegelt das Handy-Layout, damit die wichtigen Knöpfe unter dem linken Daumen liegen. Fresh D. ist Linkshänder, Digga.' },

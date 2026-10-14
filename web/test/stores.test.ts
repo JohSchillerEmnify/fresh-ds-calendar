@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/client';
+import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
@@ -147,6 +148,20 @@ describe('clock store', () => {
     expect(c.timeZone).toBe('Europe/Berlin');
     expect(c.pollIntervalMs).toBe(30000);
   });
+  it('never claims the mock provider before the config has loaded or when it is refused', async () => {
+    mockFetch({ 'GET /api/config': () => apiError(401, 'UNAUTHENTICATED') });
+    const c = useClockStore();
+    expect(c.config.provider).toBeNull();
+    await c.load();
+    expect(c.loaded).toBe(false);
+    expect(c.config.provider).toBeNull();
+  });
+  it('takes the provider from the config once it has loaded', async () => {
+    mockFetch({ 'GET /api/config': () => config({ provider: 'google' }) });
+    const c = useClockStore();
+    await c.load();
+    expect(c.config.provider).toBe('google');
+  });
   it('minute ticker leaves no timer behind', async () => {
     vi.useFakeTimers();
     mockFetch({ 'GET /api/config': () => config({ clockFrozen: false }) });
@@ -156,6 +171,32 @@ describe('clock store', () => {
     c.stopTicker();
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
+  });
+});
+
+describe('auth store', () => {
+  beforeEach(() => freshPinia());
+  it('is signed out when the session is refused', async () => {
+    mockFetch({ 'GET /api/auth/me': () => apiError(401, 'UNAUTHENTICATED') });
+    const a = useAuthStore();
+    await a.check();
+    expect(a.status).toBe('out');
+  });
+  it('is off only when the server says sign-in is off', async () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ email: null, name: null }) });
+    const a = useAuthStore();
+    await a.check();
+    expect(a.status).toBe('off');
+  });
+  it('does not mistake a failed check for "sign-in is off" and asks again next time', async () => {
+    let fail = true;
+    mockFetch({ 'GET /api/auth/me': () => (fail ? apiError(503, 'PROVIDER_UNAVAILABLE') : apiError(401, 'UNAUTHENTICATED')) });
+    const a = useAuthStore();
+    await a.check();
+    expect(a.status).toBe('unknown');
+    fail = false;
+    await a.check();
+    expect(a.status).toBe('out');
   });
 });
 
