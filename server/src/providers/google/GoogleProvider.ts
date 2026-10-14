@@ -7,6 +7,7 @@ import {
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 import { calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
+import { causeOf, describeGoogleError, logEvent, noteCause, subHash } from '../../lib/diag.js';
 
 type Api = calendar_v3.Calendar;
 type Dt = calendar_v3.Schema$EventDateTime;
@@ -15,6 +16,8 @@ export interface GoogleProviderOptions {
   api: Api;
   /** Optional hook, e.g. a "not authorised" check performed before every call. */
   ready?: () => void;
+  /** The person's Google `sub`; only its short hash is ever logged (diagnostics). */
+  sub?: string;
 }
 
 interface GoogleErrorBody { status?: string; errors?: { reason?: string }[]; details?: { reason?: string }[] }
@@ -25,8 +28,14 @@ function isInsufficientScope(body: string | GoogleErrorBody | undefined): boolea
   return [...(body.errors ?? []), ...(body.details ?? [])].some((x) => x.reason === 'insufficientPermissions' || x.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT');
 }
 
-/** Maps googleapis/gaxios errors to the provider error classes (ARCHITECTURE §2). */
+/** Maps googleapis/gaxios errors to the provider error classes (ARCHITECTURE §2) and notes the cause for the `api_unavailable` log line. */
 export function mapGoogleError(e: unknown): Error {
+  const mapped = mapGoogleErrorInner(e);
+  if (mapped !== e) noteCause(mapped, causeOf(describeGoogleError(e)));
+  return mapped;
+}
+
+function mapGoogleErrorInner(e: unknown): Error {
   if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof ReauthRequiredError || e instanceof CalendarPermissionMissingError || e instanceof NotFoundError || e instanceof PreconditionFailedError) return e;
   const err = e as { code?: number | string; status?: number; response?: { status?: number; data?: { error?: string | GoogleErrorBody } }; message?: string };
   // Google refuses the stored refresh token: only signing in again helps
@@ -47,22 +56,30 @@ export class GoogleProvider implements CalendarProvider {
   readonly name = 'google' as const;
   constructor(private readonly o: GoogleProviderOptions) {}
 
-  private async call<T>(fn: () => Promise<T>): Promise<T> {
+  /** Runs one Google API call; a failure is logged as one `google_error` line (op, status, reason or network code, duration) and mapped. */
+  private async call<T>(op: string, fn: () => Promise<T>): Promise<T> {
     try {
       this.o.ready?.();
+    } catch (e) {
+      throw mapGoogleError(e);
+    }
+    const started = Date.now();
+    try {
       return await fn();
     } catch (e) {
+      const { status, reason, code, retry } = describeGoogleError(e);
+      logEvent('google_error', { subHash: subHash(this.o.sub), op, status, reason, code, retry, durationMs: Date.now() - started });
       throw mapGoogleError(e);
     }
   }
 
   async ping(): Promise<void> {
-    await this.call(() => this.o.api.calendarList.list({ maxResults: 1 }));
+    await this.call('calendarList.list', () => this.o.api.calendarList.list({ maxResults: 1 }));
   }
 
   async listCalendars(): Promise<ProviderCalendar[]> {
     // hidden entries too: the person's tasks calendar is hidden in Google's list (ARCHITECTURE §3)
-    const res = await this.call(() => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
+    const res = await this.call('calendarList.list', () => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
     const out: ProviderCalendar[] = [];
     for (const c of res.data.items ?? []) {
       out.push({
@@ -78,12 +95,12 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async insertCalendar(summary: string): Promise<ProviderCalendar> {
-    const res = await this.call(() => this.o.api.calendars.insert({ requestBody: { summary } }));
+    const res = await this.call('calendars.insert', () => this.o.api.calendars.insert({ requestBody: { summary } }));
     return { id: res.data.id!, summary: res.data.summary ?? summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden: false };
   }
 
   async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
-    await this.call(() => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }));
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }));
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
@@ -91,7 +108,7 @@ export class GoogleProvider implements CalendarProvider {
     let pageToken: string | undefined;
     let nextSyncToken: string | undefined;
     do {
-      const res = await this.call(() =>
+      const res = await this.call('events.list', () =>
         this.o.api.events.list({
           calendarId: p.calendarId, timeMin: p.timeMin, timeMax: p.timeMax, singleEvents: true, showDeleted: p.showDeleted ?? false,
           privateExtendedProperty: p.privateExtendedProperty, maxResults: 2500, pageToken,
@@ -105,12 +122,12 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async getEvent(calendarId: string, eventId: string): Promise<GoogleEvent> {
-    const res = await this.call(() => this.o.api.events.get({ calendarId, eventId }));
+    const res = await this.call('events.get', () => this.o.api.events.get({ calendarId, eventId }));
     return fromApi(res.data, calendarId);
   }
 
   async insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent> {
-    const res = await this.call(() => this.o.api.events.insert({ calendarId, requestBody: toApi(ev) }));
+    const res = await this.call('events.insert', () => this.o.api.events.insert({ calendarId, requestBody: toApi(ev) }));
     return fromApi(res.data, calendarId);
   }
 
@@ -124,23 +141,23 @@ export class GoogleProvider implements CalendarProvider {
         if (v.dateTime && !v.date) v.date = null as unknown as string;
       }
     }
-    const res = await this.call(() =>
+    const res = await this.call('events.patch', () =>
       this.o.api.events.patch({ calendarId, eventId, requestBody }, o?.ifMatch ? { headers: { 'If-Match': o.ifMatch } } : undefined),
     );
     return fromApi(res.data, calendarId);
   }
 
   async deleteEvent(calendarId: string, eventId: string, o?: WriteOptions): Promise<void> {
-    await this.call(() => this.o.api.events.delete({ calendarId, eventId }, o?.ifMatch ? { headers: { 'If-Match': o.ifMatch } } : undefined));
+    await this.call('events.delete', () => this.o.api.events.delete({ calendarId, eventId }, o?.ifMatch ? { headers: { 'If-Match': o.ifMatch } } : undefined));
   }
 
   async moveEvent(calendarId: string, eventId: string, destinationCalendarId: string): Promise<GoogleEvent> {
-    const res = await this.call(() => this.o.api.events.move({ calendarId, eventId, destination: destinationCalendarId }));
+    const res = await this.call('events.move', () => this.o.api.events.move({ calendarId, eventId, destination: destinationCalendarId }));
     return fromApi(res.data, destinationCalendarId);
   }
 
   async listChanges(calendarId: string, syncToken: string): Promise<ListEventsResult> {
-    const res = await this.call(() => this.o.api.events.list({ calendarId, syncToken, showDeleted: true, maxResults: 2500 }));
+    const res = await this.call('events.list', () => this.o.api.events.list({ calendarId, syncToken, showDeleted: true, maxResults: 2500 }));
     return { items: (res.data.items ?? []).map((e) => fromApi(e, calendarId)), nextSyncToken: res.data.nextSyncToken ?? undefined };
   }
 }
@@ -191,6 +208,7 @@ export function createGoogleProvider(config: AppConfig, sub: string, fetchImplem
   if (!g.clientId || !g.clientSecret) throw new Error('PROVIDER=google requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
   const auth: OAuth2Client = getUserClient(config, sub);
   return new GoogleProvider({
+    sub,
     api: makeApi(auth, fetchImplementation),
     ready: () => {
       if (!hasUserToken(config, sub) && !auth.credentials.refresh_token && !auth.credentials.access_token) {

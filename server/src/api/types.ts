@@ -202,6 +202,7 @@ export type ErrorCode =
   | 'DRIVE_PERMISSION_REQUIRED'
   | 'NO_BACKUP'
   | 'BACKUP_FAILED'
+  | 'RATE_LIMITED'
   | 'INTERNAL';
 
 export interface ApiError {

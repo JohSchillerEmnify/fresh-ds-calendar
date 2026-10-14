@@ -40,6 +40,7 @@ type ErrorCode =
   | 'PRECONDITION_FAILED'   // 412 etag mismatch
   | 'PROVIDER_ERROR'        // 502 provider returned an unexpected error
   | 'PROVIDER_UNAVAILABLE'  // 503 provider unreachable / outage / auth failure
+  | 'RATE_LIMITED'          // 429 only `POST /api/diag/sync-error`
   | 'INTERNAL';             // 500
 ```
 
@@ -564,6 +565,27 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   responses carry the header `X-Motivation-Changed: 1` when points were awarded, and the web app then refetches
   `/api/motivation`.
 
+### Diagnostics (`POST /api/diag/sync-error`) → 204
+
+The web app sends this once when it enters the "Can't reach Google Calendar" state. The server only logs it
+(`client_sync_error`, ARCHITECTURE "Diagnostics"); nothing is stored and the response has no body. Needs a session while
+sign-in is on. Body (at most 1 KiB, unknown fields → 400):
+
+```ts
+interface SyncErrorBeacon {
+  kind: 'network' | 'timeout' | 'http' | 'abort';
+  status?: number;       // 100-599, the HTTP status for kind "http"
+  task: string;          // which refresher failed: items, summary, settings, calendars, a registered task, or "other"; 1-32 of A-Z a-z 0-9 _ . : -
+  online: boolean;       // navigator.onLine
+  resumed: boolean;      // the page became visible less than 5 s before the failure
+  app: boolean;          // Android app (true) or browser (false)
+  ageSec?: number;       // 0-604800, set when the beacon could not be sent at once and went out after the next good sync
+}
+```
+
+At most one beacon per client (session) per minute: a second one → `429 RATE_LIMITED`. The web app ignores every
+failure of this call.
+
 ## Test-only endpoints (`TEST_MODE=true`)
 
 Registered only when `TEST_MODE=true`; otherwise every `/api/__test/*` path is `404 NOT_FOUND`. `TEST_MODE` must be
@@ -629,6 +651,7 @@ The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
 | 403 | `DRIVE_PERMISSION_REQUIRED` (token without the Drive scope); owner-only action on a shared list by one of its members |
 | 404 | unknown id / route (also a shared list the person is not a member of); test routes when `TEST_MODE` is off |
 | 412 | stale `If-Match` |
+| 429 | `POST /api/diag/sync-error` called twice within a minute by the same client |
 | 502 | provider error; `BACKUP_FAILED` |
 | 503 | provider unavailable (outage, network, auth) |
 

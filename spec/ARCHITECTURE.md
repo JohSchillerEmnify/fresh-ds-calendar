@@ -1983,6 +1983,38 @@ decided every point below.
 - **UI test contract.** `tasklist-shared-badge`, `tasklist-share-person`, `tasklist-share`, `tasklist-unshare`,
   `tasklist-leave`, `category-share-person`.
 
+### Diagnostics (owner, 2026-10-14)
+
+Why: people saw "Can't reach Google Calendar" and the server logged nothing, so the cause (deploy restart, Google 429/5xx,
+VPS timeout, phone network on resume, a wrongly mapped 503) could not be proven. This is **logging only**: no behaviour,
+no response and no retry changed. Lines are one JSON object each on stdout (`docker compose logs calendar`), written by
+`server/src/lib/diag.ts`, which only accepts whitelisted fields.
+
+| `event` | When | Fields besides `ts` |
+|---|---|---|
+| `startup` | once per boot | `version`, `provider`, `node`, `pid` |
+| `google_error` | a Google API call failed (after the Google client's own retries) | `subHash`, `op` (`events.list`, `calendarList.list` ...), `status`, `reason` (Google's reason), `code` (network code such as `ETIMEDOUT`, `ECONNRESET`, `ENOTFOUND`, `TIMEOUT`; only when there was no HTTP status), `retry` (attempt the client library reached), `durationMs` |
+| `api_unavailable` | the server sent an `/api` response with status >= 500 | `route` (`GET /api/items`, the route pattern), `status`, `durationMs`, `cause` (`429:rateLimitExceeded`, `503`, `ETIMEDOUT`, or the error class name) |
+| `client_sync_error` | the web app entered the banner state (`POST /api/diag/sync-error`, API.md "Diagnostics") | `subHash`, `kind`, `status`, `task`, `online`, `resumed`, `app`, `ageSec` |
+
+Example reading: `google_error` followed by `api_unavailable` with the same `cause` = Google; `client_sync_error` with
+`kind: "network"`, `online: false` or `resumed: true` and no server line = the phone's network; an `api_unavailable`
+right after a `startup` = a deploy restart.
+
+**Never logged:** access or refresh tokens, e-mail addresses, the raw `sub` (only `subHash`, the first 8 hex characters of
+`sha256("cal-diag:" + sub)`), event or task list titles, descriptions, locations, request or response bodies, Google's
+error message text (only its status and `reason`), cookies, session ids. Free text is never copied: `reason`, `code`,
+`task` and `cause` must match `[A-Za-z0-9_.:-]{1,64}` or are dropped.
+
+Web: `stores/sync.ts` sends one beacon when the error state is entered from a non-error state, not while it lasts. If that
+send fails on the network, the beacon is kept in memory and sent once (with `ageSec`) after the next successful sync; every
+other failure of the call is ignored. The server accepts one beacon per session per minute (in memory, so a restart resets
+it).
+
+Decision: a beacon from the client instead of server-side inference, because only the phone knows whether it was offline or
+just resumed. Alternative weighed: a persistent offline queue; rejected as too much machinery for a diagnostic (A-12 keeps the
+app without offline writes).
+
 ## 8. Configuration (env)
 
 | Var | Default | Meaning |

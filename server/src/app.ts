@@ -7,6 +7,9 @@ import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavaila
 import { apiRoutes } from './api/routes.js';
 import { testRoutes } from './api/testRoutes.js';
 import { authRoutes } from './api/authRoutes.js';
+import { causeFor, logEvent, noteCause } from './lib/diag.js';
+import { routePath } from 'hono/route';
+import { diagRoutes } from './api/diagRoutes.js';
 import { createContext, type Ctx } from './context.js';
 import type { AppConfig } from './config.js';
 import type { Clock } from './lib/clock.js';
@@ -40,6 +43,15 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
     app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed'] }));
   }
 
+  // Diagnostics: every API answer with status >= 500 leaves one line, with the cause the error handler noted.
+  app.use('/api/*', async (c, next) => {
+    const started = Date.now();
+    await next();
+    if (c.res.status >= 500) {
+      logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
+    }
+  });
+
   app.use('/api/*', sessionMiddleware(ctx));
 
   // A successful write by a signed-in person may have changed their server data: schedule their backup. One place for
@@ -58,6 +70,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   api.route('/', apiRoutes(ctx));
   if (config.testMode && ctx.mock) api.route('/', testRoutes(ctx));
   api.route('/', authRoutes(ctx));
+  api.route('/', diagRoutes(ctx));
   app.route('/api', api);
   app.all('/api/*', () => {
     throw new ApiException('NOT_FOUND', 404, 'Not found');
@@ -65,6 +78,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
 
   app.onError((err, c) => {
     const body = (code: string, message: string, details?: unknown, key?: string) => ({ error: { code, message, ...(key ? { key } : {}), ...(details ? { details } : {}) } });
+    noteCause(c, causeFor(err) ?? err.constructor.name);
     if (err instanceof ApiException) return c.json(body(err.code, err.message, err.details, err.key), err.status);
     if (err instanceof ReauthRequiredError) return c.json(body('GOOGLE_REAUTH', 'Google no longer accepts your access. Sign in with Google again.'), 401);
     if (err instanceof CalendarPermissionMissingError) return c.json(body('CALENDAR_PERMISSION_MISSING', 'Google Calendar access was not granted. Sign in with Google again and tick the calendar checkbox.'), 403);
