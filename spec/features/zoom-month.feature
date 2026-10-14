@@ -66,3 +66,23 @@ Feature: Labs: the zoom month
     And I zoom the zoom month in to the largest zoom
     Then "Late show" is drawn lower than "Abend zu zweit" in the zoom month
     And the zoom month heights of "Abend zu zweit" and "Late show" are proportional to their durations
+
+  @zoom-switch
+  Scenario: All days switch to their real times at the same zoom
+    Given the calendar contains a task list "Dinner call" on 2026-10-14 at 09:00 for 15 minutes with items:
+      | item  | done |
+      | Table | no   |
+    And the calendar contains an event "Late show" on 2026-10-14 from 19:00 to 22:00
+    And the calendar contains an event "Fitti" on 2026-10-15 from 17:00 to 18:30
+    When I open the zoom month for 2026-10-14
+    And I zoom the zoom month in until three and a half day columns fit across the screen
+    Then the zoom month cells of 2026-10-14 and 2026-10-15 both show the timeline
+    And no visible zoom month cell shows chips
+
+  @zoom-switch
+  Scenario: Days of a week row share their hours
+    Given the calendar contains an event "Early" on 2026-10-14 from 08:00 to 09:00
+    And the calendar contains an event "Fitti" on 2026-10-15 from 17:00 to 18:30
+    When I open the zoom month for 2026-10-14
+    And I zoom the zoom month in until three and a half day columns fit across the screen
+    Then the timelines of 2026-10-14 and 2026-10-15 start at the same hour
