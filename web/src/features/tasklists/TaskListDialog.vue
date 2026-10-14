@@ -12,6 +12,7 @@ import TextField from '@/components/m3/TextField.vue';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { enterNext } from '@/composables/useEnterNext';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
@@ -112,18 +113,18 @@ function remove() {
 
 <template>
   <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
-    <form class="form" novalidate @submit.prevent="save">
+    <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" />
       <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
       <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">{{ t('tasks.dialog.loadLatest') }}</Button></div>
-      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" />
+      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" enterkeyhint="next" />
       <div class="two">
         <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" :disabled="form.noDate" data-testid="tasklist-date" />
         <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" :disabled="form.noDate" data-testid="tasklist-time" />
       </div>
       <Button :variant="form.noDate ? 'tonal' : 'text'" class="nodate" :aria-pressed="form.noDate" data-testid="tasklist-no-date" @click="toggleNoDate">{{ t('tasks.dialog.noDate') }}</Button>
-      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" data-testid="tasklist-estimate" />
+      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
       <div class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" class="grow" data-testid="tasklist-category" />

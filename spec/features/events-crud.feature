@@ -215,6 +215,28 @@ Feature: Creating, editing and deleting events
     And I do not see the event "Never mind"
     And Google contains no event "Never mind"
 
+  Scenario: Enter in the title moves to the next field and does not save
+    When I open the week view for 2026-10-12
+    And I start creating an event
+    And I fill in the event form with:
+      | title | Dentist |
+    And I press Enter in the event field "title"
+    Then the event dialog is open
+    And the event field "start time" has focus
+    And Google contains no event "Dentist"
+
+  Scenario: Enter in the last single-line field moves on to the description, and Enter there adds a line
+    When I open the week view for 2026-10-12
+    And I start creating an event
+    And I fill in the event form with:
+      | title    | Dentist |
+      | location | Main St |
+    And I press Enter in the event field "location"
+    And the event field "description" has focus
+    And I press Enter in the event field "description"
+    Then the event dialog is open
+    And Google contains no event "Dentist"
+
   @cancel
   Scenario: Escape closes the new event dialog without saving
     When I open the week view for 2026-10-12
