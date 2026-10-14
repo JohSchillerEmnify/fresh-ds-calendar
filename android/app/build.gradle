@@ -24,7 +24,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // scripts/android-build.sh passes the git commit count (always rising), so the app can tell a newer APK from its own
-        versionCode (project.findProperty('appVersionCode') ?: '2').toInteger()
+        versionCode((project.findProperty('appVersionCode') ?: '2').toInteger())
         versionName (project.findProperty('appVersionName') ?: '1.1')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
