@@ -13,7 +13,7 @@ const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:0
 let wrapper: VueWrapper | null = null;
 let server = settingsFixture();
 
-async function mountAt(path: string, extra: Record<string, () => unknown> = {}, items: unknown[] = []) {
+async function mountAt(path: string, extra: Parameters<typeof mockFetch>[0] = {}, items: unknown[] = []) {
   server = settingsFixture();
   const m = mockFetch({
     'GET /api/config': () => config({ pollIntervalMs: 0 }),
@@ -435,15 +435,36 @@ describe('settings', () => {
     await wait(() => expect(w.get(tid('settings-best-streak')).text()).toBe('7'));
     await w.get(tid('settings-calm-mode')).trigger('click');
     await w.get('[data-testid="settings-animation-level"] [data-value="reduced"]').trigger('click');
-    await w.get('[data-testid="settings-transition-warning"] [data-value="5"]').trigger('click');
     await flushPromises();
     const bodies = m.calls.filter((c) => c.method === 'PATCH').map((c) => c.body);
     expect(bodies).toContainEqual({ calmMode: true });
     expect(bodies).toContainEqual({ animationLevel: 'reduced' });
-    expect(bodies).toContainEqual({ transitionWarningMinutes: 5 });
     expect(document.documentElement.dataset.calm).toBe('true');
     expect(w.find(tid('settings-reset-demo')).exists()).toBe(true);
     stop();
+  });
+  it('opens the Reminders page from Settings, edits a calendar default at once and switches task list reminders', async () => {
+    let defaults = [30];
+    const { w, router, m } = await mountAt('/settings', {
+      'GET /api/calendars': () => ({ calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, hidden: false, defaultReminders: [10] }] }),
+      'PATCH /api/calendars/primary': ({ body }) => { defaults = (body as { defaultReminders: number[] }).defaultReminders; return { id: 'primary', name: 'Personal', defaultReminders: defaults }; },
+      'GET /api/reminders/tasks-calendar': () => ({ defaultReminders: [] }),
+      'PATCH /api/prefs': () => ({}),
+    });
+    await w.get(tid('settings-reminders')).trigger('click');
+    await wait(() => expect(router.currentRoute.value.path).toBe('/settings/reminders'));
+    await wait(() => expect(w.findAll(tid('reminders-calendar'))).toHaveLength(2));
+    const personal = () => w.get('[data-calendar-id="primary"]');
+    expect(personal().findAll(tid('calendar-default-reminder')).map((c) => c.text())).toEqual(['30 min']);
+    expect(w.get('[data-calendar-id="ro"]').find(tid('calendar-default-reminder-add')).exists()).toBe(false);
+    await personal().get(tid('calendar-default-reminder-add')).trigger('click');
+    await personal().get('[data-testid="calendar-default-reminder-option"][data-minutes="15"]').trigger('click');
+    await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/calendars/primary').map((c) => c.body)).toEqual([{ defaultReminders: [30, 15] }]);
+    await wait(() => expect(personal().findAll(tid('calendar-default-reminder')).map((c) => c.text())).toEqual(['30 min', '15 min']));
+    await w.get(tid('reminders-tasklists')).trigger('click');
+    await flushPromises();
+    expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').map((c) => c.body)).toContainEqual({ notify: expect.objectContaining({ tasklists: true }) });
   });
   it('saves left-handed mode as a person pref and mirrors the layout with html[data-hand]', async () => {
     const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': () => ({}) });

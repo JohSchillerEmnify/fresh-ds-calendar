@@ -147,7 +147,8 @@ export default {
     resizeFailed: 'Die Länge von „{title}“ ließ sich nicht ändern, yo. {reason}',
   },
   warning: {
-    startsIn: '{title} startet in {minutes} Min., yo. BÄMbus!',
+    startsIn: '{title} startet in {duration}, yo. BÄMbus!',
+    startsNow: '{title} startet jetzt, yo',
   },
   undo: {
     deleted: 'Gelöscht: {title}, yo',
@@ -160,6 +161,24 @@ export default {
   update: {
     available: 'Neue Version am Start, yo',
     reload: 'Neu laden, fresh',
+  },
+  reminders: {
+    title: 'Erinnerungen, yo',
+    atStart: 'Zum Start',
+    days: '{days} Tag | {days} Tage',
+    defaultLabel: 'Kalender-Standard, yo',
+    defaultNone: 'nix zu erinnern',
+    none: 'Keine Erinnerungen, Digga',
+    add: 'Erinnerung dazu',
+    remove: 'Erinnerung {label} weg damit',
+    useDefault: 'Kalender-Standard nehmen',
+    noReminders: 'Keine Erinnerungen',
+    custom: 'Eigene, yo',
+    customLabel: 'Minuten vorher',
+    customAdd: 'Dazu',
+    customInvalid: 'Gib Minuten von 0 bis 40320 ein, Digga',
+    max: 'Höchstens 5 Erinnerungen, yo',
+    pick: 'Erinnerung aussuchen',
   },
   whatsNew: {
     title: 'Was geht ab, yo',

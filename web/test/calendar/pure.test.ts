@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { blockGeometry, packColumns, itemSegments } from '@/lib/items';
 import { diffInput, formFromEvent, newForm, toInput, validate, withStart } from '@/features/calendar/eventForm';
-import { dueWarnings, formatDuration, nowCardModel, nowMarkerTop } from '@/features/calendar/timeline';
+import { formatDuration, nowCardModel, nowMarkerTop } from '@/features/calendar/timeline';
 import { localToIso, offsetMinutes } from '@/features/calendar/zone';
 import { ev, segsOf, t } from './helpers';
 
@@ -159,11 +159,5 @@ describe('now marker and Now card math', () => {
     expect(nowCardModel(segs, 13 * 60 + 40).nextLine).toBe('Nothing else today');
     const long = ev('long', t(D, '10:00'), t(D, '12:00'), { title: 'Long' });
     expect(nowCardModel(segsOf([long, dentist], D), 11 * 60).current?.title).toBe('Dentist');
-  });
-  it('transition warnings are due within the window only', () => {
-    expect(dueWarnings(segs, 10 * 60 + 25, 10)).toEqual([]);
-    expect(dueWarnings(segs, 10 * 60 + 30, 10)).toMatchObject([{ title: 'Dentist', inMin: 10 }]);
-    expect(dueWarnings(segs, 10 * 60 + 40, 10)).toEqual([]);
-    expect(dueWarnings(segs, 10 * 60 + 30, 0)).toEqual([]);
   });
 });

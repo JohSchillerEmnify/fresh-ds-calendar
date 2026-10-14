@@ -147,7 +147,7 @@ export default {
     resizeFailed: 'D Länge von „{title}“ konnd ned gändert wern. {reason}',
   },
   warning: {
-    startsIn: '{title} fängd in {minutes} Min. a',
+    startsIn: '{title} fängd in {duration} a',
   },
   undo: {
     deleted: 'Gelöschd: {title}',

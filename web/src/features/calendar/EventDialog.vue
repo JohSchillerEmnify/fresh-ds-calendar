@@ -12,6 +12,7 @@ import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
+import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { enterNext } from '@/composables/useEnterNext';
@@ -109,6 +110,9 @@ const swatches = computed(() => [
   { value: '', name: t('calendar.event.fields.calendarColor'), color: calColor.value, testid: 'event-color-option' },
   ...EVENT_COLOR_OPTIONS.map((c) => ({ value: c.id, name: t(`calendar.event.colors.${c.name.toLowerCase()}` as MessageKey), color: c.hex, testid: 'event-color-option' })),
 ]);
+/** The popup leads of the chosen calendar's default, shown while the event follows it. */
+const calDefaults = computed(() => calendars.value.find((c) => c.id === form.value.calendarId)?.defaultReminders
+  ?? (original.value?.reminders?.useDefault && original.value.calendarId === form.value.calendarId ? original.value.reminders.minutes : []));
 const accent = computed(() => googleColor(form.value.colorId)?.hex ?? calColor.value);
 const duration = computed(() => {
   const f = form.value;
@@ -128,6 +132,7 @@ function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEven
     kind: 'event', id, calendarId: input.calendarId ?? 'primary', title: input.title, description: input.description ?? '', location: input.location ?? '',
     allDay: input.allDay, start: input.start, end: input.end, colorId: input.colorId ?? null,
     color: googleColor(input.colorId)?.hex ?? calColor.value, etag: b?.etag ?? '', updated: b?.updated ?? '',
+    reminders: input.reminders ? { useDefault: input.reminders.useDefault, minutes: input.reminders.useDefault ? calDefaults.value : input.reminders.minutes } : b?.reminders,
   };
 }
 
@@ -214,6 +219,10 @@ function remove() {
       <div class="colors rise" style="--i: 6">
         <span class="lab">{{ t('calendar.event.fields.color') }}</span>
         <ColorSwatchPicker v-model="form.colorId" :swatches="swatches" :label="t('calendar.event.fields.color')" radio data-testid="event-color" />
+      </div>
+      <div class="colors rise" style="--i: 7">
+        <span class="lab">{{ t('calendar.reminders.title') }}</span>
+        <ReminderEditor v-model="form.reminders" prefix="event" allow-default :default-minutes="calDefaults" data-testid="event-reminders" />
       </div>
       <TextField v-model="form.location" class="rise" style="--i: 7" :label="t('calendar.event.fields.location')" data-testid="event-location" data-field="location" autocomplete="off" enterkeyhint="next" />
       <TextField v-model="form.description" class="rise" style="--i: 8" :label="t('calendar.event.fields.description')" data-testid="event-description" data-field="description" multiline :rows="3" />

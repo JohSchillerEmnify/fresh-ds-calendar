@@ -13,6 +13,7 @@
 - On the Canvas, the first tap after dropping a note works again, for example on the add button.
 - In the month view, multi-day events only take room on the days they cover, so every day uses its space for its own events.
 - Settings show what's new, and after an update the app tells you once what changed.
+- Several reminders per event, read from and saved to Google (Settings → Reminders sets each calendar's default); the app rings at every one, and the single "warn before" setting is gone.
 
 ## Older history
 

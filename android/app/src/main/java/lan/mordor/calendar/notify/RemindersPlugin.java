@@ -2,6 +2,7 @@ package lan.mordor.calendar.notify;
 
 import android.Manifest;
 import android.os.Build;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -43,7 +44,7 @@ public class RemindersPlugin extends Plugin {
         String id = call.getString("id");
         Long at = call.getLong("at");
         String title = call.getString("title");
-        if (id == null || id.isEmpty() || id.length() > 64 || at == null || title == null || title.length() > 200) {
+        if (id == null || id.isEmpty() || id.length() > 160 || at == null || title == null || title.length() > 200) {
             call.reject("id, at and title are required");
             return;
         }
@@ -68,5 +69,13 @@ public class RemindersPlugin extends Plugin {
         }
         Reminders.cancel(getContext(), id);
         call.resolve(new JSObject());
+    }
+
+    /** {@code list()}: the ids of every reminder still stored, as {@code { ids: string[] }}. */
+    @PluginMethod
+    public void list(PluginCall call) {
+        JSObject res = new JSObject();
+        res.put("ids", new JSArray(Reminders.ids(getContext())));
+        call.resolve(res);
     }
 }

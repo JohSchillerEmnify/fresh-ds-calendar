@@ -3,7 +3,7 @@ import type { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError,
-  ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
+  ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 import { calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
@@ -108,6 +108,7 @@ export class GoogleProvider implements CalendarProvider {
           primary: !!c.primary,
           accessRole: (c.accessRole as ProviderCalendar['accessRole']) ?? 'reader',
           hidden: !!c.hidden,
+          defaultReminders: (c.defaultReminders ?? []).map((r) => ({ method: r.method ?? 'popup', minutes: r.minutes ?? 0 })),
         });
       }
       return out;
@@ -121,6 +122,10 @@ export class GoogleProvider implements CalendarProvider {
 
   async setCalendarHidden(calendarId: string, hidden: boolean): Promise<void> {
     await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { hidden } }), true);
+  }
+
+  async setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void> {
+    await this.call('calendarList.patch', () => this.o.api.calendarList.patch({ calendarId, requestBody: { defaultReminders: reminders } }), true);
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
@@ -210,6 +215,10 @@ function fromApi(e: calendar_v3.Schema$Event, calendarId: string): GoogleEvent {
   if (e.recurringEventId) ev.recurringEventId = e.recurringEventId;
   if (e.eventType) ev.eventType = e.eventType;
   if (e.birthdayProperties) ev.birthdayProperties = { ...e.birthdayProperties } as NonNullable<GoogleEvent['birthdayProperties']>;
+  if (e.reminders) {
+    ev.reminders = { useDefault: !!e.reminders.useDefault };
+    if (e.reminders.overrides) ev.reminders.overrides = e.reminders.overrides.map((r) => ({ method: r.method ?? 'popup', minutes: r.minutes ?? 0 }));
+  }
   if (e.extendedProperties) {
     ev.extendedProperties = {};
     if (e.extendedProperties.private) ev.extendedProperties.private = { ...e.extendedProperties.private };

@@ -760,7 +760,6 @@ the bottom bar ends at the bottom of the viewport
 ## ADHD support, settings additions
 
 ```
-I choose {string} as the transition warning time
 I turn on calm mode
 calm mode is active
 the collapsed task list {string} does not list its items
@@ -1906,4 +1905,42 @@ the add button is above the open tasks tray
   `task-tray`.
 - The overlap check reuses "the add button covers no control of the {string}" with the panel name `view switcher`
   (`view-switcher`), see the panel map in `e2e/steps/tasks-canvas.steps.ts`.
+
+## Reminders
+
+```
+the calendar {string} has the default reminders {string}
+the calendar {string} has the default reminders {string} in Google
+the event {string} has its own reminders {string} in Google
+the event {string} has its own reminders {string} and the email reminder {string} in Google
+the task list {string} has its own reminders {string} in Google
+the event reminders show the calendar default {string}
+the event reminders are {string}
+I add the reminder {string}
+I remove the reminder {string}
+I choose the calendar default reminders
+I cannot add another reminder
+the event {string} has the reminders {string} in Google
+the event {string} does not use the calendar default in Google
+the event {string} uses the calendar default in Google
+the event {string} still has the email reminder {string} in Google
+I open the reminder settings
+the reminder settings show {string} for the calendar {string}
+I add the default reminder {string} for the calendar {string}
+I switch on reminders for task lists
+```
+
+- Minutes lists are comma-separated integers (`"90, 30, 15"`, `""` = none); labels use the app's duration format
+  (`"1 h 30 min"`, `"30 min"`). Setup steps write the mock Google provider through `__test` routes: a calendar's
+  `defaultReminders` (popup), an event's `reminders` (`useDefault: false`, popup overrides, plus an email override).
+  "in Google" assertions read the mock provider's stored event or calendar list entry (popup minutes in order; email
+  overrides separately; `useDefault`).
+- Event dialog: `event-reminders` row; "show the calendar default X": the row says it uses the calendar default and lists
+  X; "are X": the `event-reminder` chips' labels in order; "add R": `event-reminder-add`, pick R; "remove R": the
+  `event-reminder-remove` of chip R; "choose the calendar default": `event-reminders-default`; "cannot add another":
+  `event-reminder-add` is disabled.
+- "I open the reminder settings": `/settings` → `settings-reminders` → `reminders-settings` visible. "show X for the calendar
+  C": the `reminders-calendar` named C lists X; "add the default reminder R for C": its add button, pick R (saves at once).
+  "switch on reminders for task lists": `reminders-tasklists` on.
+- Warnings reuse "I see the transition warning X" / "I do not see a transition warning" / "N minutes pass".
 

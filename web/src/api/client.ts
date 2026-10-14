@@ -230,6 +230,17 @@ export class ApiClient {
     return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { hidden }, o);
   }
 
+  /** Replaces the popup reminder defaults of a calendar in Google (email defaults stay). */
+  setCalendarDefaultReminders(id: string, defaultReminders: number[], o?: RequestOptions) {
+    return this.request<Calendar>('PATCH', `/api/calendars/${encodeURIComponent(id)}`, { defaultReminders }, o);
+  }
+  tasksCalendarReminders(o?: RequestOptions) {
+    return this.request<{ defaultReminders: number[] }>('GET', '/api/reminders/tasks-calendar', undefined, o);
+  }
+  setTasksCalendarReminders(defaultReminders: number[], o?: RequestOptions) {
+    return this.request<{ defaultReminders: number[] }>('PATCH', '/api/reminders/tasks-calendar', { defaultReminders }, o);
+  }
+
   // --- items ----------------------------------------------------------------
   /** `also` adds one extra range's items to the same response (API.md `GET /api/items`). */
   items(from: LocalDate, to: LocalDate, calendarIds?: string[], o?: RequestOptions, also?: { from: LocalDate; to: LocalDate }) {

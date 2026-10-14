@@ -31,5 +31,21 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, hidden, isHidden, load, toggle };
+  /** Replaces a calendar's popup reminder defaults (Google's `defaultReminders`); shown at once, rolled back on failure. */
+  async function setDefaultReminders(id: string, minutes: number[]): Promise<void> {
+    const before = list.value;
+    list.value = before.map((c) => (c.id === id ? { ...c, defaultReminders: minutes } : c));
+    saving++;
+    try {
+      const saved = await api.setCalendarDefaultReminders(id, minutes);
+      list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: saved.defaultReminders ?? minutes } : c));
+    } catch (e) {
+      list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders } : c));
+      throw e;
+    } finally {
+      saving--;
+    }
+  }
+
+  return { list, hidden, isHidden, load, toggle, setDefaultReminders };
 });

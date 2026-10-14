@@ -136,7 +136,6 @@ interface Settings {
   ignoreSystemMotion: boolean;                  // default false; true lets animationLevel apply although the device asks for less motion
   sounds: boolean;                    // default false
   calmMode: boolean;                  // default false
-  transitionWarningMinutes: 0 | 5 | 10 | 15;     // default 10; 0 = off
   streakFlame: boolean;               // default true: show the streak flame
   plant: boolean;                     // default true: show the plant widget in the top bar (independent of the scene)
   sunflowers: 'grow' | 'full';        // default 'grow': how many flowers the Sunflower field scene shows
@@ -234,11 +233,26 @@ one `useClock()` composable; nothing else calls `new Date()` for "now".
 ### `GET /api/calendars` → 200
 
 `{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), each with
-`hidden: boolean` (the person's choice). Errors: 503.
+`hidden: boolean` (the person's choice) and `defaultReminders: number[]` (the popup lead times of the calendar's Google default, minutes, Google's order). Errors: 503.
 
 ### `PATCH /api/calendars/:id` → 200
 
-Body `{ hidden: boolean }`; stores the person's choice and returns the updated `Calendar`. 404 for an unknown id.
+Body `{ hidden?: boolean; defaultReminders?: number[] }` (at least one). `hidden` stores the person's choice. `defaultReminders`
+(at most 5 different whole numbers 0-40320) replaces the calendar's popup defaults in Google (`calendarList.patch`; email defaults
+stay; more than 5 reminders in all is `400`; a read-only calendar is `403`). Returns the updated `Calendar`. 404 for an unknown id.
+
+### `GET` / `PATCH /api/reminders/tasks-calendar` → 200
+
+The person's tasks calendar is not in `GET /api/calendars`; its popup default list is read and replaced here:
+`{ defaultReminders: number[] }` (PATCH body the same).
+
+### Reminders on events and task lists
+
+`CalendarEvent` and `TaskList` carry `reminders: { useDefault: boolean; minutes: number[] }` (absent on shared lists). `minutes`
+is the popup list in effect: the calendar's default while `useDefault`, else the item's own Google `overrides` of method
+`popup`. `POST` / `PATCH` of an event or task list accept the same object (at most 5 different whole minutes 0-40320;
+`useDefault: true` ignores `minutes`); a write keeps the item's non-popup (email) overrides, and a `PATCH` without
+`reminders` leaves them alone. Why: Google is the source of truth (ARCHITECTURE "Reminders, several per event").
 
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 
@@ -609,6 +623,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
 | `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly? }` | Adds a calendar to the account's list as another Google client would; `id`, `color` and `readOnly` (role `reader`) let a test add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
+| `PUT` | `/api/__test/remote/calendars/:id/default-reminders` | `{ defaultReminders: { method, minutes }[]; owner? }` | Sets a calendar's Google `defaultReminders` as another Google client would. `200 { ok }` |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |
 | `POST` | `/api/__test/oauth/account` | `{ email: string; driveScope?: boolean }` | (extended) `driveScope: false` makes the fake consent leave out `drive.appdata` (default `true`). |

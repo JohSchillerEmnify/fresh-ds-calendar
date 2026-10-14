@@ -1,6 +1,6 @@
 /** Pure form model of the event dialog: defaults, duration-keeping edits, validation and API conversion. */
 import { parseIsoDate, toIsoDate, addDays } from '@/lib/dates';
-import type { CalendarEvent, CreateEventInput } from '@/api/types';
+import type { CalendarEvent, CreateEventInput, Reminders } from '@/api/types';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 import { t } from '@/i18n';
 
@@ -17,6 +17,8 @@ export interface EventForm {
   calendarId: string;
   /** Google colorId '1'..'11'; '' = calendar color. */
   colorId: string;
+  /** `minutes` is the own list; it stays empty while `useDefault` (the calendar's default is shown from the calendar list). */
+  reminders: Reminders;
 }
 
 /** The validation messages in the active language (looked up when a problem is found, so a language switch applies). */
@@ -39,9 +41,12 @@ export function newForm(date: string, time: string | null, calendarId: string, c
   const end = fromWallMinutes(wallMinutes(date, t) + 60);
   return {
     title: '', allDay: false, startDate: date, startTime: t, endDate: end.date, endTime: end.time,
-    description: '', location: '', calendarId, colorId: colorId ?? '',
+    description: '', location: '', calendarId, colorId: colorId ?? '', reminders: { useDefault: true, minutes: [] },
   };
 }
+
+/** The own reminder list of an event: empty while it follows its calendar's default. */
+export const ownReminders = (ev: CalendarEvent): Reminders => (!ev.reminders || ev.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...ev.reminders.minutes] });
 
 export function formFromEvent(ev: CalendarEvent): EventForm {
   if (ev.allDay) {
@@ -49,12 +54,12 @@ export function formFromEvent(ev: CalendarEvent): EventForm {
     const endIncl = last ? toIsoDate(addDays(last, -1)) : ev.end;
     return {
       title: ev.title, allDay: true, startDate: ev.start, startTime: '09:00', endDate: endIncl < ev.start ? ev.start : endIncl, endTime: '10:00',
-      description: ev.description, location: ev.location, calendarId: ev.calendarId, colorId: ev.colorId ?? '',
+      description: ev.description, location: ev.location, calendarId: ev.calendarId, colorId: ev.colorId ?? '', reminders: ownReminders(ev),
     };
   }
   return {
     title: ev.title, allDay: false, startDate: ev.start.slice(0, 10), startTime: ev.start.slice(11, 16), endDate: ev.end.slice(0, 10), endTime: ev.end.slice(11, 16),
-    description: ev.description, location: ev.location, calendarId: ev.calendarId, colorId: ev.colorId ?? '',
+    description: ev.description, location: ev.location, calendarId: ev.calendarId, colorId: ev.colorId ?? '', reminders: ownReminders(ev),
   };
 }
 
@@ -103,6 +108,7 @@ export function toInput(f: EventForm, tz: string): CreateEventInput {
   const base = {
     calendarId: f.calendarId || undefined,
     title: f.title.trim(), description: f.description, location: f.location, colorId: f.colorId || null,
+    reminders: { useDefault: f.reminders.useDefault, minutes: f.reminders.useDefault ? [] : [...f.reminders.minutes] },
   };
   if (f.allDay) {
     const end = fromWallMinutes(wallMinutes(f.endDate, '00:00') + 1440).date;
@@ -110,6 +116,10 @@ export function toInput(f: EventForm, tz: string): CreateEventInput {
   }
   return { ...base, allDay: false, start: localToIso(f.startDate, f.startTime, tz), end: localToIso(f.endDate, f.endTime, tz) };
 }
+
+/** Whether two own reminder lists are the same (the calendar default has no list of its own). */
+export const sameReminders = (a: Reminders, b: Reminders): boolean =>
+  a.useDefault === b.useDefault && (a.useDefault || (a.minutes.length === b.minutes.length && a.minutes.every((m, i) => m === b.minutes[i])));
 
 /** Fields that differ from the original event, for a minimal PATCH. */
 export function diffInput(next: CreateEventInput, ev: CalendarEvent): Partial<CreateEventInput> {
@@ -119,6 +129,7 @@ export function diffInput(next: CreateEventInput, ev: CalendarEvent): Partial<Cr
   if ((next.location ?? '') !== ev.location) out.location = next.location;
   if ((next.colorId ?? null) !== ev.colorId) out.colorId = next.colorId ?? null;
   if (next.calendarId && next.calendarId !== ev.calendarId) out.calendarId = next.calendarId;
+  if (next.reminders && !sameReminders(next.reminders, ownReminders(ev))) out.reminders = next.reminders;
   if (next.allDay !== ev.allDay || next.start !== ev.start || next.end !== ev.end) {
     out.allDay = next.allDay;
     out.start = next.start;

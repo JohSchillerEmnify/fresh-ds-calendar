@@ -53,15 +53,4 @@ export function nowCardModel(daySegments: Segment[], nowMin: number): NowCardMod
   };
 }
 
-/**
- * Transition warnings due at `nowMin`: timed events starting in 1..`warnMinutes` minutes. `key` is unique per event
- * occurrence (id + start) so each warns once.
- */
-export function dueWarnings(daySegments: Segment[], nowMin: number, warnMinutes: number): { key: string; title: string; inMin: number; startMin: number }[] {
-  if (warnMinutes <= 0) return [];
-  return timedEvents(daySegments)
-    .filter((s) => s.first && s.startMin > nowMin && s.startMin - nowMin <= warnMinutes)
-    .map((s) => ({ key: `${s.item.id}|${s.date}|${s.startMin}`, title: s.item.title, inMin: s.startMin - nowMin, startMin: s.startMin }));
-}
-
 export const hhmm = (m: number) => minutesToTime(m);

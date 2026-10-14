@@ -102,11 +102,28 @@ describe('GoogleProvider (mocked HTTP)', () => {
       { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', accessRole: 'owner', hidden: true },
     ] } }));
     expect(await provider.listCalendars()).toEqual([
-      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner', hidden: false },
-      { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader', hidden: false },
-      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', primary: false, accessRole: 'owner', hidden: true },
+      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner', hidden: false, defaultReminders: [] },
+      { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader', hidden: false, defaultReminders: [] },
+      { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', primary: false, accessRole: 'owner', hidden: true, defaultReminders: [] },
     ]);
     expect(calls[0]!.url.searchParams.get('showHidden')).toBe('true');
+  });
+
+  it('reads event reminders and calendar defaults, and patches a calendar default', async () => {
+    const { provider, calls } = setup((c) => c.method === 'PATCH'
+      ? { json: {} }
+      : c.url.pathname.endsWith('/calendarList')
+        ? { json: { items: [{ id: 'me@gmail.com', summary: 'me', primary: true, accessRole: 'owner', defaultReminders: [{ method: 'popup', minutes: 30 }, { method: 'email', minutes: 60 }] }] } }
+        : { json: { items: [gev({ reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 15 }, { method: 'email', minutes: 5 }] } }), gev({ id: 'd', reminders: { useDefault: true } })] } });
+    expect((await provider.listCalendars())[0]!.defaultReminders).toEqual([{ method: 'popup', minutes: 30 }, { method: 'email', minutes: 60 }]);
+    const r = await provider.listEvents({ calendarId: 'primary' });
+    expect(r.items[0]!.reminders).toEqual({ useDefault: false, overrides: [{ method: 'popup', minutes: 15 }, { method: 'email', minutes: 5 }] });
+    expect(r.items[1]!.reminders).toEqual({ useDefault: true });
+    await provider.setCalendarDefaultReminders('primary', [{ method: 'popup', minutes: 10 }]);
+    const p = calls.at(-1)!;
+    expect(p.method).toBe('PATCH');
+    expect(p.url.pathname).toBe('/calendar/v3/users/me/calendarList/primary');
+    expect(p.body).toEqual({ defaultReminders: [{ method: 'popup', minutes: 10 }] });
   });
 
   it('pings with a cheap call', async () => {

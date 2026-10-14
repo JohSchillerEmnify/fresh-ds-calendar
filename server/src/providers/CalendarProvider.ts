@@ -1,3 +1,5 @@
+/** One Google reminder: `popup` ones are shown and edited by the app, every other method (`email`) is only carried along. */
+export interface GoogleReminder { method: string; minutes: number }
 export interface GoogleEventDateTime { date?: string; dateTime?: string; timeZone?: string }
 export interface GoogleEvent {
   id: string; calendarId: string; etag: string; status: 'confirmed' | 'tentative' | 'cancelled';
@@ -13,6 +15,8 @@ export interface GoogleEvent {
   eventType?: string;
   /** Google `birthdayProperties` of a birthday event: `type` is birthday / anniversary / custom / other / self. */
   birthdayProperties?: { type?: string; customTypeName?: string; contact?: string };
+  /** Google `reminders`: `useDefault` means the calendar's `defaultReminders`, else `overrides` (absent = none). */
+  reminders?: { useDefault: boolean; overrides?: GoogleReminder[] };
 }
 export type GoogleEventInput = Omit<GoogleEvent, 'id' | 'calendarId' | 'etag' | 'created' | 'updated' | 'status' | 'eventType' | 'birthdayProperties'>
   & { status?: GoogleEvent['status'] };
@@ -31,6 +35,8 @@ export interface ProviderCalendar {
   accessRole: 'owner' | 'writer' | 'reader' | 'freeBusyReader';
   /** Switched off in Google's own calendar list (`calendarList` entry `hidden`). */
   hidden?: boolean;
+  /** Google's `defaultReminders` of the calendar list entry (what events with `reminders.useDefault` use). */
+  defaultReminders?: GoogleReminder[];
 }
 
 export interface ListEventsParams {
@@ -55,6 +61,8 @@ export interface CalendarProvider {
   insertCalendar(summary: string): Promise<ProviderCalendar>;
   /** Switches a calendar list entry off or on in Google's list (`calendarList.patch` `hidden`). */
   setCalendarHidden(calendarId: string, hidden: boolean): Promise<void>;
+  /** Replaces a calendar list entry's `defaultReminders` (`calendarList.patch`). */
+  setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void>;
   listEvents(p: ListEventsParams): Promise<ListEventsResult>;
   getEvent(calendarId: string, eventId: string): Promise<GoogleEvent>;
   insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent>;

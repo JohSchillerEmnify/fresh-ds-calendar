@@ -2098,21 +2098,64 @@ browser does not change.
   web app (the app's language), the channel name by Android (the system language). Alternatives weighed:
   `@capacitor/local-notifications` (a generic plugin with more surface than one reminder needs, and its own permission
   flow); Firebase push (needs a Google project and a server sender, for a reminder the phone can compute itself).
+- **Reminders, several per event (owner, 2026-10-14: "remind me 1 h 30, then 30 min, then 15 min before")**. Slice 1 of 2
+  (slice 2 = Web Push, see below). Owner decisions, in order:
+  - **Google is the source of truth for event reminders** (owner: "careful with events we already have in Google Calendar,
+    they may already have reminders set; read them and replicate the functionality to adjust them"). An event's reminder
+    list is its Google `reminders`: `useDefault: true` → the calendar's `defaultReminders` (the Google API returns them with
+    every `events.list` and on the calendar list entry), else its `overrides`. Only `popup` reminders are shown and edited;
+    `email` ones are kept untouched on every write. Google allows at most 5 per event and 5 defaults per calendar, so the
+    editors stop at 5. Changing a calendar's default changes every event that uses it, past and future, without touching
+    an event (that is how Google stores it; no per-event rewrite).
+  - **Editing**: the event dialog gets a "Reminders" row (`event-reminders`): "Calendar default (30 min, 10 min)" or the
+    event's own list as chips (`event-reminder` with `data-minutes`, remove `event-reminder-remove`), "Add reminder"
+    (`event-reminder-add`, a picker with 5 / 10 / 15 / 30 min, 1 h, 1 h 30, 2 h, 1 day and a custom minutes field), "Use
+    calendar default" (`event-reminders-default`) and "No reminders" (empty own list). Saved through the existing
+    create/update path as `reminders: { useDefault, minutes[] }` → Google `reminders` (overrides `method: popup`, email
+    overrides preserved). A new event starts on "Calendar default".
+  - **Settings → Reminders, its own sub-page** (owner: "this should become its own sub-menu"; row `settings-reminders` opens
+    `/settings/reminders`, `reminders-settings`): one section per own, writable, visible calendar
+    (`reminders-calendar` with `data-calendar-id`) with its Google default list, editable like the event's list (written
+    through `calendarList.patch` `defaultReminders`, popup only, email kept); read-only calendars show their default without
+    editing. Then a section "Task lists" (below).
+  - **Task lists** are Google events in the person's tasks calendar too, so a list's own reminders live in its Google event
+    the same way (row `tasklist-reminders` in the task list dialog, same editor). Whether this app reminds about task lists
+    at all is a switch on the Reminders page (`reminders-tasklists`, the existing person pref `notify.tasklists`, **default
+    off** now, owner). The tasks calendar's default list is edited like any calendar on the same page.
+  - **Delivery: this app rings itself** (owner: yes, even though the Google Calendar app may ring too; the person can mute
+    that app). Every reminder lead L of an upcoming timed event (and, with the switch on, timed task list) produces one
+    reminder at start − L: in the open app the existing snackbar (`transition-warning`, "Dentist starts in 30 min", once
+    per event and lead, auto-hides at the start), in the Android app also a notification through the `Reminders` plugin
+    (one id per event, date and lead: `reminder:<id>@<date>T<time>-<L>`; at most 24 scheduled ahead, nearest first;
+    ids no longer wanted are cancelled, and on app start every stored `reminder:*` and old `transition:*` id not in the
+    current plan is cancelled, which needs a new plugin method `list()`). `prefs.notify.events` / `.tasklists` keep
+    choosing what reaches the lock screen.
+  - **Replaces the single transition warning time** (`transitionWarningMinutes`, the Settings row
+    `settings-transition-warning`): removed; the in-app warnings follow the reminder lists. A calendar without a default
+    and an event without its own list get no reminder (as in Google). Why: two separate "minutes before" settings would
+    contradict each other; Google's lists already say what the person wants.
+  - **Slice 2, Web Push** (owner: "additionally Web Push"; plan pushed by the app, owner's choice): the server gets VAPID
+    keys and stores push subscriptions per person and device; on every sync the app sends the next 7 days of reminders
+    (`PUT /api/reminders/plan`, `{ at, title, body, key }[]`, replacing the device's previous plan) and the server sends each
+    push at its time (one timer loop like `BackupService`, catch-up of missed ones up to 10 min late, never twice per key).
+    The service worker shows them (`push` handler, needs `injectManifest` instead of `generateSW`). Caveat (owner accepted):
+    an event changed only in Google gets its push updated at the next sync of one of the person's apps. The Android app
+    keeps its own native notifications and does not subscribe to push (no doubles on the same phone).
 - **Notifications** (owner, 2026-10-14: "implement notifications for all the things that need them, not only
   bedtime"; ADHD-RESEARCH R29/R32/R33: few, chosen ones, no badges). Settings → Notifications (`settings-notify-*`, stored
   per person as `prefs.notify`) chooses which reminders reach the lock screen: the bedtime reminder, warnings before
-  timed events, warnings before task lists with a time (same lead as the in-app warning, `transitionWarningMinutes`), and
+  timed events, warnings before task lists with a time (at each reminder lead, see "Reminders, several per event"), and
   an optional **morning overview** at a chosen time ("Your day" · "3 appointments · 2 lists · first: Dentist 10:00",
   `morningOverview`; today's when its time is ahead, else tomorrow's, which is then prefetched). In-app snackbars are
   unchanged. Delivery: the Android app's `Reminders` plugin now; in a browser nothing is delivered while the app is
   closed until HTTPS allows Web Push (Declarative Web Push on iOS, see docs/IOS-OPTIONS.md). Deliberately not notified:
   overdue or carried-over lists, streaks, the plant (guilt and badge anxiety, ADHD-RESEARCH 1.21).
-- **Transition warnings as notifications** (2026-10-14, ADHD-RESEARCH R33): `transitionWarning.ts` also schedules the
-  next warnings (at most 8: timed events of today and tomorrow as far as loaded, first day of multi-day events, warning
-  time = start minus `transitionWarningMinutes` still ahead; `upcomingWarnings`) with `Reminders.schedule({ id:
-  'transition:<itemId>@<date>T<start>', at, title: "Dentist starts in 10 min", body: start })`; timed task lists too
-  when chosen (not carried-over ones), cancels ids that left
-  that list (moved, deleted, setting off) and re-sends only changes. While the app is hidden nothing is re-sent, so the
+- **Transition warnings as notifications** (2026-10-14, ADHD-RESEARCH R33; superseded by the reminder lists, see "Reminders,
+  several per event": the plan is `reminderPlan.ts`, ids `reminder:<itemId>@<date>T<start>-<lead>`, at most 24, the next 8
+  days as far as loaded): `transitionWarning.ts` also schedules the next reminders with `Reminders.schedule({ id, at,
+  title: "Dentist starts in 30 min", body: start })`; timed task lists too when chosen (not carried-over ones), cancels ids
+  that left that list (moved, deleted, setting off) and re-sends only changes, and on start cancels every stored
+  `reminder:*` / `transition:*` id not in the plan (`Reminders.list()`). While the app is hidden nothing is re-sent, so the
   schedule stays as it was left; the native side skips them while the app is in front (the snackbar shows them).
   Events added elsewhere while the app stays closed are not scheduled until it is opened again (the widget's background
   fetch does not schedule; a later step if needed). Same channel "Reminders" as the bedtime reminder.

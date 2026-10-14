@@ -145,7 +145,8 @@ export default {
     resizeFailed: 'Could not resize “{title}”. {reason}',
   },
   warning: {
-    startsIn: '{title} starts in {minutes} min',
+    startsIn: '{title} starts in {duration}',
+    startsNow: '{title} starts now',
   },
   undo: {
     deleted: 'Deleted: {title}',
@@ -158,6 +159,24 @@ export default {
   update: {
     available: 'New version available',
     reload: 'Reload',
+  },
+  reminders: {
+    title: 'Reminders',
+    atStart: 'At start',
+    days: '{days} day | {days} days',
+    defaultLabel: 'Calendar default',
+    defaultNone: 'no reminders',
+    none: 'No reminders',
+    add: 'Add reminder',
+    remove: 'Remove reminder {label}',
+    useDefault: 'Use calendar default',
+    noReminders: 'No reminders',
+    custom: 'Custom',
+    customLabel: 'Minutes before',
+    customAdd: 'Add',
+    customInvalid: 'Enter minutes from 0 to 40320',
+    max: 'At most 5 reminders',
+    pick: 'Choose a reminder',
   },
   whatsNew: {
     title: 'What\'s new',

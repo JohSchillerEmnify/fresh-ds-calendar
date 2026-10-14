@@ -2,11 +2,12 @@
 /** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`). */
 import { computed, onMounted, reactive, ref } from 'vue';
 import { api, ApiError } from '@/api/client';
-import type { Person, TaskList } from '@/api/types';
+import type { Person, Reminders, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
+import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useClockStore } from '@/stores/clock';
@@ -15,6 +16,7 @@ import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { enterNext } from '@/composables/useEnterNext';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
+import { sameReminders } from '@/features/calendar/eventForm';
 import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
@@ -33,6 +35,7 @@ const editing = computed(() => props.mode === 'edit');
 const loading = ref(false);
 let etag = '';
 let original = '';
+let originalReminders: Reminders = { useDefault: true, minutes: [] };
 const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time));
 const error = ref('');
 const conflict = ref(false);
@@ -42,6 +45,8 @@ const current = computed(() => {
   const i = editing.value ? items.get(props.id!) : undefined;
   return i?.kind === 'tasklist' ? i : null;
 });
+/** The popup leads of the tasks calendar's default, shown while the list follows it. */
+const taskDefaults = ref<number[]>([]);
 const people = ref<Person[]>([]);
 const person = ref('');
 const sharing = ref(false);
@@ -55,10 +60,14 @@ function fill(src: TaskList) {
   Object.assign(form, {
     title: src.title, date: src.date ?? '', noDate: src.date === null, time: src.time ?? '', estimate: src.estimateMinutes ? String(src.estimateMinutes) : '',
     categoryId: src.categoryId ?? 'none',
+    reminders: !src.reminders || src.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...src.reminders.minutes] },
   });
+  if (src.reminders?.useDefault) taskDefaults.value = src.reminders.minutes;
   original = JSON.stringify(form);
+  originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
 onMounted(async () => {
+  api.tasksCalendarReminders().then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) { original = JSON.stringify(form); return; }
   api.people().then((r) => { people.value = r.people; }).catch(() => undefined);
   const cur = items.get(props.id!);
@@ -97,6 +106,8 @@ async function save() {
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
     // categories off: the picker is hidden, so the stored category is left alone
     ...(cats.on.value ? { categoryId: form.categoryId === 'none' ? null : form.categoryId } : {}),
+    // the reminders are only sent when they changed (a create: when the list has its own)
+    ...(form.reminders && !(current?.kind === 'tasklist' && current.shared) && !sameReminders(form.reminders, originalReminders) ? { reminders: form.reminders } : {}),
   };
   try {
     if (editing.value) await items.updateTaskList(props.id!, body, etag);
@@ -173,6 +184,10 @@ function remove() {
           <Button variant="tonal" :disabled="!person || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
         </template>
       </div>
+      <div v-if="form.reminders && !current?.shared" class="remrow">
+        <span class="remlab">{{ t('calendar.reminders.title') }}</span>
+        <ReminderEditor v-model="form.reminders" prefix="tasklist" allow-default :default-minutes="taskDefaults" data-testid="tasklist-reminders" />
+      </div>
       <TextField v-if="!editing" v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
       <Select v-if="!editing && !form.noDate" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div class="actions">
@@ -196,6 +211,8 @@ function remove() {
 .catrow { display: flex; gap: 10px; align-items: center; }
 .dot { flex: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .grow { flex: 1; min-width: 0; }
+.remrow { display: flex; flex-direction: column; gap: 2px; }
+.remlab { padding-left: 4px; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .share { display: flex; gap: 10px; align-items: center; }
 .who { flex: 1; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }

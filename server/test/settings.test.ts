@@ -15,7 +15,7 @@ describe('settings', () => {
     const { body: s } = await t.json('GET', '/api/settings');
     expect(s).toMatchObject({
       themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
-      transitionWarningMinutes: 10, streakFlame: true, plant: true, sunflowers: 'grow', version: 1,
+      streakFlame: true, plant: true, sunflowers: 'grow', version: 1,
     });
     expect(s).not.toHaveProperty('scene');
     expect(s).not.toHaveProperty('garden');

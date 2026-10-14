@@ -1,5 +1,5 @@
 import type {
-  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateEventInput, CreateTaskListInput, SummaryDay, TaskItem, TaskList, Person,
+  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateEventInput, CreateTaskListInput, Reminders, SummaryDay, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
@@ -9,7 +9,7 @@ import { ApiException, forbidden, notFound, preconditionFailed, validation } fro
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import {
-  NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch,
+  NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type GoogleReminder,
   type ProviderCalendar,
 } from '../providers/CalendarProvider.js';
 import type { MotivationService } from './motivation.js';
@@ -33,6 +33,10 @@ function specialOf(ev: GoogleEvent): CalendarEvent['special'] {
   if (ev.eventType !== 'birthday' && !ev.calendarId.startsWith(BIRTHDAY_CALENDAR_PREFIX)) return undefined;
   return ev.birthdayProperties?.type === 'anniversary' ? 'anniversary' : 'birthday';
 }
+
+/** Google allows at most 5 reminders per event and 5 defaults per calendar (popup and email together). */
+const MAX_REMINDERS = 5;
+const popups = (list: GoogleReminder[] | undefined): number[] => (list ?? []).filter((r) => r.method === 'popup').map((r) => r.minutes);
 
 const readOnlyBirthday = () => validation('Birthdays are read-only');
 
@@ -87,7 +91,52 @@ export class CalendarService {
     this.calCache = null; // the endpoint always hits the provider (outages must surface)
     return (await this.eventCalendars()).map((c) => ({
       id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: c.accessRole === 'owner' || c.accessRole === 'writer',
+      defaultReminders: popups(c.defaultReminders),
     }));
+  }
+
+  /**
+   * Replaces the popup default list of a calendar (`calendarList.patch`); email defaults stay. `tasksCalendar` addresses the
+   * person's tasks calendar, which is not in {@link calendars}. Returns the list as stored.
+   */
+  async setDefaultReminders(id: string, minutes: number[], tasksCalendar = false): Promise<number[]> {
+    const calId = tasksCalendar ? await this.tasks.id() : id;
+    const cal = (await this.providerCalendars()).find((c) => c.id === calId && (tasksCalendar || !c.hidden && c.id !== this.tasks.knownId()));
+    if (!cal) throw notFound('Calendar not found');
+    if (cal.accessRole !== 'owner' && cal.accessRole !== 'writer') throw forbidden('This calendar is read-only', 'reminders.readOnly');
+    const next = this.remindersToGoogle(minutes, cal.defaultReminders);
+    await this.provider.setCalendarDefaultReminders(calId, next);
+    this.calCache = null;
+    return minutes;
+  }
+
+  /** The popup default list of the person's tasks calendar (created on first use like any task list access). */
+  async tasksDefaultReminders(): Promise<number[]> {
+    const id = await this.tasks.id();
+    return popups((await this.providerCalendars()).find((c) => c.id === id)?.defaultReminders);
+  }
+
+  /** Google's reminder list for the new popup lead times; the `others` (email ...) already stored are kept in front. */
+  private remindersToGoogle(minutes: number[], current: GoogleReminder[] | undefined): GoogleReminder[] {
+    const kept = (current ?? []).filter((r) => r.method !== 'popup');
+    if (kept.length + minutes.length > MAX_REMINDERS) throw validation('At most 5 reminders', 'reminders', 'reminders.tooMany');
+    return [...kept, ...minutes.map((m) => ({ method: 'popup', minutes: m }))];
+  }
+
+  /** Google `reminders` for an input; the other methods of the stored list (`cur`) are kept. */
+  private remindersOf(input: Reminders, cur?: GoogleEvent['reminders']): NonNullable<GoogleEvent['reminders']> {
+    if (input.useDefault) return { useDefault: true };
+    return { useDefault: false, overrides: this.remindersToGoogle(input.minutes, cur?.useDefault ? undefined : cur?.overrides) };
+  }
+
+  /** The popup lead times in effect for an event: the calendar default while it uses it, else its own list. */
+  private remindersView(ev: GoogleEvent, calDefaults: GoogleReminder[] | undefined): Reminders {
+    const useDefault = ev.reminders?.useDefault ?? true;
+    return { useDefault, minutes: popups(useDefault ? calDefaults : ev.reminders?.overrides) };
+  }
+
+  private defaultsSync(calendarId: string): GoogleReminder[] | undefined {
+    return this.calCache?.cals.find((c) => c.id === calendarId)?.defaultReminders;
   }
 
   private async primaryId(): Promise<string> {
@@ -113,14 +162,15 @@ export class CalendarService {
     return dt.date ?? formatInZone(Date.parse(dt.dateTime!), this.tz);
   }
 
-  private toEvent(ev: GoogleEvent, calColor: string): CalendarEvent {
+  private toEvent(ev: GoogleEvent, calColor: string, calDefaults: GoogleReminder[] | undefined = this.defaultsSync(ev.calendarId)): CalendarEvent {
     const special = specialOf(ev);
     // birthdays always use the colour of their calendar (a stray event colour would hide where they come from)
     const colorId = !special && ev.colorId && GOOGLE_COLORS[ev.colorId] ? ev.colorId : null;
     return {
       kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '',
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
-      color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}), etag: ev.etag, updated: ev.updated,
+      color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}),
+      reminders: this.remindersView(ev, calDefaults), etag: ev.etag, updated: ev.updated,
     };
   }
 
@@ -131,7 +181,8 @@ export class CalendarService {
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
       totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
-      tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas, etag: ev.etag, updated: ev.updated,
+      tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas,
+      reminders: this.remindersView(ev, this.defaultsSync(ev.calendarId)), etag: ev.etag, updated: ev.updated,
     };
   }
 
@@ -196,7 +247,7 @@ export class CalendarService {
     const eventLists = cals.map(async (c) => {
       const r = await this.provider.listEvents({ calendarId: c.id, timeMin, timeMax });
       // task-list-shaped events outside the tasks calendar are not task lists (ARCHITECTURE §3)
-      return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.toEvent(e, c.backgroundColor));
+      return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.toEvent(e, c.backgroundColor, c.defaultReminders));
     });
     const taskLists = (async (): Promise<CalendarItem[]> => {
       if (calendarIds && !calendarIds.includes(tasksId)) return [];
@@ -266,6 +317,7 @@ export class CalendarService {
     if (input.description) g.description = input.description;
     if (input.location) g.location = input.location;
     if (input.colorId) g.colorId = input.colorId;
+    if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
     this.motivation.award('create');
     return this.toEvent(ev, await this.calendarColor(calendarId));
@@ -296,6 +348,7 @@ export class CalendarService {
       summary: m.title, description: m.description || null as unknown as string, location: m.location || null as unknown as string,
       colorId: m.colorId, ...this.gTimes(m),
     };
+    if (input.reminders) patch.reminders = this.remindersOf(input.reminders, cur.reminders);
     let ev = await this.provider.patchEvent(cur.calendarId, id, patch, { ifMatch: ifMatch ?? cur.etag });
     if (m.calendarId !== cur.calendarId) ev = await this.provider.moveEvent(cur.calendarId, id, m.calendarId);
     return this.toEvent(ev, await this.calendarColor(ev.calendarId));
@@ -341,6 +394,7 @@ export class CalendarService {
       return this.toSharedTaskList(doc, '#039be5');
     }
     const g = encodeTaskList(d, this.tz, this.colorFor(d));
+    if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
     this.motivation.award('create');
     return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories());
@@ -381,8 +435,11 @@ export class CalendarService {
   }
 
   /** Read-modify-write; on a provider-side 412 re-reads and retries (up to 3 attempts) unless `ifMatch` is pinned. */
-  private async modify(id: string, fn: (d: TaskListData) => TaskListData, ifMatch?: string): Promise<TaskList> {
-    if (isSharedId(id)) return this.modifyShared(id, fn, ifMatch);
+  private async modify(id: string, fn: (d: TaskListData) => TaskListData, ifMatch?: string, reminders?: Reminders): Promise<TaskList> {
+    if (isSharedId(id)) {
+      if (reminders) throw validation('Shared lists have no reminders', 'reminders', 'reminders.sharedList');
+      return this.modifyShared(id, fn, ifMatch);
+    }
     for (let attempt = 1; ; attempt++) {
       const cur = await this.locateKind(id, true);
       if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
@@ -390,7 +447,9 @@ export class CalendarService {
       const d = { ...fn(before) };
       this.finalize(before, d);
       try {
-        const ev = await this.provider.patchEvent(cur.calendarId, id, encodeTaskListPatch(d, this.tz, this.colorFor(d), cur), { ifMatch: cur.etag });
+        const patch = encodeTaskListPatch(d, this.tz, this.colorFor(d), cur);
+        if (reminders) patch.reminders = this.remindersOf(reminders, cur.reminders);
+        const ev = await this.provider.patchEvent(cur.calendarId, id, patch, { ifMatch: cur.etag });
         return this.toTaskList(ev, await this.calendarColor(ev.calendarId), this.settings.categories());
       } catch (e) {
         if (e instanceof PreconditionFailedError) {
@@ -417,7 +476,7 @@ export class CalendarService {
         next.items = input.items.filter((i) => i.title.trim()).map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done }));
       }
       return next;
-    }, ifMatch);
+    }, ifMatch, input.reminders);
   }
 
   async deleteTaskList(id: string, ifMatch?: string): Promise<void> {

@@ -134,15 +134,15 @@ export function parseBedtimePatch(raw: unknown): Partial<BedtimePrefs> | string 
 export interface NotifyPrefs {
   /** The bedtime reminder (its lead is `bedtime.reminderMinutes`). */
   bedtime: boolean;
-  /** "Dentist starts in 10 min" before timed events (lead: the transition warning setting). */
+  /** "Dentist starts in 10 min" before timed events (lead: the reminder lists, ARCHITECTURE "Reminders, several per event"). */
   events: boolean;
-  /** The same before task lists with a time. */
+  /** The same before task lists with a time; default off (owner, 2026-10-14). */
   tasklists: boolean;
   /** A morning overview of the day at `morningTime`. */
   morning: boolean;
   morningTime: string;
 }
-export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' };
+export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' };
 
 /** Checks a `notify` patch and returns the valid fields, or the message of the first problem. */
 export function parseNotifyPatch(raw: unknown): Partial<NotifyPrefs> | string {

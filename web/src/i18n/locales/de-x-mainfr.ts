@@ -72,7 +72,7 @@ export default {
     notifications: {
       hint: 'In der Android-App kumma die Erinnerungen a, wenn die App zu is. Im Browser nur in der App (dafür brauchts die HTTPS-Adress).',
       bedtime: 'Erinnerung vorm Bettgehn',
-      events: { label: 'Vor Termin', hint: 'So früh wie der Hinweis bei Fokus & Motivation' },
+      events: { label: 'Vor Termin', hint: 'Bei jeder Erinnerung vom Termin' },
       tasklists: 'Vor Listen mit Uhrzeit',
       morning: { label: 'Überblick in der Früh', hint: 'Dei Tag auf an Blick, wann du willst', time: 'Uhrzeit vom Überblick' },
       overview: { title: 'Dei Tag', appointments: 'ka Termin | 1 Termin | {count} Termin', lists: 'ka Listen | 1 Listn | {count} Listen', first: 'zerst: {title} {time}' },
@@ -96,7 +96,6 @@ export default {
       addCategory: 'Kadegorie dazu',
     },
     motivation: {
-      warnBefore: 'Vor m Terminanfang warna',
       calmMode: { label: 'Ruhemodus', hint: 'Weniger Glumb, ruhigere Farbn' },
       supportCat: 'Drostkatz',
       supportSometimes: 'Amal wieder',

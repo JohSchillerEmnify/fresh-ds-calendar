@@ -172,8 +172,8 @@ describe('calendars, config, health, errors', () => {
   it('lists the mock calendars', async () => {
     const r = await t.json('GET', '/api/calendars');
     expect(r.body.calendars).toEqual([
-      { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, hidden: false },
-      { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, hidden: false },
+      { id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, defaultReminders: [], hidden: false },
+      { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, defaultReminders: [], hidden: false },
     ]);
   });
 

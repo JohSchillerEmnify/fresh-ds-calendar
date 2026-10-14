@@ -233,6 +233,13 @@ When('I press Escape', async function (this: World) {
 });
 
 When('I open the event {string}', async function (this: World, title: string) {
+  // no view open yet (a scenario that only set up Google): open the week of the event first
+  if (!this.page.url().startsWith('http')) {
+    const found = (await this.api.remoteEvents(title)).find((e) => e.status !== 'cancelled');
+    if (!found) throw new Error(`Google has no event "${title}" to open`);
+    await this.page.goto(`/week/${(found.start.date ?? found.start.dateTime ?? '').slice(0, 10)}`);
+    await this.settled();
+  }
   await this.eventChip(title).click();
   await expect(dialog(this)).toBeVisible();
 });
