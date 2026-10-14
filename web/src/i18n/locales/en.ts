@@ -10,6 +10,7 @@
 import calendarEn from './en/calendar.ts';
 import canvasEn from './en/canvas.ts';
 import bedtimeEn from './en/bedtime.ts';
+import sharingEn from './en/sharing.ts';
 import tasksEn from './en/tasks.ts';
 import themeEn from './en/theme.ts';
 
@@ -17,6 +18,7 @@ export default {
   calendar: calendarEn,
   canvas: canvasEn,
   bedtime: bedtimeEn,
+  sharing: sharingEn,
   tasks: tasksEn,
   views: {
     year: 'Year',

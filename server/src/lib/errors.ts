@@ -9,7 +9,7 @@ export interface ErrorDetail {
 export class ApiException extends Error {
   constructor(
     readonly code: ErrorCode,
-    readonly status: 400 | 401 | 404 | 412 | 500 | 502 | 503,
+    readonly status: 400 | 401 | 403 | 404 | 412 | 500 | 502 | 503,
     message: string,
     readonly details?: ErrorDetail[],
     /** Message key the web app translates (it falls back to the English `message` for unknown keys). */
@@ -24,3 +24,4 @@ export const validation = (message: string, field?: string, key?: string) =>
 export const notFound = (message = 'Not found') => new ApiException('NOT_FOUND', 404, message);
 export const preconditionFailed = (message = 'This item was changed elsewhere. Reload it and try again.') =>
   new ApiException('PRECONDITION_FAILED', 412, message);
+export const forbidden = (message = 'Only the owner can do this', key?: string) => new ApiException('FORBIDDEN', 403, message, undefined, key);

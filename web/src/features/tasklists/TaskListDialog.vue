@@ -2,7 +2,7 @@
 /** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`). */
 import { computed, onMounted, reactive, ref } from 'vue';
 import { api, ApiError } from '@/api/client';
-import type { TaskList } from '@/api/types';
+import type { Person, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
@@ -16,6 +16,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './validate';
 import { useTaskListsStore } from './store';
+import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null }>();
 const emit = defineEmits<{ close: [] }>();
@@ -34,6 +35,18 @@ const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '
 const error = ref('');
 const conflict = ref(false);
 const saving = ref(false);
+/** The list being edited, for the sharing controls (a shared list says who it is shared with). */
+const current = computed(() => {
+  const i = editing.value ? items.get(props.id!) : undefined;
+  return i?.kind === 'tasklist' ? i : null;
+});
+const people = ref<Person[]>([]);
+const person = ref('');
+const sharing = ref(false);
+const memberOnly = computed(() => isMemberOnly(current.value));
+const peopleOptions = computed(() => [
+  { value: '', label: t('sharing.choose') }, ...people.value.map((p) => ({ value: p.sub, label: p.name })),
+]);
 
 function fill(src: TaskList) {
   etag = src.etag;
@@ -45,6 +58,7 @@ function fill(src: TaskList) {
 }
 onMounted(async () => {
   if (!editing.value) { original = JSON.stringify(form); return; }
+  api.people().then((r) => { people.value = r.people; }).catch(() => undefined);
   const cur = items.get(props.id!);
   if (cur?.kind === 'tasklist') return fill(cur);
   loading.value = true;
@@ -101,6 +115,23 @@ async function reload() {
   try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); error.value = ''; conflict.value = false; }
   catch (e) { error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.reloadFailed'); }
 }
+/** Runs a sharing call; on failure the dialog stays open with the server's message. */
+async function sharingAction(fn: () => Promise<void>, failed: string) {
+  if (sharing.value) return;
+  sharing.value = true;
+  error.value = '';
+  try {
+    await fn();
+    emit('close');
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.userMessage : failed;
+  } finally {
+    sharing.value = false;
+  }
+}
+const share = () => sharingAction(() => shareList(props.id!, person.value), t('sharing.shareFailed'));
+const unshare = () => sharingAction(() => unshareList(props.id!), t('sharing.stopFailed'));
+const leave = () => sharingAction(() => leaveList(props.id!), t('sharing.leaveFailed'));
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
 function remove() {
   const tl = items.get(props.id!);
@@ -126,12 +157,23 @@ function remove() {
       <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" data-testid="tasklist-estimate" />
       <div class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
-        <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" class="grow" data-testid="tasklist-category" />
+        <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" />
+      </div>
+      <div v-if="current && (current.shared || people.length)" class="share" data-testid="tasklist-sharing">
+        <template v-if="current.shared">
+          <p class="who">{{ memberOnly ? t('sharing.badgeMember', { name: current.shared.owner.name }) : t('sharing.sharedWith', { names: withNames(current.shared.with) || '–' }) }}</p>
+          <Button v-if="!memberOnly" variant="tonal" :disabled="sharing" data-testid="tasklist-unshare" @click="unshare">{{ t('sharing.stop') }}</Button>
+        </template>
+        <template v-else>
+          <Select v-model="person" :label="t('sharing.title')" :options="peopleOptions" class="grow" data-testid="tasklist-share-person" />
+          <Button variant="tonal" :disabled="!person || sharing" data-testid="tasklist-share" @click="share">{{ t('sharing.share') }}</Button>
+        </template>
       </div>
       <TextField v-if="!editing" v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
       <Select v-if="!editing && !form.noDate" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div class="actions">
-        <Button v-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="remove">{{ t('tasks.dialog.delete') }}</Button>
+        <Button v-if="memberOnly" variant="text" class="danger" data-testid="tasklist-leave" :disabled="sharing" @click="leave">{{ t('sharing.leave') }}</Button>
+        <Button v-else-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="remove">{{ t('tasks.dialog.delete') }}</Button>
         <span class="grow" />
         <Button variant="text" data-testid="tasklist-cancel" @click="emit('close')">{{ t('tasks.dialog.cancel') }}</Button>
         <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">{{ t('tasks.dialog.save') }}</Button>
@@ -150,6 +192,8 @@ function remove() {
 .catrow { display: flex; gap: 10px; align-items: center; }
 .dot { flex: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .grow { flex: 1; min-width: 0; }
+.share { display: flex; gap: 10px; align-items: center; }
+.who { flex: 1; margin: 0; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
 .danger { color: var(--md-sys-color-error); }
 /* Left-handed mode (phone): the primary action is at the bottom left. */

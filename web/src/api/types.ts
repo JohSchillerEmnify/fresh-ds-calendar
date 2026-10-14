@@ -12,6 +12,7 @@ export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'NOT_FOUND'
   | 'UNAUTHENTICATED'
+  | 'FORBIDDEN'
   | 'GOOGLE_REAUTH'
   | 'CALENDAR_PERMISSION_MISSING'
   | 'PRECONDITION_FAILED'
@@ -83,8 +84,28 @@ export interface TaskList {
   completedOn?: LocalDate | null;
   /** Place on the Tasks view's Canvas (canvas units); null/absent = no place yet (Unsorted). */
   canvas?: CanvasPlace | null;
+  /** Present on shared lists only (API.md "Shared task lists"). */
+  shared?: SharedInfo;
+  /** The owner's category look carried on a shared list (the requester's own categories may differ). */
+  categoryInfo?: { name: string; color: string; icon: string | null } | null;
   etag: string;
   updated: DateTime;
+}
+
+/** A person as the sharing controls show them. */
+export interface Person {
+  sub: string;
+  name: string;
+  email: string;
+  initial: string;
+}
+
+/** Who a shared list is shared with, seen by the requester. */
+export interface SharedInfo {
+  owned: boolean;
+  owner: Person;
+  /** Everyone but the requester. */
+  with: Person[];
 }
 
 /** A note's top-left corner on the Canvas, in canvas units (ARCHITECTURE "Canvas"). */

@@ -27,6 +27,7 @@ import { useUiStore } from '@/stores/ui';
 import { carriedLabel } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
 import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
+import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
 
@@ -67,6 +68,13 @@ const collapsed = computed(() => !props.closable && isCollapsed(props.id));
 watch(collapsed, (c) => { if (c) { adding.value = false; editingItem.value = null; } });
 const carried = computed(() => !!tl.value && lists.isCarried(tl.value));
 const category = computed(() => settings.categoryById(tl.value?.categoryId));
+/** A shared list carries its owner's category look; the requester's own categories may differ. */
+const icon = computed(() => (tl.value?.categoryInfo === undefined ? category.value?.icon : tl.value.categoryInfo?.icon) ?? null);
+const badge = computed(() => (tl.value ? badgeInitial(tl.value) : null));
+const badgeText = computed(() => {
+  const s = tl.value?.shared;
+  return s ? t(s.owned ? 'sharing.badge' : 'sharing.badgeMember', { name: withNames(s.owned ? s.with : [s.owner]) }) : '';
+});
 
 // --- load: from the host's copy, else from the API (deep link, tray list outside the loaded range) -------------
 onMounted(async () => {
@@ -184,6 +192,16 @@ function remove() {
   pendingDeletes.deleteTaskList(tl.value);
   emit('deleted');
 }
+/** A member leaves a shared list: it goes away for them only (ARCHITECTURE "Shared lists"). */
+async function leave() {
+  if (!tl.value) return;
+  try {
+    await leaveList(props.id);
+    emit('deleted');
+  } catch (e) {
+    ui.notify(e instanceof ApiError ? e.userMessage : t('sharing.leaveFailed'));
+  }
+}
 function move(itemId: string, dir: -1 | 1) {
   pendingDeletes.flushList(props.id);
   moveItem(props.id, itemId, dir);
@@ -213,11 +231,12 @@ defineExpose({ root, busy });
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
         <button v-else class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
-          <span v-if="category?.icon" class="emoji" aria-hidden="true">{{ category.icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
+          <span v-if="icon" class="emoji" aria-hidden="true">{{ icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
         </button>
         <p class="sub">
           <span :key="tl.doneCount" class="cnt" data-testid="tasklist-expanded-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
           <span v-if="carried" class="from" data-testid="tasklist-card-overdue">{{ carriedLabel(tl.date) }}</span>
+          <span v-if="badge" class="shared" data-testid="tasklist-shared-badge" :title="badgeText" :aria-label="badgeText">{{ badge }}</span>
         </p>
       </div>
       <IconButton
@@ -260,7 +279,8 @@ defineExpose({ root, busy });
           <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
           <span class="grow" />
           <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
-          <Button variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
+          <Button v-if="isMemberOnly(tl)" variant="text" class="danger" data-testid="tasklist-leave" @click="leave"><template #icon><IconDelete /></template>{{ t('sharing.leave') }}</Button>
+          <Button v-else variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
         </footer>
       </div>
     </Transition>
@@ -288,6 +308,7 @@ html[data-motion='full'] .tlc-enter-from, html[data-motion='full'] .tlc-leave-to
 .tx { position: relative; --strike-w: 2.400px; }
 .sub { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .cnt { display: inline-block; animation: bump 380ms var(--md-sys-motion-spring) both; }
+.shared { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font: var(--md-sys-typescale-label-medium); background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .from { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-radius: 8px; padding: 1px 8px; }
 .celebrate { margin: 4px 0; padding: 10px 12px; border-radius: 12px; text-align: center; font: var(--md-sys-typescale-title-medium); background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); animation: pop 520ms var(--md-sys-motion-spring) both; }
 .list { list-style: none; margin: 2px 0 0; padding: 0; }

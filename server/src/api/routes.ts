@@ -11,7 +11,7 @@ import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } fr
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, canvasDocSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createEventSchema, createTaskListSchema, orderSchema,
-  parse, patchItemSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
+  categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
   isApproachWindow, isLanguagePref, LOCAL_PERSON, parseBedtimePatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
@@ -259,6 +259,16 @@ export function apiRoutes(ctx: Ctx): Hono {
     await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
     return c.body(null, 204);
   });
+  // ---- sharing (ARCHITECTURE "Shared lists") ----
+  r.get('/people', (c) => c.json({ people: ctx.shared.candidates(person(c)) }));
+  r.post('/tasklists/:id/share', async (c) => c.json(await cal(c).shareTaskList(c.req.param('id'), parse(shareSchema, await body(c)).person)));
+  r.delete('/tasklists/:id/share', async (c) => c.json(await cal(c).unshareTaskList(c.req.param('id'))));
+  r.post('/tasklists/:id/leave', (c) => {
+    cal(c).leaveTaskList(c.req.param('id'));
+    return c.body(null, 204);
+  });
+  r.get('/categories/shares', (c) => c.json({ shares: ctx.shared.rulesOf(person(c)) }));
+  r.put('/categories/:id/share', async (c) => c.json({ shares: await cal(c).shareCategory(c.req.param('id'), parse(categoryShareSchema, await body(c)).person) }));
   r.post('/tasklists/:id/items', async (c) => c.json(await cal(c).addItem(c.req.param('id'), parse(addItemSchema, await body(c))), 201));
   r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
   r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)))));
@@ -309,18 +319,21 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = parse(categoryPatchSchema, await body(c));
     if (!settings.categories().some((x) => x.id === id)) throw notFound('Category not found');
     if (b.name !== undefined) uniqueName(settings.categories(), b.name, id);
-    return c.json(
-      settings.update((d) => {
-        const cat = d.categories.find((x) => x.id === id)!;
-        if (b.name !== undefined) cat.name = b.name;
-        if (b.color !== undefined) { cat.color = b.color.toLowerCase(); cat.googleColorId = nearestGoogleColorId(cat.color); }
-        if (b.icon !== undefined) cat.icon = b.icon;
-      }),
-    );
+    const saved = settings.update((d) => {
+      const cat = d.categories.find((x) => x.id === id)!;
+      if (b.name !== undefined) cat.name = b.name;
+      if (b.color !== undefined) { cat.color = b.color.toLowerCase(); cat.googleColorId = nearestGoogleColorId(cat.color); }
+      if (b.icon !== undefined) cat.icon = b.icon;
+    });
+    // the people the owner shares lists of this category with see the new look
+    const now = saved.categories.find((x) => x.id === id)!;
+    ctx.shared.refreshCategory(person(c), id, { name: now.name, color: now.color, icon: now.icon });
+    return c.json(saved);
   });
   r.delete('/categories/:id', (c) => {
     const id = c.req.param('id');
     if (!settings.categories().some((x) => x.id === id)) throw notFound('Category not found');
+    ctx.shared.refreshCategory(person(c), id, null);
     return c.json(settings.update((d) => { d.categories = d.categories.filter((x) => x.id !== id); }));
   });
 
