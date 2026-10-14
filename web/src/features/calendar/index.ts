@@ -19,6 +19,8 @@ export function registerCalendarFeature(): void {
   if (done) return;
   done = true;
   registerDialog('event', () => import('./EventDialog.vue'));
+  // the same dialog in birthday mode: its own kind, so switching Event <-> Birthday in the "new" dialog remounts it
+  registerDialog('birthday', () => import('./EventDialog.vue'));
   registerItemRenderer('event', EventItem);
   registerGridLayer(DropIndicator);
   registerGridLayer(NowMarker);

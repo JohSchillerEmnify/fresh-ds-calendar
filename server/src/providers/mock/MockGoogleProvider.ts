@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { googleEventId } from '../../lib/ids.js';
-import { addDays, addMonthsClamp, dayNumber, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
+import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
 import type { Clock } from '../../lib/clock.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
@@ -179,11 +179,15 @@ export class MockGoogleProvider implements CalendarProvider {
 
   async insertEvent(calendarId: string, ev: GoogleEventInput): Promise<GoogleEvent> {
     this.check();
+    if (ev.eventType === 'birthday') checkBirthdayInsert(ev);
     return this.doInsert(calendarId, ev);
   }
 
   async patchEvent(calendarId: string, eventId: string, patch: GoogleEventPatch, o?: WriteOptions): Promise<GoogleEvent> {
     this.check();
+    this.requireCalendar(calendarId);
+    const cur = this.events.get(key(calendarId, eventId)) ?? this.virtualInstance(calendarId, eventId);
+    if (cur?.eventType === 'birthday') checkBirthdayPatch(cur, patch);
     return this.doPatch(calendarId, eventId, patch, o);
   }
 
@@ -199,6 +203,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.requireCalendar(destinationCalendarId);
     const cur = this.getStored(calendarId, eventId);
     if (cur.status === 'cancelled') throw new NotFoundError('Not Found');
+    if (cur.eventType === 'birthday') throw new ProviderError('Google 400: a birthday cannot be moved to another calendar');
     this.events.delete(key(calendarId, eventId));
     cur.calendarId = destinationCalendarId;
     this.touch(cur);
@@ -267,7 +272,8 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   private expand(m: GoogleEvent, min: number, max: number, exceptions: Set<string>): GoogleEvent[] {
-    const rule = /FREQ=(DAILY|WEEKLY|MONTHLY)/.exec(m.recurrence![0] ?? '')?.[1];
+    const rule = /FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/.exec(m.recurrence![0] ?? '')?.[1];
+    const lastOfFeb = /BYMONTH=2;BYMONTHDAY=-1/.test(m.recurrence![0] ?? '');
     if (!rule) return [m];
     const base = this.masterDate(m);
     const baseTime = m.start.dateTime ? localTimeOf(Date.parse(m.start.dateTime), m.start.timeZone ?? this.tz) : null;
@@ -276,9 +282,10 @@ export class MockGoogleProvider implements CalendarProvider {
     const out: GoogleEvent[] = [];
     const lo = localDateOf(min, this.tz);
     const behind = Math.max(0, dayNumber(lo) - dayNumber(base) - spanDays - 2);
-    const n0 = rule === 'DAILY' ? behind : rule === 'WEEKLY' ? Math.floor(behind / 7) : Math.floor(behind / 31);
+    const n0 = rule === 'DAILY' ? behind : rule === 'WEEKLY' ? Math.floor(behind / 7) : rule === 'MONTHLY' ? Math.floor(behind / 31) : Math.floor(behind / 366);
     for (let n = n0; n < n0 + 5000 && out.length < 400; n++) {
-      const date = rule === 'DAILY' ? addDays(base, n) : rule === 'WEEKLY' ? addDays(base, 7 * n) : addMonthsClamp(base, n).date;
+      const date = rule === 'DAILY' ? addDays(base, n) : rule === 'WEEKLY' ? addDays(base, 7 * n) : rule === 'MONTHLY' ? addMonthsClamp(base, n).date : this.yearly(base, n, lastOfFeb);
+      if (!date) continue; // 29 February in a year without one: Google skips it
       if (startOfLocalDay(date, this.tz) >= max) break;
       const id = `${m.id}_${date.replaceAll('-', '')}`;
       if (exceptions.has(`${m.id}|${id}`)) continue;
@@ -296,6 +303,15 @@ export class MockGoogleProvider implements CalendarProvider {
       if (e0 > min && s0 < max) out.push(inst);
     }
     return out;
+  }
+
+  /** The n-th yearly date after `base`; `null` for 29 February in a common year. `lastOfFeb` is the rule `BYMONTH=2;BYMONTHDAY=-1`. */
+  private yearly(base: string, n: number, lastOfFeb: boolean): string | null {
+    const [y, m, d] = base.split('-').map(Number) as [number, number, number];
+    const ny = y + n;
+    const day = lastOfFeb ? daysInMonth(ny, 2) : d;
+    if (day > daysInMonth(ny, m)) return null;
+    return `${String(ny).padStart(4, '0')}-${String(lastOfFeb ? 2 : m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
   private bounds(e: GoogleEvent): [number, number] {
@@ -377,6 +393,41 @@ export class MockGoogleProvider implements CalendarProvider {
 const key = (cal: string, id: string) => `${cal}\u0000${id}`;
 const clone = <T>(x: T): T => structuredClone(x);
 const etagEq = (a: string, b: string) => a.replace(/^W\//, '').replaceAll('"', '') === b.replace(/^W\//, '').replaceAll('"', '');
+
+/** Properties Google accepts on a new birthday (events.insert with `eventType: "birthday"`); nothing else is allowed. */
+const BIRTHDAY_INSERT_KEYS = new Set(['eventType', 'summary', 'start', 'end', 'recurrence', 'visibility', 'transparency', 'colorId', 'reminders', 'birthdayProperties']);
+/** Properties Google accepts when a birthday is patched. */
+const BIRTHDAY_PATCH_KEYS = new Set(['colorId', 'summary', 'reminders', 'start', 'end']);
+
+const bad = (msg: string) => new ProviderError(`Google 400 invalid birthday: ${msg}`);
+
+/** The `date` of a one-day all-day `{ date }` value, or null (a null `dateTime` is what the Google provider adds when patching). */
+function dayOf(dt: { date?: string; dateTime?: string | null } | undefined): string | null {
+  return dt?.date && !dt.dateTime ? dt.date : null;
+}
+
+/** Google's rules for creating a birthday (checked independently of the server code that builds the body). */
+function checkBirthdayInsert(ev: GoogleEventInput): void {
+  for (const [k, v] of Object.entries(ev)) if (v !== undefined && !BIRTHDAY_INSERT_KEYS.has(k)) throw bad(`property "${k}" is not allowed`);
+  const start = dayOf(ev.start), end = dayOf(ev.end);
+  if (!start || !end || end !== addDays(start, 1)) throw bad('start and end must be one all-day date');
+  const rule = start.slice(5) === '02-29' ? 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1' : 'RRULE:FREQ=YEARLY';
+  if (ev.recurrence?.length !== 1 || ev.recurrence[0] !== rule) throw bad(`recurrence must be ${rule}`);
+  if (ev.visibility !== 'private') throw bad('visibility must be private');
+  if (ev.transparency !== 'transparent') throw bad('transparency must be transparent');
+  const bp = ev.birthdayProperties;
+  if (bp && (Object.keys(bp).length !== 1 || bp.type !== 'birthday')) throw bad('birthdayProperties may only be { type: "birthday" }');
+}
+
+/** Google's rules for patching a birthday: four fields, and no new date for a birthday of a contact or the person's own. */
+function checkBirthdayPatch(cur: GoogleEvent, patch: GoogleEventPatch): void {
+  for (const [k, v] of Object.entries(patch)) if (v !== undefined && !BIRTHDAY_PATCH_KEYS.has(k)) throw bad(`property "${k}" cannot be changed`);
+  if (!patch.start && !patch.end) return;
+  const start = dayOf(patch.start), end = dayOf(patch.end);
+  if (!start || !end || end !== addDays(start, 1)) throw bad('start and end must be one all-day date');
+  const locked = !!cur.birthdayProperties?.contact || cur.birthdayProperties?.type === 'self';
+  if (locked && start !== cur.start.date) throw bad('the date of a birthday from a contact (or of type self) cannot change');
+}
 
 function applyPatch(cur: GoogleEvent, patch: GoogleEventPatch): void {
   for (const [k, v] of Object.entries(patch)) {

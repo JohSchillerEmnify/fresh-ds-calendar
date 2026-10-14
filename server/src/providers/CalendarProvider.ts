@@ -11,14 +11,17 @@ export interface GoogleEvent {
   recurrence?: string[];
   /** Set on instances/exceptions of a recurring event. */
   recurringEventId?: string;
-  /** Google `eventType` (`default`, `birthday`, ...); only read, never written. */
+  /** Google `eventType` (`default`, `birthday`, ...); written only when a birthday is created. */
   eventType?: string;
-  /** Google `birthdayProperties` of a birthday event: `type` is birthday / anniversary / custom / other / self. */
+  /** Google `visibility` / `transparency`; written only when a birthday is created (`private` / `transparent`). */
+  visibility?: string;
+  transparency?: string;
+  /** Google `birthdayProperties` of a birthday event: `type` is birthday / anniversary / custom / other / self; a create sends only `{ type: 'birthday' }`. */
   birthdayProperties?: { type?: string; customTypeName?: string; contact?: string };
   /** Google `reminders`: `useDefault` means the calendar's `defaultReminders`, else `overrides` (absent = none). */
   reminders?: { useDefault: boolean; overrides?: GoogleReminder[] };
 }
-export type GoogleEventInput = Omit<GoogleEvent, 'id' | 'calendarId' | 'etag' | 'created' | 'updated' | 'status' | 'eventType' | 'birthdayProperties'>
+export type GoogleEventInput = Omit<GoogleEvent, 'id' | 'calendarId' | 'etag' | 'created' | 'updated' | 'status'>
   & { status?: GoogleEvent['status'] };
 
 /**

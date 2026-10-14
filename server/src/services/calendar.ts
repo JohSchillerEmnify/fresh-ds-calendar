@@ -1,5 +1,5 @@
 import type {
-  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateEventInput, CreateTaskListInput, Reminders, SummaryDay, TaskItem, TaskList, Person,
+  Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, SummaryDay, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
@@ -21,6 +21,7 @@ import {
   type TaskListData,
 } from './taskCodec.js';
 import { TasksCalendar } from './tasksCalendar.js';
+import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
 const DAY = 86_400_000;
@@ -39,6 +40,9 @@ const MAX_REMINDERS = 5;
 const popups = (list: GoogleReminder[] | undefined): number[] => (list ?? []).filter((r) => r.method === 'popup').map((r) => r.minutes);
 
 const readOnlyBirthday = () => validation('Birthdays are read-only');
+/** An event of Google's contacts "Birthdays" calendar: made from contacts, never edited here. */
+const inContactsCalendar = (ev: GoogleEvent) => ev.calendarId.startsWith(BIRTHDAY_CALENDAR_PREFIX);
+const isWritable = (c: ProviderCalendar | undefined) => c?.accessRole === 'owner' || c?.accessRole === 'writer';
 
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
@@ -164,12 +168,14 @@ export class CalendarService {
 
   private toEvent(ev: GoogleEvent, calColor: string, calDefaults: GoogleReminder[] | undefined = this.defaultsSync(ev.calendarId)): CalendarEvent {
     const special = specialOf(ev);
-    // birthdays always use the colour of their calendar (a stray event colour would hide where they come from)
-    const colorId = !special && ev.colorId && GOOGLE_COLORS[ev.colorId] ? ev.colorId : null;
+    // a birthday of the contacts calendar always uses its calendar's colour (a stray colour would hide where it comes from); one made in Google Calendar may have its own
+    const colorId = !(special && inContactsCalendar(ev)) && ev.colorId && GOOGLE_COLORS[ev.colorId] ? ev.colorId : null;
+    const readOnly = special && (inContactsCalendar(ev) || (this.calCache && !isWritable(this.calCache.cals.find((c) => c.id === ev.calendarId))));
     return {
       kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '',
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
       color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}),
+      ...(readOnly ? { readOnly: true as const } : {}), ...(special && !readOnly && birthdayDateLocked(ev) ? { dateLocked: true as const } : {}),
       reminders: this.remindersView(ev, calDefaults), etag: ev.etag, updated: ev.updated,
     };
   }
@@ -323,13 +329,23 @@ export class CalendarService {
     return this.toEvent(ev, await this.calendarColor(calendarId));
   }
 
+  /** A yearly birthday in the primary calendar, with exactly the fields Google accepts (`birthdayCreateBody`). */
+  async createBirthday(input: CreateBirthdayInput): Promise<CalendarEvent> {
+    const calendarId = await this.primaryId();
+    const cal = (await this.eventCalendars()).find((c) => c.id === calendarId);
+    if (cal && !isWritable(cal)) throw forbidden('The primary calendar is read-only', 'calendar.birthday.readOnly');
+    const ev = await this.provider.insertEvent(calendarId, birthdayCreateBody(input.title, input.date, input.colorId));
+    this.motivation.award('create');
+    return this.toEvent(ev, await this.calendarColor(calendarId));
+  }
+
   async getEvent(id: string): Promise<CalendarEvent> {
     return (await this.mapOne(await this.locateKind(id, false))) as CalendarEvent;
   }
 
   async updateEvent(id: string, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
     const cur = await this.locateKind(id, false);
-    if (specialOf(cur)) throw readOnlyBirthday();
+    if (specialOf(cur)) return this.updateBirthday(cur, input, ifMatch);
     const curApi = this.toEvent(cur, '');
     const m = {
       title: input.title ?? curApi.title,
@@ -356,9 +372,44 @@ export class CalendarService {
 
   async deleteEvent(id: string, ifMatch?: string): Promise<void> {
     const cur = await this.locateKind(id, false);
-    if (specialOf(cur)) throw readOnlyBirthday();
+    if (specialOf(cur)) {
+      await this.requireEditableBirthday(cur);
+      if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This event was changed elsewhere. Reload it and try again.');
+      // the whole yearly birthday goes, not one year of it (Google leaves Contacts alone)
+      await this.provider.deleteEvent(cur.calendarId, cur.recurringEventId ?? id);
+      return;
+    }
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This event was changed elsewhere. Reload it and try again.');
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
+  }
+
+  /** Birthdays of the contacts calendar and of calendars the person cannot write stay read-only. */
+  private async requireEditableBirthday(cur: GoogleEvent): Promise<void> {
+    const cal = (await this.providerCalendars()).find((c) => c.id === cur.calendarId);
+    if (inContactsCalendar(cur) || !isWritable(cal)) throw readOnlyBirthday();
+  }
+
+  /** Start and end of the opened instance after the series moved to the month and day of `masterDate`. */
+  private movedInstance(cur: GoogleEvent, masterDate: string): Pick<GoogleEvent, 'start' | 'end'> {
+    const date = `${(cur.start.date ?? this.norm(cur.start)).slice(0, 4)}-${masterDate.slice(5)}`;
+    return { start: { date }, end: { date: addDays(date, 1) } };
+  }
+
+  /**
+   * Edits a birthday: the series (`recurringEventId` of the instance the person opened) is patched, never one year, and only
+   * with the fields Google allows on a birthday. The answer is the opened instance with the change applied.
+   */
+  private async updateBirthday(cur: GoogleEvent, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
+    await this.requireEditableBirthday(cur);
+    if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This event was changed elsewhere. Reload it and try again.');
+    const master = cur.recurringEventId ? await this.provider.getEvent(cur.calendarId, cur.recurringEventId) : cur;
+    const patch = birthdayPatch(master, cur.start.date ?? this.norm(cur.start), input);
+    const color = await this.calendarColor(cur.calendarId);
+    if (Object.keys(patch).length === 0) return this.toEvent(cur, color);
+    const ev = await this.provider.patchEvent(cur.calendarId, master.id, patch, { ifMatch: master.etag });
+    // show the instance that was opened: its id and day, with the new name, colour and (when moved) day
+    const shown: GoogleEvent = { ...ev, id: cur.id, recurringEventId: cur.recurringEventId, ...(patch.start ? this.movedInstance(cur, patch.start.date!) : {}) };
+    return this.toEvent(shown, color);
   }
 
   // ---------- task lists ----------

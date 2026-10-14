@@ -1002,6 +1002,39 @@ the event dialog is read-only
 the event dialog has no save or delete button
 ```
 
+Birthdays made in Google Calendar (`@google-birthdays`):
+
+```
+the calendar {string} has a birthday {string} on {date}
+the calendar {string} has a birthday {string} on {date} linked to a contact
+I choose {string} in the create menu
+I enter the birthday name {string}
+I change the birthday name to {string}
+I set the birthday date to {date}
+I save the birthday
+the birthday date cannot be changed
+the birthday name can be changed
+the event {string} is shown on {date}
+Google has a birthday {string} repeating every year from {date}
+Google has the birthday {string} with the rule {string}
+Google has no birthday {string}
+```
+
+- "the calendar C has a birthday ...": inserts into the calendar named C (as another Google client) a yearly all-day event
+  with `eventType` birthday, `birthdayProperties.type` birthday (plus `contact` for "linked to a contact"), private and
+  transparent.
+- "I choose X in the create menu": clicks `create-button`, then the segment of the "new" dialog's switch (Event
+  `new-kind-event`, Task list `new-kind-tasklist`, Birthday `create-birthday`; the app has no separate menu), and for
+  Birthday waits for `birthday-dialog`.
+- The birthday dialog is the event dialog in birthday mode: `birthday-dialog` (instead of `event-dialog`), name
+  `birthday-name`, date `birthday-date`, colour `event-color`, `birthday-save`, `event-delete`, `event-cancel`;
+  `birthday-date-locked` is the hint shown (with `birthday-date` disabled) for a birthday linked to a contact. "I open the
+  event" and "I delete the event" work in both dialogs. "I save the birthday" waits for the dialog to close.
+- "the event is shown on D": opens the month view of D and expects a visible chip of the event on D.
+- "Google has a birthday T repeating every year from D": the mock Google holds exactly one live series named T with
+  `eventType` birthday, start date D and `RRULE:FREQ=YEARLY`; "with the rule R" compares its `recurrence`; "has no
+  birthday": after the pending delete was sent (undo time over), none is left.
+
 - "the Birthdays calendar has ...": adds Google's contacts calendar (`addressbook#contacts@group.v.calendar.google.com`,
   read-only, colour `#9fc6e7`) on first use and inserts a yearly all-day entry with `eventType` birthday and
   `birthdayProperties.type` birthday / anniversary, as Google makes it from a contact.

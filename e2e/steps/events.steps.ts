@@ -165,7 +165,8 @@ Then('the items on {date} are shown in the order {string}', async function (this
 
 // --- dialog ----------------------------------------------------------------------------------------------------
 
-const dialog = (w: World) => w.page.getByTestId('event-dialog');
+/** The event dialog, or the same dialog in birthday mode. */
+const dialog = (w: World) => w.page.locator(`${tid('event-dialog')}, ${tid('birthday-dialog')}`);
 
 When('I start creating an event', async function (this: World) {
   await this.page.getByTestId('create-button').click();
@@ -240,7 +241,13 @@ When('I open the event {string}', async function (this: World, title: string) {
     await this.page.goto(`/week/${(found.start.date ?? found.start.dateTime ?? '').slice(0, 10)}`);
     await this.settled();
   }
+  const inMonth = /\/month\//.test(this.page.url());
   await this.eventChip(title).click();
+  // phone: a tap on a month chip opens that day first, where the chip opens the dialog
+  if (inMonth && (await this.page.waitForURL(/\/day\//, { timeout: 1500 }).then(() => true, () => false))) {
+    await this.settled();
+    await this.eventChip(title).click();
+  }
   await expect(dialog(this)).toBeVisible();
 });
 

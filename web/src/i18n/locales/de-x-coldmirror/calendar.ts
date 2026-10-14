@@ -58,6 +58,18 @@ export default {
     event: 'Termin, yo',
     tasklist: 'To-do-Liste',
     editorUnavailable: 'Der Editor kommt noch, Digga. Fresh D. ist alt, aber nicht schneller.',
+    birthday: 'Geburtstag, yo',
+  },
+  birthday: {
+    newTitle: 'Neuer Geburtstag',
+    editTitle: 'Geburtstag bearbeiten',
+    name: 'Name',
+    date: 'Datum',
+    dateLocked: 'Das Datum kommt aus Google Kontakte. Ändere es dort.',
+    nameRequired: 'Der Name fehlt',
+    field: 'Ein Geburtstag hat dieses Feld nicht',
+    leapDay: 'Ein Geburtstag lässt sich nicht auf den 29. Februar oder von dort weg verschieben. Lösche ihn und lege ihn neu an.',
+    readOnly: 'Der Hauptkalender ist schreibgeschützt, daher lässt sich kein Geburtstag anlegen',
   },
   grid: {
     tasksSection: 'Aufgaben: {mode}. Tippen zum Ändern, yo',
