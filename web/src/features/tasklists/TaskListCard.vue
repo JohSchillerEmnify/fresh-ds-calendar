@@ -9,7 +9,9 @@
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap expands the card in place
- * (`ExpandedCard`, one at a time, state in the `ui` store) and a second tap collapses it.
+ * (`ExpandedCard`, one at a time, state in the `ui` store). The expansion renders this same card with the `grown` prop: full
+ * height, every item (ticked ones struck), the time foot, a wrapping title, display-only and without drag; a tap on it emits
+ * `open-list` (the host opens the list sheet).
  */
 import { badgeInitial } from './sharing';
 import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -24,7 +26,6 @@ import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { ProgressRing } from '@/motion';
 import { usePrefsStore } from '@/stores/prefs';
-import { useCalendarStore } from '@/stores/calendar';
 import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useUiStore } from '@/stores/ui';
@@ -39,22 +40,21 @@ const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
 const INLINE_BELOW_PX = 62;
 /** Cards narrower than this (border box) use the mini tier; about the old content-box 84 px of a full-padding card. */
 const MINI_BELOW_PX = 92;
-const props = defineProps<ItemRendererProps>();
-const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
+const props = defineProps<ItemRendererProps & { grown?: boolean; /** Where a grown card extends beyond its real time block. */ growDir?: 'down' | 'up' }>();
+const emit = defineEmits<{ open: []; el: [el: HTMLElement]; openList: [] }>();
 const settings = useSettingsStore();
 const ui = useUiStore();
-const calendar = useCalendarStore();
 const el = ref<HTMLElement | null>(null);
 defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
 // a preview copy (swipe neighbour) is inert: no drag handlers
-if (!inPreview()) useCalendarDrag(el, () => props.segment, () => props.variant);
+if (!inPreview() && !props.grown) useCalendarDrag(el, () => props.segment, () => props.variant);
 // Border box, not content box: the mini tier changes the card's padding, so a content-box width flips the tier it decides (a loop).
 const { width } = useElementSize(el, undefined, { box: 'border-box' });
 /** Expanded in place over the calendar (a swipe preview copy never is); tap toggles, items change only in the day view. */
-const expanded = computed(() => !inPreview() && ui.expandedCard?.id === props.segment.item.id && ui.expandedCard.date === props.segment.date);
+const expanded = computed(() => !props.grown && !inPreview() && ui.expandedCard?.id === props.segment.item.id && ui.expandedCard.date === props.segment.date);
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
-onBeforeUnmount(() => { if (!inPreview()) ui.collapseCard(cardKey()); });
+onBeforeUnmount(() => { if (!inPreview() && !props.grown) ui.collapseCard(cardKey()); });
 
 const tl = computed(() => {
   const i = props.segment.item;
@@ -62,7 +62,7 @@ const tl = computed(() => {
   return i;
 });
 /** Resize handles show after a release without moving (time grid blocks only). */
-const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
+const resizing = computed(() => !props.grown && props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
 const cats = useTaskCategories();
 const icon = computed(() => (!cats.on.value ? null : (tl.value.categoryInfo === undefined ? settings.categoryById(tl.value.categoryId)?.icon : tl.value.categoryInfo?.icon)) ?? null);
 const color = computed(() => cats.color(tl.value));
@@ -79,7 +79,7 @@ const label = computed(() => t('tasks.card.label', { title: displayTitle(tl.valu
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < MINI_BELOW_PX);
 /** A block too short for a second row (the inline threshold) drops the time line, also when no open item is left to go inline. */
-const shortBlock = computed(() => props.variant === 'block' && !!props.height && props.height < INLINE_BELOW_PX);
+const shortBlock = computed(() => !props.grown && props.variant === 'block' && !!props.height && props.height < INLINE_BELOW_PX);
 const hasFoot = computed(() => !!tl.value.time && !fit.value.inline && !shortBlock.value);
 /** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
@@ -92,6 +92,8 @@ const fit = computed(() => {
   const footVisible = block && !!tl.value.time && !mini.value;
   const open = openItems.value.length;
   if (collapsed.value || !open) return { shown: 0, more: 0, inline: false };
+  // grown: every item, one per line, nothing cut
+  if (props.grown) return { shown: tl.value.items.length, more: 0, inline: false };
   const f = fitItems({
     count: open,
     height: props.height || undefined,
@@ -116,17 +118,21 @@ const rank = computed(() => {
   openItems.value.forEach((i, n) => m.set(i.id, n));
   return m;
 });
-const hideItem = (id: string) => (rank.value.get(id) ?? Infinity) >= fit.value.shown || !rank.value.has(id);
+const hideItem = (id: string) => !props.grown && ((rank.value.get(id) ?? Infinity) >= fit.value.shown || !rank.value.has(id));
 const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infinity) < fit.value.shown - 1;
 </script>
 
 <template>
   <button
-    ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing }]" type="button" data-testid="tasklist-card" data-draggable="tasklist"
+    ref="el" v-ripple class="tl skin" :class="[variant, { carried, complete, mini, collapsed, titles, resizing, grown, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
-    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="cardClick($event, () => ui.toggleCard(cardKey()))"
+    :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? emit('openList') : cardClick($event, () => ui.toggleCard(cardKey()))"
   >
+    <template v-if="grown">
+      <span class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
+      <span class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
+    </template>
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
@@ -142,14 +148,14 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="hasFoot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
       <span v-else-if="tl.time" class="sr" data-testid="tasklist-card-time">{{ tl.time }}</span>
     </span>
     <ResizeHandles v-if="resizing" :segment="segment" />
-    <ExpandedCard v-if="expanded && el" :id="tl.id" :anchor="el" :readonly="calendar.view !== 'day'" @close="ui.collapseCard(cardKey())" />
+    <ExpandedCard v-if="expanded && el" :id="tl.id" :anchor="el" :segment="segment" :variant="variant" @close="ui.collapseCard(cardKey())" />
   </button>
 </template>
 
@@ -240,6 +246,36 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block[data-fit='inline'] .foot { flex: none; align-self: center; }
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
+
+/* grown (the expanded card, ExpandedCard): the same card at its full height; the host scrolls when it is cut to the screen */
+.tl.grown { display: flex; flex-direction: column; height: auto; min-height: var(--min-h, 0); overflow: visible; cursor: pointer; }
+.grown > * { flex: none; }
+/* the grown card is drawn by two layers: the real time block (the normal card look) and, slimmer and lighter, the part that only
+   extends it (below the real end, above the real start when it grows up); the seam between them marks the real end time */
+.tl.grown { background: transparent; border-color: transparent; box-shadow: none; animation: none; isolation: isolate; border-radius: inherit; }
+.gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }
+.real {
+  top: calc(-1 * var(--bw)); left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: var(--min-h, 0px);
+  background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface)); border: var(--bw) solid var(--c); border-left-width: var(--e-bl, var(--bw));
+  border-radius: var(--xr, var(--r-block)); box-shadow: var(--glow-sh);
+}
+.ext {
+  top: calc(var(--min-h, 0px) - var(--bw)); bottom: calc(-1 * var(--bw)); left: 5px; right: 5px;
+  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface));
+  border-radius: 0 0 var(--xr, var(--r-block)) var(--xr, var(--r-block)); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on) 28%, transparent);
+}
+.grown.up .real { top: auto; bottom: calc(-1 * var(--bw)); }
+.grown.up .ext {
+  top: calc(-1 * var(--bw)); bottom: calc(var(--min-h, 0px) - var(--bw));
+  border-radius: var(--xr, var(--r-block)) var(--xr, var(--r-block)) 0 0; box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--on) 28%, transparent);
+}
+.grown .row { align-items: flex-start; flex-wrap: wrap; }
+/* a narrow column wraps the badges below the title instead of squeezing it to a stub */
+.grown .title { flex: 1 1 10ch; min-width: min(10ch, 100%); }
+.grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; -webkit-mask-image: none; mask-image: none; }
+.grown .items { overflow: visible; }
+.grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.grown .foot { overflow: visible; margin-top: auto; }
 
 /* card: month cell. Foot hidden, the cell is small */
 .card { flex: none; padding: 2px 4px 3px; }

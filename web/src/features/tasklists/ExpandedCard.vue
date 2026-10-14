@@ -1,23 +1,25 @@
 <script setup lang="ts">
 /**
- * The task list card expanded in place over the calendar (ARCHITECTURE "Expanded task list card"): a fixed overlay
- * teleported to the body, placed over its collapsed `anchor` card (`placeExpanded`: down, up or scrolling inside, always
- * within the visible scroll area), so the calendar underneath never moves. The list itself is `TaskListView`, editable in
- * the day view and `readonly` in the week and month view. Closes on Escape, the system back, a tap elsewhere, a change of view or date, a
- * scroll that takes the card out of sight, or when a dialog opens. The focus moves in and returns to the card.
+ * The task list card grown in place over the calendar (ARCHITECTURE "Expanded task list card"): a fixed overlay teleported
+ * to the body at exactly the collapsed `anchor` card's left, top and width, holding the same `TaskListCard` rendering in its
+ * `grown` mode (full height, every item). It is placed by `placeExpanded` (down, up or scrolling inside, within the visible
+ * scroll area), so the calendar underneath never moves. Read-only: a tap anywhere on it opens the normal list sheet. Closes on
+ * Escape, the system back, a tap elsewhere, a change of view or date, a scroll that takes the card out of sight, or when a
+ * dialog opens. The focus moves in and returns to the card.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type { ItemRendererProps } from '@/extensions/registry';
 import { t } from '@/i18n';
 import { useOverlayHistory } from '@/lib/overlayHistory';
-import { listen, type Disposer } from '@/lib/timers';
+import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { displayTitle } from '@/lib/items';
 import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { anchorVisible, placeExpanded, type Box } from './expand';
-import TaskListView from './TaskListView.vue';
+import TaskListCard from './TaskListCard.vue';
 
-const props = defineProps<{ id: string; anchor: HTMLElement; readonly: boolean }>();
+const props = defineProps<{ id: string; anchor: HTMLElement; segment: ItemRendererProps['segment']; variant: ItemRendererProps['variant'] }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const ui = useUiStore();
@@ -25,8 +27,7 @@ const calendar = useCalendarStore();
 // the system back closes the expansion first (ARCHITECTURE "Back closes overlays")
 useOverlayHistory(() => true, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
-const view = ref<{ busy: boolean } | null>(null);
-const pos = ref<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
+const pos = ref<{ left: number; top: number; width: number; maxHeight: number; minHeight: number; radius: string; dir: 'down' | 'up' } | null>(null);
 const tl = computed(() => {
   const i = items.get(props.id);
   return i?.kind === 'tasklist' ? i : null;
@@ -46,15 +47,16 @@ function bounds(): Box {
 }
 function place() {
   const el = panel.value;
-  if (!el || !props.anchor.isConnected) return;
+  const card = el?.firstElementChild as HTMLElement | null;
+  if (!el || !card || !props.anchor.isConnected) return;
   const a = props.anchor.getBoundingClientRect();
   const b = bounds();
   if (!anchorVisible(a, b)) { emit('close'); return; }
-  // natural height of the content plus the border, whatever the current maxHeight cuts off
-  const p = placeExpanded(a, b, el.scrollHeight + el.offsetHeight - el.clientHeight);
-  const n = { left: p.left, top: p.top, width: p.width, maxHeight: p.maxHeight };
+  // natural height of the grown card (the panel scrolls when it is cut to maxHeight), never less than the collapsed card
+  const p = placeExpanded(a, b, Math.max(card.offsetHeight, a.height));
+  const n = { left: p.left, top: p.top, width: p.width, maxHeight: p.maxHeight, minHeight: a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: p.dir };
   const o = pos.value;
-  if (!o || o.left !== n.left || o.top !== n.top || o.width !== n.width || o.maxHeight !== n.maxHeight) pos.value = n;
+  if (!o || o.left !== n.left || o.top !== n.top || o.width !== n.width || o.maxHeight !== n.maxHeight || o.minHeight !== n.minHeight || o.radius !== n.radius || o.dir !== n.dir) pos.value = n;
 }
 
 let stops: Disposer[] = [];
@@ -62,18 +64,19 @@ let ro: ResizeObserver | null = null;
 onMounted(() => {
   ui.setPanel('expanded-task-card', true);
   place();
-  void nextTick(() => panel.value?.focus({ preventScroll: true }));
+  void nextTick(() => (panel.value?.querySelector('button') as HTMLElement | null)?.focus({ preventScroll: true }));
   stops.push(
-    listen(document, 'keydown', (e) => { if (e.key === 'Escape' && !view.value?.busy) emit('close'); }),
-    // capture: a tap elsewhere closes, while the tapped control still does its own thing
+    listen(document, 'keydown', (e) => { if (e.key === 'Escape') emit('close'); }),
+    // capture: a tap elsewhere closes, while the tapped control still does its own thing; the close waits until that control's
+    // own handler ran, so a navigation it starts lands before the overlay's history entry is given back
     listen(document, 'click', (e) => {
       const target = e.target as Node | null;
-      if (target && !panel.value?.contains(target) && !props.anchor.contains(target)) emit('close');
+      if (target && !panel.value?.contains(target) && !props.anchor.contains(target)) stops.push(appTimeout(() => emit('close'), 0));
     }, { capture: true }),
     listen(window, 'scroll', place, { capture: true, passive: true }),
     listen(window, 'resize', place),
   );
-  if (typeof ResizeObserver !== 'undefined' && panel.value) { ro = new ResizeObserver(place); ro.observe(panel.value); }
+  if (typeof ResizeObserver !== 'undefined' && panel.value?.firstElementChild) { ro = new ResizeObserver(place); ro.observe(panel.value.firstElementChild); }
 });
 onBeforeUnmount(() => {
   stops.forEach((s) => s());
@@ -93,15 +96,11 @@ watch(tl, (now, before) => { if (before && !now) emit('close'); });
 // The card moved on screen (the calendar re-laid out): follow it.
 watch(() => props.anchor, place);
 
-// The expansion covers the collapsed card, so a tap on its head (outside the buttons) is the tap on the card again.
-function onClick(e: MouseEvent) {
-  const el = e.target as Element | null;
-  if (el?.closest('header') && !el.closest('button, a, input')) emit('close');
-}
-
-// Opening the dialog: the focus goes back to the card first, so the dialog remembers it as its opener.
-function onEdit() {
+// A tap anywhere on the grown card opens the normal list sheet (ticking and editing happen there). The focus goes back to
+// the card first, so the sheet remembers it as its opener.
+function openList() {
   props.anchor.focus({ preventScroll: true });
+  ui.openDialog('tasklist-expanded', { id: props.id });
   emit('close');
 }
 </script>
@@ -109,21 +108,19 @@ function onEdit() {
 <template>
   <Teleport to="body">
     <div
-      ref="panel" class="xc" role="group" tabindex="-1" data-testid="tasklist-expanded" data-presentation="overlay" :data-readonly="readonly ? 'true' : 'false'"
+      ref="panel" class="xc" role="group" data-testid="tasklist-expanded" data-presentation="overlay" data-readonly="true"
       :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')"
-      @click="onClick"
-      :style="{ '--c': tl?.color ?? 'transparent', ...(pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px' } : { visibility: 'hidden' }) }"
+      :style="pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
     >
-      <TaskListView ref="view" :id="id" closable overlay :readonly="readonly" @close="emit('close')" @deleted="emit('close')" @edit="onEdit" />
+      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" @open-list="openList" />
     </div>
   </Teleport>
 </template>
 
 <style scoped>
 .xc {
-  position: fixed; z-index: 40; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; outline: 0;
-  padding: 4px 12px 8px; border-radius: var(--md-sys-shape-corner-large, 16px); border-top: 4px solid var(--c);
-  background: color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low)); color: var(--md-sys-color-on-surface);
-  box-shadow: var(--md-sys-elevation-3, 0 6px 18px rgb(0 0 0 / 0.35));
+  position: fixed; z-index: 40; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain;
+  /* a filter, not a box-shadow: the card is two layers of different widths, the shadow follows their outline */
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.35));
 }
 </style>

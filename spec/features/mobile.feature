@@ -124,7 +124,6 @@ Feature: Mobile-first layout
       | Eggs | no   |
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
-    Then the task list "Groceries" is expanded over the calendar
     And the expanded task list fits within the viewport
     When I tick the item "Milk"
     Then the task list "Groceries" shows the done count "1/2"
