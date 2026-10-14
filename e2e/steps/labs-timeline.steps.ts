@@ -6,9 +6,9 @@ import type { World } from './support/world.js';
 
 When('I open the timeline view', async function (this: World) {
   await this.page.goto('/timeline');
-  // `settled()` waits for a calendar view; here the axis itself and the first loaded item are the signal.
+  // `settled()` waits for a calendar view; here the axis itself and, when the calendar has entries, the first loaded one are the signal.
   await expect(this.page.getByTestId('timeline-now')).toBeVisible();
-  await expect(this.page.getByTestId('timeline-item').first()).toBeAttached();
+  if ((await this.api.remoteEvents()).length > 0) await expect(this.page.getByTestId('timeline-item').first()).toBeAttached();
 });
 
 /** True when the timeline runs top to bottom (phone). */
