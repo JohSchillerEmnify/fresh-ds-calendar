@@ -9,10 +9,10 @@ Feature: Saving my fine-tuned look as my own theme
     Given the calendar is empty
     And today is 2026-10-12
     And "jo@example.com" may use the calendar
-    And the seasons and holidays are off
 
   Scenario: I save my fine-tuned look as my own theme and it appears in the gallery and follows me to another device
     Given "jo@example.com" chose the theme "Neon"
+    And the seasons and holidays are off
     When I pick "Soft" for "Glow"
     And I save my look as my own theme named "Night"
     Then the theme "Night" is in use
@@ -24,10 +24,13 @@ Feature: Saving my fine-tuned look as my own theme
     And the theme "Night" is in use
 
   Scenario: A fine-tuned look with slider values and icon choices keeps them when saved as my theme
+    Given "jo@example.com" is signed in
+    And the seasons and holidays are off
     When I open the week view for 2026-10-12
     And I open the theme menu
     And I set the "Corner radius" slider to 4
     And I set the "Glow strength" slider to 70
+    And I pick "Tinted" for "Entries"
     And I set the "Entry tint" slider to 30
     And I choose "Compact" for the "Density" setting
     And I choose "Square" for the "Checkbox shape" setting

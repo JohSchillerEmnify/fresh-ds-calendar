@@ -117,6 +117,10 @@ When('{string} opens the Tasks view on another device', async function (this: Wo
   await this.page.goto('/tasks');
   await this.page.getByTestId('signin-google').click();
   await this.page.waitForURL((u) => u.pathname !== '/signin');
+  // the return to /tasks after the round trip is not guaranteed (sometimes the start view wins): switch by hand then
+  await expect(this.page.getByTestId('view-switch-tasks')).toBeVisible();
+  await this.page.waitForLoadState('networkidle');
+  if (new URL(this.page.url()).pathname !== '/tasks') await this.page.getByTestId('view-switch-tasks').click();
   await expect(this.page.getByTestId('tasks-view')).toBeVisible();
 });
 

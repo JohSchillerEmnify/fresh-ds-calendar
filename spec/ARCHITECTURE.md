@@ -921,9 +921,20 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
   fits) to 7 (one day as wide as the viewport), remembered per session in `sessionStorage` `cal.zoomMonth` (not a pref).
   - *Detail follows the cell size, not a mode* (`zoom.ts`, pure): the cell size is computed from the viewport and zoom (never
     measured per cell), and `detailAt(w, h)` turns its geometric mean `s` into weights that fade with smoothstep: dots out
-    85..120, title chips in 80..115, start times in 150..200, task lists growing from a chip to the full card (`TaskListCard`,
-    height by need, `allotHeights`) 170..230, mini day timeline (`ZoomTimeline`: untimed band with every task item as a
-    full card over a time grid, blocks as `ItemView` `block`) 200..260, which replaces the chips by crossfade. The grid covers only the whole hours the day's timed items span (`timeSpan`), blocks sit at their real top and duration height, overlaps use `packColumns` (lanes/cascade as the day view). It shows only where `realTimeFits`: the shortest item (at least 15 min) gets the minimum block height (25 px) at the grid's px/h; else the compact chips stay (a day's whole-hour span of items in the cell height, after the untimed band). Why a scoped class must not be `.tl`: it lands on the task list card's root `.tl` and made every card fill its cell behind later rows (owner: "lists shown behind everything"). Layers are
+    85..120, title chips in 80..115, start times in 153..157, task lists growing from a chip to the full card (`TaskListCard`,
+    height by need, `allotHeights`) 154..158, mini day timeline (`ZoomTimeline`: untimed band with every task item as a
+    full card over a time grid, blocks as `ItemView` `block`) 152.8..167.9 (`TIMELINE_REF`, the owner's 115 x 245 px cell; 2026-10-14), which replaces the chips by crossfade in every cell at once. The grid covers only the whole hours the day's timed items span (`timeSpan`), blocks sit at their real top and duration height, overlaps use `packColumns` (lanes/cascade as the day view). (The per-day `realTimeFits` gate of the first version is gone, see the next bullet.) Why a scoped class must not be `.tl`: it lands on the task list card's root `.tl` and made every card fill its cell behind later rows (owner: "lists shown behind everything"). Layers are
+  - **One switch for every cell (owner, 2026-10-14, two screenshots: "a weird mixture", some cells real times, some chips)**:
+    the per-day `realTimeFits` decision is dropped. Whether the cells show the time grid or the chips depends **only on the
+    zoom level**, the same for every visible cell, so the month never mixes the two. The switch comes earlier than
+    before: at the latest when about 3.5 day columns fit across a phone screen (the owner's second screenshot, a cell of
+    roughly 115 x 245 CSS px), on desktop at the same cell size. Items too short for the minimum block height get the
+    minimum height (25 px) and, when that overlaps a neighbour, their own lane through `packColumns`, exactly as in the
+    day view; they never keep a day on chips. **Shared hours per week row** (assumption, not owner-confirmed): all cells
+    of a week row use the same whole-hour span (earliest start to latest end of the row's timed items, at least 4 h), so
+    side-by-side days are comparable and one early event only stretches its own week. Untimed items stay in the band
+    above. **Why**: a per-day fit made neighbouring cells use different layouts at the same zoom; a single zoom
+    threshold is predictable and is what the owner asked for.
     mounted only while their weight is above 0.01. Cells further than half a viewport from the visible part draw only their number.
   - *Gestures* (`zoomGestures.ts`): pinch, Ctrl/Cmd+wheel and trackpad pinch (Ctrl+wheel) zoom about the gesture point
     (`panAfterZoom`); drag and wheel pan; the zoom buttons (`zoom-in`/`zoom-out`, in the header, step x1.25 about the

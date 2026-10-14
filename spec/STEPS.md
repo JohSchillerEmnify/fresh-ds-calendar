@@ -1084,6 +1084,10 @@ the zoom month cell of {date} has {int} entries
 the zoom month shows no start times
 I zoom the zoom month in until the start times show
 I zoom the zoom month in until the task list items show
+I zoom the zoom month in until three and a half day columns fit across the screen
+the zoom month cells of {date} and {date} both show the timeline
+no visible zoom month cell shows chips
+the timelines of {date} and {date} start at the same hour
 I zoom the zoom month in to the largest zoom
 the title of the task list {string} is on top in the zoom month
 {string} is drawn lower than {string} in the zoom month
@@ -1121,6 +1125,12 @@ the horizontal view shows the hour {time}
 I scroll the horizontal view sideways
 I tap the day label {date} in the horizontal view
 ```
+
+- Zoom switch (ARCHITECTURE "One switch for every cell"): "until three and a half day columns fit across the screen"
+  zooms in (Ctrl+wheel at the cell of the opened date) until a zoom month day cell's width is at most viewport width / 3.5
+  and waits for the gesture to settle. "both show the timeline": each cell contains a visible `zoom-timeline`. "no
+  visible zoom month cell shows chips": no cell intersecting the viewport shows its compact chip list (opacity > 0.5).
+  "start at the same hour": the first hour label (or `data-start-hour`) of both cells' `zoom-timeline` is equal.
 
 - Clock: `clock-arc` per event and per timed task list (`data-title`, `data-start`, `data-end` as HH:MM, `data-kind`
   `event|tasklist`), `clock-hand` (`data-time` HH:MM). "lists X without a time": a `clock-untimed` chip with that text (next to the dial).
@@ -1245,6 +1255,7 @@ the top bar shows no scene
 the settings show the theme {string}
 I set the seasons and holidays to {string}
 the seasons and holidays are off
+the seasons and holidays follow the calendar
 the seasons and holidays are set to {string}
 the advent timeline shows {int} lit candle(s)
 the Christmas tree lights are on
@@ -1335,6 +1346,7 @@ every option of the {string} setting shows a sample icon
   "Header only", "Header + colours"; `data-value` `off`, `header`, `all`) of the segmented button `theme-seasonal` in the
   "Seasons & holidays" section and waits for the save. "the seasons and holidays are set to X": that option has
   `aria-pressed` `true`. A new person has "Header + colours", so scenarios that want a plain look set "Off" first.
+  "the seasons and holidays follow the calendar" (Given): the same with `seasonal: 'all'`, the default of a new person, for a scenario whose Background turned them off;
   "the seasons and holidays are off" (Given, for Backgrounds): `PATCH /api/prefs/theme { seasonal: 'off' }` directly, without the
   theme menu and before or after the page loads (a later load reads it).
 - "the advent timeline shows N lit candles": the top bar scene has four `advent-candle` elements (`data-testid`, also

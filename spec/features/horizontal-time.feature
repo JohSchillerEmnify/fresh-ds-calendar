@@ -77,9 +77,15 @@ Feature: Labs: the horizontal view
 
   Scenario: A task list is as long as it lasts and opens like in the week view
     Given the calendar contains a task list "Groceries" on 2026-10-14 at 08:00 for 120 minutes with items:
-      | item  | done |
-      | Milk  | no   |
-      | Bread | no   |
+      | item   | done |
+      | Milk   | no   |
+      | Bread  | no   |
+      | Eggs   | no   |
+      | Butter | no   |
+      | Cheese | no   |
+      | Apples | no   |
+      | Coffee | no   |
+      | Tea    | no   |
     When I open the horizontal view for 2026-10-14
     And I zoom the horizontal view in time with Ctrl+wheel
     Then in the horizontal view "Groceries" is about 2 times as wide as "Dentist"
