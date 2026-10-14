@@ -57,6 +57,7 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation 'androidx.work:work-runtime:2.12.0'
+    implementation 'androidx.browser:browser:1.9.0' // Custom Tab for the Google sign-in
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     testImplementation 'org.json:json:20250517' // the android.jar's org.json is a stub on the JVM

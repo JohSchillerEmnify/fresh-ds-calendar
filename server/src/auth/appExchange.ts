@@ -34,6 +34,12 @@ export class ExchangeStore {
     return this.now() - e.at <= CODE_TTL_MS ? { sessionId: e.sessionId, redirect: e.redirect } : null;
   }
 
+  /** Whether a code is still redeemable, without using it up (the fallback page shows its button only for a live code). */
+  has(code: string | undefined): boolean {
+    const e = code ? this.codes.get(code) : undefined;
+    return !!e && this.now() - e.at <= CODE_TTL_MS;
+  }
+
   clear(): void {
     this.codes.clear();
   }

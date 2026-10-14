@@ -145,9 +145,10 @@ async function appSignIn(world: World, email: string) {
   };
   const consent = await step('/api/auth/google/start?app=1');
   const callback = await step(consent);
-  const res = await world.request.get(callback, { maxRedirects: 0, failOnStatusCode: false });
-  world.appLink = /id="open-app" href="([^"]+)"/.exec(await res.text())?.[1];
-  world.appCode = world.appLink ? new URL(world.appLink).searchParams.get('code') ?? undefined : undefined;
+  // the callback answers 302 to a Chrome intent URL for the app; its code is what the deep link carries
+  const intent = await step(callback);
+  world.appCode = /^intent:\/\/auth\?code=([A-Za-z0-9_-]+)#Intent;/.exec(intent)?.[1];
+  world.appLink = world.appCode ? `lan.mordor.calendar://auth?code=${world.appCode}` : undefined;
 }
 
 /** What the deep link does: the app's WebView loads the exchange URL. */

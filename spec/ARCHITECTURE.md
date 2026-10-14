@@ -1818,14 +1818,23 @@ browser does not change.
     **deep link + one-time code**:
     1. `ServerChoicePlugin.shouldOverrideLoad` catches the WebView's navigation to `<server>/api/auth/google/start` (all
        three web entry points: sign-in page, re-auth banner, grant calendar) and opens `<server>/api/auth/google/start?app=1`
-       with `ACTION_VIEW` (`AppSignIn.browserUrl`). No web change, no extra plugin.
+       in a **Custom Tab** (`androidx.browser`, `ACTION_VIEW` only as fallback; `AppSignIn.browserUrl`). No web change, no extra plugin.
     2. The server remembers `app` with the `state`; the callback (state cookie lives in Chrome, so the check holds) creates the
        session, but instead of the cookie it mints a 128-bit, single-use, 60 s code (`auth/appExchange.ts`, in memory) and
-       answers an HTML page that opens `lan.mordor.calendar://auth?code=...`.
+       answers an immediate **302 to a Chrome `intent://` URL** (`appIntentUrl`: `scheme` + `package` pinned to the app,
+       `S.browser_fallback_url` = `/api/auth/app-open?code=...`, a page with the script launch and the `#open-app` button).
     3. `MainActivity` declares an intent-filter for that scheme/host (`singleTask`, so `onNewIntent`/`onCreate` get it) and
        loads `<server>/api/auth/app-exchange?code=...` in the WebView (`AppSignIn.exchangeUrl` accepts only a well-formed code
        of the chosen server); the server sets the normal session cookie and redirects to `/`. An unknown or used code shows
        a friendly "sign in again" page.
+    **App sign-in hang (owner, 2026-10-14: "opens the new page, I have to tap the address bar and press Enter").** Stage
+    unknown (the owner could not say). Evidence: Chrome documents that it does not launch an app for a script-started
+    navigation without a user gesture (developer.chrome.com/docs/android/intents), which is exactly the old callback page
+    (`location.replace` on load): it sat there. A reload of the callback cannot be what helped (state and code are single-use,
+    it would answer "Invalid state"), so the owner's reload is likelier at the start page; that stage is not provable
+    without a device, hence the `auth_flow` lines (start -> callback -> fallback? -> exchange): the first missing line is
+    where it stops. Fix: Custom Tab for the start, and a redirect (not script) to the intent URL, which Chrome follows after
+    the user-initiated consent tap; the fallback page keeps a tap-able button (a gesture). Not verified on a device.
     Alternatives weighed: `@capacitor/browser` (Custom Tab; needs a new dependency, JS bridge call from every sign-in entry
     point and a Gradle sync, for the same effect as an `ACTION_VIEW`; Custom Tabs would only add the in-app look); a Custom
     Tab/`AppAuth` client with a native redirect URI (Google's Android OAuth client type would need a second client and token
@@ -2036,6 +2045,7 @@ no response and no retry changed. Lines are one JSON object each on stdout (`doc
 | `startup` | once per boot | `version`, `provider`, `node`, `pid` |
 | `google_error` | a Google API call failed (after the Google client's own retries) | `subHash`, `op` (`events.list`, `calendarList.list` ...), `status`, `reason` (Google's reason), `code` (network code such as `ETIMEDOUT`, `ECONNRESET`, `ENOTFOUND`, `TIMEOUT`; only when there was no HTTP status), `retry` (attempt the client library reached), `durationMs` |
 | `api_unavailable` | the server sent an `/api` response with status >= 500 | `route` (`GET /api/items`, the route pattern), `status`, `durationMs`, `cause` (`429:rateLimitExceeded`, `503`, `ETIMEDOUT`, or the error class name) |
+| `auth_flow` | a step of the app's Google sign-in (see "App sign-in hang" below) | `step` (`start`, `callback`, `fallback`, `exchange`, `exchange_failed`), `app`, `subHash` (callback only), `durationMs` (handler time; start, callback only) |
 | `client_sync_error` | the web app entered the banner state (`POST /api/diag/sync-error`, API.md "Diagnostics") | `subHash`, `kind`, `status`, `task`, `online`, `resumed`, `app`, `ageSec` |
 
 Example reading: `google_error` followed by `api_unavailable` with the same `cause` = Google; `client_sync_error` with
