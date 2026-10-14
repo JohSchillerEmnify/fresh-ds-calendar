@@ -31,6 +31,8 @@ final class WeekFetcher {
     static Status fetchAndStore(Context context, WidgetStore store, LocalDate today) {
         LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1);
         String base = ServerConfig.baseUrl(context);
+        // no server chosen yet: nothing to call, the widget keeps asking to open the app
+        if (base == null) return Status.ERROR;
         HttpURLConnection c = null;
         try {
             c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + monday.plusDays(7)).openConnection();
@@ -49,6 +51,8 @@ final class WeekFetcher {
             keepCookies(base, c.getHeaderFields().get("Set-Cookie"));
             JSONObject res = new JSONObject(read(c.getInputStream()));
             JSONObject week = new JSONObject().put("weekStart", monday.toString()).put("items", res.getJSONArray("items"));
+            // the server was changed while this call was running: its answer belongs to the old one
+            if (!base.equals(ServerConfig.baseUrl(context))) return Status.ERROR;
             store.saveFetched(week.toString(), System.currentTimeMillis());
             return Status.OK;
         } catch (Exception e) {

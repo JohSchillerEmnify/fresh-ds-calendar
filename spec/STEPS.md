@@ -844,6 +844,13 @@ they are told Google Calendar access is missing
 the settings offer to grant calendar access
 they grant calendar access
 they are no longer told Google Calendar access is missing
+{string} signs in with Google from the app
+{string} signed in with Google from the app
+the system browser is not signed in
+the app is handed a one-time code
+the app exchanges the code
+the app exchanges the code again
+the app is asked to sign in again
 ```
 
 - Google is the mock provider with one calendar per person (`TEST_MODE`); "signs in with Google" completes the OAuth
@@ -1051,6 +1058,11 @@ every option of the {string} setting shows a sample icon
 - "glows": the event chip has a visible glow (a non-`none` `box-shadow` or `filter: drop-shadow` in the item colour).
 - "drawn as an outline": transparent or surface fill with a 1.5 px or wider border in the item colour.
 - "every option ... shows a sample": each option of that setting contains a sample event chip drawn in that style.
+- App sign-in (`signin.feature`): the "system browser" is the test's own cookie-keeping HTTP client (`request`), which runs
+  `/api/auth/google/start?app=1` -> fake consent -> callback; the page is the app's WebView. "is handed a one-time code" =
+  the callback answer holds an `#open-app` link `lan.mordor.calendar://auth?code=...`; "not signed in" = that client got no
+  `cal_session` cookie. "exchanges the code" = the page opens `/api/auth/app-exchange?code=...` (the deep link's effect);
+  "is asked to sign in again" = that load answered the "expired or already used" page (HTTP 400, link to `/signin`).
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.
 - "the theme X is in use": `<html data-theme-name>` equals X (with Header + colours, the calendar's theme for today).

@@ -7,7 +7,10 @@ const showIosInstall = isIos && !isStandalone();
 const installing = ref(false);
 /** Starts the APK download (`GET /app.apk`, served by the server, excluded from the service worker's fallback). */
 function downloadApk(): void { location.href = '/app.apk'; }
-import { androidAppLabelKey, isNativeApp } from '@/native/app';
+// inside the Android app: the server it runs on (null until the plugin answers)
+const nativeHost = ref<string | null>(null);
+if (isNativeApp()) void nativeServerHost().then((host) => { nativeHost.value = host; });
+import { androidAppLabelKey, changeNativeServer, isNativeApp, nativeServerHost } from '@/native/app';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
@@ -284,6 +287,7 @@ async function resetDemo() {
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">{{ t('settings.account.resetDemo.label') }}</span><span class="sub">{{ t('settings.account.resetDemo.hint') }}</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button></div>
           <div v-if="showIosInstall" class="row"><div class="grow"><span class="lab">{{ t('settings.account.installApp.label') }}</span><span class="sub">{{ t('settings.account.installApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-install-app" @click="installing = true">{{ t('settings.account.installApp.button') }}</Button></div>
           <div v-if="!isIos" class="row"><div class="grow"><span class="lab">{{ t(androidAppLabelKey(isNativeApp())) }}</span><span class="sub">{{ t('settings.account.androidApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-android-app" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button></div>
+          <div v-if="isNativeApp() && nativeHost" class="row"><div class="grow"><span class="lab" data-testid="settings-server-label">{{ t('settings.account.server.label', { host: nativeHost }) }}</span><span class="sub">{{ t('settings.account.server.hint') }}</span></div><Button variant="outlined" data-testid="settings-server-change" @click="changeNativeServer()">{{ t('settings.account.server.change') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.versionCorner.label') }}</span><span class="sub">{{ t('settings.account.versionCorner.hint') }}</span></div><Switch :model-value="labs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>

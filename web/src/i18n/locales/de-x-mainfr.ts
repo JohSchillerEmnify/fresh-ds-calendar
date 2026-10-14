@@ -76,7 +76,8 @@ export default {
       supportAlways: 'Jedes Mal',
     },
     account: {
-      androidApp: { label: 'Android-App', updateLabel: 'App aktualisiern', hint: 'Den Kalender als Android-App mit Wochen-Widget, nur im Heim-WLAN', download: 'Runnerladen' },
+      androidApp: { label: 'Android-App', updateLabel: 'App aktualisiern', hint: 'Den Kalender als Android-App mit Wochen-Widget', download: 'Runnerladen' },
+      server: { label: 'Server: {host}', hint: 'Welcher Kalenderserver die App nimmt', change: 'Ändern' },
       installApp: { label: 'App installiern', hint: 'Den Kalender affn Home-Bildschirm lekn', button: 'Anleidung', title: 'Kalender installiern', step1: 'Tipp auf den Teiln-Knopf', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügn', close: 'Bassd' },
       signOut: 'Abmelden',
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehld. Erlaub ihn un setz auf Googles Bildschirm des Häkla beim Kalender.', grant: 'Kalenderzugriff erlaubn' },

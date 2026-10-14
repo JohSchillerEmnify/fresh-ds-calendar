@@ -2,7 +2,7 @@
 # Public instance on the netcup VPS (A-67). Run from the laptop clone (sauron does not build for the VPS):
 #   scripts/vps.sh harden   SSH keys only, fail2ban (once; keep another session open the first time)
 #   scripts/vps.sh env      write /opt/calendar/.env (asks for the Google client and allowed emails)
-#   scripts/vps.sh deploy   build the checked-out commit here, ship it and (re)start
+#   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
 #   scripts/vps.sh logs     follow the app and Caddy logs
 # The VPS (1 CPU, 1 GB) never builds. ufw, Docker, swap and unattended-upgrades are already set up.
 set -euo pipefail
@@ -38,6 +38,19 @@ case "${1:-}" in
     docker build -q -t calendar:latest --build-arg "APP_VERSION=$version" "$here"
     docker save calendar:latest | gzip -1 | on_vps 'gunzip | docker load'
     on_vps 'cd /opt/calendar && docker compose up -d --remove-orphans && docker image prune -f >/dev/null && docker compose ps'
+    # the APK is not part of the image: it goes into the data volume (/data/downloads/app.apk, served as /app.apk)
+    apk="${CAL_APK:-$here/deploy/data/downloads/app.apk}"
+    if [[ -f "$apk" ]]; then
+      scp "${OPTS[@]}" -q "$apk" "$HOST:/opt/calendar/app.apk.new"
+      on_vps 'set -e; cd /opt/calendar && chmod 644 app.apk.new
+        docker compose exec -T app mkdir -p /data/downloads
+        docker compose cp app.apk.new app:/data/downloads/app.apk.part
+        docker compose exec -T app mv /data/downloads/app.apk.part /data/downloads/app.apk
+        rm -f app.apk.new'
+      echo "APK: $(sha256sum "$apk" | cut -c1-16)... -> https://cal.example.org/app.apk"
+    else
+      echo "no APK at $apk: /app.apk on the VPS stays as it is (scripts/android-build.sh builds one)" >&2
+    fi
     ;;
   logs)
     on_vps 'cd /opt/calendar && docker compose logs -f --tail=100'

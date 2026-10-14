@@ -22,23 +22,25 @@ const STATE_TTL_MS = 10 * 60_000;
 
 /** Single-use, short-lived `state` values for the OAuth redirect (CSRF protection together with the state cookie). */
 export class StateStore {
-  private states = new Map<string, number>();
+  private states = new Map<string, { at: number; app: boolean }>();
 
   constructor(private readonly now: () => number) {}
 
-  create(): string {
+  /** Issues a state; `app` remembers that the round trip belongs to the Android app (its session goes out by exchange code). */
+  create(app = false): string {
     const state = randomBytes(16).toString('hex');
     const t = this.now();
-    for (const [s, at] of this.states) if (t - at > STATE_TTL_MS) this.states.delete(s);
+    for (const [s, e] of this.states) if (t - e.at > STATE_TTL_MS) this.states.delete(s);
     if (this.states.size > 50) this.states.delete(this.states.keys().next().value!);
-    this.states.set(state, t);
+    this.states.set(state, { at: t, app });
     return state;
   }
 
-  consume(state: string): boolean {
-    const at = this.states.get(state);
+  /** Redeems a state: `{ app }` the first time within the TTL, null for an unknown, used or expired one. */
+  consume(state: string): { app: boolean } | null {
+    const e = this.states.get(state);
     this.states.delete(state);
-    return at !== undefined && this.now() - at <= STATE_TTL_MS;
+    return e !== undefined && this.now() - e.at <= STATE_TTL_MS ? { app: e.app } : null;
   }
 
   clear(): void {

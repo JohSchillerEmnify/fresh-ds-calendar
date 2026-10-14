@@ -134,3 +134,56 @@ When('they grant calendar access', async function (this: World) {
 Then('they are no longer told Google Calendar access is missing', async function (this: World) {
   await expect(this.page.getByTestId('calendar-access-banner')).toHaveCount(0);
 });
+
+/** The OAuth round trip as the system browser runs it for the app (`app=1`): the test's own HTTP client with its own cookie jar. */
+async function appSignIn(world: World, email: string) {
+  await world.api.chooseGoogleAccount(email);
+  const step = async (url: string) => {
+    const res = await world.request.get(url, { maxRedirects: 0, failOnStatusCode: false });
+    expect(res.status()).toBe(302);
+    return res.headers()['location']!;
+  };
+  const consent = await step('/api/auth/google/start?app=1');
+  const callback = await step(consent);
+  const res = await world.request.get(callback, { maxRedirects: 0, failOnStatusCode: false });
+  world.appLink = /id="open-app" href="([^"]+)"/.exec(await res.text())?.[1];
+  world.appCode = world.appLink ? new URL(world.appLink).searchParams.get('code') ?? undefined : undefined;
+}
+
+/** What the deep link does: the app's WebView loads the exchange URL. */
+async function appExchange(world: World) {
+  const res = await world.page.goto(`/api/auth/app-exchange?code=${world.appCode}`);
+  world.appExchange = { status: res!.status(), text: await world.page.content() };
+}
+
+When('{string} signs in with Google from the app', async function (this: World, email: string) {
+  this.person = email;
+  await appSignIn(this, email);
+});
+
+Given('{string} signed in with Google from the app', async function (this: World, email: string) {
+  this.person = email;
+  await appSignIn(this, email);
+});
+
+Then('the system browser is not signed in', async function (this: World) {
+  const cookies = (await this.request.storageState()).cookies;
+  expect(cookies.map((c) => c.name)).not.toContain('cal_session');
+});
+
+Then('the app is handed a one-time code', async function (this: World) {
+  expect(this.appLink).toMatch(/^lan\.mordor\.calendar:\/\/auth\?code=[A-Za-z0-9_-]{22,}$/);
+});
+
+When('the app exchanges the code', async function (this: World) {
+  await appExchange(this);
+});
+
+When('the app exchanges the code again', async function (this: World) {
+  await appExchange(this);
+});
+
+Then('the app is asked to sign in again', async function (this: World) {
+  expect(this.appExchange?.status).toBe(400);
+  expect(this.appExchange?.text).toContain('href="/signin"');
+});

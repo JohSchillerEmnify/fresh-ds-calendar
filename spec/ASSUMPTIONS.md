@@ -591,6 +591,24 @@ spec files are named.
 - **A-221 Download button in the app** (my choice): "Update the app" hands `/app.apk` to the system browser
   (`ACTION_VIEW`) instead of using `DownloadManager`: no permission, no notification channel code, and Chrome shows progress
   and the install prompt. Only URLs of the calendar's own host are handed over. The label switch is by `window.Capacitor`.
+- **A-222 One app, server selectable** (owner, 2026-10-14): the APK works with `https://cal.example.org` (listed first,
+  "everywhere (internet)", recommended) and `http://cal.mordor.lan` ("home network only"); the choice is asked once and
+  kept in SharedPreferences. Only these two are accepted (no free URL field).
+- **A-223 Run-time `server.url`** (my choice): the chosen origin is `server.url` of a config built in `MainActivity`, not
+  `allowNavigation` from a local page, because Capacitor injects its JavaScript bridge only for the `appUrl` origin; with
+  `allowNavigation` the plugins would not exist on the remote origins. The WebView restarts (`recreate()`) on a switch.
+- **A-224 Local pages by links** (my choice): the chooser and offline pages act through links to
+  `https://localhost/__server/<action>` intercepted by the `ServerChoice` plugin, not through the plugin API, as they have no
+  JavaScript bridge. The offline page also offers "Choose another calendar".
+- **A-225 Switching clears the widget** (owner: "clear the widget's cached data and snapshot and refresh"): cached week,
+  snapshot and fetch state are dropped on every change; each server keeps its own cookie in the WebView jar, so switching
+  back may or may not need a sign-in, depending on the session's age.
+- **A-226 Google sign-in in the app: open risk** (my note, not decided): Google blocks OAuth in embedded WebViews, so signing
+  in to `cal.example.org` inside the app may be refused. Options if it is: a Custom Tab sign-in that hands the session to
+  the app (server and app change), or a server-side one-time login link. Not built; to be tested on a phone first.
+- **A-227 APK on the VPS** (my choice): `scripts/vps.sh deploy` copies sauron's `deploy/data/downloads/app.apk` into the
+  running app container's `/data/downloads/` (`docker compose cp`), because `/data` there is a named volume; no APK on
+  sauron means the VPS's file stays. Version 1.1 (versionCode 2) for this change.
 
 ## Missing calendar permission (owner report, 2026-10-14)
 

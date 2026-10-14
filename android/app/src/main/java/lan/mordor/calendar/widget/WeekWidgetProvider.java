@@ -87,6 +87,14 @@ public class WeekWidgetProvider extends AppWidgetProvider {
         if (System.currentTimeMillis() - new WidgetStore(context).fetchedAtMillis() > MIN_FETCH_GAP_MS) enqueueFetch(context);
     }
 
+    /** Called when the chosen server changed or was cleared: the cached week and snapshot are the old server's, so they go. */
+    static void onServerChanged(Context context) {
+        new WidgetStore(context).clearAll();
+        renderAll(context);
+        // with no server chosen the fetch finds nothing to call and the widget says to open the app
+        enqueueFetch(context);
+    }
+
     /** The refresh icon's tap target. */
     static PendingIntent refreshIntent(Context context) {
         Intent i = new Intent(context, WeekWidgetProvider.class).setAction(ACTION_REFRESH);
