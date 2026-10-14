@@ -193,6 +193,34 @@ Feature: A task list card grows in place over the calendar
     Then the task list "Laundry" is expanded
     And the task list "Groceries" is collapsed
 
+  @mobile @expand-zoom
+  Scenario: Zooming with the grown card open keeps one card, on its time block
+    Given the calendar contains an event "Abend zu zweit" on 2026-10-14 from 09:00 to 10:00
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    And I zoom the time grid in
+    Then the task list "Groceries" is expanded over the calendar
+    And the real time block of the expanded task list matches the card "Groceries"
+    When I zoom the time grid out
+    Then the real time block of the expanded task list matches the card "Groceries"
+
+  @expand-zoom
+  Scenario: A card that already shows everything opens the list directly
+    Given the calendar contains a task list "Short" on 2026-10-14 at 13:00 for 120 minutes with items:
+      | item | done |
+      | Tea  | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Short"
+    Then the task list "Short" opens as the list sheet
+    And no task list is expanded
+
+  @expand-zoom
+  Scenario: A card as wide as its column whose items are cut only grows taller
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+    And the expanded task list has the left and width of the card "Groceries"
+
   @mobile
   Scenario: The add button never covers the grown task list
     When I open the day view for 2026-10-14

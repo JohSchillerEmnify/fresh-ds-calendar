@@ -1599,6 +1599,25 @@ actually longer". Owner decisions (final):
   overflow (`overflow-x: hidden`, hidden bar, words wrap). A tap on the grown card's title row collapses it, anywhere else
   opens the sheet. A time block's card is teleported into the time grid's own `.grid` (absolute, content coordinates) so the browser
   scrolls it natively, without lag; other cards stay a fixed body overlay re-placed on scroll.
+- **Fix 2026-10-14 (2) (owner: "breaks when you zoom", "duplicate", "grow only if there is not enough space")**:
+  - *Zoom bug (root cause)*: the time-grid copy was placed from a pixel snapshot of the collapsed card. A zoom commit lays
+    the blocks out again at the new hour height, but nothing re-placed the grown copy, so it stayed at the old top and height
+    while the real card moved: two cards on screen. **To Be**: a time block's grown card is placed in **time units**, like
+    every other block: its top and the real layer's height come from the list's start and duration × the hour height
+    (`--hh`), so it follows the live pinch preview (the grid's transform) and every zoom commit by itself, and stays exactly on
+    its collapsed card. Only the parts that depend on the screen (grow direction and max height inside the visible scroll
+    area) are measured, and they are re-measured when the hour height changes.
+  - *Same rendering as the other cards*: still `TaskListCard` (`grown`) with the two layers (owner: keep them), but laid out
+    and scaled the way an inline calendar block is: same padding, the header row never wider than the item rows, the real
+    layer exactly the list's time block at the current zoom. Long words hyphenate (`hyphens: auto` with the document
+    language) instead of breaking at an arbitrary letter.
+  - *Grow only what's needed* (owner's choice): the card goes to the full day-column width only when its own slot cuts the
+    title or items; it grows taller only when items are cut. A card that already shows its whole title and every open item
+    does not grow at all: a tap opens the list sheet directly (as the second tap would).
+  - **Why**: the pixel snapshot (re-placed on events) was the source of the duplicate; re-placing on another event (hour
+    height watch) would fix this one trigger but stay a separate positioning system that can drift again. Laying the copy out
+    in the grid's own time coordinates makes it scale like every other block by construction (owner: "it can't be a
+    completely separate component, it should be the same scaling-wise as any other inline calendar event").
 
 **Components.** `TaskListCard` owns the toggle (`aria-expanded` on the collapsed card, `ui.toggleCard`, collapse on unmount; a
 swipe preview copy never grows). It mounts `ExpandedCard.vue` (lazy chunk), a `position: fixed` wrapper teleported to the
