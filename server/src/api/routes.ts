@@ -216,7 +216,13 @@ export function apiRoutes(ctx: Ctx): Hono {
     const { from, to } = range(c, 100);
     const also = alsoRange(c, 100);
     const ids = c.req.query('calendarIds')?.split(',').map((s) => s.trim()).filter(Boolean);
-    return c.json(await cal(c).items(from, to, ids, also));
+    const res = await cal(c).items(from, to, ids, also);
+    // the widget cannot filter by the person's hidden calendars itself, so it asks the server to
+    if (c.req.query('excludeHidden') === '1') {
+      const hidden = new Set(ctx.prefs.hiddenCalendars(person(c)));
+      res.items = res.items.filter((i) => !hidden.has(i.calendarId));
+    }
+    return c.json(res);
   });
 
   r.get('/summary', async (c) => {

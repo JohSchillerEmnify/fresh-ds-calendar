@@ -21,8 +21,22 @@ final class WidgetStore {
         prefs = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    void saveSnapshot(String json) {
+    /** Stores the app's snapshot; returns false (and writes nothing) when it equals the stored one apart from its stamp. */
+    boolean saveSnapshot(String json) {
+        String old = prefs.getString("snapshot", null);
+        if (old != null && ChangeKey.withoutStamp(old).equals(ChangeKey.withoutStamp(json))) return false;
         prefs.edit().putString("snapshot", json).putLong("snapshotAt", System.currentTimeMillis()).apply();
+        return true;
+    }
+
+    /** The stored snapshot text, or null. */
+    String rawSnapshot() {
+        return prefs.getString("snapshot", null);
+    }
+
+    /** The stored fetched week text, or null. */
+    String rawFetched() {
+        return prefs.getString("fetched", null);
     }
 
     long snapshotAtMillis() {

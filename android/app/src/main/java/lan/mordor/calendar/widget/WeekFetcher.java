@@ -23,7 +23,8 @@ final class WeekFetcher {
     enum Status { OK, SIGN_IN, ERROR }
 
     /**
-     * Fetches {@code GET /api/items} for the week of {@code today} and stores the result.
+     * Fetches {@code GET /api/items} for the week of {@code today} and stores the result. {@code excludeHidden=1} makes the
+     * server leave out the calendars the person switched off in the app (that state lives on the server, not here).
      *
      * @return OK (stored), SIGN_IN (HTTP 401: session expired or never created; stored as auth state) or ERROR
      *     (offline, server down: the previous data stays)
@@ -35,7 +36,7 @@ final class WeekFetcher {
         if (base == null) return Status.ERROR;
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + monday.plusDays(7)).openConnection();
+            c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + monday.plusDays(7) + "&excludeHidden=1").openConnection();
             c.setConnectTimeout(10_000);
             c.setReadTimeout(15_000);
             c.setRequestProperty("Accept", "application/json");

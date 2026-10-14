@@ -28,6 +28,8 @@ public class WeekWidgetProvider extends AppWidgetProvider {
     /** The app pushes a snapshot with every sync (every 30 s while open); the widget fetches at most this often because of it,
      * so a change made in the app shows on the widget within about a minute (the fetch is the widget's data, see pickData). */
     private static final long MIN_FETCH_GAP_MS = 30_000;
+    /** Same, when the pushed snapshot did not change. */
+    private static final long UNCHANGED_FETCH_GAP_MS = 5 * 60_000;
 
     @Override
     public void onEnabled(Context context) {
@@ -43,7 +45,7 @@ public class WeekWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-        for (int id : ids) WidgetRenderer.render(context, manager, id);
+        for (int id : ids) WidgetRenderer.render(context, manager, id, true); // the system may have dropped the views
         enqueueFetch(context);
     }
 
@@ -81,10 +83,14 @@ public class WeekWidgetProvider extends AppWidgetProvider {
                 .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build());
     }
 
-    /** Called when the app wrote a new snapshot: redraw now, fetch only when the last fetch is not very recent. */
-    static void onSnapshot(Context context) {
-        renderAll(context);
-        if (System.currentTimeMillis() - new WidgetStore(context).fetchedAtMillis() > MIN_FETCH_GAP_MS) enqueueFetch(context);
+    /**
+     * Called when the app pushed a snapshot. A changed one redraws now and fetches unless the last fetch is very recent; an
+     * unchanged one redraws nothing and fetches only when the last fetch is old (each fetch can redraw the footer time).
+     */
+    static void onSnapshot(Context context, boolean changed) {
+        if (changed) renderAll(context);
+        long gap = changed ? MIN_FETCH_GAP_MS : UNCHANGED_FETCH_GAP_MS;
+        if (System.currentTimeMillis() - new WidgetStore(context).fetchedAtMillis() > gap) enqueueFetch(context);
     }
 
     /** Called when the chosen server changed or was cleared: the cached week and snapshot are the old server's, so they go. */

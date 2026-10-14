@@ -20,8 +20,8 @@ public class WidgetBridgePlugin extends Plugin {
             call.reject("json missing or too large");
             return;
         }
-        new WidgetStore(getContext()).saveSnapshot(json);
-        WeekWidgetProvider.onSnapshot(getContext());
+        // an unchanged snapshot (the app pushes after every sync) must not redraw the widget: that flashes
+        WeekWidgetProvider.onSnapshot(getContext(), new WidgetStore(getContext()).saveSnapshot(json));
         call.resolve(new JSObject());
     }
 }

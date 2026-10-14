@@ -16,6 +16,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import lan.mordor.calendar.MainActivity;
 import lan.mordor.calendar.R;
 import org.json.JSONObject;
@@ -26,9 +28,32 @@ final class WidgetRenderer {
 
     private WidgetRenderer() {}
 
-    /** Renders and pushes one widget instance, sized by its current options. */
+    /** The content key last pushed per widget instance (this process only); an unchanged widget is not pushed again. */
+    private static final Map<Integer, String> LAST = new HashMap<>();
+
+    /** Renders and pushes one widget instance, sized by its current options, unless nothing it shows has changed. */
     static void render(Context context, AppWidgetManager manager, int widgetId) {
-        manager.updateAppWidget(widgetId, build(context, manager.getAppWidgetOptions(widgetId), LocalDate.now()));
+        render(context, manager, widgetId, false);
+    }
+
+    /**
+     * Renders and pushes one widget instance. A push replaces the bitmap and the launcher cross-fades it, so it is skipped
+     * when the content key (data, auth, size, theme mode, today and the minute shown) equals the last pushed one.
+     *
+     * @param force push even when unchanged (the system asked for an update and may have lost the views)
+     */
+    static void render(Context context, AppWidgetManager manager, int widgetId, boolean force) {
+        Bundle options = manager.getAppWidgetOptions(widgetId);
+        WidgetStore store = new WidgetStore(context);
+        LocalTime now = LocalTime.now();
+        String key = ChangeKey.of(ChangeKey.withoutStamp(store.rawSnapshot()), store.rawFetched(), store.auth(), store.fetchedAtMillis() / 60_000,
+                store.snapshotAtMillis() / 60_000, LocalDate.now(), now.getHour() * 60 + now.getMinute(), widthDp(context, options), heightDp(context, options),
+                context.getResources().getConfiguration().uiMode, context.getResources().getConfiguration().orientation);
+        synchronized (LAST) {
+            if (!force && key.equals(LAST.get(widgetId))) return;
+            LAST.put(widgetId, key);
+        }
+        manager.updateAppWidget(widgetId, build(context, options, LocalDate.now()));
     }
 
     static RemoteViews build(Context context, Bundle options, LocalDate today) {

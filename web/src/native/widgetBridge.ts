@@ -25,6 +25,8 @@ const ITEMS_MAX_AGE_MS = 10 * 60_000;
 
 let cached: { weekStart: string; at: number; items: CalendarItem[] } | null = null;
 let running: Promise<void> | null = null;
+/** The last snapshot handed over, without its `generatedAt` stamp: an unchanged snapshot is not pushed again (the launcher cross-fades every redraw, which flashes). */
+let lastPushed: string | null = null;
 
 export { isNativeApp } from './app';
 
@@ -55,11 +57,17 @@ async function push(): Promise<void> {
     const res = await api.items(weekStart, toIsoDate(addDays(monday, 7)));
     cached = { weekStart, at: Date.now(), items: res.items };
   }
+  // the hidden calendars come from the server; without them the widget would show calendars the person switched off
+  const calendars = useCalendarsStore();
+  if (!calendars.list.length) await calendars.load();
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
     language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden,
   });
+  const content = JSON.stringify({ ...snapshot, generatedAt: '' });
+  if (content === lastPushed) return;
   await plugin.setSnapshot({ json: JSON.stringify(snapshot) });
+  lastPushed = content;
 }
 
 /** Called when a sync has finished and when the app starts: writes a fresh snapshot (coalesced; failures are ignored). */
