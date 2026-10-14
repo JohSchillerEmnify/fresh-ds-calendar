@@ -1490,8 +1490,32 @@ browser does not change.
     `WeekWidgetProvider.onServerChanged` drops the cached week, the snapshot and the fetch state, redraws and fetches
     again; a fetch still running for the old server discards its answer. `/day/<date>` and `/week/<date>` from the widget
     open on the stored server (`MainActivity.openPathFrom`); with no server chosen they are ignored.
-  - **Known risk: Google sign-in in a WebView.** `cal.example.org` signs in with Google (`PROVIDER=google`), and Google
-    refuses OAuth in embedded WebViews (`disallowed_useragent`). Not handled here (see A-226).
+  - **Google sign-in (owner bug, 2026-10-14: "invalid state").** Cause: Capacitor opens every navigation to a host other
+    than the app's own in the system browser (`Bridge.launchIntent` -> `ACTION_VIEW`; `@capacitor/android` 8.5.3
+    `BridgeWebViewClient.shouldOverrideUrlLoading`, which also sees server redirects). So `/api/auth/google/start` ran in the
+    WebView (state cookie set there), the redirect to `accounts.google.com` left for Chrome, and the callback landed in
+    Chrome without the `cal_oauth_state` cookie -> `Invalid state`; the session cookie would have ended up in Chrome too.
+    Letting the WebView open Google is no fix: Google refuses OAuth in embedded WebViews (`disallowed_useragent`).
+    Design (the standard native-app pattern): the whole round trip runs in the **system browser**, the session comes back by
+    **deep link + one-time code**:
+    1. `ServerChoicePlugin.shouldOverrideLoad` catches the WebView's navigation to `<server>/api/auth/google/start` (all
+       three web entry points: sign-in page, re-auth banner, grant calendar) and opens `<server>/api/auth/google/start?app=1`
+       with `ACTION_VIEW` (`AppSignIn.browserUrl`). No web change, no extra plugin.
+    2. The server remembers `app` with the `state`; the callback (state cookie lives in Chrome, so the check holds) creates the
+       session, but instead of the cookie it mints a 128-bit, single-use, 60 s code (`auth/appExchange.ts`, in memory) and
+       answers an HTML page that opens `lan.mordor.calendar://auth?code=...`.
+    3. `MainActivity` declares an intent-filter for that scheme/host (`singleTask`, so `onNewIntent`/`onCreate` get it) and
+       loads `<server>/api/auth/app-exchange?code=...` in the WebView (`AppSignIn.exchangeUrl` accepts only a well-formed code
+       of the chosen server); the server sets the normal session cookie and redirects to `/`. An unknown or used code shows
+       a friendly "sign in again" page.
+    Alternatives weighed: `@capacitor/browser` (Custom Tab; needs a new dependency, JS bridge call from every sign-in entry
+    point and a Gradle sync, for the same effect as an `ACTION_VIEW`; Custom Tabs would only add the in-app look); a Custom
+    Tab/`AppAuth` client with a native redirect URI (Google's Android OAuth client type would need a second client and token
+    handling in the app, while the server holds the refresh tokens by design); `appUrlOpen` from `@capacitor/app` (a second
+    dependency; the activity gets the intent natively anyway). Cookie jar sharing between Chrome and the WebView does not
+    exist, hence the code. The browser flow (no `app=1`) is unchanged. Known limit: any app can fire the deep link, so a
+    foreign code would sign the owner in as someone else (login CSRF); a PKCE-style verifier would close it, not done (the
+    code is bound to an allow-listed person and lives 60 s). Not verified on a device (no Android build locally).
 - **Widget data: the widget calls the existing API itself, with the app's own session. No new server auth, no key.**
   Android's `CookieManager` is app-wide and shared with the WebView, so the widget's native code (`RefreshWorker`)
   reads the `cal_session` cookie for the chosen server and calls `GET /api/items?from=<Monday>&to=<next Monday>`

@@ -9,7 +9,7 @@ import { SESSION_COOKIE, SESSION_TTL_MS, type Session } from './sessions.js';
 export type AuthEnv = { Variables: { person?: Session } };
 
 /** Routes that answer without a session while auth is on (`/auth/me` answers 401 itself). */
-const PUBLIC = new Set(['/api/health', '/api/auth/google/start', '/api/auth/google/callback', '/api/auth/me']);
+const PUBLIC = new Set(['/api/health', '/api/auth/google/start', '/api/auth/google/callback', '/api/auth/app-exchange', '/api/auth/me']);
 
 /** Writes the session cookie (also used again when a session is extended, so the cookie slides with it). */
 export function setSessionCookie(ctx: Ctx, c: Context, id: string): void {

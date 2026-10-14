@@ -64,3 +64,18 @@ Feature: Signing in with Google
     When they grant calendar access
     Then they see the event "Yoga" on 2026-10-14
     And they are no longer told Google Calendar access is missing
+
+  Scenario: An app sign-in hands the session to the app through a one-time code
+    Given "jo@example.com" has an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When "jo@example.com" signs in with Google from the app
+    Then the system browser is not signed in
+    And the app is handed a one-time code
+    When the app exchanges the code
+    And they open the week view for 2026-10-12
+    Then they see the event "Dentist" on 2026-10-14
+
+  Scenario: An exchange code works once only
+    Given "jo@example.com" signed in with Google from the app
+    When the app exchanges the code
+    And the app exchanges the code again
+    Then the app is asked to sign in again

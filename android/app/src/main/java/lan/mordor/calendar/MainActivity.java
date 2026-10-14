@@ -109,10 +109,23 @@ public class MainActivity extends BridgeActivity {
         openPathFrom(intent);
     }
 
-    /** Navigates the WebView to the widget's path; only a day or week path of the calendar itself is accepted. */
+    /**
+     * Navigates the WebView to the widget's path (only a day or week path of the calendar itself is accepted), or, for the
+     * sign-in deep link {@code lan.mordor.calendar://auth?code=...}, to the server's code exchange, which sets the session
+     * cookie in this WebView.
+     */
     private void openPathFrom(Intent intent) {
-        String path = intent == null ? null : intent.getStringExtra(EXTRA_PATH);
         String base = ServerConfig.baseUrl(this);
+        Uri link = intent == null ? null : intent.getData();
+        String exchange = link == null ? null : AppSignIn.exchangeUrl(base, link.toString());
+        if (exchange != null) {
+            // consumed: a later re-delivery of this intent must not replay the single-use code
+            intent.setData(null);
+            WebView web = getBridge().getWebView();
+            web.post(() -> web.loadUrl(exchange));
+            return;
+        }
+        String path = intent == null ? null : intent.getStringExtra(EXTRA_PATH);
         // no server chosen yet: the chooser is showing, there is nothing to open
         if (base == null || path == null || !PATH.matcher(path).matches()) return;
         intent.removeExtra(EXTRA_PATH);
