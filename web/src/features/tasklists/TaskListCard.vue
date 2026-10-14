@@ -5,7 +5,7 @@
  * fill in the list colour (like events) with a white or black on-colour.
  * Item names are never dropped when the list has items. The degradation ladder (`fitItems`, budget from the `height` prop or
  * a default) goes: one name per line -> ellipsised names, as many lines as fit, the rest fading out at the bottom (no count)
- * -> (cards narrower than 84 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row)
+ * -> (cards narrower than 92 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row)
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
  * A complete list's title is struck through by a hand-drawn line (`StrikeLine`, `data-struck="true"`), its done state.
  * Drag and drop through `useCalendarDrag` (long press on touch, move past the slop with a mouse); a tap still opens the list.
@@ -30,6 +30,8 @@ import StrikeLine from './StrikeLine.vue';
 
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
 const INLINE_BELOW_PX = 62;
+/** Cards narrower than this (border box) use the mini tier; about the old content-box 84 px of a full-padding card. */
+const MINI_BELOW_PX = 92;
 const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement] }>();
 const settings = useSettingsStore();
@@ -39,7 +41,8 @@ defineExpose({ el });
 onMounted(() => { if (el.value) emit('el', el.value); });
 // a preview copy (swipe neighbour) is inert: no drag handlers
 if (!inPreview()) useCalendarDrag(el, () => props.segment, () => props.variant);
-const { width } = useElementSize(el);
+// Border box, not content box: the mini tier changes the card's padding, so a content-box width flips the tier it decides (a loop).
+const { width } = useElementSize(el, undefined, { box: 'border-box' });
 
 const tl = computed(() => {
   const i = props.segment.item;
@@ -56,7 +59,7 @@ const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount)
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const label = computed(() => t('tasks.card.label', { title: displayTitle(tl.value), done: tl.value.doneCount, total: tl.value.totalCount }));
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
-const mini = computed(() => width.value > 0 && width.value < 84);
+const mini = computed(() => width.value > 0 && width.value < MINI_BELOW_PX);
 const hasFoot = computed(() => !!tl.value.time && !fit.value.inline);
 /** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
@@ -220,7 +223,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .card { flex: none; padding: 2px 4px 3px; }
 .card .foot { display: none; }
 
-/* mini tier (cards narrower than 84 px: phone month, phone week columns): 9 px rows */
+/* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
 .mini { padding: 1px 2px 2px 3px; }
 .mini .row { gap: 2px; min-height: 14px; }
 .mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }

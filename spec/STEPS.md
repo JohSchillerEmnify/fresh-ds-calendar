@@ -98,6 +98,7 @@ The raw task list event has `extendedProperties.private.kind = "tasklist"` but n
 
 ```
 I open the app
+the browser window is {int} by {int} pixels wide and high
 I open the path {string}
 I open the month view for {month}
 I open the week view for {date}
@@ -112,6 +113,7 @@ I click the day number of {date}
 I click empty space in the month cell of {date}
 the entries on {date} fade out towards the bottom of the month cell
 the month cell of {date} shows no overflow count
+the month cells stay unchanged for {int} seconds
 I click the week header of {date}
 I tap the day {date} in the month view
 the {view} view is shown
@@ -859,6 +861,9 @@ they hide the calendar {string} in the filter bar
   (`mask-image`/`-webkit-mask-image` not `none`) that ends transparent at the bottom, and at least one entry reaches
   into the faded band. "shows no overflow count": no `+N` / `+k more` text and no `month-cell-more` /
   `tasklist-card-more` element.
+- "stay unchanged for N seconds": a `MutationObserver` on `month-view` sees no childList change and no real change of a
+  `data-*` attribute (`data-tier`, `data-fit`, `data-fade`) for N seconds: layout tiers settle instead of flipping.
+- "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
 
 ## Reduced motion override
 

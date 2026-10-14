@@ -163,3 +163,24 @@ Then('the month cell of {date} shows no overflow count', async function (this: W
   await expect(cell.getByTestId('month-cell-more')).toHaveCount(0);
   expect(await cell.innerText()).not.toMatch(/\+\d|\bmore\b/);
 });
+
+When('the browser window is {int} by {int} pixels wide and high', async function (this: World, width: number, height: number) {
+  await this.page.setViewportSize({ width, height });
+});
+
+Then('the month cells stay unchanged for {int} seconds', async function (this: World, seconds: number) {
+  // layout tiers (`data-tier`, `data-fit`, `data-fade`) and cell content must settle: a measuring loop flips them every frame
+  await this.page.getByTestId('month-view').evaluate((root) => {
+    const w = window as unknown as { __churn: string[] };
+    w.__churn = [];
+    new MutationObserver((recs) => {
+      for (const r of recs) {
+        if (r.type === 'childList') w.__churn.push(`childList ${(r.target as Element).className}`);
+        else if (r.attributeName?.startsWith('data-') && (r.target as Element).getAttribute(r.attributeName) !== r.oldValue) w.__churn.push(`${r.attributeName} ${r.oldValue} -> ${(r.target as Element).getAttribute(r.attributeName)}`);
+      }
+    }).observe(root, { subtree: true, childList: true, attributes: true, attributeOldValue: true });
+  });
+  await this.page.waitForTimeout(seconds * 1000);
+  const churn = await this.page.evaluate(() => (window as unknown as { __churn: string[] }).__churn);
+  expect(churn.slice(0, 5), `${churn.length} DOM changes while idle`).toEqual([]);
+});
