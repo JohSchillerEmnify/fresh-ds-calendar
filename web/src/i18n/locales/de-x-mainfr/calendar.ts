@@ -70,6 +70,8 @@ export default {
   item: {
     noItems: 'Kein Eindrag',
     range: '{title}, {start} bis {end}',
+    birthday: 'Geburtsdooch',
+    anniversary: 'Jahresdooch',
   },
   now: {
     label: 'Gleich',
@@ -100,6 +102,7 @@ export default {
     days: '{count} Dag | {count} Däg',
     saving: 'Speichert …',
     loadFailed: 'Der Termin konnd ned gladn wern',
+    readOnly: 'Kimmt aus Google Kontakte. Do kannsd as ändern.',
     genericError: 'Des is schiefgangen',
     rollback: '{what} wurd ned gspeichert. Es is widda wie vorher.',
     fields: {

@@ -76,7 +76,8 @@ interface CalendarEvent {
   start: DateTime | LocalDate;  // LocalDate iff allDay
   end: DateTime | LocalDate;    // exclusive; LocalDate iff allDay
   colorId: string | null;  // Google event colorId '1'..'11' override, null = calendar color
-  color: string;           // resolved '#rrggbb' (colorId palette or calendar color)
+  color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for a birthday)
+  special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'. Read-only.
   etag: string;
   updated: DateTime;
 }
@@ -270,6 +271,10 @@ type UpdateEventInput = Partial<CreateEventInput>;  // calendarId change = move 
 Validation: title required/trimmed/≤200; `allDay` true ⇒ both `LocalDate`, false ⇒ both `DateTime`; `end > start`;
 duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (unknown id, or id is a task list), 412,
 502, 503. Events cannot be turned into task lists or vice versa.
+
+Birthdays (`special` set) are read-only: `PATCH` and `DELETE` answer `400 VALIDATION_ERROR` ("Birthdays are read-only").
+Google itself allows only colour, title, reminders and (for entries not linked to a contact or of type `self`) the date to
+change; the special-date properties are edited in Contacts. The app keeps birthdays read-only and offers no editing.
 
 ### Task lists
 
@@ -537,6 +542,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
+| `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly? }` | Adds a calendar to the account's list as another Google client would; `id`, `color` and `readOnly` (role `reader`) let a test add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |
 | `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string }` | Creates an undated task list in the mock Google account of `owner` (an email); `category` is a category name. `201` `TaskList` |
@@ -555,6 +561,8 @@ interface ResetInput {
 interface GoogleEvent {
   id: string; calendarId: string; etag: string; status: 'confirmed' | 'cancelled';
   summary?: string; description?: string; location?: string; colorId?: string;
+  eventType?: string;      // Google `eventType`, e.g. 'birthday'
+  birthdayProperties?: { type?: string; customTypeName?: string; contact?: string };
   start: { date?: string; dateTime?: string; timeZone?: string };
   end:   { date?: string; dateTime?: string; timeZone?: string };
   extendedProperties?: { private?: Record<string, string>; shared?: Record<string, string> };

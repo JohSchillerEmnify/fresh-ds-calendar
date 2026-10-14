@@ -6,7 +6,7 @@
 import { addDays, format, startOfWeek } from 'date-fns';
 import type { CalendarItem, LocalDate, TaskList } from '@/api/types';
 import { parseIsoDate, WEEK_OPTS } from '@/lib/dates';
-import { segmentsByDate } from '@/lib/items';
+import { segmentsByDate, specialMarker } from '@/lib/items';
 import type { Language } from '@/i18n/language';
 
 /** The theme colour roles the widget uses, each `#rrggbb`. */
@@ -76,7 +76,8 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     const date = iso(addDays(monday, i));
     const events = (segments.get(date) ?? []).map((seg): WidgetEvent => {
       const timed = !seg.allDay && seg.first;
-      return { title: seg.item.title, allDay: !timed, start: timed ? seg.startTime : null, end: timed ? seg.endTime : null, color: seg.item.color };
+      const marker = specialMarker(seg.item);
+      return { title: marker ? `${marker} ${seg.item.title}` : seg.item.title, allDay: !timed, start: timed ? seg.startTime : null, end: timed ? seg.endTime : null, color: seg.item.color };
     });
     return { date, events };
   });

@@ -233,6 +233,54 @@ describe('calendars, config, health, errors', () => {
   });
 });
 
+const BIRTHDAYS = 'addressbook#contacts@group.v.calendar.google.com';
+const birthdayBody = (o: object = {}) => ({
+  calendarId: BIRTHDAYS, summary: "Anna's birthday", start: { date: '2026-10-14' }, end: { date: '2026-10-15' }, eventType: 'birthday',
+  birthdayProperties: { type: 'birthday', contact: 'people/c1' }, ...o,
+});
+
+describe('birthdays', () => {
+  beforeEach(async () => {
+    await t.json('POST', '/api/__test/remote/calendars', { summary: 'Birthdays', id: BIRTHDAYS, color: '#9fc6e7', readOnly: true });
+  });
+  const itemsOn14 = async () => (await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items as any[];
+
+  it('marks a birthday, shows it in the colour of its calendar and keeps ordinary events unmarked', async () => {
+    await t.json('POST', '/api/__test/remote/events', birthdayBody());
+    await t.json('POST', '/api/events', { title: 'Holiday', allDay: true, start: '2026-10-14', end: '2026-10-15' });
+    const items = await itemsOn14();
+    expect(items.find((i) => i.title === "Anna's birthday")).toMatchObject({ kind: 'event', special: 'birthday', allDay: true, color: '#9fc6e7', colorId: null, calendarId: BIRTHDAYS });
+    expect(items.find((i) => i.title === 'Holiday')).not.toHaveProperty('special');
+  });
+
+  it('marks anniversaries, and an event of the Birthdays calendar without eventType', async () => {
+    await t.json('POST', '/api/__test/remote/events', birthdayBody({ summary: 'Max and Eva', birthdayProperties: { type: 'anniversary' } }));
+    await t.json('POST', '/api/__test/remote/events', birthdayBody({ summary: 'Plain entry', eventType: undefined, birthdayProperties: undefined }));
+    const items = await itemsOn14();
+    expect(items.find((i) => i.title === 'Max and Eva').special).toBe('anniversary');
+    expect(items.find((i) => i.title === 'Plain entry').special).toBe('birthday');
+  });
+
+  it('marks a birthday event (eventType) that lives in another calendar', async () => {
+    await t.json('POST', '/api/__test/remote/events', birthdayBody({ calendarId: 'primary', summary: 'Self', birthdayProperties: { type: 'self' } }));
+    expect((await itemsOn14()).find((i) => i.title === 'Self')).toMatchObject({ special: 'birthday', color: '#039be5' });
+  });
+
+  it('ignores a colorId on a birthday: the calendar colour wins', async () => {
+    await t.json('POST', '/api/__test/remote/events', birthdayBody({ colorId: '11' }));
+    expect((await itemsOn14())[0]).toMatchObject({ colorId: null, color: '#9fc6e7' });
+  });
+
+  it('is read-only: no update, no delete', async () => {
+    const ev = (await t.json('POST', '/api/__test/remote/events', birthdayBody())).body;
+    const p = await t.json('PATCH', `/api/events/${ev.id}`, { title: 'X' });
+    expect(p.status).toBe(400);
+    expect(p.body.error.code).toBe('VALIDATION_ERROR');
+    expect((await t.json('DELETE', `/api/events/${ev.id}`)).status).toBe(400);
+    expect((await t.json('GET', `/api/events/${ev.id}`)).body).toMatchObject({ title: "Anna's birthday", special: 'birthday' });
+  });
+});
+
 describe('test endpoints are 404 when TEST_MODE is off', () => {
   it('hides /api/__test/*', async () => {
     const p = makeApp({ TEST_MODE: 'false' });

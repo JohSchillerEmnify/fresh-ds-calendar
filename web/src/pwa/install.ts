@@ -16,6 +16,10 @@ export function isStandalone(): boolean {
   return (typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches)
     || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
+/** Any iPhone, iPad or iPod browser, including iPadOS reporting a desktop Mac user agent. */
+export function isIos(ua: string = navigator.userAgent, touchPoints: number = navigator.maxTouchPoints): boolean {
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touchPoints > 1);
+}
 export function isIosSafari(ua: string = navigator.userAgent): boolean {
   return /iPhone|iPad|iPod/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
 }

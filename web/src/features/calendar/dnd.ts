@@ -101,7 +101,7 @@ function setDropAttr(prev: Element | null, next: Element | null): Element | null
 }
 
 /** Makes the card draggable (long press on touch, press and move on mouse). Cleans up with the component scope. */
-export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment: () => Segment, variant: () => ItemVariant) {
+export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment: () => Segment, variant: () => ItemVariant, disabled?: () => boolean) {
   let marked: Element | null = null;
 
   const slotsMode = () => variant() === 'block';
@@ -151,6 +151,7 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
   }
 
   return useDraggable<MoveTarget>(el, {
+    disabled,
     hitTest,
     onTarget,
     scrollEl: () => el.value?.closest<HTMLElement>('[data-scroll-area]') ?? null,

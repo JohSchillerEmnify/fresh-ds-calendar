@@ -27,6 +27,9 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - Tags (shelved earlier).
 - iOS home-screen widget (needs a native shell; a PWA cannot provide widgets on iOS).
 - Android widget: verify on a real device (drawn as a bitmap of the week view, never rendered on a device yet).
+- Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
+  Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
+  below; fewer toolbar controls; a day/agenda start view on phones.
 
 ## Dropped
 

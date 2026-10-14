@@ -14,6 +14,9 @@ export const MOCK_CALENDARS: ProviderCalendar[] = [
   { id: 'work', summary: 'Work', backgroundColor: '#0b8043', primary: false, accessRole: 'owner' },
 ];
 
+/** Optional calendar fields a test may choose (e.g. Google's contacts Birthdays calendar). */
+type CalendarExtra = Partial<Pick<ProviderCalendar, 'id' | 'backgroundColor' | 'accessRole'>>;
+
 interface Persisted { seq: number; events: GoogleEvent[]; calendars?: ProviderCalendar[] }
 
 export interface MockOptions {
@@ -102,7 +105,7 @@ export class MockGoogleProvider implements CalendarProvider {
     find: (id: string): GoogleEvent | undefined => [...this.events.values()].find((e) => e.id === id),
     /** The calendar list including hidden entries. */
     calendars: (): ProviderCalendar[] => this.calendars.map((c) => ({ ...c })),
-    insertCalendar: (summary: string, hidden = false): ProviderCalendar => this.doInsertCalendar(summary, hidden),
+    insertCalendar: (summary: string, hidden = false, extra?: CalendarExtra): ProviderCalendar => this.doInsertCalendar(summary, hidden, extra),
   };
 
   private check(): void {
@@ -207,9 +210,9 @@ export class MockGoogleProvider implements CalendarProvider {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
   }
 
-  private doInsertCalendar(summary: string, hidden: boolean): ProviderCalendar {
+  private doInsertCalendar(summary: string, hidden: boolean, extra: CalendarExtra = {}): ProviderCalendar {
     const cal: ProviderCalendar = {
-      id: `${googleEventId()}@group.calendar.google.com`, summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden,
+      id: `${googleEventId()}@group.calendar.google.com`, summary, backgroundColor: '#039be5', primary: false, accessRole: 'owner', hidden, ...extra,
     };
     this.calendars.push(cal);
     this.scheduleFlush();

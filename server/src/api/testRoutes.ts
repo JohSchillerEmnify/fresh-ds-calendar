@@ -102,9 +102,12 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // Adds a calendar to one account's list as another Google client would (e.g. an existing tasks calendar).
   t.post('/remote/calendars', async (c) => {
-    const b = (await body(c)) as { owner?: string; summary?: unknown; hidden?: unknown } | undefined;
+    const b = (await body(c)) as { owner?: string; summary?: unknown; hidden?: unknown; id?: string; color?: string; readOnly?: boolean } | undefined;
     if (typeof b?.summary !== 'string' || !b.summary) throw validation('summary is required', 'summary');
-    const cal = store(b.owner).remote.insertCalendar(b.summary, b.hidden === true);
+    // optional id / colour / read-only role, e.g. Google's contacts "Birthdays" calendar
+    const cal = store(b.owner).remote.insertCalendar(b.summary, b.hidden === true, {
+      ...(b.id ? { id: b.id } : {}), ...(b.color ? { backgroundColor: b.color } : {}), ...(b.readOnly ? { accessRole: 'reader' as const } : {}),
+    });
     calendarOf(b.owner).invalidate();
     return c.json(cal, 201);
   });

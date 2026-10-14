@@ -70,4 +70,12 @@ describe('buildWidgetSnapshot', () => {
     const s = buildWidgetSnapshot({ items: [hidden, shown], today: '2026-10-14', theme, dark: true, language: 'de', now: new Date('2026-10-14T08:30:00Z'), hiddenCalendars: new Set(['work']) });
     expect(s.days[2].events.map((e) => e.title)).toEqual(['Open']);
   });
+
+  it('marks birthdays and anniversaries in the title, so the widget needs no format change', () => {
+    const s = build([
+      { ...ev('b', 'Anna', '2026-10-14', '2026-10-15', true), special: 'birthday' },
+      { ...ev('c', 'Max and Eva', '2026-10-14', '2026-10-15', true), special: 'anniversary' },
+    ]);
+    expect(s.days[2].events.map((e) => e.title).sort()).toEqual(['🎂 Anna', '💍 Max and Eva']);
+  });
 });

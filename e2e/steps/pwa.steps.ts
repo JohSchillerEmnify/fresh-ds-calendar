@@ -142,3 +142,29 @@ Then('I do not see the iOS install hint', async function (this: World) {
 When('I dismiss the iOS install hint', async function (this: World) {
   await this.page.getByTestId('ios-install-hint-dismiss').click();
 });
+
+Then('the settings offer to install the app', async function (this: World) {
+  await expect(this.page.getByTestId('settings-install-app')).toBeVisible();
+});
+
+Then('the settings do not offer to install the app', async function (this: World) {
+  await expect(this.page.getByTestId('settings-view')).toBeVisible();
+  await expect(this.page.getByTestId('settings-install-app')).toBeHidden();
+});
+
+When('I open the install instructions in the settings', async function (this: World) {
+  await this.page.getByTestId('settings-install-app').click();
+  await expect(this.page.getByTestId('ios-install-sheet')).toBeVisible();
+});
+
+Then('the install instructions show the steps {string}', async function (this: World, steps: string) {
+  await expect(this.page.getByTestId('ios-install-step')).toHaveText(steps.split(', '));
+});
+
+When('I close the install instructions', async function (this: World) {
+  await this.page.getByTestId('ios-install-close').click();
+});
+
+Then('the install instructions are closed', async function (this: World) {
+  await expect(this.page.getByTestId('ios-install-sheet')).toBeHidden();
+});

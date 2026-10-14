@@ -51,6 +51,19 @@ describe('GoogleProvider (mocked HTTP)', () => {
     expect(calls).toHaveLength(2);
   });
 
+  it('maps eventType and birthdayProperties of a Google birthday event', async () => {
+    // shape of an event of the contacts Birthdays calendar (Google Calendar API "event types" guide)
+    const birthday = gev({
+      id: '_60q30c1g60o30e1i60o4ac1g60rj8gpqc8p0', summary: "Anna's birthday", recurrence: ['RRULE:FREQ=YEARLY'], visibility: 'private', transparency: 'transparent',
+      eventType: 'birthday', birthdayProperties: { type: 'anniversary', customTypeName: '', contact: 'people/c123' },
+    });
+    const { provider } = setup(() => ({ json: { items: [birthday, gev({ id: 'plain' })] } }));
+    const r = await provider.listEvents({ calendarId: 'addressbook#contacts@group.v.calendar.google.com' });
+    expect(r.items[0]).toMatchObject({ eventType: 'birthday', birthdayProperties: { type: 'anniversary', contact: 'people/c123' } });
+    expect(r.items[1]).not.toHaveProperty('eventType');
+    expect(r.items[1]).not.toHaveProperty('birthdayProperties');
+  });
+
   it('inserts, gets, patches with If-Match and nulls the other date field', async () => {
     const { provider, calls } = setup((c) => ({ json: gev({ summary: JSON.stringify(c.body?.summary ?? null) }) }));
     const ins = await provider.insertEvent('primary', { summary: 'A', start: { date: '2026-10-12' }, end: { date: '2026-10-13' }, extendedProperties: { private: { kind: 'tasklist' } } });
