@@ -3,7 +3,7 @@
  * a gesture in place, how big a cell is at a zoom, and how much of each level of detail a cell of that size shows. No DOM,
  * store or timer, so the rules are unit-tested with plain numbers.
  */
-import { MIN_BLOCK_PX, type Segment } from '@/lib/items';
+import type { Segment } from '@/lib/items';
 
 /** Columns of the month grid; one day filling the width is the largest zoom. */
 export const COLS = 7;
@@ -101,13 +101,25 @@ export function smooth(x: number, a: number, b: number): number {
   return t * t * (3 - 2 * t);
 }
 
-/** Cell edge (px) ranges in which each detail fades in (or, for the dots, out). */
+/**
+ * Cell (CSS px) at which the owner said the real-time grid should already be fully shown: about 3.5 day columns across a
+ * phone (~400 px / 3.5 = 115 wide) in a month of five or six rows (~245 tall). The switch to the timeline is the same for
+ * every cell, so it is measured on the cell size alone (no per-day decision) and finished by this size.
+ */
+export const TIMELINE_REF = cellScale(115, 245);
+
+/**
+ * Cell edge (px) ranges in which each detail fades in (or, for the dots, out). The cell of a desktop's whole month is about
+ * 150 px, still chips without times; times and task list items come in just above that, in the chip layer the timeline
+ * replaces, and the timeline crossfades over the last 9 % below `TIMELINE_REF` (about 15 px of cell edge: a short window, so
+ * a cell is never half chips, half grid for long).
+ */
 export const DETAIL = {
   dotsOut: [85, 120],
   chipsIn: [80, 115],
-  timesIn: [150, 200],
-  listsIn: [170, 230],
-  timelineIn: [200, 260],
+  timesIn: [153, 157],
+  listsIn: [154, 158],
+  timelineIn: [TIMELINE_REF * 0.91, TIMELINE_REF],
 } as const;
 
 /** How much of each level of detail a cell shows (0..1 each, fading in and out continuously), plus the strongest level's name. */
@@ -142,25 +154,26 @@ export function detailAt(w: number, h: number): Detail {
 /** Shortest duration (min) a timed item counts as in the real-time layout: the cascade gap `packColumns` uses, so a point-like item still needs a readable block. */
 export const SHORTEST_MIN = 15;
 
-/** The minutes of the day (whole hours) a day's timed items span, or null when it has none; an item counts at least `SHORTEST_MIN`. */
-export function timeSpan(segs: Segment[]): { start: number; end: number } | null {
+/**
+ * The minutes of the day (whole hours) the timed items span, or null when there are none; an item counts at least
+ * `SHORTEST_MIN`. The span is at least `minHours` long (moved up against midnight when it would run past it).
+ */
+export function timeSpan(segs: Segment[], minHours = 1): { start: number; end: number } | null {
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null);
   if (!timed.length) return null;
-  const start = Math.floor(Math.min(...timed.map((s) => s.startMin)) / 60) * 60;
-  const end = Math.ceil(Math.max(...timed.map((s) => Math.max(s.endMin, s.startMin + SHORTEST_MIN))) / 60) * 60;
-  return { start, end: Math.min(24 * 60, Math.max(end, start + 60)) };
+  let start = Math.floor(Math.min(...timed.map((s) => s.startMin)) / 60) * 60;
+  let end = Math.ceil(Math.max(...timed.map((s) => Math.max(s.endMin, s.startMin + SHORTEST_MIN))) / 60) * 60;
+  end = Math.max(end, start + minHours * 60);
+  if (end > 24 * 60) { end = 24 * 60; start = Math.min(start, Math.max(0, end - minHours * 60)); }
+  return { start, end };
 }
 
-/**
- * True when a time grid `gridPx` tall, spanning only the hours the day's timed items occupy, gives the shortest item at least
- * `minPx` (the minimum block height): then every item can be drawn at its real top and height. A day without timed items
- * always fits (nothing to scale). Below it the cell falls back to the compact chips.
- */
-export function realTimeFits(segs: Segment[], gridPx: number, minPx: number = MIN_BLOCK_PX): boolean {
-  const span = timeSpan(segs);
-  if (!span) return true;
-  const shortest = Math.min(...segs.filter((s) => !s.allDay && s.startTime !== null).map((s) => Math.max(s.endMin - s.startMin, SHORTEST_MIN)));
-  return (gridPx / (span.end - span.start)) * shortest >= minPx;
+/** Fewest hours the shared span of a week row covers, so a row of short items still gets a readable grid. */
+export const ROW_MIN_HOURS = 4;
+
+/** The one hour span all cells of a week row share: the span of every timed item of the row (null when the row has none). */
+export function rowSpan(daySegs: Segment[][]): { start: number; end: number } | null {
+  return timeSpan(daySegs.flat(), ROW_MIN_HOURS);
 }
 
 /** Height (px) of a task list entry: a chip while `lists` is 0, its full need at 1. */
