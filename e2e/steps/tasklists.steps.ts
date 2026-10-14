@@ -53,6 +53,14 @@ Then('the task list form shows:', async function (this: World, table: DataTable)
   }
 });
 
+When('I press Enter in the task list field {string}', async function (this: World, name: string) {
+  await field(dialog(this), TASKLIST_FIELDS, name).press('Enter');
+});
+
+Then('the task list field {string} has focus', async function (this: World, name: string) {
+  await expect(field(dialog(this), TASKLIST_FIELDS, name)).toBeFocused();
+});
+
 When('I save the task list', async function (this: World) {
   await dialog(this).getByTestId('tasklist-save').click();
 });

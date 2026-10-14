@@ -39,6 +39,6 @@ onBeforeUnmount(() => { stopWatch(); timers.forEach((s) => s()); timers.clear();
 .msg { flex: 1; min-width: 0; }
 .act, .x { min-width: 44px; min-height: 44px; font: var(--md-sys-typescale-label-large); color: var(--snack-action); border-radius: var(--md-sys-shape-corner-full); }
 @keyframes in { from { transform: translateY(16px); opacity: 0; } }
-/* Left-handed mode (phone): the action and the dismiss button sit at the left end. */
-@media (max-width: 767.98px) { html[data-hand='left'] .snack { flex-direction: row-reverse; padding: 4px 16px 4px 4px; } }
+/* Left-handed mode (phone, touch tablet): the action and the dismiss button sit at the left end. */
+html[data-hand='left'][data-touch] .snack { flex-direction: row-reverse; padding: 4px 16px 4px 4px; }
 </style>

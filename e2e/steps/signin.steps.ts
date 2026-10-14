@@ -43,6 +43,10 @@ Given('Google no longer accepts the access of {string}', async function (this: W
   await this.api.revokeGoogleAccess(email);
 });
 
+When('their session expires', async function (this: World) {
+  await this.page.context().clearCookies();
+});
+
 When('someone opens the week view for {date} without signing in', async function (this: World, date: string) {
   this.weekOpened = date;
   await this.page.goto(`/week/${date}`);

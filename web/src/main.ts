@@ -4,6 +4,7 @@ import App from './App.vue';
 import { applyLanguage, cachedLanguagePref } from './i18n';
 import { createAppRouter } from './router';
 import { enableTimerCounting } from './lib/timers';
+import { useAuthStore } from './stores/auth';
 import { useClockStore } from './stores/clock';
 import { useSettingsStore } from './stores/settings';
 import { pushWidget } from './stores/sync';
@@ -19,6 +20,8 @@ async function bootstrap() {
   const app = createApp(App);
   app.use(pinia);
 
+  // a refused session (401) on any of the first calls below sends the person to the sign-in page at once
+  useAuthStore().listen();
   // "today" and the settings (theme, default view) are needed before the first route resolves.
   const clock = useClockStore();
   const settings = useSettingsStore();

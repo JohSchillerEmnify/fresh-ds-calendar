@@ -6,7 +6,8 @@ import { api, ApiError } from '@/api/client';
 export const RETURN_KEY = 'signin-return';
 
 /**
- * Sign-in state. `status` is `off` when the server runs without sign-in (PROVIDER=mock), `in` / `out` otherwise.
+ * Sign-in state. `status` is `off` when the server says it runs without sign-in (PROVIDER=mock), `in` / `out` otherwise, `unknown`
+ * until it has answered (also after a failed check).
  * `reauth` is set when Google no longer accepts the person's access (banner with a link to sign in again).
  * `calendarMissing` is set when the person signed in without ticking Google's calendar checkbox (banner with a button
  * to grant it).
@@ -30,7 +31,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
     checking ??= api.me().then(
       (me) => { email.value = me.email; status.value = me.email ? 'in' : 'off'; },
-      (e) => { status.value = e instanceof ApiError && e.status === 401 ? 'out' : 'off'; },
+      (e) => {
+        // only the server's own "sign-in is off" answer means off; a failed check stays unknown and is asked again
+        if (e instanceof ApiError && e.status === 401) status.value = 'out';
+        else checking = null;
+      },
     );
     return checking;
   }

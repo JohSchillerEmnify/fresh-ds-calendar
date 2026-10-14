@@ -145,7 +145,7 @@ export interface Prefs {
   supportCat: SupportCatSetting;
   /** Show the small build-version label in the bottom-left corner of the main UI. */
   versionInCorner: boolean;
-  /** Left-handed mode: mirror the phone layout (`html[data-hand="left"]`). */
+  /** Left-handed mode: mirror the phone and touch-tablet layout (`html[data-hand="left"]`). */
   leftHanded: boolean;
   /** Tasks view grouping and sorting. */
   tasksGroupBy: TasksGroupBy;

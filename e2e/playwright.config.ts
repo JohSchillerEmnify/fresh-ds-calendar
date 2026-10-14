@@ -42,7 +42,7 @@ export default defineConfig({
   projects: [
     {
       name: 'mobile',
-      grepInvert: /@desktop|@backlog/,
+      grepInvert: /@desktop|@tablet|@backlog/,
       use: {
         browserName: 'chromium',
         viewport: { width: 375, height: 812 },
@@ -53,8 +53,21 @@ export default defineConfig({
       },
     },
     {
+      // an iPad (portrait, touch): only the scenarios tagged @tablet
+      name: 'tablet',
+      grep: /@tablet/,
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 820, height: 1180 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+        userAgent: devices['iPad (gen 7)'].userAgent,
+      },
+    },
+    {
       name: 'desktop',
-      grepInvert: /@mobile|@perf|@backlog/,
+      grepInvert: /@mobile|@tablet|@perf|@backlog/,
       use: {
         browserName: 'chromium',
         viewport: { width: 1280, height: 800 },

@@ -128,6 +128,7 @@ export default {
       resetDemo: { label: 'Reset demo data', hint: 'Replaces the mock calendar with fresh demo events', button: 'Reset', done: 'Demo data restored', failed: 'Could not reset demo data' },
       version: 'Version {version}',
       androidApp: { label: 'Android app', updateLabel: 'Update the app', hint: 'Install the calendar as an Android app with a weekly home-screen widget (home Wi-Fi only)', download: 'Download' },
+      installApp: { label: 'Install this app', hint: 'Add the calendar to your Home Screen', button: 'Show how', title: 'Install the calendar', step1: 'Tap the Share button', step2: 'Choose Add to Home Screen', step3: 'Tap Add', close: 'Got it' },
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },
     leftHanded: { label: 'Left-handed mode', hint: 'Mirrors the phone layout so the main controls sit under the left thumb' },
