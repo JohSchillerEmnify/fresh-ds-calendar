@@ -30,6 +30,17 @@ describe('clock selection', () => {
     expect([by('Laundry').startTime, by('Laundry').endTime, by('Laundry').lane]).toEqual(['09:30', '11:00', 1]);
     expect([by('Call').startTime, by('Call').endTime, by('Call').lane]).toEqual(['18:00', '18:30', 0]);
   });
+  it('keeps a short task list off the lane of an event that starts where it ends (the round cap would cover it)', () => {
+    const { timed: tl } = clockSegments(segsOf([
+      list('Einkaufsliste', '17:00', { estimateMinutes: 15 }),
+      ev('evening', t(D, '17:15'), t(D, '21:30'), { title: 'Evening' }),
+      ev('plain', t(D, '08:00'), t(D, '09:00'), { title: 'Plain' }),
+      ev('plain2', t(D, '09:00'), t(D, '10:00'), { title: 'Plain2' }),
+    ], D));
+    const lane = (title: string) => tl.find((s) => s.item.title === title)!.lane;
+    expect(lane('Einkaufsliste')).not.toBe(lane('Evening'));
+    expect(lane('Plain')).toBe(lane('Plain2')); // events touching each other keep sharing a lane
+  });
   it('names task lists with their done count, untitled ones as "List"', () => {
     expect(clockText(list('Laundry', '18:00', { doneCount: 1, totalCount: 2 }))).toBe('Laundry 1/2');
     expect(clockText(list('', null, { title: ' ', totalCount: 3 }))).toBe('List 0/3');
@@ -121,5 +132,14 @@ describe('clock labels', () => {
     const keep = { x0: CENTER - 95, y0: CENTER - 12, x1: CENTER + 95, y1: CENTER + 70 };
     const [p] = placeLabels([{ key: 'a', mid: 720, text: 'Lunch' }], 12, 60, 20, [keep]);
     expect(p.shown).toBe(false);
+  });
+  it('finds room for the label of a short list on the left side of the dial beside the time in the middle', async () => {
+    const { placeLabels } = await import('@/features/labs/clock/geometry');
+    const keep = { x0: CENTER - 95, y0: CENTER - 12, x1: CENTER + 95, y1: CENTER + 70 };
+    const placed = placeLabels([
+      { key: 'evening', mid: 1162, text: 'Abend zu zweit' },
+      { key: 'list', mid: 1027, text: 'Einkaufsliste 0/1' },
+    ], 10, 125, 40, [keep]);
+    expect(placed.find((p) => p.key === 'list')!.shown).toBe(true);
   });
 });

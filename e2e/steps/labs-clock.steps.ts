@@ -56,6 +56,16 @@ Then(
   },
 );
 
+/** The two arcs must not share a lane: their drawn extents (round caps) would cover each other. */
+Then(
+  'the arc of {string} is not covered by the arc of {string}',
+  async function (this: World, title: string, other: string) {
+    const r = (t: string) => this.page.locator(tid('clock-arc') + `[data-title="${t}"]`);
+    await expect(r(title)).toBeVisible();
+    await expect(r(title)).not.toHaveAttribute('data-r', (await r(other).getAttribute('data-r'))!);
+  },
+);
+
 Then('the clock lists {string} without a time', async function (this: World, text: string) {
   const entry = this.page.locator(tid('clock-untimed')).filter({ hasText: exactText(text) });
   await expect(entry).toHaveCount(1);

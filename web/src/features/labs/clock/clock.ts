@@ -9,6 +9,13 @@ import { assignLanes } from './geometry';
 export const SNAP_MIN = 15;
 
 /**
+ * Minutes a task list's thin butt-ended arc needs clear of an event's round-capped arc on the same lane: the cap reaches
+ * about 10 minutes past the event's end (as the day view lets a short block count its drawn extent), so a list touching
+ * an event would be covered by it. Two events (both round) keep sharing a lane when they touch.
+ */
+const LIST_CLEARANCE_MIN = 15;
+
+/**
  * Splits a day's segments: timed events and timed task lists become arcs (on lanes), untimed task lists the middle,
  * all-day events (and days inside a multi-day event) the chips above the hub.
  */
@@ -16,7 +23,7 @@ export function clockSegments(segs: Segment[]): { timed: Array<Segment & { lane:
   const timed = segs.filter((s) => !s.allDay && s.startTime && s.endTime);
   const untimed = segs.filter((s) => s.item.kind === 'tasklist' && !s.startTime);
   const allDay = segs.filter((s) => s.item.kind === 'event' && s.allDay);
-  return { timed: assignLanes(timed), untimed, allDay };
+  return { timed: assignLanes(timed, (p, n) => (p.item.kind === n.item.kind ? 0 : LIST_CLEARANCE_MIN)), untimed, allDay };
 }
 
 /**

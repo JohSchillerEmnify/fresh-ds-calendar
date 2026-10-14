@@ -1008,6 +1008,7 @@ the task list {string} is an arc from {time} to {time}
 the clock lists {string} without a time
 the clock fills the available space
 the arc of {string} is labelled {string}
+the arc of {string} is not covered by the arc of {string}
 I tap the arc of {string}
 I turn the arc of {string} to {time}
 I select the arc of {string}

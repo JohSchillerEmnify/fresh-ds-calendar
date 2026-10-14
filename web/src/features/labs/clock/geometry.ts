@@ -18,13 +18,18 @@ export function arcPath(from: number, to: number, r: number): string {
   return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
 }
 
-/** Assigns each span to the first lane where it does not overlap an earlier one. */
-export function assignLanes<T extends { startMin: number; endMin: number }>(spans: T[]): Array<T & { lane: number }> {
-  const laneEnds: number[] = [];
+/**
+ * Assigns each span to the first lane where it does not overlap an earlier one. `clearance(prev, next)` is the gap in
+ * minutes the drawn arcs need between two spans on a lane (their round caps reach past the span), default none.
+ */
+export function assignLanes<T extends { startMin: number; endMin: number }>(
+  spans: T[], clearance: (prev: T, next: T) => number = () => 0,
+): Array<T & { lane: number }> {
+  const last: T[] = [];
   return [...spans].sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin).map((s) => {
-    let lane = laneEnds.findIndex((e) => e <= s.startMin);
-    if (lane < 0) lane = laneEnds.length;
-    laneEnds[lane] = s.endMin;
+    let lane = last.findIndex((p) => p.endMin + clearance(p, s) <= s.startMin);
+    if (lane < 0) lane = last.length;
+    last[lane] = s;
     return { ...s, lane };
   });
 }
@@ -90,7 +95,7 @@ const overlaps = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1
 
 /**
  * Places arc labels inside the dial without overlaps: each label sits on its arc's angle, starting at `rOuter` and moving
- * inwards row by row (and a little round, ±10°) until its box is free of earlier labels and of the `keepOut` boxes (the time in the middle), but not
+ * inwards row by row (and round, up to ±25°) until its box is free of earlier labels and of the `keepOut` boxes (the time in the middle), but not
  * further in than `rInner`. Labels near the top or bottom are centred on their angle, the others point inwards from the
  * rim (right half: text ends at the point, left half: starts there). Text width is estimated at 0.56 em per character.
  */
@@ -98,7 +103,7 @@ export function placeLabels(labels: LabelInput[], font: number, rOuter: number, 
   const taken: Rect[] = [...keepOut];
   const h = font * 1.2, stepR = font * 1.15;
   /** Angular nudges tried at each radius, in minutes of the dial (about 5° each), nearest first. */
-  const nudges = [0, 20, -20, 40, -40];
+  const nudges = [0, 20, -20, 40, -40, 60, -60, 80, -80, 100, -100];
   return labels.map((l) => {
     const w = l.text.length * font * 0.56;
     for (let r = rOuter; r >= rInner; r -= stepR) {
