@@ -1628,8 +1628,10 @@ on top but shall not become the title of the event"):
   and the app title decodes to "".
 - **In the app it shows no title row**: `displayTitle(list)` returns "" for an untitled list (the "List" placeholder is
   gone), and every card/view hides the title row when it is empty, rendering just the tasks with the first on top.
-- **Where only one line fits** (month/week chip, dot, the accessibility name): the first task's text is shown as the
-  label — display only, never stored as the title.
+- **No task is ever elevated** (owner, 2026-10-16: "all tasks should have the same importance; one task becoming the
+  title should not happen"). Every task is rendered equally; none is pulled out as a title, on any surface. Where only one
+  line fits (month/week chip, dot, the accessibility name), the label is **neutral** — a task count (e.g. "3 tasks",
+  with the done/total badge the card already has), never any task's text.
 
 ### Expanded task list card (owner, 2026-10-14, reworked the same day)
 
