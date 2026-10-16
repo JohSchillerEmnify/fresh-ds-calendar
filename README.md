@@ -36,7 +36,8 @@ Spec-driven: `spec/features/*.feature` is the single source of truth and runs di
 
 A Capacitor shell around the calendar server you choose at the first start (`https://cal.example.org` or `http://cal.mordor.lan`) plus a weekly home-screen widget (`android/`, spec: ARCHITECTURE
 "Android app and widget"). Build and publish: `scripts/android-build.sh` (`--no-publish` to only build). It runs on sauron:
-Gradle runs in the `calendar-android-build` Docker image (`android/build.Dockerfile`: JDK 21 + Android SDK 36), builds `android/app/build/outputs/apk/release/app-release.apk`
+Gradle runs in the `calendar-android-build` Docker image (`android/build.Dockerfile`: JDK 21 + Android SDK 36), builds an unsigned release APK (no keystore in that container),
+signs it to `android/app/build/outputs/apk/release/app-release.apk` with `apksigner` in a second container (no network, only the keystore, the APK and apksigner),
 and copies it to `DATA_DIR/downloads/app.apk` (served at `http://cal.mordor.lan/app.apk`).
 
 - **Release key**: generated once by the script in `~/calendar-android-key/` (`release.jks` + `keystore.properties`),

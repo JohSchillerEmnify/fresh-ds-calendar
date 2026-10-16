@@ -71,6 +71,9 @@ export interface ProbeWindow extends Window {
   __nowCardInserts?: number;
 }
 
+/** CSP violations seen by the current scenario's pages (filled via `prepareContext`, checked and cleared in `dispose`; a worker runs one scenario at a time). */
+const cspViolations: string[] = [];
+
 export interface BrowserMemory { heap: number; nodes: number; listeners: number }
 
 /**
@@ -222,6 +225,15 @@ export class World {
   static async prepareContext(context: BrowserContext) {
     // Records when the first month cell becomes visible (for "the month view was rendered within N ms").
     await context.addInitScript(installProbes);
+    // The server sends a Content-Security-Policy (server/src/lib/securityHeaders.ts): any violation fails the scenario.
+    await context.exposeFunction('__reportCspViolation', (v: string) => { cspViolations.push(v); });
+    await context.addInitScript(() => {
+      window.addEventListener('securitypolicyviolation', (e) => {
+        // DOMPurify parses the deliberately unsafe theme picture (sneaky.svg) and its blocked on* attributes are reported: expected
+        if (e.violatedDirective.startsWith('script-src-attr') && /purify/.test(e.sourceFile)) return;
+        (window as unknown as { __reportCspViolation(v: string): void }).__reportCspViolation(`${e.violatedDirective} blocked ${e.blockedURI || 'inline'} (${e.sourceFile || location.pathname}:${e.lineNumber})`);
+      }, true);
+    });
     await context.addInitScript(() => {
       const w = window as unknown as { __monthRenderedAt?: number };
       const check = () => {
@@ -267,5 +279,7 @@ export class World {
     for (const c of this.ownContexts) await c.close().catch(() => {});
     // Leave the shared backend clean (outage, clock, poll interval) for the next scenario.
     if (this.api.usedTestApi) await this.api.reset().catch(() => {});
+    const violations = cspViolations.splice(0);
+    if (violations.length) throw new Error(`Content-Security-Policy violations:\n${violations.join('\n')}`);
   }
 }

@@ -5,6 +5,10 @@ test-results/
 playwright-report/
 *.log
 .env
+.env.*
+!*.example
+*.p12
+*.pem
 
 # Android release key and local SDK paths never go into git
 *.jks

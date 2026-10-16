@@ -15,13 +15,15 @@ services:
       - traefik.http.services.calendar.loadbalancer.server.port=3000
     volumes:
       - ./data:/data
+      # heap snapshots (`docker kill -s USR2 calendar`) hold session tokens: a 0700 dir outside the repo, made by scripts/deploy.sh
+      - ${CAL_DIAG_DIR:-${HOME}/.local/share/calendar-diag}:/diag
     env_file:
       - .env
     environment:
       TZ: Europe/Berlin
       PORT: 3000
       DATA_DIR: /data
-      NODE_OPTIONS: --max-old-space-size=96 --heapsnapshot-signal=SIGUSR2 --diagnostic-dir=/data
+      NODE_OPTIONS: --max-old-space-size=96 --heapsnapshot-signal=SIGUSR2 --diagnostic-dir=/diag
     networks:
       - proxy-network
 

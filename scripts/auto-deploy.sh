@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Deploy main to http://cal.mordor.local when it changes. Called by the git hooks in scripts/hooks.
-# Runs detached, serialized (flock), skips if this commit is already deployed. Log: /tmp/calendar-autodeploy.log
+# Runs detached, serialized (flock), skips if this commit is already deployed. Log: $RUN_DIR/autodeploy.log (scripts/rundir.sh)
 set -uo pipefail
 REPO="/home/sauron/projects/calendar"
-LOG="/tmp/calendar-autodeploy.log"
-STAMP="/tmp/calendar-deployed-sha"
+. "$REPO/scripts/rundir.sh"
+LOG="$RUN_DIR/autodeploy.log"
+STAMP="$RUN_DIR/deployed-sha"
 
 if [ "${1:-}" != "--run" ]; then
   # entry from a hook: only on main in the main checkout, then detach
@@ -14,9 +15,9 @@ if [ "${1:-}" != "--run" ]; then
   exit 0
 fi
 
-exec 9>/tmp/calendar-autodeploy.lock
+exec 9>"$RUN_DIR/autodeploy.lock"
 flock 9   # wait for a running deploy, then deploy whatever HEAD is now
-exec 8>/tmp/calendar-heavy.lock; flock 8   # one heavy job at a time machine-wide
+exec 8>"$RUN_DIR/heavy.lock"; flock 8   # one heavy job at a time machine-wide
 sha="$(git -C "$REPO" rev-parse HEAD)"
 if [ "$(cat "$STAMP" 2>/dev/null)" = "$sha" ]; then echo "[$(date +%T)] $sha already deployed"; exit 0; fi
 echo "[$(date +%T)] auto-deploy $sha ($(git -C "$REPO" log -1 --format=%s))"

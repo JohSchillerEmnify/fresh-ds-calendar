@@ -3,11 +3,12 @@
 # Usage: scripts/deploy-status.sh        (override the host with DEPLOY_HOST=user@host)
 set -uo pipefail
 HOST="${DEPLOY_HOST:-sauron@192.168.1.38}"
-LOG="${DEPLOY_LOG:-/tmp/calendar-autodeploy.log}"
+LOG="${DEPLOY_LOG:-}"   # default (empty): resolved on sauron, see scripts/rundir.sh
 
 # The summarising awk runs on the remote side so only a few bytes cross the wire.
 read -r -d '' REMOTE <<'SH'
 log="$1"
+if [ -z "$log" ]; then d="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"; [ -d "$d" ] && [ -w "$d" ] || d="$HOME/.cache"; log="$d/calendar/autodeploy.log"; fi
 tail -n 6000 "$log" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '
   /^\[[0-9:]+\] auto-deploy / { sha=substr($3,1,7); started=substr($1,2,5); fails=""; delete cnt; order=0; state="RUNNING"; when=started; next }
   /^\[[0-9:]+\] [0-9a-f]+ already deployed/ { sha=substr($2,1,7); when=substr($1,2,5); state="OK"; next }

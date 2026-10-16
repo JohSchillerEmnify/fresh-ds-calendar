@@ -1,5 +1,13 @@
 # Public instance on the netcup VPS (A-67): Caddy terminates HTTPS, the app is reachable only inside this network.
 # Only Caddy publishes ports: Docker-published ports bypass ufw.
+# Hardening (spec "Security hardening, infra part"): the app's root filesystem is read-only (it writes only to /data and
+# the /tmp tmpfs), all capabilities dropped, rotated logs.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 services:
   app:
     image: calendar:latest
@@ -11,9 +19,18 @@ services:
     volumes:
       - data:/data
     mem_limit: 512m
+    pids_limit: 256
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
 
   caddy:
-    image: caddy:2.10.2-alpine
+    # Pinned by digest (the multi-arch index of this tag, 2026-10-16); bump tag and digest together.
+    image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     restart: unless-stopped
     depends_on: [app]
     ports:
@@ -24,6 +41,9 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    logging: *logging
 
 volumes:
   data:

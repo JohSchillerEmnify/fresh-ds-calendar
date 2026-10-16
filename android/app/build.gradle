@@ -1,8 +1,10 @@
 apply plugin: 'com.android.application'
 
-// Release signing: a locally generated keystore that stays out of git (see scripts/android-build.sh and the README).
-// Without it a release build FAILS (no fallback to the debug key: an APK signed with it would not be the app people have
-// installed, and anyone could re-sign it). Debug builds and unit tests do not need the key.
+// Release signing happens outside Gradle: scripts/android-build.sh builds an UNSIGNED release APK in the SDK image and
+// signs it with apksigner in a separate container that alone sees the keystore. The signing config below applies only
+// when a keystore is passed in (CAL_ANDROID_KEYSTORE_PROPS or the default path), which the build script no longer does;
+// without one the release APK is left unsigned, never signed with the debug key (and scripts/apk-cert.sh refuses any
+// APK whose certificate is not the pinned one).
 def keystoreProps = new Properties()
 def keystorePropsFile = new File(System.getenv('CAL_ANDROID_KEYSTORE_PROPS') ?: "${System.getProperty('user.home')}/.config/calendar-android/keystore.properties")
 if (keystorePropsFile.exists()) keystorePropsFile.withInputStream { keystoreProps.load(it) }
@@ -39,17 +41,10 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (keystorePropsFile.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
-    }
-}
-
-// The release signing config is empty without the key file: stop a release task before it signs with nothing.
-gradle.taskGraph.whenReady { graph ->
-    if (!keystorePropsFile.exists() && graph.allTasks.any { it.project == project && it.name.toLowerCase().contains('release') }) {
-        throw new GradleException("No release keystore at ${keystorePropsFile} (set CAL_ANDROID_KEYSTORE_PROPS): release builds are never signed with the debug key.")
     }
 }
 
