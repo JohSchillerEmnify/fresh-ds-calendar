@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-16
+- Task lists with no title stay truly titleless: no title is saved to the event and no task is shown as the title; the tasks appear as an equal list.
 - Week and day views: events that are only back-to-back no longer look like they overlap; a short event no longer draws over the one below it.
 - The site now sends strict browser security rules (no embedding in other sites, no foreign scripts) and limits request sizes; the server runs locked down.
 - Security hardening: reminders only go to real push services and one bad device can't block others; removing someone from the allow-list now ends their access immediately; "Sign out everywhere" added; signing out switches push off; sign-in can no longer be blocked by flooding it; backups contain only your own data.
