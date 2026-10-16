@@ -1619,10 +1619,17 @@ not offered on `/tasks` (the calendar views keep them).
 
 ### Untitled task lists (owner, 2026-10-12)
 
-A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
-such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list)` in one place, the stored title stays
-empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
-`extendedProperties.private.untitled = "1"` keeps the app title empty.
+A task list may have an empty title when it has at least one item (else "Add a title or an item"). Such a list is
+**truly titleless** (owner, 2026-10-16: "if I create a task with no title I want a titleless task; the first task is shown
+on top but shall not become the title of the event"):
+- **No title is written to the Google event**: the event `summary` is left empty for an untitled list (was: the items
+  joined with ", ", which made the first task look like the event's title in Google's own apps). The tasks live only in
+  the list data (`extendedProperties.private`), so no task ever becomes the event title. `untitled = "1"` still marks it
+  and the app title decodes to "".
+- **In the app it shows no title row**: `displayTitle(list)` returns "" for an untitled list (the "List" placeholder is
+  gone), and every card/view hides the title row when it is empty, rendering just the tasks with the first on top.
+- **Where only one line fits** (month/week chip, dot, the accessibility name): the first task's text is shown as the
+  label — display only, never stored as the title.
 
 ### Expanded task list card (owner, 2026-10-14, reworked the same day)
 
