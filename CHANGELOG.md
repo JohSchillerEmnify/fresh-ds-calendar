@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-16
+- The all-day row in the week and day views now packs per day like the month: a multi-day event only takes space on the days it covers and no longer pushes the other days down.
 - A titleless task list now shows its first item on compact month chips, so it is not blank in the overview.
 - New setting (Settings → Task lists): tapping a task list can either grow it in place (default) or open the list drawer.
 - Task lists with no title stay truly titleless: no title is saved to the event and no task is shown as the title; the tasks appear as an equal list.
