@@ -4,6 +4,8 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Zooming is broken on the month overview** (2026-10-16, owner). The pinch/Ctrl-wheel zoom on the month view is
+  broken; investigate and fix. (Separate from the zoom-month lab.)
 - **Deep-link return after sign-in is sometimes lost** (2026-10-16, owner chose backlog). Opening a specific page while
   signed out should return there after sign-in; ~1 in 8 it lands on the default month view instead. Pre-existing, cosmetic
   (you are signed in correctly, just on the wrong starting page). The return is stashed in `sessionStorage` (`RETURN_KEY`)
@@ -36,6 +38,9 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - Tags (shelved earlier).
 - iOS home-screen widget (needs a native shell; a PWA cannot provide widgets on iOS).
 - Android widget: verify on a real device (drawn as a bitmap of the week view, never rendered on a device yet).
+- Two-row week overview (owner, 2026-10-16): instead of 7 narrow day columns, lay the week out in two rows — the first
+  four days on top, the rest below — to use the width better and read as a nicer overview. A layout option/view for the
+  week.
 - Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
   Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
   below; fewer toolbar controls; a day/agenda start view on phones.
