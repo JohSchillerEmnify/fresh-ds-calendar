@@ -344,9 +344,14 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
   rest) counts only the slots that day actually uses. Bars look like chips (same height, font, padding and radius as a
   chip in that cell; owner: "it's visible that they are multi-day because they span multiple days, we don't need an extra
   distinction"): no ◂ ▸ arrows; a bar cut at a week edge only has square ends there. Applies to the month view on phone and
-  desktop; the week view's all-day row and the zoom month are unchanged (assumption: the screenshot and request are
-  about the month view). **Why**: a reserved lane band per week wasted most of every cell in a busy month; packing per day
-  is what the owner's reference does and uses the cells' space efficiently.
+  desktop; the zoom month is unchanged.
+- **Week/day all-day band packs per day too (owner, 2026-10-16: the all-day header between the approach bar and the grid
+  "has the same problem as the monthly view, the multi-day events shift everything")**: the all-day band at the top of the
+  week and day views now uses the SAME per-day slot packing as the month (`packWeek`/`monthSlots`), not a reserved lane
+  band across all columns. A multi-day bar occupies its slot only on the days it spans; each day's own all-day entries and
+  untimed task lists fill that day's free slots from the top. A day the bar doesn't cover is not pushed down (before, every
+  column had `paddingTop = lanes * barHeight`, so one bar shifted all seven days). **Why**: same as the month — a global
+  lane band shifted cells of days a bar never touches.
 - **Week view on phone**: 7 narrow columns, all fit (no horizontal scroll); chips show truncated title; tap opens.
 - **Dialogs**: phone = bottom sheet (full width, anchored to the bottom, rounded top, max-height 90dvh, internal scroll,
   drag handle; padding-bottom includes safe-area inset); desktop = centered modal ≤ 520 px. Escape and the Cancel

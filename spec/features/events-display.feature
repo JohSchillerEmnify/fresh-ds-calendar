@@ -91,6 +91,18 @@ Feature: Displaying events in the calendar views
     Then the first entry of the month cell of 2026-10-09 is at the height of the bar "Summit"
     And the first entry of the month cell of 2026-10-07 is in the slot below the bar "Summit"
 
+  @week @day @allday-slots
+  Scenario Outline: A multi-day bar does not push down the all-day entries of days it does not cover
+    Given the calendar contains an all-day event "Summit" from 2026-10-12 to 2026-10-14
+    And the calendar contains an all-day event "Holiday" on 2026-10-16
+    When I open the <view> view for <period>
+    Then the all-day event "Holiday" on 2026-10-16 is at the height of the bar "Summit"
+
+    Examples:
+      | view | period     |
+      | week | 2026-10-12 |
+      | day  | 2026-10-16 |
+
   @month @month-lanes
   Scenario: A day's entries fill the free slot above a bar
     Given the calendar contains an all-day event "Trip" from 2026-10-13 to 2026-10-16

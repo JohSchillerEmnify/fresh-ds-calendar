@@ -140,6 +140,7 @@ I see the event {string} as a bar from {date} to {date}
 the event {string} is a bar in lane {int}
 the first entry of the month cell of {date} is at the height of the bar {string}
 the first entry of the month cell of {date} is in the slot below the bar {string}
+the all-day event {string} on {date} is at the height of the bar {string}
 the bar {string} has the height of the chip {string}
 the bar {string} shows no continuation arrows
 I see the all-day event {string} on {date}
@@ -158,6 +159,7 @@ the event {string} has the color {string}
 the items on {date} are shown in the order {string}
 ```
 
+- "the all-day event A on D is at the height of the bar B": A's chip top equals B's `event-bar` top within 3 px; when B is not on the page (day view clipped away), the top of the all-day area of D.
 - "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
   `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
 - Month slots (ARCHITECTURE "Month view rows, like Google Calendar"): "the first entry of the month cell of D" is the
