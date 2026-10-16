@@ -1633,6 +1633,18 @@ on top but shall not become the title of the event"):
   line fits (month/week chip, dot, the accessibility name), the label is **neutral** — a task count (e.g. "3 tasks",
   with the done/total badge the card already has), never any task's text.
 
+### Tap a task list: grow inline or open the drawer (owner, 2026-10-16)
+
+A per-person setting chooses what tapping a task list card does: **grow in place** (the inline expanded card, default) or
+**open the list** (the drawer: a bottom sheet on the phone, a panel anchored to the card on desktop). Setting
+`taskOpen: 'inline' | 'drawer'` (prefs, default `'inline'`), a segmented control in Settings -> Task lists
+(`settings-task-open`, options `settings-task-open-inline` / `settings-task-open-drawer`). The tap handler in
+`TaskListCard` branches on it: `inline` keeps today's behaviour (`ui.expandCard`, including the existing shortcut where a
+block that already shows its whole title and every open item opens the drawer directly, since there is nothing to grow
+into); `drawer` always opens the list sheet (`ui.openDialog('tasklist-expanded')`). The phone-month "tap opens the day"
+rule and the grown card's own "tap opens the list" are unchanged. Deep links, Labs and `EventBar` still open the drawer
+regardless of the setting.
+
 ### Expanded task list card (owner, 2026-10-14, reworked the same day)
 
 A task list card is only as tall as its time block, so a long list was cut off and the owner had to change the list's
