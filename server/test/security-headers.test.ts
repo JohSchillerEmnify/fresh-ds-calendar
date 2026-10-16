@@ -10,6 +10,13 @@ import { loadConfig } from '../src/config.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (p: string) => fs.readFileSync(path.join(root, p), 'utf8');
+/** True only when web/dist/index.html exists and is at least as new as the source (a real build, not a stale leftover). */
+function distIsFresh(): boolean {
+  const dist = path.join(root, 'web/dist/index.html');
+  const src = path.join(root, 'web/index.html');
+  if (!fs.existsSync(dist)) return false;
+  return fs.statSync(dist).mtimeMs >= fs.statSync(src).mtimeMs;
+}
 
 describe('security headers', () => {
   it('hashes the inline theme script of web/index.html', () => {
@@ -24,8 +31,10 @@ describe('security headers', () => {
     expect(caddy).toContain('X-Frame-Options DENY');
   });
 
-  // Vite must not rewrite the inline script: the hash of the built page is the one the browser checks.
-  it.skipIf(!fs.existsSync(path.join(root, 'web/dist/index.html')))('built web/dist/index.html has the same inline script hashes as the source', () => {
+  // Vite must not rewrite the inline script: the hash of the built page is the one the browser checks. Only meaningful
+  // against a FRESH build — skip a dist older than the source (a stale leftover would give a false mismatch; e.g. a host
+  // whose real build happens inside Docker and never refreshes web/dist).
+  it.skipIf(!distIsFresh())('built web/dist/index.html has the same inline script hashes as the source', () => {
     expect(inlineScriptHashes(read('web/dist/index.html'))).toEqual(inlineScriptHashes(read('web/index.html')));
   });
 
