@@ -21,7 +21,7 @@ const hours = computed(() => Array.from({ length: (span.value.end - span.value.s
 const hh = computed(() => Math.max(1, height.value) / ((span.value.end - span.value.start) / 60));
 const top = computed(() => props.segments.filter((s) => s.allDay || s.startTime === null));
 const placed = computed(() => packColumns(props.segments, (MIN_BLOCK_PX / hh.value) * 60));
-const geo = (startMin: number, endMin: number) => blockGeometry(startMin - span.value.start, endMin - span.value.start, hh.value);
+const geo = (startMin: number, endMin: number) => blockGeometry(startMin - span.value.start, endMin - span.value.start, hh.value, 0);
 const variantOf = (s: Segment) => (s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip');
 </script>
 

@@ -557,6 +557,17 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   - Duration is preserved. Timed items stay timed and all-day items stay all-day (no conversion by drag; assumption
     A-55). Multi-day events move by their first day.
   - Accessible alternative: the edit dialogs. Chips keep `role="button"`, and keyboard users use the dialog.
+- **Timed overlap uses real times, not the drawn height (owner, 2026-10-16, screenshot: "it looks like these are
+  overlapping, but they are not")**. `packColumns` decides what overlaps — clusters, columns/lanes and the cascade — from
+  each item's **real** start and end, not the min-height-inflated `visualEnd` it used before. So two items that are only
+  back-to-back (one ends when the next starts) or merely close never get put side by side or stacked over each other; they
+  sit in one column. The minimum block height (`MIN_BLOCK_PX`, 25 px) is kept only for *drawing* short items so their title
+  stays readable, and a short item's drawn box is **clamped** so it never paints over the next item below it in its column
+  (it grows into free space up to the next item's start, no further). The cascade (indent + draw-on-top, to keep a short
+  item's title row visible under a later one) now fires **only for items that truly overlap in time**. Why: the old code
+  fed the inflated height back into overlap detection, so a 30-min event at default zoom (min ≈ 31 min) collided with the
+  event starting right after it and the two were drawn overlapping though they never overlapped. The Java widget port
+  (`WeekLayout.packColumns`) and the zoom-month timeline follow the same rule.
 - **Resize handles** (timed events and timed task lists in the week and day time grid; never month or all-day):
   - Trigger: a pick-up released without moving (`drag.ts` drop with no target change) sets `ui.resizing =
     { kind, id, date }` instead of doing nothing. One entry at a time.

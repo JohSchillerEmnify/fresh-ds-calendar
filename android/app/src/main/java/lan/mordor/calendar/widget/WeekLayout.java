@@ -30,9 +30,9 @@ final class WeekLayout {
         int span = 1;
         /** Cascade level: 0 is drawn first, level n is indented and drawn on top. */
         final int level;
-        /** Top and height in minutes (height at least the minimum). */
+        /** Top and drawn height in minutes: at least the minimum, unless clamped by the next block below it. */
         final int top;
-        final int height;
+        int height;
 
         Placed(WeekData.Item item, int col, int level, int top, int height) {
             this.item = item;
@@ -47,13 +47,16 @@ final class WeekLayout {
         final int start;
         int end;
         final int level;
+        /** Start distance from the group's first start from which a later overlapping block cascades. */
+        final int stackGap;
         final List<Placed> items = new ArrayList<>();
         final List<Integer> colEnds = new ArrayList<>();
 
-        Group(int start, int end, int level) {
+        Group(int start, int end, int level, int stackGap) {
             this.start = start;
             this.end = end;
             this.level = level;
+            this.stackGap = stackGap;
         }
     }
 
@@ -61,6 +64,9 @@ final class WeekLayout {
      * Packs the timed items of one day. Items in a connected overlap cluster are grouped by start time: starts within
      * {@link #STACK_MIN_START_GAP_MIN} of the group's first share equal columns; a later overlapping group cascades one level
      * deeper (up to {@link #MAX_STACK_DEPTH}, then it joins the last group's columns). Touching items do not overlap.
+     * What overlaps is decided from the real start and end only; {@code minMinutes} sizes the drawn box, which is clamped to end
+     * where the next block below it (not overlapping it in time, sharing its horizontal room) starts. A block that lasts less
+     * than {@code minMinutes} is cascaded over only by a block starting at least {@code minMinutes} later.
      *
      * @param items the day's items; untimed ones are ignored
      * @param minMinutes the minimum drawn duration of a block, in minutes
@@ -77,14 +83,15 @@ final class WeekLayout {
                 flush(groups, out);
                 clusterEnd = -1;
             }
-            int visualEnd = Math.max(s.endMin, s.startMin + minMinutes);
+            int end = realEnd(s);
             Group g = groups.isEmpty() ? null : groups.get(groups.size() - 1);
-            if (g == null || s.startMin - g.start >= STACK_MIN_START_GAP_MIN) {
+            if (g == null || s.startMin - g.start >= g.stackGap) {
                 int deepest = -1;
                 for (Group x : groups) if (x.end > s.startMin) deepest = Math.max(deepest, x.level);
                 int level = 1 + deepest;
                 if (g == null || level <= MAX_STACK_DEPTH) {
-                    g = new Group(s.startMin, visualEnd, level);
+                    int stackGap = s.endMin - s.startMin < minMinutes ? Math.max(STACK_MIN_START_GAP_MIN, minMinutes) : STACK_MIN_START_GAP_MIN;
+                    g = new Group(s.startMin, end, level, stackGap);
                     groups.add(g);
                 }
             }
@@ -97,16 +104,33 @@ final class WeekLayout {
             }
             if (col < 0) {
                 col = g.colEnds.size();
-                g.colEnds.add(visualEnd);
+                g.colEnds.add(end);
             } else {
-                g.colEnds.set(col, visualEnd);
+                g.colEnds.set(col, end);
             }
-            g.end = Math.max(g.end, visualEnd);
+            g.end = Math.max(g.end, end);
             g.items.add(new Placed(s, col, g.level, s.startMin, Math.max(s.endMin - s.startMin, minMinutes)));
-            clusterEnd = Math.max(clusterEnd, visualEnd);
+            clusterEnd = Math.max(clusterEnd, end);
         }
         flush(groups, out);
+        // Clamp each drawn box to the next block below it that shares its horizontal room, so the minimum never paints over it.
+        for (Placed p : out) {
+            int pEnd = realEnd(p.item);
+            int next = Integer.MAX_VALUE;
+            for (Placed q : out) {
+                if (q != p && q.top >= pEnd && (double) q.col / q.cols < (double) (p.col + p.span) / p.cols
+                        && (double) p.col / p.cols < (double) (q.col + q.span) / q.cols) {
+                    next = Math.min(next, q.top);
+                }
+            }
+            if (next != Integer.MAX_VALUE) p.height = Math.min(p.height, next - p.top);
+        }
         return out;
+    }
+
+    /** The real end of an item; a zero-length one still occupies one minute so two of them never paint on top of each other. */
+    private static int realEnd(WeekData.Item i) {
+        return Math.max(i.endMin, i.startMin + 1);
     }
 
     private static void flush(List<Group> groups, List<Placed> out) {
@@ -117,7 +141,7 @@ final class WeekLayout {
                 for (int c = p.col + 1; c < p.cols; c++) {
                     boolean blocked = false;
                     for (Placed q : g.items) {
-                        if (q.col == c && q.top < p.top + p.height && p.top < q.top + q.height) {
+                        if (q.col == c && q.top < realEnd(p.item) && p.top < realEnd(q.item)) {
                             blocked = true;
                             break;
                         }

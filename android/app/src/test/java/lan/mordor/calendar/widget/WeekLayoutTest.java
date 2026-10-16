@@ -79,12 +79,29 @@ public class WeekLayoutTest {
     }
 
     @Test
-    public void minimumDurationCountsForTheOverlap() {
-        // a lasts 5 min but is drawn 30 min tall, so b (10 min later) overlaps it and shares the columns
+    public void minimumDurationDoesNotCreateAnOverlap() {
+        // a lasts 5 min (drawn 30 tall) and b starts 10 min later: no real overlap, one column, a clamped to b's start
         List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 600, 605), ev("b", 610, 640)), 30);
-        assertEquals(2, find(l, "b").cols);
+        assertEquals(1, find(l, "b").cols);
         assertEquals(0, find(l, "b").level);
+        assertEquals(10, find(l, "a").height);
+        assertEquals(30, find(l, "b").height);
+    }
+
+    @Test
+    public void backToBackItemsStayInOneColumn() {
+        List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 540, 570), ev("b", 570, 600)), 31);
+        assertEquals(1, find(l, "a").cols);
+        assertEquals(1, find(l, "b").cols);
         assertEquals(30, find(l, "a").height);
+    }
+
+    @Test
+    public void trulyOverlappingShortItemsStillShareColumns() {
+        List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 540, 545), ev("b", 543, 600)), 31);
+        assertEquals(2, find(l, "a").cols);
+        assertEquals(2, find(l, "b").cols);
+        assertEquals(31, find(l, "a").height);
     }
 
     @Test

@@ -81,18 +81,46 @@ describe('packing and proportions', () => {
     const back = packColumns(segsOf([a, c], D));
     expect(back.map((p) => [p.col, p.cols, p.span])).toEqual([[0, 1, 1], [0, 1, 1]]);
   });
-  it('a block drawn taller than its duration counts with its drawn height (A-E5)', () => {
-    // "a" lasts 15 min but is drawn an hour tall (like a task list with open items on a phone), "c" starts after it.
+  it('a block drawn taller than its duration is drawn that tall, but only up to the next block below it (A-E5)', () => {
+    // "a" lasts 15 min but is drawn an hour tall (like a task list with open items on a phone), "c" starts right after it.
     const a = ev('a', t(D, '20:00'), t(D, '20:15')), c = ev('c', t(D, '20:15'), t(D, '21:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, c], D), (s) => (s.item.id === 'a' ? 60 : 0)).map((x) => [x.seg.item.id, x]));
-    expect(p.c.level > p.a.level || p.c.col !== p.a.col).toBe(true);
+    expect([p.a, p.c].map((x) => [x.col, x.cols, x.level])).toEqual([[0, 1, 0], [0, 1, 0]]);
+    expect(p.a.height).toBe(15);
+    const alone = packColumns(segsOf([a], D), (s) => (s.item.id === 'a' ? 60 : 0));
+    expect(alone[0].height).toBe(60);
   });
-  it('a block drawn at its minimum height is not cascaded over by a block starting inside that height', () => {
-    const a = ev('a', t(D, '17:00'), t(D, '17:15')), c = ev('c', t(D, '17:15'), t(D, '21:30')), d = ev('d', t(D, '19:00'), t(D, '22:00'));
+  it('a block drawn at its minimum height is not cascaded over by a truly overlapping block starting inside that height', () => {
+    const a = ev('a', t(D, '17:00'), t(D, '17:20')), c = ev('c', t(D, '17:15'), t(D, '21:30')), d = ev('d', t(D, '19:00'), t(D, '22:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, c, d], D), 31).map((x) => [x.seg.item.id, x]));
     expect([p.a, p.c].map((x) => [x.level, x.cols])).toEqual([[0, 2], [0, 2]]);
     expect(p.a.col).not.toBe(p.c.col);
     expect(p.d.level).toBe(1);
+  });
+  it('back-to-back short events stay in one full-width column and the first is clamped to the second start', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '09:30')), b = ev('b', t(D, '09:30'), t(D, '10:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));
+    expect([p.a, p.b].map((x) => [x.col, x.cols, x.span, x.level])).toEqual([[0, 1, 1, 0], [0, 1, 1, 0]]);
+    expect(p.a.height).toBe(30);
+    expect(p.b.height).toBe(31);
+  });
+  it('a 5-min event followed 10 min later by another is one column, not cascaded, and clamped', () => {
+    const a = ev('a', t(D, '08:00'), t(D, '08:05')), n = ev('n', t(D, '08:10'), t(D, '09:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, n], D), 31).map((x) => [x.seg.item.id, x]));
+    expect([p.a, p.n].map((x) => [x.col, x.cols, x.level])).toEqual([[0, 1, 0], [0, 1, 0]]);
+    expect(p.a.height).toBe(10);
+  });
+  it('truly overlapping events still get two columns, unclamped by each other', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '09:30')), b = ev('b', t(D, '09:20'), t(D, '10:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));
+    expect(p.a.cols).toBe(2);
+    expect(p.a.col).not.toBe(p.b.col);
+    expect(p.a.height).toBe(31);
+  });
+  it('a short event with a truly overlapping later one shares columns with it (start gap under the minimum)', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '09:05')), b = ev('b', t(D, '09:03'), t(D, '10:00'));
+    const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));
+    expect([p.a, p.b].map((x) => [x.cols, x.level])).toEqual([[2, 0], [2, 0]]);
   });
   it('a block widens into free columns to its right', () => {
     const a = ev('a', t(D, '09:00'), t(D, '12:00')), b = ev('b', t(D, '09:00'), t(D, '09:10')), c = ev('c', t(D, '09:10'), t(D, '12:00'));
@@ -119,10 +147,10 @@ describe('packing and proportions', () => {
     expect(Math.max(...placed.map((x) => x.level))).toBe(3);
     expect(placed.filter((x) => x.level === 3).every((x) => x.cols > 1)).toBe(true);
   });
-  it('a short block occupies its minimum height when packing', () => {
+  it('a short block does not claim its minimum height when packing (real times decide)', () => {
     const pill = ev('p', t(D, '08:00'), t(D, '08:05')), next = ev('n', t(D, '08:10'), t(D, '09:00'));
     const placed = packColumns(segsOf([pill, next], D), 30);
-    expect(placed.every((p) => p.cols === 2)).toBe(true);
+    expect(placed.every((p) => p.cols === 1)).toBe(true);
   });
   it('overnight events are split per day, DST wall clock is kept', () => {
     const night = ev('night', t('2026-10-14', '22:00'), t('2026-10-15', '02:00'));

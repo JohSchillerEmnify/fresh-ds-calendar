@@ -83,7 +83,7 @@ export function layoutRow(date: string, segs: Segment[], pph: number, baseH: num
   const room = height - 2 * ROW_PAD - bars.length * BAR_PX;
   for (const p of placed) {
     const laneH = room / p.cols;
-    const w = Math.max(MIN_CARD_PX, (p.height / 60) * pph);
+    const w = (p.height / 60) * pph; // already at least the minimum card, unless clamped by the next card in its lane
     cards.push({
       seg: p.seg,
       left: Math.min((p.top / 60) * pph, Math.max(0, width - w)),
