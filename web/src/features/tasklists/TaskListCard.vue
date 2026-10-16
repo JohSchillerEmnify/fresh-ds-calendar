@@ -145,9 +145,9 @@ const fit = computed(() => {
  * item, never stored as the event title; the grown/opened card shows the whole list below with no title. No duplication:
  * the lead only appears when `fit.shown === 0`, i.e. when no items render below. */
 const lead = computed(() => {
-  if (props.grown || displayTitle(tl.value)) return '';
+  if (props.grown || displayTitle(tl.value)) return null;
   const noItemsShown = props.variant === 'chip' || titles.value || fit.value.shown === 0;
-  return noItemsShown ? (tl.value.items[0]?.title ?? '') : '';
+  return noItemsShown ? (tl.value.items[0] ?? null) : null;
 });
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */
 const rank = computed(() => {
@@ -175,7 +175,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span v-if="displayTitle(tl)" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" /></span></span>
-      <span v-else-if="lead" class="title lead" data-testid="tasklist-card-lead"><span class="tx">{{ lead }}</span></span>
+      <span v-else-if="lead" class="title lead" :class="{ done: lead.done }" data-testid="tasklist-card-lead" :data-done="lead.done"><span class="tx">{{ lead.title }}</span></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
@@ -220,6 +220,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 .title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-weight: 500; line-height: 16px; text-overflow: ellipsis;
 }
+/* the lead is the list's first item shown in the title slot: a done one is struck like an item */
+.title.lead { font-weight: 400; }
+.title.lead.done .tx { text-decoration: line-through; opacity: 0.7; }
 .meta { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 /* titleless: no title text, so the count badge keeps the right edge */
 .untitled .meta { margin-left: auto; }
