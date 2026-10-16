@@ -15,7 +15,7 @@ import { shallowRef, type Ref } from 'vue';
 import { api } from '@/api/client';
 import type { CalendarEvent, CalendarItem, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import type { ItemVariant } from '@/extensions/registry';
-import { displayTitle, type Segment } from '@/lib/items';
+import { neutralName, type Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { createCellGrid, createSlotGrid, haptic, useDraggable, type DragContext, type DropTarget } from '@/motion';
@@ -85,7 +85,7 @@ export async function applyMove(seg: Segment, target: MoveTarget): Promise<void>
       : api.updateTaskList(item.id, plan.patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
   } catch (e) {
     const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
-    useUiStore().notify(t('calendar.drag.moveFailed', { title: displayTitle(item), reason: msg }), { testid: 'move-failed' });
+    useUiStore().notify(t('calendar.drag.moveFailed', { title: neutralName(item), reason: msg }), { testid: 'move-failed' });
     throw e;
   }
 }

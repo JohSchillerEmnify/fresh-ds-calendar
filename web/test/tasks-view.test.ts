@@ -54,8 +54,8 @@ describe('sorting', () => {
     const l = [tl('u'), tl('b', { date: '2026-10-14' }), tl('timed', { date: '2026-10-13', time: '08:00' }), tl('a', { date: '2026-10-14' }), tl('untimed', { date: '2026-10-13' })];
     expect(titles(sortLists(l, 'date', cats))).toEqual(['untimed', 'timed', 'a', 'b', 'u']);
   });
-  it('by name, ignoring case; an untitled list reads "List"', () => {
-    expect(titles(sortLists([tl('b'), tl('A'), tl('', { id: 'e' })], 'name', cats))).toEqual(['A', 'b', '']);
+  it('by name, ignoring case; an untitled list has an empty name and sorts first', () => {
+    expect(titles(sortLists([tl('b'), tl('A'), tl('', { id: 'e' })], 'name', cats))).toEqual(['', 'A', 'b']);
   });
   it('by category in settings order, no category last, ties by date', () => {
     const l = [tl('n'), tl('w', { categoryId: 'work' }), tl('s2', { categoryId: 'shopping', date: '2026-10-20' }), tl('s1', { categoryId: 'shopping', date: '2026-10-13' })];

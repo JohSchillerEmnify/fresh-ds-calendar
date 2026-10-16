@@ -4,7 +4,7 @@ import { defineComponent, h } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createAppRouter } from '@/router';
 import type { TaskList } from '@/api/types';
-import { displayTitle, itemSegments } from '@/lib/items';
+import { displayTitle, itemSegments, neutralName } from '@/lib/items';
 import { enableTimerCounting } from '@/lib/timers';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -90,24 +90,28 @@ describe('collapsed card', () => {
     expect(w.get(tid('tasklist-card-time')).text()).toBe('18:00');
     expect(w.get(tid('tasklist-progress-ring')).attributes('data-percent')).toBe('33');
   });
-  it('shows an untitled list as "List" (card, tray, expanded list)', async () => {
+  it('shows an untitled list without a title row and with a neutral name (card, tray, expanded list)', async () => {
     const list = tl('U', { title: '' });
-    expect(displayTitle(list)).toBe('List');
+    expect(displayTitle(list)).toBe('');
+    expect(neutralName(list)).toBe('Task list');
     expect(displayTitle({ kind: 'event', title: '' })).toBe('');
     const { pinia } = await setup({ 'GET /api/tasklists/open': () => ({ items: [list] }) });
     const w = mountIn(TaskListCard, { segment: seg(list), variant: 'chip' }, pinia);
-    expect(w.get(tid('tasklist-card-title')).text()).toBe('List');
-    expect(w.get(tid('tasklist-card')).attributes('data-title')).toBe('List');
+    expect(w.find(tid('tasklist-card-title')).exists()).toBe(false);
+    expect(w.get(tid('tasklist-card')).attributes('data-title')).toBe('');
+    expect(w.get(tid('tasklist-card')).attributes('data-untitled')).toBe('true');
+    expect(w.get(tid('tasklist-card')).attributes('aria-label')).toBe('Task list, 0 of 3 done');
+    expect(w.get(tid('tasklist-card-count')).text()).toBe('0/3');
     w.unmount();
     const tray = mountIn(TaskTray, {}, pinia);
     await flushPromises();
-    expect(tray.get(tid('task-tray-item')).attributes('data-title')).toBe('List');
-    expect(tray.get(tid('tasklist-expanded-title')).text()).toBe('List');
+    expect(tray.get(tid('task-tray-item')).attributes('data-title')).toBe('');
+    expect(tray.find(tid('tasklist-expanded-title')).exists()).toBe(false);
     tray.unmount();
     useItemsStore().upsert(list);
     mountIn(ExpandedTaskList, { id: 'U' }, pinia);
     await flushPromises();
-    expect(document.querySelector(tid('tasklist-expanded-title'))?.textContent?.trim()).toBe('List');
+    expect(document.querySelector(tid('tasklist-expanded-title'))).toBeNull();
   });
   it('says "No items" for an empty list and exposes the root element for drag and drop', async () => {
     const { pinia } = await setup();

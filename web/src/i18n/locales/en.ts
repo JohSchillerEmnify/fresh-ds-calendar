@@ -62,7 +62,6 @@ export default {
     nameExists: 'A category with this name already exists',
   },
   tasklist: {
-    untitled: 'List',
     titleOrItem: 'Add a title or an item',
     tooManyItems: 'A task list can have at most 200 items',
     tagsUnique: 'Tags must be unique',

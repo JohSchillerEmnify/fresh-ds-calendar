@@ -52,7 +52,6 @@ export default {
     },
   },
   tasklist: {
-    untitled: 'Lisdn',
     titleOrItem: 'Schreib amal an Titel oder an Eindrag hin',
   },
   settings: {

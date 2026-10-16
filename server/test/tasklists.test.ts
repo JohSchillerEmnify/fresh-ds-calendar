@@ -98,13 +98,13 @@ describe('task lists CRUD', () => {
     expect((await t.json('POST', '/api/tasklists', { date: '2026-10-12' })).body.error.message).toBe('Title is required');
   });
 
-  it('accepts an empty or blank title when there is an item; stores items as the Google summary', async () => {
+  it('accepts an empty or blank title when there is an item; leaves the Google summary empty', async () => {
     for (const title of ['', '   ']) {
       const r = await t.json('POST', '/api/tasklists', { title, date: '2026-10-12', items: [{ title: 'Milk' }, { title: ' ' }, { title: 'Eggs' }] });
       expect(r.status).toBe(201);
       expect(r.body.title).toBe('');
       const g = await raw(r.body.id);
-      expect(g.summary).toBe('Milk, Eggs');
+      expect(g.summary).toBe('');
       expect(g.extendedProperties.private.untitled).toBe('1');
       expect((await t.json('GET', `/api/tasklists/${r.body.id}`)).body.title).toBe('');
     }
@@ -123,7 +123,7 @@ describe('task lists CRUD', () => {
     const u = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: '' });
     expect(u.status).toBe(200);
     expect(u.body.title).toBe('');
-    expect((await raw(a.id)).summary).toBe('Milk');
+    expect((await raw(a.id)).summary).toBe('');
     const d = await t.json('DELETE', `/api/tasklists/${a.id}/items/${u.body.items[0].id}`);
     expect(d.status).toBe(400);
     expect(d.body.error.message).toBe('Add a title or an item');

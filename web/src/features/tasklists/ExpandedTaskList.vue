@@ -9,7 +9,7 @@ import { t } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import { isPhone } from '@/composables/useViewport';
 import { listen, type Disposer } from '@/lib/timers';
-import { displayTitle } from '@/lib/items';
+import { displayTitle, neutralName } from '@/lib/items';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { useTaskCategories } from './categories';
@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
 
 <template>
   <AdaptiveSheet
-    ref="sheet" :open="!!tl" :label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')" testid="tasklist-expanded" :anchor="pos" :escape="false"
+    ref="sheet" :open="!!tl" :label="tl ? neutralName(tl) : t('tasks.list.fallbackLabel')" testid="tasklist-expanded" :anchor="pos" :escape="false"
     :panel-attrs="{ 'data-tasklist-id': tl?.id ?? '', 'data-title': tl ? displayTitle(tl) : '' }"
     :panel-style="{ '--c': tl ? cats.color(tl) : 'transparent', borderTop: '4px solid var(--c)', background: 'color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low))' }"
     @close="emit('close')"

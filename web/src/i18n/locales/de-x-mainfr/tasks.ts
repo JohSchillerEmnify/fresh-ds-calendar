@@ -46,6 +46,7 @@ export default {
   },
   card: {
     label: '{title}, {done} von {total} erledigt',
+    labelUntitled: 'Aufgabnlisdn, {done} von {total} erledigt',
     noItems: 'Kane Einträge',
     from: 'Vom {date}',
     fromEarlier: 'Von früher',

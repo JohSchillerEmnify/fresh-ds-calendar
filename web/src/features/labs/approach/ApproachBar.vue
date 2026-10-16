@@ -9,7 +9,7 @@ import { computed, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { onColor } from '@/api/colors';
 import { openItem } from '@/extensions/registry';
-import { displayTitle, type Segment } from '@/lib/items';
+import { neutralName, type Segment } from '@/lib/items';
 import { formatDuration } from '@/features/calendar/timeline';
 import BedtimeTrack from '@/features/bedtime/BedtimeTrack.vue';
 import type { TrackBand } from '@/features/bedtime/bedtime';
@@ -41,7 +41,7 @@ function textPx(text: string): number {
   }
   return ctx ? ctx.measureText(text).width : text.length * 7;
 }
-const sizes: ApproachSizes = { titlePx: (s) => textPx(displayTitle(s.item)) + CHIP_PAD_PX, endChipPx: CHIP_PX, minBlockPx: 4, gapPx: 4, minTitlePx: 24 };
+const sizes: ApproachSizes = { titlePx: (s) => textPx(neutralName(s.item)) + CHIP_PAD_PX, endChipPx: CHIP_PX, minBlockPx: 4, gapPx: 4, minTitlePx: 24 };
 const layout = computed(() => approachLayout(props.entries, props.nowMin, props.windowMin, track.value, sizes, props.atEnd));
 const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.value, LABEL_PX));
 </script>
@@ -63,14 +63,14 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
         :style="{ left: `${NOW_PX + c.x}px`, top: `${TICK_PX + c.row * ROW_PX + 1}px`, zIndex: i + 2 }"
       >
         <button
-          type="button" class="block skin" :class="{ bare: c.titleOutside }" data-testid="approach-block" :aria-label="displayTitle(c.segment.item)"
+          type="button" class="block skin" :class="{ bare: c.titleOutside }" data-testid="approach-block" :aria-label="neutralName(c.segment.item)"
           :style="{ width: `${c.width}px`, '--c': cats.itemColor(c.segment.item), '--on-solid': onColor(cats.itemColor(c.segment.item)) }" @click="openItem(c.segment.item)"
-        ><span v-if="!c.titleOutside" class="label">{{ displayTitle(c.segment.item) }}</span></button>
+        ><span v-if="!c.titleOutside" class="label">{{ neutralName(c.segment.item) }}</span></button>
         <!-- the block carries the entry's label; the title beside it is a second tap target only -->
         <span
           v-if="c.titleOutside && c.titleWidth > 0" class="title" data-testid="approach-title" aria-hidden="true"
           :style="{ maxWidth: `${c.titleWidth}px` }" @click="openItem(c.segment.item)"
-        >{{ displayTitle(c.segment.item) }}</span>
+        >{{ neutralName(c.segment.item) }}</span>
       </div>
     </template>
   </div>

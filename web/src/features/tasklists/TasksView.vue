@@ -11,7 +11,7 @@ import type { TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
-import { displayTitle } from '@/lib/items';
+import { displayTitle, neutralName } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
@@ -60,7 +60,7 @@ function chooseTab(next: TasksTab): void {
 async function useAsTemplate(l: TaskList): Promise<void> {
   try {
     await items.createTaskList(templateOf(l, cats.on.value));
-    ui.notify(t('tasks.archive.templateCreated', { title: displayTitle(l) }));
+    ui.notify(t('tasks.archive.templateCreated', { title: neutralName(l) }));
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.templateFailed'));
   }

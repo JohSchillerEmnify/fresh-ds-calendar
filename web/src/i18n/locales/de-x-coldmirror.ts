@@ -59,7 +59,6 @@ export default {
     nameExists: 'Hallo, ich bin Ron. Ähm, das hast du eben schon gesagt: Den Namen gibt es schon.',
   },
   tasklist: {
-    untitled: 'Liste, yo',
     titleOrItem: 'Schinken! Gib einen Titel oder einen Eintrag ein, Digga',
     tooManyItems: 'Haltet mal eure Schnauzen, Kinder: Fresh Dumbledore möchte maximal 200 Einträge.',
     tagsUnique: 'Ähm, das hast du eben schon gesagt. Tags müssen unique sein.',

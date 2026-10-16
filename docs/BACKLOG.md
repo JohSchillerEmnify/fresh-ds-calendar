@@ -4,6 +4,11 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Deep-link return after sign-in is sometimes lost** (2026-10-16, owner chose backlog). Opening a specific page while
+  signed out should return there after sign-in; ~1 in 8 it lands on the default month view instead. Pre-existing, cosmetic
+  (you are signed in correctly, just on the wrong starting page). The return is stashed in `sessionStorage` (`RETURN_KEY`)
+  by the router `beforeEach` and read by the `/` redirect (`takeReturn`, `web/src/router/index.ts`); the two cross during
+  the sign-in redirect. Reproduce: `e2e/run.sh --grep "and sees their calendar" --repeat-each 8` (fails ~1/8 on main).
 - **Android back gesture fix: verify on the phone** (branch `android-back-notify`, needs an APK build). Back should
   close the open overlay, then go to the previous view, and leave the app only with no history left.
 - **Canvas: long press on an item row does not pick up the note** (2026-10-13, owner, phone). Not reproducible in

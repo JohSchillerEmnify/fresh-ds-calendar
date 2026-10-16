@@ -24,6 +24,9 @@ services:
       PORT: 3000
       DATA_DIR: /data
       NODE_OPTIONS: --max-old-space-size=96 --heapsnapshot-signal=SIGUSR2 --diagnostic-dir=/diag
+      # This is the LAN-only preview with demo data (mock provider, no sign-in). The fail-closed guard (M7) would
+      # otherwise refuse to start a mock server under NODE_ENV=production; this says "yes, open mock on the LAN is intended".
+      ALLOW_INSECURE_MOCK: "1"
     networks:
       - proxy-network
 

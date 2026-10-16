@@ -49,6 +49,7 @@ export default {
   },
   card: {
     label: '{title}, {done} von {total} erledigt, yo',
+    labelUntitled: 'Aufgabenliste, {done} von {total} erledigt, yo',
     noItems: 'Keine Einträge, Digga',
     from: 'Von {date}, yo',
     fromEarlier: 'Von früher, Gentlemen, a short view back to the past',

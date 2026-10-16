@@ -47,7 +47,7 @@ const timeText = computed(() => {
   >
     <span class="head">
       <span v-if="icon" class="icon" data-testid="tasklist-card-icon">{{ icon }}</span>
-      <span class="title" data-testid="tasklist-card-title">{{ displayTitle(it) }}</span>
+      <span v-if="displayTitle(it)" class="title" data-testid="tasklist-card-title">{{ displayTitle(it) }}</span>
       <span class="count" data-testid="tasklist-card-count">{{ it.doneCount }}/{{ it.totalCount }}</span>
     </span>
     <span v-if="variant === 'block'" class="items" data-testid="tasklist-card-items">{{ items }}</span>

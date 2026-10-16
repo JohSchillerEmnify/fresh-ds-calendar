@@ -833,7 +833,7 @@ all overlays; no per-component history code.
 - Events, task lists and task list items are deleted with one tap, no confirmation dialog (owner: undo is enough).
   Category deletion keeps its confirmation.
 - The entry disappears at once (optimistic) and the shared `Snackbar` shows "Deleted: <title>" (item: the item
-  title; untitled list: "List") with "Undo" for 6 s (`undo-snackbar`, `undo-action`). The DELETE request is sent only
+  title; untitled list: "Task list") with "Undo" for 6 s (`undo-snackbar`, `undo-action`). The DELETE request is sent only
   when the snackbar times out (owner: "hide, delete later"): undo then needs no request, keeps the Google id and its
   details. One pending delete at a time: a new delete sends the previous one at once. `pagehide`/`visibilitychange →
   hidden` sends pending deletes immediately with `fetch(…, { keepalive: true })`. In-app navigation does not.
@@ -1619,10 +1619,19 @@ not offered on `/tasks` (the calendar views keep them).
 
 ### Untitled task lists (owner, 2026-10-12)
 
-A task list may have an empty title when it has at least one item (else "Add a title or an item"). The app shows
-such a list as "List" everywhere (card, tray, expanded list): `displayTitle(list)` in one place, the stored title stays
-empty. In Google the event summary is the items joined with ", " (so Google's own apps show something useful) and
-`extendedProperties.private.untitled = "1"` keeps the app title empty.
+A task list may have an empty title when it has at least one item (else "Add a title or an item"). Such a list is
+**truly titleless** (owner, 2026-10-16: "if I create a task with no title I want a titleless task; the first task is shown
+on top but shall not become the title of the event"):
+- **No title is written to the Google event**: the event `summary` is left empty for an untitled list (was: the items
+  joined with ", ", which made the first task look like the event's title in Google's own apps). The tasks live only in
+  the list data (`extendedProperties.private`), so no task ever becomes the event title. `untitled = "1"` still marks it
+  and the app title decodes to "".
+- **In the app it shows no title row**: `displayTitle(list)` returns "" for an untitled list (the "List" placeholder is
+  gone), and every card/view hides the title row when it is empty, rendering just the tasks with the first on top.
+- **No task is ever elevated** (owner, 2026-10-16: "all tasks should have the same importance; one task becoming the
+  title should not happen"). Every task is rendered equally; none is pulled out as a title, on any surface. Where only one
+  line fits (month/week chip, dot, the accessibility name), the label is **neutral** — a task count (e.g. "3 tasks",
+  with the done/total badge the card already has), never any task's text.
 
 ### Expanded task list card (owner, 2026-10-14, reworked the same day)
 
@@ -2179,7 +2188,9 @@ browser does not change.
     existing `cal_oauth_state` cookie; no in-memory store to flood. A failed code exchange answers 400 without logging
     the error object.
   - **Fail closed** (M7): the server refuses to start in mock/auth-off mode when `PUBLIC_URL` is https or
-    `NODE_ENV=production`, unless `ALLOW_INSECURE_MOCK=1`.
+    `NODE_ENV=production`, unless `ALLOW_INSECURE_MOCK=1`. The sauron LAN preview is a deliberate open mock with demo data
+    (owner, 2026-10-16: "local only runs with demo data, it's local only and only a preview build"), so
+    `deploy/docker-compose.yaml` sets `ALLOW_INSECURE_MOCK=1`; the VPS (`deploy/vps/compose.yml`, `PROVIDER=google`) does not.
   - **Restore** (M10): never overwrites a shared list that exists and belongs to someone else; the file name must match
     the list id; restored themes are re-sanitised.
   - **CSRF**: non-GET `/api/*` requests need an `Origin` from the allowed origins (or none, for the Android widget's

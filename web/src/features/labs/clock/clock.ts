@@ -2,7 +2,7 @@
  * What the 24-hour clock shows of a day (which segments are arcs, which are listed in the middle, their texts) and the
  * pure rules of its gestures (turning an arc, snapping a tap to a time, the focus wedge).
  */
-import { displayTitle, type Segment } from '@/lib/items';
+import { displayTitle, neutralName, type Segment } from '@/lib/items';
 import { assignLanes } from './geometry';
 
 /** Step every clock gesture snaps to, in minutes (the time grid's step). */
@@ -55,5 +55,5 @@ export function focusWedge(segs: Segment[], nowMin: number): { from: number; to:
 
 /** The text a clock entry is named with: the title, for task lists followed by "done/total". */
 export function clockText(item: Segment['item']): string {
-  return item.kind === 'tasklist' ? `${displayTitle(item)} ${item.doneCount}/${item.totalCount}` : displayTitle(item);
+  return item.kind === 'tasklist' ? `${neutralName(item)} ${item.doneCount}/${item.totalCount}` : displayTitle(item);
 }

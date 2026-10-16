@@ -78,7 +78,7 @@ export function startTransitionWarnings(): () => void {
     return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
   });
   const plan = (kinds: { events: boolean; tasklists: boolean }): PlannedReminder[] =>
-    reminderPlan(days(), clock.nowTick, clock.minutesNow, kinds, t('tasklist.untitled'));
+    reminderPlan(days(), clock.nowTick, clock.minutesNow, kinds, t('tasks.list.fallbackLabel'));
 
   scope = effectScope(true);
   scope.run(() => {

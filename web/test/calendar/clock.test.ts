@@ -41,9 +41,9 @@ describe('clock selection', () => {
     expect(lane('Einkaufsliste')).not.toBe(lane('Evening'));
     expect(lane('Plain')).toBe(lane('Plain2')); // events touching each other keep sharing a lane
   });
-  it('names task lists with their done count, untitled ones as "List"', () => {
+  it('names task lists with their done count, untitled ones neutrally as "Task list"', () => {
     expect(clockText(list('Laundry', '18:00', { doneCount: 1, totalCount: 2 }))).toBe('Laundry 1/2');
-    expect(clockText(list('', null, { title: ' ', totalCount: 3 }))).toBe('List 0/3');
+    expect(clockText(list('', null, { title: ' ', totalCount: 3 }))).toBe('Task list 0/3');
     expect(clockText(segs[0].item)).toBe('Dentist');
   });
 });

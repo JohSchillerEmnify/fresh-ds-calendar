@@ -8,9 +8,14 @@ import { t } from '@/i18n';
 
 export const TASKLIST_BLOCK_MINUTES = 30;
 
-/** Title as shown in the UI: an untitled task list reads "List" (its stored title stays empty). */
+/** Title as shown in the UI: an untitled task list has none (""), so no row is drawn and no task stands in for it. */
 export function displayTitle(item: Pick<CalendarItem, 'kind' | 'title'>): string {
-  return item.kind === 'tasklist' && !item.title.trim() ? t('tasklist.untitled') : item.title;
+  return item.kind === 'tasklist' && !item.title.trim() ? '' : item.title;
+}
+
+/** Neutral name for text-only contexts (screen readers, toasts, reminders): the title, or "Task list" for an untitled list. Never a task. */
+export function neutralName(item: Pick<CalendarItem, 'kind' | 'title'>): string {
+  return displayTitle(item) || t('tasks.list.fallbackLabel');
 }
 
 /** Marker of a Google birthday entry (cake, ring for an anniversary); '' for every other item. */
