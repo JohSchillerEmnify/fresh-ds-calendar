@@ -299,7 +299,7 @@ export interface AppConfig {
   publicUrl: string | null;
   version: string;
   /** The APK the server offers (`scripts/android-build.sh`), or null. */
-  apk: { versionCode: number; versionName: string } | null;
+  apk: { versionCode: number; versionName: string; certSha256?: string } | null;
 }
 
 /** One plain-English line of CHANGELOG.md (`GET /api/release-notes`). */

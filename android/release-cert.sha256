@@ -1,0 +1,7 @@
+# SHA-256 fingerprint of the REAL release signing certificate of the app (64 hex digits, colons allowed).
+# scripts/android-build.sh and scripts/vps.sh refuse to ship an APK signed by any other certificate, and refuse
+# everything while the line below is still the placeholder. Fill it once, with the owner's release keystore:
+#   keytool -list -v -keystore ~/calendar-android-key/release.jks -alias calendar | grep SHA256
+# and replace the last line with the output (a pasted "SHA256: AB:CD:..." line works as is).
+# Or from a release APK: apksigner verify --print-certs app-release.apk | grep 'SHA-256 digest'  (paste only the hex).
+403e62ef911a83aa452989e302d4a431b9e8ce08e11a13d3b0dac81efd744248

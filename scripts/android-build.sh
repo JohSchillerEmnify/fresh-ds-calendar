@@ -6,6 +6,7 @@
 # Publishing works from sauron (local copy) and from any other machine (scp/ssh to sauron, SAURON=user@host).
 # Runs on sauron: Gradle builds inside the `calendar-android-build` image (android/build.Dockerfile, built on first use),
 # capped at 3 CPUs / 4 GB with low CPU shares so Pi-hole keeps priority; the APK is copied straight into the data dir.
+# The APK's signing certificate must be the one pinned in android/release-cert.sha256 (scripts/apk-cert.sh), else nothing is published.
 # Needs: docker, node 24 + pnpm (see README "Android app").
 set -euo pipefail
 
@@ -17,6 +18,7 @@ SAURON="${SAURON:-sauron@192.168.1.38}"
 # not under a dot directory: the build container cannot mount those here; mounted as /key, so storeFile=/key/release.jks
 KEY_DIR="${CAL_ANDROID_KEY_DIR:-$HOME/calendar-android-key}"
 IMAGE="calendar-android-build"
+source "$REPO/scripts/apk-cert.sh"
 
 # The release key stays on this machine, out of git: updates of the installed app must be signed with the same key.
 if [[ ! -f "$KEY_DIR/keystore.properties" ]]; then
@@ -46,14 +48,15 @@ echo "==> gradle assembleRelease (in $IMAGE)"
 docker run --rm --name cal-apk-build --memory=4g --memory-swap=4g --cpus=3 --cpu-shares=256 \
   -u "$(id -u):$(id -g)" -e HOME=/tmp/h -e GRADLE_USER_HOME=/gradle -e CAL_ANDROID_KEYSTORE_PROPS=/key/keystore.properties \
   -e VERSION_CODE -e VERSION_NAME -v "$REPO:$REPO" -v "$KEY_DIR:/key:ro" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
-  bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME assembleRelease testDebugUnitTest \
-    && $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk | head -2'
+  bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME assembleRelease testDebugUnitTest'
 
 APK="$REPO/android/app/build/outputs/apk/release/app-release.apk"
 echo "APK: $APK ($(du -h "$APK" | cut -f1))"
 
+# only an APK signed with the pinned release cert gets a sidecar and a way out of this script (never the debug key)
+verify_apk_cert "$APK" || exit 1
 INFO="$REPO/android/app/build/outputs/apk/release/app.json"
-printf '{"versionCode":%s,"versionName":"%s"}\n' "$VERSION_CODE" "$VERSION_NAME" > "$INFO"
+printf '{"versionCode":%s,"versionName":"%s","certSha256":"%s"}\n' "$VERSION_CODE" "$VERSION_NAME" "$(pinned_cert)" > "$INFO"
 if [[ "${1:-}" == "--no-publish" ]]; then exit 0; fi
 
 echo "==> publishing to $DOWNLOADS/app.apk"

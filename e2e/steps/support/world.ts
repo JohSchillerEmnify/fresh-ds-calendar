@@ -98,6 +98,8 @@ export class World {
   /** App sign-in (signin.steps.ts): the deep link the system browser ended on, the code in it, and the last exchange's HTTP status/body. */
   appLink?: string;
   appCode?: string;
+  /** The app's secret of an app sign-in; only its SHA-256 (the challenge) goes through the browser. */
+  appVerifier?: string;
   appExchange?: { status: number; text: string };
   /** Hour height of the time grid captured before the last pinch ("as before" / "at the start"). */
   hourHeightBefore?: number;

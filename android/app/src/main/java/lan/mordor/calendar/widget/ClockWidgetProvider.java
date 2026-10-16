@@ -28,7 +28,6 @@ import org.json.JSONObject;
  * costs nothing while the screen is off. A tap opens the app's clock view for today.
  */
 public class ClockWidgetProvider extends AppWidgetProvider {
-    static final String ACTION_TICK = "lan.mordor.calendar.widget.CLOCK_TICK";
     private static final long TICK_MS = 5 * 60_000L;
 
     @Override
@@ -59,7 +58,7 @@ public class ClockWidgetProvider extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         String action = intent.getAction();
-        if (ACTION_TICK.equals(action) || Intent.ACTION_DATE_CHANGED.equals(action) || Intent.ACTION_TIME_CHANGED.equals(action)
+        if (Intent.ACTION_DATE_CHANGED.equals(action) || Intent.ACTION_TIME_CHANGED.equals(action)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
             renderAll(context);
         }
@@ -114,7 +113,7 @@ public class ClockWidgetProvider extends AppWidgetProvider {
     /** Starts (or stops) the 5-minute redraw; inexact and not waking the phone. */
     static void scheduleTicks(Context context, boolean on) {
         AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        Intent i = new Intent(context, ClockWidgetProvider.class).setAction(ACTION_TICK);
+        Intent i = new Intent(context, WidgetActionReceiver.class).setAction(WidgetActionReceiver.ACTION_TICK);
         PendingIntent pi = PendingIntent.getBroadcast(context, 1, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         am.cancel(pi);
         if (on && ids(context).length > 0) am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + TICK_MS, TICK_MS, pi);

@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
  * finished a sync, midnight or a time-zone change).
  */
 public class WeekWidgetProvider extends AppWidgetProvider {
-    static final String ACTION_REFRESH = "lan.mordor.calendar.widget.REFRESH";
     private static final String PERIODIC = "calendar-widget-periodic";
     private static final String NOW = "calendar-widget-now";
     /** The app pushes a snapshot with every sync (every 30 s while open); the widget fetches at most this often because of it,
@@ -67,7 +66,7 @@ public class WeekWidgetProvider extends AppWidgetProvider {
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
         String action = intent.getAction();
-        if (ACTION_REFRESH.equals(action) || Intent.ACTION_DATE_CHANGED.equals(action) || Intent.ACTION_TIME_CHANGED.equals(action)
+        if (Intent.ACTION_DATE_CHANGED.equals(action) || Intent.ACTION_TIME_CHANGED.equals(action)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
             renderAll(context);
             enqueueFetch(context);
@@ -115,7 +114,7 @@ public class WeekWidgetProvider extends AppWidgetProvider {
 
     /** The refresh icon's tap target. */
     static PendingIntent refreshIntent(Context context) {
-        Intent i = new Intent(context, WeekWidgetProvider.class).setAction(ACTION_REFRESH);
+        Intent i = new Intent(context, WidgetActionReceiver.class).setAction(WidgetActionReceiver.ACTION_REFRESH);
         return PendingIntent.getBroadcast(context, 0, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 }

@@ -41,6 +41,9 @@ case "${1:-}" in
     # the APK is not part of the image: it goes into the data volume (/data/downloads/app.apk, served as /app.apk)
     apk="${CAL_APK:-$here/deploy/data/downloads/app.apk}"
     if [[ -f "$apk" ]]; then
+      # the server above is already up; an APK that is not signed by the pinned release cert is never uploaded
+      source "$here/scripts/apk-cert.sh"
+      verify_apk_cert "$apk" || { echo "APK NOT uploaded (the server itself is deployed)" >&2; exit 1; }
       scp "${OPTS[@]}" -q "$apk" "$HOST:/opt/calendar/app.apk.new"
       on_vps 'set -e; cd /opt/calendar && chmod 644 app.apk.new
         docker compose exec -T app mkdir -p /data/downloads

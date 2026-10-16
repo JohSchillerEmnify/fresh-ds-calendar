@@ -135,6 +135,11 @@ Feature: Settings
     And I open the week view for 2026-10-12
     Then the corner shows the version "0.4.2"
 
+  Scenario: The settings show the signing certificate of the app the server offers
+    Given the server offers an app signed with the certificate "ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34"
+    When I open the settings
+    Then the settings show the app certificate "ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34ab12cd34"
+
   @no-sideways
   Scenario Outline: Settings pages do not scroll sideways on a small phone
     Given the screen is 320 pixels wide

@@ -2135,6 +2135,21 @@ browser does not change.
   editor, which is a personal setting of the person's calendar list entry, not an edit of anybody's events).
   Edge not verifiable here: Google does not document `dataOwner` for the person's own secondary calendars; if it is absent the
   id rule applies, if present it must be the person's address.
+- **Security hardening, Android part (owner, 2026-10-16; audit M8, M9 and lows)**.
+  - **Sign-in bound to the app** (M8, RFC 7636 style): the app makes a random verifier per sign-in, sends
+    `GET /api/auth/google/start?app=1&challenge=<base64url(SHA-256(verifier))>`; the server keeps the challenge with the
+    one-time code; `/api/auth/app-exchange` requires `verifier` and answers 400 when it does not match. A code caught by
+    another app or sent in a link is useless. Old APKs without a verifier can no longer start a new sign-in (existing
+    sessions keep working); the app's sign-in screen of an old APK shows the server's error, and the download link
+    gets the new APK.
+  - **No session in backups**: `android:allowBackup="false"` (and `dataExtractionRules` excluding everything).
+  - **Release signing** (M9): a release build fails without the release keystore (no debug-key fallback);
+    `scripts/android-build.sh` and `scripts/vps.sh deploy` verify the APK's signing certificate against the pinned SHA-256
+    fingerprint in `android/release-cert.sha256` (`apksigner verify --print-certs`) and refuse to ship any other.
+    `/app.json` (served next to `/app.apk`) carries the APK's sha256 and the cert fingerprint; Settings → About shows
+    the fingerprint.
+  - **Widget receivers**: custom refresh/tick actions go to a non-exported receiver; the exported providers only take
+    the system widget broadcasts.
 - **Birthdays like Google Calendar (owner, 2026-10-14: "the birthdays are not from contacts, they are created via the
   birthday category in Google Calendar; handle them the same way, and let me create birthdays the same way")**. Google
   (since 2024) stores a birthday as an event with `eventType: "birthday"` in a normal calendar (usually the primary one):
