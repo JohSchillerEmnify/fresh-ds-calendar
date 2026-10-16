@@ -1,5 +1,5 @@
 /** Server security hardening (ARCHITECTURE "Security hardening", audit docs/SECURITY-AUDIT-2026-10-16.md): one test group per audit item. */
-import { createECDH, randomBytes } from 'node:crypto';
+import { createECDH, createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -336,7 +336,8 @@ describe('M5 stateless OAuth state', () => {
       await t.json('POST', '/api/__test/oauth/account', { email: 'jo@example.com' });
       const forged = `${Buffer.from('{"n":"x","app":true,"exp":99999999999999}').toString('base64url')}.AAAA`;
       expect((await t.req('GET', `/api/auth/google/callback?code=fake:x&state=${forged}`, undefined, { cookie: `cal_oauth_state=${forged}` })).status).toBe(400);
-      const start = await t.req('GET', '/api/auth/google/start?app=1');
+      const challenge = createHash('sha256').update('dGVzdC12ZXJpZmllci0wMTIzNDU2Nzg5MDEyMzQ1Njc4OQ').digest('base64url');
+      const start = await t.req('GET', `/api/auth/google/start?app=1&challenge=${challenge}`);
       const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
       const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
       const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
