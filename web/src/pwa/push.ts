@@ -68,8 +68,24 @@ export async function disablePush(): Promise<void> {
 }
 
 /**
- * Replaces this browser's plan on the server. When the server does not know the subscription (404, e.g. a new server),
- * it is registered again from the browser's own subscription and the plan is sent once more.
+ * Drops this browser's push subscription at the push service (used by sign-out, so the next person on a shared device is not
+ * subscribed under someone else's name).
+ *
+ * @returns The endpoint that was subscribed (the server deletes it with the session), or null when there was none.
+ */
+export async function dropPushSubscription(): Promise<string | null> {
+  if (!pushSupported()) return null;
+  const sub = await currentSubscription().catch(() => null);
+  const endpoint = sub?.endpoint ?? pushEndpoint.value;
+  pushEndpoint.value = null;
+  await sub?.unsubscribe().catch(() => undefined);
+  return endpoint;
+}
+
+/**
+ * Replaces this browser's plan on the server. When the server does not know the subscription (404, e.g. after a sign-out
+ * or a new server) nothing is registered again: a browser subscribes only through the person's own switch in Settings, never
+ * silently, so a shared device never reminds the wrong person.
  *
  * @returns Whether the server has the plan now.
  */
@@ -78,15 +94,8 @@ export async function sendPushPlan(endpoint: string, plan: PushPlanEntry[]): Pro
     await api.putReminderPlan(endpoint, plan);
     return true;
   } catch (e) {
-    if (!(e instanceof ApiError) || e.status !== 404) return false;
-    try {
-      const sub = await currentSubscription();
-      if (!sub || sub.endpoint !== endpoint) return false;
-      await api.pushSubscribe(sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } });
-      await api.putReminderPlan(endpoint, plan);
-      return true;
-    } catch {
-      return false;
-    }
+    // the switch shows what is true: off, until the person turns it on again
+    if (e instanceof ApiError && e.status === 404) pushEndpoint.value = null;
+    return false;
   }
 }

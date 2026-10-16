@@ -1,9 +1,23 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api, ApiError } from '@/api/client';
+import { dropPushSubscription } from '@/pwa/push';
 
 /** Where to go once signed in (set when the router sends a deep link to /signin). */
 export const RETURN_KEY = 'signin-return';
+
+/** Keys the app keeps on the device as `cal.*`; the theme ones and the language stay on sign-out (look and feel of the device, not of a person). */
+const KEEP_PREFIX = 'cal.theme';
+
+/** Removes the app's `cal.*` entries from local and session storage, except the theme and (outside `cal.*`) the language. */
+export function clearPersonalStorage(): void {
+  for (const store of [() => localStorage, () => sessionStorage]) {
+    try {
+      const s = store();
+      for (const k of Object.keys(s)) if (k.startsWith('cal.') && !k.startsWith(KEEP_PREFIX)) s.removeItem(k);
+    } catch { /* storage blocked: nothing kept there */ }
+  }
+}
 
 /**
  * Sign-in state. `status` is `off` when the server says it runs without sign-in (PROVIDER=mock), `in` / `out` otherwise, `unknown`
@@ -49,10 +63,28 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  /** Ends the session on the server, then reloads onto the sign-in page (drops everything held in memory). */
-  async function signOut(): Promise<void> {
-    await api.signOut();
-    window.location.assign('/signin');
+  /**
+   * Ends the session on the server, drops what this device keeps of the person and goes to the sign-in page with
+   * `location.replace`, so "back" cannot show the previous person's calendar.
+   *
+   * @param end The server call, given this browser's push endpoint (so the server deletes that subscription too).
+   */
+  async function leave(end: (endpoint: string | null) => Promise<void>): Promise<void> {
+    // this browser stops getting the person's reminders, whatever the server answers
+    const endpoint = await dropPushSubscription();
+    try { await end(endpoint); } catch { /* already signed out (401) or the server is down: leave anyway */ }
+    clearPersonalStorage();
+    window.location.replace('/signin');
+  }
+
+  /** Signs out of this browser only. */
+  function signOut(): Promise<void> {
+    return leave((endpoint) => api.signOut(endpoint));
+  }
+
+  /** "Sign out everywhere": ends every session of the person, on every device. */
+  function signOutAll(): Promise<void> {
+    return leave((endpoint) => api.signOutAll(endpoint));
   }
 
   /** Goes to Google's consent screen again; the existing session is kept and the new grant adds to the old scopes. */
@@ -60,5 +92,5 @@ export const useAuthStore = defineStore('auth', () => {
     window.location.assign('/api/auth/google/start');
   }
 
-  return { status, email, reauth, calendarMissing, grantCalendar, check, listen, signOut };
+  return { status, email, reauth, calendarMissing, grantCalendar, check, listen, signOut, signOutAll };
 });

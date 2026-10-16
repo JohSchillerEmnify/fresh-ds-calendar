@@ -26,7 +26,13 @@ export function sessionMiddleware(ctx: Ctx): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
     if (!ctx.auth.on) return next();
     const id = getCookie(c, SESSION_COOKIE);
-    const hit = ctx.auth.sessions.get(id);
+    let hit = ctx.auth.sessions.get(id);
+    // a person taken off ALLOWED_EMAILS loses every session at their next request, not after 90 days
+    if (hit && !ctx.auth.allows(hit.session.email)) {
+      ctx.auth.sessions.deleteSub(hit.session.sub);
+      ctx.forgetPerson(hit.session.sub);
+      hit = null;
+    }
     if (hit) {
       c.set('person', hit.session);
       if (hit.extended) setSessionCookie(ctx, c, id!);

@@ -6,7 +6,7 @@ import {
   ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
-import { calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
+import { GOOGLE_TIMEOUT_MS, calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
 import { causeOf, describeGoogleError, logEvent, noteCause, subHash } from '../../lib/diag.js';
 import { isRateLimit, RateGuard, retryAfterSec, type GuardOptions } from './RateGuard.js';
 
@@ -236,7 +236,7 @@ function toApi(x: GoogleEventInput | GoogleEventPatch): calendar_v3.Schema$Event
 
 /** Builds the Google Calendar API client for an OAuth client. */
 export function makeApi(auth: OAuth2Client, fetchImplementation?: typeof fetch): Api {
-  return makeCalendar({ version: 'v3', auth, ...(fetchImplementation ? { fetchImplementation } : {}) } as Parameters<typeof makeCalendar>[0]);
+  return makeCalendar({ version: 'v3', auth, timeout: GOOGLE_TIMEOUT_MS, ...(fetchImplementation ? { fetchImplementation } : {}) } as Parameters<typeof makeCalendar>[0]);
 }
 
 /** Builds one person's provider for PROVIDER=google; fails fast when the OAuth client is not configured. */

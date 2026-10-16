@@ -7,8 +7,14 @@ import { DRIVE_APPDATA_SCOPE, hasCalendarScope, readUserScope, readUserToken, wr
 export const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar', DRIVE_APPDATA_SCOPE];
 type Cfg = Pick<AppConfig, 'dataDir' | 'google'>;
 
+/** Every call to Google (token, calendar, Drive) gives up after this long, so a stuck connection cannot hold a request or a backup forever. */
+export const GOOGLE_TIMEOUT_MS = 30_000;
+
 const newClient = (config: Cfg) =>
-  new OAuth2Client({ clientId: config.google.clientId ?? undefined, clientSecret: config.google.clientSecret ?? undefined, redirectUri: config.google.redirectUri ?? undefined });
+  new OAuth2Client({
+    clientId: config.google.clientId ?? undefined, clientSecret: config.google.clientSecret ?? undefined, redirectUri: config.google.redirectUri ?? undefined,
+    transporterOptions: { timeout: GOOGLE_TIMEOUT_MS },
+  });
 
 const clients = new Map<string, OAuth2Client>();
 

@@ -162,6 +162,7 @@ export default {
     account: {
       signedIn: 'Mit Google angemeldet',
       signOut: 'Abmelden',
+      signOutAll: { label: 'Überall abmelden', hint: 'Beendet die Anmeldung auf allen Geräten, auch auf diesem', button: 'Überall abmelden' },
       calendarAccess: { label: 'Kalenderzugriff', hint: 'Der Zugriff auf Google Kalender fehlt. Erlaube ihn und setz auf Googles Bildschirm den Haken beim Kalender.', grant: 'Kalenderzugriff erlauben' },
       resetDemo: { label: 'Demodaten zurücksetzen', hint: 'Ersetzt den Testkalender durch frische Demotermine', button: 'Zurücksetzen', done: 'Demodaten wiederhergestellt', failed: 'Demodaten konnten nicht zurückgesetzt werden' },
       version: 'Version {version}',

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { sessionMiddleware } from './auth/middleware.js';
+import { requestGuards } from './api/guards.js';
 import { ApiException } from './lib/errors.js';
 import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError, RateLimitedError, type CalendarProvider } from './providers/CalendarProvider.js';
 import { apiRoutes } from './api/routes.js';
@@ -53,6 +54,8 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
       logEvent('api_unavailable', { route: `${c.req.method} ${routePath(c)}`, status: c.res.status, durationMs: Date.now() - started, cause: causeFor(c) });
     }
   });
+
+  app.use('/api/*', requestGuards(config));
 
   app.use('/api/*', sessionMiddleware(ctx));
 

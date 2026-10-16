@@ -926,6 +926,9 @@ Google no longer accepts the access of {string}
 their session expires
 someone opens the week view for {date} without signing in
 they sign out in the settings
+{string} is also signed in on another device
+they sign out everywhere in the settings
+the other device is signed out too
 they open the week view for {date}
 they see the week view for {date}
 they see the event {string} on {date}
@@ -954,6 +957,10 @@ the app is asked to sign in again
   round trip through the test double, no real Google. "they" is the person of the last sign-in step.
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
+- "is also signed in on another device": a second browser context of its own (not the page) signs the person in through the OAuth
+  round trip, so the person has two sessions. "they sign out everywhere in the settings": opens Settings and presses
+  `settings-signout-all` (Account); the page ends on the sign-in page. "the other device is signed out too": that second
+  context's `GET /api/auth/me` answers 401.
 - "their session expires": the browser loses the session cookie (all cookies of the page's context are cleared), so the
   next request is refused as unauthenticated; a page that is already open keeps its old state (the stale shell).
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.

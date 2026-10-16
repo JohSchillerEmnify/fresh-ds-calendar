@@ -163,8 +163,13 @@ export class ApiClient {
   me(o?: RequestOptions) {
     return this.request<Me>('GET', '/api/auth/me', undefined, o);
   }
-  signOut(o?: RequestOptions) {
-    return this.request<void>('POST', '/api/auth/signout', undefined, o);
+  /** Ends this session; `endpoint` is this browser's push subscription, which the server deletes with it. */
+  signOut(endpoint?: string | null, o?: RequestOptions) {
+    return this.request<void>('POST', '/api/auth/signout', endpoint ? { endpoint } : undefined, o);
+  }
+  /** "Sign out everywhere": ends every session of the person (and deletes this browser's push subscription). */
+  signOutAll(endpoint?: string | null, o?: RequestOptions) {
+    return this.request<void>('POST', '/api/auth/signout-all', endpoint ? { endpoint } : undefined, o);
   }
 
   // --- backups to Google Drive ---------------------------------------------------

@@ -235,7 +235,7 @@ describe('Google OAuth routes', () => {
     expect(loc.searchParams.get('prompt')).toBe('consent');
     expect(loc.searchParams.get('redirect_uri')).toBe('https://cal.example.org/api/auth/google/callback');
     expect(loc.searchParams.get('client_id')).toBe('cid-start');
-    expect(loc.searchParams.get('state')).toMatch(/^[0-9a-f]{32}$/);
+    expect(loc.searchParams.get('state')).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/); // signed payload.signature
   });
 
   const startFlow = async (app: ReturnType<typeof buildApp>) => {
@@ -251,7 +251,7 @@ describe('Google OAuth routes', () => {
     const res = await app.request('/api/auth/google/start');
     expect(new URL(res.headers.get('location')!).searchParams.get('include_granted_scopes')).toBe('true');
     expect(new URL(res.headers.get('location')!).searchParams.get('scope')).toBe('openid email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.appdata');
-    expect(res.headers.get('set-cookie')).toMatch(/cal_oauth_state=[0-9a-f]{32}.*HttpOnly.*SameSite=Lax/i);
+    expect(res.headers.get('set-cookie')).toMatch(/cal_oauth_state=[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+.*HttpOnly.*SameSite=Lax/i);
   });
 
   it('callback keeps the granted scope, so a missing Drive permission can be told from a granted one', async () => {
@@ -293,8 +293,9 @@ describe('Google OAuth routes', () => {
     expect(set).toMatch(/SameSite=Lax/i);
     const me = await app.request('/api/auth/me', { headers: { cookie: set.split(';')[0]! } });
     expect(await me.json()).toEqual({ email: 'jo@example.com', name: 'Jo' });
-    // state is single use
-    expect((await app.request(`/api/auth/google/callback?code=c&state=${state}`, { headers: { cookie } })).status).toBe(400);
+    // a state whose payload was changed no longer matches its signature
+    const forged = `${Buffer.from('{"n":"x","app":true,"exp":9999999999999}').toString('base64url')}.${state.split('.')[1]}`;
+    expect((await app.request(`/api/auth/google/callback?code=c&state=${forged}`, { headers: { cookie: `cal_oauth_state=${forged}` } })).status).toBe(400);
   });
 
   it('callback turns away an address that is not allowed and keeps no token', async () => {

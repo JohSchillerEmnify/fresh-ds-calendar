@@ -25,7 +25,7 @@ export class AuthState {
     this.on = config.provider === 'google';
     this.allowedEmails = [...config.allowedEmails];
     this.sessions = new SessionStore(path.join(config.dataDir, 'sessions.json'), now);
-    this.states = new StateStore(now);
+    this.states = new StateStore(now, config.google.clientSecret);
     this.exchanges = new ExchangeStore(now);
     this.fake = config.testMode && config.provider === 'mock' ? new FakeOAuth() : null;
   }

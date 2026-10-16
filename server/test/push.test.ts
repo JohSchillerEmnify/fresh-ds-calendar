@@ -125,11 +125,11 @@ describe('push API', () => {
     try {
       const key = await t.json('GET', '/api/push/key');
       expect(key.body.key).toMatch(/^[A-Za-z0-9_-]{80,}$/);
-      const sub = { endpoint: 'https://push.example/e2e', keys: { p256dh: 'p', auth: 'a' } };
+      const sub = { endpoint: 'https://push.example.test/e2e', keys: { p256dh: 'p', auth: 'a' } };
       expect((await t.req('POST', '/api/push/subscriptions', sub)).status).toBe(204);
       const at = Date.parse('2026-10-12T10:10:00+02:00');
       expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'Dentist starts in 30 min', body: '10:40', key: 'reminder:x' }] })).status).toBe(204);
-      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: 'https://other.example/x', plan: [] })).status).toBe(404);
+      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: 'https://other.example.test/x', plan: [] })).status).toBe(404);
       await t.req('POST', '/api/__test/clock', { now: '2026-10-12T10:00:00+02:00' });
       expect((await t.json('GET', '/api/__test/pushes')).body.pushes).toEqual([]);
       await t.req('POST', '/api/__test/clock', { now: '2026-10-12T10:10:00+02:00' });
@@ -142,7 +142,7 @@ describe('push API', () => {
   it('rejects a non-https endpoint', async () => {
     const t = makeApp();
     try {
-      expect((await t.req('POST', '/api/push/subscriptions', { endpoint: 'http://x.example/1', keys: { p256dh: 'p', auth: 'a' } })).status).toBe(400);
+      expect((await t.req('POST', '/api/push/subscriptions', { endpoint: 'http://push.example.test/1', keys: { p256dh: 'p', auth: 'a' } })).status).toBe(400);
     } finally { t.cleanup(); }
   });
 });

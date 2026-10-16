@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { CALENDAR_SCOPE, DRIVE_APPDATA_SCOPE, mockSub } from './people.js';
 
 /** What the callback needs from one OAuth round trip: who signed in and the long-lived calendar token. */
@@ -20,32 +20,46 @@ export interface OAuthBackend {
 
 const STATE_TTL_MS = 10 * 60_000;
 
-/** Single-use, short-lived `state` values for the OAuth redirect (CSRF protection together with the state cookie). */
+/**
+ * Stateless OAuth `state` values for the redirect (CSRF protection together with the state cookie). A state is
+ * `<payload>.<signature>`: the payload holds a random nonce, the app flag and the expiry, the signature is an
+ * HMAC-SHA256 with a key derived from the Google client secret (a random per-process key without one, as in TEST_MODE).
+ * Nothing is kept in memory, so flooding `/api/auth/google/start` cannot push a real sign-in's state out.
+ */
 export class StateStore {
-  private states = new Map<string, { at: number; app: boolean }>();
+  private readonly key: Buffer;
 
-  constructor(private readonly now: () => number) {}
+  constructor(private readonly now: () => number, clientSecret: string | null = null) {
+    this.key = clientSecret ? createHmac('sha256', clientSecret).update('cal-oauth-state').digest() : randomBytes(32);
+  }
+
+  private sign(payload: string): string {
+    return createHmac('sha256', this.key).update(payload).digest('base64url');
+  }
 
   /** Issues a state; `app` remembers that the round trip belongs to the Android app (its session goes out by exchange code). */
   create(app = false): string {
-    const state = randomBytes(16).toString('hex');
-    const t = this.now();
-    for (const [s, e] of this.states) if (t - e.at > STATE_TTL_MS) this.states.delete(s);
-    if (this.states.size > 50) this.states.delete(this.states.keys().next().value!);
-    this.states.set(state, { at: t, app });
-    return state;
+    const payload = Buffer.from(JSON.stringify({ n: randomBytes(16).toString('hex'), app, exp: this.now() + STATE_TTL_MS })).toString('base64url');
+    return `${payload}.${this.sign(payload)}`;
   }
 
-  /** Redeems a state: `{ app }` the first time within the TTL, null for an unknown, used or expired one. */
+  /** Verifies a state: `{ app }` for one we signed that has not expired, null for a forged, malformed or expired one. */
   consume(state: string): { app: boolean } | null {
-    const e = this.states.get(state);
-    this.states.delete(state);
-    return e !== undefined && this.now() - e.at <= STATE_TTL_MS ? { app: e.app } : null;
+    const [payload, sig, ...rest] = state.split('.');
+    if (!payload || !sig || rest.length) return null;
+    const want = Buffer.from(this.sign(payload));
+    const got = Buffer.from(sig);
+    if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
+    try {
+      const d = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { app?: unknown; exp?: unknown };
+      return typeof d.exp === 'number' && this.now() <= d.exp ? { app: d.app === true } : null;
+    } catch {
+      return null;
+    }
   }
 
-  clear(): void {
-    this.states.clear();
-  }
+  /** Nothing is stored, so there is nothing to clear (kept for {@link AuthState.reset}). */
+  clear(): void {}
 }
 
 /**

@@ -26,6 +26,8 @@ export interface PushTarget { endpoint: string; keys: { p256dh: string; auth: st
 export interface PlanEntry { at: number; title: string; body: string; key: string }
 interface StoredSubscription extends PushTarget { plan: PlanEntry[]; sent: Array<{ key: string; at: number }> }
 interface StoredPush { subscriptions: StoredSubscription[] }
+/** What one tick did for one browser: the keys it sent and whether the push service said the subscription is gone. */
+interface SendJob { sub: string; endpoint: string; sent: Array<{ key: string; at: number }>; gone: boolean; open: boolean }
 
 /** Sends one push message; rejects with an object carrying `statusCode` when the push service refuses. */
 export interface PushSender { send(target: PushTarget, payload: string): Promise<void> }
@@ -49,11 +51,50 @@ export function loadVapid(dataDir: string, env: NodeJS.ProcessEnv = process.env)
   return keys;
 }
 
-/** The real sender: the `web-push` library, signing with the VAPID keys. */
-export function webPushSender(vapid: VapidKeys, subject: string): PushSender {
+/** Every push to a push service gives up after this long. */
+export const SEND_TIMEOUT_MS = 10_000;
+/** One tick stops waiting for slow endpoints after this long; what finished is saved, the rest is tried again next tick. */
+export const TICK_BUDGET_MS = 25_000;
+/** The only host a TEST_MODE server also accepts (the e2e fake push service; it is never contacted). */
+export const TEST_PUSH_HOST = 'push.example.test';
+
+/** The push services of the browsers: Chrome/Edge (FCM), Firefox, Safari and the legacy Windows one. */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^([a-z0-9-]+\.)*push\.services\.mozilla\.com$/, /^web\.push\.apple\.com$/, /^([a-z0-9-]+\.)*notify\.windows\.com$/];
+
+/**
+ * Whether a subscription endpoint is a real push service: https, port 443, no credentials, no IP literal, and a host of
+ * FCM, Mozilla, Apple or Windows. Stops the server from being used to call internal addresses (SSRF).
+ *
+ * @param endpoint The endpoint URL the browser reported.
+ * @param testMode Also accept {@link TEST_PUSH_HOST} (TEST_MODE only).
+ */
+export function isPushEndpointAllowed(endpoint: string, testMode = false): boolean {
+  let u: URL;
+  try { u = new URL(endpoint); } catch { return false; }
+  if (u.protocol !== 'https:' || (u.port !== '' && u.port !== '443') || u.username || u.password) return false;
+  const host = u.hostname.toLowerCase();
+  if (host.includes(':') || /^[0-9.]+$/.test(host)) return false;
+  return PUSH_HOSTS.some((re) => re.test(host)) || (testMode && host === TEST_PUSH_HOST);
+}
+
+/**
+ * The real sender: the `web-push` library builds the signed, encrypted request, and it is sent with a hard timeout,
+ * without following redirects and without reading the answer (a hostile endpoint cannot hold the loop or fill memory).
+ * An endpoint outside the allow-list (stored before it existed) is reported as gone (410), so it is dropped.
+ *
+ * @param vapid The server's VAPID key pair.
+ * @param subject The VAPID subject (a `mailto:` or https URL).
+ * @param o Test hooks: the fetch to use and the timeout.
+ */
+export function webPushSender(vapid: VapidKeys, subject: string, o: { fetchFn?: typeof fetch; timeoutMs?: number } = {}): PushSender {
+  const fetchFn = o.fetchFn ?? fetch;
   return {
     async send(target, payload) {
-      await webpush.sendNotification(target, payload, { vapidDetails: { subject, ...vapid }, TTL: CATCH_UP_MS / 1000, urgency: 'high' });
+      if (!isPushEndpointAllowed(target.endpoint)) throw Object.assign(new Error('Push endpoint is not a known push service'), { statusCode: 410 });
+      const d = webpush.generateRequestDetails(target, payload, { vapidDetails: { subject, ...vapid }, TTL: CATCH_UP_MS / 1000, urgency: 'high' });
+      const res = await fetchFn(d.endpoint, { method: d.method, headers: d.headers as Record<string, string>, body: d.body ? new Uint8Array(d.body) : undefined, redirect: 'manual', signal: AbortSignal.timeout(o.timeoutMs ?? SEND_TIMEOUT_MS) });
+      void res.body?.cancel().catch(() => undefined);
+      if (res.status < 200 || res.status > 299) throw Object.assign(new Error(`Push service answered ${res.status}`), { statusCode: res.status });
     },
   };
 }
@@ -68,7 +109,13 @@ export class RecordingSender implements PushSender {
 }
 
 /** Constructor inputs of {@link PushService}. */
-export interface PushDeps { dataDir: string; clock: Clock; sender: PushSender; vapidPublicKey: string; log?: (m: string) => void }
+export interface PushDeps {
+  dataDir: string; clock: Clock; sender: PushSender; vapidPublicKey: string; log?: (m: string) => void;
+  /** False for a person taken off the allow-list: their pushes are not sent. Default: everybody. */
+  isPermitted?: (sub: string) => boolean;
+  /** How long a tick waits for slow endpoints (default {@link TICK_BUDGET_MS}). */
+  budgetMs?: number;
+}
 
 /** Subscriptions, plans and the timer loop that sends the pushes. */
 export class PushService {
@@ -140,37 +187,58 @@ export class PushService {
 
   private async run(): Promise<number> {
     const now = this.d.clock.nowMs();
-    let count = 0;
+    const jobs: SendJob[] = [];
+    const tasks: Array<Promise<void>> = [];
+    // every browser is served on its own, so an endpoint that never answers holds back nobody else
     for (const sub of this.people()) {
+      if (this.d.isPermitted && !this.d.isPermitted(sub)) continue;
+      for (const s of this.read(sub).subscriptions) {
+        const job: SendJob = { sub, endpoint: s.endpoint, sent: [], gone: false, open: true };
+        jobs.push(job);
+        tasks.push(this.sendDue(s, now, job));
+      }
+    }
+    let timer: NodeJS.Timeout | undefined;
+    const budget = new Promise<void>((resolve) => { timer = setTimeout(resolve, this.d.budgetMs ?? TICK_BUDGET_MS); });
+    await Promise.race([Promise.allSettled(tasks), budget]);
+    clearTimeout(timer);
+    // what is still in flight after the budget is not recorded; its keys are sent again next tick
+    for (const j of jobs) j.open = false;
+    let count = 0;
+    for (const sub of new Set(jobs.map((j) => j.sub))) {
       const p = this.read(sub);
       let changed = false;
       const alive: StoredSubscription[] = [];
       for (const s of p.subscriptions) {
-        let gone = false;
+        const job = jobs.find((j) => j.sub === sub && j.endpoint === s.endpoint);
         // entries too old to catch up are dropped, as are sent keys no re-sent plan can repeat any more
         const kept = s.plan.filter((e) => now - e.at <= CATCH_UP_MS);
         if (kept.length !== s.plan.length) { s.plan = kept; changed = true; }
         const sentBefore = s.sent.length;
         s.sent = s.sent.filter((x) => now - x.at <= SENT_KEEP_MS);
         if (s.sent.length !== sentBefore) changed = true;
-        for (const e of s.plan) {
-          if (e.at > now || s.sent.some((x) => x.key === e.key)) continue;
-          try {
-            await this.d.sender.send(s, JSON.stringify({ title: e.title, body: e.body, key: e.key }));
-            s.sent.push({ key: e.key, at: e.at });
-            changed = true;
-            count++;
-          } catch (err) {
-            const code = (err as { statusCode?: number }).statusCode;
-            if (code === 404 || code === 410) { gone = true; changed = true; break; }
-            this.d.log?.(`push: sending to ${new URL(s.endpoint).host} failed: ${(err as Error).message}`);
-          }
-        }
-        if (!gone) alive.push(s);
+        if (job?.sent.length) { s.sent.push(...job.sent); count += job.sent.length; changed = true; }
+        if (job?.gone) { changed = true; continue; }
+        alive.push(s);
       }
       if (changed) this.write(sub, { subscriptions: alive });
     }
     return count;
+  }
+
+  /** Sends one browser's due pushes in order; results go into `job`. A 404/410 marks the subscription gone. */
+  private async sendDue(s: StoredSubscription, now: number, job: SendJob): Promise<void> {
+    for (const e of s.plan) {
+      if (e.at > now || now - e.at > CATCH_UP_MS || s.sent.some((x) => x.key === e.key)) continue;
+      try {
+        await this.d.sender.send(s, JSON.stringify({ title: e.title, body: e.body, key: e.key }));
+        if (job.open) job.sent.push({ key: e.key, at: e.at });
+      } catch (err) {
+        const code = (err as { statusCode?: number }).statusCode;
+        if (code === 404 || code === 410) { if (job.open) job.gone = true; return; }
+        this.d.log?.(`push: sending to ${new URL(s.endpoint).host} failed: ${(err as Error).message}`);
+      }
+    }
   }
 
   /** Starts the timer loop. Called by the server, not by tests. */

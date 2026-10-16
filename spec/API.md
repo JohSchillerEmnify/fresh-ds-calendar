@@ -36,7 +36,9 @@ interface ApiError {
 type ErrorCode =
   | 'VALIDATION_ERROR'      // 400
   | 'NOT_FOUND'             // 404 (also unknown /api routes and /api/__test/* when TEST_MODE is off)
-  | 'FORBIDDEN'             // 403 a member of a shared list tried an owner-only action
+  | 'FORBIDDEN'             // 403 a member of a shared list tried an owner-only action; a non-GET request from an origin that is not allowed
+  | 'PAYLOAD_TOO_LARGE'     // 413 a body over 256 KB (themes 400 KB)
+  | 'UNSUPPORTED_MEDIA_TYPE' // 415 a body that is not `application/json`
   | 'PRECONDITION_FAILED'   // 412 etag mismatch
   | 'PROVIDER_ERROR'        // 502 provider returned an unexpected error
   | 'PROVIDER_UNAVAILABLE'  // 503 provider unreachable / outage / auth failure
@@ -261,12 +263,14 @@ is the popup list in effect: the calendar's default while `useDefault`, else the
 Per person (`local` while sign-in is off); all `204` unless noted. Why: ARCHITECTURE "Reminders, several per event", slice 2.
 
 - `GET /api/push/key` → `200 { key }`: the server's public VAPID key (URL-safe base64).
-- `POST /api/push/subscriptions` `{ endpoint, keys: { p256dh, auth } }`: stores a browser's subscription (an `https` endpoint; same
+- `POST /api/push/subscriptions` `{ endpoint, keys: { p256dh, auth } }`: stores a browser's subscription (an `https` endpoint of a real push service: `fcm.googleapis.com`, `*.push.services.mozilla.com`,
+  `web.push.apple.com`, `*.notify.windows.com`, port 443, no IP literal, else `400`; TEST_MODE also accepts `push.example.test`; same
   endpoint again updates its keys and keeps its plan; at most 10 per person, else `400`).
 - `DELETE /api/push/subscriptions` `{ endpoint }`: removes it (also when unknown).
 - `PUT /api/reminders/plan` `{ endpoint, plan: { at, title, body, key }[] }`: replaces that browser's plan (`at` epoch ms, at most
   500 entries). `404` when the endpoint is not subscribed. The server sends `{ title, body, key }` at `at`, up to 10 minutes late,
-  once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription.
+  once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription. Every send has a
+  10 s timeout and each browser is served on its own, so one endpoint that never answers holds back nobody.
 
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 
@@ -759,13 +763,20 @@ TEST_MODE: `POST /api/__test/apk { versionCode, versionName }` overrides it unti
 | Method | Path | Effect |
 |---|---|---|
 | `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar + `https://www.googleapis.com/auth/drive.appdata`, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
-| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a person with no server data and a Drive backup gets it restored (ARCHITECTURE "Backups"), a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid `state`. |
+| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a person with no server data and a Drive backup gets it restored (ARCHITECTURE "Backups"), a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid, forged or expired `state` (the state is stateless: `<payload>.<HMAC>` with a 10 minute expiry, in the `cal_oauth_state` cookie) and when Google refuses the code (no error object is logged). |
 | `GET` | `/api/auth/google/start` (while signed in) | Works with an existing session too (re-grant); the URL carries `include_granted_scopes=true`, so a newly granted scope adds to the old ones. |
 | `GET` | `/api/auth/google/start?app=1` | The Android app's flow (Google refuses OAuth in a WebView, so the app opens this URL in the system browser). Same as without `app`, but the `state` remembers the flag. On a successful callback the response is a **302** (no `cal_session` cookie, `Cache-Control: no-store`) to `intent://auth?code=<code>#Intent;scheme=lan.mordor.calendar;package=lan.mordor.calendar;S.browser_fallback_url=<URL-encoded /api/auth/app-open?code=<code>>;end`, which Chrome turns into the deep link `lan.mordor.calendar://auth?code=<code>`; when it cannot launch the app it goes to the fallback page. `<code>` is random (128 bit), single-use, valid 60 s and bound to the session just created; a not-allowed address still ends in 302 `/signin?error=private` with no code. Only `app=1` selects this; the browser flow is unchanged. |
 | `GET` | `/api/auth/app-open?code` | Public. The fallback of the intent redirect: **200 HTML** with the visible link `#open-app` (`lan.mordor.calendar://auth?code=<code>`) and a script launch; viewing it does not use the code up. An unknown, used or expired code answers 400 (the "expired" page). `Cache-Control: no-store`. |
 | `GET` | `/api/auth/app-exchange?code` | Public. The app's WebView loads it from the deep link: a valid code sets the normal `cal_session` cookie and answers 302 to `/` (`/?calendar=missing` when the calendar scope is missing). An unknown, used or expired code, or none, answers **400** with a small HTML page ("This sign-in link has expired or was already used", link to `/signin`) and sets no cookie. `Cache-Control: no-store`. Codes are kept in memory only (a restart invalidates them). |
 | `GET` | `/api/auth/me` | `{ email, name }` of the signed-in person; 401 without a session; `{ email: null, name: null }` while auth is off (so the client can tell "off" from "signed out"). Public. |
-| `POST` | `/api/auth/signout` | Ends the session (server side) and clears the cookie; 204. |
+| `POST` | `/api/auth/signout` | Ends the session (server side) and clears the cookie; 204. The optional body `{ endpoint }` is this browser's push subscription, which is deleted with the session (a missing or invalid endpoint does not stop the sign-out). |
+| `POST` | `/api/auth/signout-all` | "Sign out everywhere": ends every session of the signed-in person and clears the cookie; 204 (401 without a session). The optional `{ endpoint }` body is as for sign-out. |
+
+Every `/api/*` request while auth is on re-checks `ALLOWED_EMAILS`: a person who was taken off the list gets **401** and loses all their sessions.
+
+All non-GET `/api/*` requests need an `Origin` header that is one of `PUBLIC_URL` / `ALLOWED_ORIGINS` (or none, as the Android widget sends; without a
+`PUBLIC_URL` the page's own host is accepted), else **403 `FORBIDDEN`**, and a body must be `application/json` (else **415**) and at most 256 KB (`POST /api/themes`
+400 KB; else **413**).
 
 While auth is on, every other `/api/*` route except `/api/health`, the two OAuth routes and `/api/auth/app-exchange` answers **401
 `UNAUTHENTICATED`** without a valid session. When a person's Google refresh fails with `invalid_grant`, the API answers

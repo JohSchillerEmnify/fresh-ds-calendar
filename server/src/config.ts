@@ -66,3 +66,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     },
   };
 }
+
+/**
+ * Refuses to run without sign-in where it would be public: mock mode is auth-off, so with an https `PUBLIC_URL` or
+ * `NODE_ENV=production` it must be asked for explicitly (`ALLOW_INSECURE_MOCK=1`). A missing `PROVIDER` counts as mock.
+ *
+ * @param config The loaded configuration.
+ * @param env Environment with `NODE_ENV` and `ALLOW_INSECURE_MOCK`.
+ * @throws Error When the configuration would serve everybody without sign-in.
+ */
+export function assertSafeToStart(config: AppConfig, env: NodeJS.ProcessEnv = process.env): void {
+  if (config.provider !== 'mock' || env.ALLOW_INSECURE_MOCK === '1') return;
+  if (config.publicUrl?.startsWith('https://') || env.NODE_ENV === 'production') {
+    throw new Error('Refusing to start without sign-in (PROVIDER is not "google") on a public address. Set PROVIDER=google, or ALLOW_INSECURE_MOCK=1 to run open on purpose.');
+  }
+}

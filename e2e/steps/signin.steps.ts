@@ -2,7 +2,7 @@
  * Sign-in steps (STEPS.md "Signing in"). Google is the mock provider with one calendar per person; "signs in with
  * Google" runs the real OAuth round trip (start -> consent -> callback) against the TEST_MODE test double.
  */
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { addDays, berlinIso } from './support/dates.js';
 import { tid, type World } from './support/world.js';
@@ -55,6 +55,29 @@ When('someone opens the week view for {date} without signing in', async function
 When('they sign out in the settings', async function (this: World) {
   await this.page.getByTestId('settings-button').click();
   await this.page.getByTestId('settings-signout').click();
+});
+
+/** Per scenario: the HTTP client of the second device ("is also signed in on another device"). */
+const otherDevice = new WeakMap<World, APIRequestContext>();
+
+Given('{string} is also signed in on another device', async function (this: World, email: string) {
+  const context = await this.browser.newContext({ baseURL: this.baseURL });
+  this.track(context);
+  await this.api.chooseGoogleAccount(email);
+  // start -> fake consent -> callback: the client follows the redirects and keeps the session cookie
+  await context.request.get('/api/auth/google/start');
+  expect((await context.request.get('/api/auth/me', { failOnStatusCode: false })).status()).toBe(200);
+  otherDevice.set(this, context.request);
+});
+
+When('they sign out everywhere in the settings', async function (this: World) {
+  await this.page.getByTestId('settings-button').click();
+  await this.page.getByTestId('settings-signout-all').click();
+});
+
+Then('the other device is signed out too', async function (this: World) {
+  const res = await otherDevice.get(this)!.get('/api/auth/me', { failOnStatusCode: false });
+  expect(res.status()).toBe(401);
 });
 
 When('they open the week view for {date}', async function (this: World, date: string) {

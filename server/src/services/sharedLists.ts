@@ -84,10 +84,17 @@ export class SharedListService {
   }
 
   // ---------- access ----------
+  /** False for a person who is known and no longer on the allow-list (removed people see nothing); true while sign-in is off or the person is unknown. */
+  permitted(sub: string): boolean {
+    const allows = this.allow();
+    const known = this.people.get(sub);
+    return !allows || !known || allows(known.email);
+  }
+
   /** The list with this API id (`shared:<id>`) when the person owns it or is a member; anyone else gets 404. */
   access(sub: string, apiId: string): SharedListDoc {
     const doc = isSharedId(apiId) ? this.docs.get(apiId.slice(SHARED_PREFIX.length)) : undefined;
-    if (!doc || (doc.owner !== sub && !doc.members.includes(sub))) throw notFound('Task list not found');
+    if (!doc || !this.permitted(sub) || (doc.owner !== sub && !doc.members.includes(sub))) throw notFound('Task list not found');
     return doc;
   }
 
@@ -100,6 +107,7 @@ export class SharedListService {
 
   /** Every list the person owns or is a member of. */
   visibleTo(sub: string): SharedListDoc[] {
+    if (!this.permitted(sub)) return [];
     return [...this.docs.values()].filter((d) => d.owner === sub || d.members.includes(sub));
   }
 

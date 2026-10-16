@@ -333,6 +333,7 @@ async function resetDemo() {
         <section id="s-account" class="card" data-testid="settings-section" data-section="account" aria-labelledby="h-account">
           <h2 id="h-account">{{ title('account') }}</h2>
           <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
+          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signOutAll.label') }}</span><span class="sub">{{ t('settings.account.signOutAll.hint') }}</span></div><Button variant="outlined" data-testid="settings-signout-all" @click="auth.signOutAll()">{{ t('settings.account.signOutAll.button') }}</Button></div>
           <div v-if="auth.calendarMissing" class="row"><div class="grow"><span class="lab">{{ t('settings.account.calendarAccess.label') }}</span><span class="sub">{{ t('settings.account.calendarAccess.hint') }}</span></div><Button variant="tonal" data-testid="settings-calendar-access" @click="auth.grantCalendar()">{{ t('settings.account.calendarAccess.grant') }}</Button></div>
           <template v-if="backup.status?.available">
             <div v-if="backup.status.permission === 'missing'" class="row">
