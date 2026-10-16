@@ -115,13 +115,6 @@ const section = inject(sectionKey, () => 'full' as const);
 /** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
 const titles = computed(() => section() === 'titles' && props.variant === 'allday');
 const collapsed = computed(() => titles.value);
-/** Untitled list on a compact overview that hides the items row (month chip, titles mode): surface the first item where
- * the title would be, so the card is not blank. It is shown as an item, never stored as the event title; the full list
- * is still below (clipped for a11y here) and appears when the card is opened. */
-const lead = computed(() => {
-  if (props.grown || displayTitle(tl.value) || !(props.variant === 'chip' || titles.value)) return '';
-  return tl.value.items[0]?.title ?? '';
-});
 const fit = computed(() => {
   const block = props.variant === 'block';
   const footVisible = block && !!tl.value.time && !mini.value;
@@ -146,6 +139,15 @@ const fit = computed(() => {
   // Inline names run on in one line and fade out at the right edge, so every open one is shown.
   if (f.inline || shortBlock.value) return { shown: open, more: 0, inline: true };
   return { shown: f.shown, more: f.more, inline: false };
+});
+/** Untitled list whose card would otherwise show no item text (chip, titles mode, or a card/block too short to fit any
+ * item): surface the FIRST item where the title would be, so the overview is never blank, in every view. It renders as an
+ * item, never stored as the event title; the grown/opened card shows the whole list below with no title. No duplication:
+ * the lead only appears when `fit.shown === 0`, i.e. when no items render below. */
+const lead = computed(() => {
+  if (props.grown || displayTitle(tl.value)) return '';
+  const noItemsShown = props.variant === 'chip' || titles.value || fit.value.shown === 0;
+  return noItemsShown ? (tl.value.items[0]?.title ?? '') : '';
 });
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */
 const rank = computed(() => {
