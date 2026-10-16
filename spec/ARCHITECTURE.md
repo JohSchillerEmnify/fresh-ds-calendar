@@ -2150,6 +2150,32 @@ browser does not change.
     the fingerprint.
   - **Widget receivers**: custom refresh/tick actions go to a non-exported receiver; the exported providers only take
     the system widget broadcasts.
+- **Security hardening (owner, 2026-10-16, audit `docs/SECURITY-AUDIT-2026-10-16.md`: "server hardening, Android sign-in
+  and APK, infra lockdown")**. No visible change except where named.
+  - **Push** (M1, SSRF): subscription endpoints only on the real push services (`fcm.googleapis.com`,
+    `*.push.services.mozilla.com`, `web.push.apple.com`, `*.notify.windows.com`; https, no IP literals, no ports other
+    than 443); every send has a 10 s timeout; one tick sends per subscription in parallel with a time budget, so one
+    slow endpoint never holds back another person's reminders.
+  - **Request size** (M2): every `/api/*` body at most 256 KB (themes 400 KB, server-side `MAX_THEME_BYTES` check); the
+    shared schema validator only looks at own properties (`Object.hasOwn`); backup collect skips oversized files.
+  - **Revocation** (M3): every request re-checks `ALLOWED_EMAILS`; a removed person's sessions are dropped on their next
+    request, and shared lists, backups and pushes skip them. `POST /api/auth/signout-all` ends all sessions of the person
+    (Settings → Account "Sign out everywhere", `settings-signout-all`).
+  - **Sign-out clears push** (M4): sign-out unsubscribes this browser and deletes its subscription on the server (the
+    endpoint is sent with the sign-out); a browser re-subscribes only after that person's own switch, never silently on
+    a 404. Sign-out uses `location.replace` and clears the app's `cal.*` storage except theme and language.
+  - **OAuth state** (M5): stateless, HMAC-signed (key derived from the client secret) with a 10 min expiry in the
+    existing `cal_oauth_state` cookie; no in-memory store to flood. A failed code exchange answers 400 without logging
+    the error object.
+  - **Fail closed** (M7): the server refuses to start in mock/auth-off mode when `PUBLIC_URL` is https or
+    `NODE_ENV=production`, unless `ALLOW_INSECURE_MOCK=1`.
+  - **Restore** (M10): never overwrites a shared list that exists and belongs to someone else; the file name must match
+    the list id; restored themes are re-sanitised.
+  - **CSRF**: non-GET `/api/*` requests need an `Origin` from the allowed origins (or none, for the Android widget's
+    native fetch with its cookie) and `Content-Type: application/json` where there is a body.
+  - **Backups** carry only the person's own entries of `people.json` and of the category share rules.
+  - **Hygiene**: backup errors reach the person as a generic message; logs use the hashed sub; Drive and Google calls
+    have request timeouts.
 - **Birthdays like Google Calendar (owner, 2026-10-14: "the birthdays are not from contacts, they are created via the
   birthday category in Google Calendar; handle them the same way, and let me create birthdays the same way")**. Google
   (since 2024) stores a birthday as an event with `eventType: "birthday"` in a normal calendar (usually the primary one):
