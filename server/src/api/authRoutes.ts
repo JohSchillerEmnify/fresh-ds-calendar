@@ -5,11 +5,14 @@ import { logEvent, subHash } from '../lib/diag.js';
 import { ApiException, validation } from '../lib/errors.js';
 import { claimLegacyToken, hasCalendarScope, writeUserToken } from '../auth/people.js';
 import { setSessionCookie } from '../auth/middleware.js';
+import { CHALLENGE_RE } from '../auth/appExchange.js';
 import type { OAuthBackend } from '../auth/oauth.js';
 import { SESSION_COOKIE } from '../auth/sessions.js';
 import type { AuthEnv } from '../auth/middleware.js';
 
 const STATE_COOKIE = 'cal_oauth_state';
+/** Carries the app's challenge from the start of an app sign-in to its callback, in the same browser as the state. */
+const CHALLENGE_COOKIE = 'cal_app_challenge';
 /** The Android app's deep link (custom scheme on its application id); the exchange code rides on it. */
 const APP_LINK = 'lan.mordor.calendar://auth';
 
@@ -61,8 +64,12 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const oauth = await backend(ctx);
     // `app=1`: the Android app runs this round trip in the system browser and gets the session by exchange code
     const app = c.req.query('app') === '1';
+    // an app sign-in is bound to the app that started it (RFC 7636 S256): no challenge, no sign-in
+    const challenge = c.req.query('challenge');
+    if (app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('App sign-in needs a challenge (update the app)');
     const state = ctx.auth.states.create(app);
     setCookie(c, STATE_COOKIE, state, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
+    if (app) setCookie(c, CHALLENGE_COOKIE, challenge!, { httpOnly: true, sameSite: 'Lax', path: '/api/auth', maxAge: 600, secure: ctx.config.publicUrl?.startsWith('https://') ?? false });
     logEvent('auth_flow', { step: 'start', app, durationMs: Date.now() - started });
     return c.redirect(oauth.authUrl(state), 302);
   });
@@ -76,6 +83,9 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const issued = state ? ctx.auth.states.consume(state) : null;
     if (!code || !state || !issued || getCookie(c, STATE_COOKIE) !== state) throw validation('Invalid state');
     deleteCookie(c, STATE_COOKIE, { path: '/api/auth' });
+    const challenge = getCookie(c, CHALLENGE_COOKIE);
+    deleteCookie(c, CHALLENGE_COOKIE, { path: '/api/auth' });
+    if (issued.app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('Invalid state');
     const who = await oauth.exchange(code);
     // not on the list (or unverified): keep nothing, not even the token
     if (!who.emailVerified || !ctx.auth.allows(who.email)) return c.redirect('/signin?error=private', 302);
@@ -105,7 +115,7 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     if (issued.app) {
       // this browser must not keep the session: the app's WebView gets it by redeeming the code
       c.header('Cache-Control', 'no-store');
-      const code = ctx.auth.exchanges.create({ sessionId, redirect: target });
+      const code = ctx.auth.exchanges.create({ sessionId, redirect: target, challenge: challenge! });
       // answered at once (no page to wait on); a browser that refuses the launch lands on the fallback page
       const origin = ctx.config.publicUrl ?? new URL(c.req.url).origin;
       return c.redirect(appIntentUrl(code, `${origin}/api/auth/app-open?code=${code}`), 302);
@@ -123,10 +133,10 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     return c.html(openAppPage(`${APP_LINK}?code=${code}`));
   });
 
-  // The app's WebView redeems the one-time code from the deep link and gets the normal session cookie.
+  // The app's WebView redeems the one-time code from the deep link, with the verifier only the app holds, and gets the normal session cookie.
   r.get('/auth/app-exchange', (c) => {
     c.header('Cache-Control', 'no-store');
-    const hit = ctx.auth.exchanges.consume(c.req.query('code'));
+    const hit = ctx.auth.exchanges.consume(c.req.query('code'), c.req.query('verifier'));
     if (!hit) {
       logEvent('auth_flow', { step: 'exchange_failed', app: true });
       return c.html(EXCHANGE_FAILED_PAGE, 400);

@@ -25,7 +25,7 @@ const sw = self as unknown as WorkerScope;
 // the injection point must stay literally `self.__WB_MANIFEST` (the plugin searches the built worker for it)
 precacheAndRoute((self as unknown as WorkerScope).__WB_MANIFEST);
 cleanupOutdatedCaches();
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/app\.apk$/, /^\/privacy\.html$/] }));
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/app\.apk$/, /^\/app\.json$/, /^\/privacy\.html$/] }));
 // /api is never cached
 registerRoute(({ url }) => /^\/api\//.test(url.pathname), new NetworkOnly());
 

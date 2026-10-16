@@ -117,8 +117,10 @@ public class MainActivity extends BridgeActivity {
     private void openPathFrom(Intent intent) {
         String base = ServerConfig.baseUrl(this);
         Uri link = intent == null ? null : intent.getData();
-        String exchange = link == null ? null : AppSignIn.exchangeUrl(base, link.toString());
+        String exchange = link == null ? null : AppSignIn.exchangeUrl(base, link.toString(), PendingSignIn.peek(this));
         if (exchange != null) {
+            // the verifier is used up with the link: a replayed link finds no sign-in pending
+            PendingSignIn.clear(this);
             // consumed: a later re-delivery of this intent must not replay the single-use code
             intent.setData(null);
             WebView web = getBridge().getWebView();

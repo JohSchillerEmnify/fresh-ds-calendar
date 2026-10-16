@@ -352,6 +352,7 @@ async function resetDemo() {
           <div v-if="!isIos" class="row"><div class="grow"><span class="lab">{{ t(androidAppLabelKey(isNativeApp())) }}</span><span class="sub">{{ t('settings.account.androidApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-android-app" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button></div>
           <div v-if="isNativeApp() && nativeHost" class="row"><div class="grow"><span class="lab" data-testid="settings-server-label">{{ t('settings.account.server.label', { host: nativeHost }) }}</span><span class="sub">{{ t('settings.account.server.hint') }}</span></div><Button variant="outlined" data-testid="settings-server-change" @click="changeNativeServer()">{{ t('settings.account.server.change') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
+          <div v-if="clock.config.apk?.certSha256" class="row"><div class="grow" data-testid="settings-app-cert"><span class="lab">{{ t('settings.account.appCert.label') }}</span><span class="sub cert">{{ clock.config.apk.certSha256 }}</span><span class="sub">{{ t('settings.account.appCert.hint') }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.whatsNew.label') }}</span><span class="sub">{{ t('settings.account.whatsNew.hint') }}</span></div><Button variant="outlined" data-testid="settings-whats-new" @click="ui.openDialog('whats-new')">{{ t('settings.account.whatsNew.button') }}</Button></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.versionCorner.label') }}</span><span class="sub">{{ t('settings.account.versionCorner.hint') }}</span></div><Switch :model-value="labs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>
@@ -392,6 +393,7 @@ h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-mediu
 .hours { flex: none; width: 104px; }
 .lab { font: var(--md-sys-typescale-body-large); }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
+.sub.cert { display: block; font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; }
 .val { font: var(--md-sys-typescale-title-medium); }
 .cats { list-style: none; margin: 0; padding: 0; }
 .cat { display: flex; align-items: center; padding: 0 8px 0 16px; }

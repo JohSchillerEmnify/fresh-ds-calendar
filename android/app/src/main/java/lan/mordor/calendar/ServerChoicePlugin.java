@@ -55,8 +55,11 @@ public class ServerChoicePlugin extends Plugin {
     @Override
     public Boolean shouldOverrideLoad(Uri url) {
         // Google refuses OAuth in a WebView: the sign-in starts in the system browser instead (see AppSignIn)
-        String browser = AppSignIn.browserUrl(ServerConfig.baseUrl(getContext()), url.toString());
+        String verifier = AppSignIn.newVerifier();
+        String browser = AppSignIn.browserUrl(ServerConfig.baseUrl(getContext()), url.toString(), AppSignIn.challenge(verifier));
         if (browser != null) {
+            // kept until the deep link of this sign-in returns; only its SHA-256 goes through the browser
+            PendingSignIn.save(getContext(), verifier);
             Uri start = Uri.parse(browser);
             try {
                 // a Custom Tab (the standard OAuth surface) always follows the redirect chain, and the server's final

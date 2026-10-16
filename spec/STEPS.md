@@ -517,6 +517,8 @@ the settings sections are {string}
 the settings page has no theme mode or seed colour controls
 the server reports the build version {string}
 the settings show the version {string}
+the server offers an app signed with the certificate {string}
+the settings show the app certificate {string}
 the corner shows the version {string}
 the settings screen is shown
 the screen is {int} pixels wide
@@ -947,6 +949,7 @@ the system browser is not signed in
 the app is handed a one-time code
 the app exchanges the code
 the app exchanges the code again
+another app exchanges the code
 the app is asked to sign in again
 ```
 
@@ -1351,7 +1354,7 @@ every option of the {string} setting shows a sample icon
 - App sign-in (`signin.feature`): the "system browser" is the test's own cookie-keeping HTTP client (`request`), which runs
   `/api/auth/google/start?app=1` -> fake consent -> callback; the page is the app's WebView. "is handed a one-time code" =
   the callback answers 302 to an `intent://auth?code=...` URL (the deep link `lan.mordor.calendar://auth?code=...`); "not signed in" = that client got no
-  `cal_session` cookie. "exchanges the code" = the page opens `/api/auth/app-exchange?code=...` (the deep link's effect);
+  `cal_session` cookie. The start carries the app's challenge (`challenge=base64url(SHA-256(verifier))`). "exchanges the code" = the page opens `/api/auth/app-exchange?code=...&verifier=...` (the deep link's effect plus the verifier the app kept); "another app exchanges the code" = the same without the verifier;
   "is asked to sign in again" = that load answered the "expired or already used" page (HTTP 400, link to `/signin`).
 - "{string} may use the calendar": a one-address allow-list (see "Signing in"); "on another device" is a fresh
   browser context signed in as that person.

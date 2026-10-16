@@ -2,6 +2,7 @@
  * Sign-in steps (STEPS.md "Signing in"). Google is the mock provider with one calendar per person; "signs in with
  * Google" runs the real OAuth round trip (start -> consent -> callback) against the TEST_MODE test double.
  */
+import { createHash, randomBytes } from 'node:crypto';
 import { expect } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { addDays, berlinIso } from './support/dates.js';
@@ -143,7 +144,9 @@ async function appSignIn(world: World, email: string) {
     expect(res.status()).toBe(302);
     return res.headers()['location']!;
   };
-  const consent = await step('/api/auth/google/start?app=1');
+  world.appVerifier = randomBytes(32).toString('base64url');
+  const challenge = createHash('sha256').update(world.appVerifier).digest('base64url');
+  const consent = await step(`/api/auth/google/start?app=1&challenge=${challenge}`);
   const callback = await step(consent);
   // the callback answers 302 to a Chrome intent URL for the app; its code is what the deep link carries
   const intent = await step(callback);
@@ -152,8 +155,8 @@ async function appSignIn(world: World, email: string) {
 }
 
 /** What the deep link does: the app's WebView loads the exchange URL. */
-async function appExchange(world: World) {
-  const res = await world.page.goto(`/api/auth/app-exchange?code=${world.appCode}`);
+async function appExchange(world: World, verifier = world.appVerifier) {
+  const res = await world.page.goto(`/api/auth/app-exchange?code=${world.appCode}${verifier ? `&verifier=${verifier}` : ''}`);
   world.appExchange = { status: res!.status(), text: await world.page.content() };
 }
 
@@ -178,6 +181,10 @@ Then('the app is handed a one-time code', async function (this: World) {
 
 When('the app exchanges the code', async function (this: World) {
   await appExchange(this);
+});
+
+When('another app exchanges the code', async function (this: World) {
+  await appExchange(this, '');
 });
 
 When('the app exchanges the code again', async function (this: World) {

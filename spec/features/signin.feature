@@ -79,3 +79,8 @@ Feature: Signing in with Google
     When the app exchanges the code
     And the app exchanges the code again
     Then the app is asked to sign in again
+
+  Scenario: A code caught by another app is useless
+    Given "jo@example.com" signed in with Google from the app
+    When another app exchanges the code
+    Then the app is asked to sign in again

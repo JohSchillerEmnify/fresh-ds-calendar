@@ -298,6 +298,14 @@ Then('the settings show the version {string}', async function (this: World, vers
   await expect(this.page.getByTestId('settings-version')).toHaveText(new RegExp(`^Version ${version.replaceAll('.', '\\.')}`));
 });
 
+Given('the server offers an app signed with the certificate {string}', async function (this: World, cert: string) {
+  await this.api.post('/api/__test/apk', { versionCode: 6, versionName: '1.1.6', certSha256: cert });
+});
+
+Then('the settings show the app certificate {string}', async function (this: World, cert: string) {
+  await expect(this.page.getByTestId('settings-app-cert')).toContainText(cert);
+});
+
 Then('the corner shows the version {string}', async function (this: World, version: string) {
   await expect(this.page.getByTestId('app-version')).toHaveText(version);
 });

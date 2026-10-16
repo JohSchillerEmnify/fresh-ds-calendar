@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -221,12 +222,17 @@ describe('calendar permission (granular consent)', () => {
 });
 
 describe('app sign-in (Android app, one-time exchange code)', () => {
+  /** What the app keeps (verifier) and sends to the start (its S256 challenge). */
+  const VERIFIER = 'dGVzdC12ZXJpZmllci0wMTIzNDU2Nzg5MDEyMzQ1Njc4OQ';
+  const CHALLENGE = createHash('sha256').update(VERIFIER).digest('base64url');
+  const exchange = (t: ReturnType<typeof makeApp>, code: string | null, verifier: string | null = VERIFIER) =>
+    t.req('GET', `/api/auth/app-exchange?code=${code}${verifier === null ? '' : `&verifier=${verifier}`}`);
   const items = '/api/items?from=2026-10-12&to=2026-10-19';
 
   /** The round trip in the "system browser" (own cookie jar) with `app=1`; returns its callback response. */
-  async function appRoundTrip(t: ReturnType<typeof makeApp>, email: string) {
+  async function appRoundTrip(t: ReturnType<typeof makeApp>, email: string, challenge: string = CHALLENGE) {
     await t.json('POST', '/api/__test/oauth/account', { email });
-    const start = await t.req('GET', '/api/auth/google/start?app=1');
+    const start = await t.req('GET', `/api/auth/google/start?app=1&challenge=${challenge}`);
     const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
     const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
     const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
@@ -247,7 +253,7 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
       expect(r.cb.headers.getSetCookie().some((c) => c.startsWith('cal_session='))).toBe(false);
       expect(r.cb.headers.get('cache-control')).toBe('no-store');
       // the WebView redeems it: session cookie + redirect to the app
-      const ex = await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      const ex = await exchange(t, r.code);
       expect(ex.status).toBe(302);
       expect(ex.headers.get('location')).toBe('/');
       const session = ex.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!;
@@ -265,7 +271,7 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
       expect(page.status).toBe(200);
       expect(await page.text()).toContain(`id="open-app" href="${r.link}"`);
       // looking at the page does not use the code up
-      expect((await t.req('GET', `/api/auth/app-exchange?code=${r.code}`)).status).toBe(302);
+      expect((await exchange(t, r.code)).status).toBe(302);
       expect((await t.req('GET', `/api/auth/app-open?code=${r.code}`)).status).toBe(400);
       expect((await t.req('GET', '/api/auth/app-open?code=nope')).status).toBe(400);
     } finally { t.cleanup(); }
@@ -278,8 +284,8 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
     try {
       await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
       const r = await appRoundTrip(t, 'jo@example.com');
-      await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
-      await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      await exchange(t, r.code);
+      await exchange(t, r.code);
       const flow = lines.filter((l) => l.event === 'auth_flow');
       expect(flow.map((l) => l.step)).toEqual(['start', 'callback', 'exchange', 'exchange_failed']);
       expect(flow.every((l) => l.app === true)).toBe(true);
@@ -294,8 +300,8 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
     try {
       await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
       const r = await appRoundTrip(t, 'jo@example.com');
-      expect((await t.req('GET', `/api/auth/app-exchange?code=${r.code}`)).status).toBe(302);
-      const again = await t.req('GET', `/api/auth/app-exchange?code=${r.code}`);
+      expect((await exchange(t, r.code)).status).toBe(302);
+      const again = await exchange(t, r.code);
       expect(again.status).toBe(400);
       expect(again.headers.getSetCookie()).toEqual([]);
       expect(await again.text()).toContain('/signin');
@@ -307,13 +313,50 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
   it('expires a code after 60 seconds (ExchangeStore)', () => {
     let now = 1_000_000;
     const store = new ExchangeStore(() => now);
-    const a = store.create({ sessionId: 's', redirect: '/' });
+    const entry = { sessionId: 's', redirect: '/', challenge: CHALLENGE };
+    const a = store.create(entry);
     now += 60_000;
-    expect(store.consume(a)).toEqual({ sessionId: 's', redirect: '/' });
-    const b = store.create({ sessionId: 's', redirect: '/' });
+    expect(store.consume(a, VERIFIER)).toEqual(entry);
+    const b = store.create(entry);
     now += 60_001;
-    expect(store.consume(b)).toBeNull();
-    expect(store.create({ sessionId: 's', redirect: '/' })).not.toBe(store.create({ sessionId: 's', redirect: '/' }));
+    expect(store.consume(b, VERIFIER)).toBeNull();
+    expect(store.create(entry)).not.toBe(store.create(entry));
+  });
+
+  it('binds the code to the app: only the verifier of the challenge redeems it', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const r = await appRoundTrip(t, 'jo@example.com');
+      // a code caught by another app (wrong verifier, or none) is useless and cannot be tried again
+      expect((await exchange(t, r.code, 'another-verifier-0123456789012345678901234')).status).toBe(400);
+      expect((await exchange(t, r.code)).status).toBe(400);
+      // missing verifier, malformed verifier
+      const m = await appRoundTrip(t, 'jo@example.com');
+      const none = await exchange(t, m.code, null);
+      expect(none.status).toBe(400);
+      expect(none.headers.getSetCookie()).toEqual([]);
+      const bad = await appRoundTrip(t, 'jo@example.com');
+      expect((await exchange(t, bad.code, 'short')).status).toBe(400);
+      // the matching verifier redeems it, once
+      const ok = await appRoundTrip(t, 'jo@example.com');
+      expect((await exchange(t, ok.code)).status).toBe(302);
+      expect((await exchange(t, ok.code)).status).toBe(400);
+    } finally { t.cleanup(); }
+  });
+
+  it('refuses to start an app sign-in without a well-formed challenge (old app)', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      for (const q of ['app=1', 'app=1&challenge=short', `app=1&challenge=${CHALLENGE}x`, 'app=1&challenge=' + 'a'.repeat(43) + '%00']) {
+        const res = await t.req('GET', `/api/auth/google/start?${q}`);
+        expect(res.status).toBe(400);
+        expect(res.headers.getSetCookie()).toEqual([]);
+      }
+      // a plain browser sign-in needs none
+      expect((await t.req('GET', '/api/auth/google/start')).status).toBe(302);
+    } finally { t.cleanup(); }
   });
 
   it('mints codes only for app flows: a plain sign-in still sets the cookie and redirects', async () => {
@@ -339,7 +382,7 @@ describe('app sign-in (Android app, one-time exchange code)', () => {
     try {
       await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
       await t.json('POST', '/api/__test/oauth/account', { email: 'jo@example.com' });
-      const start = await t.req('GET', '/api/auth/google/start?app=1');
+      const start = await t.req('GET', `/api/auth/google/start?app=1&challenge=${CHALLENGE}`);
       const consent = await t.req('GET', start.headers.get('location')!);
       const cb = await t.json('GET', consent.headers.get('location')!);
       expect(cb.status).toBe(400);
