@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-16
+- Only your own events can be edited: invitations from others and everything in other people's calendars are look-only, with a line saying why.
+
 ## 2026-10-14
 - Birthdays work like in Google Calendar: create one with "Birthday" in the new dialog, and rename, recolour, move or delete birthdays (the birth year stays; birthdays from Google Contacts keep their date).
 - Settings no longer slide sideways on small phones (the season choices on the Theme page were too wide).
