@@ -2103,6 +2103,22 @@ browser does not change.
   horizontally (`overflow-x: clip`), and no row is wider than the screen at 320 px and up: rows with two controls
   (two time fields, two buttons) wrap or shrink, grid columns use `minmax(0, 1fr)`. Why both: clipping alone would hide
   a control that is cut off; fixing the rows alone leaves the next wide row to break it again.
+- **Only one's own events are editable (owner, 2026-10-16: "one shouldn't be able to edit events that are not oneself's",
+  asked: invitations and also other people's shared calendars)**. An event is editable only when both hold:
+  - it lives in **one of the person's own calendars**: their primary calendar, or a calendar whose owner they are (Google
+    `accessRole: owner` and not another person's calendar: the calendar's `dataOwner`, where Google returns it, is the
+    person's email; a calendar id that is another person's email address is never own). Calendars shared by other
+    people are read-only here even with Google edit rights (`writer` or `owner` granted by someone else). Why: the owner
+    wants other people's calendars to be look-only in this app; Google still allows it, the app deliberately doesn't.
+  - the person **organises it** (`organizer.self`, or no organizer = created in that calendar), or the organiser allows
+    guests to edit (`guestsCanModify: true`). Invitations from others are read-only, as in Google.
+  Read-only events open the existing read-only details (`event-readonly`, no save, no delete, no drag, no resize), with
+  the reason line `event-readonly-reason` ("Invitation from Anna" / "Calendar of Anna"). New events can only go into
+  own calendars (the calendar picker lists only those). The server enforces the same rule on PATCH/DELETE/move (403
+  `calendar.event.notOwn`), the web only mirrors it (`CalendarEvent.readOnly`, already used by birthdays, now also set
+  for these). Task lists are unaffected (always the person's own tasks calendar; shared lists have their own rules).
+  Assumption (logged): removing an invitation from one's calendar is not offered (that would be a decline; RSVP is a
+  later slice).
 - **Birthdays like Google Calendar (owner, 2026-10-14: "the birthdays are not from contacts, they are created via the
   birthday category in Google Calendar; handle them the same way, and let me create birthdays the same way")**. Google
   (since 2024) stores a birthday as an event with `eventType: "birthday"` in a normal calendar (usually the primary one):
