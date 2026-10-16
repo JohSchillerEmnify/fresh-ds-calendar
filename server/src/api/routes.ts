@@ -8,7 +8,8 @@ import { isLocalDate, formatInZone } from '../lib/time.js';
 import { dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
-import { sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
+import { MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
+import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, canvasDocSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createBirthdaySchema, createEventSchema, createTaskListSchema, orderSchema,
@@ -225,6 +226,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     const { theme, picture } = b as { theme?: unknown; picture?: unknown };
     const doc = validateTheme(theme);
     if (!doc.ok) throw fail(doc.errors);
+    if (!themeFitsSize(theme)) throw fail([`The theme must be at most ${MAX_THEME_BYTES / 1024} KB`]);
     let clean: ThemePicture | undefined;
     let removed = false;
     if (picture !== undefined) {

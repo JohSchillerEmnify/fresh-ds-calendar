@@ -200,6 +200,51 @@ describe('auth store', () => {
   });
 });
 
+describe('auth store sign-out', () => {
+  beforeEach(() => {
+    freshPinia();
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** Replaces `location` so `replace` can be observed (jsdom cannot navigate). */
+  const stubLocation = () => {
+    const replace = vi.fn();
+    vi.stubGlobal('location', { ...window.location, replace });
+    return replace;
+  };
+
+  it('signs out of the server, clears cal.* storage except theme and language, and replaces the page', async () => {
+    const { calls } = mockFetch({ 'POST /api/auth/signout': () => ({ status: 204 }) });
+    const replace = stubLocation();
+    for (const k of ['cal.canvasView', 'cal.bedtimeReminded', 'cal.theme', 'cal.themeCss', 'cal.themeMode', 'language', 'other']) localStorage.setItem(k, '1');
+    sessionStorage.setItem('cal.zoomMonth', '1');
+    await useAuthStore().signOut();
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(['POST /api/auth/signout']);
+    expect(Object.keys(localStorage).sort()).toEqual(['cal.theme', 'cal.themeCss', 'cal.themeMode', 'language', 'other']);
+    expect(sessionStorage.length).toBe(0);
+    expect(replace).toHaveBeenCalledWith('/signin');
+  });
+
+  it('leaves even when the server refuses (already signed out)', async () => {
+    mockFetch({ 'POST /api/auth/signout': () => apiError(401, 'UNAUTHENTICATED') });
+    const replace = stubLocation();
+    await useAuthStore().signOut();
+    expect(replace).toHaveBeenCalledWith('/signin');
+  });
+
+  it('"Sign out everywhere" calls signout-all and then leaves', async () => {
+    const { calls } = mockFetch({ 'POST /api/auth/signout-all': () => ({ status: 204 }) });
+    const replace = stubLocation();
+    localStorage.setItem('cal.canvasView', '1');
+    await useAuthStore().signOutAll();
+    expect(calls.map((c) => c.path)).toEqual(['/api/auth/signout-all']);
+    expect(localStorage.getItem('cal.canvasView')).toBeNull();
+    expect(replace).toHaveBeenCalledWith('/signin');
+  });
+});
+
 describe('items store', () => {
   beforeEach(() => freshPinia());
   const resp = (items: unknown[]) => ({ items, from: 'a', to: 'b', syncedAt: 's' });

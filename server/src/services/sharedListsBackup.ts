@@ -44,12 +44,15 @@ export function registerSharedListsBackup(backup: BackupService, shared: SharedL
     },
     restore(sub, files) {
       for (const [rel, text] of Object.entries(files)) {
-        if (!/^shared\/lists\/[A-Za-z0-9_-]+\.json$/.test(rel)) continue;
-        // only lists the restoring person owns come back; a member's record is not acted on
-        let owner: unknown;
-        try { owner = (JSON.parse(text) as ListFile).owner; } catch { continue; }
-        if (owner !== sub) continue;
+        const m = /^shared\/lists\/([A-Za-z0-9_-]{1,32})\.json$/.exec(rel);
+        if (!m) continue;
+        // only lists the restoring person owns come back, and the file name must be the list's own id
+        let doc: ListFile & { id?: unknown };
+        try { doc = JSON.parse(text) as ListFile & { id?: unknown }; } catch { continue; }
+        if (doc.owner !== sub || doc.id !== m[1]) continue;
         const abs = path.join(dataDir, ...rel.split('/'));
+        // a list that exists now and belongs to somebody else is never overwritten
+        try { if ((JSON.parse(fs.readFileSync(abs, 'utf8')) as ListFile).owner !== sub) continue; } catch { /* no readable file there: free to write */ }
         fs.mkdirSync(path.dirname(abs), { recursive: true });
         fs.writeFileSync(`${abs}.tmp`, text);
         fs.renameSync(`${abs}.tmp`, abs);

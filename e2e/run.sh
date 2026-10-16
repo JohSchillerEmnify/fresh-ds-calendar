@@ -68,7 +68,7 @@ start_server() {
   log "starting TEST_MODE server on 127.0.0.1:$port (DATA_DIR=$DATA_DIR)"
   # Bound to loopback only: the test endpoints must never be reachable from the LAN.
   (cd "$ROOT" && HOST=127.0.0.1 PORT="$port" TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR="$DATA_DIR" \
-    POLL_INTERVAL_MS=30000 TZ=Europe/Berlin NODE_ENV=production \
+    POLL_INTERVAL_MS=30000 TZ=Europe/Berlin NODE_ENV=production ALLOW_INSECURE_MOCK=1 \
     exec node --expose-gc server/dist/index.js >"$E2E_DIR/server.log" 2>&1) &
   SERVER_PID=$!
   export E2E_BASE_URL="http://localhost:$port"

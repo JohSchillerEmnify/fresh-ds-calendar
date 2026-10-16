@@ -35,7 +35,7 @@ case "$cmd" in
       -l traefik.enable=true \
       -l "traefik.http.routers.$cname.rule=Host(\`$host\`) || Host(\`$host_lan\`)" \
       -l "traefik.http.services.$cname.loadbalancer.server.port=3000" \
-      -e TZ=Europe/Berlin -e PROVIDER=mock -e PORT=3000 -e DATA_DIR=/data \
+      -e TZ=Europe/Berlin -e PROVIDER=mock -e ALLOW_INSECURE_MOCK=1 -e PORT=3000 -e DATA_DIR=/data \
       -e NODE_OPTIONS=--max-old-space-size=96 \
       -v "$DATA_ROOT/$name:/data" \
       "calendar-preview:$name" >/dev/null

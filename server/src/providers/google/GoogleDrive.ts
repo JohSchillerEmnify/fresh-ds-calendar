@@ -1,4 +1,5 @@
 import type { OAuth2Client } from 'google-auth-library';
+import { GOOGLE_TIMEOUT_MS } from './auth.js';
 import { DriveError, type DriveClient, type DriveFile } from '../DriveClient.js';
 
 const API = 'https://www.googleapis.com/drive/v3/files';
@@ -14,7 +15,7 @@ export class GoogleDrive implements DriveClient {
   private async request(url: string, init: RequestInit = {}): Promise<Response> {
     const { token } = await this.auth.getAccessToken();
     if (!token) throw new DriveError('No Google access token');
-    const res = await this.fetchFn(url, { ...init, headers: { ...(init.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` } });
+    const res = await this.fetchFn(url, { ...init, signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS), headers: { ...(init.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` } });
     if (!res.ok) {
       const reason = ((await res.json().catch(() => null)) as { error?: { message?: string } } | null)?.error?.message;
       throw new DriveError(`Google Drive answered ${res.status}${reason ? `: ${reason.slice(0, 200)}` : ''}`, res.status);

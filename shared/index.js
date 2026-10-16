@@ -54,9 +54,10 @@ function check(value, sch, path, issues) {
     value.forEach((v, i) => check(v, sch.items, [...path.slice(0, -1), `${path.at(-1)}[${i}]`], issues));
   } else if (sch.type === 'object') {
     if (!isObject(value)) return void add(issues, 'object', { field }, `${name} must be an object`);
-    for (const k of sch.required ?? []) if (!(k in value)) add(issues, 'required', { field: [...path, k].join('.') }, `${label([...path, k])} is required`);
+    for (const k of sch.required ?? []) if (!Object.hasOwn(value, k)) add(issues, 'required', { field: [...path, k].join('.') }, `${label([...path, k])} is required`);
     for (const [k, v] of Object.entries(value)) {
-      if (sch.properties?.[k]) check(v, sch.properties[k], [...path, k], issues);
+      // own properties only: `constructor` or `__proto__` must not resolve to an inherited "property" of the schema
+      if (Object.hasOwn(sch.properties ?? {}, k)) check(v, sch.properties[k], [...path, k], issues);
       else if (sch.additionalProperties === false) add(issues, 'unknownField', { field: [...path, k].join('.') }, `${label([...path, k])} is not a known field`);
     }
   }

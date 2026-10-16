@@ -1,8 +1,9 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { Ctx } from '../context.js';
 import { logEvent, subHash } from '../lib/diag.js';
 import { ApiException, validation } from '../lib/errors.js';
+import { parse, pushUnsubscribeSchema } from '../lib/validation.js';
 import { claimLegacyToken, hasCalendarScope, writeUserToken } from '../auth/people.js';
 import { setSessionCookie } from '../auth/middleware.js';
 import { CHALLENGE_RE } from '../auth/appExchange.js';
@@ -86,7 +87,12 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     const challenge = getCookie(c, CHALLENGE_COOKIE);
     deleteCookie(c, CHALLENGE_COOKIE, { path: '/api/auth' });
     if (issued.app && (!challenge || !CHALLENGE_RE.test(challenge))) throw validation('Invalid state');
-    const who = await oauth.exchange(code);
+    // a refused code is the person's problem, not a server error: answer 400 and log no error object (it can carry tokens)
+    const who = await oauth.exchange(code).catch(() => null);
+    if (!who) {
+      logEvent('auth_flow', { step: 'exchange_failed', app: issued.app, durationMs: Date.now() - started });
+      throw validation('Google did not accept the sign-in. Try again.');
+    }
     // not on the list (or unverified): keep nothing, not even the token
     if (!who.emailVerified || !ctx.auth.allows(who.email)) return c.redirect('/signin?error=private', 302);
     ctx.people.record(who.sub, who.email, who.name ?? undefined);
@@ -154,10 +160,29 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     return c.json({ email: p.email, name: p.name ?? p.email });
   });
 
-  r.post('/auth/signout', (c) => {
+  // The optional body `{ endpoint }` is this browser's push subscription: it goes with the session, so the next person on a shared device gets no reminders of the previous one.
+  const dropPush = async (c: Context<AuthEnv>, sub: string): Promise<void> => {
+    try { ctx.push.unsubscribe(sub, parse(pushUnsubscribeSchema, await c.req.json()).endpoint); } catch { /* no (valid) endpoint sent: nothing to unsubscribe, still sign out */ }
+  };
+
+  r.post('/auth/signout', async (c) => {
     const p = c.get('person');
-    if (p) ctx.forgetPerson(p.sub);
+    if (p) {
+      ctx.forgetPerson(p.sub);
+      await dropPush(c, p.sub);
+    }
     ctx.auth.sessions.delete(getCookie(c, SESSION_COOKIE));
+    deleteCookie(c, SESSION_COOKIE, { path: '/' });
+    return c.body(null, 204);
+  });
+
+  // "Sign out everywhere": every session of the person ends, on every device (the body is as for sign-out).
+  r.post('/auth/signout-all', async (c) => {
+    const p = c.get('person');
+    if (!p) throw new ApiException('UNAUTHENTICATED', 401, 'Sign in required');
+    await dropPush(c, p.sub);
+    ctx.auth.sessions.deleteSub(p.sub);
+    ctx.forgetPerson(p.sub);
     deleteCookie(c, SESSION_COOKIE, { path: '/' });
     return c.body(null, 204);
   });

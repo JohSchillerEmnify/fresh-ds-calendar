@@ -213,7 +213,7 @@ When('I request {string} on a fresh server', async function (this: World, spec: 
     env: {
       ...process.env,
       HOST: '127.0.0.1', PORT: String(port), TEST_MODE: 'true', PROVIDER: 'mock', SEED: 'false', DATA_DIR: dataDir,
-      POLL_INTERVAL_MS: '30000', TZ: 'Europe/Berlin', NODE_ENV: 'production',
+      POLL_INTERVAL_MS: '30000', TZ: 'Europe/Berlin', NODE_ENV: 'production', ALLOW_INSECURE_MOCK: '1',
     },
     stdio: 'ignore',
   });

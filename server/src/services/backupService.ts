@@ -7,7 +7,8 @@ import path from 'node:path';
 import type { Clock } from '../lib/clock.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { userDir } from '../auth/people.js';
-import type { DriveClient } from '../providers/DriveClient.js';
+import { subHash } from '../lib/diag.js';
+import { DriveError, type DriveClient } from '../providers/DriveClient.js';
 import {
   BACKUP_KEEP, backupName, backupPrefix, bundle, contentHash, debounceDelay, isExcluded, isSafeRelPath, newestFirst, selectExpired, unbundle,
   type BackupBundle,
@@ -28,6 +29,12 @@ export interface BackupSource {
   reload?(): void;
 }
 
+/** Largest single file a backup carries, in bytes; a bigger one is left out (a hostile or runaway file must not bloat every backup). */
+export const MAX_BACKUP_FILE_BYTES = 2 * 1024 * 1024;
+
+/** The text a person sees for a failed backup: Drive's own answer and the backup's own messages, never file paths or stack text. */
+const publicMessage = (e: unknown): string => (e instanceof BackupError || e instanceof DriveError ? e.message : 'The backup failed');
+
 /** A server-wide file (not owned by one person) that goes into every bundle under `server/<rel>`. */
 export interface ServerFile {
   /** Path relative to `DATA_DIR`, e.g. `settings.json`. */
@@ -36,6 +43,8 @@ export interface ServerFile {
   pristine(content: string | null, sub: string): boolean;
   /** Called after the file was restored, so the store re-reads it. */
   reload?(): void;
+  /** Cuts the file down to what this person may carry in their backup (null: leave the file out). */
+  collect?(content: string, sub: string): string | null;
 }
 
 /** What Settings shows (API.md "Backups"). */
@@ -74,6 +83,10 @@ export interface BackupDeps {
   driveFor(sub: string): DriveClient | null;
   /** Whether the person's token has the Drive app-folder scope. */
   hasPermission(sub: string): boolean;
+  /** False for a person taken off the allow-list: no automatic backup for them. Default: everybody. */
+  isPermitted?(sub: string): boolean;
+  /** Re-checks an own file before a restore writes it: the text to write, or null to skip it. Default: as it is. */
+  vetRestored?(rel: string, content: string): Promise<string | null>;
   log?(message: string): void;
 }
 
@@ -156,19 +169,24 @@ export class BackupService {
         const abs = path.join(dir, e.name);
         const rel = path.relative(this.d.dataDir, abs).split(path.sep).join('/');
         if (e.isDirectory()) walk(abs);
-        else if (e.isFile() && !isExcluded(rel, sub) && !e.name.endsWith('.tmp')) files[rel] = fs.readFileSync(abs, 'utf8');
+        else if (e.isFile() && !isExcluded(rel, sub) && !e.name.endsWith('.tmp')) {
+          if (fs.statSync(abs).size > MAX_BACKUP_FILE_BYTES) this.log(`backup: leaving out an oversized file of ${subHash(sub)}`);
+          else files[rel] = fs.readFileSync(abs, 'utf8');
+        }
       }
     };
     walk(root);
     for (const src of this.sources) {
       for (const [rel, content] of Object.entries(src.collect(sub))) {
-        if (isSafeRelPath(rel) && rel.startsWith(`${src.prefix}/`)) files[rel] = content;
-        else this.log(`backup: ignoring ${rel} from source ${src.prefix} (outside its prefix)`);
+        if (!isSafeRelPath(rel) || !rel.startsWith(`${src.prefix}/`)) this.log(`backup: ignoring ${rel} from source ${src.prefix} (outside its prefix)`);
+        else if (content.length > MAX_BACKUP_FILE_BYTES) this.log(`backup: leaving out an oversized file of source ${src.prefix}`);
+        else files[rel] = content;
       }
     }
     for (const f of this.serverFiles) {
-      const content = this.readServer(f);
-      if (content !== null) files[`${SERVER_PREFIX}/${f.rel}`] = content;
+      const raw = this.readServer(f);
+      const content = raw !== null && f.collect ? f.collect(raw, sub) : raw;
+      if (content !== null && content.length <= MAX_BACKUP_FILE_BYTES) files[`${SERVER_PREFIX}/${f.rel}`] = content;
     }
     return files;
   }
@@ -179,7 +197,7 @@ export class BackupService {
   }
 
   /** Replaces the person's files with the bundle's (the excluded files stay). */
-  private apply(sub: string, b: BackupBundle): void {
+  private async apply(sub: string, b: BackupBundle): Promise<void> {
     const root = userDir(this.d.dataDir, sub);
     if (fs.existsSync(root)) {
       for (const e of fs.readdirSync(root)) if (!isExcluded(`users/${sub}/${e}`, sub)) fs.rmSync(path.join(root, e), { recursive: true, force: true });
@@ -202,7 +220,11 @@ export class BackupService {
       for (const f of wanted) this.writeFile(path.join(this.d.dataDir, ...f.rel.split('/')), b.files[`${SERVER_PREFIX}/${f.rel}`]!);
       for (const f of wanted) f.reload?.();
     }
-    for (const [rel, content] of Object.entries(own)) this.writeFile(path.join(this.d.dataDir, ...rel.split('/')), content);
+    for (const [rel, content] of Object.entries(own)) {
+      const vetted = this.d.vetRestored ? await this.d.vetRestored(rel, content) : content;
+      if (vetted === null) this.log(`backup: skipped an unsafe file while restoring ${subHash(sub)}`);
+      else this.writeFile(path.join(this.d.dataDir, ...rel.split('/')), vetted);
+    }
     for (const src of this.sources) if (src.reload && Object.keys(b.files).some((k) => k.startsWith(`${src.prefix}/`))) src.reload();
   }
 
@@ -247,12 +269,13 @@ export class BackupService {
         // a failed delete only leaves an old version around until the next backup
         for (const f of selectExpired(await drive.list(backupPrefix(sub)), this.timings.keep)) await drive.delete(f.id);
       } catch (e) {
-        this.log(`backup: could not delete old versions of ${sub}: ${(e as Error).message}`);
+        this.log(`backup: could not delete old versions of ${subHash(sub)}: ${(e as Error).message}`);
       }
       return 'done';
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      this.log(`backup failed for ${sub}: ${message}`);
+      // the person sees a safe message; the full text stays in the log
+      const message = publicMessage(e);
+      this.log(`backup failed for ${subHash(sub)}: ${e instanceof Error ? e.message : String(e)}`);
       this.setState(sub, (x) => { x.error = message; x.errorAt = new Date(this.d.clock.nowMs()).toISOString(); });
       throw e instanceof BackupError ? e : new BackupError('FAILED', message);
     }
@@ -264,7 +287,7 @@ export class BackupService {
       try {
         return unbundle(await drive.get(f.id), sub, this.prefixes);
       } catch (e) {
-        this.log(`backup: skipping unreadable version ${f.name}: ${(e as Error).message}`);
+        this.log(`backup: skipping an unreadable version of ${subHash(sub)}: ${(e as Error).message}`);
       }
     }
     return null;
@@ -287,9 +310,9 @@ export class BackupService {
       this.setState(sub, (x) => { delete x.restorePending; });
       return false;
     }
-    this.apply(sub, found);
+    await this.apply(sub, found);
     this.setState(sub, (x) => { x.lastBackupAt = found.created; x.lastHash = contentHash(this.collect(sub)); delete x.restorePending; delete x.error; delete x.errorAt; });
-    this.log(`backup: restored ${sub} from the backup of ${found.created}`);
+    this.log(`backup: restored ${subHash(sub)} from the backup of ${found.created}`);
     return true;
   }
 
@@ -313,13 +336,14 @@ export class BackupService {
       try {
         target = await this.newest(sub, drive);
       } catch (e) {
-        throw new BackupError('FAILED', e instanceof Error ? e.message : String(e));
+        this.log(`backup: could not read the backups of ${subHash(sub)}: ${e instanceof Error ? e.message : String(e)}`);
+        throw new BackupError('FAILED', publicMessage(e));
       }
       if (!target) throw new BackupError('NO_BACKUP', 'Google Drive holds no backup yet');
       if (this.hasData(sub)) await this.backupInner(sub, true);
-      this.apply(sub, target);
+      await this.apply(sub, target);
       this.setState(sub, (x) => { x.lastHash = contentHash(this.collect(sub)); delete x.restorePending; });
-      this.log(`backup: restored ${sub} from the backup of ${target.created}`);
+      this.log(`backup: restored ${subHash(sub)} from the backup of ${target.created}`);
       return this.status(sub);
     });
   }
@@ -331,7 +355,7 @@ export class BackupService {
       const drive = this.drive(sub);
       return await this.serial(sub, () => this.autoRestoreInner(sub, drive));
     } catch (e) {
-      this.log(`backup: restore at sign-in failed for ${sub}: ${(e as Error).message}`);
+      this.log(`backup: restore at sign-in failed for ${subHash(sub)}: ${(e as Error).message}`);
       return false;
     }
   }
@@ -340,7 +364,7 @@ export class BackupService {
 
   /** A change of the person's data: schedules a backup 2 minutes after the last change, 5 minutes after the last run. */
   touch(sub: string): void {
-    if (!this.d.isOn() || !this.d.hasPermission(sub) || !this.d.driveFor(sub)) return;
+    if (!this.d.isOn() || !this.d.hasPermission(sub) || this.d.isPermitted?.(sub) === false || !this.d.driveFor(sub)) return;
     this.lastChange.set(sub, this.d.clock.real());
     const delay = debounceDelay({
       now: this.d.clock.real(), lastChange: this.lastChange.get(sub)!, lastRun: this.lastRun.get(sub) ?? null,
@@ -375,7 +399,7 @@ export class BackupService {
   private people(): string[] {
     const users = path.join(this.d.dataDir, 'users');
     if (!fs.existsSync(users)) return [];
-    return fs.readdirSync(users).filter((u) => /^[A-Za-z0-9_-]{1,64}$/.test(u) && this.d.hasPermission(u));
+    return fs.readdirSync(users).filter((u) => /^[A-Za-z0-9_-]{1,64}$/.test(u) && this.d.hasPermission(u) && (this.d.isPermitted?.(u) ?? true));
   }
 
   /** The daily check: a forced backup for everyone whose last backup is 24 h old or whose last attempt failed. */

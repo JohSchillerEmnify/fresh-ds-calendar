@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import { serve } from '@hono/node-server';
 import { buildApp } from './app.js';
-import { loadConfig } from './config.js';
+import { assertSafeToStart, loadConfig } from './config.js';
 import { VERSION } from './context.js';
 import { logEvent } from './lib/diag.js';
 
 const config = loadConfig();
+assertSafeToStart(config);
 fs.mkdirSync(config.dataDir, { recursive: true });
 
 let opts = {};

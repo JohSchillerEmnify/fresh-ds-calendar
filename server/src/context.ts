@@ -9,7 +9,7 @@ import { MotivationService } from './services/motivation.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
 import { SettingsStore } from './services/settingsStore.js';
 import { SharedListService } from './services/sharedLists.js';
-import { ThemeStore } from './services/themeStore.js';
+import { ThemeStore, vetRestoredFile } from './services/themeStore.js';
 import { BackupService } from './services/backupService.js';
 import { PushService, RecordingSender, loadVapid, webPushSender } from './services/push.js';
 import { registerServerFilesBackup } from './services/serverFilesBackup.js';
@@ -80,8 +80,12 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
   const auth = new AuthState(config, () => clock.real());
+  const people = new PeopleStore(config.dataDir);
+  const shared = new SharedListService(config.dataDir, people, clock, config.tz, () => (auth.on ? (e: string) => auth.allows(e) : null));
   const backup = new BackupService({
     dataDir: config.dataDir, clock, appVersion: VERSION, isOn: () => auth.on, hasPermission: (sub) => hasDriveScope(config.dataDir, sub),
+    // a person taken off ALLOWED_EMAILS is no longer backed up, and a restore never brings back an unsafe theme
+    isPermitted: (sub) => shared.permitted(sub), vetRestored: vetRestoredFile,
     driveFor: (sub) => (driveFor ? driveFor(sub) : mockDrive?.forPerson(sub) ?? null),
     log: (m) => { if (config.logLevel !== 'error') console.log(m); },
   });
@@ -89,11 +93,9 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const pushRecorder = config.testMode ? new RecordingSender() : null;
   const vapid = loadVapid(config.dataDir);
   const push = new PushService({
-    dataDir: config.dataDir, clock, vapidPublicKey: vapid.publicKey, log: (m) => { if (config.logLevel !== 'error') console.log(m); },
+    dataDir: config.dataDir, clock, vapidPublicKey: vapid.publicKey, isPermitted: (sub) => shared.permitted(sub), log: (m) => { if (config.logLevel !== 'error') console.log(m); },
     sender: pushRecorder ?? webPushSender(vapid, process.env.VAPID_SUBJECT ?? config.publicUrl ?? 'mailto:calendar@example.org'),
   });
-  const people = new PeopleStore(config.dataDir);
-  const shared = new SharedListService(config.dataDir, people, clock, config.tz, () => (auth.on ? (e: string) => auth.allows(e) : null));
   registerSharedListsBackup(backup, shared, config.dataDir);
   registerServerFilesBackup(backup, { settings, motivation, people, shared });
   const calendar = new CalendarService(prov, settings, motivation, clock, config, prefs, LOCAL_PERSON, shared);

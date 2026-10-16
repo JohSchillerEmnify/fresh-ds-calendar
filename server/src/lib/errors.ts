@@ -9,7 +9,7 @@ export interface ErrorDetail {
 export class ApiException extends Error {
   constructor(
     readonly code: ErrorCode,
-    readonly status: 400 | 401 | 403 | 404 | 412 | 429 | 500 | 502 | 503,
+    readonly status: 400 | 401 | 403 | 404 | 412 | 413 | 415 | 429 | 500 | 502 | 503,
     message: string,
     readonly details?: ErrorDetail[],
     /** Message key the web app translates (it falls back to the English `message` for unknown keys). */
