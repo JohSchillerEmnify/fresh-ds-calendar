@@ -148,7 +148,7 @@ final class WeekCanvas {
                 for (WeekLayout.Placed p : placed) {
                     float cx = x0 + i * colW, bw = colW / p.cols;
                     float left = cx + p.col * bw + p.level * INDENT + 0.5f, width = p.span * bw - p.level * INDENT - 1;
-                    float top = gridTop + (p.top / 60f - first) * hh + 0.5f, height = Math.max(p.height / 60f * hh, MIN_BLOCK) - 1;
+                    float top = gridTop + (p.top / 60f - first) * hh + 0.5f, height = Math.max(p.height / 60f * hh - 1, 1); // p.height already carries the minimum and the clamp
                     boolean past = isToday && !p.item.taskList && p.item.endMin <= minutesNow;
                     drawItem(new RectF(left, top, left + width, top + height), p.item, true, past, false);
                 }

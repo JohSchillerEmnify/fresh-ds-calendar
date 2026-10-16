@@ -568,9 +568,6 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   fed the inflated height back into overlap detection, so a 30-min event at default zoom (min ≈ 31 min) collided with the
   event starting right after it and the two were drawn overlapping though they never overlapped. The Java widget port
   (`WeekLayout.packColumns`) and the zoom-month timeline follow the same rule.
-- **Glow stays inside the time grid (same fix)**: the theme glow (`--glow-sh`) on a timed block in the week/day grid (and
-  the zoom-month timeline) is clipped to the block so neighbouring blocks' halos don't bleed together and read as one
-  overlapping shape; the glow is unchanged everywhere else (month chips, all-day band, cards).
 - **Resize handles** (timed events and timed task lists in the week and day time grid; never month or all-day):
   - Trigger: a pick-up released without moving (`drag.ts` drop with no target change) sets `ui.resizing =
     { kind, id, date }` instead of doing nothing. One entry at a time.

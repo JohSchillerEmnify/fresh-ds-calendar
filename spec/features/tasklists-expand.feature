@@ -202,7 +202,7 @@ Feature: A task list card grows in place over the calendar
       | suppenlöffel | no   |
       | saft         | no   |
       | butter       | no   |
-    And the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:15 to 22:00
+    And the calendar contains an event "Abend zu zweit" on 2026-10-14 from 17:10 to 22:00
     When I open the day view for 2026-10-14
     And I tap the task list "Einkaufen"
     Then the task list "Einkaufen" is expanded over the calendar

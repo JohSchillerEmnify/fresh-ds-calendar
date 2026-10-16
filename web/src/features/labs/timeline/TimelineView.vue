@@ -108,14 +108,14 @@ const vdays = computed(() => days.value.map((d) => {
   };
 }));
 const blockStyle = (p: PlacedSegment) => {
-  const g = blockGeometry(p.top, p.top + p.height, HH);
+  const g = blockGeometry(p.top, p.top + p.height, HH, 0);
   return {
     top: g.top + 'px', height: g.height + 'px', '--z': 1 + p.level,
     left: `calc(${GUTTER}px + (100% - ${GUTTER}px) * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`,
     width: `calc((100% - ${GUTTER}px) * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`,
   };
 };
-const blockH = (p: PlacedSegment) => blockGeometry(p.top, p.top + p.height, HH).height;
+const blockH = (p: PlacedSegment) => blockGeometry(p.top, p.top + p.height, HH, 0).height;
 
 const nowX = computed(() => (dayX(clock.today) + clock.minutesNow) * pxPerMin.value);
 const nowInRange = computed(() => nowX.value >= 0 && nowX.value <= width.value);

@@ -138,24 +138,29 @@ export interface PlacedSegment {
   /** Cascade level (0 = base, drawn first); the renderer offsets level n by n * STACK_INDENT_PX and draws it on top. */
   level: number;
   top: number; // minutes
-  height: number; // minutes (>= min)
+  height: number; // minutes: the drawn height, >= min unless clamped by the next block below
 }
 
 /**
  * Packing: items in a connected overlap cluster are grouped by start time. Blocks starting within
  * OVERLAP_STACK_MIN_START_GAP_MIN of the group's first start share equal columns (a title would be hidden otherwise);
  * a later group that overlaps cascades one level deeper (up to MAX_STACK_DEPTH, then it joins the last group's columns).
- * A block drawn at its minimum height (shorter than `minMinutes`) is a bare title row, so a later block cascades over it only
- * when it starts at least `minMinutes` later; closer ones share columns instead and never hide that title.
- * Touching items (end == start) do not overlap. `minMinutes` is the minimum rendered duration. With `stack` false nothing cascades:
+ * What overlaps is decided from the REAL start and end only (ARCHITECTURE "Timed overlap uses real times"): the drawn minimum
+ * height never makes back-to-back or merely close items overlap. A block that lasts less than `minMinutes` is a bare title row,
+ * so a truly overlapping later block cascades over it only when it starts at least `minMinutes` later; closer ones share columns.
+ * The minimum only sizes the drawn box (`PlacedSegment.height`), which is clamped to end where the next block below it
+ * (not overlapping it in time, sharing its horizontal room) starts, so a short block never paints over its neighbour.
+ * Touching items (end == start) do not overlap. With `stack` false nothing cascades:
  * a whole overlap cluster shares columns (lanes), as the horizontal Labs view needs.
  */
 /**
  * `minMinutes` is the drawn minimum per block, in minutes: a number for all, or per segment (A-E5: a block drawn
- * taller than its duration, e.g. a task list with open items, occupies its drawn height for the layout).
+ * taller than its duration, e.g. a task list with open items, is drawn at that height unless a neighbour below clamps it).
  */
 export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true): PlacedSegment[] {
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
+  // A zero-length item still occupies one minute, so two of them at the same time do not paint on top of each other.
+  const realEnd = (s: Segment) => Math.max(s.endMin, s.startMin + 1);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const out: PlacedSegment[] = [];
   interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[]; stackGap: number }
@@ -167,7 +172,7 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
       for (const p of g.items) {
         let span = 1;
         for (let c = p.col + 1; c < p.cols; c++) {
-          const blocked = g.items.some((q) => q.col === c && q.top < p.top + p.height && p.top < q.top + q.height);
+          const blocked = g.items.some((q) => q.col === c && q.top < realEnd(p.seg) && p.top < realEnd(q.seg));
           if (blocked) break;
           span++;
         }
@@ -181,25 +186,35 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
   for (const s of timed) {
     if (groups.length && s.startMin >= clusterEnd) flush();
     const min = minOf(s);
-    const visualEnd = Math.max(s.endMin, s.startMin + min);
+    const end = realEnd(s);
     let g = groups[groups.length - 1];
     if (!g || (stack && s.startMin - g.start >= g.stackGap)) {
       const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
       if (!g || level <= MAX_STACK_DEPTH) {
         // A block drawn taller than its duration is only a title row: a cascaded later block must leave that whole row visible.
         const stackGap = s.endMin - s.startMin < min ? Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, min) : OVERLAP_STACK_MIN_START_GAP_MIN;
-        g = { start: s.startMin, end: visualEnd, level, items: [], colEnds: [], stackGap };
+        g = { start: s.startMin, end, level, items: [], colEnds: [], stackGap };
         groups.push(g);
       }
     }
     let col = g.colEnds.findIndex((e) => e <= s.startMin);
     if (col < 0) col = g.colEnds.length;
-    g.colEnds[col] = visualEnd;
-    g.end = Math.max(g.end, visualEnd);
+    g.colEnds[col] = end;
+    g.end = Math.max(g.end, end);
     g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: Math.max(s.endMin - s.startMin, min) });
-    clusterEnd = Math.max(clusterEnd, visualEnd);
+    clusterEnd = Math.max(clusterEnd, end);
   }
   flush();
+  // Clamp each drawn box to the next block below it that shares its horizontal room, so the minimum height never paints over it.
+  const x0 = (p: PlacedSegment) => p.col / p.cols, x1 = (p: PlacedSegment) => (p.col + p.span) / p.cols;
+  for (const p of out) {
+    const pEnd = realEnd(p.seg);
+    let next = Infinity;
+    for (const q of out) {
+      if (q !== p && q.top >= pEnd && x0(q) < x1(p) && x0(p) < x1(q)) next = Math.min(next, q.top);
+    }
+    p.height = Math.min(p.height, next - p.top);
+  }
   return out;
 }
 

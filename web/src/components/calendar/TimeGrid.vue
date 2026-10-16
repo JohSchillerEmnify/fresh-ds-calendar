@@ -103,7 +103,8 @@ function geo(p: { seg: { item: { id: string }; date: string }; top: number; heig
   const rp = resizePreview.value;
   const live = !!rp && rp.id === p.seg.item.id && rp.date === p.seg.date;
   const top = live ? rp.startMin : p.top;
-  return blockGeometry(top, live ? rp.endMin : top + p.height, hourHeight.value);
+  // The stored height already carries the minimum and the clamp against the next block (packColumns); only the live drag keeps the floor.
+  return blockGeometry(top, live ? rp.endMin : top + p.height, hourHeight.value, live ? undefined : 0);
 }
 const settling = (id: string, date: string) => resizePreview.value?.settle && resizePreview.value.id === id && resizePreview.value.date === date;
 

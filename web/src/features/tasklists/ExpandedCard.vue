@@ -46,7 +46,8 @@ const geo = computed(() => blockGeometry(props.segment.startMin, props.segment.e
 const timedStyle = computed(() => {
   const p = pos.value;
   if (!p) return { visibility: 'hidden' } as const;
-  const real = geo.value.height - 1;
+  // the card's measured height: the block may be drawn shorter than the minimum when the next block below clamps it (packColumns)
+  const real = p.minHeight || geo.value.height - 1;
   return {
     left: p.left + 'px', width: p.width + 'px',
     top: (p.dir === 'up' ? geo.value.top + real - p.upH : geo.value.top) + 'px', maxHeight: p.maxHeight + 'px', '--min-h': real + 'px', borderRadius: p.radius, '--xr': p.radius,
@@ -88,7 +89,7 @@ function place() {
     // style px are relative to the column's padding box
     const n: Pos = { left: Math.round(fw.left - cr!.left - col!.clientLeft), top: 0, width: fw.width, maxHeight: q.maxHeight, minHeight: a.height, radius: getComputedStyle(props.anchor).borderRadius, dir: q.dir, upH: Math.min(Math.max(card.offsetHeight, a.height), q.maxHeight) };
     const o = pos.value;
-    if (!o || o.left !== n.left || o.width !== n.width || o.maxHeight !== n.maxHeight || o.radius !== n.radius || o.dir !== n.dir || o.upH !== n.upH) pos.value = n;
+    if (!o || o.left !== n.left || o.width !== n.width || o.maxHeight !== n.maxHeight || o.minHeight !== n.minHeight || o.radius !== n.radius || o.dir !== n.dir || o.upH !== n.upH) pos.value = n;
     return;
   }
   // natural height of the grown card (the panel scrolls when it is cut to maxHeight), never less than the collapsed card

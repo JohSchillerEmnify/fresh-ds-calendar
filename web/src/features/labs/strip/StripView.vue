@@ -120,9 +120,9 @@ onBeforeUnmount(() => { cancelAnimationFrame(raf); clearTimeout(urlTimer); });
           <BedtimeColumn :date="d" :hour-height="HH" />
           <div
             v-for="p in placedOf(d)" :key="p.seg.item.id + p.seg.date" class="blk"
-            :style="{ top: blockGeometry(p.top, p.top + p.height, HH).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH).height + 'px', left: `calc(100% * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc(100% * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
+            :style="{ top: blockGeometry(p.top, p.top + p.height, HH, 0).top + 'px', height: blockGeometry(p.top, p.top + p.height, HH, 0).height + 'px', left: `calc(100% * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`, width: `calc(100% * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`, '--z': 1 + p.level }"
           >
-            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, HH).height" />
+            <ItemView :segment="p.seg" variant="block" :height="blockGeometry(p.top, p.top + p.height, HH, 0).height" />
           </div>
         </article>
       </div>
