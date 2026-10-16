@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-16
+- Android app: sign-in is now bound to the app and the session is no longer copied into phone backups. Please install the new app from the download link once; older versions can no longer start a new sign-in.
 - Only your own events can be edited: invitations from others and everything in other people's calendars are look-only, with a line saying why.
 
 ## 2026-10-14
