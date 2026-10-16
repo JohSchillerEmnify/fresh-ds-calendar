@@ -27,6 +27,13 @@ Tracked here so it survives across sessions. Newest first within each section. M
 Prerequisites (owner): HTTPS on a real domain (Cloudflare DNS + token in `~/docker-compose/traefik/.env.cloudflare`),
 Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DEPLOYMENT.md](DEPLOYMENT.md).
 
+## Tech debt
+
+- **Review and prune the e2e suite** (owner, 2026-10-16: "169 tests for just a task list seems a lot; check if all of
+  them are really necessary"). The task-list features alone match ~169 scenarios; the whole suite is large and slow
+  (workers=1, one shared server). Audit for redundant/overlapping scenarios, collapse Scenario Outlines, drop
+  low-value cases, and see whether some belong as unit tests instead. Goal: a leaner, faster suite.
+
 ## Features
 
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
