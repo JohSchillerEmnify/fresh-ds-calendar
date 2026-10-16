@@ -2103,6 +2103,22 @@ browser does not change.
   horizontally (`overflow-x: clip`), and no row is wider than the screen at 320 px and up: rows with two controls
   (two time fields, two buttons) wrap or shrink, grid columns use `minmax(0, 1fr)`. Why both: clipping alone would hide
   a control that is cut off; fixing the rows alone leaves the next wide row to break it again.
+- **Security hardening, infra part (owner, 2026-10-16; audit lows)**.
+  - **Headers** (Caddy, `deploy/vps/Caddyfile`): `Content-Security-Policy: default-src 'self'; script-src 'self'
+    'sha256-<inline theme script>'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self';
+    worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors
+    'none'`, `X-Frame-Options: DENY`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()`;
+    `request_body max_size 1MB`. A unit test recomputes the inline script hash from `web/index.html` and fails when the
+    Caddyfile's hash is stale. The server sends the same headers itself (for sauron, which has no Caddy).
+  - **Containers**: app `read_only` with a tmpfs `/tmp`, `cap_drop: [ALL]`, `no-new-privileges`, `pids_limit`, log
+    rotation (json-file 10 MB × 3); Caddy `cap_drop: [ALL]` + `NET_BIND_SERVICE`.
+  - **Pinned images**: base images by `@sha256:` digest (node, caddy, the Android SDK build image), gradle wrapper with
+    `distributionSha256Sum`. The release keystore is used in a separate signing step, not inside the third-party SDK image
+    build.
+  - **Deploy user**: `scripts/vps.sh` deploys as `deploy` (docker group) instead of root; `vps.sh harden` creates the user
+    with the laptop's key and sets `PermitRootLogin no` only after the deploy user's login is checked.
+  - **Sauron**: heap snapshots go to a 0700 dir outside the repo; predictable `/tmp` files of the hooks move to
+    `$XDG_RUNTIME_DIR`. `.gitignore` adds `.env.*` (`!*.example`), `*.p12`, `*.pem`.
 - **Birthdays like Google Calendar (owner, 2026-10-14: "the birthdays are not from contacts, they are created via the
   birthday category in Google Calendar; handle them the same way, and let me create birthdays the same way")**. Google
   (since 2024) stores a birthday as an event with `eventType: "birthday"` in a normal calendar (usually the primary one):
