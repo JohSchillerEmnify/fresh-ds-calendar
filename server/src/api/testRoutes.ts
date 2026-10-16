@@ -7,7 +7,7 @@ import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
 import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
-import type { GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
+import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
   try { return await c.req.json(); } catch { return undefined; }
@@ -109,11 +109,11 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // Sets one person's calendar list; `shared` calendars are read-only and not their primary.
   t.post('/calendars', async (c) => {
-    const b = (await body(c)) as { owner?: unknown; calendars?: Array<{ id?: string; name?: string; color?: string; primary?: boolean; shared?: boolean }> } | undefined;
+    const b = (await body(c)) as { owner?: unknown; calendars?: Array<{ id?: string; name?: string; color?: string; primary?: boolean; shared?: boolean; ownerEmail?: string; accessRole?: ProviderCalendar['accessRole'] }> } | undefined;
     if (typeof b?.owner !== 'string' || !Array.isArray(b.calendars)) throw validation('owner and calendars are required');
     store(b.owner).setCalendars(b.calendars.map((k) => ({
       id: String(k.id), summary: String(k.name), backgroundColor: String(k.color ?? '#039be5'), primary: !!k.primary && !k.shared,
-      accessRole: k.shared ? 'reader' as const : 'owner' as const,
+      accessRole: k.accessRole ?? (k.shared ? 'reader' as const : 'owner' as const), ...(k.ownerEmail ? { owner: k.ownerEmail } : {}),
     })));
     ctx.calendarFor(mockSub(b.owner)).invalidate();
     return c.json({ ok: true });
@@ -124,11 +124,12 @@ export function testRoutes(ctx: Ctx): Hono {
 
   // Adds a calendar to one account's list as another Google client would (e.g. an existing tasks calendar).
   t.post('/remote/calendars', async (c) => {
-    const b = (await body(c)) as { owner?: string; summary?: unknown; hidden?: unknown; id?: string; color?: string; readOnly?: boolean } | undefined;
+    const b = (await body(c)) as { owner?: string; summary?: unknown; hidden?: unknown; id?: string; color?: string; readOnly?: boolean; accessRole?: ProviderCalendar['accessRole']; ownerEmail?: string } | undefined;
     if (typeof b?.summary !== 'string' || !b.summary) throw validation('summary is required', 'summary');
-    // optional id / colour / read-only role, e.g. Google's contacts "Birthdays" calendar
+    // optional id / colour / role / owner address, e.g. Google's contacts "Birthdays" calendar or a calendar shared by another person
     const cal = store(b.owner).remote.insertCalendar(b.summary, b.hidden === true, {
       ...(b.id ? { id: b.id } : {}), ...(b.color ? { backgroundColor: b.color } : {}), ...(b.readOnly ? { accessRole: 'reader' as const } : {}),
+      ...(b.accessRole ? { accessRole: b.accessRole } : {}), ...(b.ownerEmail ? { owner: b.ownerEmail } : {}),
     });
     calendarOf(b.owner).invalidate();
     return c.json(cal, 201);

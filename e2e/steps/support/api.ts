@@ -48,6 +48,14 @@ export class Api {
     return (res.status() === 204 ? undefined : await res.json().catch(() => undefined)) as T;
   }
 
+  /** The HTTP status of a call, whatever it is (for scenarios that expect a refusal). */
+  async status(method: Method, path: string, body?: unknown): Promise<number> {
+    const res = await this.request.fetch(path, {
+      method, data: body, headers: body === undefined ? undefined : { 'content-type': 'application/json' }, failOnStatusCode: false,
+    });
+    return res.status();
+  }
+
   get<T = unknown>(path: string) { return this.call<T>('GET', path); }
   post<T = unknown>(path: string, body?: unknown) { return this.call<T>('POST', path, body ?? {}); }
   patch<T = unknown>(path: string, body: unknown) { return this.call<T>('PATCH', path, body); }
@@ -106,8 +114,8 @@ export class Api {
     return (await this.get<{ calendars: RemoteCalendar[] }>(`/api/__test/remote/calendars${qs}`)).calendars;
   }
   /** Adds a calendar to the mock account's list as another Google client would. */
-  remoteInsertCalendar(summary: string, hidden: boolean, owner?: string) {
-    return this.post<RemoteCalendar>('/api/__test/remote/calendars', { summary, hidden, owner });
+  remoteInsertCalendar(summary: string, hidden: boolean, owner?: string, extra: { id?: string; accessRole?: string; ownerEmail?: string } = {}) {
+    return this.post<RemoteCalendar>('/api/__test/remote/calendars', { summary, hidden, owner, ...extra });
   }
   /** The id of the person's "Calendar app: tasks" calendar (found or created like the app does on first use). */
   async tasksCalendarId(owner?: string): Promise<string> {

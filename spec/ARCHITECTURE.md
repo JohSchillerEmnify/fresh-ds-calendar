@@ -2119,6 +2119,22 @@ browser does not change.
   for these). Task lists are unaffected (always the person's own tasks calendar; shared lists have their own rules).
   Assumption (logged): removing an invitation from one's calendar is not offered (that would be a decline; RSVP is a
   later slice).
+  **As built** (one helper, `server/src/services/ownership.ts`: `isOwnCalendar`, `readOnlyReason`). Evidence from the Google
+  Calendar API reference: `CalendarList.dataOwner` exists but is "set only for secondary calendars" and "the `owner` role is
+  different from the calendar's data owner; a calendar has a single data owner, but can have multiple users with `owner`
+  role"; `primary` is true only for the authenticated user's own primary calendar (its `id` is their address);
+  `Event.organizer.self` is "whether this principal corresponds to the calendar on which this copy of the event appears";
+  `Event.guestsCanModify` defaults to false. So a calendar is own when: (1) the role is owner or writer at all, and (2) it
+  is the `primary` one, or its role is `owner` and not another person's: with `dataOwner` set it must equal the person's
+  address (= the primary calendar's id, mapped to `ProviderCalendar.owner`), with it absent the id must not be a person's
+  email address (a `...@group.calendar.google.com` id is the person's own secondary calendar; the tasks calendar is one).
+  A known `dataOwner` that cannot be compared (no primary address) counts as not own: the rule fails closed. An event is
+  editable when its calendar is own and (no organiser, or `organizer.self`, or `guestsCanModify`). Birthdays keep their own
+  rules (the organiser is ignored; the contacts calendar and non-own calendars are read-only). `GET /api/calendars` gains
+  `own` (the event dialog's picker lists only those; `writable` stays the Google role and still drives the reminder defaults
+  editor, which is a personal setting of the person's calendar list entry, not an edit of anybody's events).
+  Edge not verifiable here: Google does not document `dataOwner` for the person's own secondary calendars; if it is absent the
+  id rule applies, if present it must be the person's address.
 - **Birthdays like Google Calendar (owner, 2026-10-14: "the birthdays are not from contacts, they are created via the
   birthday category in Google Calendar; handle them the same way, and let me create birthdays the same way")**. Google
   (since 2024) stores a birthday as an event with `eventType: "birthday"` in a normal calendar (usually the primary one):

@@ -12,6 +12,8 @@ export interface Calendar {
   color: string;
   primary: boolean;
   writable: boolean;
+  /** True for the person's own calendars: events go only there (ARCHITECTURE "Only one's own events are editable"). */
+  own: boolean;
   /** Popup reminder lead times of Google's calendar default, in minutes, in Google's order. */
   defaultReminders: number[];
 }
@@ -39,8 +41,10 @@ export interface CalendarEvent {
   color: string;
   /** Set only on Google birthday entries: `anniversary` for a contact's anniversary, `birthday` for every other special date. */
   special?: 'birthday' | 'anniversary';
-  /** Birthdays only: true when the app cannot edit or delete it (the contacts Birthdays calendar, or a calendar the person cannot write). */
+  /** True when the app cannot edit or delete it: not in an own calendar, an invitation, or a birthday of the contacts calendar. */
   readOnly?: true;
+  /** Why `readOnly` is set (an invitation from `by`, or an event in the calendar of `by`); absent for the contacts Birthdays calendar. */
+  readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };
   /** Birthdays only: true when Google keeps the date (linked to a contact, or the person's own birthday); name and colour stay editable. */
   dateLocked?: true;
   reminders: Reminders;

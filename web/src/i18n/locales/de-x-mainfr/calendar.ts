@@ -103,6 +103,8 @@ export default {
     saving: 'Speichert …',
     loadFailed: 'Der Termin konnd ned gladn wern',
     readOnly: 'Kimmt aus Google Kontakte. Do kannsd as ändern.',
+    readOnlyInvitation: 'Eiladung vo {by}',
+    readOnlyCalendar: 'Kalender vo {by}',
     genericError: 'Des is schiefgangen',
     rollback: '{what} wurd ned gspeichert. Es is widda wie vorher.',
     fields: {

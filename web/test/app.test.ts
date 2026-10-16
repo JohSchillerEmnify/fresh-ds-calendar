@@ -446,7 +446,7 @@ describe('settings', () => {
   it('opens the Reminders page from Settings, edits a calendar default at once and switches task list reminders', async () => {
     let defaults = [30];
     const { w, router, m } = await mountAt('/settings', {
-      'GET /api/calendars': () => ({ calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, hidden: false, defaultReminders: [10] }] }),
+      'GET /api/calendars': () => ({ calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true, hidden: false, defaultReminders: defaults }, { id: 'ro', name: 'Holidays', color: '#000000', primary: false, writable: false, own: false, hidden: false, defaultReminders: [10] }] }),
       'PATCH /api/calendars/primary': ({ body }) => { defaults = (body as { defaultReminders: number[] }).defaultReminders; return { id: 'primary', name: 'Personal', defaultReminders: defaults }; },
       'GET /api/reminders/tasks-calendar': () => ({ defaultReminders: [] }),
       'PATCH /api/prefs': () => ({}),

@@ -15,7 +15,7 @@ export const MOCK_CALENDARS: ProviderCalendar[] = [
 ];
 
 /** Optional calendar fields a test may choose (e.g. Google's contacts Birthdays calendar). */
-type CalendarExtra = Partial<Pick<ProviderCalendar, 'id' | 'backgroundColor' | 'accessRole'>>;
+type CalendarExtra = Partial<Pick<ProviderCalendar, 'id' | 'backgroundColor' | 'accessRole' | 'owner'>>;
 
 interface Persisted { seq: number; events: GoogleEvent[]; calendars?: ProviderCalendar[] }
 

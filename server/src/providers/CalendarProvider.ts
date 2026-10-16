@@ -20,6 +20,10 @@ export interface GoogleEvent {
   birthdayProperties?: { type?: string; customTypeName?: string; contact?: string };
   /** Google `reminders`: `useDefault` means the calendar's `defaultReminders`, else `overrides` (absent = none). */
   reminders?: { useDefault: boolean; overrides?: GoogleReminder[] };
+  /** Google `organizer`: `self` is true when the organiser is the calendar the event is read from; absent = created in that calendar. */
+  organizer?: { email?: string; displayName?: string; self?: boolean };
+  /** Google `guestsCanModify`: the organiser lets other guests edit the event. */
+  guestsCanModify?: boolean;
 }
 export type GoogleEventInput = Omit<GoogleEvent, 'id' | 'calendarId' | 'etag' | 'created' | 'updated' | 'status'>
   & { status?: GoogleEvent['status'] };
@@ -38,6 +42,11 @@ export interface ProviderCalendar {
   accessRole: 'owner' | 'writer' | 'reader' | 'freeBusyReader';
   /** Switched off in Google's own calendar list (`calendarList` entry `hidden`). */
   hidden?: boolean;
+  /**
+   * Email of the calendar's owner: the person's own address on their primary calendar, Google's `dataOwner` on a secondary
+   * one (`dataOwner` is only set for secondary calendars). Absent where Google gives none (mock default, some resources).
+   */
+  owner?: string;
   /** Google's `defaultReminders` of the calendar list entry (what events with `reminders.useDefault` use). */
   defaultReminders?: GoogleReminder[];
 }

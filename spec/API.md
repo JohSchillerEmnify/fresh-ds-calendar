@@ -66,7 +66,8 @@ interface Calendar {
   name: string;            // 'Personal' | 'Work' in the mock
   color: string;           // '#rrggbb'
   primary: boolean;
-  writable: boolean;
+  writable: boolean;       // Google role owner or writer
+  own: boolean;            // one of the person's own calendars: events are created and moved only into these (see CalendarEvent.readOnly)
 }
 
 interface CalendarEvent {
@@ -82,7 +83,8 @@ interface CalendarEvent {
   colorId: string | null;  // Google event colorId '1'..'11' override, null = calendar color
   color: string;           // resolved '#rrggbb' (colorId palette or calendar color; always the calendar color for an event of the contacts Birthdays calendar)
   special?: 'birthday' | 'anniversary';  // only on Google birthday entries: `eventType` 'birthday' or an event of the contacts "Birthdays" calendar; 'anniversary' when `birthdayProperties.type` is 'anniversary', else 'birthday'
-  readOnly?: true;         // birthdays only: the contacts Birthdays calendar, or a calendar the person cannot write; PATCH/DELETE answer 400
+  readOnly?: true;         // not in an own calendar, or an invitation (someone else organises it, guests may not edit); PATCH/DELETE answer 403 `calendar.event.notOwn`. Birthdays: the contacts Birthdays calendar, or a calendar that is not own; PATCH/DELETE answer 400
+  readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };  // with readOnly: "Invitation from <by>" / "Calendar of <by>"; absent for the contacts Birthdays calendar
   dateLocked?: true;       // birthdays only: linked to a contact or `birthdayProperties.type` 'self'; Google keeps the date (name and colour stay editable)
   etag: string;
   updated: DateTime;
@@ -341,7 +343,11 @@ answers `400` (`calendar.birthday.leapDay`: the yearly rule would have to change
 answer is the opened instance (same `id`) with the change applied. `DELETE` removes the whole series (Google does not touch
 Contacts). `If-Match` is checked against the instance.
 
-Birthdays with `readOnly` (the contacts Birthdays calendar, calendars the person cannot write) answer `PATCH` and `DELETE`
+Only own events are editable: `PATCH`/`DELETE` of an ordinary event with `readOnly` answer `403 FORBIDDEN`
+(`calendar.event.notOwn`), as do `POST` into a calendar that is not own and a `PATCH` moving an event into one (`calendarId`).
+The checks come before `If-Match`.
+
+Birthdays with `readOnly` (the contacts Birthdays calendar, calendars that are not the person's own) answer `PATCH` and `DELETE`
 with `400 VALIDATION_ERROR` ("Birthdays are read-only"). A birthday's colour is its own `colorId`, else its calendar's
 (the contacts calendar's entries always show the calendar colour).
 
@@ -661,7 +667,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
-| `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly? }` | Adds a calendar to the account's list as another Google client would; `id`, `color` and `readOnly` (role `reader`) let a test add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
+| `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly?, accessRole?, ownerEmail? }` | Adds a calendar to the account's list as another Google client would; `id`, `color`, `readOnly` (role `reader`), `accessRole` and `ownerEmail` (Google `dataOwner`) let a test add a calendar shared by another person or add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
 | `PUT` | `/api/__test/remote/calendars/:id/default-reminders` | `{ defaultReminders: { method, minutes }[]; owner? }` | Sets a calendar's Google `defaultReminders` as another Google client would. `200 { ok }` |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |

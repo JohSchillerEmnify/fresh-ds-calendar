@@ -22,6 +22,7 @@ import {
 } from './taskCodec.js';
 import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
+import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
 const DAY = 86_400_000;
@@ -40,9 +41,9 @@ const MAX_REMINDERS = 5;
 const popups = (list: GoogleReminder[] | undefined): number[] => (list ?? []).filter((r) => r.method === 'popup').map((r) => r.minutes);
 
 const readOnlyBirthday = () => validation('Birthdays are read-only');
+const notOwn = () => forbidden('Only your own events can be changed', 'calendar.event.notOwn');
 /** An event of Google's contacts "Birthdays" calendar: made from contacts, never edited here. */
 const inContactsCalendar = (ev: GoogleEvent) => ev.calendarId.startsWith(BIRTHDAY_CALENDAR_PREFIX);
-const isWritable = (c: ProviderCalendar | undefined) => c?.accessRole === 'owner' || c?.accessRole === 'writer';
 
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
@@ -93,8 +94,9 @@ export class CalendarService {
 
   async calendars(): Promise<Calendar[]> {
     this.calCache = null; // the endpoint always hits the provider (outages must surface)
+    const all = await this.providerCalendars();
     return (await this.eventCalendars()).map((c) => ({
-      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: c.accessRole === 'owner' || c.accessRole === 'writer',
+      id: c.id, name: c.summary, color: c.backgroundColor, primary: c.primary, writable: hasWriteRole(c), own: isOwnCalendar(c, all),
       defaultReminders: popups(c.defaultReminders),
     }));
   }
@@ -107,7 +109,7 @@ export class CalendarService {
     const calId = tasksCalendar ? await this.tasks.id() : id;
     const cal = (await this.providerCalendars()).find((c) => c.id === calId && (tasksCalendar || !c.hidden && c.id !== this.tasks.knownId()));
     if (!cal) throw notFound('Calendar not found');
-    if (cal.accessRole !== 'owner' && cal.accessRole !== 'writer') throw forbidden('This calendar is read-only', 'reminders.readOnly');
+    if (!hasWriteRole(cal)) throw forbidden('This calendar is read-only', 'reminders.readOnly');
     const next = this.remindersToGoogle(minutes, cal.defaultReminders);
     await this.provider.setCalendarDefaultReminders(calId, next);
     this.calCache = null;
@@ -161,6 +163,17 @@ export class CalendarService {
     if (!(await this.eventCalendars()).some((c) => c.id === id)) throw validation('Unknown calendar', 'calendarId');
   }
 
+  /** Events go only into the person's own calendars (403 `calendar.event.notOwn` otherwise). */
+  private async requireOwnCalendar(id: string): Promise<void> {
+    const all = await this.providerCalendars();
+    if (!isOwnCalendar(all.find((c) => c.id === id), all)) throw notOwn();
+  }
+
+  /** An ordinary event can be changed only when it is in an own calendar and organised by the person (403 `calendar.event.notOwn`). */
+  private async requireOwnEvent(ev: GoogleEvent): Promise<void> {
+    if (readOnlyReason(ev, await this.providerCalendars())) throw notOwn();
+  }
+
   // ---------- mapping ----------
   private norm(dt: { date?: string; dateTime?: string }): string {
     return dt.date ?? formatInZone(Date.parse(dt.dateTime!), this.tz);
@@ -170,12 +183,15 @@ export class CalendarService {
     const special = specialOf(ev);
     // a birthday of the contacts calendar always uses its calendar's colour (a stray colour would hide where it comes from); one made in Google Calendar may have its own
     const colorId = !(special && inContactsCalendar(ev)) && ev.colorId && GOOGLE_COLORS[ev.colorId] ? ev.colorId : null;
-    const readOnly = special && (inContactsCalendar(ev) || (this.calCache && !isWritable(this.calCache.cals.find((c) => c.id === ev.calendarId))));
+    // look-only: not in an own calendar, or (ordinary events) organised by someone else; a birthday's organiser does not matter
+    const found = this.calCache ? readOnlyReason(ev, this.calCache.cals) : null;
+    const reason = special && found?.kind !== 'calendar' ? null : found;
+    const readOnly = special ? inContactsCalendar(ev) || !!reason : !!reason;
     return {
       kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '',
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
       color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}),
-      ...(readOnly ? { readOnly: true as const } : {}), ...(special && !readOnly && birthdayDateLocked(ev) ? { dateLocked: true as const } : {}),
+      ...(readOnly ? { readOnly: true as const } : {}), ...(reason && !inContactsCalendar(ev) ? { readOnlyReason: reason } : {}), ...(special && !readOnly && birthdayDateLocked(ev) ? { dateLocked: true as const } : {}),
       reminders: this.remindersView(ev, calDefaults), etag: ev.etag, updated: ev.updated,
     };
   }
@@ -318,6 +334,7 @@ export class CalendarService {
   async createEvent(input: CreateEventInput, extra?: { id?: string }): Promise<CalendarEvent> {
     const calendarId = input.calendarId ?? (await this.primaryId());
     await this.requireCalendar(calendarId);
+    await this.requireOwnCalendar(calendarId);
     this.checkEventShape(input);
     const g: GoogleEventInput = { summary: input.title, ...this.gTimes(input) };
     if (input.description) g.description = input.description;
@@ -333,7 +350,7 @@ export class CalendarService {
   async createBirthday(input: CreateBirthdayInput): Promise<CalendarEvent> {
     const calendarId = await this.primaryId();
     const cal = (await this.eventCalendars()).find((c) => c.id === calendarId);
-    if (cal && !isWritable(cal)) throw forbidden('The primary calendar is read-only', 'calendar.birthday.readOnly');
+    if (cal && !hasWriteRole(cal)) throw forbidden('The primary calendar is read-only', 'calendar.birthday.readOnly');
     const ev = await this.provider.insertEvent(calendarId, birthdayCreateBody(input.title, input.date, input.colorId));
     this.motivation.award('create');
     return this.toEvent(ev, await this.calendarColor(calendarId));
@@ -346,6 +363,7 @@ export class CalendarService {
   async updateEvent(id: string, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
     const cur = await this.locateKind(id, false);
     if (specialOf(cur)) return this.updateBirthday(cur, input, ifMatch);
+    await this.requireOwnEvent(cur);
     const curApi = this.toEvent(cur, '');
     const m = {
       title: input.title ?? curApi.title,
@@ -358,7 +376,7 @@ export class CalendarService {
       calendarId: input.calendarId ?? cur.calendarId,
     };
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This event was changed elsewhere. Reload it and try again.');
-    if (m.calendarId !== cur.calendarId) await this.requireCalendar(m.calendarId);
+    if (m.calendarId !== cur.calendarId) { await this.requireCalendar(m.calendarId); await this.requireOwnCalendar(m.calendarId); }
     this.checkEventShape(m);
     const patch: GoogleEventPatch = {
       summary: m.title, description: m.description || null as unknown as string, location: m.location || null as unknown as string,
@@ -379,6 +397,7 @@ export class CalendarService {
       await this.provider.deleteEvent(cur.calendarId, cur.recurringEventId ?? id);
       return;
     }
+    await this.requireOwnEvent(cur);
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This event was changed elsewhere. Reload it and try again.');
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
   }
@@ -386,7 +405,7 @@ export class CalendarService {
   /** Birthdays of the contacts calendar and of calendars the person cannot write stay read-only. */
   private async requireEditableBirthday(cur: GoogleEvent): Promise<void> {
     const cal = (await this.providerCalendars()).find((c) => c.id === cur.calendarId);
-    if (inContactsCalendar(cur) || !isWritable(cal)) throw readOnlyBirthday();
+    if (inContactsCalendar(cur) || !isOwnCalendar(cal, await this.providerCalendars())) throw readOnlyBirthday();
   }
 
   /** Start and end of the opened instance after the series moved to the month and day of `masterDate`. */

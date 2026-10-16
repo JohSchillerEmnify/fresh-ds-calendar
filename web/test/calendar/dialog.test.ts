@@ -9,7 +9,7 @@ import { apiError, config, freshPinia, mockFetch, settingsFixture } from '../hel
 import { ev, t } from './helpers';
 
 const tid = (id: string) => `[data-testid="${id}"]`;
-const cals = { calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true }, { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true }] };
+const cals = { calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true }, { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, own: true }] };
 const dentist = ev('dentist', t('2026-10-14', '09:00'), t('2026-10-14', '10:00'), { title: 'Dentist' });
 
 async function open(props: Record<string, unknown>, routes: Record<string, () => unknown> = {}) {
@@ -27,6 +27,21 @@ const fill = async (w: ReturnType<typeof mount>, id: string, v: string) => { awa
 
 describe('event dialog', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('opens an invitation as read-only details with the reason, and offers only own calendars for a new event', async () => {
+    const shared = { id: 'anna@example.org', name: 'Anna', color: '#d81b60', primary: false, writable: true, own: false };
+    const routes = { 'GET /api/calendars': () => ({ calendars: [...cals.calendars, shared] }) };
+    const invitation = { ...dentist, id: 'inv', readOnly: true, readOnlyReason: { kind: 'invitation', by: 'anna@example.org' } };
+    const { w } = await open({ id: 'inv' }, { ...routes, 'GET /api/events/inv': () => invitation });
+    expect(document.body.querySelector(tid('event-readonly-reason'))?.textContent).toBe('Invitation from anna@example.org');
+    expect(document.body.querySelector(tid('event-save'))).toBeNull();
+    expect(document.body.querySelector(tid('event-delete'))).toBeNull();
+    w.unmount();
+    document.body.innerHTML = '';
+    const created = await open({ mode: 'create', date: '2026-10-14', time: '09:00' }, routes);
+    const labels = [...created.w.get(tid('event-calendar')).element.querySelectorAll('option')].map((o) => o.textContent?.trim());
+    expect(labels).toEqual(['Personal', 'Work']);
+  });
 
   it('create is prefilled and lists the colour options in spec order', async () => {
     const { w } = await open({ mode: 'create', date: '2026-10-20', time: null });
