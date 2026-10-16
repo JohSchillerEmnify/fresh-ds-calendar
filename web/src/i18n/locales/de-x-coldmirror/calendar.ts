@@ -115,6 +115,8 @@ export default {
     saving: 'Speichert … Ey Mann, wo\'s mein Hörgerät?',
     loadFailed: 'Der Termin ließ sich nicht laden, Schinken!',
     readOnly: 'Kommt aus Google Kontakte. Da ändern, Schinken!',
+    readOnlyInvitation: 'Einladung von {by}, yo',
+    readOnlyCalendar: 'Kalender von {by}, Digga',
     genericError: 'Voldemort war\'s, nicht Fresh D.',
     rollback: '{what} wurde nicht gespeichert. Alles wieder wie vorher, Digga.',
     fields: {

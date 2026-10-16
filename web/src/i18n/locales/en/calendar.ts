@@ -113,6 +113,8 @@ export default {
     saving: 'Saving…',
     loadFailed: 'Could not load the event',
     readOnly: 'Comes from Google Contacts. Change it there.',
+    readOnlyInvitation: 'Invitation from {by}',
+    readOnlyCalendar: 'Calendar of {by}',
     genericError: 'Something went wrong',
     rollback: '{what} was not saved. It is back as it was.',
     fields: {

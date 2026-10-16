@@ -115,6 +115,8 @@ export default {
     saving: 'Speichert …',
     loadFailed: 'Der Termin konnte nicht geladen werden',
     readOnly: 'Stammt aus Google Kontakte. Dort kannst du es ändern.',
+    readOnlyInvitation: 'Einladung von {by}',
+    readOnlyCalendar: 'Kalender von {by}',
     genericError: 'Etwas ist schiefgelaufen',
     rollback: '{what} wurde nicht gespeichert. Alles ist wieder wie vorher.',
     fields: {

@@ -102,7 +102,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
       { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', accessRole: 'owner', hidden: true },
     ] } }));
     expect(await provider.listCalendars()).toEqual([
-      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner', hidden: false, defaultReminders: [] },
+      { id: 'primary', summary: 'me', backgroundColor: '#9fe1e7', primary: true, accessRole: 'owner', hidden: false, owner: 'me@gmail.com', defaultReminders: [] },
       { id: 'team@group.calendar.google.com', summary: 'Team (mine)', backgroundColor: '#000000', primary: false, accessRole: 'reader', hidden: false, defaultReminders: [] },
       { id: 'other@x.com', summary: 'Other', backgroundColor: '#111111', primary: false, accessRole: 'owner', hidden: true, defaultReminders: [] },
     ]);

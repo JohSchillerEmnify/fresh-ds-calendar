@@ -45,8 +45,19 @@ const loading = ref(false);
 const loadError = ref('');
 const isEdit = computed(() => !!props.id);
 const special = computed(() => original.value?.special ?? null);
-/** A birthday the app cannot change (the contacts Birthdays calendar, a read-only calendar) opens as plain details. */
-const readOnly = computed(() => !!original.value?.special && !!original.value.readOnly);
+/** An event the app does not change (a birthday of the contacts calendar, an invitation, other people's calendars) opens as plain details. */
+const readOnly = computed(() => !!original.value?.readOnly);
+/** The "Invitation from X" / "Calendar of X" line of the details; none for the contacts Birthdays calendar. */
+const readOnlyReason = computed(() => {
+  const r = original.value?.readOnlyReason;
+  return r ? t(r.kind === 'invitation' ? 'calendar.event.readOnlyInvitation' : 'calendar.event.readOnlyCalendar', { by: r.by }) : '';
+});
+/** When the read-only event takes place, from the same form values the editable dialog would show. */
+const whenText = computed(() => {
+  const f = form.value;
+  if (f.allDay) return f.endDate > f.startDate ? `${f.startDate} – ${f.endDate}` : f.startDate;
+  return f.endDate === f.startDate ? `${f.startDate} ${f.startTime}–${f.endTime}` : `${f.startDate} ${f.startTime} – ${f.endDate} ${f.endTime}`;
+});
 /** The dialog edits a birthday: a new one, or an existing one in a writable calendar. */
 const birthdayMode = computed(() => props.birthday === true || (!!original.value?.special && !original.value.readOnly));
 /** Google keeps the date of this birthday (linked to a contact, or the person's own). */
@@ -245,8 +256,11 @@ function remove() {
         <span class="dot" aria-hidden="true" />
         <h2 class="t" data-testid="event-readonly-title">{{ specialMarker(original) }} {{ original.title }}</h2>
       </header>
-      <p class="lab" data-testid="event-readonly-date">{{ t(`calendar.item.${original.special!}`) }} · {{ original.start }}</p>
-      <p class="lab">{{ t('calendar.event.readOnly') }}</p>
+      <p class="lab" data-testid="event-readonly-date">{{ original.special ? `${t(`calendar.item.${original.special}`)} · ${original.start}` : whenText }}</p>
+      <p v-if="original.location" class="lab" data-testid="event-readonly-location">{{ original.location }}</p>
+      <p v-if="original.description" class="lab" data-testid="event-readonly-description">{{ original.description }}</p>
+      <p v-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
+      <p v-else class="lab">{{ t('calendar.event.readOnly') }}</p>
       <div class="actions">
         <span class="sp" />
         <Button variant="text" data-testid="event-cancel" @click="emit('close')">{{ t('calendar.actions.dismiss') }}</Button>

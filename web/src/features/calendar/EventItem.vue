@@ -28,9 +28,9 @@ const ui = useUiStore();
 const root = ref<HTMLElement | null>(null);
 const ev = computed(() => props.segment.item as CalendarEvent);
 // a preview copy (swipe neighbour) is inert: no drag handlers
-// birthdays are read-only: they do not drag
+// birthdays and events that are not the person's own (invitations, other people's calendars) are read-only: they do not drag
 const marker = computed(() => specialMarker(ev.value));
-if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special);
+if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special || !!ev.value.readOnly);
 /** Resize handles show after a release without moving (time grid blocks only). */
 const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'event' && ui.resizing.id === ev.value.id && ui.resizing.date === props.segment.date);
 

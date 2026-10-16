@@ -101,6 +101,8 @@ export class GoogleProvider implements CalendarProvider {
       const res = await this.call('calendarList.list', () => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
       const out: ProviderCalendar[] = [];
       for (const c of res.data.items ?? []) {
+        // the primary calendar's id is the person's address; a secondary one names its owner in `dataOwner`
+        const owner = c.primary ? c.id : c.dataOwner;
         out.push({
           id: c.primary ? 'primary' : c.id!,
           summary: c.summaryOverride ?? c.summary ?? c.id!,
@@ -108,6 +110,7 @@ export class GoogleProvider implements CalendarProvider {
           primary: !!c.primary,
           accessRole: (c.accessRole as ProviderCalendar['accessRole']) ?? 'reader',
           hidden: !!c.hidden,
+          ...(owner ? { owner } : {}),
           defaultReminders: (c.defaultReminders ?? []).map((r) => ({ method: r.method ?? 'popup', minutes: r.minutes ?? 0 })),
         });
       }
@@ -216,6 +219,8 @@ function fromApi(e: calendar_v3.Schema$Event, calendarId: string): GoogleEvent {
   if (e.eventType) ev.eventType = e.eventType;
   if (e.visibility) ev.visibility = e.visibility;
   if (e.transparency) ev.transparency = e.transparency;
+  if (e.organizer) ev.organizer = { ...(e.organizer.email ? { email: e.organizer.email } : {}), ...(e.organizer.displayName ? { displayName: e.organizer.displayName } : {}), ...(e.organizer.self ? { self: true } : {}) };
+  if (e.guestsCanModify) ev.guestsCanModify = true;
   if (e.birthdayProperties) ev.birthdayProperties = { ...e.birthdayProperties } as NonNullable<GoogleEvent['birthdayProperties']>;
   if (e.reminders) {
     ev.reminders = { useDefault: !!e.reminders.useDefault };

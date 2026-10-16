@@ -1043,6 +1043,34 @@ Google has no birthday {string}
 - "the event dialog is read-only": the details view (`event-readonly`) is shown instead of the form; "no save or delete
   button": neither `event-save` nor `event-delete` exists.
 
+## Only own events are editable (`@events-readonly`)
+
+```
+the calendar contains an event {string} on {date} from {time} to {time} organised by {string}
+the calendar contains an event {string} on {date} from {time} to {time} organised by {string} with guests allowed to edit
+a calendar {string} shared with me with edit rights by {string}
+the calendar {string} contains an event {string} on {date} from {time} to {time}
+I start a new event
+I try to rename the event {string} through the API
+the API answers {int}
+the event dialog is editable
+the read-only reason says {string}
+the calendar picker does not offer {string}
+```
+
+- "organised by E": inserts the event into Google (primary calendar) with `organizer: { email: E }` (not `self`);
+  "with guests allowed to edit" adds `guestsCanModify: true`.
+- "a calendar C shared with me with edit rights by E": adds a calendar to the mock account's list with id E (another
+  person's primary calendar), `accessRole` writer and owner address E (`POST /api/__test/remote/calendars` with
+  `accessRole`, `ownerEmail`).
+- "the calendar C contains an event ...": inserts into the calendar named C as another Google client would.
+- "I start a new event": opens the week view and the "new event" dialog (`create-button`, `new-kind-event`).
+- "I try to rename the event T through the API": `PATCH /api/events/:id` with a new title, without the UI; "the API
+  answers N" compares the status of that call.
+- "the event dialog is editable": `event-save` is visible and `event-readonly` does not exist. "the read-only reason
+  says R": `event-readonly-reason` has exactly that text. "the calendar picker does not offer C": once the own
+  calendars are loaded (the picker `event-calendar` lists "Work"), no option is named C.
+
 ## Reduced motion override
 
 ```
