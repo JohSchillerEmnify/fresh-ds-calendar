@@ -2179,7 +2179,9 @@ browser does not change.
     existing `cal_oauth_state` cookie; no in-memory store to flood. A failed code exchange answers 400 without logging
     the error object.
   - **Fail closed** (M7): the server refuses to start in mock/auth-off mode when `PUBLIC_URL` is https or
-    `NODE_ENV=production`, unless `ALLOW_INSECURE_MOCK=1`.
+    `NODE_ENV=production`, unless `ALLOW_INSECURE_MOCK=1`. The sauron LAN preview is a deliberate open mock with demo data
+    (owner, 2026-10-16: "local only runs with demo data, it's local only and only a preview build"), so
+    `deploy/docker-compose.yaml` sets `ALLOW_INSECURE_MOCK=1`; the VPS (`deploy/vps/compose.yml`, `PROVIDER=google`) does not.
   - **Restore** (M10): never overwrites a shared list that exists and belongs to someone else; the file name must match
     the list id; restored themes are re-sanitised.
   - **CSRF**: non-GET `/api/*` requests need an `Origin` from the allowed origins (or none, for the Android widget's
