@@ -115,6 +115,13 @@ const section = inject(sectionKey, () => 'full' as const);
 /** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
 const titles = computed(() => section() === 'titles' && props.variant === 'allday');
 const collapsed = computed(() => titles.value);
+/** Untitled list on a compact overview that hides the items row (month chip, titles mode): surface the first item where
+ * the title would be, so the card is not blank. It is shown as an item, never stored as the event title; the full list
+ * is still below (clipped for a11y here) and appears when the card is opened. */
+const lead = computed(() => {
+  if (props.grown || displayTitle(tl.value) || !(props.variant === 'chip' || titles.value)) return '';
+  return tl.value.items[0]?.title ?? '';
+});
 const fit = computed(() => {
   const block = props.variant === 'block';
   const footVisible = block && !!tl.value.time && !mini.value;
@@ -166,6 +173,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span v-if="displayTitle(tl)" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" /></span></span>
+      <span v-else-if="lead" class="title lead" data-testid="tasklist-card-lead"><span class="tx">{{ lead }}</span></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
