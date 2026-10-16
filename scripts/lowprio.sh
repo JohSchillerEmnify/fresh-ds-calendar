@@ -6,6 +6,7 @@
 # Docker containers run under dockerd, outside this cgroup: cap them with their own --cpus/--memory flags.
 set -euo pipefail
 export VITEST_MAX_WORKERS=2 CI_LOWPRIO=1
+. "$(dirname "${BASH_SOURCE[0]}")/rundir.sh"
 MEM="${LOWPRIO_MEM:-2G}"
 MIN_AVAIL="${LOWPRIO_MIN_AVAIL_MIB:-4096}"
 
@@ -25,4 +26,4 @@ if grep -qw cpu "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).ser
   props+=(-p CPUQuota="${LOWPRIO_CPU:-200%}")
 fi
 exec systemd-run --user --scope --quiet --collect "${props[@]}" \
-  nice -n 19 ionice -c3 flock /tmp/calendar-heavy.lock "$@"
+  nice -n 19 ionice -c3 flock "$RUN_DIR/heavy.lock" "$@"

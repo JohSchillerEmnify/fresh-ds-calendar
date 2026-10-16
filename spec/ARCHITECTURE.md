@@ -2110,6 +2110,12 @@ browser does not change.
     'none'`, `X-Frame-Options: DENY`, `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()`;
     `request_body max_size 1MB`. A unit test recomputes the inline script hash from `web/index.html` and fails when the
     Caddyfile's hash is stale. The server sends the same headers itself (for sauron, which has no Caddy).
+    How the hash stays right: Vite leaves the inline theme script of `web/index.html` byte for byte as it is (checked
+    against `web/dist/index.html`). The server computes the hash from the served `index.html` at start (`lib/securityHeaders.ts`,
+    so it can never be stale), and `server/test/security-headers.test.ts` (part of `pnpm verify`) compares the whole policy in the
+    Caddyfile with the server's for the current script. Why not generate the Caddyfile at build time: it is a plain file
+    shipped with `scp`, and a failing test is simpler than a generator step. The e2e world fails any scenario in which the
+    browser reports a `securitypolicyviolation`.
   - **Containers**: app `read_only` with a tmpfs `/tmp`, `cap_drop: [ALL]`, `no-new-privileges`, `pids_limit`, log
     rotation (json-file 10 MB × 3); Caddy `cap_drop: [ALL]` + `NET_BIND_SERVICE`.
   - **Pinned images**: base images by `@sha256:` digest (node, caddy, the Android SDK build image), gradle wrapper with

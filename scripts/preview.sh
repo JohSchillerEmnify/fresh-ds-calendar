@@ -14,6 +14,7 @@ WT_ROOT="/home/sauron/projects/calendar-wt"
 BASE="cal.mordor.local"
 BASE_LAN="cal.mordor.lan"
 DATA_ROOT="$HOME/.local/share/calendar-preview"
+. "$(dirname "${BASH_SOURCE[0]}")/rundir.sh"
 
 case "$cmd" in
   up)
@@ -24,7 +25,7 @@ case "$cmd" in
     host_lan="$name.$BASE_LAN"
     cname="calendar-preview-$name"
     echo "==> building image calendar-preview:$name from $dir (low priority, waits for other heavy jobs)"
-    exec 8>/tmp/calendar-heavy.lock; flock 8
+    exec 8>"$RUN_DIR/heavy.lock"; flock 8
     renice -n 19 $$ >/dev/null 2>&1 || true
     nice -n 19 docker build -q --build-arg "APP_VERSION=$(VERSION_REPO="$dir" "$(dirname "${BASH_SOURCE[0]}")/version.sh" --preview)+$(git -C "$dir" rev-parse --short HEAD)" -t "calendar-preview:$name" "$dir" >/dev/null
     flock -u 8

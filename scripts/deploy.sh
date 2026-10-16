@@ -19,6 +19,9 @@ fi
 
 # Data dir must be writable by the container's non-root `node` user (uid 1000).
 mkdir -p "$(dirname "$COMPOSE_FILE")/data"
+# Heap snapshots land here (owner-only, outside the repo); the compose file mounts it as /diag.
+export CAL_DIAG_DIR="${CAL_DIAG_DIR:-$HOME/.local/share/calendar-diag}"
+install -d -m 700 "$CAL_DIAG_DIR"
 
 # Semantic version from the commits since the last tag (scripts/version.sh); main deploys are tagged locally (no remote).
 VERSION="$("$REPO/scripts/version.sh")"

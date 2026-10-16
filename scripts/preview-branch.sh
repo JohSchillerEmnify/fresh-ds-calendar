@@ -8,6 +8,7 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WT="$(dirname "$REPO")/calendar-wt/preview"
+. "$REPO/scripts/rundir.sh"
 cd "$REPO"
 [ -d "$WT" ] || git worktree add -q -B preview "$WT" main
 case "${1:-status}" in
@@ -21,4 +22,4 @@ case "${1:-status}" in
   status) git -C "$WT" log --oneline main..preview; exit 0 ;;
   *) echo "usage: preview-branch.sh add <branch>... | reset | status" >&2; exit 2 ;;
 esac
-echo "preview rebuild runs in the background (hook); log: /tmp/calendar-autopreview.log"
+echo "preview rebuild runs in the background (hook); log: $RUN_DIR/autopreview.log"

@@ -18,6 +18,7 @@ import { pushRoutes } from './api/pushRoutes.js';
 import { backupRoutes } from './api/backupRoutes.js';
 import { downloadRoutes } from './routes/download.js';
 import { staticRoutes } from './routes/static.js';
+import { securityHeaders } from './lib/securityHeaders.js';
 
 export type App = Hono & { ctx: Ctx; close(): void };
 
@@ -39,6 +40,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   const app = new Hono() as App;
   app.ctx = ctx;
   app.close = () => ctx.close();
+  app.use('*', securityHeaders(config.webDist)); // CSP, X-Frame-Options, Permissions-Policy on every answer
 
   if (config.allowedOrigins.length) {
     app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed', 'X-Stale', 'Retry-After'] }));

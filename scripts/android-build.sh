@@ -4,8 +4,10 @@
 # Usage: scripts/android-build.sh [--no-publish]
 # The public instance gets the APK from sauron's DOWNLOADS dir through `scripts/vps.sh deploy`.
 # Publishing works from sauron (local copy) and from any other machine (scp/ssh to sauron, SAURON=user@host).
-# Runs on sauron: Gradle builds inside the `calendar-android-build` image (android/build.Dockerfile, built on first use),
-# capped at 3 CPUs / 4 GB with low CPU shares so Pi-hole keeps priority; the APK is copied straight into the data dir.
+# Runs on sauron: Gradle builds an UNSIGNED release APK inside the `calendar-android-build` image (android/build.Dockerfile,
+# built on first use), capped at 3 CPUs / 4 GB with low CPU shares so Pi-hole keeps priority; the keystore is NOT mounted
+# there (Gradle plugins and dependencies run arbitrary code). A second, separate container (same pinned image, but no
+# network, read-only, nothing but apksigner, the unsigned APK and the keystore) signs it; then the APK is copied into the data dir.
 # Needs: docker, node 24 + pnpm (see README "Android app").
 set -euo pipefail
 
@@ -17,6 +19,9 @@ SAURON="${SAURON:-sauron@192.168.1.38}"
 # not under a dot directory: the build container cannot mount those here; mounted as /key, so storeFile=/key/release.jks
 KEY_DIR="${CAL_ANDROID_KEY_DIR:-$HOME/calendar-android-key}"
 IMAGE="calendar-android-build"
+# the container that touches the keystore: no network, read-only root, no capabilities, only the mounts given by the caller
+SIGN_DOCKER=(docker run --rm -i --network none --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true
+  -u "$(id -u):$(id -g)" -e HOME=/tmp)
 
 # The release key stays on this machine, out of git: updates of the installed app must be signed with the same key.
 if [[ ! -f "$KEY_DIR/keystore.properties" ]]; then
@@ -24,7 +29,7 @@ if [[ ! -f "$KEY_DIR/keystore.properties" ]]; then
   mkdir -p "$KEY_DIR" && chmod 700 "$KEY_DIR"
   PASS="$(openssl rand -hex 16)"
   docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -q -t "$IMAGE" - < "$REPO/android/build.Dockerfile"
-  docker run --rm -u "$(id -u):$(id -g)" -v "$KEY_DIR:/key" "$IMAGE" keytool -genkeypair -keystore /key/release.jks -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" \
+  "${SIGN_DOCKER[@]}" -v "$KEY_DIR:/key" "$IMAGE" keytool -genkeypair -keystore /key/release.jks -storetype PKCS12 -storepass "$PASS" -keypass "$PASS" \
     -alias calendar -keyalg RSA -keysize 4096 -validity 36500 -dname "CN=Calendar, O=mordor.lan"
   (umask 077; printf 'storeFile=/key/release.jks\nstorePassword=%s\nkeyAlias=calendar\nkeyPassword=%s\n' "$PASS" "$PASS" > "$KEY_DIR/keystore.properties")
 fi
@@ -42,14 +47,25 @@ pnpm exec cap sync android
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -q -t "$IMAGE" - < "$REPO/android/build.Dockerfile"
 mkdir -p "$HOME/.cache/calendar-gradle"
 
-echo "==> gradle assembleRelease (in $IMAGE)"
+echo "==> gradle assembleRelease (unsigned, in $IMAGE, no keystore)"
 docker run --rm --name cal-apk-build --memory=4g --memory-swap=4g --cpus=3 --cpu-shares=256 \
-  -u "$(id -u):$(id -g)" -e HOME=/tmp/h -e GRADLE_USER_HOME=/gradle -e CAL_ANDROID_KEYSTORE_PROPS=/key/keystore.properties \
-  -e VERSION_CODE -e VERSION_NAME -v "$REPO:$REPO" -v "$KEY_DIR:/key:ro" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
-  bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME assembleRelease testDebugUnitTest \
-    && $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk | head -2'
+  -u "$(id -u):$(id -g)" -e HOME=/tmp/h -e GRADLE_USER_HOME=/gradle \
+  -e VERSION_CODE -e VERSION_NAME -v "$REPO:$REPO" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
+  bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME assembleRelease testDebugUnitTest'
 
-APK="$REPO/android/app/build/outputs/apk/release/app-release.apk"
+OUT="$REPO/android/app/build/outputs/apk/release"
+APK="$OUT/app-release.apk"
+UNSIGNED="$OUT/app-release-unsigned.apk"
+[[ -f "$UNSIGNED" ]] || { echo "no $UNSIGNED: the release build must be unsigned (android/app/build.gradle)" >&2; exit 1; }
+echo "==> apksigner (separate container, keystore mounted only here)"
+rm -f "$APK"
+# the passwords reach apksigner on stdin (store password, then key password), not through argv or the environment
+prop() { sed -n "s/^$1=//p" "$KEY_DIR/keystore.properties"; }
+{ prop storePassword; prop keyPassword; } | "${SIGN_DOCKER[@]}" -e KEY_ALIAS="$(prop keyAlias)" -v "$KEY_DIR:/key:ro" -v "$OUT:/apk" "$IMAGE" \
+  bash -c 'S=$ANDROID_HOME/build-tools/36.0.0/apksigner
+    $S sign --ks /key/release.jks --ks-key-alias "$KEY_ALIAS" --ks-pass stdin --key-pass stdin --out /apk/app-release.apk /apk/app-release-unsigned.apk \
+    && $S verify --print-certs /apk/app-release.apk | head -2'
+rm -f "$APK.idsig"
 echo "APK: $APK ($(du -h "$APK" | cut -f1))"
 
 INFO="$REPO/android/app/build/outputs/apk/release/app.json"
