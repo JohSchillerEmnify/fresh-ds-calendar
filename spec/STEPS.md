@@ -248,6 +248,7 @@ I move the item {string} up
 I move the item {string} down
 I edit the task list details
 I delete the task list
+the task list tap setting is {string}
 I tap the task list {string}
 I tap the expanded task list {string}
 I tap the item {string} of the expanded task list
@@ -297,6 +298,7 @@ is at or under the bottom of `tasklist-card-title`, "next to" = it shares the ti
 visible text part of the card (`tasklist-card-time`, `tasklist-card-items`, `tasklist-card-count`).
 "for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
+"the task list tap setting is S" (S = `inline` | `drawer`): `PATCH /api/prefs { taskOpen: S }` as that person, before the view opens.
 Expanded card (`tasklists-expand.feature`; ARCHITECTURE "Expanded task list card"): "I expand the task list X" opens the list
 sheet: it taps the card, waits for the grown card (`tasklist-expanded` with `data-presentation="overlay"`), taps it and waits
 for the sheet. "I tap the task list X" is only the first tap; "I tap the expanded task list X" taps the grown card

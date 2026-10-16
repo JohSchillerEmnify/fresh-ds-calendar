@@ -122,6 +122,19 @@ Feature: A task list card grows in place over the calendar
     And the expanded task list is as tall as its content
     And the expanded task list has no time extension
 
+  Scenario: By default a tap grows the card in place
+    Given the task list tap setting is "inline"
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" is expanded over the calendar
+
+  Scenario: With the setting "drawer" a tap opens the list sheet directly
+    Given the task list tap setting is "drawer"
+    When I open the day view for 2026-10-14
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" opens as the list sheet
+    And no task list is expanded
+
   Scenario: Tapping an expanded task list opens the list, where items can be ticked
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"

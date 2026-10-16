@@ -142,6 +142,7 @@ export default {
       moveUp: 'Move {name} up',
       moveDown: 'Move {name} down',
       undatedDone: { label: 'Finished list without a date', calendar: 'Show on the day it was finished', archive: 'Archive only' },
+      taskOpen: { label: 'Tapping a task list', inline: 'Grows in place', drawer: 'Opens the list' },
     },
     motivation: {
       calmMode: { label: 'Calm mode', hint: 'Fewer details, quieter colors, reduced motion' },

@@ -16,7 +16,7 @@ import {
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -183,6 +183,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b.undatedDone !== undefined) {
       if (!UNDATED_DONE_VALUES.includes(b.undatedDone as UndatedDone)) throw validation('Invalid undatedDone', 'undatedDone');
       patch.undatedDone = b.undatedDone as UndatedDone;
+    }
+    if (b.taskOpen !== undefined) {
+      if (!TASK_OPEN_VALUES.includes(b.taskOpen as TaskOpen)) throw validation('Invalid taskOpen', 'taskOpen');
+      patch.taskOpen = b.taskOpen as TaskOpen;
     }
     if (b.tasksFilter !== undefined) {
       const f = toTasksFilter(b.tasksFilter);

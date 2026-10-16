@@ -136,6 +136,7 @@ export default {
       moveUp: '{name} nach oben',
       moveDown: '{name} nach unten',
       undatedDone: { label: 'Erledigte Liste ohne Datum', calendar: 'Am Tag der Erledigung zeigen', archive: 'Nur im Archiv' },
+      taskOpen: { label: 'Tippen auf eine Aufgabenliste', inline: 'Wächst an Ort und Stelle', drawer: 'Öffnet die Liste' },
     },
     motivation: {
       calmMode: { label: 'Ruhemodus', hint: 'Weniger Details, ruhigere Farben, weniger Bewegung' },

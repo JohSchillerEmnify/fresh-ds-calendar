@@ -184,6 +184,8 @@ export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export type TasksSortDir = 'default' | 'reversed';
 /** What finishing an undated task list does (per person pref `undatedDone`): show it in the calendar or archive only. */
 export type UndatedDone = 'calendar' | 'archive';
+/** What tapping a task list card does (per person pref `taskOpen`): grow it inline or open the drawer. */
+export type TaskOpen = 'inline' | 'drawer';
 /** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
 export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
 /** The Tasks view's filter (per person pref `tasksFilter`): category ids or `none` ("or"), and one When choice ("and"). */
@@ -224,6 +226,8 @@ export interface Prefs {
   tasksSortDir: TasksSortDir;
   /** "Finished list without a date" (ARCHITECTURE "Archive"). */
   undatedDone: UndatedDone;
+  /** Tapping a task list card: grow inline (default) or open the drawer (ARCHITECTURE "Tap a task list"). */
+  taskOpen: TaskOpen;
   tasksFilter: TasksFilter;
   /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
   language: LanguagePref;
