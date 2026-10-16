@@ -104,6 +104,24 @@ Then('the collapsed task list {string} lists the items {string}', async function
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(items));
 });
 
+/** The one collapsed card of a list without a title (`data-untitled`), matched by its marker, never by a title. */
+const titlelessCard = (world: World) => world.page.locator(`${tid('tasklist-card')}${attr('data-untitled', 'true')}`);
+
+Then('the collapsed titleless task list lists the items {string}', async function (this: World, items: string) {
+  await expect(titlelessCard(this)).toHaveCount(1);
+  await expect(titlelessCard(this).getByTestId('tasklist-card-items')).toHaveText(exactText(items));
+});
+
+Then('the titleless task list has no title row and shows no item as its title', async function (this: World) {
+  const card = titlelessCard(this);
+  await expect(card.getByTestId('tasklist-card-title')).toHaveCount(0);
+  await expect(card).toHaveAttribute('data-title', '');
+  // the accessible name is neutral: a count, none of the items
+  const label = (await card.getAttribute('aria-label')) ?? '';
+  expect(label).toBe('Task list, 0 of 2 done');
+  for (const item of await card.getByTestId('tasklist-card-item').all()) expect(label).not.toContain((await item.getAttribute('data-title')) ?? '');
+});
+
 /** Where an item sits in the collapsed card, relative to the title; null when it is hidden or outside the card. */
 async function itemPlacement(world: World, list: string, item: string): Promise<'below' | 'beside' | null> {
   const card = world.taskCard(list);

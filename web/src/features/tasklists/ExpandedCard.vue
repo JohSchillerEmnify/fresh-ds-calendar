@@ -15,7 +15,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { t } from '@/i18n';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
-import { blockGeometry, displayTitle } from '@/lib/items';
+import { blockGeometry, displayTitle, neutralName } from '@/lib/items';
 import { hourHeight } from '@/composables/useHourHeight';
 import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
@@ -153,7 +153,7 @@ function openList() {
   <Teleport :to="host ?? 'body'">
     <div
       ref="panel" class="xc" :class="{ inGrid: !!host }" role="group" data-testid="tasklist-expanded" data-presentation="overlay" data-readonly="true"
-      :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? displayTitle(tl) : t('tasks.list.fallbackLabel')"
+      :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? neutralName(tl) : t('tasks.list.fallbackLabel')"
       :style="timed ? timedStyle : pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
     >
       <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" @open-list="openList" @collapse="emit('close')" />

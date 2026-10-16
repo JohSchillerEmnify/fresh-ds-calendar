@@ -3,7 +3,8 @@ Feature: Creating, editing and deleting task lists
   Task lists are created in the same "new" dialog as events (owner): it opens from the floating "+" button or by
   tapping an empty time slot, has a switch "Event | Task list" at the top and keeps the date and time of the slot
   for either kind. A task list has a date, an optional time, items (one per line) and a title, which may be left
-  empty when there are items (owner: quick lists): such a list is titled "List".
+  empty when there are items (owner: quick lists): such a list is truly titleless (no title row, no task promoted
+  to a title, an empty Google event summary).
   In Google each task list is one event with extendedProperties.private.kind = "tasklist".
 
   Background:
@@ -78,7 +79,8 @@ Feature: Creating, editing and deleting task lists
       | date  | 2026-10-14 |
       | items | Milk; Eggs |
     And I save the task list
-    Then the collapsed task list "List" lists the items "Milk, Eggs"
+    Then the collapsed titleless task list lists the items "Milk, Eggs"
+    And the titleless task list has no title row and shows no item as its title
 
   @validation
   Scenario Outline: A task list needs a title or at least one item

@@ -224,6 +224,8 @@ the title of the task list {string} is not covered
 the items of the task list {string} fade out towards the bottom
 the task list {string} shows no overflow count
 the collapsed task list {string} lists the items {string}
+the collapsed titleless task list lists the items {string}
+the titleless task list has no title row and shows no item as its title
 the collapsed task list {string} shows {string}
 the task list {string} is positioned at {time}
 the task list {string} is shown in the all-day area on {date}

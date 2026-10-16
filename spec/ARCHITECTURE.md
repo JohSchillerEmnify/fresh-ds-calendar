@@ -833,7 +833,7 @@ all overlays; no per-component history code.
 - Events, task lists and task list items are deleted with one tap, no confirmation dialog (owner: undo is enough).
   Category deletion keeps its confirmation.
 - The entry disappears at once (optimistic) and the shared `Snackbar` shows "Deleted: <title>" (item: the item
-  title; untitled list: "List") with "Undo" for 6 s (`undo-snackbar`, `undo-action`). The DELETE request is sent only
+  title; untitled list: "Task list") with "Undo" for 6 s (`undo-snackbar`, `undo-action`). The DELETE request is sent only
   when the snackbar times out (owner: "hide, delete later"): undo then needs no request, keeps the Google id and its
   details. One pending delete at a time: a new delete sends the previous one at once. `pagehide`/`visibilitychange →
   hidden` sends pending deletes immediately with `fetch(…, { keepalive: true })`. In-app navigation does not.

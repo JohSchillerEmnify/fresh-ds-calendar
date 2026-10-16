@@ -70,7 +70,7 @@ describe('pending deletes (delete with undo)', () => {
     pd.deleteTaskList({ ...list(), title: '' });
     await flushPromises();
     expect(deletes(m)).toEqual(['/api/events/Dentist']);
-    expect(useUiStore().snackbars.filter((s) => s.testid === 'undo-snackbar').map((s) => s.text)).toEqual(['Deleted: List']);
+    expect(useUiStore().snackbars.filter((s) => s.testid === 'undo-snackbar').map((s) => s.text)).toEqual(['Deleted: Task list']);
   });
 
   it('pagehide and a hidden tab send the pending delete with keepalive', async () => {

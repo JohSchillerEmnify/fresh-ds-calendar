@@ -115,7 +115,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
   function deleteTaskList(tl: TaskList): void {
     const items = useItemsStore();
     start({
-      title: tl.title || t('tasklist.untitled'),
+      title: tl.title || t('tasks.list.fallbackLabel'),
       restore: () => items.unhide(tl),
       send: (keepalive) => items.deleteTaskList(tl.id, tl.etag, { keepalive }),
     }, () => items.hide(tl.id));

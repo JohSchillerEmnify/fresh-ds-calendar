@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { formatDate, toIsoDate, minutesToTime } from '@/lib/dates';
-import { displayTitle, type Segment } from '@/lib/items';
+import { displayTitle, neutralName, type Segment } from '@/lib/items';
 import { openItem } from '@/extensions/registry';
 import { openNew } from '@/extensions/create';
 import { applyMove } from '@/features/calendar/dnd';
@@ -57,7 +57,7 @@ const arcs = computed(() =>
     const startMin = p ? p.startMin : s.startMin, endMin = p ? p.endMin : s.endMin;
     const start = p ? minutesToTime(startMin) : s.startTime!, end = p ? minutesToTime(endMin % 1440) : s.endTime!;
     return {
-      key, seg: s as Segment, kind: s.item.kind, title: displayTitle(s.item), text: clockText(s.item),
+      key, seg: s as Segment, kind: s.item.kind, title: neutralName(s.item), text: clockText(s.item),
       start, end, startMin, endMin, color: cats.itemColor(s.item), mid: (startMin + endMin) / 2, r, d: arcPath(startMin, endMin, r),
       width: tasklist ? ARC_W / 2 : ARC_W, dash: tasklist && endMin - startMin >= 30 ? '5 4' : undefined, thin: tasklist,
       done: s.item.kind === 'tasklist' && s.item.doneCount >= s.item.totalCount,
@@ -96,7 +96,7 @@ const labels = computed(() => {
 });
 /** Untimed task lists and all-day events: chips next to the dial (below/above it upright, beside it on a wide screen). */
 const untimed = computed(() => split.value.untimed.map((s) => ({ key: s.item.id, item: s.item, text: clockText(s.item), color: cats.itemColor(s.item) })));
-const allDay = computed(() => split.value.allDay.map((s) => ({ key: `${s.item.id}-${s.date}`, item: s.item, title: displayTitle(s.item), color: cats.itemColor(s.item) })));
+const allDay = computed(() => split.value.allDay.map((s) => ({ key: `${s.item.id}-${s.date}`, item: s.item, title: neutralName(s.item), color: cats.itemColor(s.item) })));
 
 const isToday = computed(() => date.value === clock.today);
 /** Minutes of the day that have passed on the shown date. */

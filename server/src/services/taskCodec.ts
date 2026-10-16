@@ -87,7 +87,7 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
   const p: Record<string, string | null> = {
     kind: 'tasklist',
     tlv: '1',
-    // An untitled list keeps an empty app title although Google's summary shows the items.
+    // An untitled list is truly titleless: empty Google summary and empty app title.
     untitled: d.title ? null : '1',
     undated: d.date === null ? '1' : null,
     ...encodeItems(d.items),
@@ -105,9 +105,9 @@ export function encodePrivate(d: TaskListData, existing?: Record<string, string>
   return p;
 }
 
-/** Google summary: the title, or the items joined with ", " for an untitled list (so Google's apps show something). */
+/** Google summary: the title; empty for an untitled list, so no task ever becomes the event's title in Google's apps. */
 function summaryOf(d: TaskListData): string {
-  return d.title || d.items.map((i) => i.title).join(', ');
+  return d.title;
 }
 
 export function privateSize(p: Record<string, string | null>): number {

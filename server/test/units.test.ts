@@ -89,13 +89,14 @@ describe('TaskListCodec', () => {
     const back = decodeTaskList({ ...ev, id: 'x', calendarId: 'primary', etag: 'e', status: 'confirmed', created: '', updated: '' }, 'Europe/Berlin');
     expect(back).toEqual(data);
   });
-  it('an untitled list is stored with the items as summary and the untitled flag, and decodes to an empty title', () => {
+  it('an untitled list is stored with an empty summary and the untitled flag, and decodes to an empty title with its items intact', () => {
     const data = { title: '', date: '2026-10-12', time: null, items, categoryId: null, tags: [], estimateMinutes: null, recurrence: null, completedOn: null, canvas: null };
     const ev = encodeTaskList(data, 'Europe/Berlin', null);
-    expect(ev.summary).toBe('One, Two');
+    expect(ev.summary).toBe('');
     expect(ev.extendedProperties?.private?.untitled).toBe('1');
     const back = decodeTaskList({ ...ev, id: 'x', calendarId: 'primary', etag: 'e', status: 'confirmed', created: '', updated: '' }, 'Europe/Berlin');
     expect(back.title).toBe('');
+    expect(back.items.map((i) => i.title)).toEqual(items.map((i) => i.title));
     const titled = encodeTaskList({ ...data, title: 'T' }, 'Europe/Berlin', null);
     expect(titled.summary).toBe('T');
     expect(titled.extendedProperties?.private?.untitled).toBeUndefined();
