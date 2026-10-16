@@ -5,13 +5,14 @@
 #   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
 #   scripts/vps.sh logs     follow the app and Caddy logs
 # The VPS (1 CPU, 1 GB) never builds. ufw, Docker, swap and unattended-upgrades are already set up.
-# Everything but `harden` connects as VPS_USER (default `deploy`, in the docker group); `harden` itself defaults to root,
-# the only user that exists before it ran (VPS_USER=root scripts/vps.sh harden). VPS_HOST is the bare address.
+# Connects as VPS_USER (default root: the owner chose to keep root SSH login, 2026-10-16). `harden` is available to switch
+# to a non-root `deploy` user and disable root login, but it is opt-in; run it only if you decide to. VPS_HOST is the bare address.
 set -euo pipefail
 ADDR=${VPS_HOST:-VPS_HOST}; ADDR=${ADDR##*@}  # a leftover `user@` in VPS_HOST is ignored: the user is VPS_USER
 KEY=${VPS_KEY:-$HOME/.ssh/id_ed25519}
 DEPLOY_USER=deploy
-if [[ "${1:-}" == harden ]]; then VPS_USER=${VPS_USER:-root}; else VPS_USER=${VPS_USER:-$DEPLOY_USER}; fi
+# default to root (current server: root login is on); after `harden` you deploy with VPS_USER=deploy
+if [[ "${1:-}" == harden ]]; then VPS_USER=${VPS_USER:-root}; else VPS_USER=${VPS_USER:-root}; fi
 HOST=$VPS_USER@$ADDR
 OPTS=(-i "$KEY" -o IdentitiesOnly=yes)
 on_vps() { ssh "${OPTS[@]}" "$HOST" "$@"; }
