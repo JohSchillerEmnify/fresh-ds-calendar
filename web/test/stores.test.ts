@@ -372,6 +372,23 @@ describe('prefs store', () => {
   });
 });
 
+describe('prefs store taskOpen', () => {
+  beforeEach(() => freshPinia());
+  it('defaults to inline, applies the loaded value and sends a change', async () => {
+    const { calls } = mockFetch({
+      'GET /api/prefs': () => ({ taskOpen: 'drawer' }),
+      'PATCH /api/prefs': () => ({}),
+    });
+    const p = usePrefsStore();
+    expect(p.taskOpen).toBe('inline');
+    await p.load();
+    expect(p.taskOpen).toBe('drawer');
+    await p.set({ taskOpen: 'inline' });
+    expect(p.taskOpen).toBe('inline');
+    expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ taskOpen: 'inline' });
+  });
+});
+
 describe('settings store', () => {
   beforeEach(() => freshPinia());
   it('patches optimistically with If-Match, rolls back on failure', async () => {

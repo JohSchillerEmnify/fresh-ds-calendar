@@ -1,6 +1,6 @@
 /** Expanded task list card steps (STEPS.md "Task lists", expanded card): the card that grows in place over the calendar. */
 import { expect, type Locator } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 
 type Rect = { x: number; y: number; width: number; height: number };
@@ -13,6 +13,10 @@ const cardRects = (w: World) =>
       const b = e.getBoundingClientRect();
       return [`${e.getAttribute('data-tasklist-id')}@${e.getAttribute('data-date')}#${i}`, { x: b.x, y: b.y, width: b.width, height: b.height }];
     })));
+
+Given('the task list tap setting is {string}', async function (this: World, value: string) {
+  await this.api.patch('/api/prefs', { taskOpen: value === 'drawer' ? 'drawer' : 'inline' });
+});
 
 When('I tap the task list {string}', async function (this: World, title: string) {
   await this.taskCard(title).click();

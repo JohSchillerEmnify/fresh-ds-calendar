@@ -54,6 +54,10 @@ export function toTasksFilter(v: unknown): TasksFilter | null {
 export type UndatedDone = 'calendar' | 'archive';
 export const UNDATED_DONE_VALUES: readonly UndatedDone[] = ['calendar', 'archive'];
 
+/** What tapping a task list card does: grow it inline or open the drawer. */
+export type TaskOpen = 'inline' | 'drawer';
+export const TASK_OPEN_VALUES: readonly TaskOpen[] = ['inline', 'drawer'];
+
 /** Sort direction relative to the sort key's own default (A-80). */
 export type TasksSortDir = 'default' | 'reversed';
 export const TASKS_SORT_DIR_VALUES: readonly TasksSortDir[] = ['default', 'reversed'];
@@ -208,6 +212,8 @@ export interface Prefs {
   tasksSortDir: TasksSortDir;
   /** "Finished list without a date" (ARCHITECTURE "Archive"). */
   undatedDone: UndatedDone;
+  /** Tapping a task list card: grow inline (default) or open the drawer. */
+  taskOpen: TaskOpen;
   /** The Tasks view's filter, shared by Open, Canvas and Archive (ARCHITECTURE "Tasks filter"). */
   tasksFilter: TasksFilter;
   /** The UI language: `auto` (device language) or a fixed one (ARCHITECTURE "i18n"). */
@@ -258,6 +264,7 @@ export class PrefsStore {
       labsOwnThemes: p?.labsOwnThemes === true,
       tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
       undatedDone: UNDATED_DONE_VALUES.includes(p?.undatedDone as UndatedDone) ? (p!.undatedDone as UndatedDone) : 'calendar',
+      taskOpen: TASK_OPEN_VALUES.includes(p?.taskOpen as TaskOpen) ? (p!.taskOpen as TaskOpen) : 'inline',
       tasksFilter: toTasksFilter(p?.tasksFilter) ?? { ...DEFAULT_TASKS_FILTER, categories: [] },
       language: isLanguagePref(p?.language) ? p.language : 'auto',
       bedtime: readBedtime(p?.bedtime),
@@ -345,8 +352,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify };
   }
 
   /**

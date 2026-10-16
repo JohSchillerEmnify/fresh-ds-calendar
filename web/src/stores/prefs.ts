@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { api } from '@/api/client';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
-import type { ApproachWindowHours, NavPosition, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, UndatedDone } from '@/api/types';
+import type { ApproachWindowHours, NavPosition, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, TaskOpen, UndatedDone } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
@@ -36,6 +36,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   const labsOwnThemes = ref(false);
   const tasksSortDir = ref<TasksSortDir>('default');
   const undatedDone = ref<UndatedDone>('calendar');
+  const taskOpen = ref<TaskOpen>('inline');
   /** The Tasks view's filter, shared by Open, Canvas and Archive. */
   const tasksFilter = ref<TasksFilter>({ categories: [], when: 'all' });
   /** The UI language preference; the shell applies it with `applyLanguage` whenever it changes. */
@@ -64,6 +65,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     labsOwnThemes.value = p.labsOwnThemes ?? labsOwnThemes.value;
     tasksSortDir.value = p.tasksSortDir ?? tasksSortDir.value;
     undatedDone.value = p.undatedDone ?? undatedDone.value;
+    taskOpen.value = p.taskOpen ?? taskOpen.value;
     tasksFilter.value = p.tasksFilter ?? tasksFilter.value;
     language.value = p.language ?? language.value;
     bedtime.value = p.bedtime ? { ...bedtime.value, ...p.bedtime } : bedtime.value;
@@ -81,7 +83,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
     };
     apply(p);
     try {
@@ -92,5 +94,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, tasksFilter, language, bedtime, notify, load, set };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, load, set };
 });

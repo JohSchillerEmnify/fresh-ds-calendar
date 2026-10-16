@@ -15,7 +15,7 @@ import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardA
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import { NAV_POSITIONS } from '@/lib/navPosition';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -126,6 +126,10 @@ const levels = computed(() => [{ value: 'full', label: t('settings.motion.full')
 /** The sunflowers setting only has an effect on the Sunflower field scene; otherwise it is shown but inactive. */
 const fieldActive = computed(() => settings.effectiveScene === 'sunflowers');
 const sunflowerModes = computed(() => [{ value: 'grow', label: t('settings.sunflowers.grow') }, { value: 'full', label: t('settings.sunflowers.full') }]);
+const taskOpenOptions = computed(() => [
+  { value: 'inline', label: t('settings.tasklists.taskOpen.inline'), testid: 'settings-task-open-inline' },
+  { value: 'drawer', label: t('settings.tasklists.taskOpen.drawer'), testid: 'settings-task-open-drawer' },
+]);
 const undatedDoneOptions = computed(() => [
   { value: 'calendar', label: t('settings.tasklists.undatedDone.calendar'), testid: 'settings-undated-done-calendar' },
   { value: 'archive', label: t('settings.tasklists.undatedDone.archive'), testid: 'settings-undated-done-archive' },
@@ -262,6 +266,7 @@ async function resetDemo() {
           </ul>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.carriedFrom.label') }}</span><span class="sub">{{ t('settings.tasklists.carriedFrom.hint') }}</span></div><Switch :model-value="labs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.tasklists.taskOpen.label') }}</span><SegmentedButton :model-value="labs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" /></div>
           <div v-if="labs.taskCategories" class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>
 
