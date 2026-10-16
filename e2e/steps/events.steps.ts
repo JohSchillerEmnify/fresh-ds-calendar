@@ -57,6 +57,13 @@ Then('the first entry of the month cell of {date} is in the slot below the bar {
   }, 'entry top is below the bar, within one chip height + 4 px').toBe(true);
 });
 
+Then('the all-day event {string} on {date} is at the height of the bar {string}', async function (this: World, title: string, date: string, bar: string) {
+  // Day view: the bar is clipped away (not covering the date), so the band top is the reference.
+  const chip = this.eventChips(title, date).locator('visible=true').first();
+  const top = async () => ((await firstBar(this, bar).count()) ? (await box(firstBar(this, bar))).y : (await box(this.page.locator(`${tid('week-allday-cell')}${attr('data-date', date)}, ${tid('day-allday-area')}${attr('data-date', date)}`).first())).y);
+  await expect.poll(async () => Math.abs((await box(chip)).y - (await top())), 'top offset in px').toBeLessThanOrEqual(3);
+});
+
 Then('the bar {string} has the height of the chip {string}', async function (this: World, bar: string, chip: string) {
   await expect.poll(async () => Math.abs((await box(firstBar(this, bar))).height - (await box(this.eventChip(chip))).height), 'height difference in px').toBeLessThanOrEqual(1);
 });
