@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-16
+- The task list panel on desktop can now be collapsed, and tapping a list that's already shown in it highlights that row instead of opening a duplicate panel.
 - The first item shown for a titleless list now looks exactly like the other items, including its strike-through when done.
 - The first item shown for a titleless list is struck through when it is done, like any other item.
 - A titleless task list now shows its first item in every view (week, day and month, not only month chips) whenever the card would otherwise be blank.
