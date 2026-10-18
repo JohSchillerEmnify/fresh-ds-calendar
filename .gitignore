@@ -19,3 +19,5 @@ local.properties
 # deploy/: compose backups next to the versioned compose file (.env and data/ are ignored above)
 deploy/*.bak*
 .jscpd-report/
+
+*.key

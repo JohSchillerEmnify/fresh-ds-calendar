@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: pnpm/action-setup@v4.1.0
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # tsc + unit + i18n + steps + dedup + lint
+      - run: pnpm verify
+      # Playwright e2e is deliberately not run here (slow, needs a browser); run `pnpm e2e` / `pnpm e2e:affected` locally.
+      # Advisory only: a dev/transitive advisory must not fail CI.
+      - run: pnpm audit --prod
+        continue-on-error: true

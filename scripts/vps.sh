@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Public instance on the netcup VPS (A-67). Run from the laptop clone (sauron does not build for the VPS):
+# Public instance on a VPS. Run from the laptop clone (the home server does not build for the VPS):
 #   scripts/vps.sh harden   deploy user + key, SSH keys only, no root login, fail2ban (first run: keep another session open)
 #   scripts/vps.sh env      write /opt/calendar/.env (asks for the Google client and allowed emails)
 #   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
@@ -8,7 +8,7 @@
 # Connects as VPS_USER (default root: the owner chose to keep root SSH login, 2026-10-16). `harden` is available to switch
 # to a non-root `deploy` user and disable root login, but it is opt-in; run it only if you decide to. VPS_HOST is the bare address.
 set -euo pipefail
-ADDR=${VPS_HOST:-VPS_HOST}; ADDR=${ADDR##*@}  # a leftover `user@` in VPS_HOST is ignored: the user is VPS_USER
+ADDR=${VPS_HOST:?set VPS_HOST to the server address, e.g. VPS_HOST=1.2.3.4 scripts/vps.sh deploy}; ADDR=${ADDR##*@}  # a leftover `user@` in VPS_HOST is ignored: the user is VPS_USER
 KEY=${VPS_KEY:-$HOME/.ssh/id_ed25519}
 DEPLOY_USER=deploy
 # default to root (current server: root login is on); after `harden` you deploy with VPS_USER=deploy
