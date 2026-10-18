@@ -112,7 +112,7 @@ export default {
     navPosition: { label: 'Ansichdswechsl', hint: 'Wo Jahr, Monad, Woche un Dag liegn', phone: 'Aufm Handy', desktop: 'Am Desktop un Tablet', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn' },
     plant: 'Pflanze',
     sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
-    ownThemes: { label: 'Eigene Designs (KI un Import)', hint: 'Experimentell: a Prompt für a KI un der Import vo ihrer Design-Datei im Design-Menü' },
+    ownThemes: { label: 'Designs mit KI erzeuge', hint: 'Experimentell: a Prompt für a KI hole un des Design importiere, wo sie liefert' },
   },
   themePreview: {
     label: 'Live-Vorschau',

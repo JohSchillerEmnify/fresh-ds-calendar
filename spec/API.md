@@ -481,8 +481,8 @@ type Picture = { light?: string; dark?: string };   // SVG text, each ≤ 100 KB
 - `DELETE /api/themes/:id` → `204`; `404` for an unknown id.
 
 A person chooses an imported theme with `PATCH /api/prefs/theme` `{ preset: "theme:<id>" }` (a preset name or `theme:<id>`).
-`GET/PATCH /api/prefs` has the Labs switch `labsOwnThemes: boolean` (default `false`) for showing the AI prompt and
-the import in the theme menu; it does not affect themes, which the server stores and lists regardless. `POST /api/__test/reset` forgets
+`GET/PATCH /api/prefs` has the Labs switch `labsOwnThemes: boolean` (default `false`, effective only with the experimental
+`labs` switch on) for showing the AI prompt in the theme menu; importing a theme file is always available. It does not affect themes, which the server stores and lists regardless. `POST /api/__test/reset` forgets
 every person's imported themes.
 
 ### Summary (year view, month picker dots)

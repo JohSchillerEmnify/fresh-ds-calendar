@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * The AI part of the theme menu (a Labs switch, ARCHITECTURE "Theme engine and AI themes"): the prompt to copy (no AI
- * is called), and the import of the theme file the AI answers with, by paste or file, plus an optional own SVG picture
- * for the top bar. The text is tidied (fence, Markdown links), checked with the shared validator, the picture is
+ * Own themes in the theme menu (ARCHITECTURE "Theme engine and AI themes"): the import of a theme file, by paste or
+ * file (always available), plus an optional own SVG picture for the top bar; and, only when `ai` is set (a Labs
+ * switch), the prompt to copy for an AI (no AI is called) and the repair prompt. The text is tidied (fence, Markdown links), checked with the shared validator, the picture is
  * sanitised here again (the server does it once more), a preview shows how it looks, and saving stores it per person.
  */
 import { computed, ref } from 'vue';
@@ -20,6 +20,9 @@ import { cleanAiText, repairPrompt } from '@/theme/importText';
 import { issueText } from '@/theme/issueText';
 import { docToResolved } from '@/theme/presets';
 import { loadSvgSanitizer } from '@/theme/svg';
+
+/** `ai`: show the AI prompt parts (the Labs switch); the import itself is always there. */
+defineProps<{ ai?: boolean }>();
 
 const theme = useThemeStore();
 const ui = useUiStore();
@@ -121,10 +124,10 @@ async function save() {
 <template>
   <div class="own" aria-labelledby="h-own" role="group" data-testid="theme-own">
     <h3 id="h-own">{{ t('theme.import.title') }}</h3>
-    <div class="row">
+    <div v-if="ai" class="row">
       <Button variant="tonal" data-testid="theme-ai" :aria-expanded="aiOpen" @click="aiOpen = !aiOpen">{{ t('theme.import.createWithAi') }}</Button>
     </div>
-    <div v-if="aiOpen" class="ai">
+    <div v-if="ai && aiOpen" class="ai">
       <p class="hint">{{ t('theme.import.aiHint') }}</p>
       <!-- a read-only field, not <pre>: Ctrl+A then selects the prompt only, and the http copy fallback can select it -->
       <textarea ref="promptField" class="prompt" data-testid="theme-ai-prompt" readonly rows="10" :aria-label="t('theme.import.promptLabel')" :value="prompt" />
@@ -152,7 +155,7 @@ async function save() {
     <ul v-if="errors.length" class="errors" role="alert">
       <li v-for="e in errors" :key="e" data-testid="theme-import-error">{{ e }}</li>
     </ul>
-    <div v-if="docErrors.length" class="repair">
+    <div v-if="ai && docErrors.length" class="repair">
       <textarea ref="repairField" class="prompt" data-testid="theme-repair-prompt" readonly rows="4" :aria-label="t('theme.import.repairLabel')" :value="repair" />
       <Button variant="outlined" data-testid="theme-repair-copy" @click="copy(repair, repairField, t('theme.import.repairCopied'))">{{ t('theme.import.copyRepair') }}</Button>
     </div>

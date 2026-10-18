@@ -177,7 +177,7 @@ export default {
     navPosition: { label: 'Ansichtswechsel', hint: 'Wo Jahr, Monat, Woche und Tag liegen', phone: 'Auf dem Handy', desktop: 'Auf Desktop und Tablet', bottom: 'Unten', top: 'Oben', rail: 'Seitenleiste' },
     plant: 'Pflanze',
     sunflowers: { label: 'Sonnenblumen', hint: 'Gilt für die Szene Sonnenblumenfeld', grow: 'Wachsen mit Punkten', full: 'Volles Feld' },
-    ownThemes: { label: 'Eigene Designs (KI und Import)', hint: 'Experimentell: ein Prompt für eine KI und der Import ihrer Design-Datei im Design-Menü' },
+    ownThemes: { label: 'Designs mit KI erzeugen', hint: 'Experimentell: einen Prompt für eine KI holen und das Design importieren, das sie liefert' },
   },
   themePreview: {
     label: 'Live-Vorschau',

@@ -869,8 +869,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 - Settings get a Labs section: `labs` (experimental views on/off); `approachBar` (on/off, default on since
   2026-10-13, now in the Calendar section next to the window, no longer Labs), stored per person in
   `prefs.json` (`GET/PATCH /api/prefs`, same store as themes and hidden calendars). Testids `settings-labs`,
-  `settings-approach-bar`. `labsOwnThemes` (default off) shows the own-theme part of the theme menu (see "Theme engine
-  and AI themes").
+  `settings-approach-bar`. `labsOwnThemes` (default off, in the Labs section under the experimental master switch) shows only the AI prompt of
+  the theme menu; importing a theme file is always there (see "Theme engine and AI themes").
 - Routes always exist: `/clock/:date`, `/timeline`, `/strip/:date`. With `labs` on, the view switcher adds them with a
   flask mark (`view-switch-clock|timeline|strip`, `data-experimental="true"`); off, they are not offered. A hidden
   view stays reachable by URL; switching off the view in use only drops its tab, the person stays on the page.
@@ -1817,11 +1817,13 @@ the same corner scale so shapes look consistent.
 - **Stored** per person on the server: `DATA_DIR/users/<sub>/themes/`, `GET/POST/DELETE /api/themes` (max 20 themes;
   the server validates and sanitises again). Imported themes appear in the gallery with export (download the
   document) and delete (undo snackbar).
-- **Behind a Labs switch for now** (owner): only the AI part, "Create with AI" and the import (paste, file, own
-  picture; testid `theme-own`), shows with the person's pref `labsOwnThemes` (default off, settings switch
-  `settings-labs-own-themes`, "Own themes (AI and import)", subtitle says it is experimental). Saved own themes (imported
-  or saved from the menu) always show in the gallery with export and delete, and a chosen one always applies, whatever
-  the switch says; the switch hides no data.
+- **Import is always available, only the AI part is experimental** (owner, 2026-10-18): the import (paste, file, own
+  picture, Check, preview, Save; testid `theme-own`) always shows in the theme menu. Only the AI prompt ("Create with
+  AI", the prompt, and the repair prompt copy) shows with `ThemeImport`'s `ai` prop, which `ThemeView` sets to
+  `labs && labsOwnThemes` (the experimental master switch AND the person's pref `labsOwnThemes`, default off, in the
+  Labs section of the settings, switch `settings-labs-own-themes`, "Generate themes with AI", subtitle says it is
+  experimental). The pref key keeps its old name. Saved own themes (imported or saved from the menu) always show in the
+  gallery with export and delete, and a chosen one always applies, whatever the switch says; the switch hides no data.
 - **Save as my theme** (not under Labs): `theme-save-own`, the last control of Fine-tuning, turns the look in use
   into an own theme: the chosen preset or theme plus every fine-tuning choice (mode, seed colour, glow, entries,
   corners, font, role colours) and the scene in use (built-in, drawn blocks, or the own picture, which is saved as the

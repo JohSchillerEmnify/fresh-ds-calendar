@@ -216,7 +216,7 @@ describe('saving the look as my own theme', () => {
 describe('ThemeImport', () => {
   beforeEach(() => { localStorage.clear(); freshPinia(); document.body.innerHTML = ''; });
 
-  const open = () => mount(ThemeImport, { attachTo: document.body });
+  const open = (ai = false) => mount(ThemeImport, { props: { ai }, attachTo: document.body });
   const settle = async (w: ReturnType<typeof open>) => {
     await flushPromises();
     await vi.waitFor(() => expect(w.find(tid('theme-import-error')).exists() || w.find(tid('theme-import-preview')).exists()).toBe(true));
@@ -238,7 +238,8 @@ describe('ThemeImport', () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
-    const w = open();
+    expect(open().find(tid('theme-ai')).exists()).toBe(false);
+    const w = open(true);
     expect(w.find(tid('theme-ai-prompt')).exists()).toBe(false);
     await w.get(tid('theme-ai')).trigger('click');
     expect((w.get(tid('theme-ai-prompt')).element as HTMLTextAreaElement).value).toContain('calendar-theme/2');
@@ -250,7 +251,7 @@ describe('ThemeImport', () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
-    const w = open();
+    const w = open(true);
     expect(w.find(tid('theme-repair-copy')).exists()).toBe(false);
     await paste(w, '{"schema":"calendar-theme/2","name":"X","glow":"ultra"}');
     expect(errors(w)).toEqual(['glow must be one of off, soft, neon']);
@@ -263,10 +264,14 @@ describe('ThemeImport', () => {
   });
 
   it('gives a hint and a repair prompt for text that is not JSON', async () => {
-    const w = open();
+    const w = open(true);
     await paste(w, 'Sure! {"name": "X", }');
     expect(errors(w)[0]).toBe(t('theme.import.notJson'));
     expect(w.find(tid('theme-repair-copy')).exists()).toBe(true);
+    const plain = open();
+    await paste(plain, 'Sure! {"name": "X", }');
+    expect(errors(plain)[0]).toBe(t('theme.import.notJson'));
+    expect(plain.find(tid('theme-repair-copy')).exists()).toBe(false);
   });
 
   it('imports an AI chat answer with a code fence and Markdown links', async () => {
@@ -359,13 +364,17 @@ describe('own themes in the theme menu', () => {
   }
   const names = (w: Awaited<ReturnType<typeof menu>>['w']) => w.findAll(tid('theme-card')).map((c) => c.attributes('data-name'));
 
-  it('always offers saved themes, and the AI prompt and import only with the Labs switch', async () => {
+  it('always offers saved themes and the import, and the AI prompt only with Labs on and the AI switch', async () => {
     const { w } = await menu();
     expect(names(w)).toEqual([...PRESET_NAMES, 'Ocean']);
-    expect(w.find(tid('theme-own')).exists()).toBe(false);
+    expect(w.find(tid('theme-own')).exists()).toBe(true);
+    expect(w.find(tid('theme-ai')).exists()).toBe(false);
     usePrefsStore().labsOwnThemes = true;
     await flushPromises();
-    expect(w.find(tid('theme-own')).exists()).toBe(true);
+    expect(w.find(tid('theme-ai')).exists()).toBe(false);
+    usePrefsStore().labs = true;
+    await flushPromises();
+    expect(w.find(tid('theme-ai')).exists()).toBe(true);
     expect(w.find(tid('theme-save-own')).exists()).toBe(true);
   });
 

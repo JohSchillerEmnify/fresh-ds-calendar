@@ -1584,10 +1584,11 @@ the support cat walks in from the {string}
 ## Theme import (`@theme-import`)
 
 ```
-own themes are turned on in Labs
-I turn on own themes in the settings
-the theme menu has no block for creating own themes
-the theme menu has a block for creating own themes
+the AI theme prompt is turned on in Labs
+I turn on the AI theme prompt in the settings
+the theme menu has no AI prompt
+the theme menu has an AI prompt
+the theme menu has the import block
 I choose "Create with AI"
 I see a prompt that describes the theme file {string}
 I can copy the prompt
@@ -1617,10 +1618,11 @@ my own theme {string} has {string} set to {string}
   decor `waves`), `gemini-answer.txt` (an AI chat answer as pasted: text around a ```` ```json ```` fence, the theme
   "Lagoon", and a URL in its description written as a Markdown link `[http://…](http://…)`), `sneaky.svg` (a picture
   with a `<script>`, an `onload` attribute and an external `href`, which sets `window.__pwned = true` if it ever runs).
-- "own themes are turned on in Labs" sets `labsOwnThemes` through `PATCH /api/prefs` for the person who is using the
-  app at that moment (before sign-in: the signed-out person); "I turn on own themes in the settings" opens the
-  settings and flips `settings-labs-own-themes` (waits for the save), as the Labs steps do. The block with the AI prompt and
-  the import is `theme-own`.
+- "the AI theme prompt is turned on in Labs" sets `labs` and `labsOwnThemes` through `PATCH /api/prefs` for the person
+  who is using the app at that moment (before sign-in: the signed-out person); "I turn on the AI theme prompt in the
+  settings" opens the settings and flips `settings-labs` and then `settings-labs-own-themes` (waits for each save), as
+  the Labs steps do. The block with the import (always there) is `theme-own` (with the paste field
+  `theme-import-text`); the AI prompt button inside it is `theme-ai`.
 - "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
   `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text.
 - "import the theme file" uploads through `theme-import-file`; "paste" fills `theme-import-text` and submits.
