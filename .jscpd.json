@@ -1,0 +1,12 @@
+{
+  "minTokens": 50,
+  "reporters": ["console", "html"],
+  "output": ".jscpd-report",
+  "gitignore": true,
+  "absolute": false,
+  "ignore": [
+    "**/node_modules/**", "**/dist/**", "**/.features-gen/**", "**/test-results*/**",
+    "**/*.test.ts", "**/coverage/**", "**/.jscpd-report/**", "android/**"
+  ],
+  "format": ["typescript", "javascript", "vue"]
+}
