@@ -4,6 +4,11 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Desktop month-picker swipe fails** (2026-10-18). `month-picker.feature` "Arrows and swipes change the month
+  inside the picker" fails on `--project=desktop` (mouse-drag branch of `swipePicker` in `year.steps.ts`,
+  `expect(...).not.toHaveText` on the month). Pre-existing (fails on main), not from the dedup work. Investigate the
+  desktop drag-swipe in the picker.
+
 - **Zooming is broken on the month overview** (2026-10-16, owner). The pinch/Ctrl-wheel zoom on the month view is
   broken; investigate and fix. (Separate from the zoom-month lab.)
 - **Deep-link return after sign-in is sometimes lost** (2026-10-16, owner chose backlog). Opening a specific page while

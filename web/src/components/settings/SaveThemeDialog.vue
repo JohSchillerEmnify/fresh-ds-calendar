@@ -2,10 +2,10 @@
 /** Asks for a name and saves the look in use as an own theme (see `lookToDoc`); the new theme becomes the chosen one. */
 import { ref } from 'vue';
 import { validateThemeIssues } from '@calendar/shared';
-import { ApiError } from '@/api/client';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
+import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { t } from '@/i18n';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
@@ -19,8 +19,7 @@ const settings = useSettingsStore();
 const ui = useUiStore();
 
 const name = ref(uniqueName(t('theme.saveOwn.defaultName'), theme.themes.map((t) => t.doc.name)));
-const error = ref('');
-const saving = ref(false);
+const { busy: saving, error, run } = useAsyncSubmit({ onDone: () => emit('close') });
 
 async function save() {
   if (!name.value.trim()) { error.value = t('theme.saveOwn.nameRequired'); return; }
@@ -28,16 +27,10 @@ async function save() {
   const { doc, picture } = lookToDoc(theme.resolved, { mode: settings.settings.themeMode, seed: settings.settings.seedColor }, named);
   const valid = validateThemeIssues(doc);
   if (!valid.ok) { error.value = issueText(valid.issues[0]!); return; }
-  saving.value = true;
-  try {
+  await run(async () => {
     await theme.importTheme(doc, picture);
     ui.notify(t('theme.saveOwn.saved', { name: doc.name }));
-    emit('close');
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.userMessage : t('theme.saveOwn.failed');
-  } finally {
-    saving.value = false;
-  }
+  }, 'theme.saveOwn.failed');
 }
 </script>
 

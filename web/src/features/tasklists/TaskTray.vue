@@ -106,7 +106,7 @@ function toggleFold(id: string) {
     </button>
     <TransitionGroup v-show="listShown" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
-        v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)" :data-list-id="r.list.id" :data-flash="ui.flashId === r.list.id ? 'true' : undefined"
+        v-for="r in rows" :key="r.list.id" class="row tl-surface" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)" :data-list-id="r.list.id" :data-flash="ui.flashId === r.list.id ? 'true' : undefined"
         :data-date="r.list.date" :data-finished="r.fin ? 'true' : undefined" :style="{ '--c': cats.color(r.list) }"
       >
         <div v-if="r.fin" class="head">
@@ -138,12 +138,7 @@ function toggleFold(id: string) {
 .phone.open { flex: 0 1 auto; min-height: 0; }
 .phone .list { max-height: calc(90dvh - var(--navbar-h, 80px) - 44px); }
 /* Cards stand off the tray background: own surface tint, outline and a light shadow. */
-.row {
-  display: flex; flex-direction: column; flex: none; border-radius: 14px; border-top: 4px solid var(--c);
-  border-inline: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
-  background: color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-highest));
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
-}
+.row { display: flex; flex-direction: column; flex: none; --tl-surface-top: 4px; }
 .view { padding: 0 12px 12px; }
 .head { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 0 0 12px; }
 .fin { opacity: 0.6; }

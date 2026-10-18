@@ -14,6 +14,7 @@ import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { useTaskCategories } from './categories';
 import TaskListView from './TaskListView.vue';
+import { useTaskList } from './useTaskList';
 
 const props = defineProps<{ id: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -21,24 +22,7 @@ const items = useItemsStore();
 const ui = useUiStore();
 const cats = useTaskCategories();
 
-const tl = computed(() => {
-  const i = items.get(props.id);
-  return i?.kind === 'tasklist' ? i : null;
-});
-
-// --- load when opened from a deep link and not cached ----------------------------------------------------------
-onMounted(async () => {
-  if (tl.value) return;
-  try {
-    items.upsert(await api.getTaskList(props.id));
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) ui.notify(t('tasks.list.gone'));
-    emit('close');
-  }
-});
-
-// The list vanished (deleted here or elsewhere): close the frame, whatever closed the inner view first.
-watch(tl, (now, before) => { if (before && !now) emit('close'); });
+const tl = useTaskList(() => props.id, { load: { onClose: () => emit('close') }, onGone: () => emit('close') });
 
 // --- placement ------------------------------------------------------------------------------------------------
 const sheet = ref<{ panel: HTMLElement | null } | null>(null);

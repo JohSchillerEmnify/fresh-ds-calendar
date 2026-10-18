@@ -3,7 +3,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import type { Person, Reminders, TaskList } from '@/api/types';
-import { t } from '@/i18n';
+import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
@@ -13,6 +13,7 @@ import TextField from '@/components/m3/TextField.vue';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { enterNext } from '@/composables/useEnterNext';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
@@ -49,7 +50,7 @@ const current = computed(() => {
 const taskDefaults = ref<number[]>([]);
 const people = ref<Person[]>([]);
 const person = ref('');
-const sharing = ref(false);
+const { busy: sharing, run: runSharing } = useAsyncSubmit({ onDone: () => emit('close'), error });
 const memberOnly = computed(() => isMemberOnly(current.value));
 const peopleOptions = computed(() => [
   { value: '', label: t('sharing.choose') }, ...people.value.map((p) => ({ value: p.sub, label: p.name })),
@@ -131,22 +132,13 @@ async function reload() {
   catch (e) { error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.reloadFailed'); }
 }
 /** Runs a sharing call; on failure the dialog stays open with the server's message. */
-async function sharingAction(fn: () => Promise<void>, failed: string) {
+function sharingAction(fn: () => Promise<void>, failed: MessageKey) {
   if (sharing.value) return;
-  sharing.value = true;
-  error.value = '';
-  try {
-    await fn();
-    emit('close');
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.userMessage : failed;
-  } finally {
-    sharing.value = false;
-  }
+  return runSharing(fn, failed);
 }
-const share = () => sharingAction(() => shareList(props.id!, person.value), t('sharing.shareFailed'));
-const unshare = () => sharingAction(() => unshareList(props.id!), t('sharing.stopFailed'));
-const leave = () => sharingAction(() => leaveList(props.id!), t('sharing.leaveFailed'));
+const share = () => sharingAction(() => shareList(props.id!, person.value), 'sharing.shareFailed');
+const unshare = () => sharingAction(() => unshareList(props.id!), 'sharing.stopFailed');
+const leave = () => sharingAction(() => leaveList(props.id!), 'sharing.leaveFailed');
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
 function remove() {
   const tl = items.get(props.id!);

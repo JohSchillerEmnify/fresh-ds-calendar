@@ -22,6 +22,7 @@ import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { anchorVisible, fitWidth, measureNatural, placeExpanded, type Box } from './expand';
 import TaskListCard from './TaskListCard.vue';
+import { useTaskList } from './useTaskList';
 
 const props = defineProps<{ id: string; anchor: HTMLElement; segment: ItemRendererProps['segment']; variant: ItemRendererProps['variant'] }>();
 const emit = defineEmits<{ close: [] }>();
@@ -53,10 +54,7 @@ const timedStyle = computed(() => {
     top: (p.dir === 'up' ? geo.value.top + real - p.upH : geo.value.top) + 'px', maxHeight: p.maxHeight + 'px', '--min-h': real + 'px', borderRadius: p.radius, '--xr': p.radius,
   };
 });
-const tl = computed(() => {
-  const i = items.get(props.id);
-  return i?.kind === 'tasklist' ? i : null;
-});
+const tl = useTaskList(() => props.id, { onGone: () => emit('close') });
 
 // The nearest scrolling ancestor of the card, cut to the viewport: the area the expansion must stay in.
 function bounds(): Box {
@@ -133,8 +131,6 @@ onBeforeUnmount(() => {
 // Another period or view, or a dialog opening over it, ends the expansion.
 watch(() => [calendar.view, calendar.anchor.getTime()], () => emit('close'));
 watch(() => ui.dialog, (d) => { if (d) emit('close'); });
-// The list vanished (deleted here or elsewhere).
-watch(tl, (now, before) => { if (before && !now) emit('close'); });
 // The card moved on screen (the calendar re-laid out): follow it.
 watch(() => props.anchor, place);
 // A zoom commit lays the blocks out again: the position follows by itself (time units), the direction and room are measured again once the new layout is in.

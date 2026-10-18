@@ -1,0 +1,7 @@
+/* Shared card surface of a task list (tray row, Tasks view item, canvas note): outline, per-list colour tint, light shadow. */
+.tl-surface {
+  border-radius: 14px; border-top: var(--tl-surface-top, 4px) solid var(--c);
+  border-inline: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  background: color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-highest));
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
