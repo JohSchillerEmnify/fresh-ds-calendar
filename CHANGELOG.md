@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-16
+- The first item shown for a titleless list now looks exactly like the other items, including its strike-through when done.
 - The first item shown for a titleless list is struck through when it is done, like any other item.
 - A titleless task list now shows its first item in every view (week, day and month, not only month chips) whenever the card would otherwise be blank.
 - The all-day row in the week and day views now packs per day like the month: a multi-day event only takes space on the days it covers and no longer pushes the other days down.
