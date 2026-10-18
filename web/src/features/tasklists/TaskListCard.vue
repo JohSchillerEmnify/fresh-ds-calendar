@@ -67,12 +67,12 @@ function toggle() {
   // The setting "Tapping a task list": drawer always opens the list sheet, inline keeps the grow behaviour below.
   if (prefs.taskOpen === 'drawer') {
     el.value?.focus({ preventScroll: true });
-    ui.openDialog('tasklist-expanded', { id: tl.value.id });
+    ui.revealTask(tl.value.id);
     return;
   }
   if (props.variant === 'block' && !inPreview() && el.value && !sameCard(ui.expandedCard) && !growPlan(measureCut(el.value)).grow) {
     el.value.focus({ preventScroll: true });
-    ui.openDialog('tasklist-expanded', { id: tl.value.id });
+    ui.revealTask(tl.value.id);
     return;
   }
   tapped.value = true;

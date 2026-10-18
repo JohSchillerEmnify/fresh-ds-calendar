@@ -43,6 +43,8 @@ export default {
     empty: 'Nichts offen. Schön.',
     fold: '{title} einklappen',
     showItems: 'Einträge von {title} anzeigen',
+    collapse: 'Aufgaben-Leiste einklappen',
+    expand: 'Aufgaben-Leiste ausklappen',
   },
   card: {
     label: '{title}, {done} von {total} erledigt',

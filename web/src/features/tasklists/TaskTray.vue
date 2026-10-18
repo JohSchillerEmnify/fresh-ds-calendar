@@ -5,7 +5,7 @@
  * expanded list; lists finished today fold to their struck-through title. Sets `--tray-h` on :root so the FAB floats
  * above it. Hidden outside calendar views.
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import { t } from '@/i18n';
 import { IconKeyboardArrowUp as IconExpand } from '@/components/icons';
@@ -24,7 +24,13 @@ const ui = useUiStore();
 const cats = useTaskCategories();
 const shown = computed(() => !!route.meta.view);
 const expanded = toRef(ui, 'trayExpanded');
+/** The list is showing: phone = expanded bar, desktop = not collapsed to the edge strip. */
+const listShown = computed(() => (isPhone.value ? expanded.value : !ui.trayCollapsedDesktop));
 const root = ref<HTMLElement | null>(null);
+function toggle() {
+  if (isPhone.value) expanded.value = !expanded.value;
+  else ui.trayCollapsedDesktop = !ui.trayCollapsedDesktop;
+}
 const countText = computed(() => (lists.count ? t('tasks.tray.open', { count: lists.count }) : t('tasks.tray.none')));
 /**
  * Lists just finished here stay open (celebration and "All done!" visible) for this long before folding, or until the
@@ -53,7 +59,7 @@ function setHeight() {
   document.documentElement.style.setProperty('--tray-h', `${box && isPhone.value ? Math.round(box.height) : 0}px`);
   document.documentElement.style.setProperty('--tray-w', `${box && !isPhone.value ? Math.round(box.width) : 0}px`);
 }
-watch([shown, isPhone, expanded, () => lists.count], () => nextTick(setHeight));
+watch([shown, isPhone, expanded, () => ui.trayCollapsedDesktop, () => lists.count], () => nextTick(setHeight));
 watch(root, (el) => {
   ro?.disconnect();
   if (el && typeof ResizeObserver === 'function') {
@@ -62,12 +68,20 @@ watch(root, (el) => {
   }
   setHeight();
 });
+// Tell the ui store which lists this tray shows, so opening one of them reveals its row instead of a second panel.
+watchEffect(() => { ui.trayListIds = shown.value && !isPhone.value && listShown.value ? rows.value.map((r) => r.list.id) : []; });
+// A revealed list: scroll its row into view (the highlight itself is `data-flash`).
+watch(() => ui.flashId, (id) => {
+  if (!id) return;
+  void nextTick(() => root.value?.querySelector(`[data-testid="task-tray-item"][data-list-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+});
 onMounted(() => { void lists.refresh().catch(() => undefined); });
 onBeforeUnmount(() => {
   lingerStops.forEach((stop) => stop());
   ro?.disconnect();
   ro = null;
   ui.trayExpanded = false;
+  ui.trayListIds = [];
   document.documentElement.style.removeProperty('--tray-h');
   document.documentElement.style.removeProperty('--tray-w');
 });
@@ -81,18 +95,18 @@ function toggleFold(id: string) {
 </script>
 
 <template>
-  <aside v-if="shown" ref="root" class="tray" :class="{ phone: isPhone, open: expanded || !isPhone }" data-testid="task-tray" :data-expanded="expanded || !isPhone">
+  <aside v-if="shown" ref="root" class="tray" :class="{ phone: isPhone, open: listShown, collapsed: !listShown && !isPhone }" data-testid="task-tray" :data-expanded="listShown">
     <button
-      v-ripple class="bar" type="button" data-testid="task-tray-toggle" :aria-expanded="expanded || !isPhone" aria-controls="task-tray-list"
-      @click="expanded = !expanded"
+      v-ripple class="bar" type="button" data-testid="task-tray-toggle" :aria-expanded="listShown" aria-controls="task-tray-list"
+      :aria-label="isPhone ? undefined : listShown ? t('tasks.tray.collapse') : t('tasks.tray.expand')" @click="toggle"
     >
       <span class="chip" :class="{ none: !lists.count }" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}</span>
       <span v-if="lists.nextTask && !expanded && isPhone" class="peek">{{ t('tasks.tray.next', { title: lists.nextTask.item.title }) }}</span>
       <IconExpand class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
     </button>
-    <TransitionGroup v-show="expanded || !isPhone" id="task-tray-list" tag="ul" name="tl" class="list">
+    <TransitionGroup v-show="listShown" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
-        v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)"
+        v-for="r in rows" :key="r.list.id" class="row" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)" :data-list-id="r.list.id" :data-flash="ui.flashId === r.list.id ? 'true' : undefined"
         :data-date="r.list.date" :data-finished="r.fin ? 'true' : undefined" :style="{ '--c': cats.color(r.list) }"
       >
         <div v-if="r.fin" class="head">
@@ -133,6 +147,7 @@ function toggleFold(id: string) {
 .view { padding: 0 12px 12px; }
 .head { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 0 0 12px; }
 .fin { opacity: 0.6; }
+.row[data-flash] { outline: 3px solid var(--md-sys-color-primary); outline-offset: 1px; }
 .fin .t { text-decoration-line: line-through; }
 .fold { width: 22px; height: 22px; transform: rotate(180deg); transition: transform 200ms var(--md-sys-motion-spring); }
 .fold.up { transform: none; }
@@ -146,9 +161,15 @@ function toggleFold(id: string) {
 /* Phone without a bottom bar: the tray is the bottom edge and pads the safe area itself. */
 @media (max-width: 767.98px) { html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); } }
 @media (min-width: 768px) {
-  .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; }
-  .bar { cursor: default; padding-right: 12px; }
-  .chev { display: none; }
+  .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; transition: width 200ms var(--md-sys-motion-spring); }
+  .bar { padding-right: 12px; }
+  .open .chev { transform: rotate(90deg); }
+  .tray.collapsed .chev { transform: rotate(-90deg); }
+  /* Collapsed: a slim edge strip (56 px) with only the toggle; the count chip reads sideways. */
+  .tray.collapsed { width: 56px; }
+  .collapsed .bar { flex-direction: column; justify-content: flex-start; gap: 12px; padding: 12px 0; }
+  .collapsed .chev { margin-left: 0; order: -1; }
+  .collapsed .chip { writing-mode: vertical-rl; padding: 12px 4px; white-space: nowrap; }
   .list { flex: 1; min-height: 0; max-height: none; }
 }
 /* Left-handed mode (phone): the toggle chevron sits at the left, right of the "+" button's clearance; the fold toggle too. */

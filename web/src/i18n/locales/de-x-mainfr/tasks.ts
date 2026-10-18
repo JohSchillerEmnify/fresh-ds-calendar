@@ -43,6 +43,8 @@ export default {
     empty: 'Nix offen. Gud so.',
     fold: '{title} zammklappn',
     showItems: 'Einträge von {title} zeign',
+    collapse: 'Aufgaben-Leiste einklappn',
+    expand: 'Aufgaben-Leiste ausklappn',
   },
   card: {
     label: '{title}, {done} von {total} erledigt',
