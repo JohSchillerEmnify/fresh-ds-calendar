@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MAX_THEMES, MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemeDoc, type ThemePicture } from '@calendar/shared';
-import { userDir } from '../auth/people.js';
+import { listUserSubs, userDir } from '../auth/people.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { nanoid } from '../lib/ids.js';
 import { validation } from '../lib/errors.js';
@@ -84,8 +84,6 @@ export class ThemeStore {
 
   /** Forgets every person's themes (test reset). */
   reset(): void {
-    const users = path.join(this.dataDir, 'users');
-    if (!fs.existsSync(users)) return;
-    for (const u of fs.readdirSync(users)) fs.rmSync(path.join(users, u, 'themes'), { recursive: true, force: true });
+    for (const u of listUserSubs(this.dataDir)) fs.rmSync(this.dir(u), { recursive: true, force: true });
   }
 }

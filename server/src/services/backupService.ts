@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Clock } from '../lib/clock.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
-import { userDir } from '../auth/people.js';
+import { listUserSubs, userDir } from '../auth/people.js';
 import { subHash } from '../lib/diag.js';
 import { DriveError, type DriveClient } from '../providers/DriveClient.js';
 import {
@@ -397,9 +397,7 @@ export class BackupService {
 
   /** The people with a token file; found on disk, so people who never open the app are backed up too. */
   private people(): string[] {
-    const users = path.join(this.d.dataDir, 'users');
-    if (!fs.existsSync(users)) return [];
-    return fs.readdirSync(users).filter((u) => /^[A-Za-z0-9_-]{1,64}$/.test(u) && this.d.hasPermission(u) && (this.d.isPermitted?.(u) ?? true));
+    return listUserSubs(this.d.dataDir).filter((u) => this.d.hasPermission(u) && (this.d.isPermitted?.(u) ?? true));
   }
 
   /** The daily check: a forced backup for everyone whose last backup is 24 h old or whose last attempt failed. */

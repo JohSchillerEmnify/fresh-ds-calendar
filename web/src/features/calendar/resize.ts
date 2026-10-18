@@ -7,8 +7,7 @@
  * between start and end; a task list stops at 720 minutes (the server's `estimateMinutes` range), events at the day's end.
  */
 import { shallowRef } from 'vue';
-import { api } from '@/api/client';
-import type { CalendarEvent, CalendarItem, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import { neutralName, type Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
@@ -80,9 +79,7 @@ export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;
   try {
-    await items.optimisticItem<CalendarItem>(item.id, plan.next, () => (item.kind === 'event'
-      ? api.updateEvent(item.id, plan.patch as UpdateEventInput, { ifMatch: etag })
-      : api.updateTaskList(item.id, plan.patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
+    await items.optimisticItemPatch(item, plan.next, plan.patch, etag);
     resizePreview.value = null;
   } catch (e) {
     const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
-import { userDir } from '../auth/people.js';
+import { listUserSubs, userDir } from '../auth/people.js';
 
 /** The person used while sign-in is off. */
 export const LOCAL_PERSON = 'local';
@@ -383,8 +383,6 @@ export class PrefsStore {
 
   /** Forgets every person's preferences (test reset). */
   reset(): void {
-    const users = path.join(this.dataDir, 'users');
-    if (!fs.existsSync(users)) return;
-    for (const u of fs.readdirSync(users)) fs.rmSync(path.join(users, u, 'prefs.json'), { force: true });
+    for (const u of listUserSubs(this.dataDir)) fs.rmSync(path.join(userDir(this.dataDir, u), 'prefs.json'), { force: true });
   }
 }

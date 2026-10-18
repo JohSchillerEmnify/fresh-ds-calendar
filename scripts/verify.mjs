@@ -49,6 +49,7 @@ const checks = {
   'unit web': tests('web'),
   i18n: { cmd: ['pnpm', ['i18n:check'], root], errors: (o) => o.split('\n').filter((x) => /ERROR|^\s+missing/.test(x)) },
   steps: { cmd: ['python3', ['spec/scripts/check-steps.py'], root], errors: (o) => o.split('\n').filter((x) => x.trim()) },
+  dedup: { cmd: ['pnpm', ['exec', 'jscpd', 'web/src', 'server/src', 'shared', '--silent', '--reporters', 'console'], root], errors: (o) => o.split('\n').filter((x) => /threshold|duplication|clone/i.test(x)) },
 };
 
 const t0 = Date.now();

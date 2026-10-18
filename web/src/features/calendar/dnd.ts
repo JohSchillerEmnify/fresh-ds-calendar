@@ -12,8 +12,7 @@
  * timed, all-day stays all-day (A-55), multi-day items move by the dragged day's delta.
  */
 import { shallowRef, type Ref } from 'vue';
-import { api } from '@/api/client';
-import type { CalendarEvent, CalendarItem, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import type { ItemVariant } from '@/extensions/registry';
 import { neutralName, type Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
@@ -80,9 +79,7 @@ export async function applyMove(seg: Segment, target: MoveTarget): Promise<void>
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;
   try {
-    await items.optimisticItem<CalendarItem>(item.id, plan.next, () => (item.kind === 'event'
-      ? api.updateEvent(item.id, plan.patch as UpdateEventInput, { ifMatch: etag })
-      : api.updateTaskList(item.id, plan.patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
+    await items.optimisticItemPatch(item, plan.next, plan.patch, etag);
   } catch (e) {
     const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
     useUiStore().notify(t('calendar.drag.moveFailed', { title: neutralName(item), reason: msg }), { testid: 'move-failed' });
