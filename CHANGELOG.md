@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-16
+- Importing your own theme is now always available in the theme menu; only generating a theme with AI stays an experimental Labs feature.
 - The app is now called Fresh-D's Kalender, with the slogan “Trag ein, trag aus, macht mir nix aus!” on the sign-in screen.
 - The app now updates itself to the newest version automatically (no Reload button, and no more updating one version at a time); it waits until you're not mid-edit.
 - The task list panel on desktop can now be collapsed, and tapping a list that's already shown in it highlights that row instead of opening a duplicate panel.
