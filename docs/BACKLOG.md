@@ -34,6 +34,9 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
   mini, collapsed, titles modes, and `EventItem`/`EventBar`/`BasicItem` overlap too. Audit whether these can collapse into
   one dynamic component driven by size/space (measured) rather than hard-coded variant branches, and consolidate the
   per-variant CSS. Reduce the branch count and the places a change like "titleless shows its first item" has to be made.
+  Tooling is now wired: `pnpm dedup` (jscpd) reports clones; baseline 2026-10-16 is 23 clones / 0.78% of lines, flagging
+  HorizontalTimeView↔ZoomMonthView, ExpandedTaskList↔TaskListView, DayView↔WeekView, SettingsView↔ThemeView,
+  TaskTray↔TasksView. (jscpd catches literal copy-paste; the TaskListCard variant sprawl is structural, so also eyeball it.)
 - **Review and prune the e2e suite** (owner, 2026-10-16: "169 tests for just a task list seems a lot; check if all of
   them are really necessary"). The task-list features alone match ~169 scenarios; the whole suite is large and slow
   (workers=1, one shared server). Audit for redundant/overlapping scenarios, collapse Scenario Outlines, drop
