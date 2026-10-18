@@ -1,3 +1,4 @@
+import { watch } from 'vue';
 import { api } from '@/api/client';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
@@ -7,7 +8,7 @@ const DISMISSED_KEY = 'cal.updateDismissed';
 const RELOADED_KEY = 'cal.updateReloadedFor';
 
 let offered: number | null = null;
-/** The waiting service worker to activate on "Reload" (null: no worker, e.g. insecure context or TEST_MODE). */
+/** The newest installed service worker, activated by `reload()` (null: none, so a plain reload; manual snackbar path). */
 let waiting: ServiceWorker | null = null;
 /** Newest server version seen by `checkVersion` ('' = none yet): what a "Reload" is for and what a dismissal is remembered against. */
 let latest = '';
@@ -26,11 +27,6 @@ function remember(key: string, value: string): void {
 /** Version this page was built with (`<html data-app-version>`, falling back to the build-time constant). */
 export function runningVersion(): string {
   return document.documentElement.dataset.appVersion ?? __APP_VERSION__;
-}
-
-/** Remember the service worker that carries the new assets; "Reload" activates it first. */
-export function setWaitingWorker(w: ServiceWorker | null): void {
-  waiting = w;
 }
 
 /** Activate a waiting service worker (if any), then reload. Remembers the target so a reload that comes back old is not re-offered. */
@@ -73,18 +69,46 @@ export function offerUpdate(): void {
   });
 }
 
+/** Stops the deferred-apply watchers (null: none set up). They are created once and torn down after applying. */
+let stopDeferred: (() => void) | null = null;
+/** Whether an auto-apply has started (the page is about to reload). */
+let applying = false;
+
+/** Safe moment to reload: no open dialog/editor, picker or drag/resize. */
+function uiIsSafe(): boolean {
+  const ui = useUiStore();
+  return !ui.dialog && !ui.pickerOpen && !ui.resizing;
+}
+
 /**
- * Make sure a worker carrying the new build is waiting before offering a reload; with no controlling worker a plain reload
- * loads the new build, so it is offered right away. Otherwise the reload would serve the old precached `index.html` again.
+ * Auto-apply the newest installed worker (controlling-worker path): now when the ui is safe, otherwise as soon as it
+ * becomes safe or the tab is hidden, whichever comes first. A later worker replaces the pending one; the watchers are set up once.
+ */
+export function autoUpdate(w: ServiceWorker): void {
+  if (applying || suppressed(latest)) return;
+  // the newest worker always wins over a stale one from an earlier check
+  waiting = w;
+  if (uiIsSafe()) { applying = true; reload(); return; }
+  if (stopDeferred) return;
+  const apply = (): void => { stopDeferred?.(); stopDeferred = null; applying = true; reload(); };
+  const stopWatch = watch(uiIsSafe, (safe) => { if (safe) apply(); });
+  const onHidden = (): void => { if (document.hidden) apply(); };
+  document.addEventListener('visibilitychange', onHidden);
+  stopDeferred = () => { stopWatch(); document.removeEventListener('visibilitychange', onHidden); };
+}
+
+/**
+ * With a controlling worker, fetch the CURRENT server worker (`reg.update()`) so the update jumps to the newest build, then
+ * auto-apply it when safe. A worker that is still installing is handed over by the registration's `updatefound` handler.
+ * Without a controlling worker (or registration) a plain reload loads the new build, so the manual snackbar is offered.
  */
 async function offerWhenReady(): Promise<void> {
   if (!navigator.serviceWorker?.controller) { offerUpdate(); return; }
-  if (waiting) { offerUpdate(); return; }
   try {
     const reg = await navigator.serviceWorker.getRegistration();
-    await reg?.update();
-    // a worker found now is offered by the registration's updatefound handler; one that was already waiting is offered here
-    if (reg?.waiting) { setWaitingWorker(reg.waiting); offerUpdate(); }
+    if (!reg) { offerUpdate(); return; }
+    await reg.update();
+    if (!reg.installing && reg.waiting) autoUpdate(reg.waiting);
   } catch {
     // offline or update failed: the next check tries again
   }
