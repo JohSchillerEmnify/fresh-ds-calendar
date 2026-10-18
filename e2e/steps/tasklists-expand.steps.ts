@@ -22,6 +22,15 @@ When('I tap the task list {string}', async function (this: World, title: string)
   await this.taskCard(title).click();
 });
 
+When('I tap the titleless task list', async function (this: World) {
+  await this.page.locator(`${tid('tasklist-card')}${attr('data-untitled', 'true')}`).first().click();
+});
+
+Then('the titleless task list is expanded over the calendar', async function (this: World) {
+  await expect(this.byTestId('tasklist-expanded', attr('data-presentation', 'overlay'))).toBeVisible();
+  await expect(this.page.locator(`${tid('tasklist-card')}${attr('data-untitled', 'true')}`).first()).toHaveAttribute('aria-expanded', 'true');
+});
+
 const grown = (w: World, title?: string) =>
   w.byTestId('tasklist-expanded', attr('data-presentation', 'overlay') + (title ? attr('data-title', title) : ''));
 const rectOf = (l: Locator) => l.evaluate((e) => { const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height, right: b.right, bottom: b.bottom }; });

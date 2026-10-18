@@ -252,6 +252,7 @@ I edit the task list details
 I delete the task list
 the task list tap setting is {string}
 I tap the task list {string}
+I tap the titleless task list
 I tap the expanded task list {string}
 I tap the item {string} of the expanded task list
 I note where the event {string} is
@@ -278,6 +279,7 @@ I tap outside the expanded task list
 I note where the task list cards are
 the task list cards have not moved
 the task list {string} is expanded over the calendar
+the titleless task list is expanded over the calendar
 the expanded task list shows the item {string} as done and the item {string} as open
 the expanded task list has no checkboxes
 the focus is inside the expanded task list
