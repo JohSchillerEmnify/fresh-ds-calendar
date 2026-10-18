@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Calendar</string>
-    <string name="title_activity_main">Calendar</string>
+    <string name="app_name">Fresh-D</string>
+    <string name="title_activity_main">Fresh-D's Kalender</string>
     <string name="package_name">lan.mordor.calendar</string>
     <string name="custom_url_scheme">lan.mordor.calendar</string>
     <string name="reminder_channel">Reminders</string>

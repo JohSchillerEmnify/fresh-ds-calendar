@@ -45,7 +45,6 @@ export default {
     iosHint: 'Tap Share, then Add to Home Screen',
   },
   signIn: {
-    title: 'Calendar',
     privateCalendar: 'This calendar is private. This Google account is not allowed to use it.',
     hint: 'Sign in with Google to see your calendar.',
     withGoogle: 'Sign in with Google',

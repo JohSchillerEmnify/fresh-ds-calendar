@@ -19,6 +19,11 @@ export default {
   bedtime: bedtimeColdmirror,
   sharing: sharingColdmirror,
   tasks: tasksColdmirror,
+  app: {
+    name: "Fresh-D's Kalender",
+    short: 'Fresh-D',
+    slogan: 'Trag ein, trag aus, macht mir nix aus!',
+  },
   views: {
     year: 'Jahr, yo',
     month: 'Monat, yo',

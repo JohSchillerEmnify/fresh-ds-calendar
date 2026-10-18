@@ -47,7 +47,6 @@ export default {
     iosHint: 'Tipp auf Teiln un dann auf „Zum Home-Bildschirm“',
   },
   signIn: {
-    title: 'Kalender',
     privateCalendar: 'Der Kalender is privat. Mit dem Google-Konto derfsd ned nei.',
     hint: 'Meld di mit Google an, damits den Kalender siehsd.',
     withGoogle: 'Mit Google anmelden',

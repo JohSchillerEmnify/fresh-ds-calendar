@@ -27,9 +27,9 @@ export default defineConfig({
       includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png', 'icons/logo-small.svg'],
       manifest: {
         id: '/',
-        name: 'Calendar',
-        short_name: 'Calendar',
-        description: 'Calendar with embeddable task lists',
+        name: "Fresh-D's Kalender",
+        short_name: 'Fresh-D',
+        description: 'Trag ein, trag aus, macht mir nix aus!',
         start_url: '/',
         scope: '/',
         display: 'standalone',

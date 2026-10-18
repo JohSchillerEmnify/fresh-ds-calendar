@@ -16,6 +16,11 @@ export default {
   bedtime: bedtimeDe,
   sharing: sharingDe,
   tasks: tasksDe,
+  app: {
+    name: "Fresh-D's Kalender",
+    short: 'Fresh-D',
+    slogan: 'Trag ein, trag aus, macht mir nix aus!',
+  },
   views: {
     year: 'Jahr',
     month: 'Monat',

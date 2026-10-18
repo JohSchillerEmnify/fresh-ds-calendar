@@ -47,7 +47,6 @@ export default {
     iosHint: 'Tipp auf Teilen, dann auf „Zum Home-Bildschirm“. Fresh D. hat das gecheckt, Digga.',
   },
   signIn: {
-    title: 'Kalender, yo',
     privateCalendar: 'Dieser Kalender ist privat. Mit dem Google-Konto kommst du nicht rein, selbst Snape hätte da Probleme.',
     hint: 'Meld dich mit Google an, dann siehst du den Kalender, Digga.',
     withGoogle: 'Mit Google anmelden, yo',

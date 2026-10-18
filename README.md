@@ -1,4 +1,6 @@
-# Calendar
+# Fresh-D's Kalender
+
+> Trag ein, trag aus, macht mir nix aus!
 
 A mobile-first Google Calendar clone in Material 3 style, with expandable task lists in the calendar views,
 installable as a PWA, plus an Android shell with home-screen widgets. Self-hosted instance: <https://cal.example.org>.
