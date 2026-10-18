@@ -510,6 +510,17 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   (desktop: the side panel is 380 px wide, like the expanded list's panel, and the FAB sits left of it via
   `--tray-w`), and
   the FAB slides out of view while it is open.
+- **The desktop tray is collapsible too (owner, 2026-10-18: "make the sidebar collapsible as well")**: the desktop side
+  panel can be collapsed and expanded, not only the phone bar. Its open/closed state is persisted (`ui` store, default
+  open on desktop). The header toggle (`task-tray-toggle`, chevron `task-tray-chevron`) collapses it; when collapsed, a
+  slim always-visible affordance on the edge (the count chip as a button, `task-tray-toggle`) re-opens it, and `--tray-w`
+  drops to that slim width (or 0) so the calendar reclaims the space. On phones nothing changes.
+- **No duplicate list panel (owner, 2026-10-18, screenshot: the same list shown as two identical panels)**: when the
+  desktop tray is OPEN and already shows a list, "opening" that list does not render a second copy as an
+  `ExpandedTaskList` dialog. Instead it scrolls the list's row into view in the tray and briefly highlights it
+  (`task-tray-item` `data-flash`). This covers the drawer tap setting, a tap on the grown card, and the item openers
+  (labs, EventBar). When the tray is COLLAPSED, or on phones (no persistent tray), opening a list works as before (the
+  bottom sheet / anchored panel). The default inline-grow tap over the calendar is unchanged.
 - **Carry-over**: open lists dated in the last 30 days before today render on today, with `tasklist-card-overdue`
   text `"From Sat 10 Oct"` (tertiary container colour, no error colour, no "overdue/missed" wording); mini cards
   show it as a `↶` badge with `aria-label`/`title` "From Sat 10 Oct". There is no "Move to today" button (owner 2026-10-13):
