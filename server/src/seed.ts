@@ -1,6 +1,6 @@
 import type { CalendarService } from './services/calendar.js';
 import type { MotivationService } from './services/motivation.js';
-import { addDays, localDateOf } from './lib/time.js';
+import { addDays, formatInZone, localDateOf, zonedToUtc } from './lib/time.js';
 
 type Cal = 'primary' | 'work';
 interface Ev { d: number; t?: string; min?: number; days?: number; title: string; cal?: Cal; loc?: string; desc?: string; color?: string }
@@ -72,7 +72,6 @@ export async function seedDemo(cal: CalendarService, motivation: MotivationServi
   });
 }
 
-import { formatInZone, zonedToUtc } from './lib/time.js';
 function offsetFor(date: string, time: string, tz: string): string {
   return formatInZone(zonedToUtc(date, time, tz), tz).slice(-6);
 }

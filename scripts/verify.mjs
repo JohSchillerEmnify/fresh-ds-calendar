@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `pnpm verify`: quick pre-merge gate. Runs tsc (web/server/e2e), unit tests, i18n:check and check-steps in parallel.
+// `pnpm verify`: quick pre-merge gate. Runs tsc (web/server/e2e), unit tests, i18n:check, check-steps, dedup and lint in parallel.
 // Prints one OK line, or per failing check its name plus the first lines of relevant errors. Exit 1 on failure.
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -50,6 +50,7 @@ const checks = {
   i18n: { cmd: ['pnpm', ['i18n:check'], root], errors: (o) => o.split('\n').filter((x) => /ERROR|^\s+missing/.test(x)) },
   steps: { cmd: ['python3', ['spec/scripts/check-steps.py'], root], errors: (o) => o.split('\n').filter((x) => x.trim()) },
   dedup: { cmd: ['pnpm', ['exec', 'jscpd', 'web/src', 'server/src', 'shared', '--silent', '--reporters', 'console'], root], errors: (o) => o.split('\n').filter((x) => /threshold|duplication|clone/i.test(x)) },
+  lint: { cmd: ['pnpm', ['exec', 'eslint', '--quiet', '.'], root], errors: (o) => o.split('\n').filter((x) => /error|^\//.test(x)) },
 };
 
 const t0 = Date.now();
@@ -61,7 +62,7 @@ if (failed.length === 0) {
   const n = (k) => results.find((r) => r.name === k);
   const tscs = ['web', 'server', 'e2e'].filter((k) => n('tsc ' + k)).join('/');
   const secs = Math.round((Date.now() - t0) / 1000);
-  console.log(`verify: OK (tsc ${tscs}, unit ${checks['unit server'].count(n('unit server').out) ?? '?'}+${checks['unit web'].count(n('unit web').out) ?? '?'}, i18n, steps) in ${secs}s`);
+  console.log(`verify: OK (tsc ${tscs}, unit ${checks['unit server'].count(n('unit server').out) ?? '?'}+${checks['unit web'].count(n('unit web').out) ?? '?'}, i18n, steps, dedup, lint) in ${secs}s`);
 } else {
   for (const r of failed) {
     let lines = r.c.errors(r.out);

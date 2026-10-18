@@ -16,7 +16,8 @@
     "verify": "node scripts/verify.mjs",
     "i18n:scan": "node web/scripts/i18n-scan.ts",
     "e2e:affected": "node scripts/e2e-affected.mjs",
-    "dedup": "jscpd web/src server/src shared"
+    "dedup": "jscpd web/src server/src shared",
+    "lint": "eslint ."
   },
   "engines": {
     "node": ">=24.11"
@@ -25,6 +26,14 @@
     "@capacitor/android": "8.5.3",
     "@capacitor/cli": "8.5.3",
     "@capacitor/core": "8.5.3",
-    "jscpd": "^5.4.1"
-  }
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^17.13.0",
+    "jscpd": "^5.4.1",
+    "typescript-eslint": "^8.71.2",
+    "vue-eslint-parser": "^10.4.1"
+  },
+  "license": "AGPL-3.0-only"
 }

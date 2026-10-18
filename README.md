@@ -1,49 +1,60 @@
 # Calendar
 
-A mobile-first Google Calendar clone in Material 3 style, with expandable task lists in the calendar views, installable as a PWA.
-It syncs with Google Calendar through a provider abstraction. A mock Google backend is the default until the owner
-enables real Google (see `spec/ARCHITECTURE.md` §9).
+A mobile-first Google Calendar clone in Material 3 style, with expandable task lists in the calendar views,
+installable as a PWA, plus an Android shell with home-screen widgets. Self-hosted instance: <https://cal.example.org>.
+
+It syncs with Google Calendar through a provider abstraction. A mock Google backend is the default
+(`PROVIDER=mock`); real Google (`PROVIDER=google`) needs your own OAuth credentials (see `spec/ARCHITECTURE.md` §9).
 
 Spec-driven: `spec/features/*.feature` is the single source of truth and runs directly as the e2e suite.
+
+## Stack
+
+- `web/`: Vue 3 PWA (Vite, TypeScript)
+- `server/`: Hono + TypeScript API with static hosting
+- `shared/`: code and schemas shared by web and server
+- `e2e/`: Playwright + playwright-bdd running `spec/features`
+- `android/`: Capacitor shell with native widgets
+- pnpm workspace, Node >= 24.11
+
+## Run locally
+
+```sh
+pnpm install
+pnpm build            # web + server
+pnpm dev:server       # API (mock provider by default)
+pnpm dev:web          # Vite dev server
+pnpm test             # unit tests
+pnpm verify           # tsc + unit + i18n + steps + dedup + lint (the pre-merge gate)
+pnpm e2e              # Playwright suite over spec/features (needs a browser)
+```
+
+Key env vars: `PROVIDER=mock|google`, `DATA_DIR`, `SEED`, `TEST_MODE`, `PUBLIC_URL`, `POLL_INTERVAL_MS`, `TZ`.
+Theme tokens: `pnpm -F @calendar/web tokens`. Deployment notes: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Layout
 
 | Path | Contents |
 |---|---|
-| `BRIEF.md` | Owner brief and fixed technical decisions (binding) |
-| `spec/features/` | Gherkin features (navigation, year, month picker, timeline, events, event colors, drag and drop, task lists, open tasks, categories, settings, ADHD support, reward, streak, plant, sunflowers, sync, mobile, PWA, theme, performance, health) |
+| `BRIEF.md` | Owner brief and fixed technical decisions |
+| `spec/features/` | Gherkin features, also the e2e suite |
 | `spec/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
-| `spec/ACCEPTANCE.md` | Numbered acceptance criteria (AC-01 … AC-87) mapped to scenarios and checks |
-| `spec/ARCHITECTURE.md` | Components, `CalendarProvider`, task list ↔ Google mapping, sync, mobile UX, Material 3, resource budgets, PWA, testids, env, owner actions |
+| `spec/ACCEPTANCE.md` | Numbered acceptance criteria mapped to scenarios |
+| `spec/ARCHITECTURE.md` | Components, provider, sync, mobile UX, PWA, env |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
 | `spec/ASSUMPTIONS.md` | Decisions made without the owner |
-| `docs/ADHD-RESEARCH.md` | ADHD research with sources and derived requirements (R1–R24) |
-| `spec/scripts/check-steps.py` | Checks that every feature step matches exactly one expression in `STEPS.md` |
-| `server/` | API and static hosting; stack per BRIEF / `docs/RESEARCH.md` *(to be built)* |
-| `web/` | Web app (PWA); stack per BRIEF / `docs/RESEARCH.md` *(to be built)* |
-| `e2e/` | Playwright 1.48.2 + playwright-bdd running `spec/features` *(to be built)* |
-
-## Quick facts
-
-- Deployment: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (`http://cal.mordor.lan`, Traefik, compose in `deploy/` of the repo; `.env` and `data/` there are git-ignored).
-  HTTPS on `https://cal.<subdomain>.<owner-domain>` is planned (owner action), needed for full PWA install and real Google OAuth.
-- Key env: `PROVIDER=mock|google`, `DATA_DIR`, `SEED`, `TEST_MODE`, `PUBLIC_URL`, `POLL_INTERVAL_MS`, `TZ`.
-- Toolchain: Node 24.21.0 at `~/.local/opt/node-v24.21.0-linux-x64/bin` + pnpm 12.11.2. `pnpm install`, `pnpm test`,
-  `pnpm build`, `pnpm size`, `pnpm redeploy` (= `scripts/deploy.sh`). Theme tokens: `pnpm -F @calendar/web tokens`.
-- Check the step contract: `python3 spec/scripts/check-steps.py`.
+| `docs/` | Research, deployment and backlog notes |
+| `spec/scripts/check-steps.py` | Checks every feature step matches exactly one expression in `STEPS.md` |
 
 ## Android app
 
-A Capacitor shell around the calendar server you choose at the first start (`https://cal.example.org` or `http://cal.mordor.lan`) plus a weekly home-screen widget (`android/`, spec: ARCHITECTURE
-"Android app and widget"). Build and publish: `scripts/android-build.sh` (`--no-publish` to only build). It runs on sauron:
-Gradle runs in the `calendar-android-build` Docker image (`android/build.Dockerfile`: JDK 21 + Android SDK 36), builds an unsigned release APK (no keystore in that container),
-signs it to `android/app/build/outputs/apk/release/app-release.apk` with `apksigner` in a second container (no network, only the keystore, the APK and apksigner),
-and copies it to `DATA_DIR/downloads/app.apk` (served at `http://cal.mordor.lan/app.apk`).
+A Capacitor shell around the calendar server you choose at first start, plus a weekly home-screen widget
+(`android/`, spec: ARCHITECTURE "Android app and widget"). `scripts/android-build.sh` builds an unsigned release APK
+in a Docker image (JDK 21 + Android SDK 36) and signs it with your own release keystore, which is kept outside git
+(`*.jks`, `keystore.properties` are ignored). Back the key up: an installed app can only be updated by an APK signed with the same key.
+Native unit tests: `./gradlew testDebugUnitTest` in `android/`.
 
-- **Release key**: generated once by the script in `~/calendar-android-key/` (`release.jks` + `keystore.properties`),
-  outside git and gitignored. Back it up: an installed app can only be updated by an APK signed with the same key.
-- **Install on the phone**: open `https://cal.example.org/app.apk` (or, at home, `http://cal.mordor.lan/app.apk`) in Chrome, allow "Install unknown apps" for Chrome when
-  asked, open the downloaded file and install; then long-press the home screen, Widgets, Calendar, add the weekly
-  widget, the day widget and/or the clock widget (today on the 24-hour clock).
-- Tests: `./gradlew testDebugUnitTest` in `android/` (native day splitting), `pnpm -F @calendar/web test` (snapshot builder).
+## Contributing and license
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only).

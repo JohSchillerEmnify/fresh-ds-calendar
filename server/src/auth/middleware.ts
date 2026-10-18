@@ -1,6 +1,5 @@
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import { getCookie, setCookie } from 'hono/cookie';
-import type { Context } from 'hono';
 import type { Ctx } from '../context.js';
 import { ApiException } from '../lib/errors.js';
 import { SESSION_COOKIE, SESSION_TTL_MS, type Session } from './sessions.js';
