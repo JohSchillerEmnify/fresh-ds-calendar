@@ -335,6 +335,13 @@ export const useItemsStore = defineStore('items', () => {
     }
   }
 
+  /** `optimisticItem` for a PATCH of an event or task list (move, resize): shows `next`, sends `patch` with `If-Match: etag`. */
+  function optimisticItemPatch(item: CalendarItem, next: CalendarItem, patch: UpdateEventInput | UpdateTaskListInput, etag: string | undefined) {
+    return optimisticItem<CalendarItem>(item.id, next, () => (item.kind === 'event'
+      ? api.updateEvent(item.id, patch as UpdateEventInput, { ifMatch: etag })
+      : api.updateTaskList(item.id, patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
+  }
+
   // --- year view / month picker summaries --------------------------------------------
   const summary = shallowRef<Record<LocalDate, DaySummary>>({});
   const summaryKeys = ref<string[]>([]);
@@ -381,7 +388,7 @@ export const useItemsStore = defineStore('items', () => {
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
     isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, upsert, remove, beginPending, endPending, setCarried, setKept,
-    createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem,
+    createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem, optimisticItemPatch,
     loadSummary, refreshSummaries, $reset,
   };
 });

@@ -103,7 +103,8 @@ const carried = computed(() => !!props.segment.carriedFrom && prefs.showCarriedF
 const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
-const label = computed(() => t(displayTitle(tl.value) ? 'tasks.card.label' : 'tasks.card.labelUntitled', { title: displayTitle(tl.value), done: tl.value.doneCount, total: tl.value.totalCount }));
+const title = computed(() => displayTitle(tl.value));
+const label = computed(() => t(title.value ? 'tasks.card.label' : 'tasks.card.labelUntitled', { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount }));
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < MINI_BELOW_PX);
 /** A block too short for a second row (the inline threshold) drops the time line, also when no open item is left to go inline. */
@@ -145,7 +146,7 @@ const fit = computed(() => {
  * item, never stored as the event title; the grown/opened card shows the whole list below with no title. No duplication:
  * the lead only appears when `fit.shown === 0`, i.e. when no items render below. */
 const lead = computed(() => {
-  if (props.grown || displayTitle(tl.value)) return null;
+  if (props.grown || title.value) return null;
   const noItemsShown = props.variant === 'chip' || titles.value || fit.value.shown === 0;
   return noItemsShown ? (tl.value.items[0] ?? null) : null;
 });
@@ -161,9 +162,9 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
   <button
-    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !displayTitle(tl), carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'"
+    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !title, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
-    :data-tasklist-id="tl.id" :data-title="displayTitle(tl)" :data-untitled="displayTitle(tl) ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
+    :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
   >
     <template v-if="grown && !flat">
@@ -174,7 +175,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="row">
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
-      <span v-if="displayTitle(tl)" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" /></span></span>
+      <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
       <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done">{{ lead.title }}</span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>

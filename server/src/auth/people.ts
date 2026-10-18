@@ -23,7 +23,14 @@ export function userDir(dataDir: string, sub: string): string {
   return path.join(dataDir, 'users', sub);
 }
 
-export const userTokenFile = (dataDir: string, sub: string): string => path.join(userDir(dataDir, sub), 'google-token.json');
+/** The subs with a directory under `DATA_DIR/users/` (plain ids only); empty when the directory does not exist. */
+export function listUserSubs(dataDir: string): string[] {
+  const users = path.join(dataDir, 'users');
+  if (!fs.existsSync(users)) return [];
+  return fs.readdirSync(users).filter((u) => /^[A-Za-z0-9_-]{1,64}$/.test(u));
+}
+
+export const userTokenFile =(dataDir: string, sub: string): string => path.join(userDir(dataDir, sub), 'google-token.json');
 const legacyTokenFile = (dataDir: string): string => path.join(dataDir, 'google-token.json');
 
 export function readUserToken(dataDir: string, sub: string): string | null {

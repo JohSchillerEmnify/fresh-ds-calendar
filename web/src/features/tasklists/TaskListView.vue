@@ -25,7 +25,7 @@ import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel } from './format';
+import { carriedLabel, isComplete } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
 import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
@@ -63,7 +63,7 @@ const tl = computed(() => {
   const i = items.get(props.id);
   return i?.kind === 'tasklist' ? i : null;
 });
-const complete = computed(() => !!tl.value && tl.value.totalCount > 0 && tl.value.doneCount >= tl.value.totalCount);
+const complete = computed(() => !!tl.value && isComplete(tl.value));
 /** Collapsed to the head, remembered per list and device; the expanded list's sheet (`closable`) never collapses. */
 const collapsed = computed(() => !props.closable && isCollapsed(props.id));
 watch(collapsed, (c) => { if (c) { adding.value = false; editingItem.value = null; } });

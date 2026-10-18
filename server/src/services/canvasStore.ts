@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { CanvasArea, CanvasDoc } from '../api/types.js';
-import { userDir } from '../auth/people.js';
+import { listUserSubs, userDir } from '../auth/people.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 
 /** What a person without a canvas document has. */
@@ -33,8 +33,6 @@ export class CanvasStore {
 
   /** Forgets every person's document (test reset). */
   reset(): void {
-    const users = path.join(this.dataDir, 'users');
-    if (!fs.existsSync(users)) return;
-    for (const u of fs.readdirSync(users)) fs.rmSync(path.join(users, u, 'canvas.json'), { force: true });
+    for (const u of listUserSubs(this.dataDir)) fs.rmSync(this.file(u), { force: true });
   }
 }

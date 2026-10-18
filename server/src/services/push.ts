@@ -8,7 +8,7 @@ import path from 'node:path';
 import webpush from 'web-push';
 import type { Clock } from '../lib/clock.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
-import { userDir } from '../auth/people.js';
+import { listUserSubs, userDir } from '../auth/people.js';
 
 /** A planned push may be sent this late (server was down, loop was busy); later ones are dropped. */
 export const CATCH_UP_MS = 10 * 60_000;
@@ -174,9 +174,7 @@ export class PushService {
 
   /** The people with a `push.json`, found on disk like the backup does. */
   private people(): string[] {
-    const users = path.join(this.d.dataDir, 'users');
-    if (!fs.existsSync(users)) return [];
-    return fs.readdirSync(users).filter((u) => /^[A-Za-z0-9_-]{1,64}$/.test(u) && fs.existsSync(this.file(u)));
+    return listUserSubs(this.d.dataDir).filter((u) => fs.existsSync(this.file(u)));
   }
 
   /** Sends every due push (at <= now, at most {@link CATCH_UP_MS} late, key not sent yet). Returns how many were sent. */
