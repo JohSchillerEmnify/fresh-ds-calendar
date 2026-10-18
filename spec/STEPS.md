@@ -707,6 +707,10 @@ I dismiss the transition warning
 the open tasks tray shows the count {string}
 I open the open tasks tray
 the open tasks tray is collapsed
+the open tasks tray is expanded
+I collapse the open tasks tray
+the open tasks tray is at most {int} px wide
+the task list {string} is highlighted in the open tasks tray
 the open tasks tray lists {string}
 the open tasks tray does not list {string}
 the open tasks tray shows the task list {string} with items:
@@ -732,6 +736,11 @@ the overdue label of {string} does not use the error color
   "From D" (the text itself in roomy cards, the `aria-label` of the badge in narrow ones).
 - "does not use the error color": the computed `color` and `background-color` of `tasklist-card-overdue` differ from
   `--md-sys-color-error` and `--md-sys-color-error-container`.
+- "I collapse the open tasks tray": clicks `task-tray-toggle` when the tray is expanded (desktop side panel or phone bar).
+  "is expanded"/"is collapsed" = `data-expanded` of `task-tray` is `true`/`false` (on the desktop the persisted collapsed state).
+- "is at most N px wide": polls the tray's box width and the `--tray-w` on :root (the FAB's clearance) until both are <= N.
+- "the task list L is highlighted in the open tasks tray": the `task-tray-item` of L gets `data-flash` (within the
+  default timeout; it clears after about a second) and no `tasklist-expanded` list sheet is open.
 - "the open tasks tray shows the message M for L": within 1 500 ms of the previous step, the tray row of L shows M
   (it may fold away afterwards, as finished lists do).
 

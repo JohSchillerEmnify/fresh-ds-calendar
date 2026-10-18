@@ -17,7 +17,7 @@ const Tray = defineAsyncComponent(() => import('./TaskTray.vue'));
  */
 export function registerTaskListFeature(): void {
   registerItemRenderer('tasklist', TaskListCard);
-  registerItemOpener('tasklist', (item) => useUiStore().openDialog('tasklist-expanded', { id: item.id }));
+  registerItemOpener('tasklist', (item) => useUiStore().revealTask(item.id));
   registerDialog('tasklist-expanded', () => import('./ExpandedTaskList.vue'));
   registerDialog('tasklist', () => import('./TaskListDialog.vue'));
   registerTray(Tray);

@@ -46,6 +46,8 @@ export default {
     empty: 'Nix am Start. Fresh D. ist stolz.',
     fold: '{title} einklappen, yo',
     showItems: 'Einträge von {title} zeigen, fresh',
+    collapse: 'Aufgaben-Leiste einklappen, fresh',
+    expand: 'Aufgaben-Leiste ausklappen, fresh',
   },
   card: {
     label: '{title}, {done} von {total} erledigt, yo',

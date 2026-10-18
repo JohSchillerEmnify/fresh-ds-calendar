@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { appTimeout, type Disposer } from '@/lib/timers';
 
 export interface SnackbarMessage {
   id: number;
@@ -34,6 +35,9 @@ export interface ExpandedCard {
 }
 
 let seq = 0;
+const TRAY_COLLAPSED_KEY = 'cal.trayCollapsedDesktop';
+/** How long a revealed tray row stays highlighted. */
+const FLASH_MS = 1000;
 
 /** Shell UI state that must survive refreshes (open pickers, dialogs, snackbars). */
 export const useUiStore = defineStore('ui', () => {
@@ -41,6 +45,14 @@ export const useUiStore = defineStore('ui', () => {
   const filtersShown = ref(false);
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
+  /** Desktop side tray collapsed to its slim edge strip (persisted in this browser; default open). The phone has `trayExpanded`. */
+  const trayCollapsedDesktop = ref((() => { try { return localStorage.getItem(TRAY_COLLAPSED_KEY) === '1'; } catch { return false; } })());
+  watch(trayCollapsedDesktop, (v) => { try { localStorage.setItem(TRAY_COLLAPSED_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } });
+  /** Ids of the lists the desktop tray shows right now; empty while it is collapsed, hidden or on a phone (published by `TaskTray`). */
+  const trayListIds = ref<string[]>([]);
+  /** The tray row that is briefly highlighted by `revealTask`. */
+  const flashId = ref<string | null>(null);
+  let flashStop: Disposer | null = null;
   /** Names of the bottom panels and sheets of a view that are open (the Canvas's area editor, the Tasks view's filter and sort sheets). */
   const panels = reactive(new Set<string>());
   /** Any of them is open: the phone's create button slides away like for the tray. */
@@ -61,6 +73,16 @@ export const useUiStore = defineStore('ui', () => {
   function closeDialog(): void {
     dialog.value = null;
   }
+  /**
+   * Opens a task list: when the open desktop tray already shows it, scrolls its row into view and flashes it instead of
+   * stacking a second copy as the `tasklist-expanded` panel; otherwise (collapsed tray, phone, list not in the tray) opens that panel.
+   */
+  function revealTask(id: string): void {
+    if (!trayListIds.value.includes(id)) { openDialog('tasklist-expanded', { id }); return; }
+    flashStop?.();
+    flashId.value = id;
+    flashStop = appTimeout(() => { flashId.value = null; }, FLASH_MS);
+  }
   /** Expands the card of that list and day (a set, never a toggle: a tap on a collapsed card always opens it); another expanded card collapses. */
   function expandCard(card: ExpandedCard): void {
     expandedCard.value = { ...card };
@@ -80,5 +102,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, dismiss };
 });

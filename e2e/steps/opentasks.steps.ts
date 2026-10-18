@@ -171,6 +171,30 @@ Then('the open tasks tray is collapsed', async function (this: World) {
   await expect(this.page.getByTestId('task-tray')).toHaveAttribute('data-expanded', 'false');
 });
 
+Then('the open tasks tray is expanded', async function (this: World) {
+  await expect(this.page.getByTestId('task-tray')).toHaveAttribute('data-expanded', 'true');
+});
+
+When('I collapse the open tasks tray', async function (this: World) {
+  const tray = this.page.getByTestId('task-tray');
+  if ((await tray.getAttribute('data-expanded')) === 'true') await this.page.getByTestId('task-tray-toggle').click();
+  await expect(tray).toHaveAttribute('data-expanded', 'false');
+});
+
+Then('the open tasks tray is at most {int} px wide', async function (this: World, px: number) {
+  await expect.poll(async () => {
+    const w = await this.page.evaluate(() => ({
+      box: document.querySelector('[data-testid="task-tray"]')!.getBoundingClientRect().width,
+      css: parseFloat(document.documentElement.style.getPropertyValue('--tray-w')),
+    }));
+    return Math.max(w.box, w.css);
+  }).toBeLessThanOrEqual(px);
+});
+
+Then('the task list {string} is highlighted in the open tasks tray', async function (this: World, list: string) {
+  await expect(trayRow(this, list)).toHaveAttribute('data-flash', 'true');
+});
+
 When('I hide where carried-over task lists come from in the settings', async function (this: World) {
   await this.page.goto('/');
   await this.page.getByTestId('settings-button').click();

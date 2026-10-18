@@ -144,7 +144,7 @@ watch(hourHeight, () => { void nextTick(place); });
 // the card first, so the sheet remembers it as its opener.
 function openList() {
   props.anchor.focus({ preventScroll: true });
-  ui.openDialog('tasklist-expanded', { id: props.id });
+  ui.revealTask(props.id);
   emit('close');
 }
 </script>

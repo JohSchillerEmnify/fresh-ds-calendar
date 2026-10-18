@@ -45,6 +45,8 @@ export default {
     empty: 'Nothing waiting. Nice.',
     fold: 'Fold {title}',
     showItems: 'Show items of {title}',
+    collapse: 'Collapse the open tasks panel',
+    expand: 'Expand the open tasks panel',
   },
   card: {
     label: '{title}, {done} of {total} done',

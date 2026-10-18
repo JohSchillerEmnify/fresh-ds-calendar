@@ -180,3 +180,32 @@ Feature: Open tasks stay in sight
     Given the calendar is empty
     When I open the week view for 2026-10-12
     Then the open tasks tray shows the count "No open tasks"
+
+  @desktop
+  Scenario: The desktop tray collapses to a slim strip and opens again, also after a reload
+    When I open the day view for 2026-10-12
+    And I collapse the open tasks tray
+    Then the open tasks tray is collapsed
+    And the open tasks tray is at most 60 px wide
+    And the open tasks tray shows the count "3 open"
+    When I reload the app
+    Then the open tasks tray is collapsed
+    When I open the open tasks tray
+    Then the open tasks tray is expanded
+    And the open tasks tray lists "Laundry, Groceries, Packing"
+
+  @desktop
+  Scenario: Opening a list the tray already shows reveals it there instead of opening a second panel
+    Given the task list tap setting is "drawer"
+    When I open the day view for 2026-10-12
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" is highlighted in the open tasks tray
+    And no list sheet is open
+
+  @desktop
+  Scenario: With the tray collapsed, opening a list opens its panel as before
+    Given the task list tap setting is "drawer"
+    When I open the day view for 2026-10-12
+    And I collapse the open tasks tray
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" opens as the list sheet

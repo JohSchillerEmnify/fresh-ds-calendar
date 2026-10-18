@@ -9,6 +9,12 @@ import { attr, tid, type World } from './world.js';
 export async function expandTaskList(world: World, title: string) {
   const grown = world.byTestId('tasklist-expanded', attr('data-title', title) + attr('data-presentation', 'overlay'));
   const sheet = world.page.locator(`${tid('tasklist-expanded')}${attr('data-title', title)}:not(${attr('data-presentation', 'overlay')})`);
+  // An open desktop tray that shows the list would reveal its row instead of opening the sheet: collapse it first.
+  const tray = world.page.getByTestId('task-tray');
+  if (!world.isPhoneProject && (await tray.isVisible()) && (await tray.getAttribute('data-expanded')) === 'true') {
+    await world.page.getByTestId('task-tray-toggle').click();
+    await expect(tray).toHaveAttribute('data-expanded', 'false');
+  }
   const monthView = await world.page.getByTestId('month-view').isVisible();
   // Phone month chips are pointer-events:none by design (the cell takes the tap), so Playwright's hit-target check
   // would never pass: tap the card's position instead.
