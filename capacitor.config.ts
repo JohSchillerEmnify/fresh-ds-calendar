@@ -8,7 +8,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
   appId: 'lan.mordor.calendar',
-  appName: 'Calendar',
+  appName: "Fresh-D's Kalender",
   webDir: 'android/www',
 };
 

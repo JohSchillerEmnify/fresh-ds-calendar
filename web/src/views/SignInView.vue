@@ -14,7 +14,8 @@ function signIn() {
 
 <template>
   <section class="page" data-testid="signin-page">
-    <h1>{{ t('calendar.signIn.title') }}</h1>
+    <h1 data-testid="app-name">{{ t('app.name') }}</h1>
+    <p class="slogan" data-testid="app-slogan">{{ t('app.slogan') }}</p>
     <p v-if="isPrivate" class="notice" role="alert" data-testid="signin-private">{{ t('calendar.signIn.privateCalendar') }}</p>
     <p v-else class="hint">{{ t('calendar.signIn.hint') }}</p>
     <Button data-testid="signin-google" @click="signIn">{{ t('calendar.signIn.withGoogle') }}</Button>
@@ -24,6 +25,7 @@ function signIn() {
 <style scoped>
 .page { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); }
 h1 { margin: 0; font: var(--md-sys-typescale-headline-medium); }
+.slogan { font-style: italic; color: var(--md-sys-color-on-surface-variant); }
 p { margin: 0; max-width: 320px; font: var(--md-sys-typescale-body-large); }
 .notice { color: var(--md-sys-color-error); }
 .hint { color: var(--md-sys-color-on-surface-variant); }

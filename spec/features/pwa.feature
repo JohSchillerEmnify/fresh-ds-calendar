@@ -14,8 +14,8 @@ Feature: Installable progressive web app
     Then the page links a web app manifest
     When I request "GET /manifest.webmanifest"
     Then the response status is 200
-    And the response JSON field "name" equals "Calendar"
-    And the response JSON field "short_name" equals "Calendar"
+    And the response JSON field "name" equals "Fresh-D's Kalender"
+    And the response JSON field "short_name" equals "Fresh-D"
     And the response JSON field "display" equals "standalone"
     And the response JSON field "start_url" equals "/"
     And the response JSON field "scope" equals "/"
@@ -32,7 +32,7 @@ Feature: Installable progressive web app
     And the page has an apple touch icon of size "180x180"
     And the page has the meta tag "apple-mobile-web-app-capable" set to "yes"
     And the page has the meta tag "apple-mobile-web-app-status-bar-style" set to "default"
-    And the page has the meta tag "apple-mobile-web-app-title" set to "Calendar"
+    And the page has the meta tag "apple-mobile-web-app-title" set to "Fresh-D"
     And the viewport meta tag contains "viewport-fit=cover"
 
   Scenario: A service worker is registered in a secure context

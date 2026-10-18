@@ -53,7 +53,7 @@ spec files are named.
   The day view doubles as the agenda (all-day area + time grid); no separate list-style agenda screen in v1.
 - **A-21 Swipes** are implemented with touch events on the calendar area (no gesture library), so tests can dispatch
   them deterministically.
-- **A-22 Theme color** `#1a73e8`, background `#ffffff`, app name and short name "Calendar". Icons are generated from
+- **A-22 Theme color** `#1a73e8`, background `#ffffff`, app name "Fresh-D's Kalender" and short name "Fresh-D". Icons are generated from
   one SVG source (simple calendar glyph) in 180/192/512 and maskable 512.
 - **A-23 Secure context** (owner update): service workers and the Android install prompt need HTTPS.
   `http://cal.mordor.local` is not secure, so there: no service worker / offline shell, Android only creates a browser
@@ -619,7 +619,7 @@ spec files are named.
 
 - **A-200 Shell and URL** (owner): a Capacitor Android app loading `http://cal.mordor.lan`, because a TWA needs HTTPS.
   Cleartext only for that host (network security config). App id `lan.mordor.calendar` (my choice, the owner said
-  "e.g."), name "Calendar". If the LAN host name changes, `capacitor.config.ts` and the network security config change.
+  "e.g."), name "Fresh-D's Kalender". If the LAN host name changes, `capacitor.config.ts` and the network security config change.
 - **A-201 Widget data** (owner, refined 2026-10-13): the widget calls `GET /api/items` itself with the app's session
   cookie (no key); the app-written snapshot supplies theme, language and a fallback. Replaces the owner's first choice
   (snapshot only).
