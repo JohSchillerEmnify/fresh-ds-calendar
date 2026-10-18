@@ -332,6 +332,7 @@ async function resetDemo() {
           <template v-if="labs.labs">
             <span class="lab sublab">{{ t('settings.labs.views.title') }}</span>
             <div v-for="v in LABS_VIEWS" :key="v.id" class="row"><div class="grow"><span class="lab">{{ t(v.labelKey) }}</span></div><Switch :model-value="isLabsViewOn(v.id, labs.labsViews)" :label="t(v.labelKey)" :data-testid="`settings-labs-view-${v.id}`" @update:model-value="savePrefs({ labsViews: { [v.id]: $event } })" /></div>
+            <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
           </template>
         </section>
 
@@ -360,7 +361,6 @@ async function resetDemo() {
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
           <div v-if="clock.config.apk?.certSha256" class="row"><div class="grow" data-testid="settings-app-cert"><span class="lab">{{ t('settings.account.appCert.label') }}</span><span class="sub cert">{{ clock.config.apk.certSha256 }}</span><span class="sub">{{ t('settings.account.appCert.hint') }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.whatsNew.label') }}</span><span class="sub">{{ t('settings.account.whatsNew.hint') }}</span></div><Button variant="outlined" data-testid="settings-whats-new" @click="ui.openDialog('whats-new')">{{ t('settings.account.whatsNew.button') }}</Button></div>
-          <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.versionCorner.label') }}</span><span class="sub">{{ t('settings.account.versionCorner.hint') }}</span></div><Switch :model-value="labs.versionInCorner" :label="t('settings.account.versionCorner.label')" data-testid="settings-version-corner" @update:model-value="savePrefs({ versionInCorner: $event })" /></div>
         </section>
       </div>

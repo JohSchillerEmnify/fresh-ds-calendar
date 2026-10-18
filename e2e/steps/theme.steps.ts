@@ -490,22 +490,31 @@ When('I delete the theme {string}', async function (this: World, name: string) {
 
 // ---- Labs switch for the AI part, drawn scene, own picture, Save as my theme ----
 
-Given('own themes are turned on in Labs', async function (this: World) {
-  await this.api.patch('/api/prefs', { labsOwnThemes: true });
+Given('the AI theme prompt is turned on in Labs', async function (this: World) {
+  await this.api.patch('/api/prefs', { labs: true, labsOwnThemes: true });
 });
 
-When('I turn on own themes in the settings', async function (this: World) {
+When('I turn on the AI theme prompt in the settings', async function (this: World) {
+  // the AI switch sits under the experimental master switch
+  await turnOnLabsSwitch(this.page, 'settings-labs');
   await turnOnLabsSwitch(this.page, 'settings-labs-own-themes');
 });
 
-Then('the theme menu has no block for creating own themes', async function (this: World) {
-  await ensureMenu(this);
-  await expect(this.page.getByTestId('theme-own')).toHaveCount(0);
-});
-
-Then('the theme menu has a block for creating own themes', async function (this: World) {
+Then('the theme menu has no AI prompt', async function (this: World) {
   await ensureMenu(this);
   await expect(this.page.getByTestId('theme-own')).toBeVisible();
+  await expect(this.page.getByTestId('theme-ai')).toHaveCount(0);
+});
+
+Then('the theme menu has an AI prompt', async function (this: World) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-ai')).toBeVisible();
+});
+
+Then('the theme menu has the import block', async function (this: World) {
+  await ensureMenu(this);
+  await expect(this.page.getByTestId('theme-own')).toBeVisible();
+  await expect(this.page.getByTestId('theme-import-text')).toBeVisible();
 });
 
 Then('the top bar draws the decor {string}', async function (this: World, decor: string) {

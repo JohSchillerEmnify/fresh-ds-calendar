@@ -231,7 +231,7 @@ function back() {
             </template>
           </ThemeCard>
         </div>
-        <ThemeImport v-if="prefs.labsOwnThemes" />
+        <ThemeImport :ai="prefs.labs && prefs.labsOwnThemes" />
       </section>
 
       <section class="card" aria-labelledby="h-scene" data-testid="theme-section" data-section="scene">

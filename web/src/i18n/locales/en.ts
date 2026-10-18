@@ -188,7 +188,7 @@ export default {
     navPosition: { label: 'View switcher', hint: 'Where Year, Month, Week and Day sit', phone: 'On phones', desktop: 'On desktop and tablets', bottom: 'Bottom', top: 'Top', rail: 'Side rail' },
     plant: 'Plant',
     sunflowers: { label: 'Sunflowers', hint: 'Applies to the Sunflower field scene', grow: 'Grow with points', full: 'Full field' },
-    ownThemes: { label: 'Own themes (AI and import)', hint: 'Experimental: a prompt for an AI and the import of its theme file in the theme menu' },
+    ownThemes: { label: 'Generate themes with AI', hint: 'Experimental: get a prompt to paste into an AI, then import the theme it returns' },
   },
   themePreview: {
     label: 'Live preview',
