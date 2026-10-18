@@ -1067,9 +1067,21 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
 
 The server reports its build version (`APP_VERSION`, else the git sha at build time) in `GET /api/config` as
 `version`; the web app knows its own at build time (`<html data-app-version>`). On every sync and when the app comes
-back to the foreground it compares them; when they differ it shows a persistent snackbar "New version available" with
-"Reload" (`update-available`, `update-reload`). Reload also activates a waiting service worker so the new assets load. A preview build (version `…-preview+<sha>`) skips the snackbar and reloads by itself, so the owner always sees the newest preview (owner, 2026-10-13); production keeps the snackbar.
-It never reloads by itself and never interrupts an open dialog.
+back to the foreground it compares them.
+- **With a controlling service worker (installed PWA / HTTPS) the update is applied automatically (owner, 2026-10-18:
+  "ideally the app just updates without the user having to reload", and the update must not step through versions one
+  reload at a time)**: on a version difference the app calls `reg.update()` to fetch and install the **newest** service
+  worker (so it jumps straight to the latest, never through intermediate waiting workers), then activates it
+  (`SKIP_WAITING`) and reloads **as soon as it is safe** — no open dialog/editor (`ui.dialog`), picker (`ui.pickerOpen`)
+  or drag/resize (`ui.resizing`). While one of those is open the reload is deferred and applied when it closes, or when
+  the tab becomes hidden (an invisible reload). No "Reload" snackbar in this case. Because the running route (view+date)
+  is restored on reload, the update is barely visible.
+- **Without a controlling worker** (the first load before the SW controls the page, TEST_MODE, or an insecure context)
+  the manual snackbar stays: a persistent "New version available" with "Reload" (`update-available`, `update-reload`);
+  there a plain reload loads the new build. A preview build (version `…-preview+<sha>`) reloads by itself, so the owner
+  always sees the newest preview (owner, 2026-10-13).
+- It never interrupts an open dialog, and a reload that comes back on the old build is not re-applied (`RELOADED_KEY`
+  guard), so it can never loop.
 
 ### Version numbers (owner, 2026-10-13)
 
