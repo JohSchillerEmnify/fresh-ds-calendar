@@ -34,7 +34,7 @@ const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}
 
 <template>
   <article
-    class="note" data-testid="canvas-note" data-canvas-drag="note" :data-canvas-id="list.id" :data-tasklist-id="list.id" :data-title="displayTitle(list)"
+    class="note tl-surface" data-testid="canvas-note" data-canvas-drag="note" :data-canvas-id="list.id" :data-tasklist-id="list.id" :data-title="displayTitle(list)"
     :data-date="list.date ?? ''" :data-x="Math.round(x)" :data-y="Math.round(y)" :data-placed="placed" :data-area="area" :data-dimmed="dimmed" :data-dragging="dragging || undefined" :style="style"
   >
     <div class="grip" data-testid="canvas-note-grip">
@@ -47,9 +47,7 @@ const style = computed(() => ({ transform: `translate3d(${props.x}px, ${props.y}
 
 <style scoped>
 .note {
-  position: absolute; left: 0; top: 0; box-sizing: border-box; border-radius: 14px; border-top: 6px solid var(--c);
-  border-inline: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
-  background: color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-highest)); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  position: absolute; left: 0; top: 0; box-sizing: border-box; --tl-surface-top: 6px;
   cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 /* the lift of a picked-up note and the way back after a failed save: transitions only with motion on */

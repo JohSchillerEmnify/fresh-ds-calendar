@@ -31,6 +31,7 @@ import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './o
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
+import { useTaskList } from './useTaskList';
 
 const props = defineProps<{
   id: string;
@@ -59,10 +60,7 @@ const lists = useTaskListsStore();
 const prefs = usePrefsStore();
 
 const root = ref<HTMLElement | null>(null);
-const tl = computed(() => {
-  const i = items.get(props.id);
-  return i?.kind === 'tasklist' ? i : null;
-});
+const tl = useTaskList(() => props.id, { load: { seed: () => props.list, onClose: () => emit('close') } });
 const complete = computed(() => !!tl.value && isComplete(tl.value));
 /** Collapsed to the head, remembered per list and device; the expanded list's sheet (`closable`) never collapses. */
 const collapsed = computed(() => !props.closable && isCollapsed(props.id));
@@ -78,17 +76,6 @@ const badgeText = computed(() => {
   return s ? t(s.owned ? 'sharing.badge' : 'sharing.badgeMember', { name: withNames(s.owned ? s.with : [s.owner]) }) : '';
 });
 
-// --- load: from the host's copy, else from the API (deep link, tray list outside the loaded range) -------------
-onMounted(async () => {
-  if (tl.value) return;
-  if (props.list) { items.upsert(props.list); return; }
-  try {
-    items.upsert(await api.getTaskList(props.id));
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) ui.notify(t('tasks.list.gone'));
-    emit('close');
-  }
-});
 onBeforeUnmount(() => {
   flashStop?.();
   forget(props.id);

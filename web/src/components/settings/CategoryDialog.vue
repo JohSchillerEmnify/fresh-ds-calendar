@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { api, ApiError } from '@/api/client';
+import { api } from '@/api/client';
 import { GOOGLE_COLORS, isHexColor } from '@/api/colors';
 import type { Category, Person } from '@/api/types';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
@@ -9,6 +9,7 @@ import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
 import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
+import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { t } from '@/i18n';
 import { useItemsStore } from '@/stores/items';
 import { useSettingsStore } from '@/stores/settings';
@@ -22,8 +23,8 @@ const settings = useSettingsStore();
 const name = ref(props.category?.name ?? '');
 const color = ref(props.category?.color ?? GOOGLE_COLORS[9].hex);
 const icon = ref(props.category?.icon ?? '');
-const error = ref('');
-const saving = ref(false);
+const { busy: saving, error, run: submit } = useAsyncSubmit({ onDone: () => emit('close') });
+const run = (fn: () => Promise<unknown>) => submit(fn, 'theme.categoryDialog.failed');
 const confirming = ref(false);
 /** "Share with" (ARCHITECTURE "Shared lists"): who this category's lists are shared with, '' = nobody. */
 const people = ref<Person[]>([]);
@@ -40,18 +41,6 @@ onMounted(async () => {
 const shareOptions = computed(() => [{ value: '', label: t('sharing.category.nobody') }, ...people.value.map((p) => ({ value: p.sub, label: p.name }))]);
 const swatches = computed(() => GOOGLE_COLORS.map((c) => ({ value: c.hex, name: googleColorLabel(c), color: c.hex })));
 
-async function run(fn: () => Promise<unknown>) {
-  saving.value = true;
-  error.value = '';
-  try {
-    await fn();
-    emit('close');
-  } catch (e) {
-    error.value = e instanceof ApiError ? e.userMessage : t('theme.categoryDialog.failed');
-  } finally {
-    saving.value = false;
-  }
-}
 function save() {
   if (!name.value.trim()) { error.value = t('theme.categoryDialog.nameRequired'); return; }
   if (!isHexColor(color.value)) { error.value = t('theme.fine.invalidColor'); return; }

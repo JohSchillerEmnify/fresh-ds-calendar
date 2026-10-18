@@ -3,6 +3,7 @@ import { registerDialog, registerItemOpener, registerItemRenderer, registerTray 
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import TaskListCard from './TaskListCard.vue';
+import './tasklists.css';
 import { useTaskListsStore } from './store';
 
 export { useTaskListsStore } from './store';

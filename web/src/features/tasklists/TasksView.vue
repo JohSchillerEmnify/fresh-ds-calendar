@@ -91,7 +91,7 @@ onBeforeUnmount(() => stop?.());
         <p v-if="!archive.length" class="empty" data-testid="tasks-archive-empty">{{ search.trim() ? t('tasks.archive.noMatch') : t('tasks.archive.empty') }}</p>
         <ul class="list group">
           <li
-            v-for="l in archive" :key="l.id" class="item" data-testid="tasks-archive-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
+            v-for="l in archive" :key="l.id" class="item tl-surface" data-testid="tasks-archive-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
             :data-completed-on="l.completedOn ?? ''" :style="{ '--c': cats.color(l) }"
           >
             <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" />
@@ -108,7 +108,7 @@ onBeforeUnmount(() => stop?.());
         <h2 v-if="g.title" class="gt" data-testid="tasks-group-title">{{ g.title }}</h2>
         <ul class="list">
           <li
-            v-for="l in g.lists" :key="l.id" class="item" data-testid="tasks-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
+            v-for="l in g.lists" :key="l.id" class="item tl-surface" data-testid="tasks-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
             :data-date="l.date ?? ''" :style="{ '--c': cats.color(l) }"
           >
             <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" @completed="tasks.markFinished(l.id)" />
@@ -134,11 +134,7 @@ onBeforeUnmount(() => stop?.());
 .gt { margin: 12px 4px 8px; font: var(--md-sys-typescale-title-small); color: var(--md-sys-color-on-surface-variant); }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 /* Same card as the tray's rows: category color on top, own surface tint, light shadow. */
-.item {
-  display: flex; flex-direction: column; border-radius: 14px; border-top: 4px solid var(--c);
-  border-inline: 1px solid var(--md-sys-color-outline-variant); border-bottom: 1px solid var(--md-sys-color-outline-variant);
-  background: color-mix(in srgb, var(--c) 14%, var(--md-sys-color-surface-container-highest)); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
-}
+.item { display: flex; flex-direction: column; --tl-surface-top: 4px; }
 .view { padding: 0 12px 4px; }
 .quick { display: flex; gap: 8px; padding: 0 12px 12px; }
 .empty { max-width: 760px; margin: 24px auto; padding: 0 4px; color: var(--md-sys-color-on-surface-variant); }
