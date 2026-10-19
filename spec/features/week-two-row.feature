@@ -17,6 +17,19 @@ Feature: Two-row week overview
     Then all seven days are laid out in two rows
     And I see both "Standup" and "Kino" without scrolling
 
+  Scenario: By default four days sit on top and three below
+    Given the two-row week overview is on
+    When I open the week of 2026-10-12 on a phone
+    Then Monday to Thursday are on the top row
+    And Friday to Sunday are on the bottom row
+
+  Scenario: Switching the split moves the fourth day down
+    Given the two-row week overview is on
+    And the split is set to three days on top
+    When I open the week of 2026-10-12 on a phone
+    Then Monday to Wednesday are on the top row
+    And Thursday to Sunday are on the bottom row
+
   Scenario: Days show their entries to scale
     Given the two-row week overview is on
     And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:30
