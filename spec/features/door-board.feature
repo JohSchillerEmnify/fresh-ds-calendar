@@ -5,7 +5,8 @@ Feature: Reminders and today's events for the door board
   are marked for the door, and today's events, so it can show the next one that has not started yet.
   Nothing else leaves the calendar that way — no descriptions, no attendees, no places. The board's key
   belongs to one person: the door shows that person's lists and events only. A dated list is due from
-  its day, whatever its time; an undated one is due until it is done.
+  its day, whatever its time; an undated one is due until it is done. The whole door is a deployment
+  choice, off unless the operator set a key: a public instance without one has no switch and no door.
 
   Background:
     Given the calendar is empty
@@ -102,6 +103,16 @@ Feature: Reminders and today's events for the door board
         | Bakery |
       When the door board asks for its reminders
       Then it gets no reminders
+
+  Rule: The door exists only where the deployment set it up
+
+    Scenario: Without a key there is no door at all
+      Given the door board's key is taken away
+      And the calendar contains a task list "Groceries" on 2026-10-19 with items:
+        | Tomatoes |
+      When I edit the task list "Groceries"
+      Then there is no "Show on door" switch
+      And asking for the door's reminders finds no such thing
 
   Rule: "Show on door" is switched in the list form and in the list sheet
 
