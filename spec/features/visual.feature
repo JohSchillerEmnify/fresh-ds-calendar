@@ -1,4 +1,4 @@
-@visual @id:visual-states
+@visual @mobile @id:visual-states
 Feature: The calendar's states look right
   Every state that is drawn (not just measured) has rules that need no reference picture — nothing is clipped, nothing
   overlaps, the pill covers the card it grew from — and a picture that guards against regressions once the state is
@@ -81,3 +81,13 @@ Feature: The calendar's states look right
     And the head row and the items of the expanded task list do not overlap
     And the pill of the expanded task list covers the card "Weekend chores" it grew from
     And the "week overview" still looks like "week-grown"
+
+  Scenario: The normal week's tight pill keeps its title on one line
+    Given the calendar contains a task list "Weekly shopping for the big family barbecue" on 2026-10-14 at 11:00 for 30 minutes with items:
+      | Milk |
+    When I open the week of 2026-10-12 on a phone
+    And I tap "Weekly shopping for the big family barbecue"
+    Then no text in the "expanded task list" is clipped
+    And the head row and the items of the expanded task list do not overlap
+    And the pill of the expanded task list covers the card "Weekly shopping for the big family barbecue" it grew from
+    And the "week overview" still looks like "week-grown-tight"
