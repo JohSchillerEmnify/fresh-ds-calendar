@@ -6,9 +6,22 @@ model {
     prefsStore = store 'Stored prefs' {
       description 'Per-person preferences on disk, the source of truth'
     }
+    tasksApi = component 'Tasks API' {
+      description 'Creates and updates a person\'s task lists, their tags included'
+    }
+    calendarService = component 'Calendar service' {
+      description 'Reads and writes one person\'s events and task lists through the calendar provider'
+    }
+    doorApi = component 'Door API' {
+      description 'Read-only answer for one machine client: the open items of door-tagged lists and today\'s events of the key\'s person, titles and times only'
+    }
 
     prefsApi -> prefsStore 'reads and writes'
+    tasksApi -> calendarService 'stores the list with its tags'
+    doorApi -> calendarService 'reads the key\'s person\'s lists and events'
   }
 
   calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+  calendar.web.listForm -> calendar.server.tasksApi 'saves the list, Show on door as the door tag'
+  calendar.web.listSheet -> calendar.server.tasksApi 'flips the door tag'
 }

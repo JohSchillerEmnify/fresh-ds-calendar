@@ -15,6 +15,12 @@ model {
     primitives = library 'Layout primitives' {
       description 'Overlap packing, all-day packing and the item block renderer, used by the grid'
     }
+    listForm = component 'Task list form' {
+      description 'Creates and edits a task list; carries the Show on door switch'
+    }
+    listSheet = component 'List sheet' {
+      description 'The bottom sheet a tap opens on a task list; carries the Show on door switch too'
+    }
 
     settings -> prefs 'changes the overview and split prefs'
     week -> prefs 'reads the overview and split prefs'
