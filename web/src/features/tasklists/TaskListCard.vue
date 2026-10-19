@@ -109,7 +109,8 @@ const hasFoot = computed(() => !!tl.value.time && !fit.value.inline && !shortBlo
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const section = inject(sectionKey, () => 'full' as const);
 /** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
-const titles = computed(() => section() === 'titles' && props.variant === 'allday');
+// the band's title form is for the pill only: the grown card always shows its items, whatever the band's section mode
+const titles = computed(() => !props.grown && section() === 'titles' && props.variant === 'allday');
 const collapsed = computed(() => titles.value);
 const fit = computed(() => {
   const block = props.variant === 'block';

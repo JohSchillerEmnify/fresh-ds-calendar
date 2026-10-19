@@ -92,7 +92,7 @@ Feature: The calendar's states look right
     And the pill of the expanded task list covers the card "Weekly shopping for the big family barbecue" it grew from
     And the "week overview" still looks like "week-grown-tight"
 
-  Scenario: The overview's band shows the lists in full as stacked cards
+  Scenario: The overview's band shows its lists as pills only, and a tap grows one in place
     Given the two-row week overview is on
     And the calendar contains a task list "Groceries" on 2026-10-12 with items:
       | Tomatoes     |
@@ -102,9 +102,11 @@ Feature: The calendar's states look right
       | Test the walkthrough |
       | Book the room        |
     When I open the week of 2026-10-12 on a phone
-    And I show the band's task lists in full
-    Then the head row and the items of the band's cards do not overlap
-    And the "top row" still looks like "two-row-band-full"
+    Then the band's lists are one-line pills with no section switch
+    And the "top row" still looks like "two-row-band"
+    When I tap "Groceries"
+    Then "Groceries" expands in place and shows "Tomatoes"
+    And the "top row" still looks like "two-row-band-grown"
 
   Scenario: A grown task list in the dark theme is a box of its own
     Given the device prefers a dark color scheme

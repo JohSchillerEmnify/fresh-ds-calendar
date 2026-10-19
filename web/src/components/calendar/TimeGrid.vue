@@ -53,7 +53,8 @@ const cols = computed(() => props.dates.map((d) => {
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
-const smode = computed(() => sectionMode(props.mode, isPhone.value));
+// fit (two-row overview): the band's lists are always one-line pills that grow in place on a tap — no section cycling (owner, 2026-10-19)
+const smode = computed(() => (props.fit ? 'titles' : sectionMode(props.mode, isPhone.value)));
 provide(sectionKey, () => smode.value);
 const isList = (s: { item: { kind: string } }) => s.item.kind === 'tasklist';
 const taskTotal = computed(() => cols.value.reduce((n, c) => n + c.top.filter(isList).length, 0));
@@ -153,13 +154,14 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         <span class="dow">{{ formatDate(c.d, 'weekday') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
       </button>
     </div>
-    <!-- fit: the band is capped (34%) and scrolls, so each row keeps its content height instead of being squeezed to share the cap -->
+    <!-- fit: the band is capped (34%) and scrolls, so each row keeps its content height instead of being squeezed to share the cap;
+         its lists are one-line pills (allday in title form) that grow in place on a tap -->
     <div class="alldays" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(${fit ? 'max-content' : 'var(--bar-h)'}, auto))` : undefined }">
-      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
+      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :disabled="!!fit" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="fit || cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg v-if="!fit" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${Math.max(band.rows, 1) + 1}` }" :data-testid="ids.all" :data-date="c.date">
         <button v-if="band.days[ci].count" class="taskcount" type="button" data-testid="tasks-count-chip" :style="{ gridRow: band.days[ci].slots[0] + 1 }" @click="cycleSection(mode, isPhone)">{{ t('calendar.grid.taskCount', { count: c.top.filter(isList).length }, c.top.filter(isList).length) }}</button>
-        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || (s.item.kind === 'tasklist' && (!fit || smode === 'full')) ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
+        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>

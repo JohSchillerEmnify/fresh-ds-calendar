@@ -3,7 +3,7 @@
  * the pill covers its card — and `toHaveScreenshot` pictures as regression guards (baselines in e2e/snapshots).
  */
 import { expect, type Locator } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Then } from './fixtures.js';
 import { box } from './support/ui.js';
 import type { World } from './support/world.js';
 
@@ -97,24 +97,18 @@ Then('the {string} still looks like {string}', async function (this: World, name
   await expect(target).toHaveScreenshot(`${picture}.png`, { mask: [this.page.getByTestId('now-marker')] });
 });
 
-When("I show the band's task lists in full", async function (this: World) {
+Then("the band's lists are one-line pills with no section switch", async function (this: World) {
   const toggle = this.byTestId('tasks-section-toggle').first();
-  for (let i = 0; i < 4 && (await toggle.getAttribute('data-mode')) !== 'full'; i++) await toggle.click();
-  await expect(toggle).toHaveAttribute('data-mode', 'full');
-});
-
-Then("the head row and the items of the band's cards do not overlap", async function (this: World) {
+  await expect(toggle).toBeDisabled();
+  await expect(toggle.locator('svg')).toHaveCount(0);
   const cards = this.page.locator('.alldays').first().locator('.tl');
   await expect(cards.first()).toBeVisible();
   const bad = await cards.evaluateAll((els) => els.flatMap((c) => {
-    const row = c.querySelector('.row')!.getBoundingClientRect();
-    const items = [...c.querySelectorAll('.it')].map((i) => i.getBoundingClientRect()).filter((r) => r.height > 0);
-    const out: string[] = [];
-    let prev = row.bottom;
-    for (const r of items) { if (r.top < prev - 1) out.push(`${c.getAttribute('data-title')}: item at ${Math.round(r.top)} above ${Math.round(prev)}`); prev = r.bottom; }
-    return out;
+    const h = c.getBoundingClientRect().height;
+    const shown = [...c.querySelectorAll('.it')].filter((i) => i.getBoundingClientRect().height > 1).length;
+    return [...(h > 30 ? [`${c.getAttribute('data-title')} is ${Math.round(h)}px tall`] : []), ...(shown ? [`${c.getAttribute('data-title')} shows ${shown} items`] : [])];
   }));
-  expect(bad, 'band items below the head row, one under the other').toEqual([]);
+  expect(bad, 'every band list is a one-line pill without its items').toEqual([]);
 });
 
 /** Parses `rgb(a)(...)` and `color(srgb r g b)` computed colours to 0–255 channels; null for transparent or unknown. */
