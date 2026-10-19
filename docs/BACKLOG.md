@@ -4,6 +4,10 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Notification icon is always the moon** (owner, 2026-10-19: "the notification icon is always a moon, which is
+  bullshit"). Every push notification (event and task-list reminders, morning summary) shows the bedtime moon; each
+  kind should carry its own icon (event, task list, morning, bedtime). Look at the icon/badge the push payload sets
+  (`server/src/services/push*`, the service worker's `showNotification` options) and the PWA icon set.
 - **Two-row overview: a lone entry leaves the grown list no room** (2026-10-19, seen in the visual gate). The shared
   window is the week's earliest start to its latest end (min 60 min); when the only entry is one task list, its block
   fills the whole row, so the grown card's list has no space above or below and stays hidden. Options: a minimum
