@@ -2051,3 +2051,54 @@ the push {string} was sent once
   time is D T") runs the server's push loop once on the new app time, so a push that became due is sent before the step returns.
 - Warnings reuse "I see the transition warning X" / "I do not see a transition warning" / "N minutes pass".
 
+## Two-row week overview (`@two-row`)
+
+```
+the two-row week overview is on
+the expanding task-list cards experiment is on
+the expanding task-list cards experiment is off
+the split is set to three days on top
+I open the week of {date} on a phone
+all seven days are laid out in two rows
+I see both {string} and {string} without scrolling
+Monday to Thursday are on the top row
+Friday to Sunday are on the bottom row
+Monday to Wednesday are on the top row
+Thursday to Sunday are on the bottom row
+{string} is about {int} times as tall as {string}
+every day spans the same hours, from the week's earliest entry to its latest
+no empty hours are shown before {string} or after {string}
+I see {string}
+I tap {string}
+the event {string} opens
+{string} expands in place and shows {string}
+the week is still shown behind it, not replaced by a separate sheet
+I tap the empty area of {date}
+the day view for {date} opens
+{string} is in the all-day band of {date}, above the timed entries
+the seven days are side by side in a single row
+```
+
+- The overview is switched on through `PATCH /api/prefs` (`weekTwoRow`, `weekTwoRowTop`); the Labs master switch is not needed.
+  "on a phone" sets the viewport to 375 x 812 before opening `/week/{date}`, so it also holds in the desktop project.
+- The overview reuses `TimeGrid`: test ids `week-view` (root), `week-overview-row` (`data-row` 0 top, 1 bottom, one TimeGrid each),
+  `week-day-column`, `week-allday-cell`, `week-header` (`data-date`), `time-axis` (hour labels).
+- "without scrolling": both entries lie inside the viewport. "about N times as tall": heights within 15 %.
+  "every day spans the same hours": the `time-axis` hour labels of both rows are identical; "no empty hours": the earliest entry starts at
+  the top of row 0's visible `.scroll` area and the latest ends at the bottom of row 1's (within 6 px). "the empty area of D": the last
+  `time-slot` of D's `week-day-column`. "single row": the seven `week-header` cells share one top.
+
+## Visual states (`@visual`)
+
+Rules that need no reference picture, plus `toHaveScreenshot` regression pictures (baselines in `e2e/snapshots/<project>/`,
+written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
+(`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
+(`week-day-column[data-date]`), `top row` (`week-overview-row[data-row="0"]`). The `now-marker` is masked.
+
+```
+no text in the {string} is clipped
+the head row and the items of the expanded task list do not overlap
+the pill of the expanded task list covers the card {string} it grew from
+the {string} still looks like {string}
+the pill of the expanded task list shows the count {string}
+```

@@ -16,7 +16,7 @@ import { t } from '@/i18n';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { blockGeometry, displayTitle, neutralName } from '@/lib/items';
-import { hourHeight } from '@/composables/useHourHeight';
+import { useEffectiveHourHeight } from '@/composables/useHourHeight';
 import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
@@ -32,6 +32,8 @@ const calendar = useCalendarStore();
 // the system back closes the expansion first (ARCHITECTURE "Back closes overlays")
 useOverlayHistory(() => true, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
+// follows the host grid's hour height: the shared zoom height normally, a fit grid's own height in the two-row overview
+const hourHeight = useEffectiveHourHeight();
 // A time block's card lives inside the scrolling time grid (absolute, in content coordinates), so the browser scrolls it with the
 // calendar natively; anywhere else (month cells, all-day areas) it is a fixed overlay on the body.
 // Week/day time grid: the block's day column (the card lives in it, positioned in time units); other time views keep the pixel placement in `.grid`.
@@ -61,7 +63,8 @@ function bounds(): Box {
   const vp: Box = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
   for (let n = props.anchor.parentElement; n && n !== document.body; n = n.parentElement) {
     const o = getComputedStyle(n).overflowY;
-    if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) {
+    // a fit-mode grid clips instead of scrolling (`overflow: hidden`), so its area bounds the expansion just the same
+    if ((o === 'auto' || o === 'scroll' || n.hasAttribute('data-scroll-area')) && n.scrollHeight > n.clientHeight) {
       const r = n.getBoundingClientRect();
       return { left: Math.max(vp.left, r.left), top: Math.max(vp.top, r.top), right: Math.min(vp.right, r.right), bottom: Math.min(vp.bottom, r.bottom) };
     }
@@ -152,7 +155,7 @@ function openList() {
       :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? neutralName(tl) : t('tasks.list.fallbackLabel')"
       :style="timed ? timedStyle : pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
     >
-      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" @open-list="openList" @collapse="emit('close')" />
+      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" :tight="(pos?.minHeight || 0) < 30" @open-list="openList" @collapse="emit('close')" />
     </div>
   </Teleport>
 </template>

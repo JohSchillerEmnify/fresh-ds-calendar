@@ -13,6 +13,7 @@ Feature: A task list card grows in place over the calendar
 
   Background:
     Given the calendar is empty
+    And the expanding task-list cards experiment is on
     And today is 2026-10-12
     And the calendar contains a task list "Groceries" on 2026-10-14 at 09:00 for 30 minutes with items:
       | item   | done |
@@ -135,6 +136,13 @@ Feature: A task list card grows in place over the calendar
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
     Then the task list "Groceries" is expanded over the calendar
+
+  Scenario: Without the experiment a tap opens the list sheet
+    Given the expanding task-list cards experiment is off
+    When I open the week view for 2026-10-12
+    And I tap the task list "Groceries"
+    Then the task list "Groceries" opens as the list sheet
+    And no task list is expanded
 
   Scenario: With the setting "drawer" a tap opens the list sheet directly
     Given the task list tap setting is "drawer"
@@ -277,14 +285,13 @@ Feature: A task list card grows in place over the calendar
     Then the real time block of the expanded task list matches the card "Groceries"
 
   @expand-zoom
-  Scenario: A card that already shows everything opens the list directly
+  Scenario: A card that already shows everything still grows in place
     Given the calendar contains a task list "Short" on 2026-10-14 at 13:00 for 120 minutes with items:
       | item | done |
       | Tea  | no   |
     When I open the day view for 2026-10-14
     And I tap the task list "Short"
-    Then the task list "Short" opens as the list sheet
-    And no task list is expanded
+    Then the card of the task list "Short" says it is expanded
 
   @expand-zoom
   Scenario: A card as wide as its column whose items are cut only grows taller

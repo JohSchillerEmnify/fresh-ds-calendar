@@ -7,24 +7,18 @@ model {
       description 'Per-person preferences, mirrored from the server'
     }
     week = component 'Week view' {
-      description 'Shows one week; renders the overview or the normal grid depending on prefs'
-    }
-    overview = component 'Two-row week overview' {
-      #experimental
-      description 'Lays the week in two rows that fit one screen, entries to scale over a shared active-hours window'
+      description 'Shows one week: one Time grid, or two in fit mode as the two-row overview (experimental)'
     }
     timegrid = component 'Time grid' {
-      description 'The normal day and week 24-hour scrolling grid'
+      description 'The day and week hour grid; normally a 24-hour scroller, in fit mode the active window fills the area'
     }
     primitives = library 'Layout primitives' {
-      description 'Overlap packing, all-day packing and the item block renderer, shared by the grids'
+      description 'Overlap packing, all-day packing and the item block renderer, used by the grid'
     }
 
     settings -> prefs 'changes the overview and split prefs'
     week -> prefs 'reads the overview and split prefs'
-    week -> overview 'renders when the overview is on'
-    week -> timegrid 'renders when the overview is off'
-    overview -> primitives 'reuses'
+    week -> timegrid 'renders one grid, or two in fit mode over one shared window'
     timegrid -> primitives 'reuses'
   }
 }

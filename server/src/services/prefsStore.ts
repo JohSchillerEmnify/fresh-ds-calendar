@@ -222,6 +222,12 @@ export interface Prefs {
   bedtime: BedtimePrefs;
   /** Which reminders become system notifications (ARCHITECTURE "Notifications"). */
   notify: NotifyPrefs;
+  /** Labs: the week as a two-row overview that fits one screen (ARCHITECTURE "Two-row week"; off by default). */
+  weekTwoRow: boolean;
+  /** Labs: a tap on a task-list card grows it in place (the grown card); off, a tap opens the list sheet. */
+  labsGrowCards: boolean;
+  /** Days on the overview's top row: 4 (Mon-Thu on top) or 3 (Mon-Wed on top). */
+  weekTwoRowTop: 3 | 4;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -269,6 +275,9 @@ export class PrefsStore {
       language: isLanguagePref(p?.language) ? p.language : 'auto',
       bedtime: readBedtime(p?.bedtime),
       notify: readNotify(p?.notify),
+      weekTwoRow: p?.weekTwoRow === true,
+      labsGrowCards: p?.labsGrowCards === true,
+      weekTwoRowTop: p?.weekTwoRowTop === 3 ? 3 : 4,
     };
   }
 
@@ -352,8 +361,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards };
   }
 
   /**

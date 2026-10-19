@@ -23,7 +23,9 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   timeout: 60_000,
-  expect: { timeout: 5_000 },
+  // Visual states (spec/features/visual.feature): pictures in CSS pixels, animations off; baselines live in e2e/snapshots (tracked).
+  expect: { timeout: 5_000, toHaveScreenshot: { animations: 'disabled', caret: 'hide', scale: 'css', maxDiffPixelRatio: 0.002 } },
+  snapshotPathTemplate: 'snapshots/{projectName}/{arg}{ext}',
   forbidOnly: !!process.env.CI,
   reporter: [
     ['list'],

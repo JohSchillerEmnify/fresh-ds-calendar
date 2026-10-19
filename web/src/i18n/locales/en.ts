@@ -169,6 +169,8 @@ export default {
     labs: {
       experimental: { label: 'Experimental views', hint: 'Clock, Timeline and Strip in the view switcher' },
       views: { title: 'Experimental views to offer' },
+      growCards: { label: 'Expanding task-list cards', hint: 'Tapping a task list in the calendar grows the card in place; off, it opens the list' },
+      weekTwoRow: { label: 'Two-row week overview', hint: 'Lay the week out in two rows so all seven days fit one screen without scrolling', split: 'Days on the top row' },
     },
     account: {
       signedIn: 'Signed in with Google',

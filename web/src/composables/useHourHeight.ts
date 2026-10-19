@@ -5,7 +5,7 @@
  * Ctrl+wheel (live preview during the gesture, one commit when it settles). Listeners are bound by `bindGridZoom`; the touch pinch never reaches the swipe carousel, which drops a
  * gesture as soon as a second finger lands (`bindSwipeCarousel`).
  */
-import { computed, ref } from 'vue';
+import { computed, inject, provide, ref, type InjectionKey, type Ref } from 'vue';
 import { isPhone } from '@/composables/useViewport';
 import { listen } from '@/lib/timers';
 
@@ -54,6 +54,17 @@ export function readStoredHourHeight(): number | null {
 const stored = ref<number | null>(readStoredHourHeight());
 /** The hour height every time-grid consumer converts minutes and pixels with. */
 export const hourHeight = computed(() => stored.value ?? (isPhone.value ? 44 : 48));
+
+/** A subtree's own hour height (e.g. a fit-to-height grid), injected so descendants like the expanded card follow it. */
+const HourHeightKey: InjectionKey<Ref<number>> = Symbol('hourHeight');
+/** Provide an hour height for this subtree, overriding the shared zoom height for descendants. */
+export function provideHourHeight(h: Ref<number>): void {
+  provide(HourHeightKey, h);
+}
+/** The effective hour height here: a provided one (fit grid) or the shared zoom height. */
+export function useEffectiveHourHeight(): Ref<number> {
+  return inject(HourHeightKey, hourHeight);
+}
 
 /** Set (clamped) and remember the hour height. Returns the value now in effect. */
 export function setHourHeight(px: number): number {

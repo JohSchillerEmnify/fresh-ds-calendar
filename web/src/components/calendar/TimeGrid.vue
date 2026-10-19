@@ -9,7 +9,7 @@ import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
-import { bindGridZoom, gridYUnder, hourHeight, previewShift, setHourHeight } from '@/composables/useHourHeight';
+import { bindGridZoom, gridYUnder, hourHeight, previewShift, provideHourHeight, setHourHeight } from '@/composables/useHourHeight';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
@@ -21,11 +21,26 @@ import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/sect
 import { useClockStore } from '@/stores/clock';
 import { t } from '@/i18n';
 
-const props = defineProps<{ mode: 'week' | 'day'; dates: Date[] }>();
+const props = defineProps<{ mode: 'week' | 'day'; dates: Date[]; fit?: { start: number; end: number } }>();
 const clock = useClockStore();
 const nav = useNav();
 const segs = useDaySegments();
 const barsOf = useBars();
+
+// Fit-to-height mode (two-row week overview): the active window [start, end] fills the measured area, so the whole
+// window shows without scrolling. The effective hour height replaces the shared zoom height for this grid and its
+// descendants (the expanded card follows it via provide/inject), so the inline grown card still lines up by construction.
+/** Fit mode's smallest block (px): one readable title line, so a short entry stays nearer its real length than the normal minimum. */
+const FIT_MIN_BLOCK_PX = 19;
+const availH = ref(0);
+const fitHH = computed(() => {
+  const f = props.fit;
+  if (!f) return hourHeight.value;
+  const hours = (f.end - f.start) / 60;
+  return hours > 0 && availH.value > 0 ? availH.value / hours : hourHeight.value;
+});
+const hh = computed(() => (props.fit ? fitHH.value : hourHeight.value));
+provideHourHeight(hh);
 
 const cols = computed(() => props.dates.map((d) => {
   const date = toIsoDate(d);
@@ -34,7 +49,7 @@ const cols = computed(() => props.dates.map((d) => {
     date, d,
     today: date === clock.today,
     top: all.filter((s) => s.allDay || s.startTime === null),
-    placed: packColumns(all, (MIN_BLOCK_PX / hourHeight.value) * 60),
+    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60),
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
@@ -52,7 +67,7 @@ const band = computed(() => {
   // a bar takes its slot only on the days it covers, each day's own entries fill that day's free slots from the top
   return { days: days.map((d, i) => ({ ...d, slots: packed[i].slots })), rows: Math.max(0, ...packed.map((p) => p.used)) };
 });
-const px = (min: number) => (min / 60) * hourHeight.value;
+const px = (min: number) => (min / 60) * hh.value;
 
 const scroller = ref<HTMLElement | null>(null);
 function scrollToMinutes(min: number) {
@@ -62,6 +77,8 @@ function scrollToMinutes(min: number) {
 function initialScroll() {
   const el = scroller.value;
   if (!el) return;
+  // fit mode: pin the window's start to the top (the whole window fits, so there is nothing else to scroll to)
+  if (props.fit) { el.scrollTop = Math.max(0, px(props.fit.start)); return; }
   const todayVisible = props.dates.some((d) => toIsoDate(d) === clock.today);
   el.scrollTop = Math.max(0, todayVisible ? px(clock.minutesNow) - el.clientHeight / 3 : px(7 * 60));
 }
@@ -95,13 +112,21 @@ function commitZoom(next: number) {
   nextTick(() => { el.scrollTop = Math.max(0, want); });
 }
 let unbindZoom = () => {};
+let ro: ResizeObserver | null = null;
 onMounted(() => {
   nextTick(initialScroll);
-  if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hourHeight.value, preview: previewZoom, commit: commitZoom });
+  // fit mode: measure the area (the effective hour height follows it) and re-pin the window; no pinch/wheel zoom here
+  if (props.fit) {
+    const el = scroller.value;
+    if (el) { availH.value = el.clientHeight; ro = new ResizeObserver(() => { availH.value = el.clientHeight; initialScroll(); }); ro.observe(el); }
+    return;
+  }
+  if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hh.value, preview: previewZoom, commit: commitZoom });
 });
-onBeforeUnmount(() => unbindZoom());
+onBeforeUnmount(() => { unbindZoom(); ro?.disconnect(); });
 watch(() => props.mode, () => nextTick(initialScroll));
 watch(() => toIsoDate(props.dates[0]), () => nextTick(initialScroll));
+watch(hh, () => { if (props.fit) nextTick(initialScroll); });
 defineExpose({ scrollToMinutes });
 
 /** Block box: the stored one, or the live one while its resize handle is dragged. */
@@ -110,7 +135,7 @@ function geo(p: { seg: { item: { id: string }; date: string }; top: number; heig
   const live = !!rp && rp.id === p.seg.item.id && rp.date === p.seg.date;
   const top = live ? rp.startMin : p.top;
   // The stored height already carries the minimum and the clamp against the next block (packColumns); only the live drag keeps the floor.
-  return blockGeometry(top, live ? rp.endMin : top + p.height, hourHeight.value, live ? undefined : 0);
+  return blockGeometry(top, live ? rp.endMin : top + p.height, hh.value, live ? undefined : 0);
 }
 const settling = (id: string, date: string) => resizePreview.value?.settle && resizePreview.value.id === id && resizePreview.value.date === date;
 
@@ -118,7 +143,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 </script>
 
 <template>
-  <div class="tg" :class="[mode, { phone: isPhone }]" :style="{ '--hh': hourHeight + 'px', '--n': dates.length }">
+  <div class="tg" :class="[mode, { phone: isPhone, fit: !!fit }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
     <div class="heads">
       <div class="gutter" />
       <button
@@ -133,18 +158,18 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${Math.max(band.rows, 1) + 1}` }" :data-testid="ids.all" :data-date="c.date">
         <button v-if="band.days[ci].count" class="taskcount" type="button" data-testid="tasks-count-chip" :style="{ gridRow: band.days[ci].slots[0] + 1 }" @click="cycleSection(mode, isPhone)">{{ t('calendar.grid.taskCount', { count: c.top.filter(isList).length }, c.top.filter(isList).length) }}</button>
-        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
+        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || (s.item.kind === 'tasklist' && !fit) ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
-      <div ref="gridEl" class="grid" data-testid="time-grid" :data-hour-height="hourHeight">
+      <div ref="gridEl" class="grid" data-testid="time-grid" :data-hour-height="hh">
         <div class="gutter hours" data-testid="time-axis">
           <span v-for="h in HOURS" :key="h" class="hl">{{ h === 0 ? '' : hourLabel(h) }}</span>
         </div>
         <div v-for="c in cols" :key="c.date" class="col" :class="{ today: c.today }" :data-testid="ids.col" :data-date="c.date">
           <button
             v-for="h in HOURS" :key="h" class="slot" type="button" data-testid="time-slot" :data-date="c.date" :data-hour="h"
-            :aria-label="t('calendar.grid.createAt', { date: c.date, time: hourLabel(h) })" @click="openNew(c.date, hourLabel(h))"
+            :aria-label="t('calendar.grid.createAt', { date: c.date, time: hourLabel(h) })" @click="fit ? nav.openDay(c.d) : openNew(c.date, hourLabel(h))"
           />
           <div
             v-for="p in c.placed" :key="p.seg.item.id + p.seg.date" class="blk" :class="{ settle: settling(p.seg.item.id, p.seg.date) }"
@@ -152,7 +177,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
           >
             <ItemView :segment="p.seg" variant="block" :height="geo(p).height" />
           </div>
-          <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hourHeight" />
+          <component :is="L" v-for="(L, i) in gridLayers" :key="i" :date="c.date" :hour-height="hh" />
         </div>
       </div>
     </div>
@@ -201,4 +226,10 @@ html[data-motion='off'] .blk.settle { transition: none; }
 .phone.week .dow { font-size: 11px; }
 .day .head { flex-direction: row; min-height: 36px; gap: 8px; }
 .day.phone .head { min-height: 36px; }
+/* fit-to-height (two-row overview): the window fills the area, nothing scrolls, heads and band stay compact */
+.tg.fit .scroll { overflow: hidden; }
+.tg.fit .head { min-height: 30px; flex-direction: row; gap: 5px; }
+.tg.fit .dn { width: 22px; height: 22px; font: var(--md-sys-typescale-label-large); font-size: 12px; }
+.tg.fit .dow { font-size: 11px; }
+.tg.fit .alldays { max-height: 34%; }
 </style>

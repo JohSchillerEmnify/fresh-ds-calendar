@@ -17,6 +17,6 @@ views {
     calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
     owner -> calendar.web.week 'opens the week'
     calendar.web.week -> calendar.web.prefs 'reads overview and split'
-    calendar.web.week -> calendar.web.overview 'renders two rows'
+    calendar.web.week -> calendar.web.timegrid 'renders two fit-mode grids'
   }
 }

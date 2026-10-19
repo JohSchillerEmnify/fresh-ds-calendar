@@ -7,6 +7,7 @@ Feature: Two-row week overview
 
   Background:
     Given the calendar is empty
+    And the expanding task-list cards experiment is on
     And today is 2026-10-12
 
   Scenario: The whole week is visible at once in two rows
@@ -32,10 +33,16 @@ Feature: Two-row week overview
 
   Scenario: Days show their entries to scale
     Given the two-row week overview is on
-    And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:30
+    And the calendar contains an event "Lunch" on 2026-10-12 from 12:00 to 13:00
     And the calendar contains an event "Workshop" on 2026-10-12 from 13:00 to 16:00
     When I open the week of 2026-10-12 on a phone
-    Then "Workshop" is about 6 times as tall as "Standup"
+    Then "Workshop" is about 3 times as tall as "Lunch"
+
+  Scenario: A very short entry still shows its title
+    Given the two-row week overview is on
+    And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:15
+    When I open the week of 2026-10-12 on a phone
+    Then I see "Standup"
 
   Scenario: Empty early and late hours are trimmed so the week fits
     Given the two-row week overview is on
@@ -57,6 +64,16 @@ Feature: Two-row week overview
     When I open the week of 2026-10-12 on a phone
     And I tap the empty area of 2026-10-13
     Then the day view for 2026-10-13 opens
+
+  Scenario: Tapping a task list expands it inline in the calendar
+    Given the two-row week overview is on
+    And the calendar contains a task list "Weekend chores" on 2026-10-12 at 17:00 for 90 minutes with items:
+      | Vacuum the flat |
+      | Water the plants |
+    When I open the week of 2026-10-12 on a phone
+    And I tap "Weekend chores"
+    Then "Weekend chores" expands in place and shows "Vacuum the flat"
+    And the week is still shown behind it, not replaced by a separate sheet
 
   Scenario: All-day entries sit in each day's band above the timed area
     Given the two-row week overview is on

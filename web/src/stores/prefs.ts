@@ -45,6 +45,11 @@ export const usePrefsStore = defineStore('prefs', () => {
   const bedtime = ref<BedtimePrefs>({ ...DEFAULT_BEDTIME });
   /** Which reminders become system notifications (like the server's default: all but the morning overview). */
   const notify = ref<NotifyPrefs>({ ...DEFAULT_NOTIFY });
+  /** Labs: the two-row week overview (off by default) and how many days sit on its top row. */
+  const weekTwoRow = ref(false);
+  const weekTwoRowTop = ref<3 | 4>(4);
+  /** Labs: a tap on a task-list card grows it in place (off by default: a tap opens the list sheet). */
+  const labsGrowCards = ref(false);
 
   function apply(p: Partial<Prefs>): void {
     labs.value = p.labs ?? labs.value;
@@ -70,6 +75,9 @@ export const usePrefsStore = defineStore('prefs', () => {
     language.value = p.language ?? language.value;
     bedtime.value = p.bedtime ? { ...bedtime.value, ...p.bedtime } : bedtime.value;
     notify.value = p.notify ? { ...notify.value, ...p.notify } : notify.value;
+    weekTwoRow.value = p.weekTwoRow ?? weekTwoRow.value;
+    weekTwoRowTop.value = p.weekTwoRowTop ?? weekTwoRowTop.value;
+    labsGrowCards.value = p.labsGrowCards ?? labsGrowCards.value;
   }
 
   async function load(): Promise<void> {
@@ -83,7 +91,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     const before = {
       labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value, weekTwoRow: weekTwoRow.value, weekTwoRowTop: weekTwoRowTop.value, labsGrowCards: labsGrowCards.value,
     };
     apply(p);
     try {
@@ -94,5 +102,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, load, set };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, load, set };
 });

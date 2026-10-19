@@ -1,24 +1,29 @@
-# 2. Two-row week overview is a new component, reusing grid primitives
+# 2. Two-row week overview reuses the Time grid in a fit-to-height mode
 
-- Status: accepted
+- Status: accepted (supersedes the first draft of this ADR, which proposed a separate component)
 - Date: 2026-10-19
 
 ## Context
 
 The week needs a mode that fits all seven days on one screen without scrolling, with entries
 to scale over a shared active-hours window. The existing Time grid is a fixed 24-hour vertical
-scroller with its own zoom.
+scroller with its own zoom. A first build as a separate "overview" component duplicated the
+grid's layout (columns, all-day band, hour lines) — and broke the inline grown task-list card,
+which depends on the Time grid's DOM contract (`.grid > .col > .blk`) and hour height.
 
 ## Decision
 
-Build a separate **Two-row week overview** component. It reuses the shared layout primitives
-(overlap packing, all-day packing, the item block renderer) but owns its fit-to-height,
-active-window, two-row layout. The Time grid is left unchanged; the Week view picks the
-overview or the grid based on prefs.
+No separate component. The Time grid gets an opt-in **fit mode** (`fit: {start, end}` window):
+its effective hour height = measured area height / window hours, the window is pinned to the
+top, nothing scrolls or zooms, and an empty slot tap opens the day. The Week view renders **two
+Time grids in fit mode** (first `weekTwoRowTop` days, then the rest) over one shared window.
+The effective hour height is provided to descendants (`provideHourHeight` /
+`useEffectiveHourHeight`), so the expanded card lines up by construction. Default off: the
+normal week is byte-for-byte unchanged.
 
 ## Consequences
 
-- The Time grid keeps its single 24-hour-scroll responsibility; no fit-to-height branching
-  bloats it.
-- The two grids share primitives, not layout — a packing fix benefits both.
-- Shaped view: `web`.
+- Zero duplicated layout; the all-day band, hour lines, blocks and the inline grown card are
+  the Time grid's own.
+- The grown card's inline expansion works in the overview for free (same DOM contract).
+- Shaped views: `web`, `turnOnOverview`.

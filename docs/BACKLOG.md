@@ -46,6 +46,13 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
   them are really necessary"). The task-list features alone match ~169 scenarios; the whole suite is large and slow
   (workers=1, one shared server). Audit for redundant/overlapping scenarios, collapse Scenario Outlines, drop
   low-value cases, and see whether some belong as unit tests instead. Goal: a leaner, faster suite.
+- **Clean up the spec** (owner, 2026-10-19: "wir müssen echt den spec mal aufräumen"). Scenarios and prose that
+  predate later owner decisions contradict them without failing: `tasklists-expand.feature` "A long title wraps and
+  stays fully readable in the grown card" (a 30-minute list) now shows a tight one-line pill with an ellipsis, as decided
+  on 2026-10-19 ("Pille = Blockhöhe, Titel mit Ellipsis"); `ARCHITECTURE.md` carried an invented "item rows run on
+  across both" rule until it was corrected the same day. Go feature by feature with the owner (requirements step, one
+  scenario at a time): drop or reword scenarios whose name no longer matches their steps, make every `Then` say what is
+  seen, and dedupe the union-merged sections of `STEPS.md` and `ARCHITECTURE.md`. Pairs with the e2e pruning above.
 
 ## Features
 
