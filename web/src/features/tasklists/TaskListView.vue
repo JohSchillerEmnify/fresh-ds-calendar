@@ -32,6 +32,9 @@ import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
 import { useTaskList } from './useTaskList';
+import { usePluginEnabled } from '@/plugins';
+import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
+import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
 
 const props = defineProps<{
   id: string;
@@ -172,6 +175,17 @@ async function commitRename() {
     if (e instanceof ApiError && e.isConflict) void items.refreshVisible();
   }
 }
+/** Door plugin (ADR 0004): the switch is offered only where the deployment turned the plugin on; it patches the door tag at once. */
+const doorOn = usePluginEnabled(DOOR_PLUGIN);
+async function setDoor(on: boolean) {
+  if (!tl.value) return;
+  try {
+    await items.updateTaskList(props.id, { tags: withDoor(tl.value.tags, on) });
+  } catch (e) {
+    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
+    if (e instanceof ApiError && e.isConflict) void items.refreshVisible();
+  }
+}
 
 // --- list actions -----------------------------------------------------------------------------------------------
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
@@ -264,6 +278,7 @@ defineExpose({ root, busy });
           />
         </form>
 
+        <DoorSwitch v-if="closable && doorOn && tl" :model-value="hasDoor(tl.tags)" compact @update:model-value="setDoor" />
         <footer v-if="!compact" class="foot">
           <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
           <span class="grow" />

@@ -96,6 +96,17 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json(configResponse(ctx));
   });
 
+  // "The door board has its key" / "its key is taken away": the door plugin's key and person from now on (`{ off: true }` = no door).
+  t.post('/door', async (c) => {
+    const d = (await body(c)) as { off?: unknown; token?: unknown; person?: unknown } | undefined;
+    if (d?.off === true) ctx.overrides.door = null;
+    else {
+      if (typeof d?.token !== 'string' || !d.token || typeof d.person !== 'string') throw validation('token and person are required');
+      ctx.overrides.door = { token: d.token, person: d.person.toLowerCase() };
+    }
+    return c.json(configResponse(ctx));
+  });
+
   t.post('/outage', async (c) => {
     const b = parse(outageSchema, await body(c));
     mock.setOutage(b.down, (b.status as 500 | 503 | undefined) ?? 503);
@@ -147,16 +158,18 @@ export function testRoutes(ctx: Ctx): Hono {
   // The person's tasks calendar id, found or created like the app does on first use.
   t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
 
-  // Creates an undated task list in one person's mock calendar; `category` is a category name.
+  // Creates a task list in one person's mock calendar — undated unless `date` is given; `category` is a category name; `tags` optional.
   t.post('/tasklists', async (c) => {
-    const b = (await body(c)) as { owner?: unknown; title?: unknown; items?: unknown; category?: unknown } | undefined;
+    const b = (await body(c)) as { owner?: unknown; title?: unknown; items?: unknown; category?: unknown; date?: unknown; tags?: unknown } | undefined;
     if (typeof b?.owner !== 'string' || typeof b.title !== 'string') throw validation('owner and title are required');
     const category = typeof b.category === 'string' ? ctx.settings.categories().find((k) => k.name === b.category) : undefined;
     if (typeof b.category === 'string' && !category) throw validation('Unknown category', 'category');
     const items = Array.isArray(b.items) ? b.items.map((title) => ({ title: String(title) })) : [];
+    const date = typeof b.date === 'string' ? b.date : null;
+    const tags = Array.isArray(b.tags) ? b.tags.map(String) : [];
     // a fixture is not user activity: the plant state stays as it was
     const { plant } = ctx.motivation.get();
-    const list = await calendarOf(b.owner).createTaskList({ title: b.title, date: null, items, categoryId: category?.id ?? null });
+    const list = await calendarOf(b.owner).createTaskList({ title: b.title, date, items, categoryId: category?.id ?? null, ...(tags.length ? { tags } : {}) });
     ctx.motivation.setState({ plant: { growth: plant.growth, lastWatered: plant.lastWatered, todayPoints: plant.todayPoints } });
     return c.json(list, 201);
   });

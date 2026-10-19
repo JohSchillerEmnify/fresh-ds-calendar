@@ -60,10 +60,6 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 
 ## Features
 
-- **Door board: "Show on door" tag + `GET /api/door`** (request from the door-board project, 2026-10-19; full
-  request with acceptance scenarios in `docs/DOOR-BOARD-REQUEST.md`). A `door` tag on task lists and a read-only,
-  bearer-token endpoint with today's events and the open items of door-tagged lists (latest due occurrence only).
-  Build via NoVibe (spec first); two open questions in the file (undated lists, where the toggle lives).
 
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:

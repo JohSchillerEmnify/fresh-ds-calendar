@@ -20,6 +20,7 @@ import { backupRoutes } from './api/backupRoutes.js';
 import { downloadRoutes } from './routes/download.js';
 import { staticRoutes } from './routes/static.js';
 import { securityHeaders } from './lib/securityHeaders.js';
+import { pluginRoutes } from './plugins/registry.js';
 
 export type App = Hono & { ctx: Ctx; close(): void };
 
@@ -58,6 +59,9 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   });
 
   app.use('/api/*', requestGuards(config));
+
+  // Plugins (ADR 0004) answer machine clients with their own keys: mounted before the session middleware, gated per request.
+  app.route('/api', pluginRoutes(ctx));
 
   app.use('/api/*', sessionMiddleware(ctx));
 

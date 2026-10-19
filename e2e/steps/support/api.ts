@@ -70,6 +70,12 @@ export class Api {
     return this.setup('/api/__test/motivation', body);
   }
   setConfig(cfg: { pollIntervalMs?: number }) { return this.setup('/api/__test/config', cfg); }
+  /** Door plugin (ADR 0004): gives the board its key and person, or takes the door away (`{ off: true }`). */
+  setDoor(body: { token: string; person: string } | { off: true }) { return this.setup('/api/__test/door', body); }
+  /** A task list in one person's mock calendar (undated unless `date` is given), as a fixture. */
+  createOwnedList(body: { owner: string; title: string; items?: string[]; category?: string; date?: string; tags?: string[] }) {
+    return this.setup('/api/__test/tasklists', body);
+  }
   /** Turns sign-in on with this allow-list (it is off with the mock provider otherwise; reset turns it off). */
   setAuth(allowedEmails: string[]) { return this.setup('/api/__test/auth', { allowedEmails }); }
   /** Sets the calendar list of one person's mock Google account (`shared`: read-only, not their primary). */

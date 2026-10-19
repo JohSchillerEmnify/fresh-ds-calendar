@@ -10,7 +10,7 @@ export type ClientConfig = Omit<AppConfig, 'provider'> & { provider: AppConfig['
 
 const FALLBACK: ClientConfig = {
   now: '', clockFrozen: false, timeZone: 'Europe/Berlin', weekStartsOn: 1, pollIntervalMs: 30000,
-  provider: null, testMode: false, publicUrl: null, version: '', apk: null,
+  provider: null, testMode: false, publicUrl: null, version: '', apk: null, plugins: [],
 };
 
 /**

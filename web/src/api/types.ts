@@ -310,6 +310,8 @@ export interface AppConfig {
   version: string;
   /** The APK the server offers (`scripts/android-build.sh`), or null. */
   apk: { versionCode: number; versionName: string; certSha256?: string } | null;
+  /** Names of the optional plugins this deployment turned on (ADR 0004), e.g. `door`. */
+  plugins: string[];
 }
 
 /** One plain-English line of CHANGELOG.md (`GET /api/release-notes`). */

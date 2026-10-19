@@ -656,6 +656,27 @@ interface SyncErrorBeacon {
 At most one beacon per client (session) per minute: a second one → `429 RATE_LIMITED`. The web app ignores every
 failure of this call.
 
+### `GET /api/door` → 200 (door plugin, off by default)
+
+Exists only when the deployment set `DOOR_API_TOKEN` (ADR 0003/0004, `server/src/plugins/door/README.md`); otherwise
+the path is `404 NOT_FOUND` and `/api/config` and `/api/health` do not list `door` in `plugins`. For one machine
+client, the door board: `Authorization: Bearer <DOOR_API_TOKEN>`, compared in constant time; missing or wrong →
+`401 UNAUTHENTICATED` with no data; more than 60 calls a minute → `429 RATE_LIMITED`. No browser session.
+
+```ts
+{
+  reminders: { title: string; list: string; date: LocalDate | null; time?: LocalTime }[];
+  events:    { title: string; start: string; end: string; allDay: boolean }[];
+}
+```
+
+The person is `DOOR_PERSON` (their calendar and hidden-calendar prefs; the local calendar while sign-in is off).
+`reminders`: the open items of task lists tagged `door` that are due — dated today or earlier, or undated — a
+repeating list once, with its latest due occurrence; oldest date first, undated last, items in list order. `events`:
+today's events of the visible calendars, in the API's `start`/`end` form (an all-day `end` is exclusive). Nothing else.
+
+`GET /api/config` and `GET /api/health` carry `plugins: string[]`, the enabled plugins by name.
+
 ## Test-only endpoints (`TEST_MODE=true`)
 
 Registered only when `TEST_MODE=true`; otherwise every `/api/__test/*` path is `404 NOT_FOUND`. `TEST_MODE` must be
@@ -666,6 +687,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories) and an empty motivation state; then seeds or loads the fixture. `200 { calendars, items, settings }` |
 | `POST` | `/api/__test/clock` | `{ now: string \| null; frozen?: boolean }` | Sets the clock (`now` ISO with offset or `Z`); `frozen` (default `true`) keeps it constant, `false` lets it run from `now` in real time. `null` clears it. `200 { now, clockFrozen }` |
 | `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
+| `POST` | `/api/__test/door` | `{ token: string; person: string }` or `{ off: true }` | The door plugin's key and person from now on, in place of the config's; `off` takes the door away (404). Reset clears it. `200 AppConfig` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
@@ -685,7 +707,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/backup/drive-down` | `{ down: boolean }` | While `down`, every MockDrive call fails. Cleared by reset. `200 { down }` |
 | `POST` | `/api/__test/backup/wipe` | `{ owner: string }` | Deletes everything under `users/<sub>/` of that Google address and ends its sessions (a new server). The mock Drive stays. `204` |
 | `GET` | `/api/__test/backup/drive?owner=<email>` | – | The files in that person's mock appDataFolder, newest first. `200 { files: { id, name, createdTime }[] }` |
-| `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string }` | Creates an undated task list in the mock Google account of `owner` (an email); `category` is a category name. `201` `TaskList` |
+| `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string; date?: LocalDate; tags?: string[] }` | Creates a task list in the mock Google account of `owner` (an email), undated unless `date` is given; `category` is a category name; `tags` as stored. `201` `TaskList` |
 | `GET` | `/api/__test/memory?gc=true` | – | With `gc=true` runs `global.gc()` twice first (server started with `--expose-gc` in test mode). `200 { rss: number; heapUsed: number; heapTotal: number; external: number }` (bytes, from `process.memoryUsage()`) |
 
 ```ts

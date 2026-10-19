@@ -197,5 +197,8 @@ export default {
       groceries: 'Einkauf', milk: 'Milch', bread: 'Brot', eggs: 'Eier',
     },
   },
+  plugins: {
+    door: { label: 'An der Tür zeigen', hint: 'Die offenen Punkte stehen auf dem Türdisplay, bis sie abgehakt sind' },
+  },
   theme: themeDe,
 } satisfies Messages;

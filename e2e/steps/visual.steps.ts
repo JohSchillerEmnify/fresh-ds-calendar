@@ -16,6 +16,7 @@ function region(w: World, name: string): Locator {
     case 'top row': return w.byTestId('week-overview-row', '[data-row="0"]');
     case 'expanded task list': return w.byTestId('tasklist-expanded');
     case 'all-day band': return w.byTestId('week-overview-row', '[data-row="0"]').locator('.alldays');
+    case 'list form': return w.byTestId('tasklist-dialog');
     default: throw new Error(`unknown region "${name}"`);
   }
 }

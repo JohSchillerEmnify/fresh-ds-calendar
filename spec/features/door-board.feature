@@ -19,7 +19,7 @@ Feature: Reminders and today's events for the door board
       Given the calendar contains a task list "Friday errands" on 2026-10-23 with items:
         | Post office |
         | Pharmacy    |
-      And "Friday errands" is marked to show on the door
+      And "Friday errands" is set to show on the door
       When the door board asks for its reminders
       Then it gets no reminders
 
@@ -28,7 +28,7 @@ Feature: Reminders and today's events for the door board
         | item        | done |
         | Post office | yes  |
         | Pharmacy    | no   |
-      And "Friday errands" is marked to show on the door
+      And "Friday errands" is set to show on the door
       When the door board asks for its reminders
       Then it gets the reminders:
         | item     | list           | date       |
@@ -43,7 +43,7 @@ Feature: Reminders and today's events for the door board
     Scenario: An undated door list is due until it is done
       Given the calendar contains an undated task list "Before any trip" with items:
         | Passport |
-      And "Before any trip" is marked to show on the door
+      And "Before any trip" is set to show on the door
       When the door board asks for its reminders
       Then it gets the reminders:
         | item     | list            | date |
@@ -55,8 +55,8 @@ Feature: Reminders and today's events for the door board
       And the calendar contains a task list "Friday errands" on 2026-10-19 with items:
         | Post office |
         | Pharmacy    |
-      And "Parcel" is marked to show on the door
-      And "Friday errands" is marked to show on the door
+      And "Parcel" is set to show on the door
+      And "Friday errands" is set to show on the door
       When the door board asks for its reminders
       Then it gets the reminders:
         | item             | list           | date       | time  |
@@ -69,7 +69,7 @@ Feature: Reminders and today's events for the door board
     Scenario: Last week's forgotten occurrence drops off once this week's is due
       Given the calendar contains a weekly task list "Bin day" on Mondays since 2026-10-12 with items:
         | Bins out |
-      And "Bin day" is marked to show on the door
+      And "Bin day" is set to show on the door
       And "Bins out" of "Bin day" on 2026-10-12 is still open
       When the door board asks for its reminders
       Then it gets the reminders:
@@ -85,7 +85,7 @@ Feature: Reminders and today's events for the door board
       When the door board asks for today's events
       Then it gets the events:
         | title   | start            | end              | all day |
-        | Trip    | 2026-10-19       | 2026-10-19       | yes     |
+        | Trip    | 2026-10-19       | 2026-10-20       | yes     |
         | Standup | 2026-10-19T09:00 | 2026-10-19T09:30 | no      |
       And nothing but titles and times is in the answer
 
@@ -94,7 +94,7 @@ Feature: Reminders and today's events for the door board
     Scenario: Without its key the door board is turned away
       Given the calendar contains a task list "Friday errands" on 2026-10-19 with items:
         | Pharmacy |
-      And "Friday errands" is marked to show on the door
+      And "Friday errands" is set to show on the door
       When something asks for the door's reminders with a wrong key
       Then it is refused as unauthenticated and gets nothing
 

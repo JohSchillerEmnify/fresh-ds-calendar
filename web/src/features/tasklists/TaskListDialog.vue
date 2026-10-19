@@ -22,6 +22,9 @@ import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
 import { useTaskCategories } from './categories';
+import { usePluginEnabled } from '@/plugins';
+import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
+import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null }>();
 const emit = defineEmits<{ close: [] }>();
@@ -31,6 +34,9 @@ const settings = useSettingsStore();
 const ui = useUiStore();
 const lists = useTaskListsStore();
 const clock = useClockStore();
+/** Door plugin (ADR 0004): the "Show on door" switch exists only where the deployment turned the plugin on. */
+const doorOn = usePluginEnabled(DOOR_PLUGIN);
+const door = ref(false);
 
 const editing = computed(() => props.mode === 'edit');
 const loading = ref(false);
@@ -64,6 +70,7 @@ function fill(src: TaskList) {
     reminders: !src.reminders || src.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...src.reminders.minutes] },
   });
   if (src.reminders?.useDefault) taskDefaults.value = src.reminders.minutes;
+  door.value = hasDoor(src.tags);
   original = JSON.stringify(form);
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
@@ -101,10 +108,12 @@ async function save() {
   conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
-  // Tags are shelved (ARCHITECTURE "Tags shelved"): no `tags` key, so the server keeps the stored ones.
+  // Tags are shelved (ARCHITECTURE "Tags shelved"): no `tags` key, so the server keeps the stored ones — except with the door
+  // plugin on, where the whole array goes with the door tag set or cleared (the other tags stay).
   const body = {
     title: form.title.trim(), date: form.noDate ? null : form.date, time: form.noDate ? null : form.time || null,
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
+    ...(doorOn.value ? { tags: withDoor(current?.kind === 'tasklist' ? current.tags : [], door.value) } : {}),
     // categories off: the picker is hidden, so the stored category is left alone
     ...(cats.on.value ? { categoryId: form.categoryId === 'none' ? null : form.categoryId } : {}),
     // the reminders are only sent when they changed (a create: when the list has its own)
@@ -162,6 +171,7 @@ function remove() {
       </div>
       <Button :variant="form.noDate ? 'tonal' : 'text'" class="nodate" :aria-pressed="form.noDate" data-testid="tasklist-no-date" @click="toggleNoDate">{{ t('tasks.dialog.noDate') }}</Button>
       <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
+      <DoorSwitch v-if="doorOn" v-model="door" />
       <div v-if="cats.on.value" class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" />

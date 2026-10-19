@@ -2088,12 +2088,64 @@ the seven days are side by side in a single row
   the top of row 0's visible `.scroll` area and the latest ends at the bottom of row 1's (within 6 px). "the empty area of D": the last
   `time-slot` of D's `week-day-column`. "single row": the seven `week-header` cells share one top.
 
+## Door board (`@door`)
+
+The door plugin (ADR 0003/0004; `server/src/plugins/door/README.md`): a key and person set through the TEST_MODE
+override `POST /api/__test/door` (`{ token, person }` or `{ off: true }`; reset clears it), door-tagged lists, and
+`GET /api/door` asked with a bearer key.
+
+```
+the door board has the key of the owner
+the door board's key is taken away
+{string} is set to show on the door
+the calendar contains a weekly task list {string} on Mondays since {date} with items:
+{string} of {string} on {date} is still open
+the calendar contains an event {string} on {date} from {time} to {time} with the description {string}
+another person {string} has a task list {string} on {date} marked to show on the door with items:
+the door board asks for its reminders
+the door board asks for today's events
+something asks for the door's reminders with a wrong key
+it gets no reminders
+it gets the reminders:
+it gets the events:
+nothing but titles and times is in the answer
+it is refused as unauthenticated and gets nothing
+asking for the door's reminders finds no such thing
+I edit the task list {string}
+there is no "Show on door" switch
+I edit the task list {string} and turn "Show on door" on
+I open the list sheet of {string} and turn "Show on door" on
+{string} is marked to show on the door
+the door board gets {string} from {string}
+```
+
+- The owner is `owner@example.test` while sign-in is on (the "another person" step turns it on for the owner and that
+  person); while it is off, the door sees the local calendar. The key is a fixed test string.
+- "is set to show on the door": finds the list by title in `GET /api/tasklists/all-open` and patches `tags` with
+  `door` added (the other tags stay). "is marked to show on the door" (a check) polls the same list for the tag.
+- "weekly task list ... on Mondays since D": `POST /api/tasklists` with `recurrence: weekly` and `date: D`;
+  "X of L on D is still open": the occurrence of L dated D lists X undone.
+- "another person P has a task list ...": `POST /api/__test/auth` with the owner and `p@example.test`, then
+  `POST /api/__test/tasklists` with `owner`, `date` and `tags: ["door"]`.
+- "asks for its reminders" / "asks for today's events": `GET /api/door` with `Authorization: Bearer <key>`; the answer
+  (status and body) is kept for the checks. "with a wrong key": a different bearer. "finds no such thing": 404.
+- "it gets the reminders:" compares the whole `reminders` array in order (columns `item`, `list`, `date`, optional `time`;
+  an empty `date` is null). "it gets the events:" compares `events` (columns `title`, `start`, `end`, `all day`
+  yes/no), times to the minute. "nothing but titles and times": event keys are exactly title/start/end/allDay and
+  reminder keys are within title/list/date/time.
+- "I edit the task list T": the Tasks view, a tap on T's title (`tasks-item` → `tasklist-expanded-title`) opens its
+  form (`tasklist-dialog`). The switch is `tasklist-door-switch` (row `tasklist-door`); "there is no ... switch": none
+  in the form. "... and turn Show on door on": clicks the switch and saves (`tasklist-save`, PATCH 200).
+  "I open the list sheet of T and turn ... on": the day view of T's date, a tap on T's card opens its sheet
+  (`tasklist-expanded` without `data-presentation=overlay`), the switch there patches the tag at once.
+
 ## Visual states (`@visual`)
 
 Rules that need no reference picture, plus `toHaveScreenshot` regression pictures (baselines in `e2e/snapshots/<project>/`,
 written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
-(`week-day-column[data-date]`), `top row` (`week-overview-row[data-row="0"]`). The `now-marker` is masked.
+(`week-day-column[data-date]`), `top row` (`week-overview-row[data-row="0"]`), `list form` (`tasklist-dialog`). The
+`now-marker` is masked.
 
 ```
 no text in the {string} is clipped

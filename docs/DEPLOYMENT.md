@@ -84,6 +84,7 @@ cd ~/projects/calendar && pnpm redeploy
 | `PUBLIC_URL` | external base URL, e.g. `https://cal.home.example.com` (OAuth redirect, cookie `Secure`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth client (type *Web application*) |
 | `ALLOWED_EMAILS` | comma-separated Google accounts allowed to sign in |
+| `DOOR_API_TOKEN`, `DOOR_PERSON` | optional door plugin (ADR 0004, `server/src/plugins/door/README.md`): the board's bearer key and the person it sees; empty = no door |
 
 All variables: `spec/ARCHITECTURE.md` §8.
 
