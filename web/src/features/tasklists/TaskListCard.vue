@@ -167,6 +167,10 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
   >
+    <template v-if="grown && !flat">
+      <span class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
+      <span class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
+    </template>
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
@@ -287,43 +291,39 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
 
-/* grown (the expanded card, ExpandedCard): two tones — the header pill (.row) keeps the original event colour
-   (same as the collapsed card), laid over a toned-down body. The card box is the pill's bounding box; the body is
-   drawn by ::before, inset at the sides (--e-inset) and dropped from the top (--e-poke), so the pill overhangs the
-   body while nothing spills past the card (no overlay clip). */
-.tl.grown { display: flex; flex-direction: column; height: auto; min-height: var(--min-h, 0); min-width: 0; animation: none; border-radius: inherit; cursor: pointer; }
+/* grown (the expanded card, ExpandedCard): the same card at its full height; the host scrolls when it is cut to the screen */
+.tl.grown { display: flex; flex-direction: column; height: auto; min-height: var(--min-h, 0); overflow: visible; cursor: pointer; }
 .grown > * { flex: none; }
-.tl.grown:not(.flat) {
-  position: relative; gap: 4px; overflow: visible; padding: 0 0 7px;
-  background: transparent; border-color: transparent; box-shadow: none;
-  --e-inset: 5px; --e-poke: 6px;
-}
-/* the body: a toned-down fill (closer to the surface, like the old extension), inset so the pill overhangs it */
-.grown:not(.flat)::before {
-  content: ''; position: absolute; z-index: 0;
-  left: var(--e-inset); right: var(--e-inset); top: var(--e-poke); bottom: 0;
-  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface));
-  border: var(--e-bw) solid var(--c); border-radius: var(--xr, var(--r-block)); box-shadow: var(--glow-sh);
-}
-.grown:not(.flat) > * { position: relative; z-index: 1; }
-/* flat (month cell card): the card's own look, as tall as its content — single surface, unchanged */
+/* the grown card is drawn by two layers: the real time block (the normal card look) and, slimmer and lighter, the part that only
+   extends it (below the real end, above the real start when it grows up); the seam between them marks the real end time */
+.tl.grown { min-width: 0; animation: none; isolation: isolate; border-radius: inherit; }
+/* the content sits 1 px inside the extension box so item/title text never spills past the lighter layer's edge */
+.tl.grown:not(.flat) { background: transparent; border-color: transparent; box-shadow: none; --ext-in: 4px; padding-left: calc(var(--ext-in) + 1px); padding-right: calc(var(--ext-in) + 1px); }
+/* flat (month cell card): the card's own look, as tall as its content */
 .tl.grown.flat { min-height: 0; }
-.grown.flat .items { overflow: visible; margin-top: 4px; }
-.grown .row { align-items: flex-start; flex-wrap: wrap; max-width: 100%; }
-/* the header pill: the original event colour (same as the collapsed card), full card width so it overhangs the body */
-.grown:not(.flat) > .row {
-  padding: 7px 10px; border-radius: var(--xr, var(--r-block));
-  background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface));
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.24);
+.gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }
+.real {
+  top: calc(-1 * var(--bw)); left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: var(--min-h, 0px);
+  background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface)); border: var(--bw) solid var(--c); border-left-width: var(--e-bl, var(--bw));
+  border-radius: var(--xr, var(--r-block)); box-shadow: var(--glow-sh);
 }
-/* items and foot sit on the darker body, within the side inset; text wraps inside, never overflowing */
-.grown:not(.flat) > .items { overflow: visible; margin-top: 0; padding: 2px calc(var(--e-inset) + 7px) 0; }
-.grown:not(.flat) > .foot { overflow: visible; margin-top: auto; padding: 2px calc(var(--e-inset) + 7px) 0; }
-.grown:not(.flat) > .pbar { display: none; }
+.ext {
+  top: calc(var(--min-h, 0px) - var(--bw)); bottom: calc(-1 * var(--bw)); left: var(--ext-in, 4px); right: var(--ext-in, 4px);
+  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface));
+  border-radius: 0 0 var(--xr, var(--r-block)) var(--xr, var(--r-block)); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on) 28%, transparent);
+}
+.grown.up .real { top: auto; bottom: calc(-1 * var(--bw)); }
+.grown.up .ext {
+  top: calc(-1 * var(--bw)); bottom: calc(var(--min-h, 0px) - var(--bw));
+  border-radius: var(--xr, var(--r-block)) var(--xr, var(--r-block)) 0 0; box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--on) 28%, transparent);
+}
+.grown .row { align-items: flex-start; flex-wrap: wrap; max-width: 100%; }
 /* a narrow column wraps the badges below the title instead of squeezing it to a stub */
 .grown .title { flex: 1 1 10ch; min-width: min(10ch, 100%); }
 .grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; -webkit-mask-image: none; mask-image: none; }
+.grown .items { overflow: visible; margin-top: 4px; }
 .grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; }
+.grown .foot { overflow: visible; margin-top: auto; }
 
 /* card: month cell. Foot hidden, the cell is small */
 .card { flex: none; padding: 2px 4px 3px; }
