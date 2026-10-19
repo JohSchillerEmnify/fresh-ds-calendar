@@ -27,7 +27,8 @@ The endpoint answers titles and times only, nothing a person did not already see
 
 The door is a **deployment flag** (owner, 2026-10-19: the repo is going public, nothing of this is on by
 default): with no `DOOR_API_TOKEN` the server has no door endpoint and tells the web so, and the web offers no
-"Show on door" switch. Setting the two variables is the whole opt-in.
+"Show on door" switch. Setting the two variables is the whole opt-in. Where that code lives is ADR 0004 (a plugin
+folder, loaded by the registry only when configured).
 
 ## Consequences
 
