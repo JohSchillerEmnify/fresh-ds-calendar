@@ -1,0 +1,46 @@
+specification {
+  element person {
+    style {
+      shape person
+    }
+  }
+  element system
+  element app {
+    style {
+      shape rounded
+    }
+  }
+  element component
+  element store {
+    style {
+      shape storage
+    }
+  }
+  element library {
+    style {
+      color muted
+    }
+  }
+
+  tag experimental
+}
+
+model {
+  owner = person 'Owner' {
+    description 'The person whose calendar this is'
+  }
+
+  calendar = system 'Calendar' {
+    description 'Personal calendar app'
+
+    web = app 'Web app' {
+      description 'Vue 3 PWA the owner interacts with'
+    }
+    server = app 'Server' {
+      description 'Hono API that stores per-person preferences'
+    }
+  }
+
+  owner -> calendar.web 'views and manages the calendar'
+  calendar.web -> calendar.server 'reads and writes preferences'
+}

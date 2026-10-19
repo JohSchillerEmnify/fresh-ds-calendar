@@ -1,0 +1,22 @@
+views {
+  view index {
+    title 'Calendar — landscape'
+    include *
+  }
+
+  view web of calendar.web {
+    title 'Web app — two-row week overview'
+    include *
+  }
+
+  dynamic view turnOnOverview {
+    title 'Turning on the two-row week overview'
+
+    owner -> calendar.web.settings 'turns on the overview (experimental)'
+    calendar.web.settings -> calendar.web.prefs 'saves the pref'
+    calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+    owner -> calendar.web.week 'opens the week'
+    calendar.web.week -> calendar.web.prefs 'reads overview and split'
+    calendar.web.week -> calendar.web.timegrid 'renders two fit-mode grids'
+  }
+}

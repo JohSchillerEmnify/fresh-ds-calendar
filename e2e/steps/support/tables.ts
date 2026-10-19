@@ -2,8 +2,10 @@ import type { DataTable } from 'playwright-bdd';
 
 export interface ItemInput { title: string; done: boolean }
 
-/** `| item | done |` tables. */
+/** `| item | done |` tables; a header-less single-column table lists undone item titles. */
 export function itemsFrom(table: DataTable): ItemInput[] {
+  const raw = table.raw();
+  if (raw[0]?.length === 1 && raw[0][0] !== 'item') return raw.map((r) => ({ title: r[0], done: false }));
   return table.hashes().map((r) => ({ title: r.item, done: r.done === 'yes' }));
 }
 

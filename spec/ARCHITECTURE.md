@@ -353,6 +353,16 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
   column had `paddingTop = lanes * barHeight`, so one bar shifted all seven days). **Why**: same as the month — a global
   lane band shifted cells of days a bar never touches.
 - **Week view on phone**: 7 narrow columns, all fit (no horizontal scroll); chips show truncated title; tap opens.
+- **Two-row week overview** (experimental setting `weekTwoRow`, Labs section; owner, 2026-10-19; `spec/features/week-two-row.feature`,
+  ADR 0002): the week in two rows — the first `weekTwoRowTop` days (4, or 3 by the split setting) on top, the rest below — so the whole
+  week fits one screen without scrolling, on phone and desktop. Each row is the normal `TimeGrid` in **fit mode**: one shared active
+  window (the week's earliest timed start to its latest end, min 60 min, 08–20 when empty) fills the row's area, the effective hour
+  height = area height / window hours (provided to descendants, so the inline grown card lines up), nothing scrolls or zooms, the
+  smallest block is one title line (19 px) so short entries stay near their real length, and a tap on an empty slot opens that day.
+  The all-day band, blocks and the inline task-list expansion are the grid's own — no second layout. The band is capped at a third
+  of the row and scrolls, each row at its content height (never squeezed to share the cap). Its task lists know only two states
+  (owner, 2026-10-19: "only the pill, the expanded, and nothing else"): the one-line pill (the all-day card in title form), and
+  the grown card on a tap; the band has no section cycling (count / titles / full) in the overview — the gutter shows the count only.
 - **Dialogs**: phone = bottom sheet (full width, anchored to the bottom, rounded top, max-height 90dvh, internal scroll,
   drag handle; padding-bottom includes safe-area inset); desktop = centered modal ≤ 520 px. Escape and the Cancel
   button close; backdrop tap closes only when the form is pristine.
@@ -1693,7 +1703,18 @@ actually longer". Owner decisions (final):
 - **The real duration stays recognisable**: the grown card is drawn by two layers behind the same content. The part over
   the list's real time block (`tasklist-grown-real`, the collapsed card's height) looks exactly like the normal card; the part
   that only extends it (`tasklist-grown-ext`, below the real end, or above the real start when it grows up) is inset 5 px
-  from both sides, a lighter tone of the card colour, with a thin seam at the real end. The item rows run on across both.
+  from both sides, a lighter tone of the card colour on the raised container tone (`surface-container-high`, so it reads as a box
+  in the dark theme too), with a thin seam at the real end; it holds the items only (no time foot). Growing in place is a **Labs experiment**
+  (`labsGrowCards`, default off, a switch in the Labs section; owner, 2026-10-19: it does not work properly yet) — off, a tap on a
+  collapsed card opens the list sheet instead. The two layers are two separate containers
+  that never mix (owner, 2026-10-19): the head row (checkbox, icon, title, count) is the pill and fills exactly the real layer — the
+  pill never grows past the real block, so the real time span stays true; the title wraps inside it while the block is tall enough,
+  and in a short pill (< 30 px) the extras (duration, carried-from, badge, ring) are dropped and the title is one line with an
+  ellipsis beside a compact count when the card is 70 px or wider (the full title is one tap away in the list sheet); in a narrower
+  column — the 7-day week's 43 px — and in a tall narrow pill the title comes first and the count stays out — and the items start at the seam inside the extension, never inside the pill.
+  `spec/features/visual.feature` holds the rules (no clipped text, no overlap, pill covers its card, pill shows its count) and the
+  regression pictures of these states. A tap on a collapsed time-block card always grows it in place
+  (only the "Tapping a task list: drawer" setting opens the sheet instead); grown upwards, the pill sits at the bottom.
 - **Read-only everywhere**: in every view, the Day view included, the grown card shows done markers only. It has no
   checkboxes, no edit button, no close button, no resize handles and no drag.
 - **A tap anywhere on the grown card opens the normal list sheet** (`ExpandedTaskList`, the same dialog a calendar tap

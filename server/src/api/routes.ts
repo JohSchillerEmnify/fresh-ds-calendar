@@ -144,10 +144,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.labsViews !== undefined) {
       const v = toLabsViews(b.labsViews);
       if (!v) throw validation('labsViews must map view ids to booleans', 'labsViews');
@@ -166,6 +166,10 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (b[k] === undefined) continue;
       if (!NAV_POSITION_VALUES.includes(b[k] as NavPosition)) throw validation(`Invalid ${k}`, k);
       patch[k] = b[k] as NavPosition;
+    }
+    if (b.weekTwoRowTop !== undefined) {
+      if (b.weekTwoRowTop !== 3 && b.weekTwoRowTop !== 4) throw validation('weekTwoRowTop must be 3 or 4', 'weekTwoRowTop');
+      patch.weekTwoRowTop = b.weekTwoRowTop;
     }
     if (b.tasksGroupBy !== undefined) {
       if (!TASKS_GROUP_BY_VALUES.includes(b.tasksGroupBy as TasksGroupBy)) throw validation('Invalid tasksGroupBy', 'tasksGroupBy');

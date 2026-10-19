@@ -4,6 +4,10 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Two-row overview: a lone entry leaves the grown list no room** (2026-10-19, seen in the visual gate). The shared
+  window is the week's earliest start to its latest end (min 60 min); when the only entry is one task list, its block
+  fills the whole row, so the grown card's list has no space above or below and stays hidden. Options: a minimum
+  window around the entries (e.g. ±2 h), or let the grown list overlay the band/header. Owner's call.
 - **Desktop month-picker swipe fails** (2026-10-18). `month-picker.feature` "Arrows and swipes change the month
   inside the picker" fails on `--project=desktop` (mouse-drag branch of `swipePicker` in `year.steps.ts`,
   `expect(...).not.toHaveText` on the month). Pre-existing (fails on main), not from the dedup work. Investigate the
@@ -46,8 +50,20 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
   them are really necessary"). The task-list features alone match ~169 scenarios; the whole suite is large and slow
   (workers=1, one shared server). Audit for redundant/overlapping scenarios, collapse Scenario Outlines, drop
   low-value cases, and see whether some belong as unit tests instead. Goal: a leaner, faster suite.
+- **Clean up the spec** (owner, 2026-10-19: "wir müssen echt den spec mal aufräumen"). Scenarios and prose that
+  predate later owner decisions contradict them without failing: `tasklists-expand.feature` "A long title wraps and
+  stays fully readable in the grown card" (a 30-minute list) now shows a tight one-line pill with an ellipsis, as decided
+  on 2026-10-19 ("Pille = Blockhöhe, Titel mit Ellipsis"); `ARCHITECTURE.md` carried an invented "item rows run on
+  across both" rule until it was corrected the same day. Go feature by feature with the owner (requirements step, one
+  scenario at a time): drop or reword scenarios whose name no longer matches their steps, make every `Then` say what is
+  seen, and dedupe the union-merged sections of `STEPS.md` and `ARCHITECTURE.md`. Pairs with the e2e pruning above.
 
 ## Features
+
+- **Door board: "Show on door" tag + `GET /api/door`** (request from the door-board project, 2026-10-19; full
+  request with acceptance scenarios in `docs/DOOR-BOARD-REQUEST.md`). A `door` tag on task lists and a read-only,
+  bearer-token endpoint with today's events and the open items of door-tagged lists (latest due occurrence only).
+  Build via NoVibe (spec first); two open questions in the file (undated lists, where the toggle lives).
 
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
@@ -61,6 +77,9 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - Two-row week overview (owner, 2026-10-16): instead of 7 narrow day columns, lay the week out in two rows — the first
   four days on top, the rest below — to use the width better and read as a nicer overview. A layout option/view for the
   week.
+- Finish migrating `spec/ARCHITECTURE.md` into the LikeC4 model under `docs/architecture/` (owner,
+  2026-10-19; see ADR 0001). Started with the two-row week overview slice; port the rest part by
+  part as each is touched.
 - Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
   Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
   below; fewer toolbar controls; a day/agenda start view on phones.

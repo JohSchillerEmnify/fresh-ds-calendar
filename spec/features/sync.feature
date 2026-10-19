@@ -10,6 +10,7 @@ Feature: Background sync with Google Calendar
 
   Background:
     Given the calendar is empty
+    And the expanding task-list cards experiment is on
     And today is 2026-10-12
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     And the calendar contains a task list "Groceries" on 2026-10-14 with items:

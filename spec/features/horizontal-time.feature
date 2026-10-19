@@ -10,6 +10,7 @@ Feature: Labs: the horizontal view
 
   Background:
     Given the calendar is empty
+    And the expanding task-list cards experiment is on
     And today is 2026-10-14
     And the calendar contains an event "Dentist" on 2026-10-14 from 10:00 to 11:00
     And the calendar contains an event "Lunch" on 2026-10-14 from 14:00 to 15:00

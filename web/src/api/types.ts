@@ -234,6 +234,12 @@ export interface Prefs {
   /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
   bedtime: BedtimePrefs;
   notify: NotifyPrefs;
+  /** Labs: the week as a two-row overview that fits one screen (off by default). */
+  weekTwoRow: boolean;
+  /** Labs: a tap on a task-list card grows it in place; off, a tap opens the list sheet. */
+  labsGrowCards: boolean;
+  /** Days on the overview's top row: 4 (Mon-Thu) or 3 (Mon-Wed). */
+  weekTwoRowTop: 3 | 4;
 }
 
 /** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */

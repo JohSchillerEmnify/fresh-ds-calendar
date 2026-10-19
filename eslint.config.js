@@ -10,7 +10,7 @@ export default tseslint.config(
   {
     ignores: [
       '**/node_modules/**', '**/dist/**', '**/.features-gen/**', '**/coverage/**',
-      'android/**', '**/.jscpd-report/**', '**/test-results/**', '**/playwright-report/**',
+      'android/**', '**/.jscpd-report/**', '**/test-results*/**', '**/playwright-report/**',
     ],
   },
   js.configs.recommended,

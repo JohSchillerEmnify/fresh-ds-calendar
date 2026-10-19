@@ -135,6 +135,11 @@ const undatedDoneOptions = computed(() => [
   { value: 'archive', label: t('settings.tasklists.undatedDone.archive'), testid: 'settings-undated-done-archive' },
 ]);
 /** The three view switcher positions as options of the phone or the desktop row. */
+/** The two-row week's split: 4 days on top (Mon-Thu) or 3 (Mon-Wed), values are strings for the segmented control. */
+const weekSplitOptions = [
+  { value: '4', label: '4 / 3', testid: 'settings-week-two-row-split-4' },
+  { value: '3', label: '3 / 4', testid: 'settings-week-two-row-split-3' },
+];
 const navOptions = (device: 'phone' | 'desktop') => NAV_POSITIONS.map((p) => ({ value: p, label: t(`settings.navPosition.${p}`), testid: `settings-nav-${device}-${p}` }));
 // --- bedtime ------------------------------------------------------------------------------------
 const bt = computed(() => labs.bedtime);
@@ -333,6 +338,9 @@ async function resetDemo() {
             <span class="lab sublab">{{ t('settings.labs.views.title') }}</span>
             <div v-for="v in LABS_VIEWS" :key="v.id" class="row"><div class="grow"><span class="lab">{{ t(v.labelKey) }}</span></div><Switch :model-value="isLabsViewOn(v.id, labs.labsViews)" :label="t(v.labelKey)" :data-testid="`settings-labs-view-${v.id}`" @update:model-value="savePrefs({ labsViews: { [v.id]: $event } })" /></div>
             <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
+            <div class="row"><div class="grow"><span class="lab">{{ t('settings.labs.growCards.label') }}</span><span class="sub">{{ t('settings.labs.growCards.hint') }}</span></div><Switch :model-value="labs.labsGrowCards" :label="t('settings.labs.growCards.label')" data-testid="settings-labs-grow-cards" @update:model-value="savePrefs({ labsGrowCards: $event })" /></div>
+            <div class="row"><div class="grow"><span class="lab">{{ t('settings.labs.weekTwoRow.label') }}</span><span class="sub">{{ t('settings.labs.weekTwoRow.hint') }}</span></div><Switch :model-value="labs.weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" data-testid="settings-week-two-row" @update:model-value="savePrefs({ weekTwoRow: $event })" /></div>
+            <div v-if="labs.weekTwoRow" class="row col"><span class="lab">{{ t('settings.labs.weekTwoRow.split') }}</span><SegmentedButton :model-value="String(labs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" /></div>
           </template>
         </section>
 

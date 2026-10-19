@@ -30,7 +30,6 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
-import { growPlan, measureCut } from './expand';
 import { fitItems } from './layout';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
@@ -41,7 +40,7 @@ const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
 const INLINE_BELOW_PX = 62;
 /** Cards narrower than this (border box) use the mini tier; about the old content-box 84 px of a full-padding card. */
 const MINI_BELOW_PX = 92;
-const props = defineProps<ItemRendererProps & { grown?: boolean; /** Where a grown card extends beyond its real time block. */ growDir?: 'down' | 'up' }>();
+const props = defineProps<ItemRendererProps & { grown?: boolean; /** Where a grown card extends beyond its real time block. */ growDir?: 'down' | 'up'; /** Grown over a short real block: the head row drops its extras so it fits the pill. */ tight?: boolean }>();
 const emit = defineEmits<{ open: []; el: [el: HTMLElement]; openList: []; collapse: [] }>();
 const settings = useSettingsStore();
 const ui = useUiStore();
@@ -60,18 +59,14 @@ const expanded = computed(() => !props.grown && !inPreview() && tapped.value && 
 watch(() => ui.expandedCard, (c) => { if (!sameCard(c)) tapped.value = false; });
 const cardKey = () => ({ id: props.segment.item.id, date: props.segment.date });
 /**
- * A tap on the collapsed card always expands it (collapsing happens on the grown card, elsewhere, Escape or back); the card that was tapped is the one that grows. A time block that already shows its whole title and
- * every open item has nothing to grow into: the tap opens the list sheet directly (focus on the card first, as `ExpandedCard.openList`).
+ * A tap on the collapsed card always expands it (collapsing happens on the grown card, elsewhere, Escape or back); the card that was tapped is the one that grows — also a time block that already shows every item: the grown card is
+ * the pill-and-list presentation the owner wants on a tap, never a detour to the sheet (owner, 2026-10-19).
  */
 function toggle() {
-  // The setting "Tapping a task list": drawer always opens the list sheet, inline keeps the grow behaviour below.
-  if (prefs.taskOpen === 'drawer') {
+  // Growing in place is a Labs experiment (owner, 2026-10-19: it does not work properly yet); off, or with the setting
+  // "Tapping a task list: drawer", a tap opens the list sheet.
+  if (prefs.taskOpen === 'drawer' || !prefs.labsGrowCards) {
     el.value?.focus({ preventScroll: true });
-    ui.revealTask(tl.value.id);
-    return;
-  }
-  if (props.variant === 'block' && !inPreview() && el.value && !sameCard(ui.expandedCard) && !growPlan(measureCut(el.value)).grow) {
-    el.value.focus({ preventScroll: true });
     ui.revealTask(tl.value.id);
     return;
   }
@@ -114,7 +109,8 @@ const hasFoot = computed(() => !!tl.value.time && !fit.value.inline && !shortBlo
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const section = inject(sectionKey, () => 'full' as const);
 /** Section mode 'titles' overrides the per-card state: title row only (one ~22 px line). */
-const titles = computed(() => section() === 'titles' && props.variant === 'allday');
+// the band's title form is for the pill only: the grown card always shows its items, whatever the band's section mode
+const titles = computed(() => !props.grown && section() === 'titles' && props.variant === 'allday');
 const collapsed = computed(() => titles.value);
 const fit = computed(() => {
   const block = props.variant === 'block';
@@ -162,17 +158,14 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
   <button
-    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !title, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'"
+    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !title, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
   >
-    <template v-if="grown && !flat">
-      <span class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
-      <span class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
-    </template>
     <span v-if="variant === 'dot'" class="dot" aria-hidden="true" />
     <span class="row">
+      <span v-if="grown && !flat" class="gl real" data-testid="tasklist-grown-real" aria-hidden="true" />
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
@@ -186,12 +179,15 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       </span>
     </span>
     <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
+    <span class="extbox">
+    <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm">
       <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="hasFoot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
       <span v-else-if="tl.time" class="sr" data-testid="tasklist-card-time">{{ tl.time }}</span>
+    </span>
     </span>
     <ResizeHandles v-if="resizing" :segment="segment" />
     <ExpandedCard v-if="expanded && el" :id="tl.id" :anchor="el" :segment="segment" :variant="variant" @close="ui.collapseCard(cardKey())" />
@@ -298,7 +294,12 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
    extends it (below the real end, above the real start when it grows up); the seam between them marks the real end time */
 .tl.grown { min-width: 0; animation: none; isolation: isolate; border-radius: inherit; }
 /* the content sits 1 px inside the extension box so item/title text never spills past the lighter layer's edge */
-.tl.grown:not(.flat) { background: transparent; border-color: transparent; box-shadow: none; --ext-in: 4px; padding-left: calc(var(--ext-in) + 1px); padding-right: calc(var(--ext-in) + 1px); }
+.tl.grown:not(.flat) { background: transparent; border-color: transparent; box-shadow: none; --ext-in: 4px; padding: 0 calc(var(--ext-in) + 1px); }
+/* the pill sits flush at the host's top (or bottom when grown up), so the real layer is exactly the card's box — no vertical
+   padding on the host; the list keeps its breathing room inside the extension instead */
+.tl.grown:not(.flat) .extbox { padding: 3px 0; }
+/* the real layer wears the block card's own ring and shadow, so the collapsed card underneath never shows as a second edge */
+.block.grown:not(.flat) .real { box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
 /* flat (month cell card): the card's own look, as tall as its content */
 .tl.grown.flat { min-height: 0; }
 .gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }
@@ -309,7 +310,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 }
 .ext {
   top: calc(var(--min-h, 0px) - var(--bw)); bottom: calc(-1 * var(--bw)); left: var(--ext-in, 4px); right: var(--ext-in, 4px);
-  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface));
+  /* on the raised container tone, so the list reads as a box in the dark theme too (on the plain surface it vanished there) */
+  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface-container-high));
   border-radius: 0 0 var(--xr, var(--r-block)) var(--xr, var(--r-block)); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on) 28%, transparent);
 }
 .grown.up .real { top: auto; bottom: calc(-1 * var(--bw)); }
@@ -323,6 +325,35 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .grown .title, .grown .tx { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; -webkit-mask-image: none; mask-image: none; }
 .grown .items { overflow: visible; margin-top: 4px; }
 .grown .it { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; hyphens: auto; }
+/* The two layers are two containers, never mixed (owner): the head row IS the pill — exactly the real block's height, one line,
+   its extras dropped when the pill is short — and the items are the extension, starting at the seam, never inside the pill. */
+/* Two containers that never mix (owner, 2026-10-19): the head row IS the pill — at least the real block's height, the full card
+   width, the title wraps and stays readable, and over a short real block (`tight`) its extras are dropped — and the extension box
+   holds the items, starting at the seam. Each layer is drawn inside its own container, so it follows that container's height. */
+.extbox { display: contents; }
+.tl.grown:not(.flat) .row { position: relative; height: var(--min-h, 0px); min-height: 0; min-width: 0; box-sizing: border-box; align-items: center; align-self: stretch; width: auto; max-width: none; overflow: hidden; margin: 0 calc(-1 * (var(--ext-in) + 1px)); padding: 0 5px; }
+/* a tight pill is one flex line: the title shrinks and ellipsises instead of dropping below the icon where the pill would hide it;
+   a tall pill keeps wrapping, so a narrow column (the 7-day week) stacks the row's parts instead of cutting them */
+.tl.grown[data-tight='true'] .row { flex-wrap: nowrap; }
+.tl.grown[data-tight='true'] .title { flex: 1 1 0; min-width: 0; }
+/* a tight pill's count is compact (no capsule padding), so the title keeps as many letters as the column allows */
+.tl.grown[data-tight='true'] .count { padding: 0 2px; }
+.tl.grown[data-tight='true'] .meta { gap: 2px; }
+/* a tight (one-line) pill keeps its count beside the ellipsised title when the card has room for both (70 px and up, e.g. the
+   two-row overview's columns); below that — the 7-day week's 43 px columns — the title comes first and the count stays out */
+@container (min-width: 70px) { .tl.grown[data-tight='true'] .count { position: static; width: auto; height: auto; overflow: visible; clip-path: none; } }
+/* a tight pill (one line) keeps the title on that line with an ellipsis — the pill never grows past the real block */
+.tl.grown[data-tight='true'] .title, .tl.grown[data-tight='true'] .tx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; hyphens: manual; }.tl.grown:not(.flat) .real { top: calc(-1 * var(--bw)); bottom: 0; left: calc(-1 * var(--e-bl, var(--bw))); right: calc(-1 * var(--bw)); height: auto; }
+.tl.grown:not(.flat) .extbox { display: flex; flex-direction: column; position: relative; min-width: 0; }
+.tl.grown:not(.flat) .ext { top: calc(-1 * var(--bw)); bottom: calc(-1 * var(--bw)); left: -1px; right: -1px; }
+.tl.grown:not(.flat) .pbar { display: none; }
+/* the list holds items only: the time foot is neither pill content nor an item (the pill sits on its time block anyway) */
+.tl.grown:not(.flat) .foot { display: none; }
+.tl.grown[data-tight='true'] .est, .tl.grown[data-tight='true'] .from, .tl.grown[data-tight='true'] .shbadge, .tl.grown[data-tight='true'] .ring { display: none; }
+/* grown upwards: the pill is at the bottom, the items stay above it in the extension */
+.tl.grown.up:not(.flat) { flex-direction: column-reverse; }
+.tl.grown.up:not(.flat) .real { top: calc(-1 * var(--bw)); bottom: 0; }
+.tl.grown.up:not(.flat) .ext { top: calc(-1 * var(--bw)); bottom: calc(-1 * var(--bw)); }
 .grown .foot { overflow: visible; margin-top: auto; }
 
 /* card: month cell. Foot hidden, the cell is small */

@@ -1,0 +1,24 @@
+model {
+  extend calendar.web {
+    settings = component 'Settings screen' {
+      description 'Where the owner turns features on and off, including the experimental section'
+    }
+    prefs = store 'Prefs store' {
+      description 'Per-person preferences, mirrored from the server'
+    }
+    week = component 'Week view' {
+      description 'Shows one week: one Time grid, or two in fit mode as the two-row overview (experimental)'
+    }
+    timegrid = component 'Time grid' {
+      description 'The day and week hour grid; normally a 24-hour scroller, in fit mode the active window fills the area'
+    }
+    primitives = library 'Layout primitives' {
+      description 'Overlap packing, all-day packing and the item block renderer, used by the grid'
+    }
+
+    settings -> prefs 'changes the overview and split prefs'
+    week -> prefs 'reads the overview and split prefs'
+    week -> timegrid 'renders one grid, or two in fit mode over one shared window'
+    timegrid -> primitives 'reuses'
+  }
+}
