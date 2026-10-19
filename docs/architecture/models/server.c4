@@ -1,0 +1,14 @@
+model {
+  extend calendar.server {
+    prefsApi = component 'Prefs API' {
+      description 'Validates and persists preference changes'
+    }
+    prefsStore = store 'Stored prefs' {
+      description 'Per-person preferences on disk, the source of truth'
+    }
+
+    prefsApi -> prefsStore 'reads and writes'
+  }
+
+  calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+}

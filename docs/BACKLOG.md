@@ -61,6 +61,9 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - Two-row week overview (owner, 2026-10-16): instead of 7 narrow day columns, lay the week out in two rows — the first
   four days on top, the rest below — to use the width better and read as a nicer overview. A layout option/view for the
   week.
+- Finish migrating `spec/ARCHITECTURE.md` into the LikeC4 model under `docs/architecture/` (owner,
+  2026-10-19; see ADR 0001). Started with the two-row week overview slice; port the rest part by
+  part as each is touched.
 - Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
   Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
   below; fewer toolbar controls; a day/agenda start view on phones.
