@@ -2101,4 +2101,16 @@ the head row and the items of the expanded task list do not overlap
 the pill of the expanded task list covers the card {string} it grew from
 the {string} still looks like {string}
 the pill of the expanded task list shows the count {string}
+I show the band's task lists in full
+the head row and the items of the band's cards do not overlap
+the list of the expanded task list stands out from the grid behind it
 ```
+
+- "I show the band's task lists in full": taps the band's section toggle (`tasks-section-toggle`, first grid) until its
+  `data-mode` is `full`, so the band shows every list with its items.
+- "the head row and the items of the band's cards do not overlap": in the first band, every card's items start below its
+  head row and follow one under the other (no item's top above the previous bottom), so a capped band never squeezes
+  the lines into each other.
+- "the list of the expanded task list stands out from the grid behind it": the grown card's extension layer
+  (`tasklist-grown-ext`) has an opaque background whose RGB distance from the first opaque background behind the day
+  column is at least 24, in the current colour scheme — the list reads as a box, also in the dark theme.

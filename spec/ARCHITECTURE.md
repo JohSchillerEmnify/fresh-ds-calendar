@@ -359,7 +359,9 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
   window (the week's earliest timed start to its latest end, min 60 min, 08–20 when empty) fills the row's area, the effective hour
   height = area height / window hours (provided to descendants, so the inline grown card lines up), nothing scrolls or zooms, the
   smallest block is one title line (19 px) so short entries stay near their real length, and a tap on an empty slot opens that day.
-  The all-day band, blocks and the inline task-list expansion are the grid's own — no second layout.
+  The all-day band, blocks and the inline task-list expansion are the grid's own — no second layout. The band is capped at a third
+  of the row and scrolls; its task lists are one-line chips, except in the band's "full" mode, where they are the normal stacked
+  all-day cards (title row, then the items), each row at its content height (never squeezed to share the cap).
 - **Dialogs**: phone = bottom sheet (full width, anchored to the bottom, rounded top, max-height 90dvh, internal scroll,
   drag handle; padding-bottom includes safe-area inset); desktop = centered modal ≤ 520 px. Escape and the Cancel
   button close; backdrop tap closes only when the form is pristine.
@@ -1700,7 +1702,8 @@ actually longer". Owner decisions (final):
 - **The real duration stays recognisable**: the grown card is drawn by two layers behind the same content. The part over
   the list's real time block (`tasklist-grown-real`, the collapsed card's height) looks exactly like the normal card; the part
   that only extends it (`tasklist-grown-ext`, below the real end, or above the real start when it grows up) is inset 5 px
-  from both sides, a lighter tone of the card colour, with a thin seam at the real end. Growing in place is a **Labs experiment**
+  from both sides, a lighter tone of the card colour on the raised container tone (`surface-container-high`, so it reads as a box
+  in the dark theme too), with a thin seam at the real end; it holds the items only (no time foot). Growing in place is a **Labs experiment**
   (`labsGrowCards`, default off, a switch in the Labs section; owner, 2026-10-19: it does not work properly yet) — off, a tap on a
   collapsed card opens the list sheet instead. The two layers are two separate containers
   that never mix (owner, 2026-10-19): the head row (checkbox, icon, title, count) is the pill and fills exactly the real layer — the

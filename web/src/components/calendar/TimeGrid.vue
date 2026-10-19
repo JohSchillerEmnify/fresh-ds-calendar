@@ -153,12 +153,13 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         <span class="dow">{{ formatDate(c.d, 'weekday') }}</span> <span class="dn">{{ c.d.getDate() }}</span>
       </button>
     </div>
-    <div class="alldays" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(var(--bar-h), auto))` : undefined }">
+    <!-- fit: the band is capped (34%) and scrolls, so each row keeps its content height instead of being squeezed to share the cap -->
+    <div class="alldays" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(${fit ? 'max-content' : 'var(--bar-h)'}, auto))` : undefined }">
       <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${Math.max(band.rows, 1) + 1}` }" :data-testid="ids.all" :data-date="c.date">
         <button v-if="band.days[ci].count" class="taskcount" type="button" data-testid="tasks-count-chip" :style="{ gridRow: band.days[ci].slots[0] + 1 }" @click="cycleSection(mode, isPhone)">{{ t('calendar.grid.taskCount', { count: c.top.filter(isList).length }, c.top.filter(isList).length) }}</button>
-        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || (s.item.kind === 'tasklist' && !fit) ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
+        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || (s.item.kind === 'tasklist' && (!fit || smode === 'full')) ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
@@ -232,4 +233,5 @@ html[data-motion='off'] .blk.settle { transition: none; }
 .tg.fit .dn { width: 22px; height: 22px; font: var(--md-sys-typescale-label-large); font-size: 12px; }
 .tg.fit .dow { font-size: 11px; }
 .tg.fit .alldays { max-height: 34%; }
+.tg.fit .adcol > * { min-height: var(--bar-h); }
 </style>

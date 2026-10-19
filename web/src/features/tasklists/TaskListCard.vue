@@ -293,7 +293,12 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
    extends it (below the real end, above the real start when it grows up); the seam between them marks the real end time */
 .tl.grown { min-width: 0; animation: none; isolation: isolate; border-radius: inherit; }
 /* the content sits 1 px inside the extension box so item/title text never spills past the lighter layer's edge */
-.tl.grown:not(.flat) { background: transparent; border-color: transparent; box-shadow: none; --ext-in: 4px; padding-left: calc(var(--ext-in) + 1px); padding-right: calc(var(--ext-in) + 1px); }
+.tl.grown:not(.flat) { background: transparent; border-color: transparent; box-shadow: none; --ext-in: 4px; padding: 0 calc(var(--ext-in) + 1px); }
+/* the pill sits flush at the host's top (or bottom when grown up), so the real layer is exactly the card's box — no vertical
+   padding on the host; the list keeps its breathing room inside the extension instead */
+.tl.grown:not(.flat) .extbox { padding: 3px 0; }
+/* the real layer wears the block card's own ring and shadow, so the collapsed card underneath never shows as a second edge */
+.block.grown:not(.flat) .real { box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
 /* flat (month cell card): the card's own look, as tall as its content */
 .tl.grown.flat { min-height: 0; }
 .gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }
@@ -304,7 +309,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 }
 .ext {
   top: calc(var(--min-h, 0px) - var(--bw)); bottom: calc(-1 * var(--bw)); left: var(--ext-in, 4px); right: var(--ext-in, 4px);
-  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface));
+  /* on the raised container tone, so the list reads as a box in the dark theme too (on the plain surface it vanished there) */
+  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface-container-high));
   border-radius: 0 0 var(--xr, var(--r-block)) var(--xr, var(--r-block)); box-shadow: inset 0 2px 0 color-mix(in srgb, var(--on) 28%, transparent);
 }
 .grown.up .real { top: auto; bottom: calc(-1 * var(--bw)); }
@@ -340,6 +346,8 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .tl.grown:not(.flat) .extbox { display: flex; flex-direction: column; position: relative; min-width: 0; }
 .tl.grown:not(.flat) .ext { top: calc(-1 * var(--bw)); bottom: calc(-1 * var(--bw)); left: -1px; right: -1px; }
 .tl.grown:not(.flat) .pbar { display: none; }
+/* the list holds items only: the time foot is neither pill content nor an item (the pill sits on its time block anyway) */
+.tl.grown:not(.flat) .foot { display: none; }
 .tl.grown[data-tight='true'] .est, .tl.grown[data-tight='true'] .from, .tl.grown[data-tight='true'] .shbadge, .tl.grown[data-tight='true'] .ring { display: none; }
 /* grown upwards: the pill is at the bottom, the items stay above it in the extension */
 .tl.grown.up:not(.flat) { flex-direction: column-reverse; }

@@ -4,6 +4,10 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Two-row overview: a lone entry leaves the grown list no room** (2026-10-19, seen in the visual gate). The shared
+  window is the week's earliest start to its latest end (min 60 min); when the only entry is one task list, its block
+  fills the whole row, so the grown card's list has no space above or below and stays hidden. Options: a minimum
+  window around the entries (e.g. ±2 h), or let the grown list overlay the band/header. Owner's call.
 - **Desktop month-picker swipe fails** (2026-10-18). `month-picker.feature` "Arrows and swipes change the month
   inside the picker" fails on `--project=desktop` (mouse-drag branch of `swipePicker` in `year.steps.ts`,
   `expect(...).not.toHaveText` on the month). Pre-existing (fails on main), not from the dedup work. Investigate the

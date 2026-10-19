@@ -91,3 +91,31 @@ Feature: The calendar's states look right
     And the head row and the items of the expanded task list do not overlap
     And the pill of the expanded task list covers the card "Weekly shopping for the big family barbecue" it grew from
     And the "week overview" still looks like "week-grown-tight"
+
+  Scenario: The overview's band shows the lists in full as stacked cards
+    Given the two-row week overview is on
+    And the calendar contains a task list "Groceries" on 2026-10-12 with items:
+      | Tomatoes     |
+      | Pasta        |
+      | Coffee beans |
+    And the calendar contains a task list "Prepare demo" on 2026-10-12 with items:
+      | Test the walkthrough |
+      | Book the room        |
+    When I open the week of 2026-10-12 on a phone
+    And I show the band's task lists in full
+    Then the head row and the items of the band's cards do not overlap
+    And the "top row" still looks like "two-row-band-full"
+
+  Scenario: A grown task list in the dark theme is a box of its own
+    Given the device prefers a dark color scheme
+    And the two-row week overview is on
+    And the calendar contains an event "Standup" on 2026-10-12 from 09:00 to 09:30
+    And the calendar contains an event "Kino" on 2026-10-18 from 20:00 to 21:30
+    And the calendar contains a task list "Weekend chores" on 2026-10-13 at 11:00 for 90 minutes with items:
+      | Vacuum the flat    |
+      | Water the plants   |
+      | Take out the bins  |
+    When I open the week of 2026-10-12 on a phone
+    And I tap "Weekend chores"
+    Then the list of the expanded task list stands out from the grid behind it
+    And the "top row" still looks like "two-row-grown-dark"
