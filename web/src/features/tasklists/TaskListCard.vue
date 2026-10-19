@@ -287,9 +287,10 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .mini.block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 2ch; }
 .block[data-fit='inline'] .pbar, .block[data-fit='inline'] .est { display: none; }
 
-/* grown (the expanded card, ExpandedCard): two tones — a lighter header pill (.row) laid over a darker body.
-   The card box is the pill's bounding box; the darker body is drawn by ::before, inset at the sides (--e-inset)
-   and dropped from the top (--e-poke), so the pill overhangs the body while nothing spills past the card (no overlay clip). */
+/* grown (the expanded card, ExpandedCard): two tones — the header pill (.row) keeps the original event colour
+   (same as the collapsed card), laid over a toned-down body. The card box is the pill's bounding box; the body is
+   drawn by ::before, inset at the sides (--e-inset) and dropped from the top (--e-poke), so the pill overhangs the
+   body while nothing spills past the card (no overlay clip). */
 .tl.grown { display: flex; flex-direction: column; height: auto; min-height: var(--min-h, 0); min-width: 0; animation: none; border-radius: inherit; cursor: pointer; }
 .grown > * { flex: none; }
 .tl.grown:not(.flat) {
@@ -297,11 +298,11 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
   background: transparent; border-color: transparent; box-shadow: none;
   --e-inset: 5px; --e-poke: 6px;
 }
-/* the darker body: the solid category fill, inset so the lighter pill overhangs it on the sides and top */
+/* the body: a toned-down fill (closer to the surface, like the old extension), inset so the pill overhangs it */
 .grown:not(.flat)::before {
   content: ''; position: absolute; z-index: 0;
   left: var(--e-inset); right: var(--e-inset); top: var(--e-poke); bottom: 0;
-  background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface));
+  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.72), var(--md-sys-color-surface));
   border: var(--e-bw) solid var(--c); border-radius: var(--xr, var(--r-block)); box-shadow: var(--glow-sh);
 }
 .grown:not(.flat) > * { position: relative; z-index: 1; }
@@ -309,10 +310,10 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .tl.grown.flat { min-height: 0; }
 .grown.flat .items { overflow: visible; margin-top: 4px; }
 .grown .row { align-items: flex-start; flex-wrap: wrap; max-width: 100%; }
-/* the lighter header pill: full card width, so it overhangs the narrower body */
+/* the header pill: the original event colour (same as the collapsed card), full card width so it overhangs the body */
 .grown:not(.flat) > .row {
   padding: 7px 10px; border-radius: var(--xr, var(--r-block));
-  background: color-mix(in srgb, var(--c) calc(var(--e-fill) * 0.6), var(--md-sys-color-surface));
+  background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface));
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.24);
 }
 /* items and foot sit on the darker body, within the side inset; text wraps inside, never overflowing */
