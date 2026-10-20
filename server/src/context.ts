@@ -53,7 +53,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[] };
+  overrides: { pollIntervalMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Door plugin key and person in place of the config's (null = no door). */ door?: { token: string; person: string } | null };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;

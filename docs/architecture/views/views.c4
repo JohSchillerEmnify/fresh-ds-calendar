@@ -19,4 +19,20 @@ views {
     calendar.web.week -> calendar.web.prefs 'reads overview and split'
     calendar.web.week -> calendar.web.timegrid 'renders two fit-mode grids'
   }
+
+  view server of calendar.server {
+    title 'Server — prefs, tasks and the door'
+    include *
+  }
+
+  dynamic view doorRead {
+    title 'The door board reads its reminders and today\'s events'
+
+    calendar.web.pluginUi -> calendar.server.plugins 'sees the door plugin enabled'
+    owner -> calendar.web.listForm 'turns Show on door on for a list'
+    calendar.web.listForm -> calendar.server.tasksApi 'saves the list with the door tag'
+    doorBoard -> calendar.server.doorPlugin 'asks with its key'
+    calendar.server.doorPlugin -> calendar.server.calendarService 'reads the key\'s person\'s door-tagged lists and today\'s events'
+    calendar.server.doorPlugin -> doorBoard 'answers open items (latest due occurrence only) and today\'s titles and times'
+  }
 }

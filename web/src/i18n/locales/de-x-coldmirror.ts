@@ -200,5 +200,8 @@ export default {
       groceries: 'Einkauf', milk: 'Kürbissaft', bread: 'Brot', eggs: 'Drachen-Eier',
     },
   },
+  plugins: {
+    door: { label: 'An der Tür zeigen', hint: 'Die offenen Punkte hängen am Türdisplay, bis sie abgehakt sind' },
+  },
   theme: themeColdmirror,
 } satisfies Messages;

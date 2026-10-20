@@ -2521,6 +2521,8 @@ Multi-stage Dockerfile (`node:22-alpine`): build web + server, runtime contains 
 production deps. Healthcheck: `wget -qO- http://localhost:3000/api/health`.
 
 - `ALLOWED_EMAILS`: comma-separated Google addresses that may sign in (auth on with `PROVIDER=google`).
+- `DOOR_API_TOKEN`, `DOOR_PERSON`: the optional door plugin (ADR 0003/0004, `server/src/plugins/door/README.md`) — the
+  board's bearer key and the person it sees. Unset: no door endpoint, no "Show on door" switch. Plugins are off by default.
 
 ## 9. Owner actions
 

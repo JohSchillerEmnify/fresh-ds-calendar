@@ -23,6 +23,7 @@ specification {
   }
 
   tag experimental
+  tag external
 }
 
 model {
@@ -41,6 +42,12 @@ model {
     }
   }
 
+  doorBoard = system 'Door board' {
+    #external
+    description 'The e-ink screen inside the front door and its renderer on the home server; shows reminders before leaving'
+  }
+
   owner -> calendar.web 'views and manages the calendar'
   calendar.web -> calendar.server 'reads and writes preferences'
+  doorBoard -> calendar.server 'reads reminders and today\'s events with its key'
 }

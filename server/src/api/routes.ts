@@ -3,6 +3,7 @@ import type { Category } from './types.js';
 import type { Ctx } from '../context.js';
 import { VERSION } from '../context.js';
 import { readApkInfo } from '../routes/download.js';
+import { enabledPlugins } from '../plugins/registry.js';
 import { ApiException, preconditionFailed, validation, notFound } from '../lib/errors.js';
 import { isLocalDate, formatInZone, dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
@@ -68,6 +69,7 @@ export function configResponse(ctx: Ctx) {
     publicUrl: ctx.config.publicUrl,
     version: ctx.overrides.version ?? VERSION,
     apk: ctx.overrides.apk !== undefined ? ctx.overrides.apk : readApkInfo(ctx.config.dataDir),
+    plugins: enabledPlugins(ctx),
   };
 }
 
@@ -107,7 +109,7 @@ export function apiRoutes(ctx: Ctx): Hono {
       }
       ctx.health = ctx.mock?.isDown ? null : { at: now, status };
     }
-    return c.json({ status: 'ok', provider: ctx.provider.name, providerStatus: status, version: VERSION, time: formatInZone(now, tz), testMode: config.testMode });
+    return c.json({ status: 'ok', provider: ctx.provider.name, providerStatus: status, version: VERSION, time: formatInZone(now, tz), testMode: config.testMode, plugins: enabledPlugins(ctx) });
   });
 
   r.get('/config', (c) => c.json(configResponse(ctx)));

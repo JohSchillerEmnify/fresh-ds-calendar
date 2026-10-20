@@ -25,6 +25,8 @@ export interface AppConfig {
   /** Google addresses that may sign in (auth is on with PROVIDER=google). */
   allowedEmails: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  /** Door plugin (ADR 0003/0004): the board's bearer key and the person whose calendar it sees; no token = no door. */
+  door: { token: string | null; person: string | null };
   google: {
     clientId: string | null;
     clientSecret: string | null;
@@ -57,6 +59,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: [...new Set([...(publicUrl ? [publicUrl] : []), ...list(env.ALLOWED_ORIGINS)])],
     allowedEmails: parseEmails(env.ALLOWED_EMAILS),
     logLevel: (['debug', 'info', 'warn', 'error'] as const).find((l) => l === env.LOG_LEVEL) ?? 'info',
+    door: { token: env.DOOR_API_TOKEN || null, person: parseEmails(env.DOOR_PERSON)[0] ?? null },
     google: {
       clientId: env.GOOGLE_CLIENT_ID || null,
       clientSecret: env.GOOGLE_CLIENT_SECRET || null,

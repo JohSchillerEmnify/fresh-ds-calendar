@@ -203,5 +203,8 @@ export default {
       groceries: 'Groceries', milk: 'Milk', bread: 'Bread', eggs: 'Eggs',
     },
   },
+  plugins: {
+    door: { label: 'Show on door', hint: 'Its open items go to the door board until they are ticked' },
+  },
   theme: themeEn,
 };

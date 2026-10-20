@@ -1,5 +1,9 @@
 # Request from the door board: "Show on door" + `GET /api/door`
 
+> Built 2026-10-19 as the optional door plugin (`spec/features/door-board.feature`, `server/src/plugins/door/README.md`,
+> ADR 0003/0004). Decisions on the open questions: an undated door list is due until done; the switch lives in the
+> list form and in the list sheet; the key is bound to one person (`DOOR_PERSON`); off unless `DOOR_API_TOKEN` is set.
+
 From the door-board project (`~/projects/door-board`, 2026-10-19). Nothing in this repo has been changed by
 that work; this file only describes what the door board needs. Build it when it suits the calendar's own plans.
 
