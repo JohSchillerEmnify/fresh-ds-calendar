@@ -72,8 +72,6 @@ export default {
     tasksSection: 'Tasks: {mode}. Tap to change',
     modeTitles: 'Titles only',
     modeFull: 'Expanded',
-    modeCount: 'Counts only',
-    taskCount: '{count} task | {count} tasks',
     createAt: 'Create at {date} {time}',
   },
   item: {

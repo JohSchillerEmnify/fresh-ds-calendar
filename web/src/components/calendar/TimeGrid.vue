@@ -15,7 +15,7 @@ import { openNew } from '@/extensions/create';
 import { resizePreview } from '@/features/calendar/resize';
 import { gridLayers } from '@/extensions/registry';
 import { HOURS, formatDate, hourLabel, toIsoDate } from '@/lib/dates';
-import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX } from '@/lib/items';
+import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, TITLE_ROW_PX } from '@/lib/items';
 import { packWeek } from '@/lib/monthSlots';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';
 import { useClockStore } from '@/stores/clock';
@@ -49,22 +49,22 @@ const cols = computed(() => props.dates.map((d) => {
     date, d,
     today: date === clock.today,
     top: all.filter((s) => s.allDay || s.startTime === null),
-    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60),
+    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60, true, (TITLE_ROW_PX / hh.value) * 60),
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
-// fit (two-row overview): the band's lists are always one-line pills that grow in place on a tap — no section cycling (owner, 2026-10-19)
-const smode = computed(() => (props.fit ? 'titles' : sectionMode(props.mode, isPhone.value)));
+// every grid, the two-row overview included, has the same two levels: titles only and expanded (owner, 2026-10-20)
+const smode = computed(() => sectionMode(props.mode, isPhone.value));
 provide(sectionKey, () => smode.value);
 const isList = (s: { item: { kind: string } }) => s.item.kind === 'tasklist';
 const taskTotal = computed(() => cols.value.reduce((n, c) => n + c.top.filter(isList).length, 0));
-const sectionLabel = (m: 'titles' | 'full' | 'count') => t(m === 'titles' ? 'calendar.grid.modeTitles' : m === 'full' ? 'calendar.grid.modeFull' : 'calendar.grid.modeCount');
+const sectionLabel = (m: 'titles' | 'full') => t(m === 'titles' ? 'calendar.grid.modeTitles' : 'calendar.grid.modeFull');
 const dateStrs = computed(() => props.dates.map(toIsoDate));
 const bars = computed(() => barsOf(dateStrs.value));
-/** Per day, the all-day entries in render order: the task count chip (count mode) first, then the visible segments. */
+/** Per day, the all-day entries in render order. */
 const band = computed(() => {
-  const days = cols.value.map((c) => ({ count: smode.value === 'count' && c.top.some(isList), segs: c.top.filter((x) => smode.value !== 'count' || !isList(x)) }));
-  const packed = packWeek(bars.value, days.map((d) => Array.from({ length: (d.count ? 1 : 0) + d.segs.length }, () => 1)));
+  const days = cols.value.map((c) => ({ segs: c.top }));
+  const packed = packWeek(bars.value, days.map((d) => Array.from({ length: d.segs.length }, () => 1)));
   // a bar takes its slot only on the days it covers, each day's own entries fill that day's free slots from the top
   return { days: days.map((d, i) => ({ ...d, slots: packed[i].slots })), rows: Math.max(0, ...packed.map((p) => p.used)) };
 });
@@ -157,11 +157,10 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
     <!-- fit: the band is capped (34%) and scrolls, so each row keeps its content height instead of being squeezed to share the cap;
          its lists are one-line pills (allday in title form) that grow in place on a tap -->
     <div class="alldays" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(${fit ? 'max-content' : 'var(--bar-h)'}, auto))` : undefined }">
-      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :disabled="!!fit" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="fit || cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg v-if="!fit" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
+      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${Math.max(band.rows, 1) + 1}` }" :data-testid="ids.all" :data-date="c.date">
-        <button v-if="band.days[ci].count" class="taskcount" type="button" data-testid="tasks-count-chip" :style="{ gridRow: band.days[ci].slots[0] + 1 }" @click="cycleSection(mode, isPhone)">{{ t('calendar.grid.taskCount', { count: c.top.filter(isList).length }, c.top.filter(isList).length) }}</button>
-        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si + (band.days[ci].count ? 1 : 0)] + 1 }" />
+        <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si] + 1 }" />
       </div>
     </div>
     <div ref="scroller" class="scroll" data-scroll-area>
@@ -204,8 +203,6 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .sec { position: sticky; top: 0; width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); }
 .sec svg { width: 12px; height: 12px; transition: transform 160ms; }
 .sec[data-mode='full'] svg { transform: rotate(180deg); }
-.sec[data-mode='count'] svg { transform: rotate(-90deg); }
-.taskcount { align-self: stretch; min-height: 22px; border-radius: 11px; font: var(--md-sys-typescale-label-small); background: color-mix(in srgb, var(--md-sys-color-primary) 14%, transparent); color: var(--md-sys-color-on-surface); }
 .alldays { border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .tg:has([data-dragging='true']) .adcol { min-height: 30px; }
 .alldays { --bar-h: 20px; row-gap: 2px; }

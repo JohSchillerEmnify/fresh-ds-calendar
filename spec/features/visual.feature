@@ -92,7 +92,9 @@ Feature: The calendar's states look right
     And the pill of the expanded task list covers the card "Weekly shopping for the big family barbecue" it grew from
     And the "week overview" still looks like "week-grown-tight"
 
-  Scenario: The overview's band shows its lists as pills only, and a tap grows one in place
+  # Owner, 2026-10-20: the overview's switch has the same two levels as the day view (titles only, expanded), never a
+  # third. It replaces the 2026-10-19 "pills only, no switch" rule for the overview.
+  Scenario: The overview's band switch has two levels, and a tap grows a list in place
     Given the two-row week overview is on
     And the calendar contains a task list "Groceries" on 2026-10-12 with items:
       | Tomatoes     |
@@ -102,8 +104,13 @@ Feature: The calendar's states look right
       | Test the walkthrough |
       | Book the room        |
     When I open the week of 2026-10-12 on a phone
-    Then the band's lists are one-line pills with no section switch
+    Then the band's lists are one-line pills
     And the "top row" still looks like "two-row-band"
+    When I tap the band's section switch
+    Then the band's lists show their items
+    And the "top row" still looks like "two-row-band-full"
+    When I tap the band's section switch
+    Then the band's lists are one-line pills
     When I tap "Groceries"
     Then "Groceries" expands in place and shows "Tomatoes"
     And the "top row" still looks like "two-row-band-grown"
@@ -121,3 +128,25 @@ Feature: The calendar's states look right
     And I tap "Weekend chores"
     Then the list of the expanded task list stands out from the grid behind it
     And the "top row" still looks like "two-row-grown-dark"
+
+  # Owner, 2026-10-20 ("about the 10th time", screenshot): a short timed task list under a later event that cascades over
+  # it had its title cut in half. The overlap is right; the cut title is not. A-64: a cascade keeps the earlier title readable.
+  Scenario: A task list under a later event keeps its title readable
+    Given the time grid is zoomed to 72 pixels per hour
+    And the calendar contains a task list "Packen Orchester, Noten, Schlägel, Notenständer, Tasche" on 2026-10-12 at 18:15 for 30 minutes with items:
+      | Noten    |
+      | Schlägel |
+    And the calendar contains an event "Dancefitness" on 2026-10-12 from 18:30 to 19:15
+    And the calendar contains an event "Ensemble rehearsal" on 2026-10-12 from 19:00 to 22:00
+    When I open the day view for 2026-10-12
+    Then no title in the "day column" is covered by another entry
+    And no text in the "day column" is clipped
+
+  Scenario: An event 15 minutes into a task list never covers its title at the default zoom
+    Given the calendar contains a task list "Packen Orchester, Noten, Schlägel, Notenständer, Tasche" on 2026-10-12 at 18:00 for 60 minutes with items:
+      | Noten    |
+      | Schlägel |
+    And the calendar contains an event "Dancefitness" on 2026-10-12 from 18:15 to 19:15
+    When I open the day view for 2026-10-12
+    Then no title in the "day column" is covered by another entry
+    And no text in the "day column" is clipped

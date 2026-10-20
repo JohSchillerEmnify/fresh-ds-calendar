@@ -3,7 +3,7 @@
  * the pill covers its card — and `toHaveScreenshot` pictures as regression guards (baselines in e2e/snapshots).
  */
 import { expect, type Locator } from '@playwright/test';
-import { Then } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { box } from './support/ui.js';
 import type { World } from './support/world.js';
 
@@ -16,6 +16,7 @@ function region(w: World, name: string): Locator {
     case 'top row': return w.byTestId('week-overview-row', '[data-row="0"]');
     case 'expanded task list': return w.byTestId('tasklist-expanded');
     case 'all-day band': return w.byTestId('week-overview-row', '[data-row="0"]').locator('.alldays');
+    case 'day column': return w.byTestId('day-column');
     default: throw new Error(`unknown region "${name}"`);
   }
 }
@@ -26,7 +27,8 @@ const grownItems = (w: World) => w.byTestId('tasklist-expanded').locator('.tl.gr
 
 /**
  * Every text-bearing element must lie inside the box of its nearest clipping ancestor. Exempt by design: the 24-hour
- * grid (`data-scroll-area`, it clips to the window), the all-day band scroller, and a collapsed card's faded items.
+ * grid (`data-scroll-area`, it clips to the window), the all-day band scroller, and a collapsed card's faded items (rows
+ * below the title, or the names run next to it in a short block).
  */
 Then('no text in the {string} is clipped', async function (this: World, name: string) {
   const root = region(this, name);
@@ -34,10 +36,10 @@ Then('no text in the {string} is clipped', async function (this: World, name: st
   const clipped: string[] = await root.evaluate((rootEl) => {
     const out: string[] = [];
     const clipsHere = (el: Element) => { const o = getComputedStyle(el); return [o.overflowX, o.overflowY].some((v) => v === 'hidden' || v === 'clip'); };
-    // by design: the 24-hour grid clips to its window, the band scrolls, a collapsed card fades its cut items, and a
+    // by design: the 24-hour grid clips to its window, the band scrolls, a collapsed card fades its cut items (also inline), and a
     // visually-hidden box (1×1 px, screen-reader only) hides on purpose
     const tiny = (el: Element) => { const r = el.getBoundingClientRect(); return r.width <= 2 && r.height <= 2; };
-    const exempt = (el: Element) => el.hasAttribute('data-scroll-area') || el.classList.contains('alldays') || (el.classList.contains('items') && el.hasAttribute('data-fade')) || tiny(el);
+    const exempt = (el: Element) => el.hasAttribute('data-scroll-area') || el.classList.contains('alldays') || (el.classList.contains('items') && (el.hasAttribute('data-fade') || !!el.closest('.block[data-fit="inline"]'))) || tiny(el);
     const texts = rootEl.querySelectorAll('.tx, .it, .est, .count, .time, .dow, .dn, .lead, .from, .taskcount');
     for (const t of texts) {
       if (!(t as HTMLElement).innerText.trim()) continue;
@@ -61,6 +63,40 @@ Then('no text in the {string} is clipped', async function (this: World, name: st
     return out;
   });
   expect(clipped, `clipped text in the ${name}`).toEqual([]);
+});
+
+/** Preset the remembered hour height before the app loads, as if the person had pinched to that zoom. */
+Given('the time grid is zoomed to {int} pixels per hour', async function (this: World, px: number) {
+  await this.context.addInitScript((h: number) => localStorage.setItem('cal.hourHeight', String(h)), px);
+});
+
+/**
+ * No entry card is drawn over any part of another entry's title line (A-64: a cascade keeps the earlier title readable).
+ * Probes each title near its left end, 2 px inside its top and bottom edge; only other entry cards count as cover.
+ */
+Then('no title in the {string} is covered by another entry', async function (this: World, name: string) {
+  const root = region(this, name);
+  await expect(root).toBeVisible();
+  const card = '[data-testid="tasklist-card"], [data-testid="event-chip"]';
+  const titles = root.locator('.tx, .lead, [data-testid="event-chip-title"]');
+  await expect(titles.first()).toBeVisible();
+  const covered: string[] = [];
+  for (const t of await titles.all()) {
+    if (!(await t.isVisible())) continue;
+    await t.scrollIntoViewIfNeeded();
+    const hit = await t.evaluate((el, sel) => {
+      const own = el.closest(sel);
+      const r = el.getBoundingClientRect();
+      const x = r.left + Math.min(4, r.width / 2);
+      for (const y of [r.top + 2, r.bottom - 2]) {
+        const over = document.elementFromPoint(x, y)?.closest(sel);
+        if (over && over !== own) return `"${(el as HTMLElement).innerText.trim().slice(0, 40)}" is covered at y=${Math.round(y - r.top)} of ${Math.round(r.height)} px by "${over.getAttribute('data-title')}"`;
+      }
+      return null;
+    }, card);
+    if (hit) covered.push(hit);
+  }
+  expect(covered, `covered titles in the ${name}`).toEqual([]);
 });
 
 /** The pill (head row) and the items never share a pixel row, whichever side the card grew to. */
@@ -97,10 +133,11 @@ Then('the {string} still looks like {string}', async function (this: World, name
   await expect(target).toHaveScreenshot(`${picture}.png`, { mask: [this.page.getByTestId('now-marker')] });
 });
 
-Then("the band's lists are one-line pills with no section switch", async function (this: World) {
+Then("the band's lists are one-line pills", async function (this: World) {
   const toggle = this.byTestId('tasks-section-toggle').first();
-  await expect(toggle).toBeDisabled();
-  await expect(toggle.locator('svg')).toHaveCount(0);
+  await expect(toggle).toBeEnabled();
+  await expect(toggle.locator('svg')).toHaveCount(1);
+  await expect(toggle).toHaveAttribute('data-mode', 'titles');
   const cards = this.page.locator('.alldays').first().locator('.tl');
   await expect(cards.first()).toBeVisible();
   const bad = await cards.evaluateAll((els) => els.flatMap((c) => {
@@ -109,6 +146,22 @@ Then("the band's lists are one-line pills with no section switch", async functio
     return [...(h > 30 ? [`${c.getAttribute('data-title')} is ${Math.round(h)}px tall`] : []), ...(shown ? [`${c.getAttribute('data-title')} shows ${shown} items`] : [])];
   }));
   expect(bad, 'every band list is a one-line pill without its items').toEqual([]);
+});
+
+/** Two levels only (titles, full): each tap flips the first grid's switch to the other one. */
+When("I tap the band's section switch", async function (this: World) {
+  const toggle = this.byTestId('tasks-section-toggle').first();
+  const before = await toggle.getAttribute('data-mode');
+  await toggle.click();
+  await expect(toggle).not.toHaveAttribute('data-mode', before ?? '');
+});
+
+Then("the band's lists show their items", async function (this: World) {
+  await expect(this.byTestId('tasks-section-toggle').first()).toHaveAttribute('data-mode', 'full');
+  const cards = this.page.locator('.alldays').first().locator('.tl');
+  await expect(cards.first()).toBeVisible();
+  const bare = await cards.evaluateAll((els) => els.filter((c) => ![...c.querySelectorAll('.it')].some((i) => i.getBoundingClientRect().height > 1)).map((c) => c.getAttribute('data-title')));
+  expect(bare, 'band lists without a visible item').toEqual([]);
 });
 
 /** Parses `rgb(a)(...)` and `color(srgb r g b)` computed colours to 0–255 channels; null for transparent or unknown. */

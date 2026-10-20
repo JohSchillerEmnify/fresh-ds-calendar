@@ -62,8 +62,6 @@ export default {
     tasksSection: 'Aufgabn: {mode}. Zum Ändern andibbn',
     modeTitles: 'Nur Didl',
     modeFull: 'Aufgeklappd',
-    modeCount: 'Nur Anzahl',
-    taskCount: '{count} Aufgab | {count} Aufgabn',
     createAt: 'Anlegn am {date} um {time}',
   },
   item: {

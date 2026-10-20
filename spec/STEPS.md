@@ -2093,7 +2093,7 @@ the seven days are side by side in a single row
 Rules that need no reference picture, plus `toHaveScreenshot` regression pictures (baselines in `e2e/snapshots/<project>/`,
 written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
-(`week-day-column[data-date]`), `top row` (`week-overview-row[data-row="0"]`). The `now-marker` is masked.
+(`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`). The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped
@@ -2101,13 +2101,30 @@ the head row and the items of the expanded task list do not overlap
 the pill of the expanded task list covers the card {string} it grew from
 the {string} still looks like {string}
 the pill of the expanded task list shows the count {string}
-the band's lists are one-line pills with no section switch
+the band's lists are one-line pills
+I tap the band's section switch
+the band's lists show their items
 the list of the expanded task list stands out from the grid behind it
+the time grid is zoomed to {int} pixels per hour
+no title in the {string} is covered by another entry
 ```
 
-- "the band's lists are one-line pills with no section switch": in the first grid the band's section toggle
-  (`tasks-section-toggle`) is disabled and has no chevron, and every task-list card in the band is at most 30 px tall
-  with none of its items visible — the overview's band knows only the pill and the grown card.
+- "no text in the {string} is clipped": every text lies inside its nearest clipping box (1.5 px slack). Clipped on
+  purpose and exempt: the time grid's scroller, the all-day band, a card's faded item rows, and the item names that run
+  next to the title of a short block (they fade out at the right edge).
+- "the time grid is zoomed to N pixels per hour": the remembered hour height (`cal.hourHeight` in local storage) is N
+  before the app loads, as if the person had pinched to that zoom.
+- "no title in the {string} is covered by another entry": every entry's title (`.tx`, `.lead`, `event-chip-title`)
+  in the region, scrolled into view, is topmost at its left end near its top and its bottom edge (2 px in): no other
+  entry card is drawn over any part of a title line. Other overlays (the "+" button, the now line) do not count.
+
+- "the band's lists are one-line pills": in the first grid the band's section toggle (`tasks-section-toggle`) is
+  enabled, shows its chevron and is in `titles` mode, and every task-list card in the band is at most 30 px tall with
+  none of its items visible.
+- "I tap the band's section switch": taps the first grid's `tasks-section-toggle` and waits until its `data-mode`
+  changed. The switch has two levels, `titles` and `full`, so two taps come back to the start.
+- "the band's lists show their items": the first grid's toggle is in `full` mode and every task-list card in its band
+  shows at least one item.
 - "the list of the expanded task list stands out from the grid behind it": the grown card's extension layer
   (`tasklist-grown-ext`) has an opaque background whose RGB distance from the first opaque background behind the day
   column is at least 24, in the current colour scheme — the list reads as a box, also in the dark theme.
