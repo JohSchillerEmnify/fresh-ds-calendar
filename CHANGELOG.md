@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-20
+- A short task list no longer has its title cut off when an event starts shortly after it: the title sits at the top of the card, and if there is not enough room the two are shown side by side.
+- The task switch in the day and week views now has just two levels, titles only and expanded; the "3 tasks" count level is gone, and the two-row week overview has the switch too.
+
 ## 2026-10-16
 - Importing your own theme is now always available in the theme menu; only generating a theme with AI stays an experimental Labs feature.
 - The app is now called Fresh-D's Kalender, with the slogan “Trag ein, trag aus, macht mir nix aus!” on the sign-in screen.

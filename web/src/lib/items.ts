@@ -128,6 +128,9 @@ export function segmentsByDate(items: Iterable<CalendarItem>, today?: LocalDate)
 
 /** Overlapping blocks whose starts are at least this far apart cascade (the later one drawn on top, indented). */
 export const OVERLAP_STACK_MIN_START_GAP_MIN = 15;
+/** One title row of a block (px): top border, 1 px padding, the 16 px title line. A cascade leaves at least this much of the
+ * earlier block visible, so its title is never cut (owner, 2026-10-20). */
+export const TITLE_ROW_PX = 18;
 /** Indent (px) per cascade level. */
 export const STACK_INDENT_PX = 10;
 /** Deepest cascade level; beyond it blocks fall back to side-by-side columns of the last group. */
@@ -161,8 +164,10 @@ export interface PlacedSegment {
 /**
  * `minMinutes` is the drawn minimum per block, in minutes: a number for all, or per segment (A-E5: a block drawn
  * taller than its duration, e.g. a task list with open items, is drawn at that height unless a neighbour below clamps it).
+ * `titleMinutes` is one title row ({@link TITLE_ROW_PX}) in minutes: a later block cascades over an earlier one only when it
+ * starts at least that far in (and at least OVERLAP_STACK_MIN_START_GAP_MIN), else they share columns.
  */
-export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true): PlacedSegment[] {
+export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true, titleMinutes = 0): PlacedSegment[] {
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
   // A zero-length item still occupies one minute, so two of them at the same time do not paint on top of each other.
   const realEnd = (s: Segment) => Math.max(s.endMin, s.startMin + 1);
@@ -197,7 +202,8 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
       const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
       if (!g || level <= MAX_STACK_DEPTH) {
         // A block drawn taller than its duration is only a title row: a cascaded later block must leave that whole row visible.
-        const stackGap = s.endMin - s.startMin < min ? Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, min) : OVERLAP_STACK_MIN_START_GAP_MIN;
+        // Any block keeps its title row clear: at a low zoom 15 min is shorter than one title row (`titleMinutes`).
+        const stackGap = Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, titleMinutes, s.endMin - s.startMin < min ? min : 0);
         g = { start: s.startMin, end, level, items: [], colEnds: [], stackGap };
         groups.push(g);
       }

@@ -97,6 +97,16 @@ describe('packing and proportions', () => {
     expect(p.a.col).not.toBe(p.c.col);
     expect(p.d.level).toBe(1);
   });
+  it('a later block cascades only when it leaves a whole title row of the earlier one visible (owner, 2026-10-20)', () => {
+    // a 60-min list and an event 15 min in: at 44 px/h one 18 px title row is ~24.5 min, so they share columns
+    const a = ev('a', t(D, '18:00'), t(D, '19:00')), b = ev('b', t(D, '18:15'), t(D, '19:15'));
+    const at = (hh: number) => Object.fromEntries(packColumns(segsOf([a, b], D), (25 / hh) * 60, true, (18 / hh) * 60).map((x) => [x.seg.item.id, x]));
+    const low = at(44);
+    expect([low.a, low.b].map((x) => [x.level, x.cols])).toEqual([[0, 2], [0, 2]]);
+    // at 72 px/h the title row is exactly 15 min: the cascade stays (later block on top, one level deeper)
+    const high = at(72);
+    expect([high.a.level, high.b.level]).toEqual([0, 1]);
+  });
   it('back-to-back short events stay in one full-width column and the first is clamped to the second start', () => {
     const a = ev('a', t(D, '09:00'), t(D, '09:30')), b = ev('b', t(D, '09:30'), t(D, '10:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));

@@ -74,8 +74,6 @@ export default {
     tasksSection: 'Aufgaben: {mode}. Tippen zum Ändern, yo',
     modeTitles: 'Nur Titel, yo',
     modeFull: 'Aufgeklappt, fresh',
-    modeCount: 'Nur Zahlen, Digga',
-    taskCount: '{count} Aufgabe, yo | {count} Aufgaben, yo',
     createAt: 'Machen am {date} um {time}, yo',
   },
   item: {

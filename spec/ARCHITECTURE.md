@@ -360,9 +360,10 @@ Breakpoint: `< 768px` = phone layout; ≥ 768px = desktop layout. Design and imp
   height = area height / window hours (provided to descendants, so the inline grown card lines up), nothing scrolls or zooms, the
   smallest block is one title line (19 px) so short entries stay near their real length, and a tap on an empty slot opens that day.
   The all-day band, blocks and the inline task-list expansion are the grid's own — no second layout. The band is capped at a third
-  of the row and scrolls, each row at its content height (never squeezed to share the cap). Its task lists know only two states
-  (owner, 2026-10-19: "only the pill, the expanded, and nothing else"): the one-line pill (the all-day card in title form), and
-  the grown card on a tap; the band has no section cycling (count / titles / full) in the overview — the gutter shows the count only.
+  of the row and scrolls, each row at its content height (never squeezed to share the cap). Its section switch has the
+  same two levels as every other grid (A-E6, owner 2026-10-20): titles only (the one-line pill, the all-day card in title form) and
+  expanded (the cards with their items); a tap on a list grows it in place in either. It replaces the 2026-10-19 rule ("only the
+  pill, the expanded, and nothing else"), which had switched the overview's toggle off instead of dropping the third level.
 - **Dialogs**: phone = bottom sheet (full width, anchored to the bottom, rounded top, max-height 90dvh, internal scroll,
   drag handle; padding-bottom includes safe-area inset); desktop = centered modal ≤ 520 px. Escape and the Cancel
   button close; backdrop tap closes only when the form is pristine.

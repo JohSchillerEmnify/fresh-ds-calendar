@@ -26,7 +26,11 @@ spec files are named.
   Tap opens the event; dragging moves the whole event by whole days (shift = drop cell minus grabbed cell).
 - **A-64 Overlapping timed blocks** (week / day): overlapping events whose starts differ by 15 min or more cascade (later
   one on top, indented 10 px per level, max 3 levels) so titles stay readable; starts closer than 15 min share equal
-  columns; beyond depth 3 blocks fall back to columns. Constants in `lib/items.ts`.
+  columns; beyond depth 3 blocks fall back to columns. Constants in `lib/items.ts`. The gap is also at least one title
+  row (`TITLE_ROW_PX`, 18 px) at the current zoom, so a cascade never cuts the earlier title: at 44 px/h a block 15 min
+  in shares columns instead (at 72 px/h 15 min is exactly one row and still cascades). A short block's title row sits at
+  its top, never centred, because only the top strip stays visible under a cascade (owner, 2026-10-20: "about the
+  10th time" a cut task list title; the overlap is right, the cut text is not).
 - **A-10 Month overflow** (owner 2026-10-12): no `+N`; a cell shows as many entries as fit and fades the rest out at
   the bottom. Tapping the cell opens the day.
 - **A-11 Timed task lists** are 30-minute Google events; untimed ones are all-day events. They live in one calendar
@@ -167,6 +171,11 @@ spec files are named.
   chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
 - **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
   step "positioned from/to" allows the clamped height for such events.
+- **A-E6 Task section switch has two levels** (week / day all-day band, the two-row week overview included, `tasks-section-toggle`): titles only and
+  expanded, nothing else. The third "count" level (one "k tasks" chip per day) is gone for good (owner, 2026-10-20: "get rid of the third
+  collapse level"; asked before on 2026-10-19, "only the pill, the expanded, and nothing else", which
+  had only switched the overview's toggle off). A stored `count` from before reads as the default.
+  Pinned by `web/test/section-mode.test.ts`; never bring a count level back without the owner's explicit request.
 - **A-E5 Drawn height counts for overlap**: a block drawn taller than its duration (events and task lists alike: 24 px minimum;
   the former 44 px task list minimum was dropped on 2026-10-13, owner) occupies its drawn height when entries are laid out; an entry starting inside it is placed
   as overlapping (side by side or stacked), so nothing hides another entry's title (owner, 2026-10-12).

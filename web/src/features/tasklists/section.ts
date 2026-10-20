@@ -3,11 +3,12 @@ import type { InjectionKey } from 'vue';
 
 /**
  * Section-level display mode of the task lists in a calendar view (week / day): 'full' = compact cards with open items,
- * 'titles' = one line per list, 'count' = a single "k tasks" chip per day. Persisted per view in localStorage only (not a server setting).
+ * 'titles' = one line per list. Two levels only: the third "k tasks" count level is gone for good (owner, 2026-10-20).
+ * Persisted per view in localStorage only (not a server setting); a stored 'count' from before falls back to the default.
  */
-export type SectionMode = 'full' | 'titles' | 'count';
+export type SectionMode = 'full' | 'titles';
 export type SectionView = 'week' | 'day';
-export const SECTION_MODES: SectionMode[] = ['titles', 'full', 'count'];
+export const SECTION_MODES: SectionMode[] = ['titles', 'full'];
 export const sectionKey: InjectionKey<() => SectionMode> = Symbol('tl-section-mode');
 const KEY = (v: SectionView) => `tl-section-${v}`;
 
@@ -16,7 +17,7 @@ export const nextMode = (m: SectionMode): SectionMode => SECTION_MODES[(SECTION_
 function load(v: SectionView, phone: boolean): SectionMode {
   try {
     const s = localStorage.getItem(KEY(v));
-    if (s === 'full' || s === 'titles' || s === 'count') return s;
+    if (s === 'full' || s === 'titles') return s;
   } catch { /* storage unavailable */ }
   return phone ? 'titles' : 'full';
 }
