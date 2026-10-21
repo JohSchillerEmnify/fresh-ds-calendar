@@ -18,7 +18,7 @@ export const DEFAULT_ZOOM: Zoom2 = { x: 3, y: 1 };
 export const START_HOUR = 6;
 /** Rows (days of the week) that fit the viewport height at day zoom 1. */
 export const FIT_ROWS = 7;
-/** Narrowest a card is drawn (px): a bare title chip; shorter events are widened to it. */
+/** A bare title chip (px): only decides lanes; a card is drawn at its real length, never wider (owner, 2026-10-21). */
 export const MIN_CARD_PX = 28;
 /** Least height (px) of a lane of overlapping entries, and the height of an untimed bar. */
 export const MIN_LANE_PX = 22;
@@ -83,7 +83,7 @@ export function layoutRow(date: string, segs: Segment[], pph: number, baseH: num
   const room = height - 2 * ROW_PAD - bars.length * BAR_PX;
   for (const p of placed) {
     const laneH = room / p.cols;
-    const w = (p.height / 60) * pph; // already at least the minimum card, unless clamped by the next card in its lane
+    const w = (p.height / 60) * pph; // the real duration
     cards.push({
       seg: p.seg,
       left: Math.min((p.top / 60) * pph, Math.max(0, width - w)),

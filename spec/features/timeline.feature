@@ -16,12 +16,21 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     When I open the day view for 2026-10-12
     Then the event "Workshop" is about 2 times as tall as the event "Dentist"
 
-  Scenario: Very short events stay tappable but keep their start position
+  # No minimum height: a card is never drawn past its real end, so equal durations look equal (owner, 2026-10-21)
+  Scenario: Very short events are drawn at their real length
     Given today is 2026-10-12
     And the calendar contains an event "Pill" on 2026-10-12 from 08:00 to 08:05
     When I open the day view for 2026-10-12
-    Then the event "Pill" is at least 24 pixels tall
-    And the event "Pill" is positioned from 08:00 to 08:05
+    Then the event "Pill" is positioned from 08:00 to 08:05
+
+  Scenario: The last of back-to-back short events is as tall as the others
+    Given today is 2026-10-12
+    And the calendar contains an event "Daily A" on 2026-10-12 from 15:00 to 15:30
+    And the calendar contains an event "Daily B" on 2026-10-12 from 15:30 to 16:00
+    And the calendar contains an event "Daily C" on 2026-10-12 from 16:00 to 16:30
+    When I open the day view for 2026-10-12
+    Then the event "Daily B" is positioned from 15:30 to 16:00
+    And the event "Daily C" is positioned from 16:00 to 16:30
 
   Scenario: The phone month view opens the proportional day timeline, not an equal-height list
     Given today is 2026-10-12

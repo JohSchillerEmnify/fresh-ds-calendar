@@ -80,11 +80,11 @@ public class WeekLayoutTest {
 
     @Test
     public void minimumDurationDoesNotCreateAnOverlap() {
-        // a lasts 5 min (drawn 30 tall) and b starts 10 min later: no real overlap, one column, a clamped to b's start
+        // a lasts 5 min and b starts 10 min later: no real overlap, one column, a drawn at its real 5 min
         List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 600, 605), ev("b", 610, 640)), 30);
         assertEquals(1, find(l, "b").cols);
         assertEquals(0, find(l, "b").level);
-        assertEquals(10, find(l, "a").height);
+        assertEquals(5, find(l, "a").height);
         assertEquals(30, find(l, "b").height);
     }
 
@@ -94,6 +94,7 @@ public class WeekLayoutTest {
         assertEquals(1, find(l, "a").cols);
         assertEquals(1, find(l, "b").cols);
         assertEquals(30, find(l, "a").height);
+        assertEquals(30, find(l, "b").height);
     }
 
     @Test
@@ -101,7 +102,7 @@ public class WeekLayoutTest {
         List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 540, 545), ev("b", 543, 600)), 31);
         assertEquals(2, find(l, "a").cols);
         assertEquals(2, find(l, "b").cols);
-        assertEquals(31, find(l, "a").height);
+        assertEquals(5, find(l, "a").height);
     }
 
     @Test

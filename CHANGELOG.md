@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-21
+- Events in the day and week views are now always drawn exactly as long as they last, so back-to-back events of the same length look the same; very short events are drawn thin.
+
 ## 2026-10-20
 - A short task list no longer has its title cut off when an event starts shortly after it: the title sits at the top of the card, and if there is not enough room the two are shown side by side.
 - The task switch in the day and week views now has just two levels, titles only and expanded; the "3 tasks" count level is gone, and the two-row week overview has the switch too.

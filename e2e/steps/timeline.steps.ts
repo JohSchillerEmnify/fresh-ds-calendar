@@ -41,10 +41,6 @@ Then(
   },
 );
 
-Then('the event {string} is at least {int} pixels tall', async function (this: World, title: string, px: number) {
-  expect(await heightOf(this, title)).toBeGreaterThanOrEqual(px - 0.5);
-});
-
 const marker = (w: World) => w.page.getByTestId('now-marker');
 /** The time-grid day column that contains the now marker. */
 const markerColumn = (w: World): Locator =>
