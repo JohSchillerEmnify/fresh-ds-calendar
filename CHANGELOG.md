@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-21
+- New setting "Minimum event length" (Settings → Calendar): Off, 15 or 30 minutes. Shorter events and task lists are then drawn at least that long everywhere, the phone widget included, so their titles stay readable; their real times don't change.
 - Events in the day and week views are now always drawn exactly as long as they last, so back-to-back events of the same length look the same; very short events are drawn thin.
 
 ## 2026-10-20

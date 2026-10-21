@@ -112,6 +112,16 @@ describe('packing and proportions', () => {
     const high = at(72);
     expect([high.a.level, high.b.level]).toEqual([0, 1]);
   });
+  it('a minimum event length lays a shorter block out as that long: drawn so, and overlapping what starts within it', () => {
+    const a = ev('a', t(D, '11:00'), t(D, '11:15')), b = ev('b', t(D, '11:15'), t(D, '11:30'));
+    const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31, true, 0, 30).map((x) => [x.seg.item.id, x]));
+    expect([p.a.height, p.b.height]).toEqual([30, 30]);
+    expect([p.a.cols, p.b.cols]).toEqual([2, 2]);
+    expect(p.a.col).not.toBe(p.b.col);
+    // a block already longer than the minimum keeps its real length; off (0) is the strict rule
+    expect(packColumns(segsOf([ev('c', t(D, '13:00'), t(D, '13:20'))], D), 31, true, 0, 15)[0].height).toBe(20);
+    expect(packColumns(segsOf([a, b], D), 31, true, 0, 0).map((x) => [x.cols, x.height])).toEqual([[1, 15], [1, 15]]);
+  });
   it('back-to-back short events stay in one full-width column at their real length', () => {
     const a = ev('a', t(D, '09:00'), t(D, '09:30')), b = ev('b', t(D, '09:30'), t(D, '10:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));

@@ -73,9 +73,9 @@ export interface HRow { date: string; top: number; height: number; cards: HCard[
  * without cascading, so a cluster never overlaps itself). The row is as tall as `baseH`, or taller when its bars and lanes
  * need more than that.
  */
-export function layoutRow(date: string, segs: Segment[], pph: number, baseH: number): Omit<HRow, 'top'> {
+export function layoutRow(date: string, segs: Segment[], pph: number, baseH: number, minLength = 0): Omit<HRow, 'top'> {
   const bars = segs.filter((s) => s.allDay || s.startTime === null);
-  const placed = packColumns(segs, (MIN_CARD_PX / pph) * 60, false);
+  const placed = packColumns(segs, (MIN_CARD_PX / pph) * 60, false, 0, minLength);
   const lanes = placed.reduce((m, p) => Math.max(m, p.cols), 0);
   const height = Math.max(baseH, 2 * ROW_PAD + bars.length * BAR_PX + lanes * MIN_LANE_PX);
   const width = 24 * pph;
@@ -83,7 +83,7 @@ export function layoutRow(date: string, segs: Segment[], pph: number, baseH: num
   const room = height - 2 * ROW_PAD - bars.length * BAR_PX;
   for (const p of placed) {
     const laneH = room / p.cols;
-    const w = (p.height / 60) * pph; // the real duration
+    const w = (p.height / 60) * pph; // the real duration, at least the minimum event length
     cards.push({
       seg: p.seg,
       left: Math.min((p.top / 60) * pph, Math.max(0, width - w)),
@@ -97,12 +97,12 @@ export function layoutRow(date: string, segs: Segment[], pph: number, baseH: num
 }
 
 /** The layout of all rows stacked top to bottom, and the size of the world they make. */
-export function layoutRows(days: { date: string; segs: Segment[] }[], vw: number, vh: number, z: Zoom2): { rows: HRow[]; width: number; height: number } {
+export function layoutRows(days: { date: string; segs: Segment[] }[], vw: number, vh: number, z: Zoom2, minLength = 0): { rows: HRow[]; width: number; height: number } {
   const pph = pxPerHour(vw, z.x);
   const base = baseRowHeight(vh, z.y);
   let top = 0;
   const rows = days.map((d) => {
-    const r = layoutRow(d.date, d.segs, pph, base);
+    const r = layoutRow(d.date, d.segs, pph, base, minLength);
     const row = { ...r, top };
     top += r.height;
     return row;

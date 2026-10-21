@@ -166,11 +166,14 @@ export interface PlacedSegment {
  * (a block shorter than it is a bare title row), never the drawn height.
  * `titleMinutes` is one title row ({@link TITLE_ROW_PX}) in minutes: a later block cascades over an earlier one only when it
  * starts at least that far in (and at least OVERLAP_STACK_MIN_START_GAP_MIN), else they share columns.
+ * `minLength` is the owner's minimum event length in minutes (0 = off): a shorter block is laid out as that long everywhere
+ * here, drawn so and overlapping what starts within it (feature min-event-length); its real times stay untouched.
  */
-export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true, titleMinutes = 0): PlacedSegment[] {
+export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true, titleMinutes = 0, minLength = 0): PlacedSegment[] {
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
-  // A zero-length item still occupies one minute, so two of them at the same time do not paint on top of each other.
-  const realEnd = (s: Segment) => Math.max(s.endMin, s.startMin + 1);
+  // The end everything below uses: the real end, at least one minute (two zero-length items never paint on top of each
+  // other) and at least the minimum event length.
+  const layoutEnd = (s: Segment) => Math.max(s.endMin, s.startMin + 1, s.startMin + minLength);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const out: PlacedSegment[] = [];
   interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[]; stackGap: number }
@@ -182,7 +185,7 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
       for (const p of g.items) {
         let span = 1;
         for (let c = p.col + 1; c < p.cols; c++) {
-          const blocked = g.items.some((q) => q.col === c && q.top < realEnd(p.seg) && p.top < realEnd(q.seg));
+          const blocked = g.items.some((q) => q.col === c && q.top < layoutEnd(p.seg) && p.top < layoutEnd(q.seg));
           if (blocked) break;
           span++;
         }
@@ -196,14 +199,14 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
   for (const s of timed) {
     if (groups.length && s.startMin >= clusterEnd) flush();
     const min = minOf(s);
-    const end = realEnd(s);
+    const end = layoutEnd(s);
     let g = groups[groups.length - 1];
     if (!g || (stack && s.startMin - g.start >= g.stackGap)) {
       const level = 1 + groups.filter((x) => x.end > s.startMin).reduce((m, x) => Math.max(m, x.level), -1);
       if (!g || level <= MAX_STACK_DEPTH) {
         // A block drawn taller than its duration is only a title row: a cascaded later block must leave that whole row visible.
         // Any block keeps its title row clear: at a low zoom 15 min is shorter than one title row (`titleMinutes`).
-        const stackGap = Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, titleMinutes, s.endMin - s.startMin < min ? min : 0);
+        const stackGap = Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, titleMinutes, end - s.startMin < min ? min : 0);
         g = { start: s.startMin, end, level, items: [], colEnds: [], stackGap };
         groups.push(g);
       }

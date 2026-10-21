@@ -20,6 +20,33 @@ views {
     calendar.web.week -> calendar.web.timegrid 'renders two fit-mode grids'
   }
 
+  view widget of calendar.widget {
+    title 'Phone widget'
+    include *
+  }
+
+  dynamic view setMinEventLength {
+    title 'Setting a minimum event length'
+
+    owner -> calendar.web.settings 'chooses 30 minutes'
+    calendar.web.settings -> calendar.web.prefs 'saves the pref'
+    calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+    owner -> calendar.web.timegrid 'looks at the day'
+    calendar.web.timegrid -> calendar.web.prefs 'reads the minimum event length'
+    calendar.web.timegrid -> calendar.web.primitives 'packs with the minimum: short entries laid out as 30 minutes'
+    calendar.widget.fetcher -> calendar.server.prefsApi 'reads the minimum event length with the week'
+    calendar.widget.fetcher -> calendar.widget.store 'saves both'
+    calendar.widget.renderer -> calendar.widget.layout 'packs each day with the minimum'
+  }
+
+  dynamic view resizeBelowMinimum {
+    title 'Shortening an entry below the minimum'
+
+    owner -> calendar.web.resize 'drags the end handle to 15 minutes'
+    calendar.web.resize -> calendar.web.primitives 'previews the block at the 30-minute minimum'
+    calendar.web.resize -> calendar.server 'saves the real end'
+  }
+
   view server of calendar.server {
     title 'Server — prefs, tasks and the door'
     include *

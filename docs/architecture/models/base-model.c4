@@ -7,7 +7,7 @@ specification {
   element system
   element app {
     style {
-      shape rounded
+      shape rectangle
     }
   }
   element component
@@ -40,6 +40,9 @@ model {
     server = app 'Server' {
       description 'Hono API that stores per-person preferences'
     }
+    widget = app 'Phone widget' {
+      description 'Native Android home-screen widget that draws the current week'
+    }
   }
 
   doorBoard = system 'Door board' {
@@ -49,5 +52,8 @@ model {
 
   owner -> calendar.web 'views and manages the calendar'
   calendar.web -> calendar.server 'reads and writes preferences'
+  owner -> calendar.widget 'glances at the week'
+  calendar.web -> calendar.widget 'pushes a week snapshot through the widget bridge'
+  calendar.widget -> calendar.server 'reads the week and the preferences with the app session'
   doorBoard -> calendar.server 'reads reminders and today\'s events with its key'
 }

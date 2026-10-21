@@ -89,6 +89,19 @@ public class WeekLayoutTest {
     }
 
     @Test
+    public void aMinimumEventLengthLaysShortItemsOutAsThatLong() {
+        // min-event-length: two back-to-back 15-min items under a 30-min minimum are drawn 30 min tall and overlap
+        List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 660, 675), ev("b", 675, 690)), 11, 30);
+        assertEquals(30, find(l, "a").height);
+        assertEquals(30, find(l, "b").height);
+        boolean sideBySide = find(l, "a").cols == 2 && find(l, "b").cols == 2;
+        assertTrue("laid out as overlapping", sideBySide || find(l, "b").level == 1);
+        // a longer item keeps its real length; no minimum is the strict rule
+        assertEquals(20, WeekLayout.packColumns(List.of(ev("c", 780, 800)), 11, 15).get(0).height);
+        assertEquals(15, find(WeekLayout.packColumns(List.of(ev("a", 660, 675), ev("b", 675, 690)), 11, 0), "a").height);
+    }
+
+    @Test
     public void backToBackItemsStayInOneColumn() {
         List<WeekLayout.Placed> l = WeekLayout.packColumns(List.of(ev("a", 540, 570), ev("b", 570, 600)), 31);
         assertEquals(1, find(l, "a").cols);

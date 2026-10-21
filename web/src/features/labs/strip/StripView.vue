@@ -9,6 +9,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import BedtimeColumn from '@/features/bedtime/BedtimeColumn.vue';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
 import { addDays, HOURS, hourLabel, monthNames, parseIsoDate, routePath, toIsoDate, weekdayLabels } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, type Segment } from '@/lib/items';
@@ -23,6 +24,7 @@ const router = useRouter();
 const items = useItemsStore();
 const cals = useCalendarsStore();
 const clock = useClockStore();
+const prefs = usePrefsStore();
 
 const scroller = ref<HTMLElement | null>(null);
 const initial = parseIsoDate((route.params.param ?? route.params.date) as string) ?? clock.todayDate;
@@ -36,7 +38,7 @@ const segs = (date: string): Segment[] => (items.byDate.get(date) ?? []).filter(
 /** Pixels per hour: each column is a small time grid, block height proportional to duration. */
 const HH = 48;
 const topOf = (date: string) => segs(date).filter((s) => s.allDay || s.startTime === null);
-const placedOf = (date: string) => packColumns(segs(date), (MIN_BLOCK_PX / HH) * 60);
+const placedOf = (date: string) => packColumns(segs(date), (MIN_BLOCK_PX / HH) * 60, true, 0, prefs.minEventMinutes);
 const weekday = (d: string) => weekdayLabels()[(parseIsoDate(d)!.getDay() + 6) % 7];
 const dayLabel = (d: string) => `${parseIsoDate(d)!.getDate()} ${monthNames()[parseIsoDate(d)!.getMonth()].slice(0, 3)}`;
 

@@ -72,6 +72,16 @@ final class WeekLayout {
      * @param minMinutes the title-row duration of a block, in minutes (cascade only)
      */
     static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes) {
+        return packColumns(items, minMinutes, 0);
+    }
+
+    /**
+     * Like {@link #packColumns(List, int)}, with the owner's minimum event length (min-event-length): a shorter item is laid
+     * out as that long, drawn so and overlapping whatever starts within it.
+     *
+     * @param minLength the minimum event length in minutes, 0 for none
+     */
+    static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes, int minLength) {
         List<WeekData.Item> timed = new ArrayList<>();
         for (WeekData.Item i : items) if (i.timed()) timed.add(i);
         timed.sort(Comparator.comparingInt((WeekData.Item i) -> i.startMin).thenComparingInt(i -> -i.endMin));
@@ -83,14 +93,14 @@ final class WeekLayout {
                 flush(groups, out);
                 clusterEnd = -1;
             }
-            int end = realEnd(s);
+            int end = Math.max(realEnd(s), s.startMin + minLength);
             Group g = groups.isEmpty() ? null : groups.get(groups.size() - 1);
             if (g == null || s.startMin - g.start >= g.stackGap) {
                 int deepest = -1;
                 for (Group x : groups) if (x.end > s.startMin) deepest = Math.max(deepest, x.level);
                 int level = 1 + deepest;
                 if (g == null || level <= MAX_STACK_DEPTH) {
-                    int stackGap = s.endMin - s.startMin < minMinutes ? Math.max(STACK_MIN_START_GAP_MIN, minMinutes) : STACK_MIN_START_GAP_MIN;
+                    int stackGap = end - s.startMin < minMinutes ? Math.max(STACK_MIN_START_GAP_MIN, minMinutes) : STACK_MIN_START_GAP_MIN;
                     g = new Group(s.startMin, end, level, stackGap);
                     groups.add(g);
                 }
@@ -129,7 +139,7 @@ final class WeekLayout {
                 for (int c = p.col + 1; c < p.cols; c++) {
                     boolean blocked = false;
                     for (Placed q : g.items) {
-                        if (q.col == c && q.top < realEnd(p.item) && p.top < realEnd(q.item)) {
+                        if (q.col == c && q.top < p.top + p.height && p.top < q.top + q.height) {
                             blocked = true;
                             break;
                         }

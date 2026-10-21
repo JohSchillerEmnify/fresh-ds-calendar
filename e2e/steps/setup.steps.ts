@@ -150,6 +150,13 @@ Given(
   },
 );
 
+Given(
+  'the calendar contains a task list {string} on {date} at {time} for {int} minutes',
+  async function (this: World, title: string, date: string, time: string, minutes: number) {
+    await createTaskList(this, { title, date, time, estimateMinutes: minutes, items: [] });
+  },
+);
+
 Given('the calendar contains an empty task list {string} on {date}', async function (this: World, title: string, date: string) {
   await createTaskList(this, { title, date, time: null, items: [] });
 });

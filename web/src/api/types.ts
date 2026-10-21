@@ -240,7 +240,12 @@ export interface Prefs {
   labsGrowCards: boolean;
   /** Days on the overview's top row: 4 (Mon-Thu) or 3 (Mon-Wed). */
   weekTwoRowTop: 3 | 4;
+  /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off. */
+  minEventMinutes: MinEventMinutes;
 }
+
+/** The minimum event length choices, in minutes (0 = off). */
+export type MinEventMinutes = 0 | 15 | 30;
 
 /** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */
 export type BedtimeMode = 'fixed' | 'dynamic';

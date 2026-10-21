@@ -18,6 +18,7 @@ import type { Segment } from '@/lib/items';
 import { useCalendarStore } from '@/stores/calendar';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
@@ -33,6 +34,7 @@ const cal = useCalendarStore();
 const items = useItemsStore();
 const cals = useCalendarsStore();
 const clock = useClockStore();
+const prefs = usePrefsStore();
 const ui = useUiStore();
 const filters = useFilters();
 
@@ -56,7 +58,7 @@ function segsOf(date: string): Segment[] {
   return filters.active.value ? l.filter((s) => filters.matches(s.item)) : l;
 }
 const dayList = computed(() => days.value.map((d) => ({ date: toIsoDate(d), segs: segsOf(toIsoDate(d)) })));
-const layoutAt = (z: { x: number; y: number }) => layoutRows(dayList.value, vw.value, vh.value, z);
+const layoutAt = (z: { x: number; y: number }) => layoutRows(dayList.value, vw.value, vh.value, z, prefs.minEventMinutes);
 const layout = computed(() => layoutAt(zoom.value));
 const pph = computed(() => pxPerHour(vw.value, zoom.value.x));
 const hours = computed(() => { const s = hourStep(pph.value); return Array.from({ length: Math.ceil(24 / s) }, (_, i) => i * s); });

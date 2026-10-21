@@ -45,6 +45,8 @@ export interface WidgetSnapshot {
   days: WidgetDay[];
   /** Today's task lists. */
   tasklists: WidgetTaskList[];
+  /** The minimum event length in minutes (0 = none): the widget lays shorter timed entries out as this long. */
+  minEventMinutes: number;
 }
 
 export interface SnapshotInput {
@@ -56,6 +58,8 @@ export interface SnapshotInput {
   now: Date;
   /** Ids of the calendars the person switched off; their events are left out. */
   hiddenCalendars?: ReadonlySet<string>;
+  /** The person's minimum event length in minutes (default 0 = none). */
+  minEventMinutes?: number;
 }
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -86,5 +90,5 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     .filter((it): it is TaskList => it.kind === 'tasklist' && it.date === input.today)
     .map((l) => ({ title: l.title, done: l.doneCount, total: l.totalCount, color: l.color }));
 
-  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists };
+  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0 };
 }

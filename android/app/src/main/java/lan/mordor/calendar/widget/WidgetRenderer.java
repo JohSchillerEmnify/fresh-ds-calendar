@@ -116,7 +116,10 @@ final class WidgetRenderer {
         try {
             JSONObject fetched = store.fetched();
             if (fetched != null && monday.equals(WidgetStore.weekOf(fetched))) {
-                return WeekData.fromItems(fetched.getJSONArray("items"), today, monday, store.fetchedAtMillis());
+                WeekData w = WeekData.fromItems(fetched.getJSONArray("items"), today, monday, store.fetchedAtMillis());
+                // the fetch reads the prefs too; when that part failed, the app's snapshot still knows the minimum
+                w.minEventMinutes = fetched.has("minEventMinutes") ? fetched.getInt("minEventMinutes") : snapshot != null ? snapshot.optInt("minEventMinutes", 0) : 0;
+                return w;
             }
         } catch (Exception ignored) {
             // unreadable fetch result: fall back to the snapshot

@@ -71,6 +71,12 @@ describe('buildWidgetSnapshot', () => {
     expect(s.days[2].events.map((e) => e.title)).toEqual(['Open']);
   });
 
+  it('carries the minimum event length (0 when not given), so the widget lays out short entries like the app', () => {
+    expect(build([]).minEventMinutes).toBe(0);
+    const s = buildWidgetSnapshot({ items: [], today: '2026-10-14', theme, dark: true, language: 'de', now: new Date('2026-10-14T08:30:00Z'), minEventMinutes: 30 });
+    expect(s.minEventMinutes).toBe(30);
+  });
+
   it('marks birthdays and anniversaries in the title, so the widget needs no format change', () => {
     const s = build([
       { ...ev('b', 'Anna', '2026-10-14', '2026-10-15', true), special: 'birthday' },

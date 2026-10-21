@@ -143,7 +143,7 @@ final class WeekCanvas {
         if (data != null) {
             for (int i = 0; i < n; i++) {
                 boolean isToday = days.get(i).date.equals(today);
-                List<WeekLayout.Placed> placed = WeekLayout.packColumns(days.get(i).items, Math.round(MIN_BLOCK / hh * 60));
+                List<WeekLayout.Placed> placed = WeekLayout.packColumns(days.get(i).items, Math.round(MIN_BLOCK / hh * 60), data.minEventMinutes);
                 placed.sort((a, b) -> Integer.compare(a.level, b.level));
                 for (WeekLayout.Placed p : placed) {
                     float cx = x0 + i * colW, bw = colW / p.cols;

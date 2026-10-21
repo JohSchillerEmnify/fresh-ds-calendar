@@ -16,7 +16,7 @@ import {
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isMinEventMinutes, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 
@@ -168,6 +168,10 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (b[k] === undefined) continue;
       if (!NAV_POSITION_VALUES.includes(b[k] as NavPosition)) throw validation(`Invalid ${k}`, k);
       patch[k] = b[k] as NavPosition;
+    }
+    if (b.minEventMinutes !== undefined) {
+      if (!isMinEventMinutes(b.minEventMinutes)) throw validation('minEventMinutes must be 0, 15 or 30', 'minEventMinutes');
+      patch.minEventMinutes = b.minEventMinutes;
     }
     if (b.weekTwoRowTop !== undefined) {
       if (b.weekTwoRowTop !== 3 && b.weekTwoRowTop !== 4) throw validation('weekTwoRowTop must be 3 or 4', 'weekTwoRowTop');
