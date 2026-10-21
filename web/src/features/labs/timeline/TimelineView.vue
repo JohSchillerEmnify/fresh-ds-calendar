@@ -12,6 +12,7 @@ import { formatDate, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { packColumns, blockGeometry, MIN_BLOCK_PX, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useSyncStore } from '@/stores/sync';
@@ -31,6 +32,7 @@ const GUTTER = 40; // phone: hour label column
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 const clock = useClockStore();
+const prefs = usePrefsStore();
 const items = useItemsStore();
 const cals = useCalendarsStore();
 const sync = useSyncStore();
@@ -84,7 +86,7 @@ const segments = computed<Segment[]>(() => {
 });
 /** Timed items, as long as they last (time blindness: never equal sizes). */
 const placed = computed<Placed[]>(() => lane(segments.value.filter((s) => !isAllDay(s)).map((seg) => ({
-  seg, x: (dayX(seg.date) + seg.startMin) * pxPerMin.value, w: Math.max((seg.endMin - seg.startMin) * pxPerMin.value, MIN_W),
+  seg, x: (dayX(seg.date) + seg.startMin) * pxPerMin.value, w: Math.max(Math.max(seg.endMin - seg.startMin, prefs.minEventMinutes) * pxPerMin.value, MIN_W),
 }))));
 /** All-day / untimed entries: one day wide each, in their own band on top. */
 const alldays = computed<Placed[]>(() => lane(segments.value.filter(isAllDay).map((seg) => ({
@@ -104,7 +106,7 @@ const vdays = computed(() => days.value.map((d) => {
   return {
     d, iso,
     allday: segs.filter(isAllDay),
-    blocks: packColumns(segs, (MIN_BLOCK_PX / HH) * 60),
+    blocks: packColumns(segs, (MIN_BLOCK_PX / HH) * 60, true, 0, prefs.minEventMinutes),
   };
 }));
 const blockStyle = (p: PlacedSegment) => {

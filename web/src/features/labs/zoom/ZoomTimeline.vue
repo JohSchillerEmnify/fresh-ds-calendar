@@ -10,6 +10,7 @@ import { useElementSize } from '@vueuse/core';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { timeSpan } from './zoom';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, type Segment } from '@/lib/items';
+import { usePrefsStore } from '@/stores/prefs';
 
 const props = defineProps<{ segments: Segment[]; span?: { start: number; end: number } | null }>();
 const grid = ref<HTMLElement | null>(null);
@@ -20,7 +21,8 @@ const hours = computed(() => Array.from({ length: (span.value.end - span.value.s
 /** Pixels per hour of the grid (an unmeasured grid counts as 1 so nothing divides by zero). */
 const hh = computed(() => Math.max(1, height.value) / ((span.value.end - span.value.start) / 60));
 const top = computed(() => props.segments.filter((s) => s.allDay || s.startTime === null));
-const placed = computed(() => packColumns(props.segments, (MIN_BLOCK_PX / hh.value) * 60));
+const prefs = usePrefsStore();
+const placed = computed(() => packColumns(props.segments, (MIN_BLOCK_PX / hh.value) * 60, true, 0, prefs.minEventMinutes));
 const geo = (startMin: number, endMin: number) => blockGeometry(startMin - span.value.start, endMin - span.value.start, hh.value, 0);
 const variantOf = (s: Segment) => (s.allDay ? 'allday' : s.item.kind === 'tasklist' ? 'card' : 'chip');
 </script>

@@ -198,6 +198,10 @@ Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `appr
 "i18n"). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
 for an unknown value; it returns the full preferences.
 
+**Minimum event length** (`prefs.minEventMinutes`, per person, feature `min-event-length`): `0 | 15 | 30`, default `0`
+(off). A shorter timed entry is laid out as this long in every time view and the phone widget; the entry's real times
+are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMinutes`).
+
 **Bedtime** (`prefs.bedtime`, per person, ARCHITECTURE "Bedtime mode"): an object
 `{ enabled: boolean; mode: 'fixed' | 'dynamic'; bedtime: 'HH:MM'; wake: 'HH:MM'; weekendDifferent: boolean;
 weekendBedtime: 'HH:MM'; weekendWake: 'HH:MM'; sleepMinutes: 1..960; leadMinutes: 0..480; reminderMinutes: 0..240 }`,

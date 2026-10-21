@@ -19,10 +19,12 @@ import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, TITLE_ROW_PX
 import { packWeek } from '@/lib/monthSlots';
 import { cycleSection, sectionKey, sectionMode } from '@/features/tasklists/section';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { t } from '@/i18n';
 
 const props = defineProps<{ mode: 'week' | 'day'; dates: Date[]; fit?: { start: number; end: number } }>();
 const clock = useClockStore();
+const prefs = usePrefsStore();
 const nav = useNav();
 const segs = useDaySegments();
 const barsOf = useBars();
@@ -49,7 +51,7 @@ const cols = computed(() => props.dates.map((d) => {
     date, d,
     today: date === clock.today,
     top: all.filter((s) => s.allDay || s.startTime === null),
-    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60, true, (TITLE_ROW_PX / hh.value) * 60),
+    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60, true, (TITLE_ROW_PX / hh.value) * 60, prefs.minEventMinutes),
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));
@@ -135,8 +137,8 @@ function geo(p: { seg: { item: { id: string }; date: string }; top: number; heig
   const rp = resizePreview.value;
   const live = !!rp && rp.id === p.seg.item.id && rp.date === p.seg.date;
   const top = live ? rp.startMin : p.top;
-  // never drawn past the real end, not even while dragging (owner, 2026-10-21)
-  return blockGeometry(top, live ? rp.endMin : top + p.height, hh.value, 0);
+  // the live drag shows the length the block will be laid out with: its real length, at least the minimum event length
+  return blockGeometry(top, live ? Math.max(rp.endMin, rp.startMin + prefs.minEventMinutes) : top + p.height, hh.value, 0);
 }
 const settling = (id: string, date: string) => resizePreview.value?.settle && resizePreview.value.id === id && resizePreview.value.date === date;
 

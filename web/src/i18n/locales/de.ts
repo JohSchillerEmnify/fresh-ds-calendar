@@ -122,6 +122,7 @@ export default {
       defaultEventColor: 'Standardfarbe für Termine',
       calendarColor: 'Farbe des Kalenders',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
+      minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden so lang gezeichnet und angeordnet, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
       approachBar: { label: 'Leiste „Gleich“', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte' },
       approachWindow: {
         label: 'Die Leiste reicht voraus',

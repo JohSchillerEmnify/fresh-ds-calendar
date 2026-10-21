@@ -23,7 +23,8 @@ final class WeekFetcher {
     enum Status { OK, SIGN_IN, ERROR }
 
     /**
-     * Fetches {@code GET /api/items} for the week of {@code today} and stores the result. {@code excludeHidden=1} makes the
+     * Fetches {@code GET /api/items} for the week of {@code today}, with the minimum event length from {@code GET /api/prefs},
+     * and stores the result. {@code excludeHidden=1} makes the
      * server leave out the calendars the person switched off in the app (that state lives on the server, not here).
      *
      * @return OK (stored), SIGN_IN (HTTP 401: session expired or never created; stored as auth state) or ERROR
@@ -52,12 +53,32 @@ final class WeekFetcher {
             keepCookies(base, c.getHeaderFields().get("Set-Cookie"));
             JSONObject res = new JSONObject(read(c.getInputStream()));
             JSONObject week = new JSONObject().put("weekStart", monday.toString()).put("items", res.getJSONArray("items"));
+            Integer minLength = minEventMinutes(base, cookie);
+            if (minLength != null) week.put("minEventMinutes", minLength);
             // the server was changed while this call was running: its answer belongs to the old one
             if (!base.equals(ServerConfig.baseUrl(context))) return Status.ERROR;
             store.saveFetched(week.toString(), System.currentTimeMillis());
             return Status.OK;
         } catch (Exception e) {
             return Status.ERROR;
+        } finally {
+            if (c != null) c.disconnect();
+        }
+    }
+
+    /** The person's minimum event length from {@code GET /api/prefs}, or null when it cannot be read (the snapshot's value then stands). */
+    private static Integer minEventMinutes(String base, String cookie) {
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(base + "/api/prefs").openConnection();
+            c.setConnectTimeout(10_000);
+            c.setReadTimeout(15_000);
+            c.setRequestProperty("Accept", "application/json");
+            if (cookie != null && !cookie.isEmpty()) c.setRequestProperty("Cookie", cookie);
+            if (c.getResponseCode() != 200) return null;
+            return new JSONObject(read(c.getInputStream())).optInt("minEventMinutes", 0);
+        } catch (Exception e) {
+            return null;
         } finally {
             if (c != null) c.disconnect();
         }

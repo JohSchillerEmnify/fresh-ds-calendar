@@ -2179,3 +2179,42 @@ no title in the {string} is covered by another entry
 - "the list of the expanded task list stands out from the grid behind it": the grown card's extension layer
   (`tasklist-grown-ext`) has an opaque background whose RGB distance from the first opaque background behind the day
   column is at least 24, in the current colour scheme — the list reads as a box, also in the dark theme.
+
+## Minimum event length (`@id:min-event-length`; setting `settings-min-event-length`, pref `minEventMinutes`)
+
+```
+the minimum event length is {int} minutes
+I am on the settings screen
+I choose a minimum event length of {int} minutes
+the event {string} is positioned from {time} to {time} in the day view for {date}
+the task list {string} and the event {string} are laid out as overlapping
+the calendar contains a task list {string} on {date} at {time} for {int} minutes
+I hold the end handle of {string} at {time}
+I drag the end handle of {string} to {time} in the day view
+I look at {date} in the day view
+I look at {date} in the week view
+I look at {date} in the two-row week overview
+I look at {date} in the Labs strip
+I look at {date} in the Labs timeline
+I look at {date} in the zoom month
+I look at {date} in the Labs horizontal view
+I look at {date} in the phone widget
+the events {string} and {string} are laid out as overlapping
+opening the event {string} shows the time {string}
+```
+
+- "the minimum event length is {int} minutes": patches the pref `minEventMinutes` (0, 15 or 30) through the API.
+- "the event {string} is positioned from {time} to {time}" checks where the block is **drawn** (start attribute and
+  geometry); under a minimum the drawn end lies past the real end, so the end attribute is not checked.
+- "I hold the end handle of {string} at {time}": drags the bottom resize handle (shown by "shows resize handles") so the
+  end would be `{time}`, and keeps the finger / mouse button down: the live preview stays on screen.
+- "I drag the end handle of {string} to {time} in the day view": the same, released; waits for the save.
+- "I look at {date} in the {view}": opens that view on the date (the two-row overview: turns it on, phone size). The
+  phone widget is native and cannot be driven from a browser: its examples are `@backlog`, proven by the widget's
+  JUnit tests (`WeekLayoutTest`).
+- "… are laid out as overlapping" (two events, or a task list and an event): the two blocks overlap along the time axis
+  (down; across in the horizontal view) and are laid out as an overlap by the usual rule — side by side, or the later one
+  cascaded over the earlier one — so neither title is hidden: the middle of each block's first title line is topmost in
+  its own block.
+- "opening the event {string} shows the time {string}": opens the event (its dialog) and checks that its start and end
+  time fields hold the two times of `HH:MM–HH:MM`: the real times, whatever length the block is drawn.

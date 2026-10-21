@@ -66,6 +66,12 @@ export const TASKS_SORT_DIR_VALUES: readonly TasksSortDir[] = ['default', 'rever
 export const APPROACH_WINDOW_MIN = 1;
 export const APPROACH_WINDOW_MAX = 24;
 export type ApproachWindowHours = number;
+/** The minimum event length choices, in minutes (0 = off). */
+export type MinEventMinutes = 0 | 15 | 30;
+/** Whether `v` is one of the {@link MinEventMinutes} choices. */
+export function isMinEventMinutes(v: unknown): v is MinEventMinutes {
+  return v === 0 || v === 15 || v === 30;
+}
 
 /** Whether `v` is an allowed approach window length (a whole number of hours, 1–24). */
 export function isApproachWindow(v: unknown): v is ApproachWindowHours {
@@ -228,6 +234,8 @@ export interface Prefs {
   labsGrowCards: boolean;
   /** Days on the overview's top row: 4 (Mon-Thu on top) or 3 (Mon-Wed on top). */
   weekTwoRowTop: 3 | 4;
+  /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off (feature min-event-length). */
+  minEventMinutes: MinEventMinutes;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -278,6 +286,7 @@ export class PrefsStore {
       weekTwoRow: p?.weekTwoRow === true,
       labsGrowCards: p?.labsGrowCards === true,
       weekTwoRowTop: p?.weekTwoRowTop === 3 ? 3 : 4,
+      minEventMinutes: isMinEventMinutes(p?.minEventMinutes) ? p.minEventMinutes : 0,
     };
   }
 
@@ -361,8 +370,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes };
   }
 
   /**

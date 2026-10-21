@@ -115,9 +115,9 @@ export async function touchDrag(
   page: Page,
   from: { x: number; y: number },
   to: { x: number; y: number },
-  opts: { durationMs?: number; steps?: number; holdMs?: number } = {},
+  opts: { durationMs?: number; steps?: number; holdMs?: number; release?: boolean } = {},
 ) {
-  const { durationMs = 150, steps = 10, holdMs = 0 } = opts;
+  const { durationMs = 150, steps = 10, holdMs = 0, release = true } = opts;
   const cdp = await page.context().newCDPSession(page);
   try {
     const point = (p: { x: number; y: number }) => [{ x: Math.round(p.x), y: Math.round(p.y), id: 1 }];
@@ -137,7 +137,8 @@ export async function touchDrag(
       const wait = start + (durationMs * i) / steps - Date.now();
       if (wait > 0) await page.waitForTimeout(wait);
     }
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    // `release: false` keeps the finger down, so a step can look at the live preview of a drag
+    if (release) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   } finally {
     await cdp.detach().catch(() => {});
   }

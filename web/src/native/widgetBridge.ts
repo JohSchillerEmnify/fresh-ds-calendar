@@ -11,6 +11,7 @@ import { addDays, toIsoDate, WEEK_OPTS } from '@/lib/dates';
 import { language } from '@/i18n/language';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { buildWidgetSnapshot, type WidgetTheme } from './widgetSnapshot';
 import type { CalendarItem } from '@/api/types';
 import { startOfWeek } from 'date-fns';
@@ -62,7 +63,7 @@ async function push(): Promise<void> {
   if (!calendars.list.length) await calendars.load();
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
-    language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden,
+    language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes,
   });
   const content = JSON.stringify({ ...snapshot, generatedAt: '' });
   if (content === lastPushed) return;

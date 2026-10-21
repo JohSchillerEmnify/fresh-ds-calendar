@@ -103,6 +103,8 @@ final class WeekData {
     final List<Bar> bars = new ArrayList<>();
     /** When the data was produced (epoch milliseconds). */
     final long timeMillis;
+    /** The owner's minimum event length in minutes (0 = none): shorter timed items are laid out as this long. */
+    int minEventMinutes;
 
     private WeekData(LocalDate weekStart, long timeMillis) {
         this.weekStart = weekStart;
@@ -121,6 +123,7 @@ final class WeekData {
     static WeekData fromSnapshot(JSONObject s, LocalDate today, long timeMillis) throws JSONException {
         if (s.optInt("v") != 1) return null;
         WeekData w = new WeekData(LocalDate.parse(s.getString("weekStart")), timeMillis);
+        w.minEventMinutes = s.optInt("minEventMinutes", 0);
         JSONArray days = s.getJSONArray("days");
         for (int i = 0; i < 7 && i < days.length(); i++) {
             JSONArray events = days.getJSONObject(i).getJSONArray("events");

@@ -1,6 +1,7 @@
 /** Resize handle steps (STEPS.md "Drag and drop", resize). */
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
+import { minutesOf } from './support/dates.js';
 import { box, touchDrag } from './support/ui.js';
 import type { World } from './support/world.js';
 
@@ -47,24 +48,30 @@ Given('the task list {string} shows resize handles in the day view for {date}', 
   await showHandles(this, 'day', date, () => entry(this, title));
 });
 
-/** Drag a handle by N minutes of grid height (no long press), then wait for the save (PATCH response). */
-async function dragHandle(w: World, title: string, which: 'top' | 'bottom', minutes: number) {
+/** Drag a handle by N minutes of grid height (no long press), then wait for the save (PATCH response); `hold` keeps the pointer down instead. */
+async function dragHandle(w: World, title: string, which: 'top' | 'bottom', minutes: number, hold = false) {
   const handle = entry(w, title).getByTestId(`resize-handle-${which}`);
   await handle.scrollIntoViewIfNeeded();
   const b = await box(handle);
   const from = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
   const to = { x: from.x, y: from.y + (minutes / 60) * (await hourHeight(w)) };
-  const saved = w.page.waitForResponse((r) => r.request().method() === 'PATCH' && /\/api\/(events|tasklists)\//.test(r.url()));
+  const saved = hold ? null : w.page.waitForResponse((r) => r.request().method() === 'PATCH' && /\/api\/(events|tasklists)\//.test(r.url()));
   if (useTouch(w)) {
-    await touchDrag(w.page, from, to, { steps: 10, durationMs: 300 });
+    await touchDrag(w.page, from, to, { steps: 10, durationMs: 300, release: !hold });
   } else {
     const { mouse } = w.page;
     await mouse.move(from.x, from.y);
     await mouse.down();
     await mouse.move(to.x, to.y, { steps: 10 });
-    await mouse.up();
+    if (!hold) await mouse.up();
   }
   await saved;
+}
+
+/** Minutes from the entry's real end (its `data-end-time`) to `time`. */
+async function toEnd(w: World, title: string, time: string): Promise<number> {
+  const end = (await entry(w, title).getAttribute('data-end-time'))!;
+  return minutesOf(time) - minutesOf(end);
 }
 
 When('I drag the bottom handle of {string} down by {int} minutes', async function (this: World, title: string, minutes: number) {
@@ -75,6 +82,13 @@ When('I drag the bottom handle of {string} up by {int} minutes', async function 
 });
 When('I drag the top handle of {string} up by {int} minutes', async function (this: World, title: string, minutes: number) {
   await dragHandle(this, title, 'top', -minutes);
+});
+
+When('I hold the end handle of {string} at {time}', async function (this: World, title: string, time: string) {
+  await dragHandle(this, title, 'bottom', await toEnd(this, title, time), true);
+});
+When('I drag the end handle of {string} to {time} in the day view', async function (this: World, title: string, time: string) {
+  await dragHandle(this, title, 'bottom', await toEnd(this, title, time));
 });
 
 Then('the event {string} shows resize handles', async function (this: World, title: string) {

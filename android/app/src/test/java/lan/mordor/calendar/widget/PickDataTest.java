@@ -38,4 +38,21 @@ public class PickDataTest {
         WeekData data = WidgetRenderer.pickData(store, store.snapshot(), TODAY, MONDAY);
         assertEquals(11 * 60, data.days.get(2).items.get(0).startMin);
     }
+
+    @Test
+    public void theMinimumEventLengthComesFromTheFetchElseFromTheSnapshot() throws Exception {
+        Context ctx = ApplicationProvider.getApplicationContext();
+        WidgetStore store = new WidgetStore(ctx);
+        JSONArray days = new JSONArray();
+        for (int i = 0; i < 7; i++) days.put(new JSONObject().put("date", MONDAY.plusDays(i).toString()).put("events", new JSONArray()));
+        JSONObject snap = new JSONObject().put("v", 1).put("generatedAt", "2026-10-14T10:00:00Z").put("language", "en").put("dark", false)
+                .put("theme", new JSONObject()).put("weekStart", MONDAY.toString()).put("days", days).put("tasklists", new JSONArray()).put("minEventMinutes", 15);
+        store.saveSnapshot(snap.toString());
+        assertEquals(15, WidgetRenderer.pickData(store, store.snapshot(), TODAY, MONDAY).minEventMinutes);
+        // a fetch that read the prefs wins; one that could not read them keeps the snapshot's value
+        store.saveFetched(new JSONObject().put("weekStart", MONDAY.toString()).put("items", new JSONArray()).put("minEventMinutes", 30).toString(), 1_000);
+        assertEquals(30, WidgetRenderer.pickData(store, store.snapshot(), TODAY, MONDAY).minEventMinutes);
+        store.saveFetched(new JSONObject().put("weekStart", MONDAY.toString()).put("items", new JSONArray()).toString(), 2_000);
+        assertEquals(15, WidgetRenderer.pickData(store, store.snapshot(), TODAY, MONDAY).minEventMinutes);
+    }
 }

@@ -594,7 +594,11 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   its real length and the last one grew into the free space below it, looking longer than its equal neighbours. Alternatives
   weighed: keep the minimum only for lone items (rejected by the owner: still lies about length) — the owner accepted that
   very short items become thin and lose their title (AC-73 changed). `MIN_BLOCK_PX` / `TITLE_ROW_PX` still feed the cascade
-  rule (`stackGap`) only. A zero-length item is drawn one minute tall. The cascade (indent + draw-on-top, to keep a short
+  rule (`stackGap`) only. A zero-length item is drawn one minute tall. **Opt-in exception (owner, 2026-10-21, feature
+  `min-event-length`, model views `setMinEventLength`, `resizeBelowMinimum`):** with a minimum event length set (pref
+  `minEventMinutes`, 15 or 30), `packColumns` (and `WeekLayout.packColumns`) lays a shorter entry out as that long for
+  everything — height, overlap, columns, cascade — so equal entries still look equal; the resize preview shows the same.
+  Its real times never change. The cascade (indent + draw-on-top, to keep a short
   item's title row visible under a later one) now fires **only for items that truly overlap in time**. Why: the old code
   fed the inflated height back into overlap detection, so a 30-min event at default zoom (min ≈ 31 min) collided with the
   event starting right after it and the two were drawn overlapping though they never overlapped. The Java widget port

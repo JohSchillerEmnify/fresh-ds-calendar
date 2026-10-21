@@ -99,10 +99,10 @@ Then('the event {string} shows the location {string}', async function (this: Wor
   await expect(this.eventChip(title).getByTestId('event-chip-location')).toHaveText(location);
 });
 
+// Where the block is drawn; its end may lie past the real end under a minimum event length (min-event-length).
 Then('the event {string} is positioned from {time} to {time}', async function (this: World, title: string, from: string, to: string) {
   const chip = this.eventChip(title);
   await expect(chip).toHaveAttribute('data-start-time', from);
-  await expect(chip).toHaveAttribute('data-end-time', to);
   await expectPositioned(this, chip, from, to);
 });
 
