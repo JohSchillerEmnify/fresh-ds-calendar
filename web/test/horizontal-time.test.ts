@@ -101,8 +101,8 @@ describe('horizontal layout', () => {
     expect(a!.top + a!.height).toBeLessThanOrEqual(b!.top);
     expect(r.lanes).toBe(2);
   });
-  it('widens a very short event to the minimum card width', () => {
-    expect(layoutRow('d', [ev('a', 600, 605)], 20, 100).cards[0]!.width).toBeGreaterThanOrEqual(28);
+  it('draws a very short event at its real length, never wider (owner, 2026-10-21)', () => {
+    expect(layoutRow('d', [ev('a', 600, 605)], 20, 100).cards[0]!.width).toBeCloseTo((5 / 60) * 20);
   });
   it('keeps a late event inside the day', () => {
     const c = layoutRow('d', [ev('a', 1435, 1440)], pph, 100).cards[0]!;

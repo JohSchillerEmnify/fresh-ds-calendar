@@ -81,14 +81,19 @@ describe('packing and proportions', () => {
     const back = packColumns(segsOf([a, c], D));
     expect(back.map((p) => [p.col, p.cols, p.span])).toEqual([[0, 1, 1], [0, 1, 1]]);
   });
-  it('a block drawn taller than its duration is drawn that tall, but only up to the next block below it (A-E5)', () => {
-    // "a" lasts 15 min but is drawn an hour tall (like a task list with open items on a phone), "c" starts right after it.
+  it('a block is never drawn past its real end, even alone with free space below it (owner, 2026-10-21)', () => {
     const a = ev('a', t(D, '20:00'), t(D, '20:15')), c = ev('c', t(D, '20:15'), t(D, '21:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, c], D), (s) => (s.item.id === 'a' ? 60 : 0)).map((x) => [x.seg.item.id, x]));
     expect([p.a, p.c].map((x) => [x.col, x.cols, x.level])).toEqual([[0, 1, 0], [0, 1, 0]]);
     expect(p.a.height).toBe(15);
     const alone = packColumns(segsOf([a], D), (s) => (s.item.id === 'a' ? 60 : 0));
-    expect(alone[0].height).toBe(60);
+    expect(alone[0].height).toBe(15);
+    // a zero-length event still occupies one minute
+    expect(packColumns(segsOf([ev('z', t(D, '07:00'), t(D, '07:00'))], D), 31)[0].height).toBe(1);
+  });
+  it('back-to-back half-hour events are all drawn the same height, the last one included (owner, 2026-10-21)', () => {
+    const run = [['11:00', '11:30'], ['11:30', '12:00'], ['12:00', '12:30']].map(([s, e], i) => ev('r' + i, t(D, s), t(D, e)));
+    expect(packColumns(segsOf(run, D), 37.5).map((x) => x.height)).toEqual([30, 30, 30]);
   });
   it('a block drawn at its minimum height is not cascaded over by a truly overlapping block starting inside that height', () => {
     const a = ev('a', t(D, '17:00'), t(D, '17:20')), c = ev('c', t(D, '17:15'), t(D, '21:30')), d = ev('d', t(D, '19:00'), t(D, '22:00'));
@@ -107,25 +112,25 @@ describe('packing and proportions', () => {
     const high = at(72);
     expect([high.a.level, high.b.level]).toEqual([0, 1]);
   });
-  it('back-to-back short events stay in one full-width column and the first is clamped to the second start', () => {
+  it('back-to-back short events stay in one full-width column at their real length', () => {
     const a = ev('a', t(D, '09:00'), t(D, '09:30')), b = ev('b', t(D, '09:30'), t(D, '10:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));
     expect([p.a, p.b].map((x) => [x.col, x.cols, x.span, x.level])).toEqual([[0, 1, 1, 0], [0, 1, 1, 0]]);
     expect(p.a.height).toBe(30);
-    expect(p.b.height).toBe(31);
+    expect(p.b.height).toBe(30);
   });
-  it('a 5-min event followed 10 min later by another is one column, not cascaded, and clamped', () => {
+  it('a 5-min event followed 10 min later by another is one column, not cascaded, and drawn 5 min tall', () => {
     const a = ev('a', t(D, '08:00'), t(D, '08:05')), n = ev('n', t(D, '08:10'), t(D, '09:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, n], D), 31).map((x) => [x.seg.item.id, x]));
     expect([p.a, p.n].map((x) => [x.col, x.cols, x.level])).toEqual([[0, 1, 0], [0, 1, 0]]);
-    expect(p.a.height).toBe(10);
+    expect(p.a.height).toBe(5);
   });
-  it('truly overlapping events still get two columns, unclamped by each other', () => {
+  it('truly overlapping events still get two columns, each at its real length', () => {
     const a = ev('a', t(D, '09:00'), t(D, '09:30')), b = ev('b', t(D, '09:20'), t(D, '10:00'));
     const p = Object.fromEntries(packColumns(segsOf([a, b], D), 31).map((x) => [x.seg.item.id, x]));
     expect(p.a.cols).toBe(2);
     expect(p.a.col).not.toBe(p.b.col);
-    expect(p.a.height).toBe(31);
+    expect(p.a.height).toBe(30);
   });
   it('a short event with a truly overlapping later one shares columns with it (start gap under the minimum)', () => {
     const a = ev('a', t(D, '09:00'), t(D, '09:05')), b = ev('b', t(D, '09:03'), t(D, '10:00'));

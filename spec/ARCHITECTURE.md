@@ -588,9 +588,13 @@ the plant, filter, settings and sync status. Compact icons collapse into an over
   overlapping, but they are not")**. `packColumns` decides what overlaps — clusters, columns/lanes and the cascade — from
   each item's **real** start and end, not the min-height-inflated `visualEnd` it used before. So two items that are only
   back-to-back (one ends when the next starts) or merely close never get put side by side or stacked over each other; they
-  sit in one column. The minimum block height (`MIN_BLOCK_PX`, 25 px) is kept only for *drawing* short items so their title
-  stays readable, and a short item's drawn box is **clamped** so it never paints over the next item below it in its column
-  (it grows into free space up to the next item's start, no further). The cascade (indent + draw-on-top, to keep a short
+  sit in one column. **No card is drawn past its real end (owner, 2026-10-21, screenshot: three back-to-back 30-min events,
+  the last one drawn longer)**: the drawn box is the real duration, with no minimum height. Before, short items got
+  `MIN_BLOCK_PX` (25 px) and were clamped at the next item's start, so in a back-to-back run every card but the last showed
+  its real length and the last one grew into the free space below it, looking longer than its equal neighbours. Alternatives
+  weighed: keep the minimum only for lone items (rejected by the owner: still lies about length) — the owner accepted that
+  very short items become thin and lose their title (AC-73 changed). `MIN_BLOCK_PX` / `TITLE_ROW_PX` still feed the cascade
+  rule (`stackGap`) only. A zero-length item is drawn one minute tall. The cascade (indent + draw-on-top, to keep a short
   item's title row visible under a later one) now fires **only for items that truly overlap in time**. Why: the old code
   fed the inflated height back into overlap detection, so a 30-min event at default zoom (min ≈ 31 min) collided with the
   event starting right after it and the two were drawn overlapping though they never overlapped. The Java widget port
@@ -966,9 +970,8 @@ check-in toast (`streak-message`) — uses the one `Snackbar` look built from th
     the per-day `realTimeFits` decision is dropped. Whether the cells show the time grid or the chips depends **only on the
     zoom level**, the same for every visible cell, so the month never mixes the two. The switch comes earlier than
     before: at the latest when about 3.5 day columns fit across a phone screen (the owner's second screenshot, a cell of
-    roughly 115 x 245 CSS px), on desktop at the same cell size. Items too short for the minimum block height get the
-    minimum height (25 px) and, when that overlaps a neighbour, their own lane through `packColumns`, exactly as in the
-    day view; they never keep a day on chips. **Shared hours per week row** (assumption, not owner-confirmed): all cells
+    roughly 115 x 245 CSS px), on desktop at the same cell size. Short items are drawn at their real length through
+    `packColumns`, exactly as in the day view (no minimum height since 2026-10-21); they never keep a day on chips. **Shared hours per week row** (assumption, not owner-confirmed): all cells
     of a week row use the same whole-hour span (earliest start to latest end of the row's timed items, at least 4 h), so
     side-by-side days are comparable and one early event only stretches its own week. Untimed items stay in the band
     above. **Why**: a per-day fit made neighbouring cells use different layouts at the same zoom; a single zoom
@@ -1709,7 +1712,10 @@ actually longer". Owner decisions (final):
   (`labsGrowCards`, default off, a switch in the Labs section; owner, 2026-10-19: it does not work properly yet) — off, a tap on a
   collapsed card opens the list sheet instead. The two layers are two separate containers
   that never mix (owner, 2026-10-19): the head row (checkbox, icon, title, count) is the pill and fills exactly the real layer — the
-  pill never grows past the real block, so the real time span stays true; the title wraps inside it while the block is tall enough,
+  pill never grows past the real block, so the real time span stays true — except that it is never thinner than one title row
+  (`TITLE_ROW_PX`, owner 2026-10-21: since blocks have no minimum height, a 15-min list in the two-row overview is 8 px, and its
+  grown pill would be 3 px; a tapped card is a transient state, so this keeps the head readable without misstating neighbours);
+  the title wraps inside it while the block is tall enough,
   and in a short pill (< 30 px) the extras (duration, carried-from, badge, ring) are dropped and the title is one line with an
   ellipsis beside a compact count when the card is 70 px or wider (the full title is one tap away in the list sheet); in a narrower
   column — the 7-day week's 43 px — and in a tall narrow pill the title comes first and the count stays out — and the items start at the seam inside the extension, never inside the pill.

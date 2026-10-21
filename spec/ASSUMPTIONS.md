@@ -169,14 +169,15 @@ spec files are named.
   the day, but the cell centre may hold an entry, whose click opens the entry instead.
 - **A-E3 Phone month chips**: a tap on a chip opens the day (like a tap anywhere in the cell); a long press picks the
   chip up to drag it to another day (dnd "month view" scenario runs on the phone project).
-- **A-E4 Time grid minimum block**: events shorter than 24 px are drawn 24 px tall (the 1 px gap included, 25 px box); the
-  step "positioned from/to" allows the clamped height for such events.
+- **A-E4 Time grid minimum block**: dropped (owner, 2026-10-21). Every block is drawn at its real length, however short;
+  the step "positioned from/to" checks the real height.
 - **A-E6 Task section switch has two levels** (week / day all-day band, the two-row week overview included, `tasks-section-toggle`): titles only and
   expanded, nothing else. The third "count" level (one "k tasks" chip per day) is gone for good (owner, 2026-10-20: "get rid of the third
   collapse level"; asked before on 2026-10-19, "only the pill, the expanded, and nothing else", which
   had only switched the overview's toggle off). A stored `count` from before reads as the default.
   Pinned by `web/test/section-mode.test.ts`; never bring a count level back without the owner's explicit request.
-- **A-E5 Drawn height counts for overlap**: a block drawn taller than its duration (events and task lists alike: 24 px minimum;
+- **A-E5 Drawn height counts for overlap** (superseded: overlap uses real times since 2026-10-16, and nothing is drawn taller
+  than its duration since 2026-10-21; only the title-row cascade rule below survives): a block drawn taller than its duration (events and task lists alike: 24 px minimum;
   the former 44 px task list minimum was dropped on 2026-10-13, owner) occupies its drawn height when entries are laid out; an entry starting inside it is placed
   as overlapping (side by side or stacked), so nothing hides another entry's title (owner, 2026-10-12).
   A block drawn at that minimum is a bare title row: an entry starting less than the minimum later shares columns

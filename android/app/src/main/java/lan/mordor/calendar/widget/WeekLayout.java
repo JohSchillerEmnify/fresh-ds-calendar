@@ -64,12 +64,12 @@ final class WeekLayout {
      * Packs the timed items of one day. Items in a connected overlap cluster are grouped by start time: starts within
      * {@link #STACK_MIN_START_GAP_MIN} of the group's first share equal columns; a later overlapping group cascades one level
      * deeper (up to {@link #MAX_STACK_DEPTH}, then it joins the last group's columns). Touching items do not overlap.
-     * What overlaps is decided from the real start and end only; {@code minMinutes} sizes the drawn box, which is clamped to end
-     * where the next block below it (not overlapping it in time, sharing its horizontal room) starts. A block that lasts less
-     * than {@code minMinutes} is cascaded over only by a block starting at least {@code minMinutes} later.
+     * What overlaps is decided from the real start and end only; the drawn box is the real duration, never past the real end
+     * (owner, 2026-10-21). A block that lasts less than {@code minMinutes} is cascaded over only by a block starting at least
+     * {@code minMinutes} later.
      *
      * @param items the day's items; untimed ones are ignored
-     * @param minMinutes the minimum drawn duration of a block, in minutes
+     * @param minMinutes the title-row duration of a block, in minutes (cascade only)
      */
     static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes) {
         List<WeekData.Item> timed = new ArrayList<>();
@@ -109,22 +109,10 @@ final class WeekLayout {
                 g.colEnds.set(col, end);
             }
             g.end = Math.max(g.end, end);
-            g.items.add(new Placed(s, col, g.level, s.startMin, Math.max(s.endMin - s.startMin, minMinutes)));
+            g.items.add(new Placed(s, col, g.level, s.startMin, end - s.startMin));
             clusterEnd = Math.max(clusterEnd, end);
         }
         flush(groups, out);
-        // Clamp each drawn box to the next block below it that shares its horizontal room, so the minimum never paints over it.
-        for (Placed p : out) {
-            int pEnd = realEnd(p.item);
-            int next = Integer.MAX_VALUE;
-            for (Placed q : out) {
-                if (q != p && q.top >= pEnd && (double) q.col / q.cols < (double) (p.col + p.span) / p.cols
-                        && (double) p.col / p.cols < (double) (q.col + q.span) / q.cols) {
-                    next = Math.min(next, q.top);
-                }
-            }
-            if (next != Integer.MAX_VALUE) p.height = Math.min(p.height, next - p.top);
-        }
         return out;
     }
 

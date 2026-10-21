@@ -146,7 +146,7 @@ export interface PlacedSegment {
   /** Cascade level (0 = base, drawn first); the renderer offsets level n by n * STACK_INDENT_PX and draws it on top. */
   level: number;
   top: number; // minutes
-  height: number; // minutes: the drawn height, >= min unless clamped by the next block below
+  height: number; // minutes: the drawn height, the real duration (never past the real end)
 }
 
 /**
@@ -156,14 +156,14 @@ export interface PlacedSegment {
  * What overlaps is decided from the REAL start and end only (ARCHITECTURE "Timed overlap uses real times"): the drawn minimum
  * height never makes back-to-back or merely close items overlap. A block that lasts less than `minMinutes` is a bare title row,
  * so a truly overlapping later block cascades over it only when it starts at least `minMinutes` later; closer ones share columns.
- * The minimum only sizes the drawn box (`PlacedSegment.height`), which is clamped to end where the next block below it
- * (not overlapping it in time, sharing its horizontal room) starts, so a short block never paints over its neighbour.
+ * The drawn box (`PlacedSegment.height`) is the real duration: never past the real end, so a short block never paints over
+ * its neighbour and equal durations look equal (owner, 2026-10-21).
  * Touching items (end == start) do not overlap. With `stack` false nothing cascades:
  * a whole overlap cluster shares columns (lanes), as the horizontal Labs view needs.
  */
 /**
- * `minMinutes` is the drawn minimum per block, in minutes: a number for all, or per segment (A-E5: a block drawn
- * taller than its duration, e.g. a task list with open items, is drawn at that height unless a neighbour below clamps it).
+ * `minMinutes` is the title-row minimum per block, in minutes: a number for all, or per segment. It only decides the cascade
+ * (a block shorter than it is a bare title row), never the drawn height.
  * `titleMinutes` is one title row ({@link TITLE_ROW_PX}) in minutes: a later block cascades over an earlier one only when it
  * starts at least that far in (and at least OVERLAP_STACK_MIN_START_GAP_MIN), else they share columns.
  */
@@ -212,20 +212,10 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
     if (col < 0) col = g.colEnds.length;
     g.colEnds[col] = end;
     g.end = Math.max(g.end, end);
-    g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: Math.max(s.endMin - s.startMin, min) });
+    g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: end - s.startMin });
     clusterEnd = Math.max(clusterEnd, end);
   }
   flush();
-  // Clamp each drawn box to the next block below it that shares its horizontal room, so the minimum height never paints over it.
-  const x0 = (p: PlacedSegment) => p.col / p.cols, x1 = (p: PlacedSegment) => (p.col + p.span) / p.cols;
-  for (const p of out) {
-    const pEnd = realEnd(p.seg);
-    let next = Infinity;
-    for (const q of out) {
-      if (q !== p && q.top >= pEnd && x0(q) < x1(p) && x0(p) < x1(q)) next = Math.min(next, q.top);
-    }
-    p.height = Math.min(p.height, next - p.top);
-  }
   return out;
 }
 

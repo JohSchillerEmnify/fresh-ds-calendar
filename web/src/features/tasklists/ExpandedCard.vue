@@ -15,7 +15,7 @@ import type { ItemRendererProps } from '@/extensions/registry';
 import { t } from '@/i18n';
 import { useOverlayHistory } from '@/lib/overlayHistory';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
-import { blockGeometry, displayTitle, neutralName } from '@/lib/items';
+import { blockGeometry, displayTitle, neutralName, TITLE_ROW_PX } from '@/lib/items';
 import { useEffectiveHourHeight } from '@/composables/useHourHeight';
 import { useCalendarStore } from '@/stores/calendar';
 import { useItemsStore } from '@/stores/items';
@@ -44,13 +44,13 @@ const host = timed ? col : props.variant === 'block' ? props.anchor.closest<HTML
 interface Pos { left: number; top: number; width: number; maxHeight: number; minHeight: number; radius: string; dir: 'down' | 'up'; upH: number }
 const pos = ref<Pos | null>(null);
 // the list's own time block at the current zoom (TimeGrid's geometry; the card is 1 px shorter than its `.blk`, which has a bottom gap)
-const geo = computed(() => blockGeometry(props.segment.startMin, props.segment.endMin, hourHeight.value));
+const geo = computed(() => blockGeometry(props.segment.startMin, props.segment.endMin, hourHeight.value, 0));
 /** Style of a time-unit placed card: top and real height from minutes, horizontal from `fitWidth` (px inside the day column). */
 const timedStyle = computed(() => {
   const p = pos.value;
   if (!p) return { visibility: 'hidden' } as const;
-  // the card's measured height: the block may be drawn shorter than the minimum when the next block below clamps it (packColumns)
-  const real = p.minHeight || geo.value.height - 1;
+  // the card's measured height (its real length), but the grown pill always keeps one readable title row (owner, 2026-10-21)
+  const real = Math.max(TITLE_ROW_PX, p.minHeight || geo.value.height - 1);
   return {
     left: p.left + 'px', width: p.width + 'px',
     top: (p.dir === 'up' ? geo.value.top + real - p.upH : geo.value.top) + 'px', maxHeight: p.maxHeight + 'px', '--min-h': real + 'px', borderRadius: p.radius, '--xr': p.radius,

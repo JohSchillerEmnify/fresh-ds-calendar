@@ -679,7 +679,6 @@ the time is {date} {time} and the clock is running
 
 ```
 the event {string} is about {int} times as tall as the event {string}
-the event {string} is at least {int} pixels tall
 the now marker is positioned at {time}
 the now marker is in the column of {date}
 I do not see the now marker

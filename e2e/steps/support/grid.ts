@@ -19,9 +19,8 @@ export async function expectPositioned(world: World, chip: Locator, from: string
       if (Math.abs(b.y - wantTop) > 3) return `top ${b.y.toFixed(1)} != expected ${wantTop.toFixed(1)}`;
       if (to !== undefined) {
         const wantHeight = ((minutesOf(to) - minutesOf(from)) / 60) * hourHeight;
-        // Very short events are clamped up to the 24 px minimum tap height (timeline.feature).
-        const wantMax = Math.max(wantHeight, 25) + 3;
-        if (b.height < wantHeight - 3 || b.height > wantMax) return `height ${b.height.toFixed(1)} != expected ${wantHeight.toFixed(1)}`;
+        // no minimum height: every block is drawn at its real length (timeline.feature)
+        if (Math.abs(b.height - wantHeight) > 3) return `height ${b.height.toFixed(1)} != expected ${wantHeight.toFixed(1)}`;
       }
       return 'ok';
     }, { message: `positioned from ${from}${to ? ` to ${to}` : ''}` })

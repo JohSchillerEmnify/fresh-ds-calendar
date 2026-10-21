@@ -65,6 +65,12 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 ## Features
 
 
+- **Setting: minimum event length for readability** (owner, 2026-10-21; needs its own slice + spec first). Since
+  2026-10-21 every card is drawn at its real length (no minimum height, AC-73 changed). Add a setting: off (today's
+  strict rule) or a minimum length, e.g. "anything under 30 min is treated as a 30-min event". When on, the short item
+  must really be treated as that long everywhere in the time grid (layout, overlap, columns, cascade), not just drawn
+  taller, so back-to-back items never get the inconsistent "last one grows" look again. Prefs follow the
+  `approachingCard` pattern.
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
