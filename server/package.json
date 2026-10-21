@@ -17,7 +17,7 @@
   "dependencies": {
     "@calendar/shared": "workspace:*",
     "@googleapis/calendar": "20.1.0",
-    "@hono/node-server": "2.1.4",
+    "@hono/node-server": "2.1.5",
     "dompurify": "3.4.16",
     "google-auth-library": "11.2.0",
     "hono": "4.13.13",

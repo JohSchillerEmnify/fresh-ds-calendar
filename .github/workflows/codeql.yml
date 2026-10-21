@@ -14,15 +14,17 @@ jobs:
     permissions:
       security-events: write
       contents: read
+      # private repo: CodeQL reads the workflow run, else the upload fails with "Resource not accessible by integration"
+      actions: read
     strategy:
       fail-fast: false
       matrix:
         language: [javascript-typescript]
     steps:
-      - uses: actions/checkout@v4.2.2
-      - uses: github/codeql-action/init@v3.28.18
+      - uses: actions/checkout@v7.0.1
+      - uses: github/codeql-action/init@v4.39.0
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/analyze@v3.28.18
+      - uses: github/codeql-action/analyze@v4.39.0
         with:
           category: /language:${{ matrix.language }}
