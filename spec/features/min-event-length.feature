@@ -29,14 +29,14 @@ Feature: Minimum event length for readability
       And the calendar contains a task list "Meds" on 2026-10-12 at 08:00 for 10 minutes
       And the calendar contains an event "Breakfast" on 2026-10-12 from 08:15 to 08:45
       When I open the day view for 2026-10-12
-      Then the task list "Meds" and the event "Breakfast" are side by side
+      Then the task list "Meds" and the event "Breakfast" are laid out as overlapping
 
     Scenario Outline: Back-to-back short events count as overlapping in every view that lays out time
       Given the minimum event length is 30 minutes
       And the calendar contains an event "Daily A" on 2026-10-12 from 11:00 to 11:15
       And the calendar contains an event "Daily B" on 2026-10-12 from 11:15 to 11:30
       When I look at 2026-10-12 in the <view>
-      Then the events "Daily A" and "Daily B" each get their own lane
+      Then the events "Daily A" and "Daily B" are laid out as overlapping
 
       Examples:
         | view                  |
@@ -47,7 +47,12 @@ Feature: Minimum event length for readability
         | Labs timeline         |
         | zoom month            |
         | Labs horizontal view  |
-        | phone widget          |
+
+      # The phone widget is native Android: Playwright cannot drive it, so its layout is proven by the widget's JUnit tests.
+      @backlog
+      Examples: phone widget
+        | view         |
+        | phone widget |
 
     Scenario: While being shortened, an event already shows the minimum length it will get
       Given the minimum event length is 30 minutes
@@ -68,11 +73,11 @@ Feature: Minimum event length for readability
       Given the minimum event length is 30 minutes
       And the calendar contains an event "Pill" on 2026-10-12 from 08:00 to 08:05
       When I open the day view for 2026-10-12
-      Then the event "Pill" shows the time "08:00–08:05"
+      Then opening the event "Pill" shows the time "08:00–08:05"
 
     Scenario: Shortening an event below the minimum keeps the end it was given
       Given the minimum event length is 30 minutes
       And the calendar contains an event "Focus" on 2026-10-12 from 09:00 to 10:00
       And the event "Focus" shows resize handles in the day view for 2026-10-12
-      When I drag the end handle of "Focus" to 09:15
-      Then the event "Focus" shows the time "09:00–09:15"
+      When I drag the end handle of "Focus" to 09:15 in the day view
+      Then opening the event "Focus" shows the time "09:00–09:15"
