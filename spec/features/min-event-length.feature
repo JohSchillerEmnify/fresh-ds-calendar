@@ -53,7 +53,7 @@ Feature: Minimum event length for readability
       Given the minimum event length is 30 minutes
       And the calendar contains an event "Focus" on 2026-10-12 from 09:00 to 10:00
       And the event "Focus" shows resize handles in the day view for 2026-10-12
-      When I hold the end handle of "Focus" at 09:10
+      When I hold the end handle of "Focus" at 09:15
       Then the event "Focus" is positioned from 09:00 to 09:30
 
     Scenario: Choosing a minimum in the settings changes the calendar right away
@@ -74,5 +74,5 @@ Feature: Minimum event length for readability
       Given the minimum event length is 30 minutes
       And the calendar contains an event "Focus" on 2026-10-12 from 09:00 to 10:00
       And the event "Focus" shows resize handles in the day view for 2026-10-12
-      When I drag the end handle of "Focus" to 09:10
-      Then the event "Focus" shows the time "09:00–09:10"
+      When I drag the end handle of "Focus" to 09:15
+      Then the event "Focus" shows the time "09:00–09:15"

@@ -15,6 +15,15 @@ model {
     primitives = library 'Layout primitives' {
       description 'Overlap packing, all-day packing and the item block renderer, used by the grid'
     }
+    labsViews = component 'Labs time views' {
+      description 'The experimental views that lay out time: strip, timeline, zoom month and the horizontal view'
+    }
+    resize = component 'Resize handles' {
+      description 'Lets the owner drag a timed entry\'s start or end and previews the result live'
+    }
+    widgetBridge = component 'Widget bridge' {
+      description 'Builds the week snapshot and hands it to the phone widget after each sync'
+    }
     listForm = component 'Task list form' {
       description 'Creates and edits a task list; carries the Show on door switch'
     }
@@ -32,5 +41,13 @@ model {
     week -> prefs 'reads the overview and split prefs'
     week -> timegrid 'renders one grid, or two in fit mode over one shared window'
     timegrid -> primitives 'reuses'
+    settings -> prefs 'changes the minimum event length'
+    timegrid -> prefs 'reads the minimum event length'
+    timegrid -> resize 'offers the handles on its timed blocks'
+    resize -> primitives 'previews the dragged block, at least the minimum length long'
+    timegrid -> primitives 'packs with the minimum event length'
+    labsViews -> prefs 'reads the minimum event length'
+    labsViews -> primitives 'packs with the minimum event length'
+    widgetBridge -> prefs 'reads the minimum event length into the snapshot'
   }
 }

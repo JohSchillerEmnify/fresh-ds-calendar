@@ -1,0 +1,23 @@
+model {
+  extend calendar.widget {
+    fetcher = component 'Week fetcher' {
+      description 'Fetches the current week\'s items and the preferences from the server with the app\'s session cookie'
+    }
+    store = store 'Widget store' {
+      description 'The fetched week, the app\'s snapshot and the auth state on the phone'
+    }
+    layout = library 'Week layout' {
+      description 'The Java port of the overlap packing'
+    }
+    renderer = component 'Widget renderer' {
+      description 'Picks the fetched week, else the snapshot, and draws it'
+    }
+
+    fetcher -> store 'saves the week with the minimum event length'
+    renderer -> store 'reads the week and the minimum event length'
+    renderer -> layout 'packs each day with the minimum event length'
+  }
+
+  calendar.widget.fetcher -> calendar.server.prefsApi 'reads the minimum event length'
+  calendar.web.widgetBridge -> calendar.widget.store 'saves the snapshot, minimum event length included'
+}
