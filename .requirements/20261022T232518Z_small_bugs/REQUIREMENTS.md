@@ -105,3 +105,20 @@ points right). Desktop (no `data-touch`) does not change.
 On a tablet in left-handed mode the add button (already at the left, next to the rail, per the existing @tablet
 scenario) now sits over the bottom of the open tray panel instead of over the calendar. Moving it beside the tray would
 need the tray width in `CreateFab`; left for the owner to judge.
+
+## 5. Labs views follow the "Task categories" switch (owner decision via coordinator)
+
+### As Is
+With task categories off, a list shows its calendar's colour everywhere (`categories.ts` `listColor`/`itemColor`), but
+the Labs views were not specified. Audit: clock, timeline, strip and horizontal draw items through `ItemView` /
+`cats.itemColor` (already right; the clock's wedge and now line only use events, which have no category). The zoom
+month's density dots used `s.item.color` directly, i.e. the category colour.
+
+### To Be
+The zoom month dots use `useTaskCategories().itemColor`, like every other item.
+
+### Requirements / Acceptance Criteria
+1. R1: with categories off, no Labs view draws a list in its category colour. AC: new Scenario Outline "The Labs views
+   draw no category colour while task categories are off" (clock, timeline, strip, zoom month, horizontal): the list
+   is drawn in its calendar colour (non-vacuous) and the category colour is drawn nowhere in the view. Red before the fix
+   for the zoom month only, 5/5 green after; the existing switch scenarios stay green.

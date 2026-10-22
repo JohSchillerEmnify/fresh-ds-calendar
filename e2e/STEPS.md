@@ -696,6 +696,9 @@ I open the new task list dialog in the Tasks view
 the task list dialog has no category field
 the task lists {string} and {string} have the same color
 I retitle the task list {string} to {string} in the Tasks view
+task categories are off
+I open the Labs view {string} for {date}
+the Labs view draws {string} in the colour of its calendar, never of its category
 ```
 
 - "I turn the task categories on/off": clicks `settings-task-categories` (Settings screen is open) when its `aria-checked`
@@ -707,6 +710,14 @@ I retitle the task list {string} to {string} in the Tasks view
 - "the task list dialog has no category field": `tasklist-category` is absent from the open `tasklist-dialog`.
 - "the task lists A and B have the same color": equal `data-color` on their `tasklist-card`s.
 - "I retitle ...": opens the list's dialog from its title in the Tasks view, replaces the title and saves.
+- "task categories are off": `PATCH /api/prefs { "taskCategories": false }` through the API before the page is opened.
+- "I open the Labs view V for D": opens the Labs view by its path (`clock` = `/clock/D`, `timeline` = `/timeline`,
+  `strip` = `/strip/D`, `zoom month` = `/zoom/D`, `horizontal` = `/horizontal/D`; Labs views are always routable) and
+  waits for its root (`clock-view`, `timeline-view`, `strip-view`, `zoom-view`, `htime-view`).
+- "the Labs view draws L in the colour of its calendar, never of its category": takes L's `color` (category) and
+  `calendarColor` from `GET /api/tasklists/all-open`; inside the view root, the colours each element is drawn with (computed
+  `color`, `background-color`, the border and outline colours, SVG `fill` and `stroke`, and the `--c` item colour) include
+  the calendar colour and never the category colour (compared as sRGB; polled).
 
 ## Event colors (`@colors`)
 
