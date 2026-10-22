@@ -65,12 +65,14 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 ## Features
 
 
-- **Setting: minimum event length for readability** (owner, 2026-10-21; needs its own slice + spec first). Since
-  2026-10-21 every card is drawn at its real length (no minimum height, feature proportional-timeline changed). Add a setting: off (today's
-  strict rule) or a minimum length, e.g. "anything under 30 min is treated as a 30-min event". When on, the short item
-  must really be treated as that long everywhere in the time grid (layout, overlap, columns, cascade), not just drawn
-  taller, so back-to-back items never get the inconsistent "last one grows" look again. Prefs follow the
-  `approachingCard` pattern.
+- **Reorder list items by drag and drop** (owner, 2026-10-23; needs its own slice + spec first). Inside a task list,
+  pick up an item and drop it at another place in the list. Today items move only with the up/down buttons
+  (`tasklist-items` "Reorder items", `@optional`).
+- **Day view: drag an entry to the next or previous day at the screen edge** (owner, 2026-10-23; needs its own slice +
+  spec first). In the day view, dragging an entry against the right edge moves it to the next day, against the left
+  edge to the previous day (time kept). Today the edge hold only works at the time grid's top and bottom (`dnd`).
+- **Confirm a new list item with a check button** (owner, 2026-10-23; needs its own slice + spec first). A small check
+  mark / button at the right end of the new-item field adds the item, as an alternative to pressing Enter.
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
