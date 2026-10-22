@@ -137,6 +137,9 @@ describe('push API', () => {
       const at = Date.parse('2026-10-12T10:10:00+02:00');
       expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'Dentist', body: '10:40 – 11:30', key: 'reminder:x', kind: 'event' }] })).status).toBe(204);
       expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'X', body: '', key: 'k', kind: 'weather' }] })).status).toBe(400);
+      // a plan from a web bundle older than kinds is still taken (its pushes look like events)
+      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'Old', body: '10:40', key: 'reminder:old' }] })).status).toBe(204);
+      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'Dentist', body: '10:40 – 11:30', key: 'reminder:x', kind: 'event' }] })).status).toBe(204);
       expect((await t.req('PUT', '/api/reminders/plan', { endpoint: 'https://other.example.test/x', plan: [] })).status).toBe(404);
       await t.req('POST', '/api/__test/clock', { now: '2026-10-12T10:00:00+02:00' });
       expect((await t.json('GET', '/api/__test/pushes')).body.pushes).toEqual([]);

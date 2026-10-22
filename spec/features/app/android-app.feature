@@ -16,21 +16,23 @@ Feature: The Android app
     Then a notification "Dentist" saying "11:00 – 11:30" is planned for 2026-10-13 10:30
 
   @backlog
-  Scenario: A reminder notification counts down to the start while it is shown
+  Scenario: A reminder notification counts down to the start, then shows the times until the end
     It may be read long after it came: the phone keeps the time left right, the text gives the times, never "in 30 min".
     Given the app runs inside the Android app
     And the calendar contains an event "Dentist" on 2026-10-13 from 11:00 to 11:30
     And the event "Dentist" has its own reminders "30" in Google
     When I open the week view for 2026-10-12
     Then the notification "Dentist" planned for 2026-10-13 10:30 counts down to 2026-10-13 11:00
+    And from 2026-10-13 11:00 the notification "Dentist" shows no countdown and goes away at 2026-10-13 11:30
 
   @backlog
-  Scenario: The bedtime notification gives the bedtime and counts down to it
+  Scenario: The bedtime notification gives the bedtime, counts down to it and goes away at wake-up
     Given the app runs inside the Android app
     And bedtime mode is on with fixed times 23:00 and 07:00
     When I open the day view for 2026-10-12
     Then a notification "Bedtime at 23:00" is planned for 2026-10-12 22:30
     And the notification "Bedtime at 23:00" planned for 2026-10-12 22:30 counts down to 2026-10-12 23:00
+    And from 2026-10-12 23:00 the notification "Bedtime at 23:00" shows no countdown and goes away at 2026-10-13 07:00
 
   @backlog
   Scenario Outline: Each kind of notification has its own status bar icon

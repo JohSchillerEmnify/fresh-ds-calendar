@@ -2336,6 +2336,7 @@ the morning overview is on at {time}
 a notification {string} is planned for {date} {time}
 a notification {string} saying {string} is planned for {date} {time}
 the notification {string} planned for {date} {time} counts down to {date} {time}
+from {date} {time} the notification {string} shows no countdown and goes away at {date} {time}
 a {string} notification shows
 its status bar icon is the {string}
 the phone widget refreshes
@@ -2350,6 +2351,8 @@ the clock widget says {string}
 ```
 
 - "counts down to D T": the scheduled native reminder carries that start (`setWhen` + a counting-down chronometer).
+  "from D T … shows no countdown and goes away at D2 T2": at the start an alarm re-posts it silently without the
+  chronometer, and `setTimeoutAfter` removes it at the end (the event's end; wake-up for bedtime).
   "a K notification shows" / "its status bar icon is the I": the notification of kind K (event reminder, task list
   reminder, morning overview, bedtime reminder) uses the small icon I (`ic_stat_event` calendar page, `ic_stat_tasklist`
   checklist, `ic_stat_summary` sunrise, `ic_stat_bedtime` moon). Proven by `ReminderNotificationTest`.

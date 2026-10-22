@@ -5,7 +5,8 @@
  */
 import { itemSegments, type Segment } from '@/lib/items';
 import { t } from '@/i18n';
-import { formatDate, parseIsoDate } from '@/lib/dates';
+import { addDays, formatDate, parseIsoDate, toIsoDate } from '@/lib/dates';
+import { fromWallMinutes, localToIso, offsetMinutes } from './zone';
 import { formatDuration } from './timeline';
 
 /** Google allows at most 5 reminders per event and 5 defaults per calendar. */
@@ -33,6 +34,8 @@ export interface PlannedReminder {
   at: number;
   /** Epoch ms at which the event starts. */
   startAt: number;
+  /** Epoch ms at which the event ends (the native notification stays until then). */
+  endAt: number;
   /** Minutes before the start. */
   lead: number;
   /** The item's title as shown (an untitled list gets its placeholder). */
@@ -55,18 +58,30 @@ export const reminderText = (title: string, minutes: number): string =>
 /** A date as the notification texts show it: "Tue 13 Oct". */
 const dayLabel = (date: string): string => formatDate(parseIsoDate(date)!, 'weekdayDayMonth');
 
+/** The epoch ms of a wall-clock date and time in the calendar zone (DST safe). */
+const instant = (date: string, time: string, tz: string): number => Date.parse(localToIso(date, time, tz));
+
+/** The calendar-zone date of an instant. */
+const zonedDate = (ms: number, tz: string): string => fromWallMinutes(Math.floor(ms / 60_000) + offsetMinutes(ms, tz)).date;
+
+/** The wall-clock end of an item: on its last segment, which may lie beyond the planned days; `24:00` is 00:00 of the next day. */
+function itemEnd(s: Segment): { date: string; time: string } {
+  const last = s.last ? s : itemSegments(s.item).find((x) => x.last) ?? s;
+  if (last.endTime === '24:00') return { date: toIsoDate(addDays(parseIsoDate(last.date)!, 1)), time: '00:00' };
+  return { date: last.date, time: last.endTime ?? s.startTime ?? '' };
+}
+
 /**
- * The times of an item as its notification gives them, Google-Calendar-like: "11:00 – 11:30"; an end on a later day names
- * that day ("22:00 – Tue 13 Oct, 01:00"); an end at midnight is "00:00".
+ * The times of an item as its notification gives them, Google-Calendar-like: "11:00 – 11:30"; an end at the midnight
+ * after the start day is "00:00"; any later end names its day ("22:00 – Tue 13 Oct, 01:00", "22:00 – Wed 14 Oct, 00:00").
  *
  * @param s The item's first segment.
+ * @param end The item's end, from {@link itemEnd}.
  */
-function itemTimes(s: Segment): string {
-  // the end lies on the item's last segment, which may be beyond the planned days
-  const last = s.last ? s : itemSegments(s.item).find((x) => x.last) ?? s;
-  const endTime = last.endTime === '24:00' ? '00:00' : last.endTime ?? '';
-  const end = last.date === s.date ? endTime : t('calendar.reminders.notification.dayTime', { day: dayLabel(last.date), time: endTime });
-  return t('calendar.reminders.notification.times', { start: s.startTime ?? '', end });
+function itemTimes(s: Segment, end: { date: string; time: string }): string {
+  const sameEvening = end.date === s.date || (end.time === '00:00' && end.date === toIsoDate(addDays(parseIsoDate(s.date)!, 1)));
+  const endText = sameEvening ? end.time : t('calendar.reminders.notification.dayTime', { day: dayLabel(end.date), time: end.time });
+  return t('calendar.reminders.notification.times', { start: s.startTime ?? '', end: endText });
 }
 
 /** Which kinds of items remind (`events`: lock screen choice for the native plan; `tasklists`: the Reminders switch). */
@@ -74,37 +89,37 @@ export interface PlanKinds { events: boolean; tasklists: boolean }
 
 /**
  * Every reminder of the timed items on the given days whose event has not started yet, soonest first. The ones with `at`
- * at or before now are due (their snackbar shows); the later ones are still ahead (scheduled natively).
+ * at or before now are due (their snackbar shows); the later ones are still ahead (scheduled natively). Instants come
+ * from the wall-clock times in the calendar zone, so a reminder across a clock change rings at the right moment.
  *
  * @param days Segments per day, today first, consecutive days (hidden calendars already filtered out).
  * @param nowMs Now, epoch ms.
- * @param nowMin Minute of today (0-1439) on the app clock.
  * @param kinds Which kinds of items remind.
  * @param untitled Placeholder for an untitled list.
+ * @param tz The calendar time zone (IANA name).
  */
-export function reminderPlan(days: Segment[][], nowMs: number, nowMin: number, kinds: PlanKinds, untitled: string): PlannedReminder[] {
+export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds, untitled: string, tz: string): PlannedReminder[] {
   const minuteStart = nowMs - (nowMs % 60_000);
   const out: PlannedReminder[] = [];
-  days.forEach((segs, i) => {
+  for (const segs of days) {
     for (const s of segs) {
       if (s.allDay || !s.first || s.startTime === null || s.carriedFrom) continue;
       if (s.item.kind === 'event' ? !kinds.events : !kinds.tasklists) continue;
-      const startIn = i * 1440 + s.startMin - nowMin;
-      if (startIn <= 0) continue;
+      const startAt = instant(s.date, s.startTime, tz);
+      if (startAt <= minuteStart) continue;
       const itemTitle = s.item.title.trim() || untitled;
       const occurrence = `${s.item.id}@${s.date}T${s.startTime}`;
-      const times = itemTimes(s);
+      const end = itemEnd(s);
+      const endAt = Math.max(startAt, instant(end.date, end.time, tz));
+      const times = itemTimes(s, end);
       for (const lead of new Set(s.item.reminders?.minutes ?? [])) {
+        const at = startAt - lead * 60_000;
         // the day goes first when the reminder rings on another day than the item (a day lead, or just before midnight)
-        const ringsOnItsDay = Math.floor((i * 1440 + s.startMin - lead) / 1440) === i;
-        out.push({
-          key: `${occurrence}-${lead}`, occurrence, at: minuteStart + (startIn - lead) * 60_000, startAt: minuteStart + startIn * 60_000, lead,
-          itemTitle, kind: s.item.kind, title: reminderText(itemTitle, lead),
-          body: ringsOnItsDay ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times }),
-        });
+        const body = zonedDate(at, tz) === s.date ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times });
+        out.push({ key: `${occurrence}-${lead}`, occurrence, at, startAt, endAt, lead, itemTitle, kind: s.item.kind, title: reminderText(itemTitle, lead), body });
       }
     }
-  });
+  }
   return out.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key));
 }
 

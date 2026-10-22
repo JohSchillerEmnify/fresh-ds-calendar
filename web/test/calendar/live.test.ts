@@ -219,7 +219,7 @@ describe('transition warnings as Android notifications', () => {
 
   it('schedules them through the plugin, re-sends only changes and cancels what is gone', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number; end?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
@@ -227,10 +227,11 @@ describe('transition warnings as Android notifications', () => {
     useSettingsStore().settings = settingsFixture();
     startTransitionWarnings();
     // named by the event with its times and a start the phone counts down to, never "starts in 10 min"
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_REMINDER_PREFIX), o.title, o.body, o.kind, o.at, o.start]))
+    // and kept until the event ends
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_REMINDER_PREFIX), o.title, o.body, o.kind, o.at, o.start, o.end]))
       .toEqual([
-        [true, 'Dentist', '10:40 – 11:30', 'event', at('10:30').getTime(), at('10:40').getTime()],
-        [true, 'Call', '13:00 – 13:30', 'event', at('12:50').getTime(), at('13:00').getTime()],
+        [true, 'Dentist', '10:40 – 11:30', 'event', at('10:30').getTime(), at('10:40').getTime(), at('11:30').getTime()],
+        [true, 'Call', '13:00 – 13:30', 'event', at('12:50').getTime(), at('13:00').getTime(), at('13:30').getTime()],
       ]);
     clock.nowTick = at('09:01').getTime();
     await nextTick();
@@ -249,13 +250,15 @@ describe('transition warnings as Android notifications', () => {
 
   it('schedules a timed task list only with the switch on, and cleans up ids the plan does not hold', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number; end?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
       list: vi.fn(() => Promise.resolve({ ids: ['reminder:gone@2026-10-12T10:00-10', 'transition:old@2026-10-12T10:00', 'morning', 'other'] })),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
     const { items } = await boot('09:00', false);
     items.applyResponse(D, '2026-10-13', [laundry], 's5');
+    // the clean-up waits for all planned days (8 from today) to be loaded
+    items.applyResponse(D, '2026-10-20', [laundry], 's5');
     const prefs = usePrefsStore();
     prefs.notify = { ...prefs.notify, tasklists: false };
     startTransitionWarnings();
@@ -270,7 +273,7 @@ describe('transition warnings as Android notifications', () => {
 
   it('schedules the morning overview only when chosen, and nothing for switched-off kinds', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number; end?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };

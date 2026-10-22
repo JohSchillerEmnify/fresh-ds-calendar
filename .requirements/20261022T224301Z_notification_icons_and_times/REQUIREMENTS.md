@@ -79,8 +79,12 @@ One PR: the pieces share the payload contract and ship together.
   and the service worker maps all four, so such pushes would get the right look. Flagged.
 - A3 The day prefix uses the app's `weekdayDayMonth` date format ("Tue 13 Oct"); a date never goes stale, unlike
   "tomorrow".
-- A4 The native countdown keeps running past the start (Android then counts up from the start); the notification is not
-  auto-removed.
+- A4 (owner decision after review, replaces the first version) The native notification counts down to the start; at
+  the start an alarm re-posts it silently with only its text (no chronometer, `setOnlyAlertOnce`); it disappears at the
+  item's end (`setTimeoutAfter`). A notification dismissed before the start stays gone. Bedtime: counts down to bedtime,
+  then shows "Bedtime at 23:00" until wake-up, when it disappears (my choice: the night's wake-up time is the natural end).
+  The morning overview has no start or end and stays until dismissed. (context7 had no entries for `setTimeoutAfter` /
+  `setOnlyAlertOnce`; their presence in androidx.core was proven by compiling, their effect by Robolectric.)
 - A5 Colours of the web colour icons: event blue `#1a73e8` (app colour), task list green `#188038`, summary amber
   `#e37400`, bedtime indigo `#3949ab`.
 
@@ -94,3 +98,10 @@ One PR: the pieces share the payload contract and ship together.
 - The bedtime native scenario lives in `android-app.feature` (native), so `bedtime.feature` is unchanged; its in-app
   snackbar "Bedtime in 30 minutes" is kept (A1).
 - PNGs were rendered from the SVG sources with Playwright's Chromium (one-off script, not committed).
+- Review round 1 (coordinator): an item ending at a later midnight names the day after its last segment
+  ("22:00 – Wed 14 Oct, 00:00"); push plan and native clean-up wait until loaded ranges cover all 8 planned days and fetch
+  them otherwise (a today-only load no longer shrinks the server's 7-day plan); reminder, bedtime and morning instants are
+  computed from wall-clock times in the calendar zone (were off by an hour across 2026-10-25); the eight notification
+  PNGs are precached by the service worker.
+- W5: the countdown, the plain text after the start and the removal at the end need the new APK (CHANGELOG 2026-10-23
+  says so); an older APK ignores `kind`, `start` and `end` and keeps showing the moon.

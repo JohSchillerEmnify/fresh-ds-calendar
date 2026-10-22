@@ -9,7 +9,8 @@ const kinds = { events: true, tasklists: false };
 const remind = (minutes: number[], useDefault = false) => ({ reminders: { useDefault, minutes } });
 const NOW = new Date(`${D}T10:25:00+02:00`).getTime();
 const NOW_MIN = 10 * 60 + 25;
-const plan = (items: CalendarItem[], k = kinds, days = 1) => reminderPlan(Array.from({ length: days }, (_, i) => segsOf(items, i === 0 ? D : `2026-10-13`)), NOW, NOW_MIN, k, 'Untitled');
+const TZ = 'Europe/Berlin';
+const plan = (items: CalendarItem[], k = kinds, days = 1) => reminderPlan(Array.from({ length: days }, (_, i) => segsOf(items, i === 0 ? D : `2026-10-13`)), NOW, k, 'Untitled', TZ);
 
 describe('lead wording', () => {
   it('uses the duration format and whole days', () => {
@@ -48,17 +49,17 @@ describe('reminder plan', () => {
 
   it('plans a day lead for an event of tomorrow and says the lead once per duplicate', () => {
     const tomorrow = ev('t', t('2026-10-13', '12:00'), t('2026-10-13', '13:00'), { title: 'Trip', ...remind([1440, 1440]) });
-    const p = reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, NOW_MIN, kinds, 'x');
+    const p = reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, kinds, 'x', TZ);
     expect(p.map((r) => [r.title, r.at - NOW])).toEqual([['Trip starts in 1 day', (1440 + 12 * 60 - NOW_MIN - 1440) * 60000]]);
   });
 
   it('gives the times, with the day first when the item is not on the day the reminder rings', () => {
     const trip = ev('t', t('2026-10-13', '12:00'), t('2026-10-13', '13:30'), { title: 'Trip', ...remind([1440, 30]) });
-    const p = reminderPlan([[], segsOf([trip], '2026-10-13')], NOW, NOW_MIN, kinds, 'x');
+    const p = reminderPlan([[], segsOf([trip], '2026-10-13')], NOW, kinds, 'x', TZ);
     expect(p.map((r) => [r.lead, r.body])).toEqual([[1440, 'Tue 13 Oct, 12:00 – 13:30'], [30, '12:00 – 13:30']]);
     // a 30 min lead of a 00:15 start rings the evening before
     const early = ev('e', t('2026-10-13', '00:15'), t('2026-10-13', '01:00'), { title: 'Early', ...remind([30]) });
-    expect(reminderPlan([[], segsOf([early], '2026-10-13')], NOW, NOW_MIN, kinds, 'x').map((r) => r.body)).toEqual(['Tue 13 Oct, 00:15 – 01:00']);
+    expect(reminderPlan([[], segsOf([early], '2026-10-13')], NOW, kinds, 'x', TZ).map((r) => r.body)).toEqual(['Tue 13 Oct, 00:15 – 01:00']);
   });
 
   it('names the end day of an item that runs past midnight', () => {
@@ -66,6 +67,21 @@ describe('reminder plan', () => {
     expect(plan([night]).map((r) => r.body)).toEqual(['22:00 – Tue 13 Oct, 01:00']);
     const toMidnight = ev('m', t(D, '23:00'), t('2026-10-13', '00:00'), { title: 'Late', ...remind([30]) });
     expect(plan([toMidnight]).map((r) => r.body)).toEqual(['23:00 – 00:00']);
+    // ends at the midnight after the next day: that midnight is on the 14th
+    const twoNights = ev('w', t(D, '22:00'), t('2026-10-14', '00:00'), { title: 'Long', ...remind([30]) });
+    expect(plan([twoNights]).map((r) => [r.body, r.endAt])).toEqual([['22:00 – Wed 14 Oct, 00:00', Date.parse(t('2026-10-14', '00:00'))]]);
+  });
+
+  it('rings at the right instant across the change back to winter time (2026-10-25)', () => {
+    // Sat 24 Oct 10:00 summer time; the event is Sun 25 Oct 10:00 winter time (+01:00), 25 hours later
+    const now = Date.parse('2026-10-24T10:00:00+02:00');
+    const sunday = ev('s', '2026-10-25T10:00:00+01:00', '2026-10-25T11:00:00+01:00', { title: 'Brunch', ...remind([1440, 30]) });
+    const p = reminderPlan([[], segsOf([sunday], '2026-10-25')], now, kinds, 'x', TZ);
+    expect(p.map((r) => [r.lead, new Date(r.at).toISOString(), new Date(r.startAt).toISOString(), new Date(r.endAt).toISOString()])).toEqual([
+      [1440, '2026-10-24T09:00:00.000Z', '2026-10-25T09:00:00.000Z', '2026-10-25T10:00:00.000Z'],
+      [30, '2026-10-25T08:30:00.000Z', '2026-10-25T09:00:00.000Z', '2026-10-25T10:00:00.000Z'],
+    ]);
+    expect(p.map((r) => r.body)).toEqual(['Sun 25 Oct, 10:00 – 11:00', '10:00 – 11:00']);
   });
 });
 
@@ -81,7 +97,7 @@ describe('push plan', () => {
 
   it('keeps nothing beyond 7 days from now', () => {
     const days = Array.from({ length: 8 }, (_, i) => segsOf([at(`e${i}`, `2026-10-${12 + i}`, '23:00', [5])], `2026-10-${12 + i}`));
-    const keys = pushPlan(reminderPlan(days, NOW, NOW_MIN, kinds, 'x'), NOW).map((p) => p.key.split('@')[0]);
+    const keys = pushPlan(reminderPlan(days, NOW, kinds, 'x', TZ), NOW).map((p) => p.key.split('@')[0]);
     expect(keys).toEqual(['reminder:e0', 'reminder:e1', 'reminder:e2', 'reminder:e3', 'reminder:e4', 'reminder:e5', 'reminder:e6']);
   });
 

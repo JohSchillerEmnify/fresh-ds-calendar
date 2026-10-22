@@ -15,6 +15,7 @@ import { useBedtimeWindows } from './useBedtime';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { remindersPlugin } from '@/native/reminders';
+import { localToIso } from '@/features/calendar/zone';
 
 /** A reminder that is due. */
 export interface BedtimeReminder {
@@ -63,6 +64,10 @@ export interface UpcomingReminder {
   at: number;
   /** Bedtime as `HH:MM`. */
   bedtime: string;
+  /** Bedtime as `YYYY-MM-DD HH:MM`. */
+  from: string;
+  /** Wake-up as `YYYY-MM-DD HH:MM`. */
+  to: string;
 }
 
 /**
@@ -76,7 +81,7 @@ export interface UpcomingReminder {
 export function upcomingReminder(windows: readonly BedtimeWindow[], nowAbs: number, minutes: number): UpcomingReminder | null {
   if (minutes <= 0) return null;
   const w = windows.filter((x) => x.start - minutes > nowAbs).sort((a, b) => a.start - b.start)[0];
-  return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11) } : null;
+  return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11), from: w.from, to: w.to } : null;
 }
 
 /** Id of the bedtime reminder in the native plugin (one pending at a time). */
@@ -142,15 +147,18 @@ export function startBedtimeReminder(): () => void {
           sent = 'none';
           return;
         }
-        // the bedtime itself, with the phone counting down to it: a fixed "in 30 minutes" would be stale when read later
+        // the bedtime itself, with the phone counting down to it: a fixed "in 30 minutes" would be stale when read later;
+        // the notification goes away at wake-up
         const title = t('bedtime.notification', { time: next.bedtime });
-        // relative to the app clock's current minute (the wall clock of `at` is in the app's time zone)
-        const at = clock.nowTick - (clock.nowTick % 60_000) + (next.at - nowAbs) * 60_000;
-        const start = at + prefs.bedtime.reminderMinutes * 60_000;
-        const key = `${at}|${title}|${start}`;
+        // instants of the wall-clock times in the calendar zone (right across a clock change)
+        const instant = (wall: string) => Date.parse(localToIso(wall.slice(0, 10), wall.slice(11), clock.timeZone));
+        const start = instant(next.from);
+        const at = start - prefs.bedtime.reminderMinutes * 60_000;
+        const end = instant(next.to);
+        const key = `${at}|${title}|${start}|${end}`;
         if (key === sent) return;
         sent = key;
-        void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body: '', kind: 'bedtime', start }).catch(() => undefined);
+        void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body: '', kind: 'bedtime', start, end }).catch(() => undefined);
       },
       { immediate: true },
     );

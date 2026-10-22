@@ -119,8 +119,7 @@ Feature: Several reminders per event, read from and written to Google
     Given the calendar contains an event "Trip" on 2026-10-13 from 12:00 to 13:30
     And the event "Trip" has its own reminders "1440, 30" in Google
     And the time is 2026-10-12 10:00
-    When I open the week view for 2026-10-12
-    And I open the reminders settings
+    When I open the reminders settings
     And I switch on reminders in this browser
     Then the server plans the push "Trip" saying "Tue 13 Oct, 12:00 – 13:30" for 2026-10-12 12:00
     And the server plans the push "Trip" saying "12:00 – 13:30" for 2026-10-13 11:30

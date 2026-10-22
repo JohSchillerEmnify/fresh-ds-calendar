@@ -38,8 +38,8 @@ public final class Reminders {
     }
 
     /**
-     * One reminder: when it is due (epoch ms), its notification text, its kind, and the start it counts down to while it is
-     * shown (epoch ms; 0 = no countdown).
+     * One reminder: when it is due (epoch ms), its notification text, its kind, the start it counts down to while it is
+     * shown (epoch ms; 0 = no countdown) and the end at which the notification goes away (epoch ms; 0 = it stays).
      */
     public static final class Entry {
         public final String id;
@@ -48,23 +48,25 @@ public final class Reminders {
         public final String body;
         public final String kind;
         public final long start;
+        public final long end;
 
-        Entry(String id, long at, String title, String body, String kind, long start) {
+        Entry(String id, long at, String title, String body, String kind, long start, long end) {
             this.id = id;
             this.at = at;
             this.title = title;
             this.body = body;
             this.kind = kindOf(id, kind);
             this.start = start;
+            this.end = end;
         }
 
         String toJson() throws JSONException {
-            return new JSONObject().put("at", at).put("title", title).put("body", body).put("kind", kind).put("start", start).toString();
+            return new JSONObject().put("at", at).put("title", title).put("body", body).put("kind", kind).put("start", start).put("end", end).toString();
         }
 
         static Entry fromJson(String id, String json) throws JSONException {
             JSONObject o = new JSONObject(json);
-            return new Entry(id, o.getLong("at"), o.getString("title"), o.optString("body", ""), o.optString("kind", null), o.optLong("start", 0));
+            return new Entry(id, o.getLong("at"), o.getString("title"), o.optString("body", ""), o.optString("kind", null), o.optLong("start", 0), o.optLong("end", 0));
         }
     }
 
@@ -128,10 +130,14 @@ public final class Reminders {
      * fires at once, so a reminder missed while the phone was off still shows after the reboot.
      */
     private static void setAlarm(Context ctx, Entry e) {
+        setAlarm(ctx, e.at, pendingIntent(ctx, e.id));
+    }
+
+    /** Sets an alarm at {@code at} (epoch ms), exact while idle when the app may (see above). */
+    static void setAlarm(Context ctx, long at, PendingIntent pi) {
         AlarmManager am = alarms(ctx);
-        PendingIntent pi = pendingIntent(ctx, e.id);
         boolean exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms();
-        if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, e.at, pi);
-        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, e.at, pi);
+        if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
     }
 }

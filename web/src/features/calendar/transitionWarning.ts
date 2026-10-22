@@ -23,6 +23,7 @@ import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
 import { remindersPlugin, type ReminderKind } from '@/native/reminders';
+import { localToIso } from './zone';
 import { pushEndpoint, pushSupported, refreshPushState, sendPushPlan } from '@/pwa/push';
 
 /** The wording of a snackbar for an event starting in `minutes` (kept as the one name tests and callers know). */
@@ -77,10 +78,19 @@ export function startTransitionWarnings(): () => void {
     const date = i === 0 ? clock.today : toIsoDate(addDays(clock.todayDate, i));
     return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
   });
-  /** Whether a loaded range covers today (`byDate` has no entry for a day without appointments, so it cannot tell). */
-  const todayLoaded = (): boolean => Object.values(items.ranges).some((r) => r.from <= clock.today && clock.today < r.to);
+  /**
+   * Whether loaded ranges cover all `PLAN_DAYS` days from today, so a plan built now is complete (`byDate` has no entry for
+   * a day without appointments, so it cannot tell). If not, the window is fetched; the watchers run again once it is in.
+   */
+  const windowLoaded = (): boolean => {
+    const ranges = Object.values(items.ranges);
+    const dates = Array.from({ length: PLAN_DAYS }, (_, i) => toIsoDate(addDays(clock.todayDate, i)));
+    if (dates.every((d) => ranges.some((r) => r.from <= d && d < r.to))) return true;
+    items.prefetch(clock.today, toIsoDate(addDays(clock.todayDate, PLAN_DAYS)));
+    return false;
+  };
   const plan = (kinds: { events: boolean; tasklists: boolean }): PlannedReminder[] =>
-    reminderPlan(days(), clock.nowTick, clock.minutesNow, kinds, t('tasks.list.fallbackLabel'));
+    reminderPlan(days(), clock.nowTick, kinds, t('tasks.list.fallbackLabel'), clock.timeZone);
 
   scope = effectScope(true);
   scope.run(() => {
@@ -129,8 +139,8 @@ export function startTransitionWarnings(): () => void {
         async () => {
           const endpoint = pushEndpoint.value;
           if (!endpoint) { sentSig = ''; return; }
-          // before today's items are loaded an empty plan would wipe the server's
-          if (!todayLoaded()) return;
+          // a plan of a partly loaded week would wipe the server's pushes of the days not loaded
+          if (!windowLoaded()) return;
           const entries = pushPlan(plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }), clock.nowTick);
           const sig = `${endpoint}|${JSON.stringify(entries)}`;
           if (sig === sentSig) return;
@@ -146,27 +156,29 @@ export function startTransitionWarnings(): () => void {
     const sent = new Map<string, string>();
     let cleaned = false;
     watch(
-      () => [clock.nowTick, items.byDate, cals.hidden, language.value, prefs.notify] as const,
+      () => [clock.nowTick, items.byDate, items.ranges, cals.hidden, language.value, prefs.notify] as const,
       () => {
         if (typeof document !== 'undefined' && document.hidden) return; // the schedule stays as it was left
         const tomorrow = toIsoDate(addDays(clock.todayDate, 1));
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
         const next = plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }).filter((p) => p.at > minuteStart).slice(0, NATIVE_REMINDER_LIMIT);
-        // named by the item with its times; the phone counts down to the start (a fixed "in 10 min" would go stale)
-        const want = new Map<string, { at: number; title: string; body: string; kind: ReminderKind; start?: number }>(
-          next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.itemTitle, body: p.body, kind: p.kind, start: p.startAt }]),
+        // named by the item with its times; the phone counts down to the start (a fixed "in 10 min" would go stale) and
+        // keeps the notification until the end
+        const want = new Map<string, { at: number; title: string; body: string; kind: ReminderKind; start?: number; end?: number }>(
+          next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.itemTitle, body: p.body, kind: p.kind, start: p.startAt, end: p.endAt }]),
         );
         // the morning overview: today's if its time is still ahead, else tomorrow's (loaded on demand)
         if (prefs.notify.morning) {
           const [h, m] = prefs.notify.morningTime.split(':').map(Number);
-          const at = h * 60 + m;
-          const dayOfOverview = at > clock.minutesNow ? clock.today : tomorrow;
+          const dayOfOverview = h * 60 + m > clock.minutesNow ? clock.today : tomorrow;
           if (dayOfOverview === tomorrow) items.prefetch(tomorrow, toIsoDate(addDays(clock.todayDate, 2)));
           const visible = (items.byDate.get(dayOfOverview) ?? []).filter((s) => !cals.isHidden(s.item.calendarId) && !s.carriedFrom);
-          want.set(NATIVE_MORNING_ID, { at: minuteStart + ((dayOfOverview === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, kind: 'summary', ...morningOverview(visible) });
+          // the instant of that wall-clock time in the calendar zone (right across a clock change)
+          const at = Date.parse(localToIso(dayOfOverview, prefs.notify.morningTime, clock.timeZone));
+          want.set(NATIVE_MORNING_ID, { at, kind: 'summary', ...morningOverview(visible) });
         }
-        // once per start, once today's items are loaded: whatever the plugin still holds that is not planned is stale
-        if (!cleaned && todayLoaded()) {
+        // once per start, once the planned days are loaded: whatever the plugin still holds that is not planned is stale
+        if (!cleaned && windowLoaded()) {
           cleaned = true;
           // an older APK has no `list`: the call then fails and nothing is cleaned
           void Promise.resolve().then(() => plugin.list()).then(({ ids }) => {
@@ -181,7 +193,7 @@ export function startTransitionWarnings(): () => void {
           void plugin.cancel({ id }).catch(() => undefined);
         }
         for (const [id, w] of want) {
-          const sig = `${w.at}|${w.title}|${w.body}|${w.kind}|${w.start ?? ''}`;
+          const sig = `${w.at}|${w.title}|${w.body}|${w.kind}|${w.start ?? ''}|${w.end ?? ''}`;
           if (sent.get(id) === sig) continue;
           sent.set(id, sig);
           void plugin.schedule({ id, ...w }).catch(() => undefined);

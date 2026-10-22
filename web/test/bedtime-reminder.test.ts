@@ -26,8 +26,8 @@ describe('dueReminder', () => {
 
 describe('upcomingReminder', () => {
   it('is tonight until its reminder time, then the next night', () => {
-    expect(upcomingReminder(windows, at('12:00'), 30)).toEqual({ night: '2026-10-15', at: at('22:30'), bedtime: '23:00' });
-    expect(upcomingReminder(windows, at('22:30'), 30)).toEqual({ night: '2026-10-16', at: at('22:30') + 1440, bedtime: '23:00' });
+    expect(upcomingReminder(windows, at('12:00'), 30)).toEqual({ night: '2026-10-15', at: at('22:30'), bedtime: '23:00', from: '2026-10-14 23:00', to: '2026-10-15 07:00' });
+    expect(upcomingReminder(windows, at('22:30'), 30)).toEqual({ night: '2026-10-16', at: at('22:30') + 1440, bedtime: '23:00', from: '2026-10-15 23:00', to: '2026-10-16 07:00' });
   });
 
   it('never with a lead of 0 minutes', () => {
@@ -111,9 +111,9 @@ describe('startBedtimeReminder', () => {
       const clock = setup('2026-10-14T12:00:00+02:00');
       const stop = startBedtimeReminder();
       expect(plugin.schedule.mock.calls).toEqual([[{
-        // the bedtime itself, and the phone counts down to it (a fixed "in 30 minutes" would go stale)
+        // the bedtime itself, and the phone counts down to it (a fixed "in 30 minutes" would go stale); gone at wake-up
         id: NATIVE_REMINDER_ID, at: Date.parse('2026-10-14T22:30:00+02:00'), title: 'Bedtime at 23:00', body: '', kind: 'bedtime',
-        start: Date.parse('2026-10-14T23:00:00+02:00'),
+        start: Date.parse('2026-10-14T23:00:00+02:00'), end: Date.parse('2026-10-15T07:00:00+02:00'),
       }]]);
       clock.nowTick = Date.parse('2026-10-14T12:01:00+02:00');
       await nextTick();
@@ -121,6 +121,16 @@ describe('startBedtimeReminder', () => {
       clock.nowTick = Date.parse('2026-10-14T22:30:00+02:00');
       await nextTick();
       expect(plugin.schedule).toHaveBeenLastCalledWith(expect.objectContaining({ at: Date.parse('2026-10-15T22:30:00+02:00') }));
+      stop();
+    });
+
+    it('schedules the right instants across the change back to winter time (2026-10-25)', () => {
+      // 01:00 summer time; tonight's 23:00 is winter time, 23 wall hours but 23 h + 1 h later
+      setup('2026-10-25T01:00:00+02:00');
+      const stop = startBedtimeReminder();
+      expect(plugin.schedule.mock.calls).toEqual([[expect.objectContaining({
+        at: Date.parse('2026-10-25T22:30:00+01:00'), start: Date.parse('2026-10-25T23:00:00+01:00'), end: Date.parse('2026-10-26T07:00:00+01:00'),
+      })]]);
       stop();
     });
 
