@@ -1,6 +1,7 @@
 /** Goldens of the event renderer (`EventItem`): month chip, all-day bar, time grid block, dot. */
 import { test } from 'vitest';
 import EventItem from '@/features/calendar/EventItem.vue';
+import { useUiStore } from '@/stores/ui';
 import { DAY, event, golden, segOf, type Cell } from './golden';
 
 const cell = (key: string, variant: string, e = event(), w = 140, h?: number): Cell =>
@@ -30,3 +31,8 @@ test('EventItem: calm mode', () => golden('calm', [
   cell('chip', 'chip'),
   cell('block', 'block', event(), 160, 60),
 ], () => { document.documentElement.dataset.calm = 'true'; }));
+
+test('EventItem: resize handles after a release without moving', () => golden('resizing', [
+  { ...cell('resizing', 'block', event(), 160, 80), style: { margin: '14px 0' } },
+  { ...cell('resizing-short', 'block', event(), 160, 22), style: { margin: '14px 0' } },
+], () => { useUiStore().resizing = { kind: 'event', id: 'e1', date: DAY }; }));

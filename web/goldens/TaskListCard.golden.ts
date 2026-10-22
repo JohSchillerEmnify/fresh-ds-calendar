@@ -3,6 +3,7 @@ import { test } from 'vitest';
 import TaskListCard from '@/features/tasklists/TaskListCard.vue';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
 import { golden, list, segOf, type Cell } from './golden';
 
 const many: [string, boolean][] = [['Tomatoes', false], ['Pasta', true], ['Coffee beans', false], ['Bread', false], ['Cheese', false], ['Olive oil', false]];
@@ -84,3 +85,8 @@ test('TaskListCard: categories on (category colour and icon)', () => golden('cat
   card('icon', list({ categoryInfo: { name: 'Home', color: '#e67c73', icon: '🛒' }, color: '#e67c73' })),
   block('icon-block', timed({ categoryInfo: { name: 'Home', color: '#e67c73', icon: '🧹' }, color: '#e67c73' }), 160, 80),
 ], () => { usePrefsStore().taskCategories = true; }));
+
+test('TaskListCard: resize handles after a release without moving', () => golden('resizing', [
+  { ...block('resizing', timed(), 160, 80), style: { margin: '14px 0' } },
+  { ...block('resizing-short', timed(), 160, 30), style: { margin: '14px 0' } },
+], () => { useUiStore().resizing = { kind: 'tasklist', id: 'l1', date: '2030-01-07' }; }));
