@@ -5,7 +5,7 @@ views {
   }
 
   view web of calendar.web {
-    title 'Web app — two-row week overview'
+    title 'Web app'
     include *
   }
 
@@ -22,6 +22,11 @@ views {
 
   view widget of calendar.widget {
     title 'Phone widget'
+    include *
+  }
+
+  view androidApp of calendar.androidApp {
+    title 'Android app'
     include *
   }
 
@@ -48,7 +53,7 @@ views {
   }
 
   view server of calendar.server {
-    title 'Server — prefs, tasks and the door'
+    title 'Server'
     include *
   }
 
@@ -152,5 +157,178 @@ views {
     calendar.web.items -> calendar.server.itemsApi 'Anna\'s next sync'
     calendar.server.itemsApi -> calendar.server.calendarService 'reads Anna\'s range'
     calendar.server.calendarService -> calendar.server.sharedLists 'merges in the lists Anna may see'
+  }
+
+  // Web app core
+  dynamic view switchView {
+    title 'Switching from the month to the week'
+
+    owner -> calendar.web.viewSwitcher 'taps Week while 2026-10-14 is focused'
+    calendar.web.viewSwitcher -> calendar.web.router 'navigates to the week containing the focus date'
+    calendar.web.router -> calendar.web.periodStore 'keeps the focus date, it lies inside the new week'
+    calendar.web.router -> calendar.web.week 'shows the week of 2026-10-12'
+    calendar.web.sync -> calendar.web.items 're-fetches the visible range'
+  }
+
+  dynamic view settingFailsToSave {
+    title 'A setting that cannot be saved'
+
+    owner -> calendar.web.settings 'chooses Week as the default view'
+    calendar.web.settings -> calendar.web.settingsStore 'applies it at once'
+    calendar.web.settingsStore -> calendar.server.settingsApi 'saves it; the network is gone'
+    calendar.web.settingsStore -> calendar.web.settings 'rolls back to Month'
+    calendar.web.settingsStore -> calendar.web.sync 'reports it: the error banner'
+  }
+
+  // Overlays, bedtime and updates
+  dynamic view deleteWithUndo {
+    title 'Deleting with undo'
+
+    owner -> calendar.web.pendingDeletes 'deletes "Dentist"'
+    calendar.web.pendingDeletes -> calendar.web.items 'hides it at once'
+    calendar.web.pendingDeletes -> calendar.web.snackbar 'shows "Deleted: Dentist" with Undo'
+    calendar.web.pendingDeletes -> calendar.server.eventsApi 'sends the delete when the undo time is over, or at once when the app is hidden'
+  }
+
+  dynamic view bedtimeNight {
+    title 'A night under bedtime mode'
+
+    owner -> calendar.web.settings 'turns bedtime on, based on the first appointment'
+    calendar.web.settings -> calendar.web.prefs 'saves the bedtime pref'
+    calendar.web.bedtime -> calendar.web.items 'reads tomorrow\'s first timed entry'
+    calendar.web.bedtime -> calendar.web.timegrid 'draws the night band, never later than the fixed bedtime'
+    calendar.web.clock -> calendar.web.bedtime 'ticks'
+    calendar.web.bedtime -> calendar.web.snackbar 'Bedtime in 30 minutes, once per night'
+    calendar.web.bedtime -> calendar.androidApp.nativeReminders 'in the app: schedules it as a notification too'
+  }
+
+  dynamic view appUpdate {
+    title 'The installed app updates itself'
+
+    calendar.web.sync -> calendar.web.updateCheck 'synced'
+    calendar.web.updateCheck -> calendar.server.configApi 'reads the build version'
+    calendar.web.updateCheck -> calendar.web.serviceWorker 'installs the newest worker'
+    calendar.web.updateCheck -> calendar.web.serviceWorker 'activates it and reloads once no dialog is open'
+    calendar.web.whatsNew -> calendar.server.releaseNotes 'reads the notes'
+    calendar.web.whatsNew -> calendar.web.snackbar 'says once what is new'
+  }
+
+  // Labs
+  dynamic view chooseLabsViews {
+    title 'Choosing which Labs views are offered'
+
+    owner -> calendar.web.settings 'turns on experimental views and switches Strip on'
+    calendar.web.settings -> calendar.web.labsRegistry 'lists one switch per Labs view'
+    calendar.web.settings -> calendar.web.prefs 'saves the Labs switch and the choice'
+    calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+    calendar.web.viewSwitcher -> calendar.web.prefs 'reads the Labs switch and the choices'
+    calendar.web.viewSwitcher -> calendar.web.labsRegistry 'offers Clock, Timeline and Strip: choices, else defaults'
+  }
+
+  // Themes
+  dynamic view chooseThemeSeasonal {
+    title 'Choosing Neon while Seasons & holidays is Header + colours'
+
+    owner -> calendar.web.themeMenu 'chooses Neon on 24 December'
+    calendar.web.themeMenu -> calendar.web.themeState 'preset Neon, overrides cleared, Header + colours steps down to Header only'
+    calendar.web.themeState -> calendar.web.themeEngine 'resolves Neon colours with the calendar\'s Christmas scene'
+    calendar.web.topBarScene -> calendar.web.themeState 'draws the Christmas timeline'
+    calendar.web.themeState -> calendar.server.prefsApi 'patches the theme pref in the background'
+  }
+
+  dynamic view importOwnTheme {
+    title 'Making an own theme with an AI'
+
+    owner -> calendar.web.themeMenu 'copies the Create with AI prompt (Labs)'
+    owner -> aiChat 'asks for a theme with the prompt'
+    owner -> calendar.web.themeMenu 'pastes the answer'
+    calendar.web.themeMenu -> calendar.themeRules 'tidies, validates and previews the document'
+    calendar.web.themeMenu -> calendar.web.themeState 'saves the theme and chooses it'
+    calendar.web.themeState -> calendar.server.themesApi 'saves the document and picture'
+    calendar.server.themesApi -> calendar.themeRules 'validates and sanitises again'
+    calendar.server.themesApi -> calendar.server.themeFiles 'stores the theme'
+  }
+
+  // Task lists
+  dynamic view tapTaskList {
+    title 'Tapping a task list in the week'
+
+    owner -> calendar.web.timegrid 'taps "Groceries"'
+    calendar.web.grownCard -> calendar.web.prefs 'reads the tap setting and the Labs switch'
+    calendar.web.timegrid -> calendar.web.grownCard 'grows the card in place (experiment on, setting inline)'
+    owner -> calendar.web.grownCard 'taps the grown card'
+    calendar.web.grownCard -> calendar.web.listSheet 'opens the list sheet'
+    calendar.web.listSheet -> calendar.server.tasksApi 'ticks an item'
+  }
+
+  dynamic view moveNote {
+    title 'Moving a note on the Canvas'
+
+    owner -> calendar.web.tasksCanvas 'long-presses "Taxes" and drops it in "Haus"'
+    calendar.web.tasksCanvas -> calendar.server.tasksApi 'saves the place on the list; a move never conflicts with item edits'
+    calendar.server.tasksApi -> calendar.server.calendarService 'stores the place'
+    calendar.server.calendarService -> calendar.server.taskCodec 'writes the place into the event'
+    calendar.server.calendarService -> calendar.server.googleProvider 'patches the event'
+    calendar.web.tasksCanvas -> calendar.server.canvasApi 'replaces the areas after an area edit'
+    calendar.server.canvasApi -> calendar.server.canvasStore 'writes the document'
+  }
+
+  dynamic view finishList {
+    title 'Finishing the last item of an undated list'
+
+    owner -> calendar.web.tasksView 'ticks the last item of "Taxes"'
+    calendar.web.tasksView -> calendar.web.items 'ticks it at once'
+    calendar.web.items -> calendar.server.tasksApi 'saves the tick'
+    calendar.server.tasksApi -> calendar.server.calendarService 'stores the list'
+    calendar.server.calendarService -> calendar.server.prefsStore 'reads what finishing an undated list does'
+    calendar.server.calendarService -> calendar.server.taskCodec 'dates it to today (or keeps it undated) and marks it finished'
+    calendar.server.calendarService -> calendar.server.googleProvider 'patches the event'
+    calendar.web.tasksView -> calendar.server.tasksApi 'reads the Archive: marked lists of any age plus the recent range'
+  }
+
+  // Android app, widget and reminders
+  dynamic view chooseServer {
+    title 'Choosing the server in the Android app'
+
+    owner -> calendar.androidApp.serverChoice 'picks "everywhere (internet)" at the first start'
+    calendar.androidApp.serverChoice -> calendar.web.appShell 'loads that server\'s web app, plugins working'
+    owner -> calendar.web.settings 'taps Change under Server'
+    calendar.web.settings -> calendar.androidApp.serverChoice 'clears the choice: the chooser shows again'
+    calendar.androidApp.serverChoice -> calendar.widget.store 'drops the old server\'s week and snapshot'
+    calendar.widget.fetcher -> calendar.server.itemsApi 'reads the week from the new server'
+  }
+
+  dynamic view signInFromApp {
+    title 'Signing in from the Android app'
+
+    owner -> calendar.web.signin 'taps Sign in with Google'
+    calendar.web.signin -> calendar.androidApp.appSignIn 'hands over the sign-in start'
+    calendar.androidApp.appSignIn -> calendar.server.auth 'opens the start in the system browser, with a challenge'
+    calendar.server.auth -> google 'sign-in and calendar access, in the system browser'
+    calendar.server.auth -> calendar.androidApp.appSignIn 'a deep link with a one-time code'
+    calendar.androidApp.appSignIn -> calendar.server.auth 'exchanges the code with the verifier'
+    calendar.server.auth -> calendar.web.signin 'the session cookie in the app; on to the week'
+  }
+
+  dynamic view widgetWeekRefresh {
+    title 'The widget refreshes its week'
+
+    calendar.web.widgetBridge -> calendar.widget.store 'saves the snapshot after a sync, only when it changed'
+    calendar.widget.fetcher -> calendar.server.itemsApi 'reads the current week with the app\'s session; the server leaves out hidden calendars'
+    calendar.widget.fetcher -> calendar.widget.store 'saves the week'
+    calendar.widget.renderer -> calendar.widget.store 'picks the fetched week, else the snapshot; theme and language from the snapshot'
+    calendar.widget.renderer -> calendar.widget.layout 'packs each day'
+    owner -> calendar.widget.renderer 'sees the new picture; nothing is redrawn when nothing changed'
+  }
+
+  dynamic view remindersRing {
+    title 'Reminders ring on the phone and in a closed browser'
+
+    calendar.web.sync -> calendar.web.items 're-fetches the range'
+    calendar.web.reminderPlan -> calendar.web.items 'reads the reminder lists from Google'
+    calendar.web.reminderPlan -> calendar.web.snackbar 'rings while the app is open'
+    calendar.web.reminderPlan -> calendar.androidApp.nativeReminders 'in the app: schedules the next notifications'
+    calendar.web.reminderPlan -> calendar.server.webPush 'in a subscribed browser: sends the next 7 days\' plan'
+    calendar.server.webPush -> webPushServices 'sends each reminder at its time'
   }
 }

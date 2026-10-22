@@ -182,7 +182,11 @@ non-boolean is a 400) turns on the mirrored phone and touch-tablet layout (ARCHI
 default `true`) shows the "From <day>" label on task lists carried over to today.
 The person pref `labsViews` (object, default `{}`): per Labs view id (`clock`, `timeline`, `strip`, …) whether the view
 switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; anything else is a 400). `PATCH` merges
-per id. A missing id follows the client's registry default (Strip off, others on; ARCHITECTURE "Labs").
+per id. A missing id follows the client's registry default (Strip off, others on).
+`approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
+`taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
+open the list sheet; `labsGrowCards` (boolean, default `false`) is the Labs switch for growing cards in place (off, a
+tap opens the list sheet).
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; any other value is a 400; ARCHITECTURE "View switcher position").
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
@@ -239,6 +243,12 @@ If `clockFrozen` the app's clock is the constant `now`. Otherwise it stores `off
 fetch time and uses `Date.now() + offset`. "Today" is the date of that instant in `timeZone`. If `/api/config` fails
 (offline), the app uses the device clock, `Europe/Berlin`, Monday, 30 s polling. All date logic in `web/` goes through
 one `useClock()` composable; nothing else calls `new Date()` for "now".
+
+### `GET /api/release-notes` → 200
+
+`{ notes: { id: string; date: 'YYYY-MM-DD'; text: string }[] }`, newest first, at most 50: every `- ` bullet under a
+`## YYYY-MM-DD` heading of `CHANGELOG.md` (`CHANGELOG_PATH`) up to `## Older history`, read once at start. `id` is a
+short hash of date and text. A missing or unparsable file gives an empty list.
 
 ### `GET /api/calendars` → 200
 
@@ -441,7 +451,8 @@ Rules:
 
 ### Settings and categories
 
-Stored server-side in `DATA_DIR/settings.json` (single user, independent of the provider; atomic writes). Created with
+Stored server-side in `DATA_DIR/settings.json` (one file for the whole server, shared by everyone who signs in;
+independent of the provider; atomic writes). Created with
 the defaults on first start.
 
 | Method | Path | Body | Success |
@@ -466,6 +477,15 @@ AND-ed. Events are never filtered.
 
 `PATCH /api/prefs/theme` `overrides` also takes the fine-tuning fields (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): `glowStrength` (integer 0..150), `radius` (integer 0..28), `tint` (integer 5..60), `density` (`compact|comfortable|airy`), `checkbox` (`round|square|rounded`), `checkFill` (`filled|outline`), `check` (`tick|bold|cross|dot`), `icons` (`outlined|rounded|sharp`). Out-of-range or unknown values answer `400`. The same optional fields exist in `calendar-theme/2`.
 
+**Theme preference** (`GET/PATCH /api/prefs/theme`): `{ preset: string; overrides: Overrides; seasonal: 'off' | 'header' | 'all' }`,
+stored per person in `prefs.json` under `theme`; default `{ preset: 'Default', overrides: {}, seasonal: 'all' }`.
+`preset` is a preset name or `theme:<id>`. `overrides` takes `glow`, `entries`, `corners`, `scene` (the Scene values
+above), `seed` (`#rrggbb`) and the fine-tuning fields above; a `PATCH` replaces the fields it sends.
+*Migrations on read* (each once, marker in the stored theme): `sceneUnified` — the scene that was visible wins (a
+preset or override scene other than `none` stays; otherwise the old settings `scene` becomes the override; the old key
+stays in `settings.json`, unused); `seasonalMigrated` — a stored preset `Automatic` becomes `Default` with `all`, an
+override scene `season` becomes `header` with the override removed, everything else becomes `off`.
+
 ### Imported themes (`/api/themes`)
 
 Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE
@@ -483,6 +503,8 @@ type Picture = { light?: string; dark?: string };   // SVG text, each ≤ 100 KB
   `picture.light must be an SVG picture (starting with <svg)`). Also `400` when the person already has 20 themes
   (`You can keep at most 20 themes. Delete one first.`).
 - `DELETE /api/themes/:id` → `204`; `404` for an unknown id.
+- A Drive backup restore re-checks every theme file exactly like `POST /api/themes` (document, size, picture
+  sanitising) and skips a file that fails.
 
 A person chooses an imported theme with `PATCH /api/prefs/theme` `{ preset: "theme:<id>" }` (a preset name or `theme:<id>`).
 `GET/PATCH /api/prefs` has the Labs switch `labsOwnThemes: boolean` (default `false`, effective only with the experimental
@@ -601,7 +623,8 @@ of them is still untouched.
 
 ### Motivation: check-in streak and plant
 
-Stored server-side in `DATA_DIR/motivation.json` (single user, synced across devices). Dates are local dates of the
+Stored server-side in `DATA_DIR/motivation.json` (one file for the whole server, shared by everyone who signs in;
+synced across devices). Dates are local dates of the
 app clock (`TZ`).
 
 ```ts
@@ -713,6 +736,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/door` | `{ token: string; person: string }` or `{ off: true }` | The door plugin's key and person from now on, in place of the config's; `off` takes the door away (404). Reset clears it. `200 AppConfig` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
+| `POST` | `/api/__test/release-notes` | `{ notes: { date, text }[] }` | `GET /api/release-notes` answers this list (as given, at most 50) until the next reset. `200 { notes }` |
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |

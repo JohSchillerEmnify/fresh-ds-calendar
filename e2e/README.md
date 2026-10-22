@@ -31,7 +31,8 @@ Projects: `mobile` (default, 375x812 touch, everything except `@desktop`), `desk
 
 `steps/*.steps.ts` by feature area, shared helpers in `steps/support/` (api client, world, dates, ui, forms, tables,
 grid, color, cdp, probes in `world.ts`), custom parameter types in `steps/parameters.ts`. State is reset through
-`/api/__test/reset` ("the calendar is empty") and again after every scenario.
+`/api/__test/reset` ("the calendar is empty") and again after every scenario. The world fails any scenario in which the
+browser reports a `securitypolicyviolation` (the Content-Security-Policy is the one the server and Caddy send).
 
 ## Check run against current master (no features implemented)
 

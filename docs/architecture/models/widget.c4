@@ -10,14 +10,36 @@ model {
       description 'The Java port of the overlap packing'
     }
     renderer = component 'Widget renderer' {
-      description 'Picks the fetched week, else the snapshot, and draws it'
+      description 'Draws the week, day and clock widgets'
     }
 
     fetcher -> store 'saves the week with the minimum event length'
-    renderer -> store 'reads the week and the minimum event length'
+    renderer -> store 'reads the fetch for the current week, else the snapshot, with the minimum event length; theme and language always from the snapshot'
     renderer -> layout 'packs each day with the minimum event length'
   }
 
+  extend calendar.androidApp {
+    serverChoice = component 'Server choice' {
+      description 'The chooser between the two known servers, at the first start and after Change, and the offline page'
+    }
+    appSignIn = component 'App sign-in' {
+      description 'The Google sign-in run in the system browser, coming back by deep link and one-time code'
+    }
+    nativeReminders = component 'Reminders plugin' {
+      description 'The native plugin that holds the planned reminders as phone notifications, also across a reboot'
+    }
+  }
+
+  calendar.androidApp.serverChoice -> calendar.web 'loads the chosen server\'s web app as the shell\'s own address'
+  calendar.androidApp.serverChoice -> calendar.widget.store 'drops the cached week and the snapshot when the server changes'
+  calendar.androidApp.appSignIn -> calendar.server.auth 'starts the sign-in with a challenge; exchanges the code with its verifier'
+  calendar.widget.fetcher -> calendar.server.itemsApi 'reads the current week with the app\'s session, hidden calendars left out'
+  calendar.widget.renderer -> calendar.androidApp 'opens a tapped day or week in the app'
+  calendar.web.settings -> calendar.androidApp.serverChoice 'shows the server and clears the choice on Change, only in the app'
+  calendar.web.signin -> calendar.androidApp.appSignIn 'hands over its sign-in start, in the app'
+  calendar.web.reminderPlan -> calendar.androidApp.nativeReminders 'schedules the next reminders as notifications, in the app'
+  calendar.web.bedtime -> calendar.androidApp.nativeReminders 'schedules the next bedtime reminder as a notification, in the app'
+
   calendar.widget.fetcher -> calendar.server.prefsApi 'reads the minimum event length'
-  calendar.web.widgetBridge -> calendar.widget.store 'saves the snapshot, minimum event length included'
+  calendar.web.widgetBridge -> calendar.widget.store 'saves the snapshot after a sync, only when it changed, minimum event length included'
 }

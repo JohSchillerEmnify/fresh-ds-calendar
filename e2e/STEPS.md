@@ -51,6 +51,47 @@ Define the custom types with `defineParameterType` in `e2e/steps/parameters.ts`.
 - **Viewport**: Playwright project `mobile` (default) runs everything except `@desktop`; project `desktop` runs
   everything except `@mobile` and `@perf`. Steps must work in both viewports.
 
+## UI hooks (`data-testid`)
+
+The steps locate elements by these hooks; renaming one is a contract change.
+
+| testid | Element / attributes |
+|---|---|
+| `app-shell` | root |
+| `top-bar` | top app bar; holds `settings-button`, `filter-button`, `period-title`, `nav-prev`, `nav-next`, `nav-today`, `sync-status`, `install-app-button` |
+| `settings-view`, `settings-back` | settings page and its back button |
+| `settings-theme-mode` | segmented button (in the theme menu); options `data-value="system\|light\|dark"`, `aria-pressed`, labels System/Light/Dark |
+| `settings-seed-preset` | swatches with `data-name`, `data-color`, `aria-pressed`; `settings-seed-custom` (hex text field, Enter/blur applies), `settings-seed-error` |
+| `settings-default-view`, `settings-default-event-color` | selects |
+| `category-dialog` | also `category-error`, `category-cancel`, `category-delete` |
+| `view-switcher` | the tabs' container (`data-position` = `bottom` \| `top` \| `rail`); the top tabs row is `nav-tabs`; tabs `view-switch-year`, `view-switch-month`, `view-switch-week`, `view-switch-day`, `view-switch-tasks` (`aria-selected`) |
+| `create-button`, `new-kind`, `new-kind-event`, `new-kind-tasklist` | add button and the kind switch of the one "new" dialog |
+| `year-view`, `year-month`, `year-day` | year view |
+| `month-picker`, `month-picker-title`, `month-picker-prev`, `month-picker-next`, `picker-day` | month picker |
+| `month-view`, `week-view` (`data-week-start`), `day-view` (`data-date`) | view roots |
+| `month-weekday-header` | 7 elements, `Mon`..`Sun` |
+| `month-cell` | `data-date`, `data-today="true"`, `data-outside-month="true"`; child `month-cell-day-number` |
+| `week-header` (`data-date`, `data-today`), `week-allday-cell` (`data-date`), `week-day-column`, `day-column` (`data-date`) | week/day structure |
+| `day-header` (`data-date`, `data-today`), `day-allday-area` (`data-date`) | day view structure |
+| `time-slot` | `data-date`, `data-hour`; tap creates an event |
+| `event-chip-time`, `event-chip-location` | children of `event-chip` |
+| `resize-handle-top`, `resize-handle-bottom` | inside the block being resized |
+| `now-marker`, `now-card`, `now-card-line`, `now-card-current`, `now-progress` | timeline and Now card |
+| `transition-warning` | snackbar |
+| `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
+| `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
+| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
+| `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
+| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-no-date` (`aria-pressed`), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `sheet-scrim` | the area beside a dialog |
+| `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
+| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak-flame`, `settings-plant`, `settings-sunflowers` | settings additions |
+| `tasks-view` (`data-group-by`, `data-sort-by`), `tasks-group-by`, `tasks-sort-by`, `tasks-sort-dir` (`data-dir`), `tasks-collapse-all`, `tasks-group` (`data-group`), `tasks-group-title`, `tasks-item` (`data-tasklist-id`, `data-title`, `data-date`) | Tasks view |
+| `tasks-tab-canvas`, `tasks-canvas`, `canvas-viewport` (`data-zoom`, `data-pan-x`, `data-pan-y`), `canvas-note` (`data-tasklist-id`, `data-x`, `data-y`, `data-placed`, `data-area`, `data-dimmed`; `canvas-note-grip`, `canvas-note-date`), `canvas-unsorted`, `canvas-area` (`data-area-id`, `data-name`, `data-color`, `data-x/y/w/h`, `data-selected`; `canvas-area-header`, `canvas-area-handle` `data-corner`), `canvas-area-add`, `canvas-area-editor` (`canvas-area-name-input`, `canvas-area-color`, `canvas-area-delete`, `canvas-area-editor-close`) | Canvas |
+| `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
+| `sync-error-banner`, `sync-retry` | error strip |
+| `install-app-button`, `ios-install-hint`, `ios-install-hint-dismiss` | install prompts |
+
 ## Setup and clock
 
 ```
@@ -892,6 +933,10 @@ the event {string} shows no resize handles
 - "I drag the top/bottom handle of X up/down by N minutes": press on the handle centre (mouse; touch without the
   long press) and move N minutes of grid height in 10 steps, release; then wait for the save as after a drop.
 
+- On a phone the day view has a single column, so the "back and forth N times" step first switches client-side (no
+  reload) to the week view.
+- "I tap beside the dialog": clicks `sheet-scrim` at a point outside the open dialog's panel.
+
 ## Streak and plant (`@streak`, `@plant`)
 
 ```
@@ -1282,6 +1327,12 @@ I tap the day label {date} in the horizontal view
   panned" that it moved by more than 40 px.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
+
+- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
+  `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
+  "the approach bar shows its entries in N rows": the `approach-item` chips occupy exactly N distinct vertical
+  positions. "on the timeline A and B are side by side": the two `timeline-item`s overlap vertically and not
+  horizontally.
 
 ## App updates
 

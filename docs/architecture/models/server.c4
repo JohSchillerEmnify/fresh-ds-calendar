@@ -56,6 +56,34 @@ model {
       description 'A Google Calendar stand-in kept on disk, for local runs and tests'
     }
 
+    eventsApi = component 'Events API' {
+      description 'Creates, changes and deletes a person\'s events, only those the person owns'
+    }
+    settingsApi = component 'Settings API' {
+      description 'Keeps the settings and categories, one versioned file shared by everyone on the server'
+    }
+    configApi = component 'Config API' {
+      description 'Answers the clock, week start, time zone and the build version'
+    }
+    releaseNotes = component 'Release notes' {
+      description 'The newest user-facing notes from CHANGELOG.md, read once at start; none when the file is missing'
+    }
+    themesApi = component 'Themes API' {
+      description 'Lists, saves and deletes a person\'s own themes, at most 20'
+    }
+    themeFiles = store 'Own themes' {
+      description 'One file per own theme of a person, the document and its sanitised picture, on disk'
+    }
+    canvasApi = component 'Canvas API' {
+      description 'Reads and replaces one person\'s Canvas areas as a whole document'
+    }
+    canvasStore = store 'Canvas areas' {
+      description 'Each person\'s Canvas areas document on disk, not in Google'
+    }
+    webPush = component 'Web Push' {
+      description 'Each browser\'s push subscription and its reminder plan of the next 7 days'
+    }
+
     prefsApi -> prefsStore 'reads and writes'
     itemsApi -> calendarService 'reads the range'
     calendarService -> tasksCalendar 'keeps task lists in'
@@ -74,12 +102,21 @@ model {
     googleProvider -> diag 'logs failed Google calls and cooldowns to'
     googleProvider -> rateGuard 'reads through its cache; holds every call during a cooldown'
     tasksApi -> calendarService 'stores the list with its tags'
+    eventsApi -> calendarService 'writes the event'
+    themesApi -> calendar.themeRules 'validates the document and sanitises the picture again'
+    themesApi -> themeFiles 'reads and writes'
+    backup -> themeFiles 'collects and restores, re-checking each theme like an import'
+    canvasApi -> canvasStore 'reads and writes atomically'
+    backup -> canvasStore 'collects and restores with the person\'s files'
+    calendarService -> prefsStore 'reads what finishing an undated list does, on every completing write'
+    calendarService -> googleProvider 'reads undated and finished lists by their private markers, without a date range'
     plugins -> doorPlugin 'mounts under /api/door when DOOR_API_TOKEN is set'
     doorPlugin -> calendarService 'reads the key\'s person\'s lists and events'
   }
 
   calendar.server.googleProvider -> google 'lists, inserts, patches and deletes events and calendars'
   calendar.server.auth -> google 'signs the person in and receives their calendar access'
+  calendar.server.webPush -> webPushServices 'sends each reminder at its time, never twice'
   calendar.server.backup -> google 'keeps the last 7 versions in the person\'s hidden Drive app folder'
   calendar.web.signin -> calendar.server.auth 'starts the sign-in and checks the session'
   calendar.web.sync -> calendar.server.diag 'sends one beacon when the error banner appears'
@@ -90,4 +127,18 @@ model {
   calendar.web.listForm -> calendar.server.tasksApi 'saves the list, Show on door as the door tag'
   calendar.web.listSheet -> calendar.server.tasksApi 'flips the door tag'
   calendar.web.pluginUi -> calendar.server.plugins 'reads the enabled plugins from the health answer'
+
+  calendar.web.items -> calendar.server.eventsApi 'saves event changes, applied optimistically'
+  calendar.web.settingsStore -> calendar.server.settingsApi 'saves a change against the version it last read'
+  calendar.web.taskTray -> calendar.server.tasksApi 'reads the open and finished-today lists'
+  calendar.web.pendingDeletes -> calendar.server.tasksApi 'deletes the list or item after the undo time'
+  calendar.web.pendingDeletes -> calendar.server.eventsApi 'deletes the event after the undo time'
+  calendar.web.updateCheck -> calendar.server.configApi 'reads the build version'
+  calendar.web.whatsNew -> calendar.server.releaseNotes 'reads the notes'
+  calendar.web.themeState -> calendar.server.prefsApi 'reads and patches the theme pref'
+  calendar.web.themeState -> calendar.server.themesApi 'lists, saves and deletes own themes'
+  calendar.web.tasksView -> calendar.server.tasksApi 'fetches every open list and the finished ones'
+  calendar.web.tasksCanvas -> calendar.server.tasksApi 'saves a note\'s place on its list'
+  calendar.web.tasksCanvas -> calendar.server.canvasApi 'reads and replaces the areas document'
+  calendar.web.reminderPlan -> calendar.server.webPush 'sends the next 7 days\' plan, in a subscribed browser'
 }

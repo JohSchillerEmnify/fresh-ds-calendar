@@ -12,6 +12,7 @@ deployment {
     phone = device 'Phone' {
       description 'Runs the web app installed as a PWA, or the Android app with its home-screen widget'
       instanceOf calendar.widget
+      instanceOf calendar.androidApp
     }
   }
 }
