@@ -1,4 +1,4 @@
-/** Pure placement maths for the card that expands in place over the calendar (ARCHITECTURE "Expanded task list card"). */
+/** Pure placement maths for the card that expands in place over the calendar (feature tasklists-expand-card). */
 
 export interface Box { left: number; top: number; right: number; bottom: number }
 export interface Placement {

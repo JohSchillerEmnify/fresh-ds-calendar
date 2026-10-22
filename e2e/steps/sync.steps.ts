@@ -4,7 +4,7 @@ import { Then, When } from './fixtures.js';
 import { setVisibility } from './support/visibility.js';
 import type { World } from './support/world.js';
 
-/** The app's focus debounce (ARCHITECTURE.md "Background sync"). */
+/** The app's focus debounce (feature background-sync). */
 const FOCUS_DEBOUNCE_MS = 500;
 
 When('the network connection is lost', async function (this: World) {

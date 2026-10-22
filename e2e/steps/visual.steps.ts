@@ -72,7 +72,7 @@ Given('the time grid is zoomed to {int} pixels per hour', async function (this: 
 });
 
 /**
- * No entry card is drawn over any part of another entry's title line (A-64: a cascade keeps the earlier title readable).
+ * No entry card is drawn over any part of another entry's title line (feature event-display: a cascade keeps the earlier title readable).
  * Probes each title near its left end, 2 px inside its top and bottom edge; only other entry cards count as cover.
  */
 Then('no title in the {string} is covered by another entry', async function (this: World, name: string) {

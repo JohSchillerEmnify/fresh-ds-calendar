@@ -37,7 +37,7 @@ export function readUserToken(dataDir: string, sub: string): string | null {
   return readJson<{ refresh_token?: string }>(userTokenFile(dataDir, sub))?.refresh_token ?? null;
 }
 
-/** The Google scope that lets the app use its own hidden Drive folder (backups, ARCHITECTURE "Backups"). */
+/** The Google scope that lets the app use its own hidden Drive folder (backups, feature drive-backup). */
 export const DRIVE_APPDATA_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 
 /** The Google calendar scope; without it every calendar call is refused (Google's granular consent lets people untick it). */

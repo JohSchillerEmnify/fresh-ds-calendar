@@ -1,6 +1,6 @@
 /**
- * Static sample data and the collapsed-state storage of the theme menu's live preview (ARCHITECTURE "Theme menu live
- * preview"). The sample is plain data in fixed far-future dates: it never calls the API, never touches a store and is
+ * Static sample data and the collapsed-state storage of the theme menu's live preview (feature theme-menu).
+ * The sample is plain data in fixed far-future dates: it never calls the API, never touches a store and is
  * never "today", so the real event renderer neither dims nor rings it.
  */
 import type { CalendarEvent } from '@/api/types';

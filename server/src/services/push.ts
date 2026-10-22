@@ -1,5 +1,5 @@
 /**
- * Web Push reminders (ARCHITECTURE "Reminders, several per event", slice 2). Stores each browser's push subscription and
+ * Web Push reminders (feature reminders, slice 2). Stores each browser's push subscription and
  * the reminder plan the app sent for it (`users/<sub>/push.json`), and sends every planned push at its time from one timer
  * loop (like `BackupService`): a push missed by up to {@link CATCH_UP_MS} is still sent, and a key is never sent twice.
  */

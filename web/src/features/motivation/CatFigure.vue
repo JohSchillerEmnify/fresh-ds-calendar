@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The one cat drawing (ARCHITECTURE "Season scenes and the support cat", "Cat look"), shared by the support cat
+ * The one cat drawing (feature emotional-support-cat), shared by the support cat
  * (`SupportCat`) and the scene cat (`SceneCat`): a flat paper-cut cat seen from the front, "a small void in cat shape"
  * (owner) — an almost featureless black silhouette, a tall narrow body flowing into a small head without a neck, two
  * front legs at the bottom and the tail rising straight up behind it with a hook at the tip. Only the features stand

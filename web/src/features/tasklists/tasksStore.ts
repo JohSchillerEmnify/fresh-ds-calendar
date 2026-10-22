@@ -1,5 +1,5 @@
 /**
- * Tasks view data (ARCHITECTURE "Tasks view"): the open task lists, undated ones included. The lists live in the items
+ * Tasks view data (feature tasks-view): the open task lists, undated ones included. The lists live in the items
  * store (so item operations are the existing optimistic ones); this store loads them from `GET /api/tasklists/all-open`,
  * keeps them cached, and derives what the view shows.
  */
@@ -13,7 +13,7 @@ import { useItemsStore } from '@/stores/items';
 import { isFinished } from './archive';
 import { isOpen } from './tasksView';
 
-/** The tabs of the Tasks view: the Canvas shows the same open lists as Open (ARCHITECTURE "Canvas"). */
+/** The tabs of the Tasks view: the Canvas shows the same open lists as Open (feature tasks-canvas). */
 export type TasksTab = 'open' | 'canvas' | 'archive';
 
 /** Same horizon as the endpoint (API.md): a year either side of today. */
@@ -27,7 +27,7 @@ export const useTasksViewStore = defineStore('tasksView', () => {
   /** Lists finished while the view was open: they stay (struck through) until the view is opened again. */
   const finishedHere = reactive(new Set<string>());
 
-  /** The tab the view shows; the refresh loads that tab's lists (ARCHITECTURE "Archive"). */
+  /** The tab the view shows; the refresh loads that tab's lists (feature tasks-archive). */
   const tab = ref<TasksTab>('open');
   /** Ids of the archived lists the server listed last time. */
   const archiveIds = shallowRef<string[]>([]);

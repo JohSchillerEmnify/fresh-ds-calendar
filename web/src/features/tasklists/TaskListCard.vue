@@ -272,7 +272,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .block .items { min-height: 0; }
 .block .foot { align-self: end; flex-wrap: nowrap; overflow: hidden; }
 /* no spare row: names run next to the title, at the TOP of the block: a later entry cascading over it leaves only the top
-   strip visible (A-64), so a centred title was cut in half (owner, 2026-10-20) */
+   strip visible (feature event-display), so a centred title was cut in half (owner, 2026-10-20) */
 .block[data-fit='inline'] { display: flex; flex-direction: row; align-items: flex-start; gap: 5px; padding-top: 1px; padding-bottom: 1px; }
 .block[data-fit='inline'] .row { flex: 0 1 auto; min-width: 3ch; }
 .block[data-fit='inline'] .meta { display: none; }

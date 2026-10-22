@@ -1,4 +1,4 @@
-/** English messages of the calendar area: views, grid, top bar, filters, event dialog, approaching card, banners (ARCHITECTURE "i18n"). */
+/** English messages of the calendar area: views, grid, top bar, filters, event dialog, approaching card, banners (ADR 0021). */
 export default {
   actions: {
     dismiss: 'Dismiss',

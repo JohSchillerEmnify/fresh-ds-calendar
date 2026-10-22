@@ -2,7 +2,7 @@
  * Bedtime reminder: "Bedtime in N minutes" once per night while the app is open. Driven by the shared clock tick
  * (`clock.nowTick`, which pauses while the app is hidden), so it has no timer of its own. The reminder is handed to a
  * list of sinks; the snackbar is the first one and a later push notification can add another without touching the
- * schedule (ARCHITECTURE "Bedtime mode"). Inside the Android app the next reminder is also handed ahead of time to the
+ * schedule (feature bedtime). Inside the Android app the next reminder is also handed ahead of time to the
  * native `Reminders` plugin, which shows it as a system notification when the app is closed or in the background.
  */
 import { effectScope, watch, type EffectScope } from 'vue';

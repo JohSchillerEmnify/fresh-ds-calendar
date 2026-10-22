@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // `pnpm e2e:affected [base]`: prints the Playwright --grep for the features touched since `base` (default origin/main,
-// falling back to main when there is no remote). Heuristic, see ARCHITECTURE "Developer tooling":
+// falling back to main when there is no remote). Heuristic, see CONTRIBUTING.md "Tooling":
 //   .feature changed          -> that feature
 //   e2e step/support changed  -> features whose steps match the step definitions in (or using helpers of) that file
 //   web/src file changed      -> features whose step definitions reference a data-testid literal found in that file

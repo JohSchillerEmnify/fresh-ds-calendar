@@ -1,5 +1,5 @@
 /**
- * Hands the Android widget its snapshot (ARCHITECTURE "Android app and widget"). Loaded lazily and only inside the
+ * Hands the Android widget its snapshot (feature phone-widget). Loaded lazily and only inside the
  * Capacitor app (`window.Capacitor`), so the PWA in a browser never runs, or even downloads, any of it.
  *
  * The native plugin `WidgetBridge` stores the snapshot in SharedPreferences and asks the widget to refresh. The plugin

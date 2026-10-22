@@ -1,7 +1,7 @@
 import type { CalendarProvider, ProviderCalendar } from '../providers/CalendarProvider.js';
 import type { PrefsStore } from './prefsStore.js';
 
-/** Summary of the secondary calendar that holds one person's task lists (ARCHITECTURE §3). */
+/** Summary of the secondary calendar that holds one person's task lists (feature tasklists-own-calendar). */
 export const TASKS_CALENDAR_SUMMARY = 'Calendar app: tasks';
 
 /**

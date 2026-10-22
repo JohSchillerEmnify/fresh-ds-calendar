@@ -4,7 +4,7 @@ import { getActivePinia } from 'pinia';
 import { useClockStore } from '@/stores/clock';
 
 /**
- * A young spring tree whose buds leaf out over the day (ARCHITECTURE "Season scenes"): in the early morning only
+ * A young spring tree whose buds leaf out over the day (feature theme-scenes): in the early morning only
  * buds show, by the evening every twig is in leaf and a few blossoms are open. The leafing follows the app clock;
  * at Full the leaves unfurl once when the scene appears and the tree sways gently, at Reduced it only sways, at Off
  * it is still. `mirrored` flips the drawing so two trees in one scene do not look the same.

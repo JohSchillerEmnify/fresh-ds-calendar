@@ -1,5 +1,5 @@
 /**
- * Pointer gestures on the clock dial (ARCHITECTURE "Clock view"). On an arc: a tap opens the entry; a long press (touch,
+ * Pointer gestures on the clock dial (feature labs-clock). On an arc: a tap opens the entry; a long press (touch,
  * pen, a mouse held still) or a mouse press that moves picks it up, and it turns round the dial with the pointer, keeping
  * its length; a long press released in place selects it, which shows a handle at each end; dragging a handle changes the
  * start or the end. Everything snaps to 15 minutes and stays on the day; Esc cancels. Saving is the time grid's optimistic

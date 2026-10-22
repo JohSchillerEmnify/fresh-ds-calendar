@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The hand-drawn line that strikes a complete task list's title through (ARCHITECTURE "Season scenes and the support
- * cat": the done state of a list). Place it inside a `position: relative` box around the title text; it spans that
+ * The hand-drawn line that strikes a complete task list's title through (feature rewarding-feedback: the done state of a list).
+ * Place it inside a `position: relative` box around the title text; it spans that
  * box, a slightly wavy, slightly rising stroke in `currentColor` (`--strike-w` sets its width). With `draw` it draws
  * itself from right to left (the support cat's paw comes from the right) after `delay` ms over `duration` ms;
  * without it the line is simply there.

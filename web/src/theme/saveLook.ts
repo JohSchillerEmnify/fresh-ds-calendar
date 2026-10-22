@@ -1,5 +1,5 @@
 /**
- * "Save as my theme" (ARCHITECTURE "Theme engine and AI themes"): the look in use (the chosen theme, the person's
+ * "Save as my theme" (feature theme-save-own): the look in use (the chosen theme, the person's
  * fine-tuning and the scene) written as a `calendar-theme/2` document, plus the own picture if the scene is one.
  */
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';

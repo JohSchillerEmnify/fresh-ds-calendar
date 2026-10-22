@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Christmas part of the living scene layer (ARCHITECTURE "Holiday themes and Seasons & holidays"): a snowy ground,
+ * The Christmas part of the living scene layer (feature theme-scenes): a snowy ground,
  * and a timeline across the bar: four big Advent candles in equal spacing (left to right) and the Christmas tree at
  * the right end. What burns depends on the app's date (`christmasState`): during Advent the candles are lit one per
  * Advent Sunday and the tree is dark, from 24 December (and when the scene is picked by hand on another date) all

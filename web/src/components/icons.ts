@@ -1,5 +1,5 @@
 /**
- * The app's icons (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): each is a component that draws the
+ * The app's icons (feature theme-menu): each is a component that draws the
  * Material Symbols variant of the current icon set (outlined, rounded or sharp). The three variants of every icon are
  * imported as inline SVG by `unplugin-icons`; `iconSet` (the theme's `icons` value) picks one, so switching restyles
  * every icon at once. Where Material Symbols has no separate rounded or sharp drawing, its alias is the same shape.

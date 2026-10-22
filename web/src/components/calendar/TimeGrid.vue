@@ -76,7 +76,7 @@ const scroller = ref<HTMLElement | null>(null);
 function scrollToMinutes(min: number) {
   if (scroller.value) scroller.value.scrollTop = Math.max(0, px(min));
 }
-/** Today visible: now sits in the upper third of the viewport; other periods start at 07:00 (ARCHITECTURE 5b). */
+/** Today visible: now sits in the upper third of the viewport; other periods start at 07:00 (feature proportional-timeline). */
 function initialScroll() {
   const el = scroller.value;
   if (!el) return;

@@ -1,5 +1,5 @@
 /**
- * Test-side copy of the task list <-> Google event encoding (ARCHITECTURE.md §3), used by the "Google ..." steps to
+ * Test-side copy of the task list <-> Google event encoding (API.md "Storage in Google"), used by the "Google ..." steps to
  * act on the provider as the official Google Calendar app (or another client) would.
  */
 import type { GoogleEvent } from './api.js';

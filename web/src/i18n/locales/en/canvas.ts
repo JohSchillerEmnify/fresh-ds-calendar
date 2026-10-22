@@ -1,5 +1,5 @@
 /**
- * English messages of the Tasks view's Canvas (ARCHITECTURE "Canvas", "i18n"): the tab, the board, the Unsorted stack and
+ * English messages of the Tasks view's Canvas (feature tasks-canvas, ADR 0021): the tab, the board, the Unsorted stack and
  * the areas with their editor. Spread into the main catalogue as `canvas`; `{ } @ |` must be escaped.
  */
 export default {

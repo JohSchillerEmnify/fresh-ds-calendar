@@ -1,5 +1,5 @@
 /**
- * Pure grouping and sorting of the Tasks view (ARCHITECTURE "Tasks view"; directions and group order: A-72).
+ * Pure grouping and sorting of the Tasks view (feature tasks-view).
  * No store or DOM access, so the rules are unit-tested with fixed dates.
  */
 import type { Category, TaskList, TasksGroupBy, TasksSortBy, TasksSortDir } from '@/api/types';
@@ -23,7 +23,7 @@ export interface TaskGroup {
   lists: TaskList[];
 }
 
-/** A list is open until every item is ticked; a list without items yet still counts (A-94). */
+/** A list is open until every item is ticked; a list without items yet still counts (feature tasks-view). */
 export const isOpen = (l: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => !isComplete(l);
 
 /** The Sunday that ends the week of `today` (weeks start on Monday); `today` itself on a Sunday. */
@@ -52,7 +52,7 @@ const share = (l: TaskList): number => (l.totalCount ? l.doneCount / l.totalCoun
 
 /**
  * A comparator for the chosen sort; ties fall back to date, then name. `dir` is relative to the key's own default
- * direction (A-80): `reversed` flips the key only, not the tie-break.
+ * direction (feature tasks-view): `reversed` flips the key only, not the tie-break.
  */
 export function comparator(sortBy: TasksSortBy, categories: Pick<Category, 'id'>[], dir: TasksSortDir = 'default'): (a: TaskList, b: TaskList) => number {
   // no category (or an unknown one) sorts after every category

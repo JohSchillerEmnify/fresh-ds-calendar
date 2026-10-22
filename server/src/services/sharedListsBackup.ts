@@ -3,7 +3,7 @@
  * It reads and writes those files directly, so it needs nothing from the store's code. Rules (coordinator, 2026-10-13):
  * the OWNER's backup holds the lists they own; a member's backup records only the ids of the lists they belong to
  * (`shared/memberships/<sub>.json`); a restore recreates the lists the restoring person owns and leaves the rest.
- * ARCHITECTURE "Backups": the shared-lists merge adds the one line `registerSharedListsBackup(backup, shared, config.dataDir);`.
+ * Wiring: the shared-lists merge adds the one line `registerSharedListsBackup(backup, shared, config.dataDir);`.
  */
 import fs from 'node:fs';
 import path from 'node:path';

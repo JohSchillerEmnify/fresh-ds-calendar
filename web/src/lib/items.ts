@@ -44,7 +44,7 @@ export interface Segment {
 
 export const CARRY_OVER_DAYS = 30;
 
-/** True for an open list dated within the last 30 days before `today` (shown on today, ARCHITECTURE 5b). */
+/** True for an open list dated within the last 30 days before `today` (shown on today, feature open-tasks-in-sight). */
 export function isCarriedOver(item: CalendarItem, today: LocalDate | undefined): boolean {
   if (item.kind !== 'tasklist' || !item.date || !today || item.date >= today || item.doneCount >= item.totalCount) return false;
   const a = parseIsoDate(item.date), b = parseIsoDate(today);
@@ -153,7 +153,7 @@ export interface PlacedSegment {
  * Packing: items in a connected overlap cluster are grouped by start time. Blocks starting within
  * OVERLAP_STACK_MIN_START_GAP_MIN of the group's first start share equal columns (a title would be hidden otherwise);
  * a later group that overlaps cascades one level deeper (up to MAX_STACK_DEPTH, then it joins the last group's columns).
- * What overlaps is decided from the REAL start and end only (ARCHITECTURE "Timed overlap uses real times"): the drawn minimum
+ * What overlaps is decided from the REAL start and end only (feature min-event-length): the drawn minimum
  * height never makes back-to-back or merely close items overlap. A block that lasts less than `minMinutes` is a bare title row,
  * so a truly overlapping later block cascades over it only when it starts at least `minMinutes` later; closer ones share columns.
  * The drawn box (`PlacedSegment.height`) is the real duration: never past the real end, so a short block never paints over
@@ -241,7 +241,7 @@ export function matchesFilters(item: CalendarItem, f: Filters): boolean {
 }
 
 /**
- * Minimum rendered block box height (px): 24 px visible plus the block's 1 px bottom gap (A-E4); the block keeps its
+ * Minimum rendered block box height (px): 24 px visible plus the block's 1 px bottom gap; the block keeps its
  * start position (spec: timeline, short events).
  */
 export const MIN_BLOCK_PX = 25;

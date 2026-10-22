@@ -1,5 +1,5 @@
 /**
- * Diagnostics log (ARCHITECTURE "Diagnostics"): one structured JSON line per event on stdout, so `docker compose logs`
+ * Diagnostics log (ADR 0009): one structured JSON line per event on stdout, so `docker compose logs`
  * shows why Google or the server was unreachable. Only whitelisted, non-personal fields ever reach a line: no tokens,
  * no e-mail addresses, no raw `sub`, no event content or titles.
  */

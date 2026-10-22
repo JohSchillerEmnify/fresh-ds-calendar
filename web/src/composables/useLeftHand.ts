@@ -4,7 +4,7 @@ import { isTouchLayout } from './useViewport';
 
 /**
  * Whether the mirrored left-handed layout applies now: the person's `leftHanded` pref, on a phone or a touch tablet
- * (ARCHITECTURE "Left-handed mode"). CSS reads `html[data-hand='left'][data-touch]`; JS positions (the cats) read
+ * (feature left-handed-mode). CSS reads `html[data-hand='left'][data-touch]`; JS positions (the cats) read
  * this instead.
  */
 export function useLeftHand() {

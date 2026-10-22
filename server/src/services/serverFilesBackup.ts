@@ -1,6 +1,6 @@
 /**
  * The server-wide files that belong to no single person (settings and categories, streak and plant, the people who
- * signed in, category share rules) and go into every person's backup under `server/` (ARCHITECTURE "Backups"). They come
+ * signed in, category share rules) and go into every person's backup under `server/` (feature drive-backup). They come
  * back only onto a fresh server, so a restore never overwrites what other people already use.
  */
 import type { PeopleStore } from '../auth/peopleStore.js';

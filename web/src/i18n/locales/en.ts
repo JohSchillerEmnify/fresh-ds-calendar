@@ -1,5 +1,5 @@
 /**
- * English message catalogue: the source of truth for the message schema (ARCHITECTURE "i18n").
+ * English message catalogue: the source of truth for the message schema (ADR 0021).
  *
  * Default export, like the other catalogues; the schema types live in `../schema.ts`.
  *

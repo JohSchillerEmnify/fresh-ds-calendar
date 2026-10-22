@@ -1,5 +1,5 @@
 /**
- * Which task list cards are collapsed (ARCHITECTURE "Task list view"): per list and per device, kept in `localStorage`
+ * Which task list cards are collapsed (feature tasklists-collapse): per list and per device, kept in `localStorage`
  * as a map of list id to `true`. Every storage access is guarded, so a blocked storage only means the state lasts for
  * this visit. Shared by every `TaskListView` and the Tasks view's "Collapse all" toggle.
  */

@@ -60,7 +60,7 @@ export class CalendarService {
     private readonly config: Pick<AppConfig, 'tz'>,
     private readonly prefs: PrefsStore,
     private readonly sub: string,
-    /** Shared lists (ARCHITECTURE "Shared lists"); null where sharing is not wired (some unit tests). */
+    /** Shared lists (feature shared-lists); null where sharing is not wired (some unit tests). */
     private readonly shared: SharedListService | null = null,
   ) {
     this.tasks = new TasksCalendar(provider, prefs, sub, () => this.providerCalendars(), () => { this.calCache = null; });
@@ -268,7 +268,7 @@ export class CalendarService {
     const cats = this.settings.categories();
     const eventLists = cals.map(async (c) => {
       const r = await this.provider.listEvents({ calendarId: c.id, timeMin, timeMax });
-      // task-list-shaped events outside the tasks calendar are not task lists (ARCHITECTURE §3)
+      // task-list-shaped events outside the tasks calendar are not task lists (ADR 0006)
       return r.items.filter((e) => e.status !== 'cancelled' && !isTaskListEvent(e)).map((e): CalendarItem => this.toEvent(e, c.backgroundColor, c.defaultReminders));
     });
     const taskLists = (async (): Promise<CalendarItem[]> => {
@@ -456,7 +456,7 @@ export class CalendarService {
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
     };
     this.checkTaskData(d);
-    // a list created in a shared category is created shared (a repeating one cannot be: A-166/A-167)
+    // a list created in a shared category is created shared (a repeating one cannot be: feature shared-lists)
     const member = d.categoryId && !d.recurrence && this.shared ? this.shared.ruleFor(this.sub, d.categoryId) : null;
     if (member) {
       const doc = this.shared!.create(this.sub, [member], d, this.categoryInfo(d.categoryId));
@@ -492,7 +492,7 @@ export class CalendarService {
     const d = { ...fn(before) };
     this.finalize(before, d);
     const moved = d.categoryId !== before.categoryId;
-    // only the owner's categories are meaningful on the list (A-164)
+    // only the owner's categories are meaningful on the list (feature shared-lists)
     if (moved && doc.owner !== this.sub) throw validation('Only the owner can change the category of a shared list', 'categoryId', 'sharing.categoryOwnerOnly');
     this.shared!.save(doc, d, moved ? this.categoryInfo(d.categoryId) : undefined);
     return this.toSharedTaskList(doc, '#039be5');
@@ -663,7 +663,7 @@ export class CalendarService {
 
   /**
    * Shares a category with a person (or, with `null`, stops): every list of the category moves into (out of) the shared
-   * store, and lists created in it later are created shared (A-167). Returns the person's category rules.
+   * store, and lists created in it later are created shared (feature shared-lists). Returns the person's category rules.
    */
   async shareCategory(categoryId: string, personSub: string | null): Promise<Record<string, Person>> {
     const shared = this.shared!;

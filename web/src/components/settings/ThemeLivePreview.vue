@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Sticky live preview at the top of the theme menu (ARCHITECTURE "Theme menu live preview"): a mini calendar made of the
+ * Sticky live preview at the top of the theme menu (feature theme-menu): a mini calendar made of the
  * app's own components with static sample data (top bar with the current scene, a three-day week slice, a task list with
  * checkboxes, the + button and icons), laid out at a fixed design width and scaled down with `transform: scale`. It sits
  * under the `<html>` theme attributes, so every theme change (including a slider before release) shows at once. The

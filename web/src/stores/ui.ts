@@ -21,7 +21,7 @@ export interface OpenDialog {
   props: Record<string, unknown>;
 }
 
-/** The timed entry whose resize handles are shown (set by releasing it without moving, ARCHITECTURE "Resize handles"). */
+/** The timed entry whose resize handles are shown (set by releasing it without moving, feature drag-to-reschedule). */
 export interface ResizingEntry {
   kind: 'event' | 'tasklist';
   id: string;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One task list with everything that can be done to it (ARCHITECTURE "Task list view"): head with the collapse chevron,
+ * One task list with everything that can be done to it (feature tasklist-items): head with the collapse chevron,
  * "All done", item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
  * open tasks tray (one per list). All item changes go through `ops.ts` (optimistic, queued, rolled back with a
  * snackbar on failure); the tick logic (flash, celebration, support cat, markFinished) lives only here. A complete list's title is struck through
@@ -189,13 +189,13 @@ async function setDoor(on: boolean) {
 
 // --- list actions -----------------------------------------------------------------------------------------------
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
-/** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
+/** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
 function remove() {
   if (!tl.value) return;
   pendingDeletes.deleteTaskList(tl.value);
   emit('deleted');
 }
-/** A member leaves a shared list: it goes away for them only (ARCHITECTURE "Shared lists"). */
+/** A member leaves a shared list: it goes away for them only (feature shared-lists). */
 async function leave() {
   if (!tl.value) return;
   try {

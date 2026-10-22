@@ -20,7 +20,7 @@ const testDir = defineBddConfig({
 
 export default defineConfig({
   testDir,
-  // One shared mock backend: scenarios must run serially (A-30).
+  // One shared mock backend: scenarios must run serially.
   workers: 1,
   fullyParallel: false,
   retries: 0,

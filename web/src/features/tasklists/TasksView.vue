@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Tasks view (`/tasks`, ARCHITECTURE "Tasks view"): every open task list, dated or not, grouped and sorted as the
+ * The Tasks view (`/tasks`, feature tasks-view): every open task list, dated or not, grouped and sorted as the
  * person chose (prefs `tasksGroupBy`, `tasksSortBy`). Each list is the tray's own `TaskListView`, so ticking and editing
  * items work as there; the title opens the task list dialog, and "Today" / "Tomorrow" give the list a date.
  */
@@ -37,7 +37,7 @@ const clock = useClockStore();
 const sync = useSyncStore();
 const ui = useUiStore();
 
-/** The filter bar's choice (all three tabs, ARCHITECTURE "Tasks filter"). */
+/** The filter bar's choice (all three tabs, feature tasks-filter). */
 const passes = (l: TaskList): boolean => matchesTasksFilter(l, cats.filter.value, clock.today);
 const shown = computed(() => tasks.lists.filter(passes));
 const groups = computed(() => groupLists(shown.value, cats.groupBy.value, cats.sortBy.value, clock.today, settings.categories, prefs.tasksSortDir));

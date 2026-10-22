@@ -1,5 +1,5 @@
 /**
- * Orchestration of the Google Drive backup (ARCHITECTURE "Backups"): collects a person's files, uploads versions,
+ * Orchestration of the Google Drive backup (feature drive-backup): collects a person's files, uploads versions,
  * keeps the newest ones, restores, and runs the debounce and daily timers. The pure parts are in `backup.ts`.
  */
 import fs from 'node:fs';

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One visit of the emotional support cat (ARCHITECTURE "Season scenes and the support cat"): walks in from the right (the left in
+ * One visit of the emotional support cat (feature emotional-support-cat): walks in from the right (the left in
  * left-handed mode, drawn mirrored, standing at the start of the title)
  * (a stepping walk cycle with a little bob), stops at the end of the finished list's title, looks down at it and
  * swipes its paw across it — the host draws the title's strike line in the same window (`CAT_SWIPE`) — then twitches

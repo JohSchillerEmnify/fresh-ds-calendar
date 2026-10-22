@@ -1,6 +1,6 @@
 /**
- * Translating the problems `@calendar/shared` finds in a theme file or picture (ARCHITECTURE "Theme engine and AI
- * themes", "i18n"). The validator's English message stays for the AI repair prompt; the UI shows this text instead.
+ * Translating the problems `@calendar/shared` finds in a theme file or picture (feature theme-import, ADR 0021).
+ * The validator's English message stays for the AI repair prompt; the UI shows this text instead.
  */
 import type { ValidationIssue } from '@calendar/shared';
 import { hasKey, t, type MessageKey } from '@/i18n';

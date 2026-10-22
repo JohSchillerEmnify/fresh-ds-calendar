@@ -2,9 +2,9 @@
 /**
  * Event dialog (kind 'event'): create ({ mode: 'create', date, time }) and edit ({ id }). Adaptive sheet.
  * Birthday mode (kind 'birthday', or an existing birthday in a calendar the person can write): the same sheet with a name,
- * a date and a colour only (ARCHITECTURE "Birthdays like Google Calendar"); a birthday that is read-only opens as plain details.
+ * a date and a colour only (feature birthdays); a birthday that is read-only opens as plain details.
  * Saves optimistically (the item shows at once, rolls back on failure) but stays open with the error until Google
- * confirmed (AC-32). Props `draft` / `error` restore a form after a failed attempt.
+ * confirmed (feature background-sync). Props `draft` / `error` restore a form after a failed attempt.
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
@@ -237,7 +237,7 @@ async function saveBirthday() {
   }
 }
 
-/** No confirmation: the entry goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
+/** No confirmation: the entry goes at once, the undo snackbar can bring it back (feature event-editing). */
 function remove() {
   const ev = original.value;
   if (!ev || saving.value) return;

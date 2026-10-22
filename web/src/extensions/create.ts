@@ -5,7 +5,7 @@ import { dialogs, type CreateContext } from './registry';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 
-/** Defaults for a new item (ARCHITECTURE §5): focus date; today → next full hour (cap 23:00), else 09:00. */
+/** Defaults for a new item (feature event-editing): focus date; today → next full hour (cap 23:00), else 09:00. */
 export function createContext(date?: string, time?: string | null): CreateContext {
   const cal = useCalendarStore();
   const clock = useClockStore();

@@ -1,5 +1,5 @@
 /**
- * Pure helpers of the Google Drive backup (ARCHITECTURE "Backups"): the bundle format, path rules, retention and
+ * Pure helpers of the Google Drive backup (feature drive-backup): the bundle format, path rules, retention and
  * the debounce arithmetic. No I/O here, so everything is unit-testable; the orchestration is in `backupService.ts`.
  */
 import { createHash } from 'node:crypto';

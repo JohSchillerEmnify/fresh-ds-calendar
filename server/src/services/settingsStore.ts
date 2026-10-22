@@ -50,7 +50,7 @@ export class SettingsStore {
   /** Reads the file again (start, and after a backup restore replaced it). */
   reload(): void {
     const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string; transitionWarningMinutes?: unknown }>(this.file) : null;
-    // `transitionWarningMinutes` was replaced by the reminder lists (ARCHITECTURE "Reminders, several per event")
+    // `transitionWarningMinutes` was replaced by the reminder lists (feature reminders)
     const { scene, garden, transitionWarningMinutes: _retired, ...loaded } = raw ?? {};
     this.legacyScene = typeof scene === 'string' ? scene : undefined;
     this.legacyGardenStyle = typeof garden === 'string' ? garden : undefined;

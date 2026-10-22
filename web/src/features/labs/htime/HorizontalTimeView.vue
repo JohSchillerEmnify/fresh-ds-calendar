@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Labs horizontal view: time runs left to right. The week has one row per day with the hours as columns and lanes for
- * overlapping entries (ARCHITECTURE "Labs: Horizontal view"); zooming the days shows a few of them. The route opts out of the
+ * overlapping entries (feature horizontal-time); zooming the days shows a few of them. The route opts out of the
  * shell's swipe navigation (`meta.noSwipe`), so a sideways drag only pans the time. Time (pixels per hour) and the day height zoom
  * independently; the surface pans sideways and down. It is the zoom month's world: laid out once per committed zoom, moved by
  * a CSS transform while a gesture runs (`zoomGestures.ts`), with the sticky hour axis and day labels following the same

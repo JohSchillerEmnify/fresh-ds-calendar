@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Draws the week the way the app's week view looks (ARCHITECTURE "Android app and widget"): header, weekday row, all-day
+ * Draws the week the way the app's week view looks (feature phone-widget): header, weekday row, all-day
  * band with multi-day bars, hour grid with colour blocks packed side by side, task lists, and a now line. RemoteViews cannot
  * place views freely, so the whole picture is one bitmap; all geometry below is in dp and scaled to pixels when drawn.
  */

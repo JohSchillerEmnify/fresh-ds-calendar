@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The task list card grown in place over the calendar (ARCHITECTURE "Expanded task list card"): a fixed overlay teleported
+ * The task list card grown in place over the calendar (feature tasklists-expand-card): a fixed overlay teleported
  * to the body at exactly the collapsed `anchor` card's left, top and width, holding the same `TaskListCard` rendering in its
  * `grown` mode (full height, every item). It is placed by `placeExpanded` (down, up or scrolling inside, within the visible
  * scroll area), so the calendar underneath never moves. Read-only: a tap anywhere on it opens the normal list sheet. Closes on
@@ -29,7 +29,7 @@ const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const ui = useUiStore();
 const calendar = useCalendarStore();
-// the system back closes the expansion first (ARCHITECTURE "Back closes overlays")
+// the system back closes the expansion first (feature navigation)
 useOverlayHistory(() => true, () => emit('close'));
 const panel = ref<HTMLElement | null>(null);
 // follows the host grid's hour height: the shared zoom height normally, a fit grid's own height in the two-row overview

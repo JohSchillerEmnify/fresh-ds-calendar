@@ -1,5 +1,5 @@
 /**
- * The "only one's own events are editable" rule (ARCHITECTURE "Only one's own events are editable"): which calendars count
+ * The "only one's own events are editable" rule (feature events-readonly): which calendars count
  * as the person's own, and why an event is look-only. One place, used by the API mapping, the write checks and the picker.
  */
 import type { GoogleEvent, ProviderCalendar } from '../providers/CalendarProvider.js';

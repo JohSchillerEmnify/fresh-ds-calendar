@@ -42,7 +42,7 @@ html[data-check='bold'] .rcb-check[data-glyph='bold'], html[data-check='cross'] 
 html[data-check='dot'] .rcb-check[data-glyph='dot'] { display: inline; }
 
 /*
- * The one snackbar look (ARCHITECTURE "Snackbars and toasts follow the theme"): snackbars, the sync error banner and
+ * The one snackbar look (feature light-dark-theme): snackbars, the sync error banner and
  * the check-in toast. Theme tokens only, so a theme or season change restyles them; action colour: --snack-action.
  */
 .snack-skin {

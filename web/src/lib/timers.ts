@@ -1,5 +1,5 @@
 /**
- * Leak-safe timer and listener helpers (ARCHITECTURE.md §5a). Every timer/listener in the app goes through these,
+ * Leak-safe timer and listener helpers (feature resource-efficiency). Every timer/listener in the app goes through these,
  * so each returns a disposer and, in test mode, live timers are counted in `window.__appTimers`.
  */
 import { getCurrentScope, onScopeDispose } from 'vue';

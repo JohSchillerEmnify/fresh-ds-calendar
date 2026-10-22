@@ -10,7 +10,7 @@ import type { ApproachWindowHours, MinEventMinutes, NavPosition, BedtimePrefs, N
  * approach track and window length (both on by default, like the server), "Show tasks calendar in Google",
  * support cat, the version label in the corner (off by default), left-handed mode (off by default), where the view switcher sits (phone, desktop), the Labs switch for the AI theme prompt and import, and how the Tasks view groups and sorts (time, date).
  */
-/** The server's default `notify` preference (ARCHITECTURE "Notifications"). */
+/** The server's default `notify` preference (feature reminders). */
 export const DEFAULT_NOTIFY: NotifyPrefs = { bedtime: true, events: true, tasklists: false, morning: false, morningTime: '08:00' };
 
 export const usePrefsStore = defineStore('prefs', () => {
@@ -28,7 +28,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   const leftHanded = ref(false);
   /** The "From …" label on task lists carried over to today (on by default). */
   const showCarriedFrom = ref(true);
-  /** Where the view switcher sits on phones / on desktop and tablets (ARCHITECTURE "View switcher position"). */
+  /** Where the view switcher sits on phones / on desktop and tablets (feature nav-position). */
   const navPhone = ref<NavPosition>('bottom');
   const navDesktop = ref<NavPosition>('rail');
   const tasksGroupBy = ref<TasksGroupBy>('time');

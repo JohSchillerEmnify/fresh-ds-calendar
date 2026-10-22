@@ -1,5 +1,5 @@
 /**
- * Zoom of the day/week time grid (ARCHITECTURE "Zoom"): one shared reactive hour height (px per hour), clamped to
+ * Zoom of the day/week time grid (feature mobile-first-layout): one shared reactive hour height (px per hour), clamped to
  * `MIN_HOUR_PX`..`MAX_HOUR_PX` and remembered per device in `localStorage` (not a server pref). Until the person zooms
  * it follows the viewport default (44 px on a phone, 48 px otherwise). Also the gesture binding: two-finger pinch and
  * Ctrl+wheel (live preview during the gesture, one commit when it settles). Listeners are bound by `bindGridZoom`; the touch pinch never reaches the swipe carousel, which drops a

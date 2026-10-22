@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The small cat that lives in every top bar scene (ARCHITECTURE "Season scenes and the support cat"): the shared
+ * The small cat that lives in every top bar scene (feature theme-scenes): the shared
  * `CatFigure` drawing, posed for the scene. It sits, sways its tail and flicks the hooked tip, blinks (now and then a slow, content cat
  * blink), glances around, twitches an ear, tilts its head and on a long loop stretches and takes a short nap. Full
  * plays everything, Reduced only blinks and flicks slowly, Off is a still, awake cat. `delay` (seconds) shifts the loop so cats in different scenes do not move in step.

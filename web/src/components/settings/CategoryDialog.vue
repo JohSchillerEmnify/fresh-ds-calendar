@@ -26,7 +26,7 @@ const icon = ref(props.category?.icon ?? '');
 const { busy: saving, error, run: submit } = useAsyncSubmit({ onDone: () => emit('close') });
 const run = (fn: () => Promise<unknown>) => submit(fn, 'theme.categoryDialog.failed');
 const confirming = ref(false);
-/** "Share with" (ARCHITECTURE "Shared lists"): who this category's lists are shared with, '' = nobody. */
+/** "Share with" (feature shared-lists): who this category's lists are shared with, '' = nobody. */
 const people = ref<Person[]>([]);
 const sharedWith = ref('');
 let sharedBefore = '';

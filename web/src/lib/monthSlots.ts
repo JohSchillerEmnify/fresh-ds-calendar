@@ -1,7 +1,7 @@
 /**
  * Slot packing of one month week row: a week shares one set of entry rows ("slots"), a multi-day bar takes its slot only
- * on the days it covers, and each day's own entries fill that day's free slots from the top (ARCHITECTURE "Month view
- * rows, like Google Calendar"). Pure maths, no DOM.
+ * on the days it covers, and each day's own entries fill that day's free slots from the top (feature event-display).
+ * Pure maths, no DOM.
  */
 
 /** The part of a bar the packing needs: the covered columns (inclusive, 0-based) and its slot. */

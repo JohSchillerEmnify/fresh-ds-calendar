@@ -1,5 +1,5 @@
 /**
- * Web Push in this browser (ARCHITECTURE "Reminders, several per event", slice 2): the opt-in switch of Settings → Reminders
+ * Web Push in this browser (feature reminders, slice 2): the opt-in switch of Settings → Reminders
  * subscribes the browser with the server's VAPID key, and the reminder plan of the next 7 days is sent for it after every
  * sync (`transitionWarning.ts`). Not available where the browser has no `PushManager` or no secure context, nor in the
  * Android app (it has native notifications; no doubles).

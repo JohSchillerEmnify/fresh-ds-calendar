@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Tasks view's Canvas tab (ARCHITECTURE "Canvas"): every open task list as a sticky note on a large board you pan and
+ * The Tasks view's Canvas tab (feature tasks-canvas): every open task list as a sticky note on a large board you pan and
  * zoom, with named areas. Notes keep their place on the task list itself (`cx`, `cy`); lists without one wait in the
  * Unsorted stack at the top left. The board is one layer moved with `transform` only; the pointer gestures are in
  * `useCanvasPointer.ts`, the pure geometry in `canvas.ts`, the state in `canvasStore.ts`.
@@ -26,7 +26,7 @@ import { isComplete } from './format';
 import { useTasksViewStore } from './tasksStore';
 import { bindCanvasPointer, type CanvasPointerHooks, type DragKind } from './useCanvasPointer';
 
-/** How long a note that was just finished stays for the finish feedback (the celebration), before it leaves for the Archive (A-125). */
+/** How long a note that was just finished stays for the finish feedback (the celebration), before it leaves for the Archive (feature tasks-canvas). */
 const FINISH_MS = 1400;
 
 const tasks = useTasksViewStore();

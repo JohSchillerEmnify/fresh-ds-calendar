@@ -1,5 +1,5 @@
 /**
- * Per-person guard around Google Calendar calls (ARCHITECTURE "Google access: caching and rate limits"): a short-lived
+ * Per-person guard around Google Calendar calls (ADR 0007): a short-lived
  * result cache with single-flight, and a cooldown with exponential backoff once Google says the person is over the limit.
  */
 import { RateLimitedError } from '../CalendarProvider.js';

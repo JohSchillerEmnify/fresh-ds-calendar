@@ -1,5 +1,5 @@
 /**
- * Bedtime mode, pure part (ARCHITECTURE "Bedtime mode"): turns the person's bedtime preference and the items of the
+ * Bedtime mode, pure part (feature bedtime): turns the person's bedtime preference and the items of the
  * calendar into night windows. Every view's overlay and the reminder read the windows from here; nothing else
  * re-implements the rule.
  *

@@ -1,5 +1,5 @@
 /**
- * Request guards of every `/api/*` call (ARCHITECTURE "Security hardening"): the Origin check against cross-site
+ * Request guards of every `/api/*` call: the Origin check against cross-site
  * requests (CSRF), the JSON-only content type, and the body size limit.
  */
 import type { Context, MiddlewareHandler } from 'hono';

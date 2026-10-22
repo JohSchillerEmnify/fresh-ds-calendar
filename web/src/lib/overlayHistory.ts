@@ -2,7 +2,7 @@
  * Overlay back-stack: the system back (Android gesture/button, browser back, iOS Safari edge swipe) closes the
  * topmost open overlay first. Opening an overlay pushes a history entry carrying `{ overlay: id }` (no route
  * change, router keys copied so vue-router's position bookkeeping stays intact); `popstate` closes the topmost
- * overlay; closing by other means goes back over the entry. See ARCHITECTURE "Back closes overlays".
+ * overlay; closing by other means goes back over the entry. See feature navigation.
  */
 import { onScopeDispose, watch } from 'vue';
 import type { Router } from 'vue-router';

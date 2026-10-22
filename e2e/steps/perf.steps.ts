@@ -201,7 +201,7 @@ function freePort(): Promise<number> {
   });
 }
 
-// Idle RSS is measured on a server of its own: the shared one has served the whole suite by now (A-102).
+// Idle RSS is measured on a server of its own: the shared one has served the whole suite by now (feature resource-efficiency).
 When('I request {string} on a fresh server', async function (this: World, spec: string) {
   this.extendTimeout(60_000);
   const [method, ...rest] = spec.trim().split(/\s+/);

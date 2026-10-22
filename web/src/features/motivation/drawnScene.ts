@@ -1,5 +1,5 @@
 /**
- * Shapes of a drawn theme scene (ARCHITECTURE "Theme engine and AI themes"): the app draws the decor of a
+ * Shapes of a drawn theme scene (feature theme-import): the app draws the decor of a
  * `{ gradient, decor, density }` scene from building blocks, in a fixed pseudo-random layout per decor (so a scene
  * looks the same on every render). Pure data; `DrawnScene.vue` renders it as SVG.
  */

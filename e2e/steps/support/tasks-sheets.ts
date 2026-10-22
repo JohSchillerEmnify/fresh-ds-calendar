@@ -1,4 +1,4 @@
-/** The Tasks view's toolbar sheets (ARCHITECTURE "Tasks filter"): open one, act in it, close it again with "Done". */
+/** The Tasks view's toolbar sheets (feature tasks-filter): open one, act in it, close it again with "Done". */
 import { expect } from '@playwright/test';
 import type { World } from './world.js';
 

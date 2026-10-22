@@ -1,5 +1,5 @@
 /**
- * Live swipe carousel gesture (ARCHITECTURE "Swipe"): once a touch is clearly horizontal, the period follows the
+ * Live swipe carousel gesture (feature mobile-first-layout): once a touch is clearly horizontal, the period follows the
  * finger; on release it settles onto the neighbour (past a third of the width, or a flick > 0.5 px/ms toward it)
  * or springs back. This module is the gesture only (pure math + touch binding); `SwipeCarousel.vue` renders.
  * Passive listeners only, so vertical scrolling is never blocked (`touch-action: pan-y` on the area).

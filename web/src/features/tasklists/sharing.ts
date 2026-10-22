@@ -1,5 +1,5 @@
 /**
- * Sharing actions of one task list (ARCHITECTURE "Shared lists"), used by the task list view and dialog. Moving a list
+ * Sharing actions of one task list (feature shared-lists), used by the task list view and dialog. Moving a list
  * into or out of the shared store gives it a new id, so the items cache swaps the old entry for the new one.
  */
 import { api } from '@/api/client';

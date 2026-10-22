@@ -127,7 +127,7 @@ only option that is portable to Bun unchanged. The scaffold has only `app.ts`, `
 so switching now is cheap. Plain `node:http` saves 10 MB more but means hand-writing routing, errors and static
 serving, which adds leak and bug risk.
 
-Keep `buildApp(config, provider)` returning the Hono app and test with `app.request`. The contracts in ARCHITECTURE.md
+Keep `buildApp(config, provider)` returning the Hono app and test with `app.request`. The contracts in spec/API.md
 do not change.
 
 **Recommendation (2b), Google client:** do **not** use `googleapis`. It adds about 110 MB RSS and 241 MB on disk
@@ -455,7 +455,7 @@ The current scaffold is Node 22.11 + npm workspaces + Fastify 5 + Vue 3 + Vite 5
    - The error handler becomes `app.onError`.
    - SPA fallback: `serveStatic({ root: webDist })` plus `app.get('*', serveStatic({ path: 'index.html' }))`, excluding `/api`.
    - In tests, `fastify.inject({ method, url, payload })` becomes `app.request(url, { method, body: JSON.stringify(payload), headers })`.
-   - In the BRIEF and ARCHITECTURE wording, "Fastify" and `inject` are overridden by this Decision. The REST contract
+   - In the BRIEF wording, "Fastify" and `inject` are overridden by this Decision. The REST contract
      is unchanged.
 4. **Google:** in `GoogleProvider`, import `{ calendar_v3, calendar } from '@googleapis/calendar'` and
    `{ OAuth2Client } from 'google-auth-library'`. Never import `googleapis`.

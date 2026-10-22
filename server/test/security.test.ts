@@ -1,4 +1,4 @@
-/** Server security hardening (ARCHITECTURE "Security hardening", audit docs/SECURITY-AUDIT-2026-10-16.md): one test group per audit item. */
+/** Server security hardening (audit docs/SECURITY-AUDIT-2026-10-16.md): one test group per audit item. */
 import { createECDH, createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';

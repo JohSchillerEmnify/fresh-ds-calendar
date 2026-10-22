@@ -12,14 +12,14 @@ export interface Calendar {
   color: string;
   primary: boolean;
   writable: boolean;
-  /** True for the person's own calendars: events go only there (ARCHITECTURE "Only one's own events are editable"). */
+  /** True for the person's own calendars: events go only there (feature events-readonly). */
   own: boolean;
   /** Popup reminder lead times of Google's calendar default, in minutes, in Google's order. */
   defaultReminders: number[];
 }
 
 /**
- * An item's reminders (ARCHITECTURE "Reminders, several per event"). `minutes` is the popup lead list in effect: the
+ * An item's reminders (feature reminders). `minutes` is the popup lead list in effect: the
  * calendar's default while `useDefault` is true, else the item's own list. Email reminders stay in Google, untouched.
  */
 export interface Reminders {
@@ -58,7 +58,7 @@ export interface TaskItem {
   done: boolean;
 }
 
-/** A note's top-left corner on the Canvas (ARCHITECTURE "Canvas"). */
+/** A note's top-left corner on the Canvas (feature tasks-canvas). */
 export interface CanvasPlace {
   x: number;
   y: number;
@@ -71,7 +71,7 @@ export interface TaskList {
   id: string;
   calendarId: string;
   title: string;
-  /** Null = undated: the list appears only in the Tasks view (ARCHITECTURE "Undated task lists"). */
+  /** Null = undated: the list appears only in the Tasks view (feature tasks-view). */
   date: LocalDate | null;
   time: LocalTime | null;
   items: TaskItem[];

@@ -133,7 +133,7 @@ Google contains a raw task list event {string} on {date} with the description:
 
 All-day ranges in steps are inclusive (`from 2026-10-17 to 2026-10-20` = 4 days); the API uses an exclusive end.
 Generated items are titled exactly `Generated item 1` … `Generated item N`, all not done. Generated long items are the same titles padded with `x` to 150 characters. 40 such items serialize to
-more than 1024 characters of JSON, which forces chunking (see ARCHITECTURE.md).
+more than 1024 characters of JSON, which forces chunking (see API.md "Storage in Google").
 The raw task list event has `extendedProperties.private.kind = "tasklist"` but no `items` property (doc string = description).
 
 ## Navigation
@@ -206,7 +206,7 @@ the items on {date} are shown in the order {string}
 - "the all-day event A on D is at the height of the bar B": A's chip top equals B's `event-bar` top within 3 px; when B is not on the page (day view clipped away), the top of the all-day area of D.
 - "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
   `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
-- Month slots (ARCHITECTURE "Month view rows, like Google Calendar"): "the first entry of the month cell of D" is the
+- Month slots (feature event-display): "the first entry of the month cell of D" is the
   first visible chip or card inside the month cell of D (not a bar). "at the height of the bar B": its top equals the
   top of B's `event-bar` segment within 3 px. "in the slot below the bar B": its top is below B's bottom and within one
   chip height + 4 px of it. "the bar B has the height of the chip C": heights equal within 1 px. "shows no continuation
@@ -215,7 +215,7 @@ the items on {date} are shown in the order {string}
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span
   and different left edges. "stacked on": the first chip starts lower and further right than the second, boxes overlap
-  vertically (cascade, A-64). "spans the full width": chip width ≥ 90 % of its day column width.
+  vertically (cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
 - "the items on D are shown in the order": DOM order of `data-title` of event chips and task list cards inside the
   month cell of D.
 
@@ -354,7 +354,7 @@ visible text part of the card (`tasklist-card-time`, `tasklist-card-items`, `tas
 "for N minutes" sets the task list's estimate to N (a timed task list lasts its estimate).
 Item steps act on the currently expanded task list.
 "the task list tap setting is S" (S = `inline` | `drawer`): `PATCH /api/prefs { taskOpen: S }` as that person, before the view opens.
-Expanded card (`tasklists-expand.feature`; ARCHITECTURE "Expanded task list card"): "I expand the task list X" opens the list
+Expanded card (`tasklists-expand.feature`; feature tasklists-expand-card): "I expand the task list X" opens the list
 sheet: it taps the card, waits for the grown card (`tasklist-expanded` with `data-presentation="overlay"`), taps it and waits
 for the sheet. "I tap the task list X" is only the first tap; "I tap the expanded task list X" taps the grown card
 (`tasklist-card-grown`), "the item I of the expanded task list" an item row (`tasklist-card-item`) of it. "opens as the list
@@ -536,11 +536,11 @@ the server memory has grown by less than {int} MB since the recording
 - "rendered within N ms": `performance.now()` when the first `month-cell` is visible (measured by a `MutationObserver`
   init script), relative to navigation start.
 - "phone performance audit": Lighthouse (mobile preset, simulated throttling) against the base URL; score = performance
-  category × 100, run N times one after the other; the scenario judges the median (A-159). Runs in the Playwright container on Chromium with `--remote-debugging-port`.
+  category × 100, run N times one after the other; the scenario judges the median (feature resource-efficiency). Runs in the Playwright container on Chromium with `--remote-debugging-port`.
 - "I request "METHOD /path" on a fresh server": starts its own server process (`node --expose-gc server/dist/index.js`, the
   same `TEST_MODE` env as `e2e/run.sh`: `PROVIDER=mock`, `SEED=false`, `POLL_INTERVAL_MS=30000`, `NODE_ENV=production`, but a free
   loopback port and an empty temporary `DATA_DIR`), waits for `GET /api/health`, performs the request there (stored as the
-  last response like `I request {string}`), then stops the process and deletes its data directory (A-102).
+  last response like `I request {string}`), then stops the process and deletes its data directory (feature resource-efficiency).
 - "the server resident memory is below N MB": `rss` from the last response, here the `GET /api/__test/memory?gc=true`
   response of the fresh server.
 - "send N requests to "METHOD /path"": sequential with concurrency 10 via Playwright `request`. The PATCH variant
@@ -610,7 +610,7 @@ the settings are changed elsewhere to the theme mode {string}
 - Every "I choose ..." / "I enter ..." step waits for the `PUT /api/settings` response (status 200) before continuing,
   except the seed colour steps (`I choose the seed color preset`, `I enter the custom seed color`): the seed colour is
   fine-tuning of the chosen theme, so these wait for the `PATCH /api/prefs/theme` response (status 200) instead
-  (ARCHITECTURE "Themes", owner 2026-10-13). A rejected custom color does not send a request.
+  (feature theme-menu, owner 2026-10-13). A rejected custom color does not send a request.
 - Theme modes are the labels `System`, `Light`, `Dark`. Seed presets are the labels `Blue`, `Purple`, `Teal`, `Green`,
   `Orange`, `Red`, `Pink`, `Slate`; a custom color is shown as `Custom`.
 - Hue check: computes the HCT hue (Material color science) of the computed `--md-sys-color-<role>` and of the hex value
@@ -883,7 +883,7 @@ the page does not contain the words {string}
 - "opened with an animation": immediately after open, `dialog.getAnimations({ subtree: true }).length > 0`;
   "without" = 0.
 - "at most N app timers are active": reads `window.__appTimers` (a test-mode-only counter maintained by the app's
-  timer helper; ARCHITECTURE §5a).
+  timer helper; feature resource-efficiency).
 - "the page does not contain the words": case-insensitive whole-word search in `document.body.innerText`; the list is
   comma-separated.
 
@@ -1280,7 +1280,7 @@ I scroll the horizontal view sideways
 I tap the day label {date} in the horizontal view
 ```
 
-- Zoom switch (ARCHITECTURE "One switch for every cell"): "until three and a half day columns fit across the screen"
+- Zoom switch (feature zoom-month): "until three and a half day columns fit across the screen"
   zooms in (Ctrl+wheel at the cell of the opened date) until a zoom month day cell's width is at most viewport width / 3.5
   and waits for the gesture to settle. "both show the timeline": each cell contains a visible `zoom-timeline`. "no
   visible zoom month cell shows chips": no cell intersecting the viewport shows its compact chip list (opacity > 0.5).
@@ -1869,7 +1869,7 @@ the Canvas zoom is above {float}
 - "I open the Canvas": opens the Tasks view as the Tasks view steps do and clicks `tasks-tab-canvas`
   (`aria-pressed="true"`), then waits for `tasks-canvas`.
 - "the Canvas shows the notes A, B": the `data-title` of all `canvas-note`s, sorted alphabetically and joined `", "`,
-  equals the text (A-130). "does not show the note T": none has that title.
+  equals the text. "does not show the note T": none has that title.
 - "the note T shows the date D": `canvas-note` T has `data-date` D and a `canvas-note-date`. "shows the items": the
   `tasklist-item` titles of the note joined `", "` in order.
 - "I move the note T to X, Y": on a phone (`hasTouch`) a finger through CDP (`touchStart` in the middle of the note, a
@@ -1984,8 +1984,8 @@ there is no button to back up now
 - Also used: "{string} and {string} may use the calendar", "{string} is signed in", "{string} signs in with Google", "the time is D T",
   "the support cat is set to S in the settings", "I chose the theme T", "the theme T is in use", "I open the settings", "I open the
   Canvas", "I create the area N on the Canvas", "the Canvas shows the area N". A person with no data of their own is not backed up
-  (A-181), so scenarios first change a setting.
-- Google Drive is `MockDrive` (`TEST_MODE`, ARCHITECTURE "Backups"): the hidden app folder in `DATA_DIR/mock-drive.json`,
+  (feature drive-backup), so scenarios first change a setting.
+- Google Drive is `MockDrive` (`TEST_MODE`, feature drive-backup): the hidden app folder in `DATA_DIR/mock-drive.json`,
   one folder per person. "is signed in" and "signs in with Google" grant the Drive permission (the test double's
   consent returns the `drive.appdata` scope); "signs in without the Drive permission" signs in with a consent that
   leaves it out (`POST /api/__test/oauth/account { email, driveScope: false }`, then the usual consent).
@@ -2038,7 +2038,7 @@ I can share only with {string}
 ```
 
 - "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person
-  (as if they had signed in once), so they can be picked as members (ARCHITECTURE "Shared lists").
+  (as if they had signed in once), so they can be picked as members (feature shared-lists).
 - "P has an undated task list T with the items I [in the category C]": setup through `POST /api/__test/tasklists` for
   person P (API.md); items are `, `-separated; the category is found by name in the settings. Not user activity: the
   endpoint restores the plant state.

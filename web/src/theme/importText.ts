@@ -1,6 +1,6 @@
 /**
- * Tidying and repairing the text of a theme file as chat programs hand it over (ARCHITECTURE "Theme engine and AI
- * themes"): code fences, text around the JSON and Markdown links where a URL stood.
+ * Tidying and repairing the text of a theme file as chat programs hand it over (feature theme-import):
+ * code fences, text around the JSON and Markdown links where a URL stood.
  */
 
 /** The JSON text inside an AI answer: the fenced block if there is one, links turned back into URLs, and no text outside the outermost braces. */

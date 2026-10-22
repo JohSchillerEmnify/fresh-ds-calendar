@@ -66,7 +66,7 @@ const DATE_FORMATS = {
 } as const satisfies Record<string, { en: string; intl: Intl.DateTimeFormatOptions }>;
 export type DateFormatKind = keyof typeof DATE_FORMATS;
 
-/** Formats a date for display in the active language: date-fns for English (A-85), `Intl` de-DE otherwise. */
+/** Formats a date for display in the active language: date-fns for English (feature language), `Intl` de-DE otherwise. */
 export function formatDate(d: Date, kind: DateFormatKind): string {
   const spec = DATE_FORMATS[kind];
   return language.value === 'en' ? format(d, spec.en) : intl(spec.intl).format(d);
@@ -144,7 +144,7 @@ export function shiftPeriod(view: ViewKind, anchor: Date, dir: 1 | -1): Date {
   return addDays(anchor, dir);
 }
 
-/** Period title in the active language: en-GB for English, `Intl` de-DE otherwise (ARCHITECTURE §5 and "i18n"). */
+/** Period title in the active language: en-GB for English, `Intl` de-DE otherwise (feature language). */
 export function periodTitle(view: ViewKind, anchor: Date): string {
   if (language.value !== 'en') return localizedPeriodTitle(view, anchor);
   if (view === 'year') return format(anchor, 'yyyy');

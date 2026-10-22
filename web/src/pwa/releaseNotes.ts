@@ -1,4 +1,4 @@
-/** "What's new" after an update (ARCHITECTURE "Release notes"): one snackbar per device for notes it has not seen yet. */
+/** "What's new" after an update (feature release-notes): one snackbar per device for notes it has not seen yet. */
 import { watch } from 'vue';
 import { api } from '@/api/client';
 import type { ReleaseNote } from '@/api/types';

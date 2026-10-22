@@ -1,5 +1,5 @@
 /**
- * When scene visitors come by (ARCHITECTURE "Season scenes and the support cat"). The butterfly (a bat at Halloween,
+ * When scene visitors come by (feature theme-scenes). The butterfly (a bat at Halloween,
  * same rhythm and hook): one at a time, the first visit 20–60 s after the scene appears, then every 3–5 min; a visit
  * lasts ~10 s. Full flutters through the bar (sometimes resting briefly on a flower), Reduced only rests in place, Off
  * has none. The Halloween ghost uses the same scheduling with its own rhythm (every 8–12 min, ~8 s). Pure apart from

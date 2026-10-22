@@ -23,18 +23,18 @@ export const DEFAULT_THEME: ThemePref = { preset: 'Default', overrides: {}, seas
 export type SupportCat = 'off' | 'sometimes' | 'always';
 export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'always'];
 
-/** Where the view switcher sits (ARCHITECTURE "View switcher position"): bottom bar, tabs row under the top bar, or side rail. */
+/** Where the view switcher sits (feature nav-position): bottom bar, tabs row under the top bar, or side rail. */
 export type NavPosition = 'bottom' | 'top' | 'rail';
 export const NAV_POSITION_VALUES: readonly NavPosition[] = ['bottom', 'top', 'rail'];
 
-/** How the Tasks view groups its lists (ARCHITECTURE "Tasks view"). */
+/** How the Tasks view groups its lists (feature tasks-view). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category', 'none'];
 /** How the Tasks view sorts its lists. */
 export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
 export const TASKS_SORT_BY_VALUES: readonly TasksSortBy[] = ['date', 'name', 'category', 'changed', 'progress'];
 
-/** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
+/** The "When" choice of the Tasks filter (feature tasks-filter). */
 export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
 export const TASKS_WHEN_VALUES: readonly TasksWhen[] = ['all', 'nodate', 'dated', 'overdue', 'today', 'tomorrow', 'week'];
 /** The Tasks view's filter: category ids (or `none`) combined with "or", and one When choice, combined with "and". */
@@ -58,11 +58,11 @@ export const UNDATED_DONE_VALUES: readonly UndatedDone[] = ['calendar', 'archive
 export type TaskOpen = 'inline' | 'drawer';
 export const TASK_OPEN_VALUES: readonly TaskOpen[] = ['inline', 'drawer'];
 
-/** Sort direction relative to the sort key's own default (A-80). */
+/** Sort direction relative to the sort key's own default (feature tasks-view). */
 export type TasksSortDir = 'default' | 'reversed';
 export const TASKS_SORT_DIR_VALUES: readonly TasksSortDir[] = ['default', 'reversed'];
 
-/** How far ahead the approach bar reaches, in whole hours (ARCHITECTURE "Labs"): 3, 6, 12 or any custom value. */
+/** How far ahead the approach bar reaches, in whole hours (feature labs-approach-bar): 3, 6, 12 or any custom value. */
 export const APPROACH_WINDOW_MIN = 1;
 export const APPROACH_WINDOW_MAX = 24;
 export type ApproachWindowHours = number;
@@ -88,7 +88,7 @@ export function isLanguagePref(v: unknown): v is LanguagePref {
   return v === 'auto' || LANGUAGE_VALUES.includes(v as (typeof LANGUAGE_VALUES)[number]);
 }
 
-/** Bedtime mode (ARCHITECTURE "Bedtime mode"): fixed times, or follow the first appointment of the next day. */
+/** Bedtime mode (feature bedtime): fixed times, or follow the first appointment of the next day. */
 export type BedtimeMode = 'fixed' | 'dynamic';
 export const BEDTIME_MODES: readonly BedtimeMode[] = ['fixed', 'dynamic'];
 /** The per-person bedtime preference; times are `HH:MM`. */
@@ -144,7 +144,7 @@ export function parseBedtimePatch(raw: unknown): Partial<BedtimePrefs> | string 
 export interface NotifyPrefs {
   /** The bedtime reminder (its lead is `bedtime.reminderMinutes`). */
   bedtime: boolean;
-  /** "Dentist starts in 10 min" before timed events (lead: the reminder lists, ARCHITECTURE "Reminders, several per event"). */
+  /** "Dentist starts in 10 min" before timed events (lead: the reminder lists, feature reminders). */
   events: boolean;
   /** The same before task lists with a time; default off (owner, 2026-10-14). */
   tasklists: boolean;
@@ -192,10 +192,10 @@ export function toLabsViews(raw: unknown): Record<string, boolean> | null {
 
 /** The per-person preferences returned by `GET /api/prefs` (Labs, the approach track and window, the Approaching card, tasks calendar visibility, support cat, Tasks view grouping and sorting, language). */
 export interface Prefs {
-  /** Which Labs views the switcher offers, per view id; an id that is missing follows the client's registry default (ARCHITECTURE "Labs"). */
+  /** Which Labs views the switcher offers, per view id; an id that is missing follows the client's registry default (feature labs-clock). */
   labsViews: Record<string, boolean>;
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
-  /** The Approaching card above the calendar views (ARCHITECTURE "Approaching card"). */
+  /** The Approaching card above the calendar views (feature labs-approach-bar). */
   approachingCard: boolean;
   taskCategories: boolean;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
@@ -203,7 +203,7 @@ export interface Prefs {
   supportCat: SupportCat;
   /** The small build-version label in the bottom-left corner of the main UI (off by default). */
   versionInCorner: boolean;
-  /** Left-handed mode: the phone layout is mirrored (ARCHITECTURE "Left-handed mode"; off by default). */
+  /** Left-handed mode: the phone layout is mirrored (feature left-handed-mode; off by default). */
   leftHanded: boolean;
   /** The "From Sat 10 Oct" label on task lists carried over to today (on by default; off for no reminder of the past). */
   showCarriedFrom: boolean;
@@ -216,19 +216,19 @@ export interface Prefs {
   /** Labs: the AI prompt and the import in the theme menu (saved own themes show either way). */
   labsOwnThemes: boolean;
   tasksSortDir: TasksSortDir;
-  /** "Finished list without a date" (ARCHITECTURE "Archive"). */
+  /** "Finished list without a date" (feature tasks-archive). */
   undatedDone: UndatedDone;
   /** Tapping a task list card: grow inline (default) or open the drawer. */
   taskOpen: TaskOpen;
-  /** The Tasks view's filter, shared by Open, Canvas and Archive (ARCHITECTURE "Tasks filter"). */
+  /** The Tasks view's filter, shared by Open, Canvas and Archive (feature tasks-filter). */
   tasksFilter: TasksFilter;
-  /** The UI language: `auto` (device language) or a fixed one (ARCHITECTURE "i18n"). */
+  /** The UI language: `auto` (device language) or a fixed one (feature language). */
   language: LanguagePref;
-  /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
+  /** Bedtime mode: the night band in the timeline views and the reminder (feature bedtime). */
   bedtime: BedtimePrefs;
-  /** Which reminders become system notifications (ARCHITECTURE "Notifications"). */
+  /** Which reminders become system notifications (feature reminders). */
   notify: NotifyPrefs;
-  /** Labs: the week as a two-row overview that fits one screen (ARCHITECTURE "Two-row week"; off by default). */
+  /** Labs: the week as a two-row overview that fits one screen (feature two-row-week; off by default). */
   weekTwoRow: boolean;
   /** Labs: a tap on a task-list card grows it in place (the grown card); off, a tap opens the list sheet. */
   labsGrowCards: boolean;
@@ -241,7 +241,7 @@ export interface Prefs {
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
 interface StoredPrefs extends Prefs {
   hiddenCalendars: string[];
-  /** The person's "Calendar app: tasks" calendar, once found or created (ARCHITECTURE §3). */
+  /** The person's "Calendar app: tasks" calendar, once found or created (feature tasklists-own-calendar). */
   tasksCalendarId: string | null;
   theme?: StoredTheme;
 }
@@ -306,7 +306,7 @@ export class PrefsStore {
     if (!t) return { ...DEFAULT_THEME, overrides: {} };
     const overrides = t.overrides ?? {};
     if (t.seasonalMigrated) return { preset: t.preset, overrides, seasonal: t.seasonal ?? 'off' };
-    // read-time migration (ARCHITECTURE "Seasons & holidays"): Automatic => Default + all, scene `season` => header, else off
+    // read-time migration (feature theme-menu): Automatic => Default + all, scene `season` => header, else off
     const { scene, ...rest } = overrides;
     if (t.preset === 'Automatic') return { preset: 'Default', overrides: scene === 'season' ? rest : overrides, seasonal: 'all' };
     if (scene === 'season') return { preset: t.preset, overrides: rest, seasonal: 'header' };
@@ -314,7 +314,7 @@ export class PrefsStore {
   }
 
   /**
-   * Folds the retired top bar scene into the person's theme, once (ARCHITECTURE "Themes"). The scene that was
+   * Folds the retired top bar scene into the person's theme, once (feature theme-scenes). The scene that was
    * visible wins: the theme's own scene if it was not `none`, otherwise the old top bar setting.
    *
    * @param legacy The old `Settings.scene`, or undefined when there is none to migrate.

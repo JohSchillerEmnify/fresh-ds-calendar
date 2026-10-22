@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One area on the Canvas (ARCHITECTURE "Canvas"): a named, coloured rectangle drawn under the notes. A long press anywhere
+ * One area on the Canvas (feature tasks-canvas): a named, coloured rectangle drawn under the notes. A long press anywhere
  * on it (or a mouse drag on its header) moves it, a tap on the header edits it; the body pans the canvas for a mouse and a
  * finger that moves at once. After a long press without moving (or a click) four 44 px handles on the corners resize it,
  * the calendar's resize-handle pattern. Membership of notes is by position and drawn nowhere.

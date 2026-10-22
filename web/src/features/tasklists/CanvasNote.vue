@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One sticky note on the Canvas (ARCHITECTURE "Canvas"): a card in the category colour with a grip strip (the date, when
+ * One sticky note on the Canvas (feature tasks-canvas): a card in the category colour with a grip strip (the date, when
  * the list has one) above the tray's own `TaskListView` in its compact form, so ticking, the celebration and the support
  * cat are the existing code. The note only draws where it is told to (`transform`); picking it up and saving its place
  * belong to the canvas.
@@ -23,7 +23,7 @@ const props = defineProps<{
   /** Name of the area the note lies in, empty for none. */
   area: string;
   dragging: boolean;
-  /** The Tasks filter does not match: drawn faint and out of reach (A-140). */
+  /** The Tasks filter does not match: drawn faint and out of reach (feature tasks-filter). */
   dimmed: boolean;
 }>();
 const emit = defineEmits<{ completed: [catMs: number] }>();

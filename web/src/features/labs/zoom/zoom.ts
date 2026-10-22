@@ -1,5 +1,5 @@
 /**
- * Pure maths of the Labs zoom month (ARCHITECTURE "Labs: Zoom month"): the zoom range, the pan that keeps the point under
+ * Pure maths of the Labs zoom month (feature zoom-month): the zoom range, the pan that keeps the point under
  * a gesture in place, how big a cell is at a zoom, and how much of each level of detail a cell of that size shows. No DOM,
  * store or timer, so the rules are unit-tested with plain numbers.
  */
