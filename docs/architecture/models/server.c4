@@ -43,6 +43,15 @@ model {
     diag = component 'Diagnostics log' {
       description 'Writes one-line JSON log entries from a fixed list of fields, never personal data'
     }
+    backup = component 'Backup' {
+      description 'Backs up each person\'s server data to their Drive after changes, daily and on request, and restores it'
+    }
+    sharedLists = component 'Shared lists' {
+      description 'Keeps task lists shared between people, checks who may see them and applies the category sharing rules'
+    }
+    sharedStore = store 'Shared lists store' {
+      description 'One document per shared list, the category sharing rules and the known people, on disk'
+    }
     mockProvider = component 'Mock provider' {
       description 'A Google Calendar stand-in kept on disk, for local runs and tests'
     }
@@ -55,6 +64,12 @@ model {
     calendarService -> mockProvider 'reads and writes through, when started with the mock'
     tasksCalendar -> googleProvider 'finds or creates the hidden calendar through'
     auth -> sessions 'keeps sessions and tokens in'
+    auth -> backup 'restores a person with no data at sign-in'
+    prefsApi -> backup 'marks the person changed'
+    backup -> prefsStore 'collects and restores the person\'s files'
+    backup -> sharedLists 'collects and restores the lists the person owns'
+    sharedLists -> sharedStore 'reads and writes'
+    calendarService -> sharedLists 'merges shared lists into reads and item changes; moves a list in and out when sharing starts and stops'
     googleProvider -> sessions 'uses the person\'s token from'
     googleProvider -> diag 'logs failed Google calls and cooldowns to'
     googleProvider -> rateGuard 'reads through its cache; holds every call during a cooldown'
@@ -65,6 +80,7 @@ model {
 
   calendar.server.googleProvider -> google 'lists, inserts, patches and deletes events and calendars'
   calendar.server.auth -> google 'signs the person in and receives their calendar access'
+  calendar.server.backup -> google 'keeps the last 7 versions in the person\'s hidden Drive app folder'
   calendar.web.signin -> calendar.server.auth 'starts the sign-in and checks the session'
   calendar.web.sync -> calendar.server.diag 'sends one beacon when the error banner appears'
 

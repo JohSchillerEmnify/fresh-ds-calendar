@@ -69,3 +69,43 @@ Feature: Sharing task lists with another person
       | title | Food |
     And I save the task list
     Then the task list dialog shows the error "This task list was changed elsewhere. Reload it and try again."
+
+  @backlog
+  Scenario: Everyone sees the owner's category on a shared list
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" opens the Tasks view on another device
+    Then the task list "Groceries" in the Tasks view shows the category "Shopping"
+
+  @backlog
+  Scenario: The other person cannot change a shared list's category
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk" in the category "Shopping"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then "anna@example.com" is not offered to change the category
+
+  @backlog
+  Scenario: The owner deletes a shared list for everyone
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When I delete the shared task list "Groceries"
+    Then "anna@example.com" sees no task lists
+
+  @backlog
+  Scenario: The other person can leave a shared list but not delete it
+    Given "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
+    And "jo@example.com" is signed in
+    And I share the task list "Groceries" with "anna@example.com"
+    When "anna@example.com" edits the shared task list "Groceries"
+    Then "anna@example.com" is offered to leave the list, not to delete it
+
+  @backlog
+  Scenario: Someone who has never signed in is not offered for sharing
+    Given "bob@example.com" has never signed in
+    And "jo@example.com" has an undated task list "Groceries" with the items "Milk"
+    And "jo@example.com" is signed in
+    When I open "Share with" for the task list "Groceries"
+    Then I can share only with "anna@example.com"

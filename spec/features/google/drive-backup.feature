@@ -5,6 +5,8 @@ Feature: Backup to Google Drive
   only that folder, never my other files. Backups run by themselves after changes (once I stop for a while), once a day
   even without changes, and when I press "Back up now". A backup that fails never gets in the way of normal use. On a
   server that has nothing of mine, my data comes back by itself at sign-in; otherwise I can restore it from Settings.
+  The last 7 backups are kept; someone with nothing of their own on the server gets none, and a restore never
+  overwrites what other people use.
 
   Background:
     Given the time is 2026-10-12 08:00
@@ -71,3 +73,32 @@ Feature: Backup to Google Drive
     Then I am asked to allow backups to Google Drive
     And there is no button to back up now
     And the Drive holds 0 backups of "anna@example.com"
+
+  @backlog
+  Scenario: Only the last 7 backups are kept
+    Given "jo@example.com" is signed in
+    And I chose the theme "Neon"
+    When I back up now 8 times
+    Then the Drive holds 7 backups of "jo@example.com"
+
+  @backlog
+  Scenario: Someone with nothing of their own on the server is not backed up
+    Given "anna@example.com" is signed in
+    When a day passes on the server
+    Then the Drive holds 0 backups of "anna@example.com"
+
+  @backlog
+  Scenario: Restoring a second time undoes the restore
+    Given "jo@example.com" is signed in
+    And I chose the theme "Neon" and backed it up
+    And I chose the theme "Winter"
+    When I restore from the backup and confirm, twice
+    Then the theme "Winter" is in use
+
+  @backlog
+  Scenario: My restore does not overwrite what another person uses
+    Given "jo@example.com" is signed in with the theme "Neon" backed up
+    And "anna@example.com" adds the category "Garden"
+    When I restore from the backup and confirm
+    Then the theme "Neon" is in use
+    And the category "Garden" still exists

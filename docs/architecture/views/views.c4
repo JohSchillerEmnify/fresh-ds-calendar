@@ -118,4 +118,39 @@ views {
     calendar.server.auth -> calendar.server.sessions 'stores the token and a session, only for an allowed address'
     calendar.server.auth -> calendar.web.signin 'the session cookie; back to the page asked for'
   }
+
+  dynamic view backupAfterChange {
+    title 'Backing up after a change'
+
+    owner -> calendar.web.prefs 'changes a setting'
+    calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+    calendar.server.prefsApi -> calendar.server.backup 'marks the person changed'
+    calendar.server.backup -> calendar.server.prefsStore 'collects the person\'s files, once the person stops for a while'
+    calendar.server.backup -> google 'uploads a new version; drops the oldest beyond 7'
+  }
+
+  dynamic view restoreAtSignIn {
+    title 'A fresh server restores a person at sign-in'
+
+    owner -> calendar.web.signin 'signs in'
+    calendar.web.signin -> calendar.server.auth 'starts the sign-in'
+    calendar.server.auth -> calendar.server.backup 'the person has no data here'
+    calendar.server.backup -> google 'reads the newest readable version'
+    calendar.server.backup -> calendar.server.prefsStore 'writes the person\'s files back'
+    calendar.server.backup -> calendar.server.sharedLists 'recreates the lists the person owns'
+    calendar.server.auth -> calendar.web.signin 'signed in, data back'
+  }
+
+  dynamic view shareList {
+    title 'Sharing a task list'
+
+    owner -> calendar.web.listForm 'shares "Groceries" with Anna'
+    calendar.web.listForm -> calendar.server.tasksApi 'shares the list'
+    calendar.server.tasksApi -> calendar.server.calendarService 'moves the list'
+    calendar.server.calendarService -> calendar.server.sharedLists 'stores it shared, Anna a member'
+    calendar.server.calendarService -> calendar.server.googleProvider 'deletes the event from the tasks calendar'
+    calendar.web.items -> calendar.server.itemsApi 'Anna\'s next sync'
+    calendar.server.itemsApi -> calendar.server.calendarService 'reads Anna\'s range'
+    calendar.server.calendarService -> calendar.server.sharedLists 'merges in the lists Anna may see'
+  }
 }

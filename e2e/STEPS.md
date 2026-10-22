@@ -1884,6 +1884,13 @@ the quiet period of the backup has passed
 a day passes on the server
 the Drive holds {int} backup(s) of {string}
 I back up now
+I back up now {int} times
+I chose the theme {string} and backed it up
+{string} is signed in with the theme {string} backed up
+I restore from the backup and confirm
+I restore from the backup and confirm, twice
+{string} adds the category {string}
+the category {string} still exists
 the last backup is from {date} at {time}
 the server loses all data of {string}
 I restore from the backup
@@ -1943,6 +1950,14 @@ I share the category {string} with {string} in the settings
 the task list {string} in the Tasks view is shared with {string}
 the item {string} of the task list {string} in the Tasks view is ticked
 I edit the task list {string} in the Tasks view
+the task list {string} in the Tasks view shows the category {string}
+{string} edits the shared task list {string}
+{string} is not offered to change the category
+I delete the shared task list {string}
+{string} is offered to leave the list, not to delete it
+{string} has never signed in
+I open "Share with" for the task list {string}
+I can share only with {string}
 ```
 
 - "A, B and C may use the calendar": a three-address allow-list; TEST_MODE also records every address as a known person

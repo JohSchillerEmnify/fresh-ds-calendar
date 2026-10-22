@@ -561,7 +561,7 @@ off). `POST /api/__test/reset` forgets every person's document.
 ### Backups (`/api/backup`)
 
 All three need a session while sign-in is on. With sign-in off there is no Google account, so `GET` answers
-`available: false` and the two `POST`s answer `404 NOT_FOUND`. Details: ARCHITECTURE "Backups".
+`available: false` and the two `POST`s answer `404 NOT_FOUND`. Why Drive's hidden app folder: ADR 0010.
 
 ```ts
 interface BackupStatus {
@@ -579,6 +579,25 @@ interface BackupStatus {
 | `GET` | `/api/backup` | `200 BackupStatus`. Reads the person's `backup-state.json` only; never calls Drive. |
 | `POST` | `/api/backup` | Backs up now (forced, no throttle) and answers `200 BackupStatus` with the new `lastBackupAt`. `403 DRIVE_PERMISSION_REQUIRED` without the scope; `502 BACKUP_FAILED` (message = reason) when Drive fails, the status then shows `failed`. |
 | `POST` | `/api/backup/restore` | Safety backup, then restores the newest readable version over the person's server data. `200 BackupStatus`. `403 DRIVE_PERMISSION_REQUIRED`; `404 NO_BACKUP` when Drive holds none; `502 BACKUP_FAILED` when the safety backup or Drive fails (nothing is restored then). |
+
+**Backup bundle** (the Drive file; a restore must read every bundle an older version wrote). One file per backup,
+`backup-<sub>-<UTC timestamp>.json` in the person's Drive `appDataFolder`, at most 5 MB:
+
+```ts
+interface BackupBundle {
+  schema: 1;
+  created: DateTime;
+  appVersion: string;
+  sub: string;                        // the person's Google id
+  files: Record<string, string>;      // path relative to DATA_DIR -> UTF-8 content
+}
+```
+
+`files` holds everything under `users/<sub>/` except `google-token.json` (a secret) and `backup-state.json`; the files
+of registered stores under their own top-level folder (`shared/lists/<id>.json` for lists the person owns,
+`shared/memberships/<sub>.json` for lists they belong to); and the server-wide files under `server/<path>`. A restore
+writes only paths under `users/<sub>/` or a registered folder, and server-wide files only onto a server where every one
+of them is still untouched.
 
 ### Motivation: check-in streak and plant
 
