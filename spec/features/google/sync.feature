@@ -7,6 +7,8 @@ Feature: Background sync with Google Calendar
   made in the official Google Calendar app.
   If Google or the network is unreachable, a non-blocking error banner with a retry button is shown
   and the last known data stays usable.
+  If Google asks the app to slow down, that is not an outage: the last known data stays, with no banner, and the app
+  catches up once Google lets it through.
 
   Background:
     Given the calendar is empty
@@ -175,3 +177,21 @@ Feature: Background sync with Google Calendar
     When I cancel the event dialog
     And the app regains focus
     Then I see the event "Orthodontist" on 2026-10-14
+
+  Rule: When Google asks the app to slow down, the calendar stays as it was, without an error, and catches up afterwards
+
+    @backlog
+    Scenario: While Google asks the app to slow down, I keep seeing my calendar without an error
+      Given automatic sync runs every 2 seconds
+      And I open the week view for 2026-10-12
+      When Google asks the app to slow down for the next sync
+      Then I see the event "Dentist" on 2026-10-14
+      And I do not see the sync error banner
+
+    @backlog
+    Scenario: Once Google lets the app through again, a change made in the meantime appears
+      Given automatic sync runs every 2 seconds
+      And I open the week view for 2026-10-12
+      And Google asks the app to slow down for the next sync
+      When Google adds an event "Call mom" on 2026-10-14 from 18:00 to 18:30
+      Then once the slow-down is over I see the event "Call mom" on 2026-10-14

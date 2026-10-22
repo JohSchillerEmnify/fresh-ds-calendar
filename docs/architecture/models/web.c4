@@ -30,9 +30,18 @@ model {
     listSheet = component 'List sheet' {
       description 'The bottom sheet a tap opens on a task list; carries the Show on door switch too'
     }
+    items = store 'Items store' {
+      description 'The events and task lists of the visible range, with item changes applied before the server confirms them'
+    }
+    sync = component 'Sync' {
+      description 'Decides when to re-fetch and shows the error banner while Google or the network is unreachable'
+    }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }
+
+    sync -> items 're-fetches on route change, timer, focus and network return'
+    timegrid -> items 'shows'
 
     listForm -> pluginUi 'offers the door plugin\'s Show on door switch'
     listSheet -> pluginUi 'offers the door plugin\'s Show on door switch'

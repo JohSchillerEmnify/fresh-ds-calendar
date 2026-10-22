@@ -253,3 +253,16 @@ Feature: Displaying events in the calendar views
     When I open the day view for 2026-10-14
     Then the event "Workshop" shows the location "Room 4, Main St 12"
 
+  Rule: An event repeating in Google shows on every day it occurs, and changing one occurrence changes only that one
+
+    @backlog
+    Scenario: A weekly event from Google shows in every week it occurs
+      Given Google has an event "Yoga" repeating every week from 2026-10-06 from 18:00 to 19:00
+      When I open the month view for 2026-10
+      Then I see the event "Yoga" on each of 2026-10-06, 2026-10-13, 2026-10-20 and 2026-10-27
+
+    @backlog
+    Scenario: Moving one occurrence of a repeating event moves only that one
+      Given Google has an event "Yoga" repeating every week from 2026-10-06 from 18:00 to 19:00
+      When I move the "Yoga" of 2026-10-13 to 2026-10-14
+      Then I see the event "Yoga" on each of 2026-10-06, 2026-10-14, 2026-10-20 and 2026-10-27

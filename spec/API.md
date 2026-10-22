@@ -822,3 +822,40 @@ signs the person in and redirects to `/?calendar=missing`; calendar calls then a
 "grant calendar access". After sign-in and sign-out the server drops that person's cached provider so a new token
 applies without a restart. Redirect URI =
 `GOOGLE_REDIRECT_URI` (default `${PUBLIC_URL}/api/auth/google/callback`).
+
+## Storage in Google
+
+How a task list is stored as a Google event in the person's hidden tasks calendar (ADR 0006). Other Google clients see
+these events, so this encoding is a contract like the REST API above.
+
+| Task list | Google event |
+|---|---|
+| `title` | `summary` |
+| `date`, `time = null` | all-day: `start.date = date`, `end.date = date + 1` |
+| `date`, `time = HH:mm` | timed: `start.dateTime = date T time`, `end.dateTime = start + (estimateMinutes ?? 30) min`, `timeZone = TZ` |
+| `estimateMinutes` | `extendedProperties.private.estimate` (decimal string; absent = none) |
+| `recurrence` (@optional) | Google `recurrence: ["RRULE:FREQ=DAILY\|WEEKLY\|MONTHLY"]`; per-occurrence ticks are stored by patching the instance (Google exception) |
+| marker | `extendedProperties.private.kind = "tasklist"` |
+| format version | `extendedProperties.private.tlv = "1"` |
+| `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
+| | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
+| human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
+| `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| `canvas` (@optional) | `extendedProperties.private.cx` and `.cy`: integer strings `0..10000`, the note's place on the Canvas (the Canvas of the Tasks view); both absent = no place yet |
+| undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |
+| `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
+| `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
+| color in Google | `colorId` = nearest Google color to the category color; no category → `colorId` removed (calendar color) |
+
+- Limits: 200 items, 200 chars per title; Google allows max 300 extended properties / 32 kB total, which these limits
+  respect (200 × ~215 chars ≈ 43 kB worst case → the server rejects writes whose encoded size exceeds 30 kB with
+  `400 VALIDATION_ERROR "Task list is too large"`).
+- **Authority**: `extendedProperties` is authoritative. If `kind = tasklist` but no `items` property exists (created
+  by hand in Google, or stripped), items are parsed from the description (`☐`/`☑`/`[ ]`/`[x]` prefixes, other
+  non-empty lines = not done) and get stable ids derived from line index + title hash; the first app write then
+  stores proper `items`. Edits made to the description in the Google app are overwritten on the next app write
+  (documented limitation).
+- Task lists are excluded from the plain event endpoints and vice versa (404).
+- The app shows the category color from settings (exact hex), while Google shows the nearest `colorId`. When a
+  category's color changes, Google `colorId`s of existing task lists are updated lazily on their next write (no mass
+  rewrite).

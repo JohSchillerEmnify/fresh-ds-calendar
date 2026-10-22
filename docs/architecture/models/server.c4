@@ -19,13 +19,43 @@ model {
       description 'Optional, off by default: the read-only door answer for one machine client — open items of door-tagged lists and today\'s events of the key\'s person, titles and times only'
     }
 
+    itemsApi = component 'Items API' {
+      description 'Answers the events and task lists of a date range, marked stale while Google holds the app back'
+    }
+    tasksCalendar = component 'Tasks calendar' {
+      description 'Finds or creates each person\'s hidden "Calendar app: tasks" calendar, once per person'
+    }
+    taskCodec = library 'Task list codec' {
+      description 'Turns a task list into a Google event and back (contract: API.md "Storage in Google")'
+    }
+    googleProvider = component 'Google provider' {
+      description 'Talks to one person\'s Google Calendar with their token'
+    }
+    rateGuard = component 'Rate guard' {
+      description 'One person\'s short read cache and cooldown in front of Google'
+    }
+    mockProvider = component 'Mock provider' {
+      description 'A Google Calendar stand-in kept on disk, for local runs and tests'
+    }
+
     prefsApi -> prefsStore 'reads and writes'
+    itemsApi -> calendarService 'reads the range'
+    calendarService -> tasksCalendar 'keeps task lists in'
+    calendarService -> taskCodec 'encodes and decodes task lists with'
+    calendarService -> googleProvider 'reads and writes through'
+    calendarService -> mockProvider 'reads and writes through, when started with the mock'
+    tasksCalendar -> googleProvider 'finds or creates the hidden calendar through'
+    googleProvider -> rateGuard 'reads through its cache; holds every call during a cooldown'
     tasksApi -> calendarService 'stores the list with its tags'
     plugins -> doorPlugin 'mounts under /api/door when DOOR_API_TOKEN is set'
     doorPlugin -> calendarService 'reads the key\'s person\'s lists and events'
   }
 
+  calendar.server.googleProvider -> google 'lists, inserts, patches and deletes events and calendars'
+
   calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
+  calendar.web.items -> calendar.server.itemsApi 'fetches the visible range'
+  calendar.web.items -> calendar.server.tasksApi 'saves item changes, applied optimistically'
   calendar.web.listForm -> calendar.server.tasksApi 'saves the list, Show on door as the door tag'
   calendar.web.listSheet -> calendar.server.tasksApi 'flips the door tag'
   calendar.web.pluginUi -> calendar.server.plugins 'reads the enabled plugins from the health answer'

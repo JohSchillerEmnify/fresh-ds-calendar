@@ -101,3 +101,13 @@ Feature: Working with task list items
     Then the expanded task list items are "Bread, Milk, Eggs"
     When I reload the page
     Then the collapsed task list "Groceries" lists the items "Bread, Milk, Eggs"
+
+  Rule: A task list too big to store in Google is refused, and nothing is lost
+
+    @backlog
+    Scenario: Adding an item to a list that is already full is refused with a message
+      Given the calendar contains a task list "Packing" on 2026-10-14 with 190 generated long items
+      And I expand the task list "Packing"
+      When I add the item "Sunscreen"
+      Then I am told "Task list is too large"
+      And the task list "Packing" does not contain the item "Sunscreen"

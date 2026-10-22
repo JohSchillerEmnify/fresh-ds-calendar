@@ -22,6 +22,10 @@ specification {
     }
   }
 
+  deploymentNode environment
+  deploymentNode node
+  deploymentNode device
+
   tag experimental
   tag external
 }
@@ -43,6 +47,11 @@ model {
     widget = app 'Phone widget' {
       description 'Native Android home-screen widget that draws the current week'
     }
+  }
+
+  google = system 'Google Calendar' {
+    #external
+    description 'Each person\'s own Google calendars: where their events and task lists live'
   }
 
   doorBoard = system 'Door board' {

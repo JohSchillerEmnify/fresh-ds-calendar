@@ -86,11 +86,12 @@ the calendar contains a task list {string} on {date} at {time} with items:
 the calendar contains a task list {string} on {date} at {time} for {int} minutes with items:
 the calendar contains an empty task list {string} on {date}
 the calendar contains a task list {string} on {date} with {int} generated items
+the calendar contains a task list {string} on {date} with {int} generated long items
 Google contains a raw task list event {string} on {date} with the description:
 ```
 
 All-day ranges in steps are inclusive (`from 2026-10-17 to 2026-10-20` = 4 days); the API uses an exclusive end.
-Generated items are titled exactly `Generated item 1` … `Generated item N`, all not done. 40 such items serialize to
+Generated items are titled exactly `Generated item 1` … `Generated item N`, all not done. Generated long items are the same titles padded with `x` to 150 characters. 40 such items serialize to
 more than 1024 characters of JSON, which forces chunking (see ARCHITECTURE.md).
 The raw task list event has `extendedProperties.private.kind = "tasklist"` but no `items` property (doc string = description).
 
@@ -134,6 +135,8 @@ no day is highlighted as today
 
 ```
 I see the event {string} on {date}
+I see the event {string} on each of {datelist}
+I move the {string} of {date} to {date}
 I see the event {string} on {weekday}
 I see the event {string} on each day from {date} to {date}
 I see the event {string} as a bar from {date} to {date}
@@ -243,6 +246,8 @@ I untick the item {string}
 the item {string} is ticked
 the item {string} is not ticked
 I add the item {string}
+I am told {string}
+the task list {string} does not contain the item {string}
 I rename the item {string} to {string}
 I rename the item {string} to {string} but press Escape
 I delete the item {string}
@@ -334,6 +339,7 @@ the Google event for the task list {string} has the private extended property {s
 the Google event for the task list {string} has the description:
 the Google event for the task list {string} stores its items in more than one chunk
 Google adds an event {string} on {date} from {time} to {time}
+Google has an event {string} repeating every week from {date} from {time} to {time}
 Google renames the event {string} to {string}
 Google moves the event {string} to {date} from {time} to {time}
 Google deletes the event {string}
@@ -342,6 +348,7 @@ Google ticks the item {string} in the task list {string}
 Google renames the task list {string} to {string}
 Google becomes unavailable
 Google becomes available again
+Google asks the app to slow down for the next sync
 ```
 
 `the Google event X has:` compares dotted paths of the raw Google event resource (`calendarId` is the calendar the
@@ -357,6 +364,7 @@ I wait for the automatic sync
 I retry the sync
 I see the sync error banner
 I do not see the sync error banner
+once the slow-down is over I see the event {string} on {date}
 ```
 
 - Network: `context.setOffline(true|false)`.

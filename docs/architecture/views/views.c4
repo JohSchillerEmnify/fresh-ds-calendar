@@ -63,3 +63,48 @@ views {
     calendar.server.doorPlugin -> doorBoard 'answers open items (latest due occurrence only) and today\'s titles and times'
   }
 }
+
+views {
+  deployment view prod {
+    title 'Where it runs'
+    include prod.**
+  }
+
+  dynamic view loadRange {
+    title 'Loading the visible range'
+
+    owner -> calendar.web.timegrid 'opens a week'
+    calendar.web.sync -> calendar.web.items 're-fetches the visible range'
+    calendar.web.items -> calendar.server.itemsApi 'fetches the range'
+    calendar.server.itemsApi -> calendar.server.calendarService 'reads the range'
+    calendar.server.calendarService -> calendar.server.googleProvider 'lists each calendar\'s events and the task lists'
+    calendar.server.googleProvider -> calendar.server.rateGuard 'serves a fresh cached read, else lets the call through'
+    calendar.server.googleProvider -> google 'lists events'
+  }
+
+  dynamic view rateLimitedRead {
+    title 'Google asks the app to slow down'
+
+    calendar.server.googleProvider -> google 'lists events'
+    google -> calendar.server.googleProvider 'asks to slow down'
+    calendar.server.googleProvider -> calendar.server.rateGuard 'starts a cooldown, longer each time it repeats'
+    calendar.web.items -> calendar.server.itemsApi 'fetches the range on the next poll'
+    calendar.server.itemsApi -> calendar.server.calendarService 'reads the range'
+    calendar.server.calendarService -> calendar.server.googleProvider 'lists events'
+    calendar.server.googleProvider -> calendar.server.rateGuard 'answers from the cache, makes no Google call'
+    calendar.server.itemsApi -> calendar.web.items 'answers the last known data, marked stale'
+    calendar.web.items -> calendar.web.sync 'reports no error: no banner'
+  }
+
+  dynamic view firstTaskList {
+    title 'A person\'s first task list'
+
+    owner -> calendar.web.listForm 'creates "Groceries"'
+    calendar.web.listForm -> calendar.server.tasksApi 'saves the list'
+    calendar.server.tasksApi -> calendar.server.calendarService 'stores the list'
+    calendar.server.calendarService -> calendar.server.tasksCalendar 'gets the person\'s tasks calendar'
+    calendar.server.tasksCalendar -> calendar.server.googleProvider 'creates it hidden, once'
+    calendar.server.calendarService -> calendar.server.taskCodec 'encodes the list as an event'
+    calendar.server.calendarService -> calendar.server.googleProvider 'inserts the event into the tasks calendar'
+  }
+}
