@@ -1,7 +1,6 @@
 @android-app @id:android-app
 Feature: The Android app
-  The Android app shows the calendar's web app from the server it was set up with, and the settings say which one that
-  is. Inside the app, reminders reach the lock screen as phone notifications, and a morning overview sums up the day.
+  The Android app shows the calendar's web app; which server it loads is configuration, not behaviour. Inside the app, reminders reach the lock screen as phone notifications, and a morning overview sums up the day.
   The app is native Android: these scenarios are proven by the app's own tests or on a device, not in the browser suite.
 
   Background:
@@ -9,14 +8,8 @@ Feature: The Android app
     And the time is 2026-10-12 20:00
 
   @backlog
-  Scenario: Inside the app the settings show the server
-    Given the app runs inside the Android app on "cal.example.org"
-    When I open the settings
-    Then the settings show the server "cal.example.org"
-
-  @backlog
   Scenario: A reminder is planned as a phone notification
-    Given the app runs inside the Android app on "cal.example.org"
+    Given the app runs inside the Android app
     And the calendar contains an event "Dentist" on 2026-10-13 from 11:00 to 11:30
     And the event "Dentist" has its own reminders "30" in Google
     When I open the week view for 2026-10-12
@@ -24,7 +17,7 @@ Feature: The Android app
 
   @backlog
   Scenario: The morning overview sums up the next day
-    Given the app runs inside the Android app on "cal.example.org"
+    Given the app runs inside the Android app
     And the morning overview is on at 07:30
     And the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
     When I open the week view for 2026-10-12

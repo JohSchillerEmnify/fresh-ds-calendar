@@ -2274,8 +2274,7 @@ opening the event {string} shows the time {string}
 ## Android app and widgets (native, `@android-app`, `@phone-widget`)
 
 ```
-the app runs inside the Android app on {string}
-the settings show the server {string}
+the app runs inside the Android app
 the morning overview is on at {time}
 a notification {string} is planned for {date} {time}
 a notification {string} saying {string} is planned for {date} {time}
