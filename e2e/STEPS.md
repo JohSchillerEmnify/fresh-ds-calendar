@@ -182,6 +182,7 @@ the items on {date} are shown in the order {string}
 
 ```
 I start creating an event
+I tap beside the dialog
 I click the time slot {time} on {date}
 I fill in the event form with:
 I press Enter in the event field {string}
@@ -196,6 +197,7 @@ I cancel the deletion
 I undo the deletion
 the undo time is over
 the snackbar says {string}
+the snackbar is drawn in the {scheme} theme
 the event dialog is open
 the event dialog is closed
 the event dialog shows the error {string}
@@ -383,8 +385,10 @@ I swipe up on the calendar
 I start swiping left on the calendar by a quarter of the width
 I start swiping left on the calendar by half the width
 the week of {date} is shown beside the current one
+no neighbouring period is shown beside the current one
 I let go
 I pinch out on the time grid to twice the size
+one hour of the time grid has its default height
 one hour of the time grid is about twice as tall as before
 one hour of the time grid is still about twice as tall as at the start
 the task list {string} is drawn a quarter as tall as the event {string}
@@ -1155,6 +1159,7 @@ the approach bar shows {string}, {string} and {string} in this order
 the approach bar shows {string} at its end
 the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
+the approach bar shows its entries in {int} rows
 the approach bar shows {int} entries
 on the approach bar {string} is {int} times as long as {string}
 the title of {string} is shown next to its block
@@ -1162,6 +1167,7 @@ on the approach bar {string} starts at now and shows {int} minutes
 I open the timeline view
 {string} comes before {string} on the timeline
 the now marker is before {string} on the timeline
+on the timeline {string} and {string} are side by side
 on the timeline {string} is farther from {string} than {string} is from the now marker
 on the timeline {string} is about {int} times as long as {string}
 {string} is in the all-day band above the timed entries
@@ -1279,6 +1285,7 @@ I tap the day label {date} in the horizontal view
 a new version of the app is deployed
 the app syncs
 I am told a new version is available
+I am not told a new version is available
 I choose to reload
 the app runs the new version
 ```
@@ -1366,6 +1373,7 @@ the event {string} does not glow
 {string} may use the calendar
 I set the {string} slider to {int}
 the {string} slider shows {string}
+the {string} slider is disabled
 no option for {string} is pressed
 the option {string} for {string} is pressed
 the event {string} has a corner radius of {int} px
@@ -1544,6 +1552,8 @@ Google shows the calendar {string}
 
 ```
 bedtime mode is on with fixed times {time} and {time}
+bedtime mode is on with fixed times {time} and {time}, and {time} and {time} on weekends
+this device has already shown tonight's bedtime reminder
 bedtime mode is on based on my first appointment with {int} hours of sleep and {int} minutes of lead time
 the night bands of {date} are {string}
 the night band runs from {date} {time} to {date} {time}

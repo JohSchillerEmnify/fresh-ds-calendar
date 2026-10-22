@@ -76,3 +76,27 @@ Feature: Bedtime mode
     When I open the day view for 2026-10-14
     Then no night band is shown
     And I do not see a bedtime reminder
+
+  @backlog
+  Scenario: Different times on weekends apply to Friday and Saturday nights
+    Given the time is 2026-10-16 12:00
+    And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
+    When I open the week view for 2026-10-12
+    Then the night bands of 2026-10-17 are "00:00-09:00"
+    And the night bands of 2026-10-18 are "00:00-09:00, 23:00-24:00"
+
+  @backlog
+  Scenario: The reminder comes once per night
+    Given the time is 2026-10-14 22:40
+    And bedtime mode is on with fixed times 23:00 and 07:00
+    And this device has already shown tonight's bedtime reminder
+    When I open the day view for 2026-10-14
+    Then I do not see a bedtime reminder
+
+  @backlog
+  Scenario: A timed task list counts as the first appointment
+    Given the time is 2026-10-14 12:00
+    And the calendar contains a task list "Packing" on 2026-10-15 at 07:30 for 60 minutes
+    And bedtime mode is on based on my first appointment with 8 hours of sleep and 60 minutes of lead time
+    When I open the day view for 2026-10-14
+    Then the night band runs from 2026-10-14 22:30 to 2026-10-15 06:30

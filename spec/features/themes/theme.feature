@@ -66,3 +66,11 @@ Feature: Material 3 look and light/dark theme
   Scenario: Pressing a button shows a state layer
     When I open the week view for 2026-10-12
     Then pressing the create button shows a state layer
+
+  @backlog
+  Scenario: A snackbar follows the dark theme
+    Given the device prefers a dark color scheme
+    And the time is 2026-10-14 22:30
+    And bedtime mode is on with fixed times 23:00 and 07:00
+    When I open the day view for 2026-10-14
+    Then the snackbar is drawn in the dark theme

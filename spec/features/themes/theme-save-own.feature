@@ -46,3 +46,10 @@ Feature: Saving my fine-tuned look as my own theme
     And my own theme "Fine" has "icons" set to "rounded"
     And the "Corner radius" slider shows "4 px"
 
+  @backlog
+  Scenario: Saving under a name already in use adds a number
+    Given "jo@example.com" chose the theme "Neon"
+    And the seasons and holidays are off
+    When I save my look as my own theme named "Night"
+    And I save my look as my own theme named "Night"
+    Then the gallery offers the theme "Night 2"

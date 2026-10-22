@@ -137,3 +137,20 @@ Feature: Installable progressive web app
     When I open the week view for 2026-10-12
     Then I am not offered to download the new app version
 
+  Rule: An installed app updates itself, but never while a dialog is open
+
+    @backlog
+    Scenario: The installed app updates without asking
+      Given the service worker controls the page
+      When a new version of the app is deployed
+      And the app syncs
+      Then the app runs the new version
+      And I am not told a new version is available
+
+    @backlog
+    Scenario: An open dialog is never interrupted by the update
+      Given the service worker controls the page
+      And I start creating an event
+      And a new version of the app is deployed
+      When the app syncs
+      Then the event dialog is open

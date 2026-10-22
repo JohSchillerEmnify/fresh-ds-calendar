@@ -344,3 +344,22 @@ Feature: Creating, editing and deleting events
     Then the event dialog is open
     And the event form shows:
       | title | Dentist |
+
+  Rule: A tap beside a dialog closes it only while nothing was typed
+
+    @backlog
+    Scenario: Tapping beside an untouched dialog closes it
+      Given I open the week view for 2026-10-12
+      And I start creating an event
+      When I tap beside the dialog
+      Then the event dialog is closed
+
+    @backlog
+    Scenario: Tapping beside a dialog with a typed title keeps it open
+      Given I open the week view for 2026-10-12
+      And I start creating an event
+      And I fill in the event form with:
+        | title | Dentist |
+      When I tap beside the dialog
+      Then the event form shows:
+        | title | Dentist |

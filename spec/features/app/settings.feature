@@ -152,3 +152,11 @@ Feature: Settings
       | /settings          |
       | /settings/theme    |
       | /settings/reminders |
+
+  @backlog
+  Scenario: A setting that cannot be saved goes back to what it was
+    Given I open the path "/settings"
+    And the network connection is lost
+    When I choose "Week" as the default view
+    Then the default view "Month" is selected
+    And I see the sync error banner

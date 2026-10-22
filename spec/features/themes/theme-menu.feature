@@ -322,3 +322,16 @@ Feature: Choosing and fine-tuning a theme
     When I choose the theme "Default"
     Then the app uses the "outlined" icon set
 
+  @backlog
+  Scenario: Turning Header only on again drops my hand-picked scene
+    Given today is 2026-12-24
+    And the scene is "Mordor"
+    When I set the seasons and holidays to "Header only"
+    Then the top bar shows the "christmas" scene
+
+  @backlog
+  Scenario: The entry tint only applies to tinted entries
+    When I open the week view for 2026-10-12
+    And I open the theme menu
+    And I pick "Solid" for "Entries"
+    Then the "Entry tint" slider is disabled

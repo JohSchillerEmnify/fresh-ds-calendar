@@ -142,3 +142,9 @@ Feature: Labs: experimental views and the 24-hour clock
     Given the calendar contains an all-day event "Holiday" on 2026-10-14
     When I open the clock view for 2026-10-14
     Then the clock shows the all-day event "Holiday"
+
+  @backlog
+  Scenario: A Labs view that is not offered still opens by its address
+    When I open the clock view for 2026-10-14
+    Then the event "Dentist" is an arc from 09:00 to 10:00
+    And the view switcher does not offer "Clock"
