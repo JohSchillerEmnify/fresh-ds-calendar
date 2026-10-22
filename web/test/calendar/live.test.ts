@@ -22,6 +22,8 @@ const at = (hm: string) => new Date(`${D}T${hm}:00+02:00`);
 const laundry = { kind: 'tasklist', id: 'laundry', calendarId: 'tasks', title: 'Laundry', date: D, time: '18:00', items: [], doneCount: 0, totalCount: 1,
   estimateMinutes: 60, categoryId: null, tags: [], color: '#0b8043', reminders: { useDefault: false, minutes: [30] }, etag: 'e', updated: '' } as unknown as CalendarItem;
 const ten = { useDefault: false, minutes: [10] };
+/** End of the 8 planned days from D: the native schedule and the push plan wait until all of them are loaded. */
+const W = '2026-10-20';
 
 async function boot(hm: string, running: boolean) {
   const pinia = freshPinia();
@@ -29,7 +31,7 @@ async function boot(hm: string, running: boolean) {
   const clock = useClockStore();
   await clock.load();
   const items = useItemsStore();
-  items.applyResponse(D, '2026-10-13', [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist', reminders: ten }), ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call', reminders: ten })], 's');
+  items.applyResponse(D, W, [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist', reminders: ten }), ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call', reminders: ten })], 's');
   useSettingsStore().$patch({});
   return { pinia, clock, items };
 }
@@ -74,7 +76,7 @@ describe('now card', () => {
       kind: 'tasklist', id: 'tax', calendarId: 'primary', title: 'Tax paperwork', date: '2026-10-09', time: '02:00', items: [], doneCount: 0, totalCount: 2,
       estimateMinutes: null, categoryId: null, tags: [], color: '#000000', etag: 'e', updated: '',
     } as unknown as CalendarItem;
-    items.applyResponse(D, '2026-10-13', [tax, ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' })], 's');
+    items.applyResponse(D, W, [tax, ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' })], 's');
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
     const w = mount(NowCard, { global: { plugins: [pinia, router] } });
     const chips = w.findAll('[data-testid="approach-item"]');
@@ -168,14 +170,14 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     await flushPromises();
     expect(ui.snackbars.some((s) => s.testid === 'transition-warning')).toBe(false);
     ui.snackbars = [];
-    useItemsStore().applyResponse(D, '2026-10-13', [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later', reminders: { useDefault: true, minutes: [] } })], 's');
+    useItemsStore().applyResponse(D, W, [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later', reminders: { useDefault: true, minutes: [] } })], 's');
     await vi.advanceTimersByTimeAsync(50 * 60000);
     expect(ui.snackbars).toHaveLength(0);
   });
 
   it('rings at every lead of an event, the nearest due one only, and shows a day lead in words', async () => {
     const { clock, items } = await boot('10:25', true);
-    items.applyResponse(D, '2026-10-13', [ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', reminders: { useDefault: false, minutes: [30, 15] } })], 's');
+    items.applyResponse(D, W, [ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', reminders: { useDefault: false, minutes: [30, 15] } })], 's');
     const ui = useUiStore();
     startTransitionWarnings();
     clock.startTicker();
@@ -236,14 +238,33 @@ describe('transition warnings as Android notifications', () => {
     clock.nowTick = at('09:01').getTime();
     await nextTick();
     expect(plugin.schedule).toHaveBeenCalledTimes(2);
-    items.applyResponse(D, '2026-10-13', [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's3');
+    items.applyResponse(D, W, [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's3');
     await nextTick();
     expect(plugin.cancel).toHaveBeenCalledWith({ id: expect.stringContaining('dentist') });
   });
 
+  it('keeps the schedule while planned days are evicted from the range cache, and fetches them again', async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    const { items } = await boot('09:00', false);
+    const { calls } = mockFetch({ 'GET /api/items': () => ({ items: [], syncedAt: 's9' }) });
+    items.applyResponse(D, W, [ev('trip', t('2026-10-17', '12:00'), t('2026-10-17', '13:00'), { title: 'Trip', reminders: ten })], 's6');
+    startTransitionWarnings();
+    expect(plugin.schedule.mock.calls.map(([o]) => o.id)).toEqual([`${NATIVE_REMINDER_PREFIX}trip@2026-10-17T12:00-10`]);
+    // browsing months pushes the window out of the 6-range cache: only today stays loaded
+    for (let m = 1; m <= 6; m++) items.applyResponse(`2027-0${m}-01`, `2027-0${m}-28`, [], `m${m}`);
+    items.applyResponse(D, '2026-10-13', [], 's7');
+    await nextTick();
+    expect(plugin.cancel).not.toHaveBeenCalled();
+    expect(calls.filter((c) => c.path === '/api/items').map((c) => c.url.searchParams.get('to'))).toEqual([W]);
+  });
+
   it('builds the morning overview', async () => {
     const { items } = await boot('09:00', false);
-    items.applyResponse(D, '2026-10-13', [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), laundry], 's4');
+    items.applyResponse(D, W, [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), laundry], 's4');
     expect(morningOverview(items.byDate.get(D) ?? [])).toEqual({ title: 'Your day', body: '1 appointment · 1 list · first: Dentist 10:40' });
     expect(morningOverview([]).body).toBe('no appointments · no lists');
   });
@@ -256,9 +277,7 @@ describe('transition warnings as Android notifications', () => {
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
     const { items } = await boot('09:00', false);
-    items.applyResponse(D, '2026-10-13', [laundry], 's5');
-    // the clean-up waits for all planned days (8 from today) to be loaded
-    items.applyResponse(D, '2026-10-20', [laundry], 's5');
+    items.applyResponse(D, W, [laundry], 's5');
     const prefs = usePrefsStore();
     prefs.notify = { ...prefs.notify, tasklists: false };
     startTransitionWarnings();

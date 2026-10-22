@@ -105,3 +105,11 @@ One PR: the pieces share the payload contract and ship together.
   PNGs are precached by the service worker.
 - W5: the countdown, the plain text after the start and the removal at the end need the new APK (CHANGELOG 2026-10-23
   says so); an older APK ignores `kind`, `start` and `end` and keeps showing the moon.
+- Review round 2: events take their instants from their own offsets (`Date.parse(start/end)`), so one in the repeated
+  hour of 2026-10-25 rings on time; task lists (wall-clock only) are rebuilt in the zone. The native schedule is left
+  untouched while the planned days are not all loaded (evicted from the 6-range cache), and the window is fetched again;
+  I chose not to pin the window against eviction, because a pinned range would never be refetched and its reminders
+  would go stale. Only the start re-post is silent (`setOnlyAlertOnce`), so the next morning overview alerts again.
+  Cancelling a reminder also cancels its start alarm and its notification: opening the app after a reminder fired
+  therefore takes its notification away (the in-app snackbar shows it then). A start alarm after the end removes the
+  notification.

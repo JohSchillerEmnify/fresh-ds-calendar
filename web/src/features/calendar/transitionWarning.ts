@@ -159,6 +159,9 @@ export function startTransitionWarnings(): () => void {
       () => [clock.nowTick, items.byDate, items.ranges, cals.hidden, language.value, prefs.notify] as const,
       () => {
         if (typeof document !== 'undefined' && document.hidden) return; // the schedule stays as it was left
+        // with planned days missing (not loaded yet, or evicted from the range cache) their reminders would look gone and be
+        // cancelled: the schedule stays as it was until the window is loaded again (it is fetched)
+        if (!windowLoaded()) return;
         const tomorrow = toIsoDate(addDays(clock.todayDate, 1));
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
         const next = plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }).filter((p) => p.at > minuteStart).slice(0, NATIVE_REMINDER_LIMIT);
@@ -177,8 +180,8 @@ export function startTransitionWarnings(): () => void {
           const at = Date.parse(localToIso(dayOfOverview, prefs.notify.morningTime, clock.timeZone));
           want.set(NATIVE_MORNING_ID, { at, kind: 'summary', ...morningOverview(visible) });
         }
-        // once per start, once the planned days are loaded: whatever the plugin still holds that is not planned is stale
-        if (!cleaned && windowLoaded()) {
+        // once per start (the planned days are loaded here): whatever the plugin still holds that is not planned is stale
+        if (!cleaned) {
           cleaned = true;
           // an older APK has no `list`: the call then fails and nothing is cleaned
           void Promise.resolve().then(() => plugin.list()).then(({ ids }) => {

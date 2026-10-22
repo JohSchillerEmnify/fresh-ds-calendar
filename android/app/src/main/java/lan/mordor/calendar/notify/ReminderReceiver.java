@@ -52,20 +52,22 @@ public class ReminderReceiver extends BroadcastReceiver {
         // at the start the countdown gives way to the plain text, until the end
         long now = System.currentTimeMillis();
         if (e.start > now && e.end > e.start) {
-            Intent i = new Intent(ctx, ReminderReceiver.class).setAction(ACTION_STARTED).putExtra(Reminders.EXTRA_ID, id);
             try {
-                i.putExtra(EXTRA_ENTRY, e.toJson());
+                Reminders.setAlarm(ctx, e.start, startedAlarm(ctx, id, e.toJson()));
             } catch (JSONException ex) {
-                return;
+                // without the entry the countdown simply stays until the end
             }
-            PendingIntent pi = PendingIntent.getBroadcast(ctx, startedCode(id), i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            Reminders.setAlarm(ctx, e.start, pi);
         }
     }
 
-    /** The request code of the start alarm of a reminder (apart from the reminder's own alarm). */
-    static int startedCode(String id) {
-        return (id + "#started").hashCode();
+    /**
+     * The start alarm of a reminder (apart from its own alarm: another request code). A {@code null} entry gives the same
+     * PendingIntent for cancelling it (extras do not count when PendingIntents are matched).
+     */
+    static PendingIntent startedAlarm(Context ctx, String id, String entryJson) {
+        Intent i = new Intent(ctx, ReminderReceiver.class).setAction(ACTION_STARTED).putExtra(Reminders.EXTRA_ID, id);
+        if (entryJson != null) i.putExtra(EXTRA_ENTRY, entryJson);
+        return PendingIntent.getBroadcast(ctx, (id + "#started").hashCode(), i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /** The start has come: a notification still shown is put up again without the countdown; a dismissed one stays gone. */
@@ -77,8 +79,14 @@ public class ReminderReceiver extends BroadcastReceiver {
         if (!shown) return;
         try {
             Reminders.Entry e = Reminders.Entry.fromJson(id, json);
-            // the alarm is due at the start: never a countdown any more, even if it rings a moment early
-            show(ctx, e, Math.max(System.currentTimeMillis(), e.start));
+            long now = System.currentTimeMillis();
+            // a start alarm that comes after the end (the phone was off): the item is over, so is its notification
+            if (e.end > 0 && now >= e.end) {
+                NotificationManagerCompat.from(ctx).cancel(id.hashCode());
+                return;
+            }
+            // the alarm is due at the start: never a countdown any more, even if it rings a moment early; no second sound
+            show(ctx, e, Math.max(now, e.start), true);
         } catch (JSONException ex) {
             // an unreadable entry leaves the countdown as it is
         }
@@ -86,26 +94,27 @@ public class ReminderReceiver extends BroadcastReceiver {
 
     /** Posts the notification as of now; false when notifications are not allowed. */
     private static boolean show(Context ctx, Reminders.Entry e) {
-        return show(ctx, e, System.currentTimeMillis());
+        return show(ctx, e, System.currentTimeMillis(), false);
     }
 
-    /** Posts the notification as of {@code now}; false when notifications are not allowed. */
-    private static boolean show(Context ctx, Reminders.Entry e, long now) {
+    /** Posts the notification as of {@code now} ({@code quiet}: an update without sound); false when notifications are not allowed. */
+    private static boolean show(Context ctx, Reminders.Entry e, long now, boolean quiet) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             return false;
         }
         createChannel(ctx);
-        NotificationManagerCompat.from(ctx).notify(e.id.hashCode(), build(ctx, e, now));
+        NotificationManagerCompat.from(ctx).notify(e.id.hashCode(), build(ctx, e, now, quiet));
         return true;
     }
 
     /**
      * The notification of a reminder at {@code now}: the status bar icon of its kind (only bedtime has the moon); before
      * its start a countdown to it in the header that the system keeps current (a fixed "in 30 min" would be wrong when read
-     * later), from the start on only its text; it goes away at its end. Updates of it make no second sound.
+     * later), from the start on only its text; it goes away at its end. A {@code quiet} one (the re-post at the start)
+     * makes no second sound; every new reminder alerts, also one that replaces yesterday's of the same id.
      */
-    static Notification build(Context ctx, Reminders.Entry e, long now) {
+    static Notification build(Context ctx, Reminders.Entry e, long now, boolean quiet) {
         Intent open = new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent tap = PendingIntent.getActivity(ctx, e.id.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder n = new NotificationCompat.Builder(ctx, CHANNEL)
@@ -115,7 +124,7 @@ public class ReminderReceiver extends BroadcastReceiver {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(tap)
-            .setOnlyAlertOnce(true)
+            .setOnlyAlertOnce(quiet)
             .setAutoCancel(true);
         if (e.start > now) {
             n.setWhen(e.start).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);

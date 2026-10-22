@@ -83,6 +83,24 @@ describe('reminder plan', () => {
     ]);
     expect(p.map((r) => r.body)).toEqual(['Sun 25 Oct, 10:00 – 11:00', '10:00 – 11:00']);
   });
+
+  it('rings an event in the repeated hour of 2026-10-25 by its own offset, not an hour early', () => {
+    const now = Date.parse('2026-10-25T00:00:00+02:00');
+    // the second 02:30 of that night (winter time) until 03:30
+    const late = ev('r', '2026-10-25T02:30:00+01:00', '2026-10-25T03:30:00+01:00', { title: 'Repeated', ...remind([30]) });
+    const p = reminderPlan([segsOf([late], '2026-10-25')], now, kinds, 'x', TZ);
+    expect(p.map((r) => [new Date(r.at).toISOString(), new Date(r.startAt).toISOString(), new Date(r.endAt).toISOString(), r.body]))
+      .toEqual([['2026-10-25T01:00:00.000Z', '2026-10-25T01:30:00.000Z', '2026-10-25T02:30:00.000Z', '02:30 – 03:30']]);
+  });
+
+  it('rings an event across the change to summer time (2027-03-28) at its real instants', () => {
+    const now = Date.parse('2027-03-27T12:00:00+01:00');
+    // 01:30 winter time until 03:30 summer time: one real hour; it rings at 00:30 the same day
+    const night = ev('f', '2027-03-28T01:30:00+01:00', '2027-03-28T03:30:00+02:00', { title: 'Forward', ...remind([60]) });
+    const p = reminderPlan([[], segsOf([night], '2027-03-28')], now, kinds, 'x', TZ);
+    expect(p.map((r) => [new Date(r.at).toISOString(), new Date(r.startAt).toISOString(), new Date(r.endAt).toISOString(), r.body]))
+      .toEqual([['2027-03-27T23:30:00.000Z', '2027-03-28T00:30:00.000Z', '2027-03-28T01:30:00.000Z', '01:30 – 03:30']]);
+  });
 });
 
 describe('push plan', () => {

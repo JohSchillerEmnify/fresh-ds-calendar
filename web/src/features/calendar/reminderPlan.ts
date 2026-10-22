@@ -105,12 +105,15 @@ export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds,
     for (const s of segs) {
       if (s.allDay || !s.first || s.startTime === null || s.carriedFrom) continue;
       if (s.item.kind === 'event' ? !kinds.events : !kinds.tasklists) continue;
-      const startAt = instant(s.date, s.startTime, tz);
+      // an event carries exact instants (its offsets settle the repeated hour of a clock change); a task list only has a
+      // wall-clock date and time, so its instants are rebuilt in the calendar zone
+      const exact = s.item.kind === 'event' ? s.item : null;
+      const startAt = exact ? Date.parse(exact.start) : instant(s.date, s.startTime, tz);
       if (startAt <= minuteStart) continue;
       const itemTitle = s.item.title.trim() || untitled;
       const occurrence = `${s.item.id}@${s.date}T${s.startTime}`;
       const end = itemEnd(s);
-      const endAt = Math.max(startAt, instant(end.date, end.time, tz));
+      const endAt = Math.max(startAt, exact ? Date.parse(exact.end) : instant(end.date, end.time, tz));
       const times = itemTimes(s, end);
       for (const lead of new Set(s.item.reminders?.minutes ?? [])) {
         const at = startAt - lead * 60_000;

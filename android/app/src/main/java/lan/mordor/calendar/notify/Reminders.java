@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import androidx.core.app.NotificationManagerCompat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -80,10 +81,12 @@ public final class Reminders {
         setAlarm(ctx, e);
     }
 
-    /** Removes the reminder and its alarm. */
+    /** Removes the reminder, its alarm, the alarm of its start and its notification if it is showing. */
     public static void cancel(Context ctx, String id) {
         prefs(ctx).edit().remove(id).apply();
         alarms(ctx).cancel(pendingIntent(ctx, id));
+        alarms(ctx).cancel(ReminderReceiver.startedAlarm(ctx, id, null));
+        NotificationManagerCompat.from(ctx).cancel(id.hashCode());
     }
 
     /** The ids of every stored reminder (the web app cancels the ones its current plan no longer holds). */
