@@ -44,3 +44,28 @@ Unit tests in `web/test/stores.test.ts` (red first), then the repeated e2e scena
 A 401 in the middle of a session (session expired while using the app) now also returns to the page that was open,
 after signing in again. This follows the backlog's intent ("opening a specific page while signed out should return
 there after sign-in"); before, that case always landed on the default view.
+
+## 2. Desktop month-picker swipe fails
+
+### As Is
+"Arrows and swipes change the month inside the picker" on `--project=desktop` fails intermittently (4/12 with
+`--repeat-each 12`; it passed once on a single run). `MonthPicker.vue` has a mouse-drag counterpart of the touch swipe
+with the same thresholds: |dx| >= 60, |dx| > 1.5 |dy|, and at most 600 ms from `pointerdown` to `pointerup`. The step
+`swipePicker` drags with `mouse.move(..., { steps: 10 })`, one CDP round trip per step.
+
+Root cause evidence (traces of the 4 failing runs, `mouseDown` -> `mouseUp`): 602, 627, 609, 808 ms, all over the
+600 ms limit; the passing runs show a fast desktop drag does change the month. Hypotheses falsified: the drag starts
+outside the grid (the same coordinates pass in 8/12 runs), the release clicks a day and closes the picker (the failing
+screenshot/assert shows the picker open with the unchanged month), the direction is inverted (passing runs reach the
+expected months).
+
+### To Be
+The app is right (a swipe = a quick flick, as on touch); the test step drags quickly: `steps: 2`.
+
+### Requirements / Acceptance Criteria
+1. R1: the step performs a real mouse flick well under 600 ms. AC: the scenario passes 16/16 with
+   `--project=desktop --repeat-each 16`.
+
+### Assumption
+The 600 ms limit also for the mouse drag is intended ("same thresholds" in the code comment, the spec says "swipe");
+slow mouse drags are not meant to change the month. Not changed.

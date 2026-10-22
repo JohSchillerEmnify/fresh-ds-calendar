@@ -95,7 +95,8 @@ async function swipePicker(world: World, dx: number) {
     if (world.testInfo.project.use.hasTouch) return touchDrag(world.page, from, to, { durationMs: 150 });
     await world.page.mouse.move(from.x, from.y);
     await world.page.mouse.down();
-    await world.page.mouse.move(to.x, to.y, { steps: 10 });
+    // a flick: the picker ignores drags slower than 600 ms, and each step is a round trip (~60 ms on a busy machine)
+    await world.page.mouse.move(to.x, to.y, { steps: 2 });
     await world.page.mouse.up();
   });
 }
