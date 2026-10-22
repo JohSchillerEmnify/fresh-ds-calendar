@@ -83,3 +83,25 @@ Findings (no code changed):
 - So "broken" can mean: (a) an app zoom on the month like the zoom month Lab (a new feature that needs a spec), (b) let
   the browser's page pinch-zoom work (`touch-action: pan-y pinch-zoom`; zooms the whole page incl. bars, not the
   month), or (c) make the zoom month Lab the month view. Which one is the owner's call.
+
+## 4. Left-handed mode on a tablet: the open tasks tray moves to the left (owner decision via coordinator)
+
+### As Is
+`left-handed.feature` prose: on a tablet "the side tray moves next to the navigation rail at the left". No scenario
+checked it, and `TaskTray.vue` only mirrored the phone bar; on a tablet (820x1180, touch) the panel stayed at the right.
+
+### To Be
+With `html[data-hand='left'][data-touch]` and width >= 768 px the tray panel is first in the row (right of the rail,
+left of the calendar), its border is on its right edge and the fold chevron mirrors (open points left, collapsed
+points right). Desktop (no `data-touch`) does not change.
+
+### Requirements / Acceptance Criteria
+1. R1: tablet + left-handed: the tray is on the left. AC: new @tablet scenario "On an iPad in left-handed mode the open
+   tasks tray sits next to the navigation rail at the left" (red before, green after).
+2. R2: desktop unchanged. AC: "The desktop layout does not change" also asserts the tray is on the right.
+3. AC: all "Left-handed mode" scenarios green on mobile, tablet and desktop; tablet screenshots looked at.
+
+### Note (not changed)
+On a tablet in left-handed mode the add button (already at the left, next to the rail, per the existing @tablet
+scenario) now sits over the bottom of the open tray panel instead of over the calendar. Moving it beside the tray would
+need the tray width in `CreateFab`; left for the owner to judge.

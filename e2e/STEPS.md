@@ -1654,7 +1654,7 @@ the support cat walks in from the {string}
   / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
   `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
-  `time-grid`).
+  `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
 - "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
 - "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
   side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
