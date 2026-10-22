@@ -97,6 +97,9 @@ When('I tap the event {string} right beside the bottom handle of {string}', asyn
   const h = await box(entry(this, other).getByTestId('resize-handle-bottom'));
   const at = { x: n.x + 3, y: h.y + h.height / 2 };
   expect(at.y > n.y && at.y < n.y + n.height, `the handle's height ${Math.round(at.y)} lies inside ${title}`).toBe(true);
+  // the premise: a 44 px handle centred on the other entry (the old width) would have covered this point
+  const o = await box(entry(this, other));
+  expect(Math.abs(at.x - (o.x + o.width / 2)) <= 22, `a centred 44 px handle on ${other} would cover x ${Math.round(at.x)}`).toBe(true);
   if (useTouch(this)) await this.page.touchscreen.tap(at.x, at.y);
   else await this.page.mouse.click(at.x, at.y);
 });

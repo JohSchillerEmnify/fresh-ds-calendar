@@ -191,6 +191,7 @@ When('I pick up the event {string}', async function (this: World, title: string)
 });
 
 When('I pick up the event {string} in the {view} view for {date}', async function (this: World, title: string, view: View, date: string) {
+  if (view !== 'week' && view !== 'day') throw new Error(`picking up in the ${view} view needs a time grid (week or day)`);
   await this.page.goto(`/${view}/${date}`);
   await this.settled();
   await pickUp(this, title);
@@ -238,6 +239,9 @@ Then('the finger is on the event {string}', async function (this: World, title: 
   if (!this.held || !at) throw new Error('nothing is picked up');
   const chip = this.eventChips(title).first();
   await expect(chip).toHaveAttribute('data-dragging', 'true');
+  // the premise is a card that does not fill its column (side by side): a full-width card never moved sideways
+  const col = await box(this.dayColumn((await chip.getAttribute('data-date'))!));
+  expect((await box(chip)).width / col.width, `${title} is narrower than its day column`).toBeLessThan(0.9);
   // the lifted card springs to its target: wait until its box stops changing before judging where it is
   let last = '';
   await expect.poll(async () => {

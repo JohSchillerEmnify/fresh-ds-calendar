@@ -46,8 +46,9 @@ Resize handles are never wider than their own block (the 44 px touch height stay
 ## Acceptance Criteria
 
 - AC1 (R1): new Scenario Outline in spec/features/events/dnd.feature, @mobile, week AND day view, 15:00/15:00 and
-  15:00/15:15 with different lengths: after "I pick up the event Right" the event is lifted and the finger is on it;
-  released, it is not lifted. Fails before the fix (finger not on the card), passes after. (Moving the right card
+  15:00/15:15 with different lengths, five steps: phone, "Left", "Right", "I pick up the event Right in the <view>
+  view", then "the finger is on the event Right" (which also requires it to be lifted and narrower than its column).
+  Fails before the fix (finger not on the card), passes after. (Moving the right card
   already "worked" in emulation: the drag steps grab and drop by coordinates, so they never noticed the jump.)
 - AC2 (R2): unit test on `createSlotGrid`: a card in the right half of column 1 gets dx 0 in column 1 and dx 2·colW in
   column 3; a card at a column's left edge gets dx 0 in its column and 1·colW one column further. The origin column is
