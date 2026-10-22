@@ -105,7 +105,7 @@ Feature: A task list card grows in place over the calendar
     And the expanded task list has the left and width of the card "Groceries"
     And the expanded task list has no time extension
 
-  Scenario: Tapping a titleless list grows it in place in the day view too
+  Scenario: Tapping a titleless list expands it over the calendar in the day view too
     Given the calendar contains a task list "" on 2026-10-14 at 11:00 for 30 minutes with items:
       | item | done |
       | Milk | no   |

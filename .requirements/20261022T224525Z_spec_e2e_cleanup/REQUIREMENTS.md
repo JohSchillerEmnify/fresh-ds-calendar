@@ -17,7 +17,7 @@ only changes that keep coverage; everything else is a proposal in `docs/proposal
 ## To Be
 
 - STEPS.md defines every expression once and every note once, in its own section; check-steps stays 0 / 0.
-- check-steps-impl reports only real differences (73 missing, all @backlog-only; 0 extra).
+- check-steps-impl reports only real differences (65 missing, used only by @backlog scenarios as bddgen proves; 0 extra; regex-defined steps such as min-event-length's `I look at {date} in the …` count as implemented).
 - Duplicates removed, value-only twins merged into Scenario Outlines, misleading names renamed; steps unchanged.
 - Everything that changes coverage or needs an owner decision is listed as a tickable proposal.
 
@@ -38,7 +38,7 @@ only changes that keep coverage; everything else is a proposal in `docs/proposal
 
 - AC1 (R1) `python3 e2e/scripts/check-steps.py` → 0 unused, 0 problems; every bullet of the removed copy is present
   (newer wording) in "Theme import".
-- AC2 (R2) check-steps-impl ≤ 90 missing / ≤ 6 extra (target 73 / 0); `cd e2e && npx bddgen` succeeds.
+- AC2 (R2) check-steps-impl ≤ 90 missing / ≤ 6 extra (result 65 / 0); `cd e2e && npx bddgen` succeeds.
 - AC3 (R3–R5) every changed or merged scenario passes in one targeted run (mobile; desktop too when not @mobile); a
   merged Outline that fails where the originals passed is reverted.
 - AC4 (R6) `git diff main --stat` touches none of the excluded files and no `src/`/`server/` code.

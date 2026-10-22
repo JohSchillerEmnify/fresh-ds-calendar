@@ -165,15 +165,15 @@ scenarios to a slow stage. The unit tests that replace e2e examples run in milli
 
 - `e2e/STEPS.md`: the theme-import notes existed twice (one copy stranded under "Tasks view" by a union merge); one
   copy, the newer wording, now in "Theme import". check-steps: 0 unused, 0 problems.
-- `e2e/scripts/check-steps-impl.py` reads `\'` and double-quoted step literals; the dead step "I do not see the now
-  card" (dropped from the spec in 0712a5d) is removed. 90 missing / 6 extra → 73 missing (all @backlog-only) / 0 extra.
+- `e2e/scripts/check-steps-impl.py` reads `\'`, double-quoted and regular-expression step definitions; the dead step "I do not see the now
+  card" (dropped from the spec in 0712a5d) is removed. 90 missing / 6 extra → 65 missing / 0 extra; the 65 are used only by @backlog scenarios (bddgen, which skips @backlog and fails on a missing step, passes).
 - `tasks-view` "An undated list finished today shows in the calendar today" removed: `tasks-archive` "A finished
   undated list shows on the finished day by default" has the same setup and action and checks the same and more.
 - Outlines: `navigation` "Switching views keeps today when it is visible, otherwise the focused date" (was two),
-  `timeline` "The Now card is shown in every view, also of another period" (was two: month/year and another week),
+  `timeline` "The Now card is shown in the month and year views of today and in another week" (was two: month/year and another week),
   `labs-clock` "Today the middle says what is running or comes next and shades the time until then" (was two).
 - Renamed to say what the steps check: `tasklists-expand` "With the setting "inline" a tap grows the card in place"
-  (was "By default…", but it sets the setting), "Tapping a titleless list grows it in place in the day view too" (was
+  (was "By default…", but it sets the setting), "Tapping a titleless list expands it over the calendar in the day view too" (was
   "opens it"), "The first item of the grown card is below its header" (the top edge was not checked), "A long press
   shows the resize handles and does not grow the card" (was "still does what it did"); `labs-clock` "Turning Labs on
   offers the experimental views" (was "appear only with Labs on", the off case is not checked); `theme-scenes` "Each

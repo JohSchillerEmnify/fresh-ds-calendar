@@ -99,7 +99,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the now card shows the line "Nothing else today"
     And the now card does not show a current event
 
-  Scenario Outline: The Now card is shown in every view, also of another period
+  Scenario Outline: The Now card is shown in the month and year views of today and in another week
     Given the time is 2026-10-12 09:20
     And the approaching track is off
     And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
