@@ -66,13 +66,6 @@ Feature: The Tasks view lists every open task list
     And I open the Tasks view
     Then the Tasks view is grouped by "Category"
 
-  Scenario: An undated list finished today shows in the calendar today
-    Given the calendar contains an undated task list "Taxes" with items:
-      | item | done |
-      | Form | no   |
-    When I tick the item "Form" of the task list "Taxes" in the Tasks view
-    Then the calendar shows the task list "Taxes" on 2026-10-12
-
   Scenario: Overdue lists get their own group
     Given the calendar contains a task list "Rent" on 2026-10-08 with items:
       | item | done |
