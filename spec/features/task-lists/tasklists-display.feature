@@ -197,3 +197,14 @@ Feature: Task lists in the calendar views
     Then the items of the task list "Packing" fade out towards the bottom
     And the task list "Packing" shows no overflow count
 
+  @mobile @backlog
+  Scenario Outline: The task section switch has two levels and never shows a task count
+    When I open the <view> view for <period>
+    And I tap the band's section switch twice
+    Then the band's lists are one-line pills
+    And no day in the band shows a task count instead of its lists
+
+    Examples:
+      | view | period     |
+      | week | 2026-10-12 |
+      | day  | 2026-10-14 |

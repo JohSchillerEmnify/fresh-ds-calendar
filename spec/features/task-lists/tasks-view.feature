@@ -86,3 +86,11 @@ Feature: The Tasks view lists every open task list
     When I open the Tasks view
     Then the Tasks view groups are "Overdue, Today, Later"
     And the Tasks view lists "Rent" under "Overdue"
+
+  @backlog
+  Scenario: Tomorrow puts an undated list in the calendar on the next day
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item | done |
+      | Form | no   |
+    When I choose "Tomorrow" for the task list "Taxes" in the Tasks view
+    Then the calendar shows the task list "Taxes" on 2026-10-13

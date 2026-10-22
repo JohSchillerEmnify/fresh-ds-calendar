@@ -168,3 +168,10 @@ Feature: Drag and drop to reschedule
     Then the dragged event is drawn on the drop indicator
     When I drop the dragged event
     Then the event "Dentist" starts at the time the drop indicator showed
+
+  @backlog
+  Scenario: Dragging a multi-day bar moves the whole event by the days moved
+    Given the calendar contains an all-day event "Holiday" from 2026-10-13 to 2026-10-15
+    And I open the month view for 2026-10
+    When I drag the bar "Holiday" by its day 2026-10-14 to 2026-10-21
+    Then I see the event "Holiday" as a bar from 2026-10-20 to 2026-10-22

@@ -312,3 +312,15 @@ Feature: A task list card grows in place over the calendar
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
     Then the add button covers no control of the "expanded task list"
+
+  @backlog
+  Scenario: A list at the end of the day grows upward and keeps its real time block
+    Given the calendar contains a task list "Late shop" on 2026-10-14 at 23:30 for 30 minutes with items:
+      | item   | done |
+      | Milk   | no   |
+      | Eggs   | no   |
+      | Bread  | no   |
+      | Butter | no   |
+    When I open the day view for 2026-10-14
+    And I tap the task list "Late shop"
+    Then the expanded task list shows the real time block of the card "Late shop" and a slimmer extension ending at its start

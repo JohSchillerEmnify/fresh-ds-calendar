@@ -73,3 +73,15 @@ Feature: One filter for the whole Tasks view
     Then the Tasks view category filter "Shopping" is on
     And the Tasks view When filter is "This week"
     And the Tasks view lists "Milk"
+
+  @backlog
+  Scenario: This week ends on Sunday
+    Given the calendar contains a task list "Market" on 2026-10-18 with items:
+      | item  | done |
+      | Bread | no   |
+    And the calendar contains a task list "Dentist prep" on 2026-10-19 with items:
+      | item     | done |
+      | Get card | no   |
+    When I choose "This week" as the Tasks view When filter
+    Then the Open tab lists "Market"
+    And the Open tab does not list "Dentist prep"

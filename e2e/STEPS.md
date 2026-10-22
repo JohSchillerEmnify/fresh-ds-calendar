@@ -210,6 +210,7 @@ the event dialog fits within the viewport
 
 ```
 I start creating a task list
+the new dialog opens as {string}
 I switch the new dialog to {string}
 I fill in the task list form with:
 I press Enter in the task list field {string}
@@ -273,6 +274,7 @@ the expanded task list is narrower than the day column of {string}
 the expanded task list has no scrollbars and no sideways overflow
 the expanded task list is as tall as its content
 the expanded task list has no time extension
+the expanded task list shows the real time block of the card {string} and a slimmer extension ending at its start
 the month view shows no time blocks
 I tap the title of the expanded task list
 no list sheet is open
@@ -856,6 +858,7 @@ the event {string} starts at the time the drop indicator showed
 I drag the event {string} to {date}
 I drag the event {string} down by {int} minutes
 I drag the task list {string} to {date}
+I drag the bar {string} by its day {date} to {date}
 I drag the task list {string} to {date} at {time}
 I drag the event {string} back and forth {int} times
 I pick up the event {string}
@@ -1347,7 +1350,10 @@ I reload the app
 ```
 I open the theme menu
 I choose the theme {string}
+the top bar scene has no butterfly yet
 I chose the theme {string}
+I export the theme {string}
+the theme file {string} is downloaded
 {string} chose the theme {string}
 the theme {string} is marked as chosen
 the theme {string} is in use
@@ -1476,6 +1482,8 @@ the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
 the support cat does not appear
+I finish the task list {string} on {date}
+the title of the task list {string} is not struck through
 the title of the task list {string} is struck through
 I pick up the event {string} and move it down by {int} hours
 the support cat pushes the card from above
@@ -1733,6 +1741,7 @@ I open the Archive
 I search the Archive for {string}
 I untick the item {string} of the task list {string} in the Archive
 I choose {string} for the task list {string} in the Archive
+I choose {string} for the task list {string} in the Tasks view
 the Archive lists {string}
 the Archive does not list {string}
 the Open tab lists {string}
@@ -1777,6 +1786,11 @@ the page is a little taller than the screen
 I add an area on the Canvas
 the add button covers no control of the {string}
 I create the area {string} on the Canvas
+I delete the area {string} on the Canvas
+the Canvas has the area {string} with the note {string} in it
+the note {string} is in no area
+I long-press the area {string} and drag it by {int}, {int} pixels
+the area {string} has moved by {int}, {int} on the Canvas
 I move the note {string} into the area {string} on the Canvas
 the note {string} is in the area {string}
 the Canvas shows the area {string}
@@ -2187,6 +2201,8 @@ the {string} still looks like {string}
 the pill of the expanded task list shows the count {string}
 the band's lists are one-line pills
 I tap the band's section switch
+I tap the band's section switch twice
+no day in the band shows a task count instead of its lists
 the band's lists show their items
 the list of the expanded task list stands out from the grid behind it
 the time grid is zoomed to {int} pixels per hour

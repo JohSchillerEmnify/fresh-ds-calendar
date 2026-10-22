@@ -82,3 +82,11 @@ Feature: Importing my own theme, optionally made with an AI
     Then the gallery offers the theme "Ocean"
     When I delete the theme "Ocean"
     Then the gallery does not offer the theme "Ocean"
+
+  @backlog
+  Scenario: I can export my own theme as a file
+    Given "jo@example.com" may use the calendar
+    And "jo@example.com" imported the theme file "ocean.json"
+    When "jo@example.com" opens the week view for 2026-10-12 on another device
+    And I export the theme "Ocean"
+    Then the theme file "Ocean.theme.json" is downloaded

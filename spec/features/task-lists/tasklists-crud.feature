@@ -250,3 +250,11 @@ Feature: Creating, editing and deleting task lists
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
     When I open the day view for 2026-10-14
     Then the task list "Quick call prep" is drawn a quarter as tall as the event "Dentist"
+
+  @backlog
+  Scenario: The new dialog opens as the kind chosen last on this device
+    When I open the day view for 2026-10-14
+    And I start creating a task list
+    And I cancel the task list dialog
+    And I click the time slot 15:00 on 2026-10-14
+    Then the new dialog opens as "Task list"

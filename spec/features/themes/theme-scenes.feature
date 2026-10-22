@@ -40,3 +40,8 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       | Christmas | "xmas tree", "advent candle", "snow" and "cat"      |
       | New Year's Eve | "firework", "skyline", "star" and "cat"                 |
       | New Year | "sunrise", "confetti", "hill" and "cat"                       |
+
+  @backlog
+  Scenario: Butterflies come only now and then
+    When I choose the theme "Spring"
+    Then the top bar scene has no butterfly yet

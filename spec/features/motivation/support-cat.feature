@@ -56,3 +56,26 @@ Feature: The emotional support cat
     And I tick the item "Eggs" in the open tasks tray
     Then the support cat appears and is gone within 4000 ms
     And the title of the task list "Groceries" is struck through
+
+  @backlog
+  Scenario: With animations off the cat stays away
+    Given the support cat is set to "Every time" in the settings
+    And the animation level is "Off"
+    When I finish the task list "Groceries" on 2026-10-12
+    Then the support cat does not appear
+
+  @backlog
+  Scenario: Unticking an item takes the strike-through away
+    Given the calendar contains a task list "Laundry" on 2026-10-12 with items:
+      | item   | done |
+      | Shirts | yes  |
+    When I open the day view for 2026-10-12
+    And I expand the task list "Laundry"
+    And I untick the item "Shirts"
+    Then the title of the task list "Laundry" is not struck through
+
+  @backlog
+  Scenario: Changing the theme keeps the support cat setting
+    Given the support cat is set to "Every time" in the settings
+    When I choose the theme "Neon"
+    Then the saved support cat setting is "Every time"

@@ -149,3 +149,20 @@ Feature: The Canvas places task lists as sticky notes
     When I reload the page
     And I open the Canvas
     Then the Canvas zoom is above 1
+
+  @backlog
+  Scenario: Deleting an area leaves its notes where they lie
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item | done |
+      | Form | no   |
+    And the Canvas has the area "Haus" with the note "Taxes" in it
+    When I delete the area "Haus" on the Canvas
+    Then the note "Taxes" is in no area
+    And the note "Taxes" is not in the Unsorted stack
+
+  @mobile @backlog
+  Scenario: A long press on an area moves it
+    When I open the Canvas
+    And I create the area "Haus" on the Canvas
+    And I long-press the area "Haus" and drag it by 100, 50 pixels
+    Then the area "Haus" has moved by 100, 50 on the Canvas
