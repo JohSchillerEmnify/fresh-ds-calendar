@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/client';
-import { useAuthStore } from '@/stores/auth';
+import { RETURN_KEY, useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
@@ -197,6 +197,45 @@ describe('auth store', () => {
     fail = false;
     await a.check();
     expect(a.status).toBe('out');
+  });
+});
+
+describe('auth store 401 listener', () => {
+  beforeEach(() => {
+    freshPinia();
+    sessionStorage.clear();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** Puts the page on `path` and makes `assign` observable (jsdom cannot navigate). */
+  const at = (path: string) => {
+    const assign = vi.fn();
+    const url = new URL(path, 'http://localhost');
+    vi.stubGlobal('location', { ...window.location, pathname: url.pathname, search: url.search, hash: url.hash, assign });
+    return assign;
+  };
+
+  // the full-page jump to /signin can unload the page before the router guard has stashed the deep link
+  it('remembers the page it leaves for the sign-in page, before leaving', async () => {
+    mockFetch({ 'GET /api/auth/me': () => apiError(401, 'UNAUTHENTICATED') });
+    const assign = at('/week/2026-10-12?x=1#h');
+    let stashed: string | null = null;
+    assign.mockImplementation(() => { stashed = sessionStorage.getItem(RETURN_KEY); });
+    const off = useAuthStore().listen();
+    await useAuthStore().check();
+    off();
+    expect(assign).toHaveBeenCalledWith('/signin');
+    expect(stashed).toBe('/week/2026-10-12?x=1#h');
+  });
+
+  it('remembers nothing for the start page', async () => {
+    mockFetch({ 'GET /api/auth/me': () => apiError(401, 'UNAUTHENTICATED') });
+    const assign = at('/');
+    const off = useAuthStore().listen();
+    await useAuthStore().check();
+    off();
+    expect(assign).toHaveBeenCalledWith('/signin');
+    expect(sessionStorage.getItem(RETURN_KEY)).toBeNull();
   });
 });
 
