@@ -23,20 +23,25 @@ Reported once before and "supposedly fixed".
   also jumps left onto the neighbour.
 - Side finding, not the owner's main cause: in the phone week view a block's resize handles (44 px targets) are wider
   than a side-by-side block (~24 px) and cover up to ~28 % of the neighbour while shown (only after a release without
-  moving). Not changed here (see Assumptions).
+  moving). Owner decision 2026-10-23 (after review): handles are only as wide as their own block → R4.
 
 ## To Be
 
 A picked-up timed card keeps its horizontal place inside its day column: it stays under the finger/pointer. Moved to
 another day it keeps the same offset inside that column. Vertical snapping (15 min) and the drop result are unchanged.
-A card that already fills its column (single entries, the left one) behaves exactly as before.
+A card that already fills its column (single entries, the left one) stays where it is; it no longer moves the 1 px
+padding sideways (its dx is now 0 instead of −1).
+Resize handles are never wider than their own block (the 44 px touch height stays), so they never cover a neighbour.
 
 ## Requirements
 
 1. R1 — Picking up the right one of two side-by-side timed entries keeps it under the finger (phone, week and day view).
 2. R2 — While dragged across days, a card's x offset inside its column is kept (dx = whole columns moved).
-3. R3 — Everything else is unchanged: left/single cards, vertical snap, drop time, resize handles, tap to open, the
-   cascade look.
+3. R3 — Everything else is unchanged: vertical snap, drop time, resizing by the handles, tap to open, the cascade
+   look. Left/single cards keep their place (dx 0, the former −1 px nudge is gone).
+4. R4 — (owner, 2026-10-23) A resize handle is at most as wide as its own block, keeping its 44 px touch height:
+   touching a narrow side-by-side neighbour beside a block that shows its handles reaches the neighbour, not the
+   handle.
 
 ## Acceptance Criteria
 
@@ -45,9 +50,13 @@ A card that already fills its column (single entries, the left one) behaves exac
   released, it is not lifted. Fails before the fix (finger not on the card), passes after. (Moving the right card
   already "worked" in emulation: the drag steps grab and drop by coordinates, so they never noticed the jump.)
 - AC2 (R2): unit test on `createSlotGrid`: a card in the right half of column 1 gets dx 0 in column 1 and dx 2·colW in
-  column 3; a card at a column's left edge keeps the old dx.
+  column 3; a card at a column's left edge gets dx 0 in its column and 1·colW one column further. The origin column is
+  taken from the press point (`originRect.left + grab.x`).
 - AC3 (R3): existing dnd/resize scenarios (phone + desktop targeted runs) and the @visual pictures stay green; pictures
   looked at.
+- AC4 (R4): new @mobile scenario in the resize Rule: "Left" 15:00–15:45 and "Right" 15:15–17:00 side by side in the
+  phone week view, "Left" shows its handles; a tap on "Right" right beside "Left"'s bottom handle opens "Right"'s
+  dialog and hides "Left"'s handles. Fails before (the tap lands on "Left"'s 44 px handle), passes after.
 
 ## Testing Plan
 
@@ -69,8 +78,8 @@ A card that already fills its column (single entries, the left one) behaves exac
   is the defect, not intended magnet behaviour (the magnet's purpose is the 15-minute snap; full-width cards never
   showed the sideways part).
 - A2: across days the card keeps its in-column offset (simplest consistent rule; it is re-laid out on drop anyway).
-- A3: the resize-handle overlap in the narrow phone week view is a separate, smaller issue (only while handles are
-  shown, which the owner did not describe); reported, not changed, so this fix stays minimal.
+- A3: superseded by the owner's decision (R4). The width cap is applied everywhere, not only on phones: wherever a block is
+  at least 44 px wide (all desktop cases seen) nothing changes, so the rule only acts where a handle would overhang.
 - A4: if the owner's right-hand event was read-only (an invitation / someone else's calendar) it never drags by
   design; that cannot be checked from here.
 
@@ -82,3 +91,15 @@ A card that already fills its column (single entries, the left one) behaves exac
 - Green: drag.test.ts 29/29; "Drag and drop to reschedule" 42/42 (mobile + desktop); "The cat helps me move an entry"
   and "Shortening an event below the minimum keeps the end it was given" green; @visual 12/12; `pnpm --silent verify` OK.
 - "I pick up the event" now scrolls the chip into view first (15:00 is below the fold of the phone week view).
+
+## Implementation notes, review round (2026-10-23)
+
+- Scenario Outline trimmed to 5 steps (new step "I pick up the event X in the week/day view for D"); "the finger is on"
+  also asserts the card is lifted. `createSlotGrid` takes the origin column from the press point. `heldAt` is cleared on
+  release and set by "pick up … and move it down by N hours".
+- R4: `.rh` is `left/right: max(0px, 50% − 22px)` (≤ 44 px, never wider than the block), the pill
+  `min(28px, 100% − 4px)` wide (unchanged 28 px on blocks ≥ 44 px). Red first: the new scenario failed (the tap hit
+  "Left"'s handle, its handles stayed, no dialog); green after.
+- Looked at (phone): week view handles of a 24 px block stay inside it; day view handles unchanged; while dragging the
+  right card it stays under the finger in the right half of the full-width drop indicator.
+- Runs: drag.test.ts 29/29; dnd feature + support cat + min-length + @visual: 58/58 (mobile + desktop).

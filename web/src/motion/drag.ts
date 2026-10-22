@@ -690,7 +690,7 @@ export function createSlotGrid(o: SlotGridOptions): (x: number, y: number, ctx: 
     const minutes = clamp(snap(topY / o.pxPerMinute, step), 0, Math.max(0, Math.round(maxMin / step) * step));
     return {
       key: { column, minutes: minutes + (o.startMinutes ?? 0) },
-      dx: (column - columnAt(ctx.originRect.left)) * colW,
+      dx: (column - columnAt(ctx.originRect.left + ctx.grab.x)) * colW,
       dy: r.top + minutes * o.pxPerMinute - ctx.originRect.top,
     };
   };

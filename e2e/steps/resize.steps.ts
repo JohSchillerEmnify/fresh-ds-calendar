@@ -91,6 +91,16 @@ When('I drag the end handle of {string} to {time} in the day view', async functi
   await dragHandle(this, title, 'bottom', await toEnd(this, title, time));
 });
 
+/** STEPS.md: a tap inside the neighbour's box, 3 px from its left edge, at the height of the other entry's bottom handle. */
+When('I tap the event {string} right beside the bottom handle of {string}', async function (this: World, title: string, other: string) {
+  const n = await box(entry(this, title));
+  const h = await box(entry(this, other).getByTestId('resize-handle-bottom'));
+  const at = { x: n.x + 3, y: h.y + h.height / 2 };
+  expect(at.y > n.y && at.y < n.y + n.height, `the handle's height ${Math.round(at.y)} lies inside ${title}`).toBe(true);
+  if (useTouch(this)) await this.page.touchscreen.tap(at.x, at.y);
+  else await this.page.mouse.click(at.x, at.y);
+});
+
 Then('the event {string} shows resize handles', async function (this: World, title: string) {
   for (const h of handles(entry(this, title))) await expect(h).toBeVisible();
 });

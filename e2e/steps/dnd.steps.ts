@@ -3,6 +3,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { addDays } from './support/dates.js';
 import { box, touchDrag, type Box } from './support/ui.js';
+import type { View } from './parameters.js';
 import { attr, tid, type ProbeWindow, type World } from './support/world.js';
 
 interface Point { x: number; y: number }
@@ -151,35 +152,48 @@ When('I drag the event {string} back and forth {int} times', async function (thi
   }
 });
 
-When('I pick up the event {string}', async function (this: World, title: string) {
-  const chip = this.eventChip(title);
+/** Press and hold the event's chip (scrolled into view) and keep it held; "I release ..." lets go. */
+async function pickUp(w: World, title: string) {
+  const chip = w.eventChip(title);
   await chip.scrollIntoViewIfNeeded();
-  const from = await grabPoint(this, chip);
-  this.heldAt = from;
-  if (useTouch(this)) {
+  const from = await grabPoint(w, chip);
+  w.heldAt = from;
+  if (useTouch(w)) {
     // Touch stays down: keep the CDP session until "I release the event without moving it".
-    const cdp = await this.context.newCDPSession(this.page);
+    const cdp = await w.context.newCDPSession(w.page);
     const touch = [{ x: Math.round(from.x), y: Math.round(from.y), id: 1 }];
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touch });
-    this.held = async () => {
+    w.held = async () => {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
       await cdp.detach().catch(() => {});
-      this.held = undefined;
+      w.held = undefined;
+      w.heldAt = undefined;
     };
-    await this.page.waitForTimeout(500);
+    await w.page.waitForTimeout(500);
   } else {
-    const { mouse } = this.page;
+    const { mouse } = w.page;
     await mouse.move(from.x, from.y);
     await mouse.down();
-    await this.page.waitForTimeout(500);
+    await w.page.waitForTimeout(500);
     // A mouse drag starts after > 4 px of movement: wiggle sideways and return, so the net movement is zero.
     await mouse.move(from.x + 6, from.y, { steps: 2 });
     await mouse.move(from.x, from.y, { steps: 2 });
-    this.held = async () => {
+    w.held = async () => {
       await mouse.up();
-      this.held = undefined;
+      w.held = undefined;
+      w.heldAt = undefined;
     };
   }
+}
+
+When('I pick up the event {string}', async function (this: World, title: string) {
+  await pickUp(this, title);
+});
+
+When('I pick up the event {string} in the {view} view for {date}', async function (this: World, title: string, view: View, date: string) {
+  await this.page.goto(`/${view}/${date}`);
+  await this.settled();
+  await pickUp(this, title);
 });
 
 /**
@@ -195,10 +209,12 @@ When('I pick up the event {string} and move it down by {int} hours', async funct
   await mouse.down();
   await mouse.move(from.x, from.y + dy, { steps: 12 });
   await expect(this.eventChips(title).first()).toHaveAttribute('data-dragging', 'true');
+  this.heldAt = from;
   this.held = async () => {
     await this.page.evaluate(() => { (window as unknown as { __dropAt?: number }).__dropAt = new Event('t').timeStamp; });
     await mouse.up();
     this.held = undefined;
+    this.heldAt = undefined;
   };
 });
 
@@ -216,11 +232,12 @@ Then('the event {string} is lifted', async function (this: World, title: string)
   await expect(this.eventChips(title).first()).toHaveAttribute('data-dragging', 'true');
 });
 
-/** STEPS.md "the finger is on the event": the settled lifted card still covers the point where it was pressed. */
+/** STEPS.md "the finger is on the event": the card is lifted and, settled, still covers the point where it was pressed. */
 Then('the finger is on the event {string}', async function (this: World, title: string) {
   const at = this.heldAt;
   if (!this.held || !at) throw new Error('nothing is picked up');
   const chip = this.eventChips(title).first();
+  await expect(chip).toHaveAttribute('data-dragging', 'true');
   // the lifted card springs to its target: wait until its box stops changing before judging where it is
   let last = '';
   await expect.poll(async () => {
