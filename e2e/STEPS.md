@@ -1702,13 +1702,23 @@ my own theme {string} has {string} set to {string}
   the Labs steps do. The block with the import (always there) is `theme-own` (with the paste field
   `theme-import-text`); the AI prompt button inside it is `theme-ai`.
 - "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
-  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text.
-- "import the theme file" uploads through `theme-import-file`; "paste" fills `theme-import-text` and submits.
-  Preview = `theme-import-preview` (`data-name`); errors = `theme-import-error` items (exact text of one of them);
-  "cannot save" = `theme-import-save` disabled; "unsafe content was removed" = `theme-import-sanitized` visible;
-  "no script runs" = `window.__pwned` is undefined after 1 s and no `<script>` inside the scene.
-- "imported the theme file" = `POST /api/themes` with the fixture as that person. "delete" = the theme card's
-  `theme-delete` (with undo snackbar like other deletes; the step waits until it is gone).
+  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text. "copy the repair prompt"
+  clicks `theme-repair-copy` and checks the clipboard equals `theme-repair-prompt`.
+- "import the theme file" uploads through `theme-import-file`; "paste the theme text" fills `theme-import-text` and
+  submits (`theme-import-submit`); "paste the AI answer" does the same with the text of the fixture file; "upload the
+  picture file" uploads through `theme-picture-file` (and checks again). Preview = `theme-import-preview`
+  (`data-name`); errors = `theme-import-error` items (exact text of one of them); "cannot save" = `theme-import-save`
+  disabled; "unsafe content was removed" = `theme-import-sanitized` visible; "no script runs" = `window.__pwned` is
+  undefined after 1 s and no `<script>` inside the preview or the top bar scene.
+- "the top bar draws the decor" = `top-bar-scene` contains `drawn-scene` with that `data-decor`; "shows the picture of
+  the theme" = it contains `scene-image` and no `drawn-scene`. Both go back to the calendar first.
+- "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
+  theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
+  snackbar like other deletes; the step waits until it is gone).
+- "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
+  `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
+  "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
+
 ## Tasks view (`@tasks-view`)
 
 ```
@@ -1766,23 +1776,6 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
   (a `tasklist-view`, the tray's own item component).
 - "the calendar shows L on D" opens the day view for D and expects the `tasklist-card` L there. "neither … nor …"
   opens the day view for D and expects no `tasklist-card` L, opens the open tasks tray and expects it not to list L.
-
-  `theme-ai-copy` and checks the clipboard equals the prompt text. "copy the repair prompt" clicks `theme-repair-copy`
-  and checks the clipboard equals `theme-repair-prompt`.
-- "import the theme file" uploads through `theme-import-file`; "paste the theme text" fills `theme-import-text` and
-  submits (`theme-import-submit`); "paste the AI answer" does the same with the text of the fixture file; "upload the
-  picture file" uploads through `theme-picture-file` (and checks again). Preview = `theme-import-preview`
-  (`data-name`); errors = `theme-import-error` items (exact text of one of them); "cannot save" = `theme-import-save`
-  disabled; "unsafe content was removed" = `theme-import-sanitized` visible; "no script runs" = `window.__pwned` is
-  undefined after 1 s and no `<script>` inside the preview or the top bar scene.
-- "the top bar draws the decor" = `top-bar-scene` contains `drawn-scene` with that `data-decor`; "shows the picture of
-  the theme" = it contains `scene-image` and no `drawn-scene`. Both go back to the calendar first.
-- "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
-  theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
-  snackbar like other deletes; the step waits until it is gone).
-- "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
-  `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
-  "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
 
 ## Tasks archive (`@tasks-archive`)
 
@@ -2007,6 +2000,7 @@ there is no button to back up now
 - "the saved support cat setting is S": `GET /api/prefs` has the `supportCat` value of S (`Off`, `Sometimes`, `Every time`).
 - "I am asked to allow backups to Google Drive": `settings-backup-allow` is visible and `settings-backup-status` has
   `data-state="off"`. "there is no button to back up now": no `settings-backup-now` and no `settings-backup-restore`.
+
 ## Sharing task lists (`@sharing`)
 
 ```
@@ -2063,6 +2057,7 @@ I can share only with {string}
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
+
 ## View switcher position (`@nav-position`)
 
 ```

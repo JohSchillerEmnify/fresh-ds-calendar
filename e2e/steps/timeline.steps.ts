@@ -120,11 +120,6 @@ Then('the current event progress is {int} percent', async function (this: World,
   await expect(nowCard(this).getByTestId('now-progress')).toHaveAttribute('aria-valuenow', String(percent));
 });
 
-Then('I do not see the now card', async function (this: World) {
-  await this.settled();
-  await expect(nowCard(this)).toHaveCount(0);
-});
-
 Then('the now card stayed in place', async function (this: World) {
   await this.settled();
   await expect(nowCard(this)).toBeVisible();

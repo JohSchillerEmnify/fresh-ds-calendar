@@ -8,7 +8,7 @@ wanted = {l.strip() for b in re.findall(r'```\n(.*?)```', text, re.S) for l in b
 impl = set()
 for f in glob.glob(os.path.join(E2E, 'steps', '*.ts')):
     for m in re.finditer(r"\b(?:Given|When|Then|Step)\(\s*'((?:[^'\\]|\\.)*)'", open(f, encoding='utf-8').read()):
-        impl.add(m.group(1))
+        impl.add(m.group(1).replace("\\'", "'"))  # a TS literal writes ' as \'
 missing, extra = sorted(wanted - impl), sorted(impl - wanted)
 for e in missing: print('missing: ' + e)
 for e in extra: print('extra:   ' + e)
