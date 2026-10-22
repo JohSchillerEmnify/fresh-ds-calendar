@@ -99,7 +99,7 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the now card shows the line "Nothing else today"
     And the now card does not show a current event
 
-  Scenario Outline: The Now card is shown in the month and year views of today too
+  Scenario Outline: The Now card is shown in every view, also of another period
     Given the time is 2026-10-12 09:20
     And the approaching track is off
     And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
@@ -107,9 +107,10 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the now card shows the line "Next: Dentist in 1 h 20 min"
 
     Examples:
-      | view  | period  |
-      | month | 2026-10 |
-      | year  | 2026    |
+      | view  | period     |
+      | month | 2026-10    |
+      | year  | 2026       |
+      | week  | 2026-10-19 |
 
   Scenario: Switching views keeps the Now card in place
     Given the time is 2026-10-12 09:20
@@ -117,10 +118,3 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     When I open the week view for 2026-10-12
     And I switch to the month view
     Then the now card stayed in place
-
-  Scenario: The Now card stays when I look at another week
-    Given the time is 2026-10-12 09:20
-    And the approaching track is off
-    And the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:00
-    When I open the week view for 2026-10-19
-    Then the now card shows the line "Next: Dentist in 1 h 20 min"

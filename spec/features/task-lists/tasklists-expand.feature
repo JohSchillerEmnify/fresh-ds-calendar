@@ -105,7 +105,7 @@ Feature: A task list card grows in place over the calendar
     And the expanded task list has the left and width of the card "Groceries"
     And the expanded task list has no time extension
 
-  Scenario: Tapping a titleless list opens it in the day view too
+  Scenario: Tapping a titleless list grows it in place in the day view too
     Given the calendar contains a task list "" on 2026-10-14 at 11:00 for 30 minutes with items:
       | item | done |
       | Milk | no   |
@@ -131,7 +131,7 @@ Feature: A task list card grows in place over the calendar
     And the expanded task list is as tall as its content
     And the expanded task list has no time extension
 
-  Scenario: By default a tap grows the card in place
+  Scenario: With the setting "inline" a tap grows the card in place
     Given the task list tap setting is "inline"
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
@@ -167,7 +167,7 @@ Feature: A task list card grows in place over the calendar
     Then the task list "Groceries" is collapsed
     And no list sheet is open
 
-  Scenario: The first item is clear of the header and the card's top edge
+  Scenario: The first item of the grown card is below its header
     When I open the day view for 2026-10-14
     And I tap the task list "Groceries"
     Then the expanded task list has its first item below the header
@@ -185,7 +185,7 @@ Feature: A task list card grows in place over the calendar
     And the item "Eggs" is not ticked
     And the task list "Groceries" shows the done count "1/8"
 
-  Scenario: Long press on a task list still does what it did
+  Scenario: A long press shows the resize handles and does not grow the card
     Given the task list "Groceries" shows resize handles in the day view for 2026-10-14
     Then no task list is expanded
 

@@ -25,7 +25,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       | Dark  | Spring | dark   |
       | Light | Winter | light  |
 
-  Scenario Outline: Each season scene has its own life, butterflies and a cat
+  Scenario Outline: Each season and holiday scene has its own life and a cat
     When I set the seasons and holidays to "Off"
     And I choose the theme "<theme>"
     Then the top bar scene shows <parts>

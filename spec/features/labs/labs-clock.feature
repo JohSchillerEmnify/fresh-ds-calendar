@@ -16,7 +16,7 @@ Feature: Labs: experimental views and the 24-hour clock
     And today is 2026-10-14
     And the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
 
-  Scenario: Experimental views appear only with Labs on
+  Scenario: Turning Labs on offers the experimental views
     When I open the week view for 2026-10-12
     And I turn on experimental views in the settings
     Then the view switcher offers the experimental views "Clock, Timeline"
@@ -126,17 +126,16 @@ Feature: Labs: experimental views and the 24-hour clock
       | start date | 2026-10-14 |
       | start time | 15:00      |
 
-  Scenario: Today the middle says what comes next and shades the time until then
-    Given the time is 2026-10-14 08:00
+  Scenario Outline: Today the middle says what is running or comes next and shades the time until then
+    Given the time is 2026-10-14 <time>
     When I open the clock view for 2026-10-14
-    Then the middle of the clock says "Next: Dentist in 1 h"
-    And the clock shades the time until 09:00
+    Then the middle of the clock says "<middle>"
+    And the clock shades the time until <until>
 
-  Scenario: Today the middle says how long the running event has left
-    Given the time is 2026-10-14 09:30
-    When I open the clock view for 2026-10-14
-    Then the middle of the clock says "Dentist · 30 min left"
-    And the clock shades the time until 10:00
+    Examples:
+      | time  | middle                | until |
+      | 08:00 | Next: Dentist in 1 h  | 09:00 |
+      | 09:30 | Dentist · 30 min left | 10:00 |
 
   Scenario: All-day events are listed next to the dial
     Given the calendar contains an all-day event "Holiday" on 2026-10-14

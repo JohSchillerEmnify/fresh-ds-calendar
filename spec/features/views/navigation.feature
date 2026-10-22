@@ -132,23 +132,19 @@ Feature: Navigation and view switching
       | week  | 2026-10-19 |
       | day   | 2026-10-13 |
 
-  Scenario: Switching views keeps today when today is visible
-    When I open the month view for 2026-10
+  Scenario Outline: Switching views keeps today when it is visible, otherwise the focused date
+    When I open the month view for <month>
     And I switch to the week view
-    Then the URL path is "/week/2026-10-12"
+    Then the URL path is "<week>"
     When I switch to the day view
-    Then the URL path is "/day/2026-10-12"
+    Then the URL path is "<day>"
     When I switch to the month view
-    Then the URL path is "/month/2026-10"
+    Then the URL path is "/month/<month>"
 
-  Scenario: Switching views keeps the focused date when today is not visible
-    When I open the month view for 2026-12
-    And I switch to the week view
-    Then the URL path is "/week/2026-11-30"
-    When I switch to the day view
-    Then the URL path is "/day/2026-12-01"
-    When I switch to the month view
-    Then the URL path is "/month/2026-12"
+    Examples:
+      | month   | week             | day             |
+      | 2026-10 | /week/2026-10-12 | /day/2026-10-12 |
+      | 2026-12 | /week/2026-11-30 | /day/2026-12-01 |
 
   Scenario: Switching from a day view to the week view shows the week containing that day
     When I open the day view for 2026-10-17
