@@ -396,6 +396,9 @@ describe('hit-test grids', () => {
     const left = { originRect: rect(71, 100, 23, 60), grab: { x: 10, y: 10 } }; // left edge of column 1
     expect(hit(81, 110, left)!.dx).toBe(0);
     expect(hit(131, 110, left)!.dx).toBe(50);
+    // the card's left edge is in column 0 but it was pressed in column 1: the press point decides (no 50 px jump)
+    const straddling = { originRect: rect(60, 100, 40, 60), grab: { x: 20, y: 10 } };
+    expect(hit(80, 110, straddling)!.dx).toBe(0);
   });
   it('cell grid finds the cell under the pointer', () => {
     const a = document.createElement('div'); a.getBoundingClientRect = () => rect(0, 0, 50, 50);

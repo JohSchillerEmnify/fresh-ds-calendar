@@ -928,16 +928,19 @@ I tap the event {string} right beside the bottom handle of {string}
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
 - "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
   without moving; "release without moving" = mouse up / touch end.
-- "I pick up the event X in the week/day view for D" opens that view (as "I open the ... view") and then picks X up.
-- "the finger is on the event X" (after "I pick up"): X is lifted and, once the card has settled (its box unchanged
-  over 150 ms, at most 3 s), the point where it was pressed lies inside X's chip box.
+- "I pick up the event X in the week/day view for D" opens that view (as "I open the ... view") and then picks X up; any other
+  view is an error (it needs a time grid).
+- "the finger is on the event X" (after "I pick up"): X is lifted, narrower than 90 % of its day column (side by side),
+  and, once the card has settled (its box unchanged over 150 ms, at most 3 s), the point where it was pressed lies
+  inside X's chip box.
 - "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
 - "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
 - "X shows resize handles in the day/week view for D" (Given): opens that view, picks X up and releases it without
   moving, then checks the handles are shown. "shows resize handles" = both `resize-handle-top` and
   `resize-handle-bottom` of X are visible; "shows no resize handles" = neither is.
 - "I tap the event X right beside the bottom handle of Y": tap (touch on the phone, click on desktop) inside X's chip
-  box 3 px from its left edge, at the vertical centre of Y's `resize-handle-bottom`.
+  box 3 px from its left edge, at the vertical centre of Y's `resize-handle-bottom`; the point must lie inside X and
+  within 22 px of Y's horizontal centre (a centred 44 px handle on Y would have covered it).
 - "I drag the top/bottom handle of X up/down by N minutes": press on the handle centre (mouse; touch without the
   long press) and move N minutes of grid height in 10 steps, release; then wait for the save as after a drop.
 
