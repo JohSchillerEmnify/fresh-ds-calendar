@@ -157,7 +157,7 @@ Then('the zoom month heights of {string} and {string} are proportional to their 
   expect(ratio).toBeLessThan((255 / 180) * 1.1);
 });
 
-/** The zoom (spec/STEPS.md "Zoom switch") at which a day cell is as wide as a 3.5th of the viewport: the cell width is viewport x zoom / 7. */
+/** The zoom (e2e/STEPS.md "Zoom switch") at which a day cell is as wide as a 3.5th of the viewport: the cell width is viewport x zoom / 7. */
 const SWITCH_ZOOM = 7 / 3.5;
 
 When('I zoom the zoom month in until three and a half day columns fit across the screen', async function (this: World) {

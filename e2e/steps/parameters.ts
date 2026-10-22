@@ -1,4 +1,4 @@
-/** Custom Cucumber parameter types (spec/STEPS.md "Parameter types"). */
+/** Custom Cucumber parameter types (e2e/STEPS.md "Parameter types"). */
 import { defineParameterType } from 'playwright-bdd';
 import { WEEKDAYS, type Weekday } from './support/dates.js';
 

@@ -16,8 +16,8 @@ The Playwright e2e suite (`pnpm e2e`, `pnpm e2e:affected`) is not run in CI; run
 
 ## Spec-driven workflow
 
-1. Write or change the behaviour in `spec/features/*.feature` first (and `spec/ACCEPTANCE.md` / `spec/ARCHITECTURE.md` / `spec/API.md` when relevant).
-2. Every step phrase must exist in `spec/STEPS.md`; add new steps there and implement them in `e2e/steps/`. Check with `python3 spec/scripts/check-steps.py`.
+1. Write or change the behaviour in `spec/features/<domain>/*.feature` first, then place it in the LikeC4 model (`docs/architecture/`), an ADR in `docs/adrs/` only for a cross-cutting decision, and `spec/API.md` when the REST contract changes.
+2. Every step phrase must exist in `e2e/STEPS.md`; add new steps there and implement them in `e2e/steps/`. Check with `python3 e2e/scripts/check-steps.py`.
 3. Implement until the scenarios and unit tests pass.
 
 ## Reuse first

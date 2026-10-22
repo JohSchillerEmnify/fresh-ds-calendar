@@ -39,14 +39,15 @@ Theme tokens: `pnpm -F @calendar/web tokens`. Deployment notes: [docs/DEPLOYMENT
 | Path | Contents |
 |---|---|
 | `BRIEF.md` | Owner brief and fixed technical decisions |
-| `spec/features/` | Gherkin features, also the e2e suite |
-| `spec/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
-| `spec/ACCEPTANCE.md` | Numbered acceptance criteria mapped to scenarios |
+| `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
+| `docs/architecture/` | LikeC4 architecture model and views |
+| `docs/adrs/` | Architecture decision records |
+| `e2e/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
 | `spec/ARCHITECTURE.md` | Components, provider, sync, mobile UX, PWA, env |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
 | `spec/ASSUMPTIONS.md` | Decisions made without the owner |
 | `docs/` | Research, deployment and backlog notes |
-| `spec/scripts/check-steps.py` | Checks every feature step matches exactly one expression in `STEPS.md` |
+| `e2e/scripts/check-steps.py` | Checks every feature step matches exactly one expression in `STEPS.md` |
 
 ## Android app
 
