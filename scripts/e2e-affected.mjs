@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // `pnpm e2e:affected [base]`: prints the Playwright --grep for the features touched since `base` (default origin/main,
-// falling back to main when there is no remote). Heuristic, see ARCHITECTURE "Developer tooling":
+// falling back to main when there is no remote). Heuristic, see CONTRIBUTING.md "Tooling":
 //   .feature changed          -> that feature
 //   e2e step/support changed  -> features whose steps match the step definitions in (or using helpers of) that file
 //   web/src file changed      -> features whose step definitions reference a data-testid literal found in that file
@@ -29,7 +29,7 @@ const changed = new Set([
 ].filter(Boolean));
 
 // --- features: tags, scenario count, step texts (Background included, Outline placeholders filled from Examples row 1)
-const featureFiles = readdirSync(resolve(root, 'spec/features')).filter((f) => f.endsWith('.feature')).sort();
+const featureFiles = readdirSync(resolve(root, 'spec/features'), { recursive: true }).filter((f) => f.endsWith('.feature')).sort();
 const features = featureFiles.map((f) => {
   const lines = read(`spec/features/${f}`).split('\n').map((l) => l.trim());
   const name = (lines.find((l) => l.startsWith('Feature:')) ?? '').slice(8).trim();

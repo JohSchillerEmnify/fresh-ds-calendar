@@ -8,7 +8,7 @@ import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 const EMPTY: CanvasDoc = { version: 1, areas: [] };
 
 /**
- * A person's Canvas areas, one JSON document in `DATA_DIR/users/<sub>/canvas.json` (ARCHITECTURE "Canvas"). The
+ * A person's Canvas areas, one JSON document in `DATA_DIR/users/<sub>/canvas.json` (feature tasks-canvas). The
  * document is read and replaced whole, so a later Google Drive backup can take the file as it is.
  */
 export class CanvasStore {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Tasks view's one toolbar row (ARCHITECTURE "Tasks filter"), the same on Open, Canvas and Archive: a Filter button
+ * The Tasks view's one toolbar row (feature tasks-filter), the same on Open, Canvas and Archive: a Filter button
  * (count badge, opens a bottom sheet with the category chips, When and "Clear filters"), a Group/Sort button whose label
  * summarises the choice (opens a sheet with Group by, Sort by and the direction) and a collapse/expand-all icon button.
  * While a filter is on, its chips follow in a second row, each removable. Both sheets are `AdaptiveSheet`s; the phone's
@@ -68,12 +68,12 @@ const sortOptions = computed<{ value: TasksSortBy; label: string }[]>(() => [
   { value: 'date', label: t('tasks.view.sort.date') }, { value: 'name', label: t('tasks.view.sort.name') }, ...(cats.on.value ? [{ value: 'category' as const, label: t('tasks.view.sort.category') }] : []),
   { value: 'changed', label: t('tasks.view.sort.changed') }, { value: 'progress', label: t('tasks.view.sort.progress') },
 ]);
-/** "Category · Date", with a mark when the order is reversed (A-146). */
+/** "Category · Date", with a mark when the order is reversed (feature tasks-filter). */
 const summary = computed(() => `${t(`tasks.view.group.${cats.groupBy.value}`)} · ${t(`tasks.view.sort.${cats.sortBy.value}`)}${prefs.tasksSortDir === 'reversed' ? ' ↕' : ''}`);
 function chooseOrder(p: { tasksGroupBy: TasksGroupBy } | { tasksSortBy: TasksSortBy } | { tasksSortDir: TasksSortDir }): void {
   prefs.set(p).catch(() => ui.notify(t('tasks.view.choiceNotSaved')));
 }
-/** Grouping and sorting apply to the Open tab only (A-144). */
+/** Grouping and sorting apply to the Open tab only (feature tasks-filter). */
 const orderDisabled = computed(() => props.tab !== 'open');
 </script>
 

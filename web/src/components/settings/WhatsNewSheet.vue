@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Release notes sheet (ARCHITECTURE "Release notes"): the plain-English lines of CHANGELOG.md, grouped by day, newest first. */
+/** Release notes sheet (feature release-notes): the plain-English lines of CHANGELOG.md, grouped by day, newest first. */
 import { computed, onMounted, ref } from 'vue';
 import { api } from '@/api/client';
 import type { ReleaseNote } from '@/api/types';

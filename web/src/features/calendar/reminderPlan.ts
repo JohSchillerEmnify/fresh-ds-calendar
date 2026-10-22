@@ -1,6 +1,6 @@
 /**
  * The reminder plan: which reminders ring when, computed from the loaded items. One reminder per timed event (or timed task
- * list) and reminder lead, at start minus lead (ARCHITECTURE "Reminders, several per event"). Pure: the in-app snackbars and
+ * list) and reminder lead, at start minus lead (feature reminders). Pure: the in-app snackbars and
  * the native notification scheduling (`transitionWarning.ts`) both read this list. Also the shared wording of a lead.
  */
 import type { Segment } from '@/lib/items';
@@ -81,7 +81,7 @@ export function reminderPlan(days: Segment[][], nowMs: number, nowMin: number, k
   return out.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key));
 }
 
-/** The Web Push plan covers this many days ahead (ARCHITECTURE "Reminders, several per event"). */
+/** The Web Push plan covers this many days ahead (feature reminders). */
 export const PUSH_PLAN_DAYS = 7;
 
 /** One push the server sends at `at` (epoch ms); `key` is `reminder:<itemId>@<date>T<start>-<lead>`. */

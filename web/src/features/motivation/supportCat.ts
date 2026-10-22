@@ -1,5 +1,5 @@
 /**
- * The emotional support cat's roll (ARCHITECTURE "Season scenes and the support cat"): about one in ten finished task
+ * The emotional support cat's roll (feature emotional-support-cat): about one in ten finished task
  * lists (every one with the setting "Every time"), never at animation level Off or with the setting Off. Pure apart from `takeForcedCat`, which
  * reads the test hook `window.__catNext` (test mode only, STEPS.md "Scenes and the support cat").
  */

@@ -24,7 +24,7 @@ async function openTasksView(world: World) {
 const item = (w: World, title: string): Locator => w.byTestId('tasks-item', attr('data-title', title));
 
 Given('the calendar contains an undated task list {string} with items:', async function (this: World, title: string, table: DataTable) {
-  // a fixture is not user activity: the plant state is restored afterwards (STEPS.md, A-T2)
+  // a fixture is not user activity: the plant state is restored afterwards (STEPS.md)
   const before = (await this.api.get<{ plant: { growth: number; lastWatered: string | null; todayPoints: number } }>('/api/motivation')).plant;
   await this.api.post('/api/tasklists', { title, date: null, items: itemsFrom(table) });
   await this.api.setMotivation({ plant: { growth: before.growth, lastWatered: before.lastWatered, todayPoints: before.todayPoints } });

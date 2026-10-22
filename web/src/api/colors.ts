@@ -19,7 +19,7 @@ export const GOOGLE_COLORS: NamedColor[] = [
   { id: '11', name: 'Tomato', hex: '#d50000' },
 ];
 
-/** Display order of event color options (ARCHITECTURE.md `event-color`), after "Calendar color". */
+/** Display order of event color options (feature event-colors), after "Calendar color". */
 export const EVENT_COLOR_ORDER = ['11', '4', '6', '5', '2', '10', '7', '9', '1', '3', '8'];
 export const EVENT_COLOR_OPTIONS: NamedColor[] = EVENT_COLOR_ORDER.map((id) => GOOGLE_COLORS.find((c) => c.id === id)!);
 

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Compare the step expressions in spec/STEPS.md with those implemented in e2e/steps/*.ts.
-Usage: check-steps-impl.py [SPEC_DIR]   (default: ../spec relative to e2e/). Exit 1 on any difference."""
+"""Compare the step expressions in e2e/STEPS.md with those implemented in e2e/steps/*.ts. Exit 1 on any difference."""
 import glob, os, re, sys
 
 E2E = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-spec = sys.argv[1] if len(sys.argv) > 1 else os.path.join(E2E, '..', 'spec')
-text = open(os.path.join(spec, 'STEPS.md'), encoding='utf-8').read()
+text = open(os.path.join(E2E, 'STEPS.md'), encoding='utf-8').read()
 wanted = {l.strip() for b in re.findall(r'```\n(.*?)```', text, re.S) for l in b.splitlines() if l.strip()}
 impl = set()
 for f in glob.glob(os.path.join(E2E, 'steps', '*.ts')):

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The drag helper cat (ARCHITECTURE "Drag helper"): mounted once in the shell; on each pick-up it may come along
+ * The drag helper cat (feature emotional-support-cat): mounted once in the shell; on each pick-up it may come along
  * (setting "Support cat": Off / Sometimes ≈ every 5th drag / Every time; never at animation level Off). It follows the
  * lifted card: above it pushing down while the card moves later, below it pulling up while it moves earlier, beside it
  * pushing sideways towards another day; when the pointer rests it sits beside the card with a paw on it, head tilted,

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Draws today as the app's 24-hour clock (ARCHITECTURE "Android app and widget", clock widget): the day ring with the
+ * Draws today as the app's 24-hour clock (feature phone-widget, clock widget): the day ring with the
  * elapsed part, the plate with hour ticks, events and task lists as arcs on lanes, the focus wedge from the hand to the end
  * of the running event or the start of the next one, and the hand. The digital time in the middle is a live
  * {@code TextClock} over the bitmap (the system ticks it every minute); the bitmap itself is redrawn every few minutes.

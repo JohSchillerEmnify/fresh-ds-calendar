@@ -9,7 +9,7 @@
  * the all-day row -> all-day cells, chip in the month -> month cells), shows a drop preview (grid layer
  * `DropIndicator`, `data-drop-target` on cells), and on drop moves the item with `applyMove`: optimistic store
  * update, PATCH with If-Match, rollback + spring back + snackbar on failure. Duration is preserved, timed stays
- * timed, all-day stays all-day (A-55), multi-day items move by the dragged day's delta.
+ * timed, all-day stays all-day (feature drag-to-reschedule), multi-day items move by the dragged day's delta.
  */
 import { shallowRef, type Ref } from 'vue';
 import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';

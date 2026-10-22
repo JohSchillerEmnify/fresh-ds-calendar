@@ -103,7 +103,7 @@ interface TaskList {
   id: string;              // the Google event id
   calendarId: string;
   title: string;           // 1–200 chars after trim
-  date: LocalDate | null;  // null = undated (ARCHITECTURE "Undated task lists"); then time is null too
+  date: LocalDate | null;  // null = undated (ADR 0017); then time is null too
   time: LocalTime | null;  // null = no time (all-day Google event)
   items: TaskItem[];       // max 200, in display order
   doneCount: number;
@@ -161,10 +161,10 @@ used by server (Google mapping) and web (none needed in UI, but available).
 Seed presets: Blue #1a73e8, Purple #6750a4, Teal #006a6a, Green #386a20, Orange #e8710a, Red #b3261e, Pink #c2185b,
 Slate #4f6170, Mordor #c43e00 (preset id `mordor`).
 Selecting the Mordor preset in the UI also sets `themeMode: 'dark'` and the scene "Mordor" (a theme preference, see
-ARCHITECTURE "Themes"). The server only stores the values, and the user can change each one afterwards.
+feature theme-menu). The server only stores the values, and the user can change each one afterwards.
 **Scenes** (owner 2026-10-13): the top app bar background is not a setting any more. There is one "Scene" choice
 (Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
-(`GET/PATCH /api/prefs/theme`, ARCHITECTURE "Themes"; `seasonal` is `off`, `header` or `all`, see there). `PATCH /api/settings` rejects a `scene` field and
+(`GET/PATCH /api/prefs/theme`, feature theme-menu; `seasonal` is `off`, `header` or `all`, see there). `PATCH /api/settings` rejects a `scene` field and
 `GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
 depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
 **Garden style is gone** (owner 2026-10-13): `Settings.garden` was removed, `PATCH /api/settings` rejects a `garden`
@@ -178,13 +178,17 @@ the field). Other presets and overrides stay as they were. The Default and Neon 
 **Prefs** (`GET/PATCH /api/prefs`): besides the Labs switches, `approachingCard`, `approachBar`, `approachWindowHours`,
 `tasksCalendarVisible`, `supportCat` and `versionInCorner`, the person pref `taskCategories` (boolean, default `true`; a non-boolean is a 400; `false` hides every task category UI, the
 stored `categoryId`s are untouched), the person pref `leftHanded` (boolean, default `false`; a
-non-boolean is a 400) turns on the mirrored phone and touch-tablet layout (ARCHITECTURE "Left-handed mode"), and `showCarriedFrom` (boolean,
+non-boolean is a 400) turns on the mirrored phone and touch-tablet layout (feature left-handed-mode), and `showCarriedFrom` (boolean,
 default `true`) shows the "From <day>" label on task lists carried over to today.
 The person pref `labsViews` (object, default `{}`): per Labs view id (`clock`, `timeline`, `strip`, …) whether the view
 switcher offers it; ids match `^[a-z][a-z0-9-]*$` (at most 32, values boolean; anything else is a 400). `PATCH` merges
-per id. A missing id follows the client's registry default (Strip off, others on; ARCHITECTURE "Labs").
+per id. A missing id follows the client's registry default (Strip off, others on).
+`approachWindowHours` is a whole number from 1 to 24 (default 3; anything else is a 400).
+`taskOpen` (`'inline' | 'drawer'`, default `'inline'`) is what a tap on a task list card does: grow it in place or
+open the list sheet; `labsGrowCards` (boolean, default `false`) is the Labs switch for growing cards in place (off, a
+tap opens the list sheet).
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
-`rail`; any other value is a 400; ARCHITECTURE "View switcher position").
+`rail`; any other value is a 400; feature nav-position).
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 
@@ -194,15 +198,15 @@ Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, 
 
 Per-person preferences (not the shared `Settings`): `labs`, `approachBar`, `approachingCard`, `approachWindowHours`,
 `tasksCalendarVisible`, `taskCategories`, `supportCat`, `versionInCorner` and, since the i18n slice, `language`:
-`'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, ARCHITECTURE
-"i18n"). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
+`'auto' | 'en' | 'de' | 'de-x-mainfr' | 'de-x-coldmirror'`, default `'auto'` (follow the device language, feature
+language). `PATCH` takes any subset, validates all fields first and answers 400 `VALIDATION_ERROR` (field `language`)
 for an unknown value; it returns the full preferences.
 
 **Minimum event length** (`prefs.minEventMinutes`, per person, feature `min-event-length`): `0 | 15 | 30`, default `0`
 (off). A shorter timed entry is laid out as this long in every time view and the phone widget; the entry's real times
 are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMinutes`).
 
-**Bedtime** (`prefs.bedtime`, per person, ARCHITECTURE "Bedtime mode"): an object
+**Bedtime** (`prefs.bedtime`, per person, feature bedtime): an object
 `{ enabled: boolean; mode: 'fixed' | 'dynamic'; bedtime: 'HH:MM'; wake: 'HH:MM'; weekendDifferent: boolean;
 weekendBedtime: 'HH:MM'; weekendWake: 'HH:MM'; sleepMinutes: 1..960; leadMinutes: 0..480; reminderMinutes: 0..240 }`,
 default `{ enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime:
@@ -240,6 +244,12 @@ fetch time and uses `Date.now() + offset`. "Today" is the date of that instant i
 (offline), the app uses the device clock, `Europe/Berlin`, Monday, 30 s polling. All date logic in `web/` goes through
 one `useClock()` composable; nothing else calls `new Date()` for "now".
 
+### `GET /api/release-notes` → 200
+
+`{ notes: { id: string; date: 'YYYY-MM-DD'; text: string }[] }`, newest first, at most 50: every `- ` bullet under a
+`## YYYY-MM-DD` heading of `CHANGELOG.md` (`CHANGELOG_PATH`) up to `## Older history`, read once at start. `id` is a
+short hash of date and text. A missing or unparsable file gives an empty list.
+
 ### `GET /api/calendars` → 200
 
 `{ calendars: Calendar[] }` — every calendar in the person's Google list (own and shared), each with
@@ -262,11 +272,11 @@ The person's tasks calendar is not in `GET /api/calendars`; its popup default li
 is the popup list in effect: the calendar's default while `useDefault`, else the item's own Google `overrides` of method
 `popup`. `POST` / `PATCH` of an event or task list accept the same object (at most 5 different whole minutes 0-40320;
 `useDefault: true` ignores `minutes`); a write keeps the item's non-popup (email) overrides, and a `PATCH` without
-`reminders` leaves them alone. Why: Google is the source of truth (ARCHITECTURE "Reminders, several per event").
+`reminders` leaves them alone. Why: Google is the source of truth (feature reminders).
 
 ### Web Push
 
-Per person (`local` while sign-in is off); all `204` unless noted. Why: ARCHITECTURE "Reminders, several per event", slice 2.
+Per person (`local` while sign-in is off); all `204` unless noted. Why: feature reminders, slice 2.
 
 - `GET /api/push/key` → `200 { key }`: the server's public VAPID key (URL-safe base64).
 - `POST /api/push/subscriptions` `{ endpoint, keys: { p256dh, auth } }`: stores a browser's subscription (an `https` endpoint of a real push service: `fcm.googleapis.com`, `*.push.services.mozilla.com`,
@@ -329,7 +339,7 @@ duration ≤ 366 days. `PATCH` validates the merged result. Errors: 400, 404 (un
 #### Birthdays
 
 Birthdays made in Google Calendar (`eventType: "birthday"`, a yearly all-day event in a normal calendar) are handled like
-Google Calendar handles them (ARCHITECTURE "Birthdays like Google Calendar").
+Google Calendar handles them (feature birthdays).
 
 `POST /api/events` with `kind: 'birthday'` creates one in the person's primary calendar (`201` `CalendarEvent`, the series
 as created; `403` when the primary calendar is read-only):
@@ -376,7 +386,7 @@ with `400 VALIDATION_ERROR` ("Birthdays are read-only"). A birthday's colour is 
 
 ```ts
 interface CreateTaskListInput {
-  // no calendarId: task lists always go to the person's tasks calendar (ARCHITECTURE §3)
+  // no calendarId: task lists always go to the person's tasks calendar (feature tasklists-own-calendar)
   title: string;          // may be empty/blank (stored as "") when at least one non-blank item is given
   date: LocalDate | null; // required key; null creates an undated list (no time, no recurrence)
   time?: LocalTime | null;
@@ -402,7 +412,7 @@ permutation of the current ids, else 400. A list with an empty title and no item
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.
 
-### Shared task lists (owner, 2026-10-14; ARCHITECTURE "Shared lists")
+### Shared task lists (owner, 2026-10-14; feature shared-lists)
 
 A shared list lives in the server's shared store, not in Google. It is served through the **same task list endpoints**
 as every list, under an id with the prefix `shared:` (`shared:<id>`); everything above (items, ops, `If-Match`,
@@ -441,7 +451,8 @@ Rules:
 
 ### Settings and categories
 
-Stored server-side in `DATA_DIR/settings.json` (single user, independent of the provider; atomic writes). Created with
+Stored server-side in `DATA_DIR/settings.json` (one file for the whole server, shared by everyone who signs in;
+independent of the provider; atomic writes). Created with
 the defaults on first start.
 
 | Method | Path | Body | Success |
@@ -464,12 +475,21 @@ in the URL query: `categories=<id>[,<id>…]` (`none` = without category) and `t
 `/week/2026-10-12?categories=shopping,none&tags=weekend`. Categories are OR-ed, tags are OR-ed, and the two groups are
 AND-ed. Events are never filtered.
 
-`PATCH /api/prefs/theme` `overrides` also takes the fine-tuning fields (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): `glowStrength` (integer 0..150), `radius` (integer 0..28), `tint` (integer 5..60), `density` (`compact|comfortable|airy`), `checkbox` (`round|square|rounded`), `checkFill` (`filled|outline`), `check` (`tick|bold|cross|dot`), `icons` (`outlined|rounded|sharp`). Out-of-range or unknown values answer `400`. The same optional fields exist in `calendar-theme/2`.
+`PATCH /api/prefs/theme` `overrides` also takes the fine-tuning fields (feature theme-menu): `glowStrength` (integer 0..150), `radius` (integer 0..28), `tint` (integer 5..60), `density` (`compact|comfortable|airy`), `checkbox` (`round|square|rounded`), `checkFill` (`filled|outline`), `check` (`tick|bold|cross|dot`), `icons` (`outlined|rounded|sharp`). Out-of-range or unknown values answer `400`. The same optional fields exist in `calendar-theme/2`.
+
+**Theme preference** (`GET/PATCH /api/prefs/theme`): `{ preset: string; overrides: Overrides; seasonal: 'off' | 'header' | 'all' }`,
+stored per person in `prefs.json` under `theme`; default `{ preset: 'Default', overrides: {}, seasonal: 'all' }`.
+`preset` is a preset name or `theme:<id>`. `overrides` takes `glow`, `entries`, `corners`, `scene` (the Scene values
+above), `seed` (`#rrggbb`) and the fine-tuning fields above; a `PATCH` replaces the fields it sends.
+*Migrations on read* (each once, marker in the stored theme): `sceneUnified` — the scene that was visible wins (a
+preset or override scene other than `none` stays; otherwise the old settings `scene` becomes the override; the old key
+stays in `settings.json`, unused); `seasonalMigrated` — a stored preset `Automatic` becomes `Default` with `all`, an
+override scene `season` becomes `header` with the override removed, everything else becomes `off`.
 
 ### Imported themes (`/api/themes`)
 
-Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE
-"Theme engine and AI themes"). A theme is a `calendar-theme/2` document (`shared/theme.schema.json`, no SVG in it) plus
+Per person (their own Google account when sign-in is on), stored in `DATA_DIR/users/<sub>/themes/` (feature theme-import).
+A theme is a `calendar-theme/2` document (`shared/theme.schema.json`, no SVG in it) plus
 an optional own top bar picture kept next to it.
 
 ```ts
@@ -483,6 +503,8 @@ type Picture = { light?: string; dark?: string };   // SVG text, each ≤ 100 KB
   `picture.light must be an SVG picture (starting with <svg)`). Also `400` when the person already has 20 themes
   (`You can keep at most 20 themes. Delete one first.`).
 - `DELETE /api/themes/:id` → `204`; `404` for an unknown id.
+- A Drive backup restore re-checks every theme file exactly like `POST /api/themes` (document, size, picture
+  sanitising) and skips a file that fails.
 
 A person chooses an imported theme with `PATCH /api/prefs/theme` `{ preset: "theme:<id>" }` (a preset name or `theme:<id>`).
 `GET/PATCH /api/prefs` has the Labs switch `labsOwnThemes: boolean` (default `false`, effective only with the experimental
@@ -525,17 +547,17 @@ finished lists; the date-range endpoints are unchanged.
 
 `GET/PATCH /api/prefs` also carry `notify: { bedtime: boolean; events: boolean; tasklists: boolean; morning: boolean;
 morningTime: 'HH:MM' }` (default `{ bedtime: true, events: true, tasklists: true, morning: false, morningTime: '08:00' }`):
-which reminders become system notifications (ARCHITECTURE "Notifications"). A `PATCH` may send part of it; it is merged.
+which reminders become system notifications (feature reminders). A `PATCH` may send part of it; it is merged.
 A non-boolean switch or a `morningTime` that is not `HH:MM` answers `400` (`field: notify`).
 
 ### Prefs: Tasks view
 
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
-`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `tasksFilter: { categories: string[]; when: 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week' }` (default `{ categories: [], when: 'all' }`) is the Tasks view's filter (ARCHITECTURE "Tasks filter"); `categories` holds at most 50 unique strings of 1-64 characters (category ids, or `none`), the whole object is replaced by a `PATCH`, any other shape or value is `400` (field `tasksFilter`). `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (ARCHITECTURE "Archive"); any other value is `400`.
+`tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `tasksFilter: { categories: string[]; when: 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week' }` (default `{ categories: [], when: 'all' }`) is the Tasks view's filter (feature tasks-filter); `categories` holds at most 50 unique strings of 1-64 characters (category ids, or `none`), the whole object is replaced by a `PATCH`, any other shape or value is `400` (field `tasksFilter`). `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (feature tasks-archive); any other value is `400`.
 
 ### Canvas (`/api/canvas`)
 
-The person's **areas** on the Tasks view's Canvas (ARCHITECTURE "Canvas"), one JSON document per person in
+The person's **areas** on the Tasks view's Canvas (feature tasks-canvas), one JSON document per person in
 `DATA_DIR/users/<sub>/canvas.json`; not in Google. The place of a note is not here: it is the `canvas` field of the
 task list.
 
@@ -561,7 +583,7 @@ off). `POST /api/__test/reset` forgets every person's document.
 ### Backups (`/api/backup`)
 
 All three need a session while sign-in is on. With sign-in off there is no Google account, so `GET` answers
-`available: false` and the two `POST`s answer `404 NOT_FOUND`. Details: ARCHITECTURE "Backups".
+`available: false` and the two `POST`s answer `404 NOT_FOUND`. Why Drive's hidden app folder: ADR 0010.
 
 ```ts
 interface BackupStatus {
@@ -580,9 +602,29 @@ interface BackupStatus {
 | `POST` | `/api/backup` | Backs up now (forced, no throttle) and answers `200 BackupStatus` with the new `lastBackupAt`. `403 DRIVE_PERMISSION_REQUIRED` without the scope; `502 BACKUP_FAILED` (message = reason) when Drive fails, the status then shows `failed`. |
 | `POST` | `/api/backup/restore` | Safety backup, then restores the newest readable version over the person's server data. `200 BackupStatus`. `403 DRIVE_PERMISSION_REQUIRED`; `404 NO_BACKUP` when Drive holds none; `502 BACKUP_FAILED` when the safety backup or Drive fails (nothing is restored then). |
 
+**Backup bundle** (the Drive file; a restore must read every bundle an older version wrote). One file per backup,
+`backup-<sub>-<UTC timestamp>.json` in the person's Drive `appDataFolder`, at most 5 MB:
+
+```ts
+interface BackupBundle {
+  schema: 1;
+  created: DateTime;
+  appVersion: string;
+  sub: string;                        // the person's Google id
+  files: Record<string, string>;      // path relative to DATA_DIR -> UTF-8 content
+}
+```
+
+`files` holds everything under `users/<sub>/` except `google-token.json` (a secret) and `backup-state.json`; the files
+of registered stores under their own top-level folder (`shared/lists/<id>.json` for lists the person owns,
+`shared/memberships/<sub>.json` for lists they belong to); and the server-wide files under `server/<path>`. A restore
+writes only paths under `users/<sub>/` or a registered folder, and server-wide files only onto a server where every one
+of them is still untouched.
+
 ### Motivation: check-in streak and plant
 
-Stored server-side in `DATA_DIR/motivation.json` (single user, synced across devices). Dates are local dates of the
+Stored server-side in `DATA_DIR/motivation.json` (one file for the whole server, shared by everyone who signs in;
+synced across devices). Dates are local dates of the
 app clock (`TZ`).
 
 ```ts
@@ -642,7 +684,7 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
 ### Diagnostics (`POST /api/diag/sync-error`) → 204
 
 The web app sends this once when it enters the "Can't reach Google Calendar" state. The server only logs it
-(`client_sync_error`, ARCHITECTURE "Diagnostics"); nothing is stored and the response has no body. Needs a session while
+(`client_sync_error`, ADR 0009); nothing is stored and the response has no body. Needs a session while
 sign-in is on. Body (at most 1 KiB, unknown fields → 400):
 
 ```ts
@@ -694,6 +736,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/door` | `{ token: string; person: string }` or `{ off: true }` | The door plugin's key and person from now on, in place of the config's; `off` takes the door away (404). Reset clears it. `200 AppConfig` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
+| `POST` | `/api/__test/release-notes` | `{ notes: { date, text }[] }` | `GET /api/release-notes` answers this list (as given, at most 50) until the next reset. `200 { notes }` |
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
@@ -747,8 +790,8 @@ The outage switch never affects `/api/__test/*`, `/api/config` or `/api/health`.
 
 Google limits calls per person. The server caches `events.list` per calendar and range and `calendarList.list` for
 25 s (identical concurrent calls share one request; every write makes the cache stale at once) and, once Google answers
-`rateLimitExceeded` / `userRateLimitExceeded` / 429, stops calling Google for a cooldown (ARCHITECTURE "Google access:
-caching and rate limits"). Meanwhile:
+`rateLimitExceeded` / `userRateLimitExceeded` / 429, stops calling Google for a cooldown (ADR 0007).
+Meanwhile:
 
 - a `GET` that can be answered from the last known data answers `200` with the header `X-Stale: 1`; `GET /api/items`
   also carries `stale: true` in the body. Nothing else about the response changes.
@@ -796,7 +839,7 @@ TEST_MODE: `POST /api/__test/apk { versionCode, versionName }` overrides it unti
 | Method | Path | Effect |
 |---|---|---|
 | `GET` | `/api/auth/google/start` | 302 to Google consent: scopes `openid email` + calendar + `https://www.googleapis.com/auth/drive.appdata`, `access_type=offline`, `prompt=consent`, a `state` bound to a short-lived cookie. |
-| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a person with no server data and a Drive backup gets it restored (ARCHITECTURE "Backups"), a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid, forged or expired `state` (the state is stateless: `<payload>.<HMAC>` with a 10 minute expiry, in the `cal_oauth_state` cookie) and when Google refuses the code (no error object is logged). |
+| `GET` | `/api/auth/google/callback?code&state` | Exchanges the code. The `id_token` email must be in `ALLOWED_EMAILS` (case-insensitive): then the refresh token is stored for that person, a person with no server data and a Drive backup gets it restored (feature drive-backup), a session is created (cookie `cal_session`) and the response is 302 to `/`; otherwise no token is kept and the response is 302 to `/signin?error=private`. 400 on invalid, forged or expired `state` (the state is stateless: `<payload>.<HMAC>` with a 10 minute expiry, in the `cal_oauth_state` cookie) and when Google refuses the code (no error object is logged). |
 | `GET` | `/api/auth/google/start` (while signed in) | Works with an existing session too (re-grant); the URL carries `include_granted_scopes=true`, so a newly granted scope adds to the old ones. |
 | `GET` | `/api/auth/google/start?app=1&challenge=<c>` | The Android app's flow (Google refuses OAuth in a WebView, so the app opens this URL in the system browser). Same as without `app`, but the `state` remembers the flag, and `challenge` (required: base64url, no padding, of the SHA-256 of a random verifier the app keeps, RFC 7636 S256; else **400**, so an old APK cannot start a sign-in) travels with the browser in the short-lived `cal_app_challenge` cookie and is stored with the code. On a successful callback the response is a **302** (no `cal_session` cookie, `Cache-Control: no-store`) to `intent://auth?code=<code>#Intent;scheme=lan.mordor.calendar;package=lan.mordor.calendar;S.browser_fallback_url=<URL-encoded /api/auth/app-open?code=<code>>;end`, which Chrome turns into the deep link `lan.mordor.calendar://auth?code=<code>`; when it cannot launch the app it goes to the fallback page. `<code>` is random (128 bit), single-use, valid 60 s, bound to the session just created and to the challenge; a not-allowed address still ends in 302 `/signin?error=private` with no code. Only `app=1` selects this; the browser flow is unchanged. |
 | `GET` | `/api/auth/app-open?code` | Public. The fallback of the intent redirect: **200 HTML** with the visible link `#open-app` (`lan.mordor.calendar://auth?code=<code>`) and a script launch; viewing it does not use the code up. An unknown, used or expired code answers 400 (the "expired" page). `Cache-Control: no-store`. |
@@ -822,3 +865,40 @@ signs the person in and redirects to `/?calendar=missing`; calendar calls then a
 "grant calendar access". After sign-in and sign-out the server drops that person's cached provider so a new token
 applies without a restart. Redirect URI =
 `GOOGLE_REDIRECT_URI` (default `${PUBLIC_URL}/api/auth/google/callback`).
+
+## Storage in Google
+
+How a task list is stored as a Google event in the person's hidden tasks calendar (ADR 0006). Other Google clients see
+these events, so this encoding is a contract like the REST API above.
+
+| Task list | Google event |
+|---|---|
+| `title` | `summary` |
+| `date`, `time = null` | all-day: `start.date = date`, `end.date = date + 1` |
+| `date`, `time = HH:mm` | timed: `start.dateTime = date T time`, `end.dateTime = start + (estimateMinutes ?? 30) min`, `timeZone = TZ` |
+| `estimateMinutes` | `extendedProperties.private.estimate` (decimal string; absent = none) |
+| `recurrence` (@optional) | Google `recurrence: ["RRULE:FREQ=DAILY\|WEEKLY\|MONTHLY"]`; per-occurrence ticks are stored by patching the instance (Google exception) |
+| marker | `extendedProperties.private.kind = "tasklist"` |
+| format version | `extendedProperties.private.tlv = "1"` |
+| `items` | `extendedProperties.private.items` = JSON `[{"id","t","d"}]` (`t` title, `d` 0/1), chunked: |
+| | if the JSON is ≤ 1024 chars it is stored in `items`; otherwise it is split into 1000-char slices stored in `items`, `items_1`, `items_2`, … and `itemsChunks = "<n>"`. Readers concatenate `items` + `items_1..n-1`. Writers delete stale higher chunks (patch them to `null`/empty). |
+| human mirror | `description` = one line per item, `☐ title` or `☑ title`, joined with `\n`, nothing else |
+| `completedOn` | `extendedProperties.private.completedOn` = `YYYY-MM-DD`, written by `TaskListService` on an update that leaves no open item where one was open before (date from the app clock, so the test clock applies; a list created complete gets none) and removed on the write that leaves an item open again (untick, add). Absent = not complete, or completed outside the app (Google app) or before this property existed. |
+| `canvas` (@optional) | `extendedProperties.private.cx` and `.cy`: integer strings `0..10000`, the note's place on the Canvas (the Canvas of the Tasks view); both absent = no place yet |
+| undated | a list without a date: all-day on the anchor date **2099-12-31** with `extendedProperties.private.undated = "1"` (below) |
+| `categoryId` | `extendedProperties.private.categoryId` (absent = no category) |
+| `tags` | `extendedProperties.private.tags` = JSON array of strings (absent or `[]` = none; ≤ 1024 chars by limits) |
+| color in Google | `colorId` = nearest Google color to the category color; no category → `colorId` removed (calendar color) |
+
+- Limits: 200 items, 200 chars per title; Google allows max 300 extended properties / 32 kB total, which these limits
+  respect (200 × ~215 chars ≈ 43 kB worst case → the server rejects writes whose encoded size exceeds 30 kB with
+  `400 VALIDATION_ERROR "Task list is too large"`).
+- **Authority**: `extendedProperties` is authoritative. If `kind = tasklist` but no `items` property exists (created
+  by hand in Google, or stripped), items are parsed from the description (`☐`/`☑`/`[ ]`/`[x]` prefixes, other
+  non-empty lines = not done) and get stable ids derived from line index + title hash; the first app write then
+  stores proper `items`. Edits made to the description in the Google app are overwritten on the next app write
+  (documented limitation).
+- Task lists are excluded from the plain event endpoints and vice versa (404).
+- The app shows the category color from settings (exact hex), while Google shows the nearest `colorId`. When a
+  category's color changes, Google `colorId`s of existing task lists are updated lazily on their next write (no mass
+  rewrite).

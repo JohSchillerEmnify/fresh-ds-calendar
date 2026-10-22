@@ -1,5 +1,5 @@
 /**
- * The drag helper cat's decisions (ARCHITECTURE "Drag helper"), pure so they are unit-tested: the roll's chance and
+ * The drag helper cat's decisions (feature emotional-support-cat), pure so they are unit-tested: the roll's chance and
  * which pose the cat takes for the drag's current displacement and rest time. `DragCat` reads the drag state from
  * `watchDrags` (motion/drag.ts) and only draws.
  */

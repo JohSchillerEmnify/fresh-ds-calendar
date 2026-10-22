@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Reminders settings (`/settings/reminders`, ARCHITECTURE "Reminders, several per event"): one section per calendar with
+ * Reminders settings (`/settings/reminders`, feature reminders): one section per calendar with
  * Google's default reminder list of that calendar, edited like an event's list and saved at once (`calendarList.patch`,
  * popup only); read-only calendars show theirs without editing. Then "Task lists": the switch whether the app reminds about
  * task lists (`prefs.notify.tasklists`, off by default) and the tasks calendar's default list.

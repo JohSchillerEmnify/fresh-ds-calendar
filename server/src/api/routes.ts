@@ -113,7 +113,7 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
 
   r.get('/config', (c) => c.json(configResponse(ctx)));
-  // The plain-English lines of CHANGELOG.md, newest first (ARCHITECTURE "Release notes").
+  // The plain-English lines of CHANGELOG.md, newest first (feature release-notes).
   r.get('/release-notes', (c) => c.json({ notes: ctx.overrides.notes ?? ctx.releaseNotes }));
 
   r.get('/calendars', async (c) => {
@@ -134,7 +134,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     const k = (await cal(c).calendars()).find((x) => x.id === id)!;
     return c.json({ ...k, hidden: hidden.includes(id) });
   });
-  // The tasks calendar is not in the calendar list; its reminder default is edited here (ARCHITECTURE "Reminders").
+  // The tasks calendar is not in the calendar list; its reminder default is edited here (feature reminders).
   r.get('/reminders/tasks-calendar', async (c) => c.json({ defaultReminders: await cal(c).tasksDefaultReminders() }));
   r.patch('/reminders/tasks-calendar', async (c) => {
     const b = (await body(c)) as { defaultReminders?: unknown } | undefined;
@@ -259,7 +259,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.body(null, 204);
   });
 
-  // ---- canvas areas (ARCHITECTURE "Canvas") ----
+  // ---- canvas areas (feature tasks-canvas) ----
   r.get('/canvas', (c) => c.json(ctx.canvas.get(person(c))));
   r.put('/canvas', async (c) => c.json(ctx.canvas.put(person(c), parse(canvasDocSchema, await body(c)).areas)));
 
@@ -322,7 +322,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
     return c.body(null, 204);
   });
-  // ---- sharing (ARCHITECTURE "Shared lists") ----
+  // ---- sharing (feature shared-lists) ----
   r.get('/people', (c) => c.json({ people: ctx.shared.candidates(person(c)) }));
   r.post('/tasklists/:id/share', async (c) => c.json(await cal(c).shareTaskList(c.req.param('id'), parse(shareSchema, await body(c)).person)));
   r.delete('/tasklists/:id/share', async (c) => c.json(await cal(c).unshareTaskList(c.req.param('id'))));

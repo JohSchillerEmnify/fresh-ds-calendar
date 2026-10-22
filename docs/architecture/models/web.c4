@@ -30,9 +30,24 @@ model {
     listSheet = component 'List sheet' {
       description 'The bottom sheet a tap opens on a task list; carries the Show on door switch too'
     }
+    items = store 'Items store' {
+      description 'The events and task lists of the visible range, with item changes applied before the server confirms them'
+    }
+    sync = component 'Sync' {
+      description 'Decides when to re-fetch and shows the error banner while Google or the network is unreachable'
+    }
+    signin = component 'Sign-in page' {
+      description 'Shown to anyone not signed in; also the re-sign-in and calendar-access banners'
+    }
+    serviceWorker = component 'Service worker' {
+      description 'Keeps the app shell for offline start; never answers API calls from its cache'
+    }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }
+
+    sync -> items 're-fetches on route change, timer, focus and network return'
+    timegrid -> items 'shows'
 
     listForm -> pluginUi 'offers the door plugin\'s Show on door switch'
     listSheet -> pluginUi 'offers the door plugin\'s Show on door switch'
@@ -49,5 +64,191 @@ model {
     labsViews -> prefs 'reads the minimum event length'
     labsViews -> primitives 'packs with the minimum event length'
     widgetBridge -> prefs 'reads the minimum event length into the snapshot'
+  }
+
+  // Shell, navigation and settings
+  extend calendar.web {
+    appShell = component 'App shell' {
+      description 'The top app bar, the add button and the swipe carousel around the active view'
+    }
+    viewSwitcher = component 'View switcher' {
+      description 'The tabs that change the view, as a bottom bar, top tabs or a rail, with a flask-marked tab per Labs view switched on'
+    }
+    router = component 'Router' {
+      description 'Maps each URL to a view and period, keeps the filter query and sends unknown paths to the current month'
+    }
+    periodStore = store 'Period store' {
+      description 'The shown view, its period and the focus date that view switches and new entries start from'
+    }
+    settingsStore = store 'Settings store' {
+      description 'The settings and categories, changed on screen at once and rolled back if the server does not take them'
+    }
+    adaptiveSheet = component 'Adaptive sheet' {
+      description 'The frame of every dialog: a bottom sheet on phones, a centred dialog on desktop'
+    }
+    newDialog = component 'New dialog' {
+      description 'The one dialog for a new entry, with a switch between event, task list and birthday'
+    }
+    translations = library 'Translations' {
+      description 'The UI texts per language, switched at runtime without a reload'
+    }
+
+    owner -> appShell 'swipes between periods and adds entries'
+    owner -> viewSwitcher 'switches views'
+    viewSwitcher -> router 'navigates to the period of the chosen view'
+    viewSwitcher -> prefs 'reads its position, the Labs switch and the Labs view choices'
+    appShell -> router 'moves to the next or previous period on a swipe'
+    router -> periodStore 'sets the period and keeps or moves the focus date'
+    router -> week 'shows the week'
+    appShell -> newDialog 'opens on the add button'
+    timegrid -> newDialog 'opens on a tap on an empty slot, with its date and time'
+    newDialog -> adaptiveSheet 'opens in'
+    newDialog -> listForm 'shows for a task list'
+    appShell -> prefs 'reads the language'
+    appShell -> translations 'applies the language, also when it changes on another device'
+    settings -> settingsStore 'changes settings and categories'
+    settings -> prefs 'changes bedtime, the left hand, the view switcher position, Labs and the approaching track'
+    settingsStore -> sync 'reports a failed save: the error banner'
+    sync -> settingsStore 're-fetches on focus'
+  }
+
+  // Time, motion, overlays and the ADHD helpers
+  extend calendar.web {
+    clock = component 'Clock' {
+      description 'The one app-wide minute tick, paused while the app is hidden'
+    }
+    motion = library 'Motion' {
+      description 'The in-house animation and reward-effect layer, capped by the animation level and the device\'s reduce-motion wish'
+    }
+    dragDrop = component 'Drag and drop' {
+      description 'Picking up an entry by long press or mouse drag and dropping it on a snapped time or day'
+    }
+    overlayHistory = component 'Overlay history' {
+      description 'A history entry per open overlay, so the system back closes the topmost overlay first'
+    }
+    pendingDeletes = store 'Pending deletes' {
+      description 'Deleted entries hidden at once whose delete waits for the undo time'
+    }
+    snackbar = component 'Snackbar' {
+      description 'The one snackbar, drawn in the active theme'
+    }
+    bedtime = component 'Bedtime' {
+      description 'Each night\'s bedtime and wake-up time from the bedtime pref, fixed or from the next day\'s first appointment'
+    }
+    updateCheck = component 'Update check' {
+      description 'Compares the server\'s build version with the running one'
+    }
+    whatsNew = component 'What\'s new' {
+      description 'The release notes in the settings and the one-time note after an update'
+    }
+    taskTray = component 'Open tasks tray' {
+      description 'Today\'s open and just-finished task lists, in sight in every view'
+    }
+    supportCat = component 'Support cat' {
+      description 'The cat that now and then strikes through a finished list and helps with a drag'
+    }
+
+    clock -> timegrid 'moves the now marker'
+    clock -> bedtime 'ticks the reminder'
+    bedtime -> prefs 'reads the bedtime pref'
+    bedtime -> items 'reads the next day\'s first timed entry, timed task lists included'
+    bedtime -> timegrid 'draws the night band behind the entries'
+    bedtime -> snackbar 'shows the bedtime reminder, once per night'
+    motion -> settingsStore 'reads the animation level'
+    dragDrop -> items 'moves the entry optimistically; springs it back with the banner on failure'
+    dragDrop -> motion 'lifts, settles and plays the drop effect'
+    dragDrop -> resize 'hands over when released without moving'
+    timegrid -> dragDrop 'lets its entries be picked up'
+    pendingDeletes -> items 'hides the entry until undo or the delete'
+    pendingDeletes -> snackbar 'offers Undo'
+    taskTray -> motion 'plays tick and list-complete rewards'
+    taskTray -> supportCat 'waits for the cat on a finished list'
+    supportCat -> prefs 'reads the support cat setting'
+    sync -> taskTray 'refreshes the open lists'
+    sync -> updateCheck 'checks the version on every sync and on return to the foreground'
+    updateCheck -> serviceWorker 'installs the newest worker and reloads when no dialog, picker or resize is open'
+    updateCheck -> snackbar 'offers Reload when no service worker controls the page'
+    whatsNew -> snackbar 'says once what is new'
+    overlayHistory -> adaptiveSheet 'closes the topmost dialog or sheet on the system back'
+  }
+
+  // Labs
+  extend calendar.web {
+    labsRegistry = library 'Labs registry' {
+      #experimental
+      description 'The one list of Labs views with their route and default'
+    }
+    labsClock = component 'Labs clock' {
+      #experimental
+      description 'One day as a 24-hour dial on which entries are opened, turned, resized and created'
+    }
+    approachTrack = component 'Approaching track' {
+      description 'The time axis in the Now card on which today\'s timed entries come closer'
+    }
+
+    settings -> labsRegistry 'lists one switch per Labs view'
+    viewSwitcher -> labsRegistry 'takes each Labs view\'s route and default'
+    labsViews -> items 'shows; no server API of their own'
+    labsClock -> items 'shows the day and saves a turned or resized entry'
+    labsClock -> resize 'reuses the start and end limits of the grid'
+    approachTrack -> prefs 'reads whether the track is on and its window'
+    approachTrack -> items 'shows today\'s timed entries within the window, carried-over lists included'
+    clock -> approachTrack 'moves the entries closer'
+  }
+
+  // Themes
+  extend calendar.web {
+    themeMenu = component 'Theme menu' {
+      description 'Seasons & holidays, the preset gallery, the scene choice, fine-tuning, own themes and the live preview'
+    }
+    themeState = store 'Theme store' {
+      description 'The person\'s theme pref and own themes, mirrored from the server, and the look resolved from them for today'
+    }
+    themeEngine = library 'Theme engine' {
+      description 'Presets as theme documents, the calendar\'s theme and scene for a date, and the one apply path to the page'
+    }
+    topBarScene = component 'Top bar scene' {
+      description 'The scene in the top app bar: a built-in scene, a drawn gradient or the own picture shown as an image'
+    }
+
+    themeMenu -> themeState 'applies each choice at once, also while a slider moves'
+    themeMenu -> topBarScene 'shows the effective scene in the live preview'
+    themeMenu -> calendar.themeRules 'checks an imported theme and cleans its picture'
+    themeState -> themeEngine 'resolves preset, Seasons & holidays and overrides for today'
+    topBarScene -> themeState 'draws the resolved scene'
+    snackbar -> themeState 'takes the active theme, not inverse colours'
+  }
+
+  // Task lists
+  extend calendar.web {
+    tasksView = component 'Tasks view' {
+      description 'Every open task list, dated or not, in the tabs Open, Canvas and Archive, under one filter'
+    }
+    tasksCanvas = component 'Canvas' {
+      description 'Open task lists as sticky notes on a pan-and-zoom board with named areas; a note belongs to the area it lies in'
+    }
+    grownCard = component 'Grown task list card' {
+      #experimental
+      description 'A tapped task list card grown in place over the calendar, read-only, its real time block kept recognisable'
+    }
+
+    tasksView -> items 'keeps the open lists it shows, with the usual optimistic item changes'
+    tasksView -> prefs 'reads and saves grouping, sorting and the filter'
+    tasksView -> tasksCanvas 'shows as its Canvas tab'
+    tasksView -> listForm 'opens on a title tap; the add button opens it without a date'
+    timegrid -> grownCard 'grows a tapped task list card, laid out in time units like every block'
+    grownCard -> prefs 'reads the tap setting and the Labs switch'
+    grownCard -> listSheet 'opens on a tap; items are ticked there'
+  }
+
+  // Reminders
+  extend calendar.web {
+    reminderPlan = component 'Reminder plan' {
+      description 'The reminders due next, worked out from the reminder lists of upcoming events and task lists'
+    }
+
+    reminderPlan -> items 'reads the upcoming events and task lists with their reminders'
+    reminderPlan -> prefs 'reads which reminders reach the lock screen'
+    reminderPlan -> snackbar 'rings each reminder while the app is open'
   }
 }

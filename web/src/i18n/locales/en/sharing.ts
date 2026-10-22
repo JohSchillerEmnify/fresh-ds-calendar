@@ -1,5 +1,5 @@
 /**
- * English messages of shared task lists (ARCHITECTURE "Shared lists"): the badge, the share controls of the task list
+ * English messages of shared task lists (feature shared-lists): the badge, the share controls of the task list
  * dialog and the category dialog, and the server's error keys (`sharing.*`). Spread into the catalogue as `sharing`;
  * `{ } @ |` must be escaped.
  */

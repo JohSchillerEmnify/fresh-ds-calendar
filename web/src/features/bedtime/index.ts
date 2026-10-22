@@ -1,5 +1,5 @@
 /**
- * Bedtime feature (ARCHITECTURE "Bedtime mode"): the night band layer of the time grid, the reminder and the background
+ * Bedtime feature (feature bedtime): the night band layer of the time grid, the reminder and the background
  * load of the next day's items. The other views insert `BedtimeColumn`, `BedtimeDial` and `BedtimeTrack` themselves.
  */
 import { watch } from 'vue';

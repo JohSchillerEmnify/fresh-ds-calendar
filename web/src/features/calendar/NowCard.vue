@@ -2,7 +2,7 @@
 /**
  * Approaching card (formerly "Now" card) above the time grid: the running event with time left and a shrinking
  * progress bar, and the approach track (or, with the track off, what comes next). Always compact: a slim card, no
- * toggle (ASSUMPTIONS A-68). Shown above every calendar view whatever period is shown (it is about now; the calendar store
+ * toggle (feature labs-approach-bar). Shown above every calendar view whatever period is shown (it is about now; the calendar store
  * keeps today loaded) unless the person switched it off. Rendered once by the shell above the calendar views, so a
  * view switch keeps it; it animates in only when it really appears. `data-entered` counts those enter animations.
  */

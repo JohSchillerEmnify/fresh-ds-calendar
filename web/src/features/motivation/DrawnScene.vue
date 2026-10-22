@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A drawn theme scene (ARCHITECTURE "Theme engine and AI themes"): a vertical gradient with decor the app draws from
+ * A drawn theme scene (feature theme-import): a vertical gradient with decor the app draws from
  * building blocks. In dark mode the gradient is dimmed (`dark` picks it; without it the page's `data-theme` does).
  * The decor moves subtly, only at the Full animation level.
  */

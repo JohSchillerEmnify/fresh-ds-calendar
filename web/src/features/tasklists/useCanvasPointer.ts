@@ -1,5 +1,5 @@
 /**
- * Pointer handling of the Canvas (ARCHITECTURE "Canvas"): one finger or the mouse pans the empty background; a touch long
+ * Pointer handling of the Canvas (feature tasks-canvas): one finger or the mouse pans the empty background; a touch long
  * press ANYWHERE on a note or an area picks it up and moves it (a touch that moves before that does nothing on a note and
  * pans on an area); a plain mouse drag moves a note or an area's header; resize handles drag at once; two fingers
  * pinch-zoom; Ctrl+wheel zooms and the plain wheel pans. It only reports what happened through {@link CanvasPointerHooks}; the component owns the

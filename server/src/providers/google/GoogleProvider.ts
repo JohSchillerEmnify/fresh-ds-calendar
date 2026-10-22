@@ -31,7 +31,7 @@ function isInsufficientScope(body: string | GoogleErrorBody | undefined): boolea
   return [...(body.errors ?? []), ...(body.details ?? [])].some((x) => x.reason === 'insufficientPermissions' || x.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT');
 }
 
-/** Maps googleapis/gaxios errors to the provider error classes (ARCHITECTURE §2) and notes the cause for the `api_unavailable` log line. */
+/** Maps googleapis/gaxios errors to the provider error classes and notes the cause for the `api_unavailable` log line. */
 export function mapGoogleError(e: unknown): Error {
   const mapped = mapGoogleErrorInner(e);
   if (mapped !== e) noteCause(mapped, causeOf(describeGoogleError(e)));
@@ -96,7 +96,7 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async listCalendars(): Promise<ProviderCalendar[]> {
-    // hidden entries too: the person's tasks calendar is hidden in Google's list (ARCHITECTURE §3)
+    // hidden entries too: the person's tasks calendar is hidden in Google's list (ADR 0006)
     return this.guard.cached('calendarList', async () => {
       const res = await this.call('calendarList.list', () => this.o.api.calendarList.list({ maxResults: 250, showHidden: true }));
       const out: ProviderCalendar[] = [];

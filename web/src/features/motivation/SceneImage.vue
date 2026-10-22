@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A theme's own scene picture (SVG) shown as an image, never inlined (ARCHITECTURE "Theme engine and AI themes").
+ * A theme's own scene picture (SVG) shown as an image, never inlined (ADR 0016).
  * Light and dark variants: `dark` picks one; without it the page's `data-theme` does.
  */
 import { useSceneUrls } from '@/theme/svg';

@@ -43,7 +43,7 @@
 @media (min-width: 768px) {
   :root { --hour-height: 48px; }
 }
-/* Phone without a bottom bar (view switcher at the top or in a rail): no bar height anywhere (ARCHITECTURE "View switcher position"); the rail is slimmer. */
+/* Phone without a bottom bar (view switcher at the top or in a rail): no bar height anywhere (feature nav-position); the rail is slimmer. */
 @media (max-width: 767.98px) {
   html:not([data-nav-pos='bottom']) { --navbar-h: 0px; }
   html[data-nav-pos='rail'] { --rail-w: 64px; }

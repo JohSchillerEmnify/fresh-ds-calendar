@@ -1,5 +1,5 @@
 /**
- * Browser side of the theme scene pictures (ARCHITECTURE "Theme engine and AI themes"): the SVG is sanitised again
+ * Browser side of the theme scene pictures (ADR 0016): the SVG is sanitised again
  * with DOMPurify (loaded lazily, like the color library) and only ever shown as an image through a `data:` URL.
  */
 import type { SvgSanitizer } from '@calendar/shared';

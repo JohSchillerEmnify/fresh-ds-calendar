@@ -1,5 +1,5 @@
 /**
- * Translation entry point (ARCHITECTURE "i18n"): vue-i18n in Composition API mode behind a typed `t()`.
+ * Translation entry point (ADR 0021): vue-i18n in Composition API mode behind a typed `t()`.
  *
  * `en` is bundled (source of the schema and the last fallback); every other catalogue is a lazy chunk loaded by
  * {@link applyLanguage}. UI code imports `t` from here, never from vue-i18n, so key names are type-checked.

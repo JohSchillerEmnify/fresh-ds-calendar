@@ -1,5 +1,5 @@
 /**
- * Calendar logic of the holiday themes (ARCHITECTURE "Holiday themes and Seasons & holidays"): Easter, the Advent
+ * Calendar logic of the holiday themes (feature theme-scenes): Easter, the Advent
  * Sundays, the Advent candles and the tree lights, and which holiday (if any) a date falls in. Pure functions on
  * `YYYY-MM-DD` strings, no DOM and no clock.
  */

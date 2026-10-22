@@ -1,5 +1,5 @@
 /**
- * The Android home-screen widget's snapshot (ARCHITECTURE "Android app and widget"): a compact, pure description of
+ * The Android home-screen widget's snapshot (feature phone-widget): a compact, pure description of
  * the current week (Monday to Sunday), today's task lists and the theme colours. The widget fetches the week itself;
  * this snapshot supplies the theme, the language and a fallback when that fetch fails.
  */

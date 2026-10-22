@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useDocumentVisibility } from '@vueuse/core';
 
 /**
- * Quiet landscape behind the sunflower field (ARCHITECTURE "Sunflower field scene"): a sky gradient, two soft rolling
+ * Quiet landscape behind the sunflower field (feature sunflower-field): a sky gradient, two soft rolling
  * hills, a few drifting clouds and a couple of bees that cross now and then. Light and dark variants; colours are
  * low-contrast so the top bar text stays legible. Drift and bees run only at the Full animation level while the page
  * is visible (CSS only, no per-frame JS); otherwise it is a still picture without bees. Parts carry `data-part`.

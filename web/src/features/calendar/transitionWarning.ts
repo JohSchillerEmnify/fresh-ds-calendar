@@ -1,5 +1,5 @@
 /**
- * Reminders in the open app and in the Android app (ARCHITECTURE "Reminders, several per event"). Both follow the reminder
+ * Reminders in the open app and in the Android app (feature reminders). Both follow the reminder
  * plan (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
  * reminder lead of the item. Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
  * In the app, a dismissible snackbar "<title> starts in <lead>" (the lead as the reminder names it) shows once per event and lead from its time until the start

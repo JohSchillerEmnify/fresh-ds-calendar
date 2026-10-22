@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { rawText, type Node } from '../src/i18n/raw-text';
 
 /**
- * Components already moved to the message catalogue (ARCHITECTURE "i18n", "Moving the remaining strings"). Add a
+ * Components already moved to the message catalogue (ADR 0021). Add a
  * file here when its area is migrated; the check then keeps hard-coded UI text out of its template.
  */
 const MIGRATED = [
@@ -52,7 +52,7 @@ const MIGRATED = [
 ];
 /**
  * Strings that other feature branches added before the i18n slice landed. They move into the catalogue with their area
- * (the per-area migration, ARCHITECTURE "i18n"); delete each entry then. Nothing else may be hard-coded.
+ * (the per-area migration, ADR 0021); delete each entry then. Nothing else may be hard-coded.
  */
 const NOT_YET_MIGRATED: Record<string, string[]> = {};
 describe('migrated components have no hard-coded UI text', () => {

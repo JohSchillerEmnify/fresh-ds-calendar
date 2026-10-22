@@ -7,7 +7,7 @@ interface Known { email: string; name?: string }
 
 /**
  * The people who signed in at least once, `sub -> { email, name }` in `DATA_DIR/people.json`. Sharing needs it:
- * the allow-list holds emails, lists belong to subs (ARCHITECTURE "Shared lists").
+ * the allow-list holds emails, lists belong to subs (feature shared-lists).
  */
 export class PeopleStore {
   private readonly file: string | null;

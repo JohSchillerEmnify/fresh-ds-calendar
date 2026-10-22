@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * The calendar server the person chose on the first start (ARCHITECTURE "Android app and widget", "Server choice"): the
+ * The calendar server the person chose on the first start (feature android-app): the
  * one place that knows the two servers on offer and which one is stored. The app loads it, the widget calls its API.
  */
 public final class ServerConfig {

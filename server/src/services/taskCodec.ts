@@ -4,11 +4,11 @@ import type { CanvasPlace, Category, Recurrence, TaskItem } from '../api/types.j
 import type { GoogleEvent, GoogleEventInput, GoogleEventPatch } from '../providers/CalendarProvider.js';
 
 export const MAX_PRIVATE_BYTES = 30_000;
-/** Largest stored Canvas coordinate (ARCHITECTURE "Canvas"): larger than the board, so the board can grow. */
+/** Largest stored Canvas coordinate (feature tasks-canvas): larger than the board, so the board can grow. */
 export const CANVAS_MAX = 10_000;
 const CHUNK = 1000;
 const SINGLE_MAX = 1024;
-/** The all-day date that stores undated task lists in Google (ARCHITECTURE "Undated task lists"). */
+/** The all-day date that stores undated task lists in Google (ADR 0017). */
 export const UNDATED_ANCHOR = '2099-12-31';
 const RRULE: Record<Recurrence, string> = { daily: 'RRULE:FREQ=DAILY', weekly: 'RRULE:FREQ=WEEKLY', monthly: 'RRULE:FREQ=MONTHLY' };
 
@@ -39,7 +39,7 @@ export function nextCompletedOn(before: Pick<TaskListData, 'items' | 'completedO
 /**
  * The date a write gives an undated list that it finishes: today, or null when the list stays as it is. Only a write
  * that ticks the last open item of an undated list re-dates it (a list that was already complete is left alone), and
- * not at all with the setting "Archive only" (`undatedDone = 'archive'`: the list stays undated, ARCHITECTURE "Archive").
+ * not at all with the setting "Archive only" (`undatedDone = 'archive'`: the list stays undated, feature tasks-archive).
  */
 export function dateOnCompletion(
   before: Pick<TaskListData, 'items' | 'date'>, after: Pick<TaskListData, 'items' | 'date'>, today: string, undatedDone: 'calendar' | 'archive' = 'calendar',

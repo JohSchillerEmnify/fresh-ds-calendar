@@ -1,4 +1,4 @@
-/** Shared task lists (spec/features/shared-lists.feature, ARCHITECTURE "Shared lists"): store, membership, moves, security. */
+/** Shared task lists (spec feature @id:shared-lists): store, membership, moves, security. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';

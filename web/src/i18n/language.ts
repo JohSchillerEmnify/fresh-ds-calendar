@@ -2,7 +2,7 @@
  * The language model: which languages exist, how the active one is chosen and which date locale it implies.
  *
  * Kept free of vue-i18n so date helpers and the server-independent parts can import it without pulling in the
- * message runtime (ARCHITECTURE "i18n").
+ * message runtime (ADR 0021).
  */
 import { ref } from 'vue';
 

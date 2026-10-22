@@ -14,11 +14,13 @@ const testDir = defineBddConfig({
   steps: ['steps/**/*.ts'],
   outputDir: '.features-gen',
   missingSteps: 'fail-on-gen',
+  // @backlog scenarios are agreed spec not built yet: every project skips them, so they need no steps yet
+  tags: 'not @backlog',
 });
 
 export default defineConfig({
   testDir,
-  // One shared mock backend: scenarios must run serially (A-30).
+  // One shared mock backend: scenarios must run serially.
   workers: 1,
   fullyParallel: false,
   retries: 0,

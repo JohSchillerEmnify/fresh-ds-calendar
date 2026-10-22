@@ -35,9 +35,9 @@ export interface Ctx {
   prefs: PrefsStore;
   themes: ThemeStore;
   canvas: CanvasStore;
-  /** Backups of every person's server data to their hidden Drive app folder (ARCHITECTURE "Backups"). */
+  /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
-  /** Web Push reminders: subscriptions, plans and the send loop (ARCHITECTURE "Reminders, several per event"). */
+  /** Web Push reminders: subscriptions, plans and the send loop (feature reminders). */
   push: PushService;
   /** TEST_MODE push recorder in place of the push services; null otherwise. */
   pushRecorder: RecordingSender | null;
@@ -45,7 +45,7 @@ export interface Ctx {
   mockDrive: MockDrive | null;
   /** The people who signed in at least once (sharing picks members from them). */
   people: PeopleStore;
-  /** Shared task lists, stored on the server (ARCHITECTURE "Shared lists"). */
+  /** Shared task lists, stored on the server (feature shared-lists). */
   shared: SharedListService;
   motivation: MotivationService;
   calendar: CalendarService;

@@ -9,7 +9,7 @@ import { nanoid } from '../lib/ids.js';
 import { formatInZone } from '../lib/time.js';
 import type { TaskListData } from './taskCodec.js';
 
-/** Prefix of a shared list's API id (`shared:<id>`) and its `calendarId` (A-162). */
+/** Prefix of a shared list's API id (`shared:<id>`) and its `calendarId` (feature shared-lists). */
 export const SHARED_PREFIX = 'shared:';
 export const SHARED_CALENDAR = 'shared';
 export const isSharedId = (id: string): boolean => id.startsWith(SHARED_PREFIX);
@@ -37,7 +37,7 @@ export interface SharedListDoc {
 export type AllowCheck = () => ((email: string) => boolean) | null;
 
 /**
- * Shared task lists (ARCHITECTURE "Shared lists"): the store (`DATA_DIR/shared/lists/<id>.json`), the membership checks
+ * Shared task lists (feature shared-lists): the store (`DATA_DIR/shared/lists/<id>.json`), the membership checks
  * and the category rules (`DATA_DIR/shared/category-shares.json`). It knows nothing of Google: the owner's
  * {@link CalendarService} moves lists in and out.
  */

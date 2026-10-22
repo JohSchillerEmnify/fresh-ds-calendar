@@ -1,5 +1,5 @@
 /**
- * English messages of the task lists and tasks area (ARCHITECTURE "i18n"): the Tasks view, task list cards, view and
+ * English messages of the task lists and tasks area (ADR 0021): the Tasks view, task list cards, view and
  * dialog, the open-tasks tray, the plant, streak and sunflower texts, and the undo and rollback snackbars.
  * Spread into the main catalogue as `tasks`; keys are named by meaning, and `{ } @ |` must be escaped.
  */

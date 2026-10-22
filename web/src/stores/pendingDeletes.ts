@@ -8,7 +8,7 @@ import { useItemsStore } from './items';
 import { useThemeStore } from './theme';
 import { useUiStore } from './ui';
 
-/** How long a delete can be undone before its request is sent (ARCHITECTURE "Delete with undo"). */
+/** How long a delete can be undone before its request is sent (view deleteWithUndo). */
 export const UNDO_MS = 6000;
 
 declare global {

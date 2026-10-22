@@ -31,7 +31,8 @@ Projects: `mobile` (default, 375x812 touch, everything except `@desktop`), `desk
 
 `steps/*.steps.ts` by feature area, shared helpers in `steps/support/` (api client, world, dates, ui, forms, tables,
 grid, color, cdp, probes in `world.ts`), custom parameter types in `steps/parameters.ts`. State is reset through
-`/api/__test/reset` ("the calendar is empty") and again after every scenario.
+`/api/__test/reset` ("the calendar is empty") and again after every scenario. The world fails any scenario in which the
+browser reports a `securitypolicyviolation` (the Content-Security-Policy is the one the server and Caddy send).
 
 ## Check run against current master (no features implemented)
 
@@ -46,7 +47,7 @@ grid, color, cdp, probes in `world.ts`), custom parameter types in `steps/parame
 1. **Grab point for drags** (STEPS.md: "mouse.down on the chip centre"). In a time grid the step grabs 5 minutes below
    the card top instead, so the drop time is the same if the app positions by pointer or by card top (15-minute snap
    absorbs the offset). Month and all-day targets use the centre.
-2. **"I pick up the event"** says "press and hold without moving", but ARCHITECTURE needs > 4 px for a mouse drag. On
+2. **"I pick up the event"** says "press and hold without moving", but the app needs > 4 px for a mouse drag. On
    desktop the step presses, waits 500 ms, wiggles 6 px sideways and back (net zero). On touch it holds the touch.
 3. **Browser clock**: `the time is D T and the clock is running` installs the fake clock and pauses it 1 ms later, so
    timers (and the app's minute ticker) fire only through `N minutes pass`. Debounces using `setTimeout` also freeze

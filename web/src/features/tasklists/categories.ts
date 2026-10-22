@@ -1,5 +1,5 @@
 /**
- * The "Task categories" switch (pref `taskCategories`, ARCHITECTURE "Task categories switch"): pure fall-back rules for
+ * The "Task categories" switch (pref `taskCategories`, feature task-list-categories): pure fall-back rules for
  * what the Tasks UI shows while categories are off, plus a composable that binds them to the prefs store. Nothing here
  * changes stored data: the stored filter, grouping, sort and the lists' `categoryId`s stay as they are.
  */

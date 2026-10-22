@@ -12,7 +12,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Pending reminders of the web app (ARCHITECTURE "Android app and widget", notifications): stored in SharedPreferences
+ * Pending reminders of the web app (feature android-app, feature reminders): stored in SharedPreferences
  * ({@code calendar_reminders}, one JSON entry per id) so they survive a reboot, and set as alarms that fire
  * {@link ReminderReceiver}. One pending reminder per id; scheduling an id again replaces it.
  */

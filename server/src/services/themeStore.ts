@@ -46,7 +46,7 @@ export async function vetRestoredFile(rel: string, content: string): Promise<str
   }
 }
 
-/** A person's imported themes, one JSON file each in `DATA_DIR/users/<sub>/themes/` (ARCHITECTURE "Theme engine and AI themes"). */
+/** A person's imported themes, one JSON file each in `DATA_DIR/users/<sub>/themes/` (feature theme-import). */
 export class ThemeStore {
   constructor(private readonly dataDir: string) {}
 

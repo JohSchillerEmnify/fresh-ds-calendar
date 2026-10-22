@@ -6,7 +6,7 @@ A mobile-first Google Calendar clone in Material 3 style, with expandable task l
 installable as a PWA, plus an Android shell with home-screen widgets. Self-hosted instance: <https://cal.example.org>.
 
 It syncs with Google Calendar through a provider abstraction. A mock Google backend is the default
-(`PROVIDER=mock`); real Google (`PROVIDER=google`) needs your own OAuth credentials (see `spec/ARCHITECTURE.md` §9).
+(`PROVIDER=mock`); real Google (`PROVIDER=google`) needs your own OAuth credentials (see `docs/DEPLOYMENT.md` "Going live with Google").
 
 Spec-driven: `spec/features/*.feature` is the single source of truth and runs directly as the e2e suite.
 
@@ -39,19 +39,20 @@ Theme tokens: `pnpm -F @calendar/web tokens`. Deployment notes: [docs/DEPLOYMENT
 | Path | Contents |
 |---|---|
 | `BRIEF.md` | Owner brief and fixed technical decisions |
-| `spec/features/` | Gherkin features, also the e2e suite |
-| `spec/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
-| `spec/ACCEPTANCE.md` | Numbered acceptance criteria mapped to scenarios |
-| `spec/ARCHITECTURE.md` | Components, provider, sync, mobile UX, PWA, env |
+| `spec/features/<domain>/` | Gherkin features (each with an `@id:`), also the e2e suite |
+| `docs/architecture/` | LikeC4 architecture model and views |
+| `docs/adrs/` | Architecture decision records |
+| `e2e/STEPS.md` | Every step phrase as a Cucumber expression; contract for `e2e/steps/` |
+| `spec/ARCHITECTURE.md` | Pointer: where each former architecture section now lives |
 | `spec/API.md` | REST contract under `/api`, incl. test-only endpoints (`TEST_MODE=true`) |
-| `spec/ASSUMPTIONS.md` | Decisions made without the owner |
+| `spec/ASSUMPTIONS.md` | Pointer: the retired assumptions were triaged on 2026-10-22 |
 | `docs/` | Research, deployment and backlog notes |
-| `spec/scripts/check-steps.py` | Checks every feature step matches exactly one expression in `STEPS.md` |
+| `e2e/scripts/check-steps.py` | Checks every feature step matches exactly one expression in `STEPS.md` |
 
 ## Android app
 
 A Capacitor shell around the calendar server you choose at first start, plus a weekly home-screen widget
-(`android/`, spec: ARCHITECTURE "Android app and widget"). `scripts/android-build.sh` builds an unsigned release APK
+(`android/`, architecture: views `androidApp` and `widget`, ADRs 0012–0015). `scripts/android-build.sh` builds an unsigned release APK
 in a Docker image (JDK 21 + Android SDK 36) and signs it with your own release keystore, which is kept outside git
 (`*.jks`, `keystore.properties` are ignored). Back the key up: an installed app can only be updated by an APK signed with the same key.
 Native unit tests: `./gradlew testDebugUnitTest` in `android/`.

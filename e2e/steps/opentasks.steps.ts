@@ -35,7 +35,7 @@ Then('the open tasks tray does not list {string}', async function (this: World, 
   await expect(trayRow(this, list)).toHaveCount(0);
 });
 
-// Open tray rows hold the same task list view as the expanded list (ARCHITECTURE "Task list view").
+// Open tray rows hold the same task list view as the expanded list (feature open-tasks-in-sight).
 const trayRow = (w: World, title: string) => w.byTestId('task-tray-item', attr('data-title', title));
 const trayItem = (w: World, list: string, item: string) =>
   trayRow(w, list).getByTestId('tasklist-item').and(w.page.locator(attr('data-title', item)));

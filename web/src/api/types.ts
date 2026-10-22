@@ -50,7 +50,7 @@ export interface Calendar {
   color: string;
   primary: boolean;
   writable: boolean;
-  /** True for the person's own calendars: events go only there (ARCHITECTURE "Only one's own events are editable"). */
+  /** True for the person's own calendars: events go only there (feature events-readonly). */
   own: boolean;
   /** The person's choice (GET /api/calendars). */
   hidden?: boolean;
@@ -60,7 +60,7 @@ export interface Calendar {
 
 /**
  * An item's reminders: `minutes` is the popup lead list in effect (the calendar default while `useDefault`, else the
- * item's own list; ARCHITECTURE "Reminders, several per event").
+ * item's own list; feature reminders).
  */
 export interface Reminders {
   useDefault: boolean;
@@ -148,7 +148,7 @@ export interface SharedInfo {
   with: Person[];
 }
 
-/** A note's top-left corner on the Canvas, in canvas units (ARCHITECTURE "Canvas"). */
+/** A note's top-left corner on the Canvas, in canvas units (feature tasks-canvas). */
 export interface CanvasPlace {
   x: number;
   y: number;
@@ -186,12 +186,12 @@ export type TasksSortDir = 'default' | 'reversed';
 export type UndatedDone = 'calendar' | 'archive';
 /** What tapping a task list card does (per person pref `taskOpen`): grow it inline or open the drawer. */
 export type TaskOpen = 'inline' | 'drawer';
-/** The "When" choice of the Tasks filter (ARCHITECTURE "Tasks filter"). */
+/** The "When" choice of the Tasks filter (feature tasks-filter). */
 export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
 /** The Tasks view's filter (per person pref `tasksFilter`): category ids or `none` ("or"), and one When choice ("and"). */
 export interface TasksFilter { categories: string[]; when: TasksWhen }
 
-/** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; ARCHITECTURE "Labs"). */
+/** Approach bar window length: a whole number of hours from 1 to 24 (3, 6 and 12 offered; feature labs-approach-bar). */
 export type ApproachWindowHours = number;
 
 /**
@@ -215,7 +215,7 @@ export interface Prefs {
   leftHanded: boolean;
   /** The "From Sat 10 Oct" label on carried-over task lists. */
   showCarriedFrom: boolean;
-  /** Where the view switcher sits on phones and on desktop and tablets (ARCHITECTURE "View switcher position"). */
+  /** Where the view switcher sits on phones and on desktop and tablets (feature nav-position). */
   navPhone: NavPosition;
   navDesktop: NavPosition;
   /** Tasks view grouping and sorting. */
@@ -224,14 +224,14 @@ export interface Prefs {
   /** Labs: the AI prompt and the import in the theme menu (off by default). */
   labsOwnThemes: boolean;
   tasksSortDir: TasksSortDir;
-  /** "Finished list without a date" (ARCHITECTURE "Archive"). */
+  /** "Finished list without a date" (feature tasks-archive). */
   undatedDone: UndatedDone;
-  /** Tapping a task list card: grow inline (default) or open the drawer (ARCHITECTURE "Tap a task list"). */
+  /** Tapping a task list card: grow inline (default) or open the drawer (feature tasklists-expand-card). */
   taskOpen: TaskOpen;
   tasksFilter: TasksFilter;
-  /** The UI language: `auto` follows the device (ARCHITECTURE "i18n"). */
+  /** The UI language: `auto` follows the device (feature language). */
   language: LanguagePref;
-  /** Bedtime mode: the night band in the timeline views and the reminder (ARCHITECTURE "Bedtime mode"). */
+  /** Bedtime mode: the night band in the timeline views and the reminder (feature bedtime). */
   bedtime: BedtimePrefs;
   notify: NotifyPrefs;
   /** Labs: the week as a two-row overview that fits one screen (off by default). */

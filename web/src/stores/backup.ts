@@ -9,7 +9,7 @@ import { RETURN_KEY } from '@/stores/auth';
 export interface BackupResult { ok: boolean; message: string }
 
 /**
- * Backup to Google Drive (ARCHITECTURE "Backups"): the status Settings shows and the three actions. A failed call never
+ * Backup to Google Drive (feature drive-backup): the status Settings shows and the three actions. A failed call never
  * throws; it returns the reason and the status is read again, so "Last backup failed: … (retrying)" shows up.
  */
 export const useBackupStore = defineStore('backup', () => {

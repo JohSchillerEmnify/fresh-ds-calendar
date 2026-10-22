@@ -1,5 +1,5 @@
 /**
- * Canvas state (ARCHITECTURE "Canvas"): the person's areas (server, `GET/PUT /api/canvas`), the optimistic places of notes
+ * Canvas state (feature tasks-canvas): the person's areas (server, `GET/PUT /api/canvas`), the optimistic places of notes
  * that were just moved (the saved place lives on the task list), and the view (pan and zoom) remembered per device in
  * `localStorage`. The pure rules are in `canvas.ts`.
  */

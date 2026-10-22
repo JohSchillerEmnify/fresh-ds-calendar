@@ -1,5 +1,5 @@
 /**
- * The "Create with AI" prompt (ARCHITECTURE "Theme engine and AI themes"): short, and everything an AI needs to answer
+ * The "Create with AI" prompt (feature theme-import): short, and everything an AI needs to answer
  * with a valid `calendar-theme/2` file. The app calls no AI; the person copies this text into the one they like.
  */
 import { THEME_SCHEMA_ID, themeSchema, type ThemeDoc } from '@calendar/shared';

@@ -2,8 +2,8 @@ import { expect } from '@playwright/test';
 import { attr, tid, type World } from './world.js';
 
 /**
- * Open a task list's sheet: tap its card (it grows over the calendar), then tap the grown card (ARCHITECTURE "Expanded task
- * list card"). On phones a tap inside a month cell opens the day view instead (ARCHITECTURE §5); in that case the card is
+ * Open a task list's sheet: tap its card (it grows over the calendar), then tap the grown card (feature tasklists-expand-card).
+ * On phones a tap inside a month cell opens the day view instead (feature navigation); in that case the card is
  * tapped again in the day view.
  */
 export async function expandTaskList(world: World, title: string) {

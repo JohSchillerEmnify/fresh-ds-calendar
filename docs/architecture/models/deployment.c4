@@ -1,0 +1,18 @@
+deployment {
+  environment prod 'Production' {
+    vps = node 'VPS' {
+      description 'The public instance at cal.example.org; Caddy terminates HTTPS in front of the app container'
+      technology 'Docker Compose, Caddy'
+      app = node 'App container' {
+        description 'Serves the built web app and the API; per-person data on the /data volume'
+        instanceOf calendar.server
+        instanceOf calendar.web
+      }
+    }
+    phone = device 'Phone' {
+      description 'Runs the web app installed as a PWA, or the Android app with its home-screen widget'
+      instanceOf calendar.widget
+      instanceOf calendar.androidApp
+    }
+  }
+}

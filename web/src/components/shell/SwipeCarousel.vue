@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The calendar swipe area (`calendar-swipe-area`): renders the routed view and turns horizontal swipes into period
- * changes (ARCHITECTURE "Swipe").
+ * changes (feature mobile-first-layout).
  * - Full motion on a calendar view: live carousel. When the swipe turns horizontal, the neighbouring period is mounted
  *   beside the current one as a preview copy of the same view (`preview`, inert, `aria-hidden`, cached items, its range
  *   prefetched), and the track follows the finger (transform only, written once per frame). On release it settles

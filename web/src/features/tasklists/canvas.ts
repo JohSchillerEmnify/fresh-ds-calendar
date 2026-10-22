@@ -1,5 +1,5 @@
 /**
- * Pure geometry of the Tasks view's Canvas (ARCHITECTURE "Canvas"): board and note sizes, clamping, the Unsorted stack,
+ * Pure geometry of the Tasks view's Canvas (feature tasks-canvas): board and note sizes, clamping, the Unsorted stack,
  * which area a note lies in, zoom and pan maths and the remembered view. No store, DOM or network access, so the rules
  * are unit-tested with plain numbers. One canvas unit is one CSS pixel at zoom 1.
  */
@@ -89,7 +89,7 @@ export interface PlacedNote { id: string; x: number; y: number; placed: boolean;
 
 /**
  * Positions every note: lists with a place (or an optimistic one in `override`) where they are, the others in the
- * Unsorted stack ordered by title, then id (A-124), so a stack does not reshuffle while lists are ticked.
+ * Unsorted stack ordered by title, then id (feature tasks-canvas), so a stack does not reshuffle while lists are ticked.
  */
 export function placeNotes(lists: readonly NoteSource[], override: Readonly<Record<string, Point | undefined>> = {}): PlacedNote[] {
   const out: PlacedNote[] = [];
@@ -104,7 +104,7 @@ export function placeNotes(lists: readonly NoteSource[], override: Readonly<Reco
   return out;
 }
 
-/** The anchor of a note, the point that decides which area it lies in: the middle of its top edge (A-126). */
+/** The anchor of a note, the point that decides which area it lies in: the middle of its top edge (feature tasks-canvas). */
 export const noteAnchor = (p: Point): Point => ({ x: p.x + NOTE_W / 2, y: p.y + NOTE_ANCHOR_Y });
 
 /** The topmost area (the last one in the list) that contains the note's anchor, or null. */

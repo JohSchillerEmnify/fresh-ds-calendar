@@ -12,7 +12,7 @@ export function nowMarkerTop(minutesNow: number, hourHeight: number): number {
   return minutesToPx(minutesNow, hourHeight);
 }
 
-/** `<60 min` -> `35 min`; whole hours -> `2 h`; else `1 h 20 min`. Rounds down to whole minutes (ARCHITECTURE 5b). */
+/** `<60 min` -> `35 min`; whole hours -> `2 h`; else `1 h 20 min`. Rounds down to whole minutes (feature proportional-timeline). */
 export function formatDuration(totalMinutes: number): string {
   const m = Math.max(0, Math.floor(totalMinutes));
   if (m < 60) return t('calendar.duration.minutes', { minutes: m });

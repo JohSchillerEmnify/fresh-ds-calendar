@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Own themes in the theme menu (ARCHITECTURE "Theme engine and AI themes"): the import of a theme file, by paste or
+ * Own themes in the theme menu (feature theme-import): the import of a theme file, by paste or
  * file (always available), plus an optional own SVG picture for the top bar; and, only when `ai` is set (a Labs
  * switch), the prompt to copy for an AI (no AI is called) and the repair prompt. The text is tidied (fence, Markdown links), checked with the shared validator, the picture is
  * sanitised here again (the server does it once more), a preview shows how it looks, and saving stores it per person.

@@ -1,4 +1,4 @@
-/** Release notes: parses the user-facing lines of CHANGELOG.md (ARCHITECTURE "Release notes"). */
+/** Release notes: parses the user-facing lines of CHANGELOG.md (feature release-notes). */
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 

@@ -22,6 +22,10 @@ specification {
     }
   }
 
+  deploymentNode environment
+  deploymentNode node
+  deploymentNode device
+
   tag experimental
   tag external
 }
@@ -41,8 +45,29 @@ model {
       description 'Hono API that stores per-person preferences'
     }
     widget = app 'Phone widget' {
-      description 'Native Android home-screen widget that draws the current week'
+      description 'Native Android home-screen widgets (week, day and clock) that draw the current days'
     }
+    androidApp = app 'Android app' {
+      description 'The Capacitor shell that shows the chosen server\'s web app and carries the native plugins'
+    }
+    themeRules = library 'Theme rules' {
+      description 'The calendar-theme/2 document schema, its validator and the SVG picture sanitiser, shared by web and server'
+    }
+  }
+
+  google = system 'Google' {
+    #external
+    description 'Each person\'s Google account: sign-in, their calendars (where events and task lists live) and Drive'
+  }
+
+  aiChat = system 'AI chat' {
+    #external
+    description 'Any AI chat the person likes; the app never calls it'
+  }
+
+  webPushServices = system 'Push services' {
+    #external
+    description 'The browsers\' push services that deliver a Web Push to a closed browser'
   }
 
   doorBoard = system 'Door board' {
@@ -55,5 +80,7 @@ model {
   owner -> calendar.widget 'glances at the week'
   calendar.web -> calendar.widget 'pushes a week snapshot through the widget bridge'
   calendar.widget -> calendar.server 'reads the week and the preferences with the app session'
+  owner -> calendar.androidApp 'uses the calendar on the phone'
+  owner -> aiChat 'asks for a theme with the copied prompt, pastes the answer back'
   doorBoard -> calendar.server 'reads reminders and today\'s events with its key'
 }

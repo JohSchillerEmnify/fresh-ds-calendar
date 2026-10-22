@@ -9,7 +9,7 @@ import java.util.Base64;
 import java.util.regex.Pattern;
 
 /**
- * Google sign-in for the app (ARCHITECTURE "Android app and widget", "Google sign-in"). Google refuses OAuth inside a
+ * Google sign-in for the app (feature android-app, ADR 0013). Google refuses OAuth inside a
  * WebView, so the whole round trip runs in the system browser and the session comes back by deep link
  * {@code lan.mordor.calendar://auth?code=<one-time code>}. The sign-in is bound to this app (RFC 7636 S256): the app makes a
  * random verifier, sends only its SHA-256 (the challenge) through the browser and shows the verifier to the server when it

@@ -18,7 +18,7 @@ import SunflowerField from './SunflowerField.vue';
 import { useSceneVisits } from './useSceneVisits';
 
 /**
- * The living layer of a themed top bar scene (ARCHITECTURE "Season scenes and the support cat"), drawn over the
+ * The living layer of a themed top bar scene (feature theme-scenes), drawn over the
  * scene's own backdrop: spring brings sprouting trees, lily of the valley and the first flowers in the grass, summer
  * a few sunflowers and a small sun, Halloween its night (moon, bare trees, jack-o'-lanterns, a ghost now and then);
  * the holiday scenes bring eggs and a hare (Easter), sea and umbrella (Summer holidays), an Advent candle timeline ending in the tree

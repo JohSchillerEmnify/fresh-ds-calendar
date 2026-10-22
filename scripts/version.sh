@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Computes the app's semantic version from the git history (ARCHITECTURE "Version numbers").
+# Computes the app's semantic version from the git history (docs/DEPLOYMENT.md "Versioning and release notes").
 #   scripts/version.sh             next version X.Y.Z: the last tag vX.Y.Z plus one bump for the commits since it
 #   scripts/version.sh --preview   "<last tag>-preview" (the build adds +<sha>)
 # Bump: a commit subject starting `feat` raises the minor version, anything else the patch version; a BREAKING marker

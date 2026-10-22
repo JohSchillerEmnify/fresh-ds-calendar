@@ -14,7 +14,7 @@ export class DriveError extends Error {
 }
 
 /**
- * One person's hidden Drive app folder (ARCHITECTURE "Backups"). The real client
+ * One person's hidden Drive app folder (feature drive-backup). The real client
  * (`providers/google/GoogleDrive.ts`) and the TEST_MODE double (`providers/mock/MockDrive.ts`) share this contract.
  */
 export interface DriveClient {

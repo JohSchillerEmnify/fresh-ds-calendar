@@ -8,7 +8,7 @@ export interface SwipeOptions {
 }
 
 /**
- * Horizontal swipe: >= 60 px, |dx| > 1.5 |dy|, < 600 ms (ARCHITECTURE §5). Vertical moves scroll normally.
+ * Horizontal swipe: >= 60 px, |dx| > 1.5 |dy|, < 600 ms (feature mobile-first-layout). Vertical moves scroll normally.
  * Passive listeners; returns a disposer (call it in onBeforeUnmount).
  */
 export function bindSwipe(el: HTMLElement, o: SwipeOptions): () => void {

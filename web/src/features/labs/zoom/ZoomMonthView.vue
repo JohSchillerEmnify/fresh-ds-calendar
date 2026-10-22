@@ -4,7 +4,7 @@
  * (drag, wheel). The world is `viewport x zoom` big, laid out once per committed zoom; live gestures only move a CSS
  * transform (`zoomGestures.ts`). What a cell shows follows its size continuously (`detailAt`): density dots, title chips,
  * times, task lists growing into cards, and at the largest sizes a mini day timeline with every task item
- * (ARCHITECTURE "Labs: Zoom month"). Entries are the month view's own components (`ItemView`: events, `TaskListCard`).
+ * (feature zoom-month). Entries are the month view's own components (`ItemView`: events, `TaskListCard`).
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';

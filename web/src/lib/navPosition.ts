@@ -5,7 +5,7 @@ export const NAV_POSITIONS: readonly NavPosition[] = ['bottom', 'top', 'rail'];
 
 /**
  * Picks the position of the view switcher for the current layout: phones use `navPhone`, everything else (desktop and
- * touch tablets, >= 768 px) uses `navDesktop` (ARCHITECTURE "View switcher position").
+ * touch tablets, >= 768 px) uses `navDesktop` (feature nav-position).
  */
 export function resolveNavPosition(phone: boolean, prefs: { navPhone: NavPosition; navDesktop: NavPosition }): NavPosition {
   return phone ? prefs.navPhone : prefs.navDesktop;

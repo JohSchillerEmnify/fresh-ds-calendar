@@ -84,7 +84,7 @@ function back() {
 }
 
 // --- sections -------------------------------------------------------------------------------
-/** Every setting lives in exactly one section (ARCHITECTURE "Settings"); the desktop list links to them. */
+/** Every setting lives in exactly one section (feature settings); the desktop list links to them. */
 const SECTION_IDS = ['appearance', 'calendar', 'tasklists', 'motivation', 'motion', 'bedtime', 'notifications', 'labs', 'account'] as const;
 type SectionId = (typeof SECTION_IDS)[number];
 const sections = computed(() => SECTION_IDS.map((id) => ({ id, title: t(`settings.sections.${id}`) })));
@@ -185,7 +185,7 @@ onMounted(() => {
   api.motivation().then((m: Motivation) => { best.value = m.streak.best; }, () => { best.value = null; });
 });
 onBeforeUnmount(() => motivation.stop());
-// --- backup to Google Drive (ARCHITECTURE "Backups") ---------------------------------------------
+// --- backup to Google Drive (feature drive-backup) ---------------------------------------------
 const backup = useBackupStore();
 const confirmRestore = ref(false);
 void backup.load();

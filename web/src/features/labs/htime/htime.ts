@@ -1,5 +1,5 @@
 /**
- * Pure maths of the Labs horizontal view (ARCHITECTURE "Labs: Horizontal view"): the two zoom axes, pixels per hour and row
+ * Pure maths of the Labs horizontal view (feature horizontal-time): the two zoom axes, pixels per hour and row
  * height from the viewport and the zoom, the layout of one day row (x from the time, lanes for overlaps, untimed bars on
  * top) and of all rows, and the session-remembered zoom. No DOM, store or timer, so the rules are unit-tested with numbers.
  */

@@ -10,7 +10,7 @@ pnpm -F @calendar/server build   # tsc -> dist/
 pnpm -F @calendar/server dev     # tsx watch
 ```
 
-Env: see `spec/ARCHITECTURE.md` section 8 (`PORT HOST PUBLIC_URL ALLOWED_ORIGINS TZ PROVIDER DATA_DIR SEED TEST_MODE
+Env: see `docs/DEPLOYMENT.md` (`PORT HOST PUBLIC_URL ALLOWED_ORIGINS TZ PROVIDER DATA_DIR SEED TEST_MODE
 POLL_INTERVAL_MS GOOGLE_* LOG_LEVEL`). `ALLOWED_ORIGINS` defaults to `PUBLIC_URL`; CORS is only
 sent for listed origins (same-origin needs none).
 
@@ -27,11 +27,11 @@ past so they are carried over), a 5 day streak ending yesterday, a plant with 19
 **Demo reset**: `POST /api/demo/reset` (mock mode only, 404 otherwise) wipes the mock calendar and motivation state and
 re-seeds relative to the current app clock. Settings are kept. A "Reset demo data" button in Settings can call it.
 
-## Deviations and additions (relative to spec/API.md and ARCHITECTURE.md)
+## Deviations and additions (relative to spec/API.md and the spec features)
 
 Contract-relevant for web/e2e:
 1. The scene is the theme's `scene` attribute (`/api/prefs/theme`), not a setting; `PATCH /api/settings` rejects `scene`.
-   The old `Settings.scene` is migrated once per person into the theme (ARCHITECTURE "Themes"). Theme presets (including `mordor` #c43e00) live in the web app; the server only stores `seedColor`.
+   The old `Settings.scene` is migrated once per person into the theme (feature theme-scenes). Theme presets (including `mordor` #c43e00) live in the web app; the server only stores `seedColor`.
 2. `POST /api/demo/reset` (new, see above).
 3. Unknown JSON keys give `400 VALIDATION_ERROR` with message `Unknown field` and `details[].field`. A missing required
    key gives a message such as `Title is required` / `Name is required` / `Start is required`.

@@ -33,7 +33,7 @@ const leadMinutes = v.pipe(
 const reminders = so({ useDefault: v.boolean('useDefault must be a boolean'), minutes: leadMinutes });
 /** `PATCH /api/calendars/:id` and `PATCH /api/reminders/tasks-calendar`: the new popup default list. */
 export const defaultRemindersSchema = leadMinutes;
-/** A whole number of canvas units (ARCHITECTURE "Canvas"). */
+/** A whole number of canvas units (feature tasks-canvas). */
 const canvasInt = (min: number, max: number, msg: string) => v.pipe(v.number(msg), v.integer(msg), v.minValue(min, msg), v.maxValue(max, msg));
 const canvasPlace = v.nullable(so({ x: canvasInt(0, 10_000, 'Canvas x must be a whole number from 0 to 10000'), y: canvasInt(0, 10_000, 'Canvas y must be a whole number from 0 to 10000') }));
 const canvasId = v.pipe(v.string('Area id must be text'), v.regex(/^[A-Za-z0-9_-]{1,32}$/, 'Area id must be 1-32 characters of A-Z a-z 0-9 _ -'));

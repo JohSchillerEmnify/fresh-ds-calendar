@@ -1,5 +1,5 @@
 /**
- * Pure rules of the Tasks view's Archive tab (ARCHITECTURE "Archive"): which lists are finished, their order, the
+ * Pure rules of the Tasks view's Archive tab (feature tasks-archive): which lists are finished, their order, the
  * search match and the template copy. No store or DOM access, so they are unit-tested with fixed data.
  */
 import type { CreateTaskListInput, TaskList } from '@/api/types';
@@ -10,7 +10,7 @@ export const isFinished = (l: Pick<TaskList, 'totalCount' | 'doneCount'>): boole
 
 /**
  * Newest finished first by `completedOn`; lists without it (finished outside the app) come last, ordered by their
- * date (newest first, undated after dated), then by title (A-103).
+ * date (newest first, undated after dated), then by title (feature tasks-archive).
  */
 export function sortArchive(lists: TaskList[]): TaskList[] {
   const byTitle = (a: TaskList, b: TaskList) => displayTitle(a).toLowerCase().localeCompare(displayTitle(b).toLowerCase());

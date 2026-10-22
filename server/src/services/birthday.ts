@@ -1,6 +1,6 @@
 /**
  * Google birthdays (`eventType: "birthday"`): the exact create body Google accepts and the patch it allows
- * (ARCHITECTURE "Birthdays like Google Calendar"). Pure functions, no I/O.
+ * (feature birthdays). Pure functions, no I/O.
  */
 import { validation } from '../lib/errors.js';
 import { addDays, isLocalDate } from '../lib/time.js';

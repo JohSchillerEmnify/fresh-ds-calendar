@@ -1,5 +1,5 @@
 /**
- * English messages of the Google Drive backup (ARCHITECTURE "Backups", "i18n"): the Settings rows, the restore dialog
+ * English messages of the Google Drive backup (feature drive-backup, ADR 0021): the Settings rows, the restore dialog
  * and the messages after a backup or restore. Spread into the main catalogue as `backup`; `{ } @ |` must be escaped.
  */
 export default {

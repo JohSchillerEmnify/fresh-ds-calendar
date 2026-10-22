@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Labs: on a phone time flows top to bottom through all days (day divider, all-day band, blocks as tall as they last);
- * elsewhere one horizontal axis across days, items placed by time (ARCHITECTURE "Labs"). Reads the items store,
+ * elsewhere one horizontal axis across days, items placed by time (feature labs-timeline). Reads the items store,
  * loads a range around today (extendable at both edges), marks now with the app clock, zooms with wheel/pinch.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The reminder list of one item or calendar as chips (ARCHITECTURE "Reminders, several per event"): each lead removable, an
+ * The reminder list of one item or calendar as chips (feature reminders): each lead removable, an
  * "Add reminder" picker (5 / 10 / 15 / 30 min, 1 h, 1 h 30, 2 h, 1 day and a custom minutes field), at most 5. With
  * `allowDefault` (events, task lists) the list can also say "use the calendar default" (`defaultMinutes`, shown in words)
  * or "no reminders". The test ids carry `prefix`: `<prefix>-reminder` (chip, `data-minutes`), `-reminder-remove`,

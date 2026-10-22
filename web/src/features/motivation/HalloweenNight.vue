@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The Halloween part of the living scene layer (ARCHITECTURE "Season scenes and the support cat"): a moon behind thin
+ * The Halloween part of the living scene layer (feature theme-scenes): a moon behind thin
  * clouds, a dark rolling hill, bare gnarled trees, jack-o'-lanterns with flickering candles, the pumpkin the cat sits
  * next to (`catLeft`, percent, is where `SceneLife` puts the cat) and, every 8–12 min for ~8 s, a small friendly
  * ghost floating past (the scene visitor scheduling of `useSceneVisits`; none at Off). Bats and the cat come from

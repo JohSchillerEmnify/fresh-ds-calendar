@@ -108,7 +108,7 @@ async function save() {
   conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
-  // Tags are shelved (ARCHITECTURE "Tags shelved"): no `tags` key, so the server keeps the stored ones — except with the door
+  // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones — except with the door
   // plugin on, where the whole array goes with the door tag set or cleared (the other tags stay).
   const body = {
     title: form.title.trim(), date: form.noDate ? null : form.date, time: form.noDate ? null : form.time || null,
@@ -148,7 +148,7 @@ function sharingAction(fn: () => Promise<void>, failed: MessageKey) {
 const share = () => sharingAction(() => shareList(props.id!, person.value), 'sharing.shareFailed');
 const unshare = () => sharingAction(() => unshareList(props.id!), 'sharing.stopFailed');
 const leave = () => sharingAction(() => leaveList(props.id!), 'sharing.leaveFailed');
-/** No confirmation: the list goes at once, the undo snackbar can bring it back (ARCHITECTURE "Delete with undo"). */
+/** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
 function remove() {
   const tl = items.get(props.id!);
   if (tl?.kind !== 'tasklist') return;

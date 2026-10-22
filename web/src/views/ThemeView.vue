@@ -5,7 +5,7 @@
  * Fine-tuning (theme mode, seed colour, options that each show a sample of their look, a slider for the values between
  * the glow, corner and tint steps, density and the checkbox choices). Picking applies at once
  * and is saved in the background by the theme store; there is no save button. The scene is a theme attribute. Theme
- * mode and seed colour are settings (`PATCH /api/settings`) that live only here (ARCHITECTURE "Settings").
+ * mode and seed colour are settings (`PATCH /api/settings`) that live only here (feature settings).
  */
 import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';

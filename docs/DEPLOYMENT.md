@@ -1,7 +1,7 @@
 # Deployment guide
 
 How the calendar app is built, previewed, deployed and installed. The host is **sauron** (`ssh sauron@192.168.1.38`).
-The specs (`spec/ARCHITECTURE.md` §8 Configuration, §9 Owner actions) hold the details; this page is the runbook.
+The architecture is in `docs/architecture` (LikeC4) and `docs/adrs`; this page is the runbook.
 
 ## Overview
 
@@ -53,6 +53,14 @@ pnpm run build:e2e
 CI_LOWPRIO=1 E2E_SKIP_BUILD=1 bash e2e/run.sh --project=mobile --workers=1 --reporter=line --grep "@tasks-view"
 ```
 
+### Public server (VPS)
+
+`scripts/vps.sh` runs from the laptop clone (the VPS never builds): `env` writes `/opt/calendar/.env`, `deploy` builds
+the checked-out commit, ships it and the Android APK and restarts, `logs` follows the app and Caddy. Deploys connect as
+`VPS_USER` (default `root`, the owner's choice of 2026-10-16) to `VPS_HOST`. `scripts/vps.sh harden` is opt-in: it
+creates a `deploy` user (docker group) with the laptop's key, switches SSH to keys only and adds fail2ban, and turns
+root login off only after the deploy user's login works; after it, deploy with `VPS_USER=deploy`.
+
 ### Rollback
 
 Revert the merge on `main` (`git revert -m 1 <merge-sha>`) — the hook deploys the reverted state. Data is not touched
@@ -86,7 +94,31 @@ cd ~/projects/calendar && pnpm redeploy
 | `ALLOWED_EMAILS` | comma-separated Google accounts allowed to sign in |
 | `DOOR_API_TOKEN`, `DOOR_PERSON` | optional door plugin (ADR 0004, `server/src/plugins/door/README.md`): the board's bearer key and the person it sees; empty = no door |
 
-All variables: `spec/ARCHITECTURE.md` §8.
+All variables (defaults from `server/src/config.ts`):
+
+| Var | Default | Meaning |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `HOST` | `0.0.0.0` | bind address |
+| `PUBLIC_URL` | unset | external base URL, e.g. `https://cal.example.org`: OAuth redirect, allowed origins, `Secure` cookie. Nothing in code hardcodes a host. |
+| `ALLOWED_ORIGINS` | `PUBLIC_URL` | comma-separated extra origins for CORS (same-origin needs none) |
+| `TZ` | `Europe/Berlin` | calendar time zone |
+| `PROVIDER` | `mock` | `mock` \| `google` |
+| `DATA_DIR` | `./data` | the app's own files per person, the mock store, sessions and tokens |
+| `SEED` | `true` | seed demo data into an empty mock store |
+| `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
+| `POLL_INTERVAL_MS` | `30000` | web polling interval |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
+| `GOOGLE_REFRESH_TOKEN` | – | legacy single-account token, used only if Google returns none at the first sign-in |
+| `GOOGLE_CALENDAR_IDS` | `primary` | comma-separated calendars to show |
+| `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
+| `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
+| `ALLOWED_EMAILS` | – | comma-separated Google addresses that may sign in |
+| `DOOR_API_TOKEN`, `DOOR_PERSON` | – | optional door plugin (ADR 0003/0004): the board's key and the person it sees; unset = no door |
+| `ALLOW_INSECURE_MOCK` | – | `1` lets the mock (no sign-in) start on a public HTTPS address or in production |
+| `CHANGELOG_PATH` | `CHANGELOG.md` | source of the in-app release notes |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | – | Web Push keys; without them the server generates a pair on first start into `DATA_DIR/vapid.json` |
+| `WEB_DIST` | `web/dist` | the built web app the server serves |
 
 ## Going live with Google (HTTPS + OAuth)
 
@@ -126,15 +158,19 @@ scripts/android-build.sh            # builds a release-signed APK and copies it 
 scripts/android-build.sh --no-publish
 ```
 
-- The signing key is `~/calendar-android-key/release.jks` (new key since 2026-10-13: the laptop's key is gone, so the app
-  had to be reinstalled once; not in a dot directory because the build container cannot mount those here) (password in `keystore.properties` next to it), **outside
-  git — back it up**: updates of an installed app must be signed with the same key.
+- The signing key is `~/calendar-android-key/release.jks` (`CAL_ANDROID_KEY_DIR` overrides the folder; new key since
+  2026-10-13: the laptop's key is gone, so the app had to be reinstalled once; not in a dot directory because the build
+  container cannot mount those here) (password in `keystore.properties` next to it), **outside git — back it up**:
+  updates of an installed app must be signed with the same key. Without it the first build generates a new one.
+- **Pinned signing certificate.** `scripts/android-build.sh` and `scripts/vps.sh deploy` check the APK's signing
+  certificate against the SHA-256 in `android/release-cert.sha256` (`scripts/apk-cert.sh`) and publish nothing else;
+  `/app.json` next to the APK carries the fingerprint, which Settings → About shows.
 - The app is a Capacitor shell that loads the server chosen on the first start (`https://cal.example.org` or
   `http://cal.mordor.lan`; Settings → Account & data → Server → Change goes back to the chooser); web changes reach it on
   the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
 - From another machine than sauron, `scripts/android-build.sh` publishes with scp/ssh to sauron (`SAURON=user@host`). Build
   with sauron's key (`~/calendar-android-key`): an APK signed with another key cannot update the installed app.
-- **Public server (VPS)**: the APK is not in the image. `scripts/vps.sh deploy` (run on sauron) also copies
+- **Public server (VPS)**: the APK is not in the image. `scripts/vps.sh deploy` (run from the laptop clone) also copies
   `deploy/data/downloads/app.apk` into the running app container (`/data/downloads/app.apk`, volume `calendar_data`), so
   `https://cal.example.org/app.apk` and the Settings button work there. Check:
   `curl -sI https://cal.example.org/app.apk` (200, `application/vnd.android.package-archive`). To update only the APK, run
@@ -143,6 +179,17 @@ scripts/android-build.sh --no-publish
 Install on a phone: open `https://cal.example.org/app.apk` or (home Wi-Fi) `http://cal.mordor.lan/app.apk` (or Settings → Android app → Download), allow the
 browser to install unknown apps, install ("Install anyway" if Play Protect warns), open the app once, then add the
 widget from the home screen's widget list.
+
+## Versioning and release notes
+
+- Versions are semantic and counted on every deploy by `scripts/version.sh`: since the last tag `vX.Y.Z`, a commit
+  subject starting `feat` raises the minor version, anything else the patch version; a breaking marker (`type!:` or a
+  `BREAKING` body line) raises the major version, except while the major is 0 (it raises the minor; 1.0.0 is set by
+  hand when the public instance goes live). Without a tag the version is `0.1.0`. The build carries
+  `APP_VERSION=X.Y.Z+<sha>`, which `/api/config` reports.
+- Every merge to main adds one or two plain, user-facing English sentences as `- ` bullets under a `## YYYY-MM-DD`
+  heading at the top of `CHANGELOG.md`, in the merge commit itself (test, tooling and spec-only merges add nothing).
+  Text under `## Older history` is ignored. The server image includes `CHANGELOG.md`.
 
 ## GitHub mirror
 

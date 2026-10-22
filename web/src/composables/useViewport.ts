@@ -6,7 +6,7 @@ const PHONE_QUERY = '(max-width: 767.98px)';
 const TOUCH_QUERY = `${PHONE_QUERY}, (pointer: coarse) and (max-width: 1366px)`;
 
 const has = typeof matchMedia === 'function';
-/** Phone layout below 768 px (ARCHITECTURE §5). One shared media query listener, ref-counted. */
+/** Phone layout below 768 px (feature mobile-first-layout). One shared media query listener, ref-counted. */
 const isPhone = ref(has ? matchMedia(PHONE_QUERY).matches : true);
 /** Phone or touch tablet: where left-handed mode applies. Also published as `html[data-touch]` for CSS. */
 const isTouchLayout = ref(has ? matchMedia(TOUCH_QUERY).matches : true);

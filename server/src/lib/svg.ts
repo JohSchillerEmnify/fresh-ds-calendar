@@ -1,6 +1,6 @@
 /**
  * Server-side SVG sanitiser for theme scenes: DOMPurify bound to a jsdom window, with the rules of
- * `@calendar/shared` (ARCHITECTURE "Theme engine and AI themes"). Both libraries load on the first use only,
+ * `@calendar/shared` (ADR 0016). Both libraries load on the first use only,
  * so a server nobody imports a theme into never pays their memory.
  */
 import { createSvgSanitizer, type SvgSanitizer } from '@calendar/shared';

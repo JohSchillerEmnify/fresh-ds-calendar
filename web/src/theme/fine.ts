@@ -1,5 +1,5 @@
 /**
- * Fine-tuning values of a theme (ARCHITECTURE "Fine-tuning sliders, density and icon choices"): the numbers behind the
+ * Fine-tuning values of a theme (feature theme-menu): the numbers behind the
  * glow, corner and tint sliders, density and the checkbox choices. Pure data and functions, no DOM: step <-> value
  * mapping, the CSS custom properties a value stands for, and sanitising of stored or imported values.
  */

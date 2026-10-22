@@ -57,16 +57,16 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - **Clean up the spec** (owner, 2026-10-19: "wir müssen echt den spec mal aufräumen"). Scenarios and prose that
   predate later owner decisions contradict them without failing: `tasklists-expand.feature` "A long title wraps and
   stays fully readable in the grown card" (a 30-minute list) now shows a tight one-line pill with an ellipsis, as decided
-  on 2026-10-19 ("Pille = Blockhöhe, Titel mit Ellipsis"); `ARCHITECTURE.md` carried an invented "item rows run on
+  on 2026-10-19 ("Pille = Blockhöhe, Titel mit Ellipsis"); the architecture prose carried an invented "item rows run on
   across both" rule until it was corrected the same day. Go feature by feature with the owner (requirements step, one
   scenario at a time): drop or reword scenarios whose name no longer matches their steps, make every `Then` say what is
-  seen, and dedupe the union-merged sections of `STEPS.md` and `ARCHITECTURE.md`. Pairs with the e2e pruning above.
+  seen, and dedupe the union-merged sections of `e2e/STEPS.md`. Pairs with the e2e pruning above.
 
 ## Features
 
 
 - **Setting: minimum event length for readability** (owner, 2026-10-21; needs its own slice + spec first). Since
-  2026-10-21 every card is drawn at its real length (no minimum height, AC-73 changed). Add a setting: off (today's
+  2026-10-21 every card is drawn at its real length (no minimum height, feature proportional-timeline changed). Add a setting: off (today's
   strict rule) or a minimum length, e.g. "anything under 30 min is treated as a 30-min event". When on, the short item
   must really be treated as that long everywhere in the time grid (layout, overlap, columns, cascade), not just drawn
   taller, so back-to-back items never get the inconsistent "last one grows" look again. Prefs follow the
@@ -83,9 +83,6 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - Two-row week overview (owner, 2026-10-16): instead of 7 narrow day columns, lay the week out in two rows — the first
   four days on top, the rest below — to use the width better and read as a nicer overview. A layout option/view for the
   week.
-- Finish migrating `spec/ARCHITECTURE.md` into the LikeC4 model under `docs/architecture/` (owner,
-  2026-10-19; see ADR 0001). Started with the two-row week overview slice; port the rest part by
-  part as each is touched.
 - Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
   Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
   below; fewer toolbar controls; a day/agenda start view on phones.

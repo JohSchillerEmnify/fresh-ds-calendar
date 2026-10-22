@@ -32,7 +32,7 @@ const lift = computed(() => (isPhone.value ? 0 : ui.snackbars.filter((s) => s.du
 /* Phone: slides out to the right while the open tasks tray is expanded (it would cover the tray's controls). */
 .fab-wrap.away { transform: translateX(calc(100% + 24px)); opacity: 0; pointer-events: none; }
 @media (min-width: 768px) { .fab-wrap { bottom: calc(24px + var(--snack-lift, 0px)); right: calc(var(--tray-w, 0px) + 24px); } } /* left of the tray panel */
-/* View switcher position (ARCHITECTURE "View switcher position"). Phone without a bottom bar: above the tray bar at the bottom edge. */
+/* View switcher position (feature nav-position). Phone without a bottom bar: above the tray bar at the bottom edge. */
 @media (max-width: 767.98px) {
   html:not([data-nav-pos='bottom']) .fab-wrap { bottom: calc(max(var(--tray-h, 0px), var(--safe-bottom)) + 12px); }
   /* the rail is on the same side as the "+", so the button stands clear of it */
