@@ -86,7 +86,30 @@ cd ~/projects/calendar && pnpm redeploy
 | `ALLOWED_EMAILS` | comma-separated Google accounts allowed to sign in |
 | `DOOR_API_TOKEN`, `DOOR_PERSON` | optional door plugin (ADR 0004, `server/src/plugins/door/README.md`): the board's bearer key and the person it sees; empty = no door |
 
-All variables: `spec/ARCHITECTURE.md` §8.
+All variables (defaults from `server/src/config.ts`):
+
+| Var | Default | Meaning |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `HOST` | `0.0.0.0` | bind address |
+| `PUBLIC_URL` | unset | external base URL, e.g. `https://cal.example.org`: OAuth redirect, allowed origins, `Secure` cookie. Nothing in code hardcodes a host. |
+| `ALLOWED_ORIGINS` | `PUBLIC_URL` | comma-separated extra origins for CORS (same-origin needs none) |
+| `TZ` | `Europe/Berlin` | calendar time zone |
+| `PROVIDER` | `mock` | `mock` \| `google` |
+| `DATA_DIR` | `./data` | the app's own files per person, the mock store, sessions and tokens |
+| `SEED` | `true` | seed demo data into an empty mock store |
+| `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
+| `POLL_INTERVAL_MS` | `30000` | web polling interval |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
+| `GOOGLE_REFRESH_TOKEN` | – | legacy single-account token, used only if Google returns none at the first sign-in |
+| `GOOGLE_CALENDAR_IDS` | `primary` | comma-separated calendars to show |
+| `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
+| `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
+| `ALLOWED_EMAILS` | – | comma-separated Google addresses that may sign in |
+| `DOOR_API_TOKEN`, `DOOR_PERSON` | – | optional door plugin (ADR 0003/0004): the board's key and the person it sees; unset = no door |
+| `ALLOW_INSECURE_MOCK` | – | `1` lets the mock (no sign-in) start on a public HTTPS address or in production |
+| `CHANGELOG_PATH` | `CHANGELOG.md` | source of the in-app release notes |
+| `WEB_DIST` | `web/dist` | the built web app the server serves |
 
 ## Going live with Google (HTTPS + OAuth)
 

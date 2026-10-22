@@ -34,6 +34,15 @@ model {
     rateGuard = component 'Rate guard' {
       description 'One person\'s short read cache and cooldown in front of Google'
     }
+    auth = component 'Sign-in' {
+      description 'Signs a person in with Google, lets in only allowed addresses and keeps each person\'s Google access; on only with the real Google provider'
+    }
+    sessions = store 'Sessions and tokens' {
+      description 'Sign-in sessions and each person\'s Google token on disk'
+    }
+    diag = component 'Diagnostics log' {
+      description 'Writes one-line JSON log entries from a fixed list of fields, never personal data'
+    }
     mockProvider = component 'Mock provider' {
       description 'A Google Calendar stand-in kept on disk, for local runs and tests'
     }
@@ -45,6 +54,9 @@ model {
     calendarService -> googleProvider 'reads and writes through'
     calendarService -> mockProvider 'reads and writes through, when started with the mock'
     tasksCalendar -> googleProvider 'finds or creates the hidden calendar through'
+    auth -> sessions 'keeps sessions and tokens in'
+    googleProvider -> sessions 'uses the person\'s token from'
+    googleProvider -> diag 'logs failed Google calls and cooldowns to'
     googleProvider -> rateGuard 'reads through its cache; holds every call during a cooldown'
     tasksApi -> calendarService 'stores the list with its tags'
     plugins -> doorPlugin 'mounts under /api/door when DOOR_API_TOKEN is set'
@@ -52,6 +64,9 @@ model {
   }
 
   calendar.server.googleProvider -> google 'lists, inserts, patches and deletes events and calendars'
+  calendar.server.auth -> google 'signs the person in and receives their calendar access'
+  calendar.web.signin -> calendar.server.auth 'starts the sign-in and checks the session'
+  calendar.web.sync -> calendar.server.diag 'sends one beacon when the error banner appears'
 
   calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
   calendar.web.items -> calendar.server.itemsApi 'fetches the visible range'

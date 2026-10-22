@@ -13,6 +13,9 @@ Ported to the novibe layout and removed here (the rest of this file follows sect
 - §1–4 (overview, server components, task lists in Google, sync, Google rate limits): LikeC4 model
   (`docs/architecture/`: views `index`, `server`, `web`, `prod`, `loadRange`, `rateLimitedRead`, `firstTaskList`),
   ADRs 0005–0007, the encoding contract in `API.md` "Storage in Google", and `spec/features/google/sync.feature`.
+- §6 PWA, §7 testing, sign-in, all calendars, diagnostics, §8–10: model (`signIn`, `server`, `web`), ADRs 0008–0009,
+  `app/pwa.feature`, `google/signin.feature`, `events/calendars.feature`; env in `docs/DEPLOYMENT.md`, tooling in
+  `CONTRIBUTING.md`, test setup in `e2e/README.md`.
 
 ## 5. Web app
 
@@ -549,93 +552,6 @@ Rules for implementers:
 | `sync-error-banner`, `sync-retry` | error strip |
 | `install-app-button` | shown only after `beforeinstallprompt` and when not standalone |
 | `ios-install-hint`, `ios-install-hint-dismiss` | iOS Safari hint |
-
-## 6. PWA
-
-- Service worker generated at build time (e.g. vite-plugin-pwa/Workbox per BRIEF, or a hand-written one ≤ 5 kB if
-  RESEARCH.md decides so); auto-update with skip-waiting + clients-claim.
-- Precache the app shell (HTML, JS, CSS, icons). `navigateFallback: '/index.html'`, `navigateFallbackDenylist: [/^\/api\//]`.
-  **No runtime caching for `/api/*`** (NetworkOnly) — the app's own store/`localStorage` handles last-known data.
-- Manifest `/manifest.webmanifest`: `name` "Calendar", `short_name` "Calendar", `description`, `start_url` "/",
-  `scope` "/", `display` "standalone", `orientation` "portrait", `theme_color` "#1a73e8", `background_color` "#ffffff",
-  icons `/icons/icon-192.png` (192×192), `/icons/icon-512.png` (512×512), `/icons/icon-maskable-512.png`
-  (512×512, `purpose: "maskable"`).
-- `index.html`: `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`,
-  `theme-color`, `<link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" sizes="180x180">`,
-  `apple-mobile-web-app-capable=yes`, `apple-mobile-web-app-status-bar-style=default`,
-  `apple-mobile-web-app-title=Calendar`, `mobile-web-app-capable=yes`.
-- Registration only if `'serviceWorker' in navigator && window.isSecureContext`; otherwise skip silently. The app must
-  work fully without a service worker.
-- **Install UI** (`web/src/pwa/install.ts`): listen for `beforeinstallprompt`, `preventDefault()`, keep the event, show
-  `install-app-button`; click → `event.prompt()`, hide afterwards. Hide when `appinstalled` fires or when running
-  standalone (`matchMedia('(display-mode: standalone)').matches || navigator.standalone`).
-  iOS Safari (UA has `iPhone|iPad|iPod`, `Safari`, and not `CriOS|FxiOS|EdgiOS`) and not standalone → show
-  `ios-install-hint` "Tap Share, then Add to Home Screen" with dismiss; dismissal stored in `localStorage`
-  (`cal.iosHintDismissed`).
-
-### Secure-context constraint
-
-Service workers and Chrome's install prompt require HTTPS (localhost is exempt). `http://cal.mordor.local` is **not** a
-secure context: there the app runs without service worker and offline shell; Android Chrome only offers "Add to Home
-screen" as a browser shortcut; iOS "Add to Home Screen" works (standalone window via the meta tags) but without
-offline support. Full installability therefore needs HTTPS — an owner action (§9).
-
-## 7. Testing
-
-- `server/`: Vitest. Unit: `TaskListCodec` (chunking, mirror, description fallback), validation, `MockGoogleProvider`
-  semantics (etag, 412, cancelled, persistence round-trip), `GoogleProvider` with mocked HTTP. Integration: every
-  endpoint via `fastify.inject` incl. error codes and test endpoints (and their 404 when `TEST_MODE` is off).
-- `web/`: Vitest + @vue/test-utils + jsdom: date utilities (grids, titles, overlap packing, ordering), stores (sync
-  merge, optimistic rollback), key components.
-- `e2e/`: Playwright 1.48.2 + playwright-bdd, `features: '../spec/features/**/*.feature'`, steps per `STEPS.md`.
-  Runs inside `mcr.microsoft.com/playwright:v1.48.2-noble` against a production build of the server started with
-  `TEST_MODE=true PROVIDER=mock SEED=false DATA_DIR=<tmp> POLL_INTERVAL_MS=30000` on `http://localhost:<port>`
-  (secure context → service worker testable). `workers: 1` (shared backend state, 1 GB RAM).
-  Projects: **`mobile` (default, first)**: Chromium, viewport 375×812, `isMobile`, `hasTouch`, Android Chrome UA,
-  `grepInvert: /@desktop/`; **`desktop`**: Chromium 1280×800, `grepInvert: /@mobile|@perf/`.
-  `@perf` scenarios need Chromium (DevTools protocol for GC/heap/DOM counters, Lighthouse for the audit) and a
-  server started with `--expose-gc` (test mode only). Context:
-  `timezoneId: 'Europe/Berlin'`, `locale: 'en-GB'`. `@smoke` scenarios can run against the deployment with
-  `E2E_BASE_URL` and `--grep @smoke`.
-- `spec/scripts/check-steps.py` must pass (every step has exactly one expression in STEPS.md).
-
-### Sign-in and per-person Google access
-
-- **Auth switch**: on when `PROVIDER=google` (the real VPS instance), off with `PROVIDER=mock` (sauron, previews):
-  owner decision, previews stay one tap away on the LAN. In `TEST_MODE` a test endpoint turns it on with an allow-list
-  (`POST /api/__test/auth { allowedEmails }`), so the e2e suite tests sign-in against the mock provider.
-- **One OAuth round trip** signs in and connects the calendar: scopes `openid email` + calendar + `drive.appdata` (backups, ARCHITECTURE "Backups"). The callback reads the
-  verified email from the `id_token`; only addresses in `ALLOWED_EMAILS` get a session, others are sent to the private
-  page and their tokens are discarded.
-- **Sessions**: random 256-bit id in cookie `cal_session` (`HttpOnly`, `Secure` when `PUBLIC_URL` is https,
-  `SameSite=Lax`, `Path=/`). Server side in `DATA_DIR/sessions.json` (`id → { sub, email, name, expiresAt }`), 90 days,
-  `expiresAt` pushed forward on use (at most once an hour, to limit writes). Sign-out deletes the entry.
-- **Per-person Google access**: the refresh token lives in `DATA_DIR/users/<google sub>/google-token.json` (0600). The
-  provider is resolved per request from the session's person (one OAuth client per person, cached); the old single
-  `DATA_DIR/google-token.json` is used for the first person who signs in only if Google returns no refresh token.
-  `/api/health` no longer pings Google once access is per person (there is no person to probe with). In mock mode with auth on, each person
-  has their own mock calendar data. Settings, categories, streak and plant stay shared in this slice (per-person data
-  is the next slice).
-- **Client**: a `/signin` route (public) with the "Sign in with Google" button and the private notice
-  (`signin-page`, `signin-google`, `signin-private`); a router guard calls `/api/auth/me` once and sends 401 to
-  `/signin` and remembers the page asked for (sessionStorage), which `/` returns to after signing in. A 401
-  `GOOGLE_REAUTH` from any call shows the banner `reauth-banner` with a button back to
-  `/api/auth/google/start`. Settings get `settings-signout`.
-  `CALENDAR_PERMISSION_MISSING` (403) or `/?calendar=missing` shows `calendar-access-banner` (button
-  `calendar-access-grant` back to `/api/auth/google/start`, hint names the checkbox) and Settings -> Account & data
-  shows `settings-calendar-access` while it is missing. The stored scope never replaces Google's own answer: tokens
-  without a recorded scope are judged by Google's 403. Cached per-person providers (they hold the OAuth client with the
-  old access token) are dropped when the callback stores a new token and at sign-out (`ctx.forgetPerson`).
-
-### All calendars and hiding them
-
-- `listCalendars` returns every calendar in the person's Google calendar list (own and shared), not only
-  `GOOGLE_CALENDAR_IDS`; events of all of them are listed. Each keeps its Google colour.
-- Hidden calendars are kept per person in `DATA_DIR/users/<sub>/prefs.json` (`{ hiddenCalendars: string[] }`); with
-  auth off a single person `local` is used. `GET /api/calendars` adds `hidden: boolean`; `PATCH /api/calendars/:id
-  { hidden }` stores it.
-- The client filters instantly (hidden calendars' entries are not drawn) and saves in the background; the filter bar
-  gets one chip per calendar (`filter-chip-calendar`, `data-name`, `data-calendar-id`, `aria-pressed` = shown).
 
 ### Reduced motion override (owner, 2026-10-12)
 
@@ -2209,6 +2125,19 @@ browser does not change.
   (`web/test/widget-snapshot.test.ts`), the native splitting into days and bars that mirrors the web has JUnit tests
   (`WeekDataTest`), the pure layout maths (column packing, hour range, bitmap scale, text colour) too (`WeekLayoutTest`,
   `android/app/src/test`, `./gradlew testDebugUnitTest`), the download route a server test. The drawing itself is checked by eye on a device.
+Owner bug 2026-10-14 (moved here from §9):
+
+- **Hidden calendars and no needless redraws (owner bug 2026-10-14).** The person's hidden calendars live on the server
+  (`prefs.json`), not in the WebView, and the native fetch is the widget's data. The fetch therefore sends
+  `excludeHidden=1` and the server drops the hidden calendars' items (the snapshot path filters them too, and the bridge
+  loads the calendar list before its first push). A widget that is redrawn without a change cross-fades in the launcher
+  and looks like flashing, so nothing redraws unchanged: the bridge pushes only when the snapshot differs apart from its
+  `generatedAt` stamp, the plugin skips the redraw for a stamp-only difference, and `WidgetRenderer.render` skips
+  `updateAppWidget` when its content key (data, auth, size, mode, day, minute) equals the last pushed one (forced by the
+  system's `onUpdate`). No timer runs faster than the web sync (30 s) and the widget's own work: the now-line moves at
+  most once a minute, only when something else triggers a draw. Alternatives weighed for hidden calendars: the native side
+  filtering by ids in the snapshot (stale until the app runs, wrong when the app is closed) lost against the server flag.
+
 ### Shared lists (owner, 2026-10-14)
 
 A person can share a task list, or a whole category, with another person who has their own Google login. The owner
@@ -2257,142 +2186,3 @@ decided every point below.
 - **i18n.** All new text is in `locales/<lang>/sharing.ts` (`en`, `de`, `de-x-mainfr`, `de-x-coldmirror`).
 - **UI test contract.** `tasklist-shared-badge`, `tasklist-share-person`, `tasklist-share`, `tasklist-unshare`,
   `tasklist-leave`, `category-share-person`.
-
-### Diagnostics (owner, 2026-10-14)
-
-Why: people saw "Can't reach Google Calendar" and the server logged nothing, so the cause (deploy restart, Google 429/5xx,
-VPS timeout, phone network on resume, a wrongly mapped 503) could not be proven. This is **logging only**: no behaviour,
-no response and no retry changed. Lines are one JSON object each on stdout (`docker compose logs calendar`), written by
-`server/src/lib/diag.ts`, which only accepts whitelisted fields.
-
-| `event` | When | Fields besides `ts` |
-|---|---|---|
-| `startup` | once per boot | `version`, `provider`, `node`, `pid` |
-| `google_error` | a Google API call failed (after the Google client's own retries) | `subHash`, `op` (`events.list`, `calendarList.list` ...), `status`, `reason` (Google's reason), `code` (network code such as `ETIMEDOUT`, `ECONNRESET`, `ENOTFOUND`, `TIMEOUT`; only when there was no HTTP status), `retry` (attempt the client library reached), `durationMs` |
-| `api_unavailable` | the server sent an `/api` response with status >= 500 | `route` (`GET /api/items`, the route pattern), `status`, `durationMs`, `cause` (`429:rateLimitExceeded`, `503`, `ETIMEDOUT`, or the error class name) |
-| `auth_flow` | a step of the app's Google sign-in (see "App sign-in hang" below) | `step` (`start`, `callback`, `fallback`, `exchange`, `exchange_failed`), `app`, `subHash` (callback only), `durationMs` (handler time; start, callback only) |
-| `rate_limited` | Google's rate limit started or ended a cooldown (once per transition, §4) | `state` (`start`/`end`), `subHash`, `op`, `cooldownSec`, `step`, `retryAfter` |
-| `api_unavailable` | the server sent an `/api` response with status >= 500 (except `RATE_LIMITED`, which has `rate_limited`) | `route` (`GET /api/items`, the route pattern), `status`, `durationMs`, `cause` (`429:rateLimitExceeded`, `503`, `ETIMEDOUT`, or the error class name) |
-| `client_sync_error` | the web app entered the banner state (`POST /api/diag/sync-error`, API.md "Diagnostics") | `subHash`, `kind`, `status`, `task`, `online`, `resumed`, `app`, `ageSec` |
-
-Example reading: `google_error` followed by `api_unavailable` with the same `cause` = Google; `client_sync_error` with
-`kind: "network"`, `online: false` or `resumed: true` and no server line = the phone's network; an `api_unavailable`
-right after a `startup` = a deploy restart.
-
-**Never logged:** access or refresh tokens, e-mail addresses, the raw `sub` (only `subHash`, the first 8 hex characters of
-`sha256("cal-diag:" + sub)`), event or task list titles, descriptions, locations, request or response bodies, Google's
-error message text (only its status and `reason`), cookies, session ids. Free text is never copied: `reason`, `code`,
-`task` and `cause` must match `[A-Za-z0-9_.:-]{1,64}` or are dropped.
-
-Web: `stores/sync.ts` sends one beacon when the error state is entered from a non-error state, not while it lasts. If that
-send fails on the network, the beacon is kept in memory and sent once (with `ageSec`) after the next successful sync; every
-other failure of the call is ignored. The server accepts one beacon per session per minute (in memory, so a restart resets
-it).
-
-Decision: a beacon from the client instead of server-side inference, because only the phone knows whether it was offline or
-just resumed. Alternative weighed: a persistent offline queue; rejected as too much machinery for a diagnostic (A-12 keeps the
-app without offline writes).
-
-## 8. Configuration (env)
-
-| Var | Default | Meaning |
-|---|---|---|
-| `PORT` | `3000` | HTTP port |
-| `HOST` | `0.0.0.0` | bind address |
-| `PUBLIC_URL` | unset | external base URL, e.g. `http://cal.mordor.local`, later `https://cal.<sub>.<domain>`. Used for the OAuth redirect URI and CORS/allowed origins. Nothing in code hardcodes a host. |
-| `ALLOWED_ORIGINS` | `PUBLIC_URL` | comma-separated extra origins for CORS (same-origin needs none) |
-| `TZ` | `Europe/Berlin` | calendar time zone |
-| `PROVIDER` | `mock` | `mock` \| `google` |
-| `DATA_DIR` | `./data` | mock JSON store, `settings.json`, `google-token.json` |
-| `SEED` | `true` | seed demo data into an empty mock store |
-| `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
-| `POLL_INTERVAL_MS` | `30000` | web polling interval |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
-| `GOOGLE_REFRESH_TOKEN` | – | long-lived refresh token (or `DATA_DIR/google-token.json` from the auth flow) |
-| `GOOGLE_CALENDAR_IDS` | `primary` | comma-separated calendars to show |
-| `GOOGLE_REDIRECT_URI` | `${PUBLIC_URL}/api/auth/google/callback` | OAuth redirect |
-| `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
-
-Deployment: `deploy/docker-compose.yaml` in the repo (owner 2026-10-14: compose versioned with the app; `.env` and `data/` next to it, git-ignored; `~/docker-compose/calendar` symlinks to it): `build:
-/home/sauron/projects/calendar`, `container_name: calendar`, `restart: unless-stopped`, Traefik labels
-`Host(\`cal.mordor.local\`)` + `loadbalancer.server.port=3000`, `./data:/app/data`, `TZ=Europe/Berlin`,
-`PUBLIC_URL=http://cal.mordor.local`, `PROVIDER=mock`, `TEST_MODE=false`, network `proxy-network` (external).
-Multi-stage Dockerfile (`node:22-alpine`): build web + server, runtime contains only `server/dist`, `web/dist`,
-production deps. Healthcheck: `wget -qO- http://localhost:3000/api/health`.
-
-- `ALLOWED_EMAILS`: comma-separated Google addresses that may sign in (auth on with `PROVIDER=google`).
-- `DOOR_API_TOKEN`, `DOOR_PERSON`: the optional door plugin (ADR 0003/0004, `server/src/plugins/door/README.md`) — the
-  board's bearer key and the person it sees. Unset: no door endpoint, no "Show on door" switch. Plugins are off by default.
-
-## 9. Owner actions
-
-- **Hidden calendars and no needless redraws (owner bug 2026-10-14).** The person's hidden calendars live on the server
-  (`prefs.json`), not in the WebView, and the native fetch is the widget's data. The fetch therefore sends
-  `excludeHidden=1` and the server drops the hidden calendars' items (the snapshot path filters them too, and the bridge
-  loads the calendar list before its first push). A widget that is redrawn without a change cross-fades in the launcher
-  and looks like flashing, so nothing redraws unchanged: the bridge pushes only when the snapshot differs apart from its
-  `generatedAt` stamp, the plugin skips the redraw for a stamp-only difference, and `WidgetRenderer.render` skips
-  `updateAppWidget` when its content key (data, auth, size, mode, day, minute) equals the last pushed one (forced by the
-  system's `onUpdate`). No timer runs faster than the web sync (30 s) and the widget's own work: the now-line moves at
-  most once a minute, only when something else triggers a draw. Alternatives weighed for hidden calendars: the native side
-  filtering by ids in the snapshot (stale until the app runs, wrong when the app is closed) lost against the server flag.
-
-### 9.1 HTTPS (prerequisite for full PWA install and for real Google OAuth)
-
-Planned (owner decision): Let's Encrypt **DNS-01** with **Cloudflare DNS** (domain at Namecheap, nameservers moved to
-Cloudflare free plan), wildcard certificate `*.<subdomain>.<owner-domain>`, **LAN only** (no public A records;
-Pi-hole resolves `*.<subdomain>.<owner-domain>` to `192.168.1.38`). Step-by-step guide:
-`/home/sauron/docker-compose/traefik/HTTPS-GUIDE.md`. After it is done:
-
-1. Add a Traefik router for `Host(\`cal.<subdomain>.<owner-domain>\`)` on `websecure` with `tls.certresolver=le`
-   (keep `cal.mordor.local` as an HTTP alias during the switch).
-2. Set `PUBLIC_URL=https://cal.<subdomain>.<owner-domain>` in the compose file and redeploy.
-3. Run `E2E_BASE_URL=https://cal.<subdomain>.<owner-domain> npx bddgen && npx playwright test --grep @smoke`.
-
-Alternatives considered: a local CA (mkcert / step-ca) whose root certificate must be installed on every phone
-(fiddly on iOS); a Tailscale/Cloudflare tunnel (rejected by the owner: no VPN/tunnel tools).
-
-### 9.2 Installing on phones
-
-Requires 9.1 for the full experience; on plain HTTP the result is only a shortcut without offline support.
-
-- **Android (Chrome)**: phone on home Wi-Fi with Pi-hole DNS → open `https://cal.<subdomain>.<owner-domain>` →
-  tap the in-app **Install app** button (or Chrome ⋮ menu → **Install app**) → confirm. The app appears in the app
-  drawer and opens standalone. Updates install automatically on next launch.
-- **iOS (Safari only)**: open the URL in Safari → **Share** → **Add to Home Screen** → Add. (The app shows a hint with
-  these steps.) Opens standalone. To update: close and reopen the app.
-- Away from home the names do not resolve (by design: LAN only); the installed app opens its cached shell and shows the
-  sync error banner.
-- **Android app with widget (no PWA install needed)**: see "Android app and widget"; install from
-  `https://cal.example.org/app.apk` or `http://cal.mordor.lan/app.apk` (README "Android app"); the app asks which one to use.
-
-### 9.3 Enabling real Google Calendar
-
-1. Finish 9.1 (Google requires an HTTPS redirect URI on a real domain; `.local` is not allowed).
-2. Google Cloud Console → create project "home-calendar".
-3. APIs & Services → Library → enable **Google Calendar API** (optional: Google Tasks API).
-4. OAuth consent screen: type **External**, app name, support email; scope
-   `https://www.googleapis.com/auth/calendar` (or `calendar.events` + `calendar.readonly`); add the owner's Google
-   account as **test user**. Then **Publish app** to "In production" (unverified is fine for personal use) — in
-   "Testing" status refresh tokens expire after 7 days.
-5. Credentials → Create OAuth client ID → **Web application**; authorised redirect URI
-   `https://cal.<subdomain>.<owner-domain>/api/auth/google/callback`; note client ID and secret.
-6. Set env `PROVIDER=google`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PUBLIC_URL`; redeploy.
-7. Obtain the refresh token: open `https://cal.<subdomain>.<owner-domain>/api/auth/google/start` (available only when
-   `PROVIDER=google` and no token is stored), sign in, consent. The callback stores the token in
-   `DATA_DIR/google-token.json` (mode 600). Alternatively put it in `GOOGLE_REFRESH_TOKEN`.
-8. Optional: `GOOGLE_CALENDAR_IDS` (find ids in Google Calendar → Settings → calendar → "Integrate calendar").
-9. Verify: `GET /api/health` shows `provider: "google"`, `providerStatus: "ok"`; create an event in the app and see it
-   in the Google Calendar app.
-
-The `/api/auth/google/*` routes are the only additions for real Google; they are disabled with `PROVIDER=mock`.
-Mock data is not migrated to Google.
-
-## 10. Developer tooling
-
-Terse output on purpose (one line on success, only failures otherwise); every command finishes in about a minute.
-
-- `pnpm verify`: the gate before any merge or deploy; runs web/server/e2e tsc, server and web unit tests, `i18n:check` and `spec/scripts/check-steps.py` in parallel (`scripts/verify.mjs`).
-- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`. The dev-only `MotionLab.vue` is skipped (`IGNORED`) and three developer-error strings are allow-listed with a reason (`ALLOWED`), both at the top of `web/scripts/i18n-scan.ts`.
-- `pnpm e2e:affected [base]`: the Playwright `--grep` for features touched since `base` (default `origin/master`), mapped via feature tags/titles, step definitions and `data-testid` literals (`scripts/e2e-affected.mjs`); `none` if nothing is affected.
-- `scripts/deploy-status.sh`: last auto-deploy result and the `calendar` container's age, read from sauron over ssh (`DEPLOY_HOST=user@host` overrides the host).

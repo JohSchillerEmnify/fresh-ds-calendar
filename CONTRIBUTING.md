@@ -20,6 +20,15 @@ The Playwright e2e suite (`pnpm e2e`, `pnpm e2e:affected`) is not run in CI; run
 2. Every step phrase must exist in `e2e/STEPS.md`; add new steps there and implement them in `e2e/steps/`. Check with `python3 e2e/scripts/check-steps.py`.
 3. Implement until the scenarios and unit tests pass.
 
+## Tooling
+
+Terse output on purpose (one line on success, only failures otherwise); every command finishes in about a minute.
+
+- `pnpm verify`: the gate before any merge or deploy; runs web/server/e2e tsc, server and web unit tests, `i18n:check` and `e2e/scripts/check-steps.py` in parallel (`scripts/verify.mjs`).
+- `pnpm i18n:scan [path...] [--json]`: hard-coded UI strings left in `web/src` (template text, label/aria-label/title/placeholder/alt, `notify(` and `new Error(` literals); the template detector is `web/src/i18n/raw-text.ts`, shared with `test/i18n-raw-text.test.ts`. The dev-only `MotionLab.vue` is skipped (`IGNORED`) and three developer-error strings are allow-listed with a reason (`ALLOWED`), both at the top of `web/scripts/i18n-scan.ts`.
+- `pnpm e2e:affected [base]`: the Playwright `--grep` for features touched since `base` (default `origin/main`), mapped via feature tags/titles, step definitions and `data-testid` literals (`scripts/e2e-affected.mjs`); `none` if nothing is affected.
+- `npx -y likec4@1.47.0 validate docs/architecture`: the architecture model resolves (exit 1 on any error).
+
 ## Reuse first
 
 - New overlays, dialogs and sheets use the shared `AdaptiveSheet`; do not hand-roll a new one.

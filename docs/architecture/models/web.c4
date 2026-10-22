@@ -36,6 +36,12 @@ model {
     sync = component 'Sync' {
       description 'Decides when to re-fetch and shows the error banner while Google or the network is unreachable'
     }
+    signin = component 'Sign-in page' {
+      description 'Shown to anyone not signed in; also the re-sign-in and calendar-access banners'
+    }
+    serviceWorker = component 'Service worker' {
+      description 'Keeps the app shell for offline start; never answers API calls from its cache'
+    }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }

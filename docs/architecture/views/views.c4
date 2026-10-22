@@ -107,4 +107,15 @@ views {
     calendar.server.calendarService -> calendar.server.taskCodec 'encodes the list as an event'
     calendar.server.calendarService -> calendar.server.googleProvider 'inserts the event into the tasks calendar'
   }
+
+  dynamic view signIn {
+    title 'Signing in'
+
+    owner -> calendar.web.signin 'taps Sign in with Google'
+    calendar.web.signin -> calendar.server.auth 'starts the sign-in'
+    calendar.server.auth -> google 'one round trip: sign-in and calendar access'
+    google -> calendar.server.auth 'the verified address and the token'
+    calendar.server.auth -> calendar.server.sessions 'stores the token and a session, only for an allowed address'
+    calendar.server.auth -> calendar.web.signin 'the session cookie; back to the page asked for'
+  }
 }

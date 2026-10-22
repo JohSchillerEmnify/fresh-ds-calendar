@@ -49,9 +49,9 @@ model {
     }
   }
 
-  google = system 'Google Calendar' {
+  google = system 'Google' {
     #external
-    description 'Each person\'s own Google calendars: where their events and task lists live'
+    description 'Each person\'s Google account: sign-in, their calendars (where events and task lists live) and Drive'
   }
 
   doorBoard = system 'Door board' {
