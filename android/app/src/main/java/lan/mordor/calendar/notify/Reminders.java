@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,27 +23,48 @@ public final class Reminders {
 
     private Reminders() {}
 
-    /** One reminder: when it is due (epoch ms) and its notification text. */
+    /** The kinds of reminders; each shows with its own status bar icon. */
+    static final List<String> KINDS = Arrays.asList("event", "tasklist", "summary", "bedtime");
+
+    /**
+     * The kind of a reminder: the given one when known, else the one its id implies (reminders stored by an older web app
+     * carry none): {@code bedtime} and {@code morning} (the overview, kind {@code summary}), every other id an event.
+     */
+    static String kindOf(String id, String kind) {
+        if (kind != null && KINDS.contains(kind)) return kind;
+        if ("bedtime".equals(id)) return "bedtime";
+        if ("morning".equals(id)) return "summary";
+        return "event";
+    }
+
+    /**
+     * One reminder: when it is due (epoch ms), its notification text, its kind, and the start it counts down to while it is
+     * shown (epoch ms; 0 = no countdown).
+     */
     public static final class Entry {
         public final String id;
         public final long at;
         public final String title;
         public final String body;
+        public final String kind;
+        public final long start;
 
-        Entry(String id, long at, String title, String body) {
+        Entry(String id, long at, String title, String body, String kind, long start) {
             this.id = id;
             this.at = at;
             this.title = title;
             this.body = body;
+            this.kind = kindOf(id, kind);
+            this.start = start;
         }
 
         String toJson() throws JSONException {
-            return new JSONObject().put("at", at).put("title", title).put("body", body).toString();
+            return new JSONObject().put("at", at).put("title", title).put("body", body).put("kind", kind).put("start", start).toString();
         }
 
         static Entry fromJson(String id, String json) throws JSONException {
             JSONObject o = new JSONObject(json);
-            return new Entry(id, o.getLong("at"), o.getString("title"), o.optString("body", ""));
+            return new Entry(id, o.getLong("at"), o.getString("title"), o.optString("body", ""), o.optString("kind", null), o.optLong("start", 0));
         }
     }
 

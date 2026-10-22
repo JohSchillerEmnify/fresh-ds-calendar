@@ -110,7 +110,36 @@ Feature: Several reminders per event, read from and written to Google
     And I switch on reminders in this browser
     Then the server has 2 planned pushes for this browser
     When the time is 2026-10-12 10:10
-    Then the push "Dentist starts in 30 min" was sent once
+    Then the push "Dentist" saying "10:40 – 11:30" was sent once
+
+  @web-push
+  Scenario: A reminder push names the event's times, not how long until it starts
+    The push may be read long after it came, so it never says "in 30 min"; like Google Calendar it gives the times,
+    and the day first when the event is not on the day the reminder comes.
+    Given the calendar contains an event "Trip" on 2026-10-13 from 12:00 to 13:30
+    And the event "Trip" has its own reminders "1440, 30" in Google
+    And the time is 2026-10-12 10:00
+    When I open the week view for 2026-10-12
+    And I open the reminders settings
+    And I switch on reminders in this browser
+    Then the server plans the push "Trip" saying "Tue 13 Oct, 12:00 – 13:30" for 2026-10-12 12:00
+    And the server plans the push "Trip" saying "12:00 – 13:30" for 2026-10-13 11:30
+
+  @web-push
+  Scenario: Each kind of reminder push has its own icon
+    Given the calendar contains an event "Dentist" on 2026-10-12 from 11:00 to 11:30
+    And the event "Dentist" has its own reminders "30" in Google
+    And the calendar contains a task list "Taxes" on 2026-10-12 at 11:00 for 30 minutes with items:
+      | item  | done |
+      | Forms | no   |
+    And the task list "Taxes" has its own reminders "30" in Google
+    And the time is 2026-10-12 10:00
+    When I open the reminder settings
+    And I switch on reminders for task lists
+    And I switch on reminders in this browser
+    And the time is 2026-10-12 10:30
+    Then the push "Dentist" was sent once with the "calendar page" icon
+    And the push "Taxes" was sent once with the "checklist" icon
 
   @web-push @backlog
   Scenario: Signing out stops reminders in this browser

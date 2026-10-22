@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="192" height="192" role="img" aria-labelledby="t">
+  <title id="t">Calendar: event reminder</title>
+  <!-- notification icon: the white glyph (Material-Symbols-like, 24 grid) on a event colour disc; the badge is the glyph alone -->
+  <circle cx="12" cy="12" r="12" fill="#1a73e8"/>
+  <path transform="translate(4.8 4.8) scale(.6)" fill="#fff" d="M12.725 17.275Q12 16.55 12 15.5t.725-1.775T14.5 13t1.775.725T17 15.5t-.725 1.775T14.5 18t-1.775-.725M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V2h2v2h8V2h2v2h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5z"/>
+</svg>

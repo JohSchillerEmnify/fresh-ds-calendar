@@ -22,7 +22,7 @@ import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
-import { remindersPlugin } from '@/native/reminders';
+import { remindersPlugin, type ReminderKind } from '@/native/reminders';
 import { pushEndpoint, pushSupported, refreshPushState, sendPushPlan } from '@/pwa/push';
 
 /** The wording of a snackbar for an event starting in `minutes` (kept as the one name tests and callers know). */
@@ -77,6 +77,8 @@ export function startTransitionWarnings(): () => void {
     const date = i === 0 ? clock.today : toIsoDate(addDays(clock.todayDate, i));
     return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
   });
+  /** Whether a loaded range covers today (`byDate` has no entry for a day without appointments, so it cannot tell). */
+  const todayLoaded = (): boolean => Object.values(items.ranges).some((r) => r.from <= clock.today && clock.today < r.to);
   const plan = (kinds: { events: boolean; tasklists: boolean }): PlannedReminder[] =>
     reminderPlan(days(), clock.nowTick, clock.minutesNow, kinds, t('tasks.list.fallbackLabel'));
 
@@ -123,12 +125,12 @@ export function startTransitionWarnings(): () => void {
       void refreshPushState();
       let sentSig = '';
       watch(
-        () => [items.byDate, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
+        () => [items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
         async () => {
           const endpoint = pushEndpoint.value;
           if (!endpoint) { sentSig = ''; return; }
           // before today's items are loaded an empty plan would wipe the server's
-          if (!items.byDate.has(clock.today)) return;
+          if (!todayLoaded()) return;
           const entries = pushPlan(plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }), clock.nowTick);
           const sig = `${endpoint}|${JSON.stringify(entries)}`;
           if (sig === sentSig) return;
@@ -150,7 +152,10 @@ export function startTransitionWarnings(): () => void {
         const tomorrow = toIsoDate(addDays(clock.todayDate, 1));
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
         const next = plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }).filter((p) => p.at > minuteStart).slice(0, NATIVE_REMINDER_LIMIT);
-        const want = new Map<string, { at: number; title: string; body: string }>(next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.title, body: p.body }]));
+        // named by the item with its times; the phone counts down to the start (a fixed "in 10 min" would go stale)
+        const want = new Map<string, { at: number; title: string; body: string; kind: ReminderKind; start?: number }>(
+          next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.itemTitle, body: p.body, kind: p.kind, start: p.startAt }]),
+        );
         // the morning overview: today's if its time is still ahead, else tomorrow's (loaded on demand)
         if (prefs.notify.morning) {
           const [h, m] = prefs.notify.morningTime.split(':').map(Number);
@@ -158,10 +163,10 @@ export function startTransitionWarnings(): () => void {
           const dayOfOverview = at > clock.minutesNow ? clock.today : tomorrow;
           if (dayOfOverview === tomorrow) items.prefetch(tomorrow, toIsoDate(addDays(clock.todayDate, 2)));
           const visible = (items.byDate.get(dayOfOverview) ?? []).filter((s) => !cals.isHidden(s.item.calendarId) && !s.carriedFrom);
-          want.set(NATIVE_MORNING_ID, { at: minuteStart + ((dayOfOverview === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, ...morningOverview(visible) });
+          want.set(NATIVE_MORNING_ID, { at: minuteStart + ((dayOfOverview === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, kind: 'summary', ...morningOverview(visible) });
         }
         // once per start, once today's items are loaded: whatever the plugin still holds that is not planned is stale
-        if (!cleaned && items.byDate.has(clock.today)) {
+        if (!cleaned && todayLoaded()) {
           cleaned = true;
           // an older APK has no `list`: the call then fails and nothing is cleaned
           void Promise.resolve().then(() => plugin.list()).then(({ ids }) => {
@@ -176,10 +181,10 @@ export function startTransitionWarnings(): () => void {
           void plugin.cancel({ id }).catch(() => undefined);
         }
         for (const [id, w] of want) {
-          const sig = `${w.at}|${w.title}|${w.body}`;
+          const sig = `${w.at}|${w.title}|${w.body}|${w.kind}|${w.start ?? ''}`;
           if (sent.get(id) === sig) continue;
           sent.set(id, sig);
-          void plugin.schedule({ id, at: w.at, title: w.title, body: w.body }).catch(() => undefined);
+          void plugin.schedule({ id, ...w }).catch(() => undefined);
         }
       },
       { immediate: true },

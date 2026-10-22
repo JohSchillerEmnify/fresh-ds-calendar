@@ -142,15 +142,15 @@ export function startBedtimeReminder(): () => void {
           sent = 'none';
           return;
         }
-        const minutes = prefs.bedtime.reminderMinutes;
-        const title = t('bedtime.reminder', { count: minutes }, minutes);
-        const body = t('bedtime.moon', { time: next.bedtime });
+        // the bedtime itself, with the phone counting down to it: a fixed "in 30 minutes" would be stale when read later
+        const title = t('bedtime.notification', { time: next.bedtime });
         // relative to the app clock's current minute (the wall clock of `at` is in the app's time zone)
         const at = clock.nowTick - (clock.nowTick % 60_000) + (next.at - nowAbs) * 60_000;
-        const key = `${at}|${title}|${body}`;
+        const start = at + prefs.bedtime.reminderMinutes * 60_000;
+        const key = `${at}|${title}|${start}`;
         if (key === sent) return;
         sent = key;
-        void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body }).catch(() => undefined);
+        void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body: '', kind: 'bedtime', start }).catch(() => undefined);
       },
       { immediate: true },
     );

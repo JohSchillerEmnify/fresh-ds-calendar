@@ -3,8 +3,9 @@
  * list) and reminder lead, at start minus lead (feature reminders). Pure: the in-app snackbars and
  * the native notification scheduling (`transitionWarning.ts`) both read this list. Also the shared wording of a lead.
  */
-import type { Segment } from '@/lib/items';
+import { itemSegments, type Segment } from '@/lib/items';
 import { t } from '@/i18n';
+import { formatDate, parseIsoDate } from '@/lib/dates';
 import { formatDuration } from './timeline';
 
 /** Google allows at most 5 reminders per event and 5 defaults per calendar. */
@@ -36,15 +37,37 @@ export interface PlannedReminder {
   lead: number;
   /** The item's title as shown (an untitled list gets its placeholder). */
   itemTitle: string;
-  /** Notification title: "Dentist starts in 30 min". */
+  /** Which kind of item reminds (the notifications pick their icon by it). */
+  kind: 'event' | 'tasklist';
+  /** In-app snackbar text: "Dentist starts in 30 min" (shown live, gone at the start). */
   title: string;
-  /** Notification body: the start time, `HH:mm`. */
+  /**
+   * Notification text: the item's times, "11:00 – 11:30", never "in 30 min" (a notification may be read much later).
+   * Prefixed with the day when the item is not on the day the reminder rings: "Tue 13 Oct, 11:00 – 11:30".
+   */
   body: string;
 }
 
 /** The wording of a reminder for an event starting in `minutes` ("Dentist starts in 30 min"; `starts now` at 0). */
 export const reminderText = (title: string, minutes: number): string =>
   minutes <= 0 ? t('calendar.warning.startsNow', { title }) : t('calendar.warning.startsIn', { title, duration: formatLead(minutes) });
+
+/** A date as the notification texts show it: "Tue 13 Oct". */
+const dayLabel = (date: string): string => formatDate(parseIsoDate(date)!, 'weekdayDayMonth');
+
+/**
+ * The times of an item as its notification gives them, Google-Calendar-like: "11:00 – 11:30"; an end on a later day names
+ * that day ("22:00 – Tue 13 Oct, 01:00"); an end at midnight is "00:00".
+ *
+ * @param s The item's first segment.
+ */
+function itemTimes(s: Segment): string {
+  // the end lies on the item's last segment, which may be beyond the planned days
+  const last = s.last ? s : itemSegments(s.item).find((x) => x.last) ?? s;
+  const endTime = last.endTime === '24:00' ? '00:00' : last.endTime ?? '';
+  const end = last.date === s.date ? endTime : t('calendar.reminders.notification.dayTime', { day: dayLabel(last.date), time: endTime });
+  return t('calendar.reminders.notification.times', { start: s.startTime ?? '', end });
+}
 
 /** Which kinds of items remind (`events`: lock screen choice for the native plan; `tasklists`: the Reminders switch). */
 export interface PlanKinds { events: boolean; tasklists: boolean }
@@ -70,10 +93,14 @@ export function reminderPlan(days: Segment[][], nowMs: number, nowMin: number, k
       if (startIn <= 0) continue;
       const itemTitle = s.item.title.trim() || untitled;
       const occurrence = `${s.item.id}@${s.date}T${s.startTime}`;
+      const times = itemTimes(s);
       for (const lead of new Set(s.item.reminders?.minutes ?? [])) {
+        // the day goes first when the reminder rings on another day than the item (a day lead, or just before midnight)
+        const ringsOnItsDay = Math.floor((i * 1440 + s.startMin - lead) / 1440) === i;
         out.push({
           key: `${occurrence}-${lead}`, occurrence, at: minuteStart + (startIn - lead) * 60_000, startAt: minuteStart + startIn * 60_000, lead,
-          itemTitle, title: reminderText(itemTitle, lead), body: s.startTime,
+          itemTitle, kind: s.item.kind, title: reminderText(itemTitle, lead),
+          body: ringsOnItsDay ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times }),
         });
       }
     }
@@ -84,12 +111,12 @@ export function reminderPlan(days: Segment[][], nowMs: number, nowMin: number, k
 /** The Web Push plan covers this many days ahead (feature reminders). */
 export const PUSH_PLAN_DAYS = 7;
 
-/** One push the server sends at `at` (epoch ms); `key` is `reminder:<itemId>@<date>T<start>-<lead>`. */
-export interface PushPlanEntry { at: number; title: string; body: string; key: string }
+/** One push the server sends at `at` (epoch ms); `key` is `reminder:<itemId>@<date>T<start>-<lead>`; `kind` picks its icon. */
+export interface PushPlanEntry { at: number; title: string; body: string; key: string; kind: PlannedReminder['kind'] }
 
 /**
- * The reminders the server pushes while the app is closed: the ones still ahead within the next 7 days, with the same
- * titles and bodies as the in-app and native reminders and the native reminder id as key.
+ * The reminders the server pushes while the app is closed: the ones still ahead within the next 7 days, titled with the
+ * item and saying its times like the native reminders, with the native reminder id as key.
  *
  * @param plan The output of {@link reminderPlan}.
  * @param nowMs Now, epoch ms.
@@ -97,5 +124,5 @@ export interface PushPlanEntry { at: number; title: string; body: string; key: s
 export function pushPlan(plan: readonly PlannedReminder[], nowMs: number): PushPlanEntry[] {
   const minuteStart = nowMs - (nowMs % 60_000);
   const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
-  return plan.filter((p) => p.at > minuteStart && p.at <= until).map((p) => ({ at: p.at, title: p.title, body: p.body, key: `reminder:${p.key}` }));
+  return plan.filter((p) => p.at > minuteStart && p.at <= until).map((p) => ({ at: p.at, title: p.itemTitle, body: p.body, key: `reminder:${p.key}`, kind: p.kind }));
 }

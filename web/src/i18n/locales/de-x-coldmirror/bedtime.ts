@@ -7,6 +7,7 @@ import type { PartialMessages } from '../../schema';
 export default {
   reminder: 'Fresh D. muss ins Bett in {count} Minute, sonst find ich mein Hörgerät morgen nicht | Fresh D. muss ins Bett in {count} Minuten, sonst find ich mein Hörgerät morgen nicht',
   moon: 'Ab ins Bett um {time}, yo',
+  notification: 'Ab ins Bett um {time}, yo',
   sun: 'Aufstehen um {time}, fresh',
   settings: {
     on: { label: 'Bettzeit, yo', hint: 'Zeigt die Nacht im Kalender, und Fresh D. sagt vorher Bescheid, Digga' },

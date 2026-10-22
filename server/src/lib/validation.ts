@@ -207,5 +207,5 @@ export const pushUnsubscribeSchema = so({ endpoint });
 /** `PUT /api/reminders/plan`: the browser's endpoint and the pushes it wants, soonest first. */
 export const reminderPlanSchema = so({
   endpoint,
-  plan: v.pipe(v.array(so({ at: v.pipe(v.number('at must be a number'), v.integer('at must be whole ms')), title: str(300, 'title'), body: str(300, 'body'), key: str(200, 'key') })), v.maxLength(500, 'At most 500 reminders')),
+  plan: v.pipe(v.array(so({ at: v.pipe(v.number('at must be a number'), v.integer('at must be whole ms')), title: str(300, 'title'), body: str(300, 'body'), key: str(200, 'key'), kind: v.optional(v.picklist(['event', 'tasklist', 'summary', 'bedtime'], 'Invalid kind')) })), v.maxLength(500, 'At most 500 reminders')),
 });

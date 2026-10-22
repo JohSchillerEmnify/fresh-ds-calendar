@@ -174,6 +174,7 @@ export default {
     reload: 'Neu laden, fresh',
   },
   reminders: {
+    notification: { times: '{start} – {end}', dayTime: '{day}, {time}' },
     title: 'Erinnerungen, yo',
     atStart: 'Zum Start',
     days: '{days} Tag | {days} Tage',

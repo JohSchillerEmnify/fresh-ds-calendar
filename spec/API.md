@@ -283,8 +283,9 @@ Per person (`local` while sign-in is off); all `204` unless noted. Why: feature 
   `web.push.apple.com`, `*.notify.windows.com`, port 443, no IP literal, else `400`; TEST_MODE also accepts `push.example.test`; same
   endpoint again updates its keys and keeps its plan; at most 10 per person, else `400`).
 - `DELETE /api/push/subscriptions` `{ endpoint }`: removes it (also when unknown).
-- `PUT /api/reminders/plan` `{ endpoint, plan: { at, title, body, key }[] }`: replaces that browser's plan (`at` epoch ms, at most
-  500 entries). `404` when the endpoint is not subscribed. The server sends `{ title, body, key }` at `at`, up to 10 minutes late,
+- `PUT /api/reminders/plan` `{ endpoint, plan: { at, title, body, key, kind? }[] }`: replaces that browser's plan (`at` epoch ms, at most
+  500 entries; `kind` one of `event`, `tasklist`, `summary`, `bedtime`, which the service worker shows with its own icon, else `400`).
+  `404` when the endpoint is not subscribed. The server sends `{ title, body, key, kind }` at `at`, up to 10 minutes late,
   once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription. Every send has a
   10 s timeout and each browser is served on its own, so one endpoint that never answers holds back nobody.
 

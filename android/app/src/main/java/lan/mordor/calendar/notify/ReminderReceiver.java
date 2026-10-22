@@ -1,6 +1,7 @@
 package lan.mordor.calendar.notify;
 
 import android.Manifest;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -45,17 +46,38 @@ public class ReminderReceiver extends BroadcastReceiver {
             return;
         }
         createChannel(ctx);
+        NotificationManagerCompat.from(ctx).notify(e.id.hashCode(), build(ctx, e));
+    }
+
+    /**
+     * The notification of a reminder: the status bar icon of its kind (only bedtime has the moon) and, when it has a start,
+     * a countdown to it in the header that the system keeps current — a fixed "in 30 min" would be wrong when read later.
+     */
+    static Notification build(Context ctx, Reminders.Entry e) {
         Intent open = new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent tap = PendingIntent.getActivity(ctx, e.id.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         NotificationCompat.Builder n = new NotificationCompat.Builder(ctx, CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setSmallIcon(icon(e.kind))
             .setContentTitle(e.title)
             .setContentText(e.body.isEmpty() ? null : e.body)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(tap)
             .setAutoCancel(true);
-        NotificationManagerCompat.from(ctx).notify(e.id.hashCode(), n.build());
+        if (e.start > 0) {
+            n.setWhen(e.start).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
+        }
+        return n.build();
+    }
+
+    /** The status bar icon of a kind: calendar page, checklist, sunrise, moon. */
+    private static int icon(String kind) {
+        switch (kind) {
+            case "tasklist": return R.drawable.ic_stat_tasklist;
+            case "summary": return R.drawable.ic_stat_summary;
+            case "bedtime": return R.drawable.ic_stat_bedtime;
+            default: return R.drawable.ic_stat_event;
+        }
     }
 
     /** The one channel "Reminders" (Android 8+); its name follows the system language. */

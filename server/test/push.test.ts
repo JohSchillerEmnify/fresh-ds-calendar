@@ -43,6 +43,13 @@ describe('PushService scheduler', () => {
     expect(calls[0]).toEqual({ endpoint: target().endpoint, payload: { title: 'T a', body: '10:40', key: 'a' } });
   });
 
+  it('carries the kind of a planned push into its payload (the service worker picks the icon by it)', async () => {
+    svc.subscribe('local', target());
+    svc.setPlan('local', target().endpoint, [{ ...entry('a', T0), kind: 'tasklist' }]);
+    expect(await svc.tick()).toBe(1);
+    expect(calls[0]!.payload).toEqual({ title: 'T a', body: '10:40', key: 'a', kind: 'tasklist' });
+  });
+
   it('catches up a push up to 10 minutes late, but not later', async () => {
     svc.subscribe('local', target());
     svc.setPlan('local', target().endpoint, [entry('late', T0), entry('too-late', T0 - 1)]);
@@ -128,12 +135,13 @@ describe('push API', () => {
       const sub = { endpoint: 'https://push.example.test/e2e', keys: { p256dh: 'p', auth: 'a' } };
       expect((await t.req('POST', '/api/push/subscriptions', sub)).status).toBe(204);
       const at = Date.parse('2026-10-12T10:10:00+02:00');
-      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'Dentist starts in 30 min', body: '10:40', key: 'reminder:x' }] })).status).toBe(204);
+      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'Dentist', body: '10:40 – 11:30', key: 'reminder:x', kind: 'event' }] })).status).toBe(204);
+      expect((await t.req('PUT', '/api/reminders/plan', { endpoint: sub.endpoint, plan: [{ at, title: 'X', body: '', key: 'k', kind: 'weather' }] })).status).toBe(400);
       expect((await t.req('PUT', '/api/reminders/plan', { endpoint: 'https://other.example.test/x', plan: [] })).status).toBe(404);
       await t.req('POST', '/api/__test/clock', { now: '2026-10-12T10:00:00+02:00' });
       expect((await t.json('GET', '/api/__test/pushes')).body.pushes).toEqual([]);
       await t.req('POST', '/api/__test/clock', { now: '2026-10-12T10:10:00+02:00' });
-      expect((await t.json('GET', '/api/__test/pushes')).body.pushes.map((p: any) => p.title)).toEqual(['Dentist starts in 30 min']);
+      expect((await t.json('GET', '/api/__test/pushes')).body.pushes.map((p: any) => [p.title, p.body, p.kind])).toEqual([['Dentist', '10:40 – 11:30', 'event']]);
       expect((await t.req('DELETE', '/api/push/subscriptions', { endpoint: sub.endpoint })).status).toBe(204);
       expect((await t.json('GET', '/api/__test/push-subscriptions')).body.subscriptions).toEqual([]);
     } finally { t.cleanup(); }

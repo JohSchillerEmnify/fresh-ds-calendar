@@ -4,6 +4,7 @@ import type { Messages } from '../../schema';
 export default {
   reminder: 'Schlafenszeit in {count} Minute | Schlafenszeit in {count} Minuten',
   moon: 'Schlafenszeit {time}',
+  notification: 'Schlafenszeit um {time}',
   sun: 'Aufstehen {time}',
   settings: {
     on: { label: 'Schlafenszeit', hint: 'Zeigt die Nacht in den Kalenderansichten und erinnert dich vor dem Schlafengehen' },

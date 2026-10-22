@@ -219,15 +219,19 @@ describe('transition warnings as Android notifications', () => {
 
   it('schedules them through the plugin, re-sends only changes and cancels what is gone', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
     const { clock, items } = await boot('09:00', false);
     useSettingsStore().settings = settingsFixture();
     startTransitionWarnings();
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_REMINDER_PREFIX), o.title, o.at]))
-      .toEqual([[true, 'Dentist starts in 10 min', at('10:30').getTime()], [true, 'Call starts in 10 min', at('12:50').getTime()]]);
+    // named by the event with its times and a start the phone counts down to, never "starts in 10 min"
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_REMINDER_PREFIX), o.title, o.body, o.kind, o.at, o.start]))
+      .toEqual([
+        [true, 'Dentist', '10:40 – 11:30', 'event', at('10:30').getTime(), at('10:40').getTime()],
+        [true, 'Call', '13:00 – 13:30', 'event', at('12:50').getTime(), at('13:00').getTime()],
+      ]);
     clock.nowTick = at('09:01').getTime();
     await nextTick();
     expect(plugin.schedule).toHaveBeenCalledTimes(2);
@@ -245,7 +249,7 @@ describe('transition warnings as Android notifications', () => {
 
   it('schedules a timed task list only with the switch on, and cleans up ids the plan does not hold', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
       list: vi.fn(() => Promise.resolve({ ids: ['reminder:gone@2026-10-12T10:00-10', 'transition:old@2026-10-12T10:00', 'morning', 'other'] })),
     };
@@ -260,13 +264,13 @@ describe('transition warnings as Android notifications', () => {
     expect(plugin.cancel.mock.calls.map(([o]) => o.id).sort()).toEqual(['reminder:gone@2026-10-12T10:00-10', 'transition:old@2026-10-12T10:00']);
     prefs.notify = { ...prefs.notify, tasklists: true };
     await nextTick();
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.title, o.at])).toEqual([[`${NATIVE_REMINDER_PREFIX}laundry@${D}T18:00-30`, 'Laundry starts in 30 min', at('17:30').getTime()]]);
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.title, o.kind, o.at, o.start])).toEqual([[`${NATIVE_REMINDER_PREFIX}laundry@${D}T18:00-30`, 'Laundry', 'tasklist', at('17:30').getTime(), at('18:00').getTime()]]);
     expect(NATIVE_LEGACY_PREFIX).toBe('transition:');
   });
 
   it('schedules the morning overview only when chosen, and nothing for switched-off kinds', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
@@ -275,7 +279,7 @@ describe('transition warnings as Android notifications', () => {
     const prefs = usePrefsStore();
     prefs.notify = { bedtime: true, events: false, tasklists: false, morning: true, morningTime: '07:30' };
     startTransitionWarnings();
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.at, o.title])).toEqual([[NATIVE_MORNING_ID, at('07:30').getTime(), 'Your day']]);
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.at, o.title, o.kind, o.start])).toEqual([[NATIVE_MORNING_ID, at('07:30').getTime(), 'Your day', 'summary', undefined]]);
     prefs.notify = { ...prefs.notify, morning: false };
     await nextTick();
     expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_MORNING_ID });

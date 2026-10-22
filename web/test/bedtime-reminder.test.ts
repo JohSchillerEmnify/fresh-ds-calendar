@@ -111,7 +111,9 @@ describe('startBedtimeReminder', () => {
       const clock = setup('2026-10-14T12:00:00+02:00');
       const stop = startBedtimeReminder();
       expect(plugin.schedule.mock.calls).toEqual([[{
-        id: NATIVE_REMINDER_ID, at: Date.parse('2026-10-14T22:30:00+02:00'), title: 'Bedtime in 30 minutes', body: 'Bedtime 23:00',
+        // the bedtime itself, and the phone counts down to it (a fixed "in 30 minutes" would go stale)
+        id: NATIVE_REMINDER_ID, at: Date.parse('2026-10-14T22:30:00+02:00'), title: 'Bedtime at 23:00', body: '', kind: 'bedtime',
+        start: Date.parse('2026-10-14T23:00:00+02:00'),
       }]]);
       clock.nowTick = Date.parse('2026-10-14T12:01:00+02:00');
       await nextTick();

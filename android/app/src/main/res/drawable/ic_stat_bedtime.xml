@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Notification status bar icon: the bedtime moon (Material "bedtime"), white on transparent as Android requires. -->
+<!-- Notification status bar icon: the moon of the bedtime reminder, and only of it (Material "bedtime"), white on transparent as Android requires. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

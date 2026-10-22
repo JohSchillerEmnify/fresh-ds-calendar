@@ -5,6 +5,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import type { GoogleEvent } from './support/api.js';
+import { berlinToEpoch } from './support/dates.js';
 import { exactText, type World } from './support/world.js';
 
 /** `"90, 30, 15"` -> `[90, 30, 15]`; `""` -> `[]`. */
@@ -153,8 +154,10 @@ When('I switch on reminders for task lists', async function (this: World) {
 // --- Web Push ----------------------------------------------------------------------------------------------------
 
 /** Where the server-side push state of the test double is read. */
-interface PushState { subscriptions: Array<{ endpoint: string; plan: unknown[] }> }
-const pushesOf = async (w: World) => (await w.api.call<{ pushes: Array<{ endpoint: string; title: string }> }>('GET', '/api/__test/pushes')).pushes;
+interface PushState { subscriptions: Array<{ endpoint: string; plan: Array<{ at: number; title: string; body: string }> }> }
+const pushesOf = async (w: World) => (await w.api.call<{ pushes: Array<{ endpoint: string; title: string; body: string; kind?: string }> }>('GET', '/api/__test/pushes')).pushes;
+/** The push kind behind each icon name of the spec (the service worker picks the icon files by kind). */
+const KIND_OF_ICON: Record<string, string> = { 'calendar page': 'event', checklist: 'tasklist', sunrise: 'summary', moon: 'bedtime' };
 const browserEndpoint = (w: World): Promise<string> => w.page.evaluate(() => (window as unknown as { __e2ePushEndpoint?: string }).__e2ePushEndpoint ?? '');
 const subscriptionOf = async (w: World) => {
   const endpoint = await browserEndpoint(w);
@@ -187,9 +190,25 @@ Then('the server has {int} planned pushes for this browser', async function (thi
   await expect.poll(async () => (await subscriptionOf(this))?.plan.length).toBe(count);
 });
 
-Then('the push {string} was sent once', async function (this: World, title: string) {
-  const endpoint = await browserEndpoint(this);
-  const sent = async () => (await pushesOf(this)).filter((p) => p.endpoint === endpoint && p.title === title).length;
+/** Expects exactly one recorded push to this browser that matches. */
+async function sentOnce(w: World, match: (p: { title: string; body: string; kind?: string }) => boolean): Promise<void> {
+  const endpoint = await browserEndpoint(w);
+  const sent = async () => (await pushesOf(w)).filter((p) => p.endpoint === endpoint && match(p)).length;
   await expect.poll(sent).toBeGreaterThanOrEqual(1);
   expect(await sent()).toBe(1);
+}
+
+Then('the push {string} saying {string} was sent once', async function (this: World, title: string, body: string) {
+  await sentOnce(this, (p) => p.title === title && p.body === body);
+});
+
+Then('the push {string} was sent once with the {string} icon', async function (this: World, title: string, icon: string) {
+  const kind = KIND_OF_ICON[icon];
+  expect(kind, `unknown icon "${icon}"`).toBeDefined();
+  await sentOnce(this, (p) => p.title === title && p.kind === kind);
+});
+
+Then('the server plans the push {string} saying {string} for {date} {time}', async function (this: World, title: string, body: string, date: string, time: string) {
+  const at = berlinToEpoch(date, time);
+  await expect.poll(async () => (await subscriptionOf(this))?.plan.some((e) => e.title === title && e.body === body && e.at === at)).toBe(true);
 });

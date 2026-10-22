@@ -2126,7 +2126,9 @@ I switch on reminders in this browser
 this browser has no push subscription on the server
 this browser has a push subscription on the server
 the server has {int} planned pushes for this browser
-the push {string} was sent once
+the push {string} saying {string} was sent once
+the push {string} was sent once with the {string} icon
+the server plans the push {string} saying {string} for {date} {time}
 ```
 
 - Minutes lists are comma-separated integers (`"90, 30, 15"`, `""` = none); labels use the app's duration format
@@ -2147,7 +2149,11 @@ the push {string} was sent once
   unique `https://push.example.test/...` endpoint kept in `window.__e2ePushEndpoint`), then turns `reminders-push` on (`aria-checked`).
   The server side is read from the TEST_MODE routes `GET /api/__test/push-subscriptions` ("has a push subscription": one with this
   endpoint exists; "N planned pushes": its plan has N entries) and `GET /api/__test/pushes` (the recorder that replaces the push
-  service; "was sent once": exactly one recorded push with this title for this endpoint). `POST /api/__test/clock` (the step "the
+  service; "T saying B was sent once": exactly one recorded push with title T and body B for this endpoint; "was sent once with
+  the I icon": exactly one recorded push with this title whose `kind` is the one of icon I — "calendar page" = `event`,
+  "checklist" = `tasklist`, "sunrise" = `summary`, "moon" = `bedtime` (the service worker picks the icon files by `kind`;
+  its unit test covers that mapping). "the server plans the push T saying B for D T": this browser's plan holds an entry
+  with that title and body at that app time). `POST /api/__test/clock` (the step "the
   time is D T") runs the server's push loop once on the new app time, so a push that became due is sent before the step returns.
 - Warnings reuse "I see the transition warning X" / "I do not see a transition warning" / "N minutes pass".
 
@@ -2329,6 +2335,9 @@ the app runs inside the Android app
 the morning overview is on at {time}
 a notification {string} is planned for {date} {time}
 a notification {string} saying {string} is planned for {date} {time}
+the notification {string} planned for {date} {time} counts down to {date} {time}
+a {string} notification shows
+its status bar icon is the {string}
 the phone widget refreshes
 the phone widget does not show the event {string}
 the phone widget shows the event {string} on {date} at {time}
@@ -2340,6 +2349,10 @@ I look at the clock widget
 the clock widget says {string}
 ```
 
+- "counts down to D T": the scheduled native reminder carries that start (`setWhen` + a counting-down chronometer).
+  "a K notification shows" / "its status bar icon is the I": the notification of kind K (event reminder, task list
+  reminder, morning overview, bedtime reminder) uses the small icon I (`ic_stat_event` calendar page, `ic_stat_tasklist`
+  checklist, `ic_stat_summary` sunrise, `ic_stat_bedtime` moon). Proven by `ReminderNotificationTest`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 

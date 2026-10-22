@@ -23,9 +23,9 @@ describe('reminder plan', () => {
 
   it('has one reminder per lead at start minus lead, soonest first', () => {
     const p = plan([dentist]);
-    expect(p.map((r) => [r.key, r.title, r.body, r.at - NOW])).toEqual([
-      [`d@${D}T11:00-30`, 'Dentist starts in 30 min', '11:00', 5 * 60000],
-      [`d@${D}T11:00-15`, 'Dentist starts in 15 min', '11:00', 20 * 60000],
+    expect(p.map((r) => [r.key, r.kind, r.title, r.body, r.at - NOW])).toEqual([
+      [`d@${D}T11:00-30`, 'event', 'Dentist starts in 30 min', '11:00 – 11:30', 5 * 60000],
+      [`d@${D}T11:00-15`, 'event', 'Dentist starts in 15 min', '11:00 – 11:30', 20 * 60000],
     ]);
     expect(p[0]!.startAt - NOW).toBe(35 * 60000);
   });
@@ -42,7 +42,8 @@ describe('reminder plan', () => {
     expect(plan([ev('a', D, '2026-10-13', { allDay: true, ...remind([30]) })])).toEqual([]);
     const list = { kind: 'tasklist', id: 'l', calendarId: 'tasks', title: '', date: D, time: '12:00', items: [], doneCount: 0, totalCount: 1, estimateMinutes: null, categoryId: null, tags: [], color: '#000', ...remind([60]), etag: 'e', updated: '' } as unknown as CalendarItem;
     expect(plan([list])).toEqual([]);
-    expect(plan([list], { events: false, tasklists: true }).map((r) => r.title)).toEqual(['Untitled starts in 1 h']);
+    expect(plan([list], { events: false, tasklists: true }).map((r) => [r.kind, r.title, r.body])).toEqual([['tasklist', 'Untitled starts in 1 h', '12:00 – 12:30']]);
+    expect(plan([{ ...list, estimateMinutes: 45 } as CalendarItem], { events: false, tasklists: true }).map((r) => r.body)).toEqual(['12:00 – 12:45']);
   });
 
   it('plans a day lead for an event of tomorrow and says the lead once per duplicate', () => {
@@ -50,15 +51,31 @@ describe('reminder plan', () => {
     const p = reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, NOW_MIN, kinds, 'x');
     expect(p.map((r) => [r.title, r.at - NOW])).toEqual([['Trip starts in 1 day', (1440 + 12 * 60 - NOW_MIN - 1440) * 60000]]);
   });
+
+  it('gives the times, with the day first when the item is not on the day the reminder rings', () => {
+    const trip = ev('t', t('2026-10-13', '12:00'), t('2026-10-13', '13:30'), { title: 'Trip', ...remind([1440, 30]) });
+    const p = reminderPlan([[], segsOf([trip], '2026-10-13')], NOW, NOW_MIN, kinds, 'x');
+    expect(p.map((r) => [r.lead, r.body])).toEqual([[1440, 'Tue 13 Oct, 12:00 – 13:30'], [30, '12:00 – 13:30']]);
+    // a 30 min lead of a 00:15 start rings the evening before
+    const early = ev('e', t('2026-10-13', '00:15'), t('2026-10-13', '01:00'), { title: 'Early', ...remind([30]) });
+    expect(reminderPlan([[], segsOf([early], '2026-10-13')], NOW, NOW_MIN, kinds, 'x').map((r) => r.body)).toEqual(['Tue 13 Oct, 00:15 – 01:00']);
+  });
+
+  it('names the end day of an item that runs past midnight', () => {
+    const night = ev('n', t(D, '22:00'), t('2026-10-13', '01:00'), { title: 'Night', ...remind([30]) });
+    expect(plan([night]).map((r) => r.body)).toEqual(['22:00 – Tue 13 Oct, 01:00']);
+    const toMidnight = ev('m', t(D, '23:00'), t('2026-10-13', '00:00'), { title: 'Late', ...remind([30]) });
+    expect(plan([toMidnight]).map((r) => r.body)).toEqual(['23:00 – 00:00']);
+  });
 });
 
 describe('push plan', () => {
   const at = (id: string, date: string, time: string, minutes: number[]) => ev(id, t(date, time), t(date, '23:00'), { title: id, ...remind(minutes) });
 
-  it('has the ahead reminders with the same texts and the native reminder id as key', () => {
+  it('has the ahead reminders named by the item with its times, its kind, and the native reminder id as key', () => {
     const e = ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', ...remind([60, 30]) }); // the 1 h lead is due already
     expect(pushPlan(plan([e]), NOW)).toEqual([
-      { at: NOW + 5 * 60000, title: 'Dentist starts in 30 min', body: '11:00', key: `reminder:d@${D}T11:00-30` },
+      { at: NOW + 5 * 60000, title: 'Dentist', body: '11:00 – 11:30', key: `reminder:d@${D}T11:00-30`, kind: 'event' },
     ]);
   });
 
@@ -70,7 +87,7 @@ describe('push plan', () => {
 
   it('drops reminders that are due already', () => {
     const e = ev('x', t(D, '10:40'), t(D, '11:30'), { title: 'Early', ...remind([30, 10]) });
-    expect(pushPlan(plan([e]), NOW).map((p) => p.title)).toEqual(['Early starts in 10 min']);
+    expect(pushPlan(plan([e]), NOW).map((p) => p.key)).toEqual([`reminder:x@${D}T10:40-10`]);
   });
 });
 
