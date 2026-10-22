@@ -111,3 +111,11 @@ Feature: Several reminders per event, read from and written to Google
     Then the server has 2 planned pushes for this browser
     When the time is 2026-10-12 10:10
     Then the push "Dentist starts in 30 min" was sent once
+
+  @web-push @backlog
+  Scenario: Signing out stops reminders in this browser
+    Given "jo@example.com" is signed in
+    And I open the reminders settings
+    And I switch on reminders in this browser
+    When they sign out in the settings
+    Then this browser has no push subscription on the server

@@ -233,6 +233,7 @@ the items of the task list {string} fade out towards the bottom
 the task list {string} shows no overflow count
 the collapsed task list {string} lists the items {string}
 the collapsed titleless task list lists the items {string}
+the titleless task list on {date} is labelled {string}
 the titleless task list has no title row and shows no item as its title
 the collapsed task list {string} shows {string}
 the task list {string} is positioned at {time}
@@ -1377,6 +1378,7 @@ the event {string} is drawn as an outline
 the event {string} glows
 the event {string} does not glow
 {string} may use the calendar
+{string} may no longer use the calendar
 I set the {string} slider to {int}
 the {string} slider shows {string}
 the {string} slider is disabled
@@ -2070,6 +2072,7 @@ the reminder settings show {string} for the calendar {string}
 I add the default reminder {string} for the calendar {string}
 I switch on reminders for task lists
 I switch on reminders in this browser
+this browser has no push subscription on the server
 this browser has a push subscription on the server
 the server has {int} planned pushes for this browser
 the push {string} was sent once
@@ -2267,3 +2270,26 @@ opening the event {string} shows the time {string}
   its own block.
 - "opening the event {string} shows the time {string}": opens the event (its dialog) and checks that its start and end
   time fields hold the two times of `HH:MM–HH:MM`: the real times, whatever length the block is drawn.
+
+## Android app and widgets (native, `@android-app`, `@phone-widget`)
+
+```
+the app runs inside the Android app on {string}
+the settings show the server {string}
+the morning overview is on at {time}
+a notification {string} is planned for {date} {time}
+a notification {string} saying {string} is planned for {date} {time}
+the phone widget refreshes
+the phone widget does not show the event {string}
+the phone widget shows the event {string} on {date} at {time}
+the app hands the widget an older copy of the week with {string} at {time}
+the phone widget is not redrawn
+I look at the day widget
+the day widget shows the event {string} from {time} to {time}
+I look at the clock widget
+the clock widget says {string}
+```
+
+- These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
+  device prove them. They stay `@backlog` for Playwright, which skips them.
+

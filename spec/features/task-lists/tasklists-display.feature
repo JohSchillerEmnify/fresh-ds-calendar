@@ -208,3 +208,13 @@ Feature: Task lists in the calendar views
       | view | period     |
       | week | 2026-10-12 |
       | day  | 2026-10-14 |
+
+  @mobile @backlog
+  Scenario: A titleless list's one-line month chip shows its tasks in place of a title
+    Given the calendar contains a task list "" on 2026-10-15 with items:
+      | item  | done |
+      | Milk  | no   |
+      | Eggs  | no   |
+      | Bread | no   |
+    When I open the month view for 2026-10
+    Then the titleless task list on 2026-10-15 is labelled "Milk, Eggs, Bread"
