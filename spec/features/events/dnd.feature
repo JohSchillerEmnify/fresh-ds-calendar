@@ -87,6 +87,29 @@ Feature: Drag and drop to reschedule
     Then the URL path is "/week/2026-10-12"
     And I see the event "Dentist" on "Friday"
 
+  # owner, 2026-10-23: the right one of two side-by-side events jumped away from the finger onto the left one
+  @mobile
+  Scenario Outline: On a phone the right one of two side-by-side events stays under the finger when picked up (<view> view, <left> and <right>)
+    Given I am using a phone
+    And the calendar contains an event "Left" on 2026-10-14 from <left>
+    And the calendar contains an event "Right" on 2026-10-14 from <right>
+    When I open the <view> view for 2026-10-14
+    Then the event "Right" is right of the event "Left"
+    When I pick up the event "Right"
+    Then the event "Right" is lifted
+    And the finger is on the event "Right"
+    When I release the event without moving it
+    Then the event "Right" is not lifted
+
+    Examples:
+      | view | left           | right          |
+      | week | 15:00 to 17:00 | 15:00 to 16:00 |
+      | week | 15:00 to 17:00 | 15:15 to 16:00 |
+      | week | 15:00 to 15:45 | 15:15 to 17:00 |
+      | day  | 15:00 to 17:00 | 15:00 to 16:00 |
+      | day  | 15:00 to 17:00 | 15:15 to 16:00 |
+      | day  | 15:00 to 15:45 | 15:15 to 17:00 |
+
   Rule: Releasing a timed entry without moving it shows resize handles
 
     Scenario: Releasing a picked-up event without moving shows resize handles

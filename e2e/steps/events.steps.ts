@@ -143,6 +143,13 @@ Then('the events {string} and {string} are side by side', async function (this: 
   expect(Math.abs(ba.x - bb.x), 'different left edges').toBeGreaterThan(1);
 });
 
+Then('the event {string} is right of the event {string}', async function (this: World, right: string, left: string) {
+  const [r, l] = [await box(this.eventChip(right)), await box(this.eventChip(left))];
+  const within = (y: number, b: typeof r) => y >= b.y && y <= b.y + b.height;
+  expect(within(r.y, l) || within(l.y, r), 'vertical spans overlap').toBe(true);
+  expect(r.x, 'left edge at or right of the other right edge').toBeGreaterThanOrEqual(l.x + l.width - 0.5);
+});
+
 Then('the event {string} is stacked on the event {string}', async function (this: World, later: string, earlier: string) {
   const [l, e] = [await box(this.eventChip(later)), await box(this.eventChip(earlier))];
   expect(l.x, 'later block is indented').toBeGreaterThan(e.x + 2);

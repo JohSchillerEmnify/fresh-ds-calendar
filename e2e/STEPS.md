@@ -197,6 +197,7 @@ the events {string} and {string} do not overlap
 the event {string} shows the location {string}
 the title of the event {string} is not covered
 the events {string} and {string} are side by side
+the event {string} is right of the event {string}
 the event {string} is stacked on the event {string}
 the event {string} spans the full width of its day column
 the event {string} has the color {string}
@@ -214,7 +215,8 @@ the items on {date} are shown in the order {string}
 - "positioned" checks `data-start-time`/`data-end-time` of the chip segment and that its top/height match the time
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span
-  and different left edges. "stacked on": the first chip starts lower and further right than the second, boxes overlap
+  and different left edges. "A is right of B": side by side and A's left edge is at or right of B's right edge.
+  "stacked on": the first chip starts lower and further right than the second, boxes overlap
   vertically (cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
 - "the items on D are shown in the order": DOM order of `data-title` of event chips and task list cards inside the
   month cell of D.
@@ -906,6 +908,7 @@ I drag the event {string} back and forth {int} times
 I pick up the event {string}
 I release the event without moving it
 the event {string} is lifted
+the finger is on the event {string}
 the event {string} is not lifted
 a haptic tick was requested
 the event {string} shows resize handles in the day view for {date}
@@ -923,8 +926,10 @@ the event {string} shows no resize handles
   `week-allday-cell` of the date.
 - Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
-- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = press and hold 500 ms without
-  moving; "release without moving" = mouse up / touch end.
+- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
+  without moving; "release without moving" = mouse up / touch end.
+- "the finger is on the event X" (after "I pick up"): once the lifted card has settled (its box unchanged over 150 ms,
+  at most 3 s), the point where it was pressed lies inside X's chip box.
 - "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
 - "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
 - "X shows resize handles in the day/week view for D" (Given): opens that view, picks X up and releases it without

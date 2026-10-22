@@ -671,7 +671,11 @@ export interface SlotGridOptions {
 }
 export interface SlotKey { column: number; minutes: number }
 
-/** Hit-test for time grids. The card's top edge snaps to the slot; dx/dy move it there. */
+/**
+ * Hit-test for time grids. The card's top edge snaps to the slot; dx/dy move it there. Sideways it moves by whole
+ * columns only: a card drawn in the right part of its column (side by side, cascaded) keeps that place and stays under
+ * the finger instead of jumping to the column's left edge (owner, 2026-10-23).
+ */
 export function createSlotGrid(o: SlotGridOptions): (x: number, y: number, ctx: DragContext) => DropTarget<SlotKey> | null {
   const step = o.step ?? 15;
   const gutter = o.gutter ?? 0;
@@ -679,14 +683,14 @@ export function createSlotGrid(o: SlotGridOptions): (x: number, y: number, ctx: 
     const r = o.rect();
     if (!r) return null;
     const colW = (r.width - gutter) / o.columns;
-    const column = clamp(Math.floor((x - r.left - gutter) / colW), 0, o.columns - 1);
+    const columnAt = (px: number) => clamp(Math.floor((px - r.left - gutter) / colW), 0, o.columns - 1);
+    const column = columnAt(x);
     const maxMin = r.height / o.pxPerMinute - step;
     const topY = y - ctx.grab.y - r.top;
     const minutes = clamp(snap(topY / o.pxPerMinute, step), 0, Math.max(0, Math.round(maxMin / step) * step));
-    const colLeft = r.left + gutter + column * colW;
     return {
       key: { column, minutes: minutes + (o.startMinutes ?? 0) },
-      dx: colLeft - ctx.originRect.left,
+      dx: (column - columnAt(ctx.originRect.left)) * colW,
       dy: r.top + minutes * o.pxPerMinute - ctx.originRect.top,
     };
   };

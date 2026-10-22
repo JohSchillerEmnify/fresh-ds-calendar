@@ -153,7 +153,9 @@ When('I drag the event {string} back and forth {int} times', async function (thi
 
 When('I pick up the event {string}', async function (this: World, title: string) {
   const chip = this.eventChip(title);
+  await chip.scrollIntoViewIfNeeded();
   const from = await grabPoint(this, chip);
+  this.heldAt = from;
   if (useTouch(this)) {
     // Touch stays down: keep the CDP session until "I release the event without moving it".
     const cdp = await this.context.newCDPSession(this.page);
@@ -212,6 +214,25 @@ When('I release the event without moving it', async function (this: World) {
 
 Then('the event {string} is lifted', async function (this: World, title: string) {
   await expect(this.eventChips(title).first()).toHaveAttribute('data-dragging', 'true');
+});
+
+/** STEPS.md "the finger is on the event": the settled lifted card still covers the point where it was pressed. */
+Then('the finger is on the event {string}', async function (this: World, title: string) {
+  const at = this.heldAt;
+  if (!this.held || !at) throw new Error('nothing is picked up');
+  const chip = this.eventChips(title).first();
+  // the lifted card springs to its target: wait until its box stops changing before judging where it is
+  let last = '';
+  await expect.poll(async () => {
+    const b = await box(chip);
+    const now = [b.x, b.y, b.width, b.height].map(Math.round).join(',');
+    const settled = now === last;
+    last = now;
+    return settled;
+  }, { timeout: 3_000, intervals: [150] }).toBe(true);
+  const b = await box(chip);
+  expect(at.x >= b.x && at.x <= b.x + b.width && at.y >= b.y && at.y <= b.y + b.height,
+    `pressed at ${Math.round(at.x)},${Math.round(at.y)}, card at ${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}×${Math.round(b.height)}`).toBe(true);
 });
 
 Then('the event {string} is not lifted', async function (this: World, title: string) {
