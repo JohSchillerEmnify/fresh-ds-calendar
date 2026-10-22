@@ -94,6 +94,8 @@ export class World {
   // Results remembered between steps.
   /** A pointer/touch press kept down by "I pick up ..."; released by "I release ...". */
   held?: () => Promise<void>;
+  /** Where "I pick up ..." pressed (page coordinates). */
+  heldAt?: { x: number; y: number };
   /** The person of the last sign-in step ("they" in the sign-in scenarios). */
   person?: string;
   /** The week the last "without signing in" step opened. */

@@ -92,12 +92,13 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .rhs { display: contents; }
-/* 44 px touch target; the pill is centred on the block edge, the target reaches mostly outside the block */
-.rh { position: absolute; left: 50%; width: 44px; height: 44px; margin-left: -22px; z-index: 6; touch-action: none; cursor: ns-resize; user-select: none; }
+/* 44 px touch target, never wider than its own block (owner, 2026-10-23: a narrow side-by-side neighbour stays touchable);
+   the pill is centred on the block edge, the target reaches mostly outside the block */
+.rh { position: absolute; left: max(0px, calc(50% - 22px)); right: max(0px, calc(50% - 22px)); height: 44px; z-index: 6; touch-action: none; cursor: ns-resize; user-select: none; }
 .rh.top { top: -33px; }
 .rh.bottom { top: calc(100% - 11px); }
 .rh::after {
-  content: ''; position: absolute; left: 8px; right: 8px; height: 8px; box-sizing: border-box; border-radius: 4px;
+  content: ''; position: absolute; left: 50%; width: min(28px, calc(100% - 4px)); transform: translateX(-50%); height: 8px; box-sizing: border-box; border-radius: 4px;
   background: var(--md-sys-color-primary); border: 2px solid var(--md-sys-color-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
 }
 .rh.top::after { top: 29px; }

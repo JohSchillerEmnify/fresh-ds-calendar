@@ -387,6 +387,16 @@ describe('hit-test grids', () => {
     expect(hit(-50, -50, ctx)!.key).toEqual({ column: 0, minutes: 0 });
     expect(hit(9999, 99999, ctx)!.key.column).toBe(6);
   });
+  it('slot grid keeps the card at its place inside the column (a right-hand side-by-side card stays under the finger)', () => {
+    // 7 columns of 50 px after a 20 px gutter; column 1 spans 70..120
+    const hit = createSlotGrid({ rect: () => rect(0, 0, 370, 1440), columns: 7, pxPerMinute: 1, gutter: 20 });
+    const right = { originRect: rect(96, 100, 23, 60), grab: { x: 10, y: 10 } }; // right half of column 1
+    expect(hit(106, 110, right)!.dx).toBe(0);
+    expect(hit(206, 110, right)!.dx).toBe(100); // column 3: two whole columns further
+    const left = { originRect: rect(71, 100, 23, 60), grab: { x: 10, y: 10 } }; // left edge of column 1
+    expect(hit(81, 110, left)!.dx).toBe(0);
+    expect(hit(131, 110, left)!.dx).toBe(50);
+  });
   it('cell grid finds the cell under the pointer', () => {
     const a = document.createElement('div'); a.getBoundingClientRect = () => rect(0, 0, 50, 50);
     const b = document.createElement('div'); b.getBoundingClientRect = () => rect(50, 0, 50, 50);

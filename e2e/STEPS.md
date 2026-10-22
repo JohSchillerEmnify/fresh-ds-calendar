@@ -904,8 +904,10 @@ I drag the bar {string} by its day {date} to {date}
 I drag the task list {string} to {date} at {time}
 I drag the event {string} back and forth {int} times
 I pick up the event {string}
+I pick up the event {string} in the {view} view for {date}
 I release the event without moving it
 the event {string} is lifted
+the finger is on the event {string}
 the event {string} is not lifted
 a haptic tick was requested
 the event {string} shows resize handles in the day view for {date}
@@ -916,6 +918,7 @@ I drag the bottom handle of {string} up by {int} minutes
 I drag the top handle of {string} up by {int} minutes
 the event {string} shows resize handles
 the event {string} shows no resize handles
+I tap the event {string} right beside the bottom handle of {string}
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
@@ -923,13 +926,18 @@ the event {string} shows no resize handles
   `week-allday-cell` of the date.
 - Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
-- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = press and hold 500 ms without
-  moving; "release without moving" = mouse up / touch end.
+- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
+  without moving; "release without moving" = mouse up / touch end.
+- "I pick up the event X in the week/day view for D" opens that view (as "I open the ... view") and then picks X up.
+- "the finger is on the event X" (after "I pick up"): X is lifted and, once the card has settled (its box unchanged
+  over 150 ms, at most 3 s), the point where it was pressed lies inside X's chip box.
 - "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
 - "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
 - "X shows resize handles in the day/week view for D" (Given): opens that view, picks X up and releases it without
   moving, then checks the handles are shown. "shows resize handles" = both `resize-handle-top` and
   `resize-handle-bottom` of X are visible; "shows no resize handles" = neither is.
+- "I tap the event X right beside the bottom handle of Y": tap (touch on the phone, click on desktop) inside X's chip
+  box 3 px from its left edge, at the vertical centre of Y's `resize-handle-bottom`.
 - "I drag the top/bottom handle of X up/down by N minutes": press on the handle centre (mouse; touch without the
   long press) and move N minutes of grid height in 10 steps, release; then wait for the save as after a drop.
 
