@@ -69,3 +69,17 @@ The app is right (a swipe = a quick flick, as on touch); the test step drags qui
 ### Assumption
 The 600 ms limit also for the mouse drag is intended ("same thresholds" in the code comment, the spec says "swipe");
 slow mouse drags are not meant to change the month. Not changed.
+
+## 3. Zooming is broken on the month overview: STOPPED, owner decision needed
+
+Findings (no code changed):
+- The spec has no zoom for the month view. Zoom exists only for the time grid (`mobile.feature` "Pinching the week
+  zooms the time grid ...", `tasklists-expand.feature` @expand-zoom), the Canvas (Ctrl+wheel) and the Labs zoom month.
+- The month view has never had an app zoom: no pinch/wheel handler in `MonthView.vue` in any commit
+  (`git log -S pinch / -S wheel`); `bindGridZoom` (`useHourHeight.ts`) is bound only by `TimeGrid.vue`.
+- What the person gets today on the month view: on touch, `SwipeCarousel.vue` `.main { touch-action: pan-y }` blocks
+  the browser's own pinch-zoom (pan-y without `pinch-zoom`), so a pinch does nothing; on desktop, Ctrl+wheel is the
+  browser's whole-page zoom (nothing in the app handles it there); inside the Android app there is no page zoom at all.
+- So "broken" can mean: (a) an app zoom on the month like the zoom month Lab (a new feature that needs a spec), (b) let
+  the browser's page pinch-zoom work (`touch-action: pan-y pinch-zoom`; zooms the whole page incl. bars, not the
+  month), or (c) make the zoom month Lab the month view. Which one is the owner's call.
