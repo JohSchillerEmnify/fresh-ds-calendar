@@ -4,6 +4,7 @@ import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import { berlinIso } from './support/dates.js';
 import { itemsFrom } from './support/tables.js';
+import { expandTaskList } from './support/tasklist.js';
 import { attr, type World } from './support/world.js';
 
 /** The owner's address while sign-in is on (the door's person); the local calendar while it is off. */
@@ -134,9 +135,10 @@ When('I edit the task list {string} and turn "Show on door" on', async function 
 When('I open the list sheet of {string} and turn "Show on door" on', async function (this: World, title: string) {
   const l = await listByTitle(this, title);
   await this.page.goto(`/day/${l.date}`);
-  await this.taskCard(title).click();
+  await this.settled(); // data loaded: the desktop tray is there before the helper looks at it
+  // an open desktop tray that already shows the list reveals its row instead: the helper collapses the tray first
+  await expandTaskList(this, title);
   const sheet = this.expanded.filter({ hasNot: this.page.locator(attr('data-presentation', 'overlay')) });
-  await expect(sheet).toBeVisible();
   const saved = this.page.waitForResponse(isListPatch);
   await sheet.getByTestId('tasklist-door-switch').click();
   expect((await saved).status(), 'door tag saved').toBe(200);

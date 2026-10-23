@@ -21,16 +21,14 @@ export async function expandTaskList(world: World, title: string) {
   // would never pass: tap the card's position instead.
   const phoneMonth = monthView && world.isPhoneProject;
   await world.taskCard(title).click({ force: phoneMonth });
-  // a time block that already shows its whole title and every open item does not grow: the first tap opens the sheet
-  if (!phoneMonth) {
-    await sheet.or(grown).first().waitFor();
-    if (await sheet.isVisible()) return;
-  }
   if (phoneMonth) {
     await expect(grown.or(world.page.getByTestId('day-view')).first()).toBeVisible();
     if (!(await grown.isVisible())) await world.taskCard(title).click();
   }
-  await expect(grown).toBeVisible();
+  // growing in place is a Labs setting (off by default) and a time block that already shows its whole title and every
+  // open item does not grow: then the first tap opens the sheet
+  await sheet.or(grown).first().waitFor();
+  if (await sheet.isVisible()) return;
   // the very bottom edge of the grown card: a tap on its title row folds it back up instead, and a titles-only card has little but that row
   const card = grown.getByTestId('tasklist-card-grown');
   await card.click({ position: { x: 6, y: (await card.boundingBox())!.height - 1 } });
