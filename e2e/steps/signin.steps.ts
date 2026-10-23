@@ -58,6 +58,14 @@ When('they sign out in the settings', async function (this: World) {
   await this.page.getByTestId('settings-signout').click();
 });
 
+When('they sign in with Google again', async function (this: World) {
+  // no page is opened first: the page the person was sent away from stays the place to return to
+  await onSignIn(this);
+  await this.page.getByTestId('signin-google').click();
+  await this.page.waitForURL((u) => u.pathname !== '/signin');
+  await this.calendarShown();
+});
+
 /** Per scenario: the HTTP client of the second device ("is also signed in on another device"). */
 const otherDevice = new WeakMap<World, APIRequestContext>();
 

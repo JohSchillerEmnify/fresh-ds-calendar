@@ -6,7 +6,7 @@ Feature: Left-handed mode
   settings button and the navigation in the top bar, the settings switches, the version label and the cats. Only the
   controls move. The time axis, the grid order, swipe directions and text stay as they are, and the desktop layout
   does not change at all. The same applies to a tablet (a touch device up to about 1366 px, `(pointer: coarse)`), where the side tray moves
-  next to the navigation rail at the left. The scenarios without a viewport tag run on the phone only (`@mobile`).
+  next to the navigation rail at the left and the add button sits right of the tray, not over it. The scenarios without a viewport tag run on the phone only (`@mobile`).
 
   Background:
     Given the calendar is empty
@@ -70,10 +70,10 @@ Feature: Left-handed mode
     Then the support cat walks in from the "left"
 
   @tablet
-  Scenario: On an iPad in left-handed mode the add button sits on the left
+  Scenario: On an iPad in left-handed mode the add button sits right of the open tasks tray, not over it
     Given left-handed mode is on
     When I open the month view for 2026-10
-    Then the "create button" is on the "left" side of the screen
+    Then the create button sits right of the open tasks tray
     And the "settings button" is on the "left" side of the screen
     And the "Today button" is on the "right" side of the screen
 

@@ -34,6 +34,16 @@ Then('the {string} is on the {string} side of the screen', async function (this:
   await expectSide(this, this.page.getByTestId(id).first(), side, name);
 });
 
+Then('the create button sits right of the open tasks tray', async function (this: World) {
+  const fab = this.page.getByTestId('create-button');
+  const tray = this.page.getByTestId('task-tray');
+  await expect(tray).toBeVisible();
+  // Polled: the tray animates its width and the button follows `--tray-w`.
+  await expect
+    .poll(async () => { const [f, t] = [await box(fab), await box(tray)]; return Math.round(f.x - (t.x + t.width)); }, { message: 'gap between tray and create button' })
+    .toBeGreaterThanOrEqual(0);
+});
+
 Then('the switches in the settings are on the {string} side of the screen', async function (this: World, side: string) {
   const switches = this.page.getByTestId('settings-view').getByRole('switch');
   await expect(switches.first()).toBeVisible();

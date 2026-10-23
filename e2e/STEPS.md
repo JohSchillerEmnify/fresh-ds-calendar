@@ -1036,6 +1036,7 @@ Google no longer accepts the access of {string}
 their session expires
 someone opens the week view for {date} without signing in
 they sign out in the settings
+they sign in with Google again
 {string} is also signed in on another device
 they sign out everywhere in the settings
 the other device is signed out too
@@ -1074,6 +1075,9 @@ the app is asked to sign in again
   context's `GET /api/auth/me` answers 401.
 - "their session expires": the browser loses the session cookie (all cookies of the page's context are cleared), so the
   next request is refused as unauthenticated; a page that is already open keeps its old state (the stale shell).
+- "they sign in with Google again": on the sign-in page that is already shown, presses `signin-google` as the person of
+  the last sign-in step (no page is opened first, so the page the person was sent away from stays the place to return
+  to) and waits for the calendar.
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
 - "answered without calendar access": the fake consent screen returns a token whose `scope` lacks the calendar scope
   (the person left Google's "Google Calendar" checkbox unticked). "told ... is missing": the banner
@@ -1742,6 +1746,7 @@ I do not see a bedtime reminder
 ```
 left-handed mode is on
 the {string} is on the {string} side of the screen
+the create button sits right of the open tasks tray
 the switches in the settings are on the {string} side of the screen
 the support cat walks in from the {string}
 ```
@@ -1755,6 +1760,8 @@ the support cat walks in from the {string}
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
   `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
   `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
+- "the create button sits right of the open tasks tray": the left edge of `create-button` is at or right of the right
+  edge of `task-tray` (polled: the tray animates its width).
 - "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
 - "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
   side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
@@ -1887,7 +1894,6 @@ I open the Archive
 I search the Archive for {string}
 I untick the item {string} of the task list {string} in the Archive
 I choose {string} for the task list {string} in the Archive
-I choose {string} for the task list {string} in the Tasks view
 the Archive lists {string}
 the Archive does not list {string}
 the Open tab lists {string}
