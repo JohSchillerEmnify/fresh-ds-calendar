@@ -2,8 +2,8 @@
 Feature: The Tasks view lists every open task list
   A top-level "Tasks" view (after Day in the navigation) shows all open task lists, with and without a date.
   A task list without a date belongs to no day: it appears only here, never in the calendar views or the open
-  tasks tray. Giving it a date (Today, Tomorrow or the task list dialog) puts it in the calendar on that day;
-  "No date" takes it out again. Lists are grouped (Time, Category, None; default Time) and sorted (Date, Name,
+  tasks tray. Giving it a date in the task list dialog puts it in the calendar on that day; "No date" takes it out
+  again. Lists are grouped (Time, Category, None; default Time) and sorted (Date, Name,
   Category, Last changed, Progress; default Date); both choices are remembered per person.
   Time groups: Overdue, Today, This week (until Sunday), Later, No date.
 
@@ -79,11 +79,3 @@ Feature: The Tasks view lists every open task list
     When I open the Tasks view
     Then the Tasks view groups are "Overdue, Today, Later"
     And the Tasks view lists "Rent" under "Overdue"
-
-  @backlog
-  Scenario: Tomorrow puts an undated list in the calendar on the next day
-    Given the calendar contains an undated task list "Taxes" with items:
-      | item | done |
-      | Form | no   |
-    When I choose "Tomorrow" for the task list "Taxes" in the Tasks view
-    Then the calendar shows the task list "Taxes" on 2026-10-13

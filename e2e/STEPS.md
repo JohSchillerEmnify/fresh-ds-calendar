@@ -1821,7 +1821,6 @@ I open the Archive
 I search the Archive for {string}
 I untick the item {string} of the task list {string} in the Archive
 I choose {string} for the task list {string} in the Archive
-I choose {string} for the task list {string} in the Tasks view
 the Archive lists {string}
 the Archive does not list {string}
 the Open tab lists {string}
