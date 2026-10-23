@@ -427,10 +427,11 @@ interface UpdateTaskListInput {
 ```
 Item ops return the whole updated `TaskList`. On a repeating list every occurrence is ticked on its own (owner,
 2026-10-23: "split on first tick"): an item op on an occurrence id patches that Google instance (an exception from then
-on, also when unticked again), and an item op addressed to the series id (the master, which only a create answer or
-`GET /api/tasklists/:id` hands out) goes to its first occurrence the same way; the answer is then that occurrence, with
-its own `id`. The master's items never change by an item op (404 when the first occurrence was deleted). `PATCH` /
-`DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). `index` inserts at a position (default: append). `itemIds` must be a
+on, also when unticked again), and an item op addressed to the series id (the master, which only `GET /api/tasklists/:id`
+with that id hands out) goes to its first occurrence the same way; the answer is then that occurrence, with
+its own `id`. The master's items never change by an item op (404 when the first occurrence was deleted). Creating a
+repeating list answers with its first occurrence (the id range reads list), so a client never holds the series id from
+a create. `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.

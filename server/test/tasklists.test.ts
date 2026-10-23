@@ -367,6 +367,15 @@ describe('recurring task lists: an item change splits off the occurrence', () =>
     expect(await weeks()).toEqual([['2026-10-14', 'Sink:1,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
   });
 
+  it('with the first week deleted, an item change through the series answers 404 and changes nothing', async () => {
+    const a = await weekly();
+    const first = (await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items[0];
+    expect((await t.req('DELETE', `/api/tasklists/${first.id}`)).status).toBe(204);
+    const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
+    expect(tick.status).toBe(404);
+    expect(await weeks()).toEqual([['2026-10-21', 'Sink:0,Floor:0']]);
+  });
+
   it('an item change on a one-off list is not affected', async () => {
     const a = await mk();
     const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });

@@ -87,11 +87,6 @@ Then('I see the task list {string} on {date}', async function (this: World, titl
   await expect(this.taskCard(title, date)).toBeVisible();
 });
 
-Then('I see the task list {string} once on {date}', async function (this: World, title: string, date: string) {
-  await this.settled();
-  await expect(this.taskCards(title, date).locator('visible=true')).toHaveCount(1);
-});
-
 Then('I do not see the task list {string}', async function (this: World, title: string) {
   await this.settled();
   await expect(this.taskCards(title).locator('visible=true')).toHaveCount(0);

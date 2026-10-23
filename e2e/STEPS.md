@@ -263,7 +263,6 @@ the task list dialog is closed
 the task list dialog shows the error {string}
 the task list form shows:
 I see the task list {string} on {date}
-I see the task list {string} once on {date}
 I do not see the task list {string}
 the task list {string} shows the done count {string}
 the task list {string} shows the item {string} below its title
