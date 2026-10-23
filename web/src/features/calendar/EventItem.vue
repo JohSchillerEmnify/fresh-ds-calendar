@@ -17,6 +17,7 @@ import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
 import ResizeHandles from './ResizeHandles.vue';
+import { showsHandles } from './resize';
 import { blockBudget } from './lineBudget';
 import { formatDuration } from './timeline';
 import { t } from '@/i18n';
@@ -32,7 +33,7 @@ const ev = computed(() => props.segment.item as CalendarEvent);
 const marker = computed(() => specialMarker(ev.value));
 if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special || !!ev.value.readOnly);
 /** Resize handles show after a release without moving (time grid blocks only). */
-const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'event' && ui.resizing.id === ev.value.id && ui.resizing.date === props.segment.date);
+const resizing = computed(() => showsHandles(ui.resizing, props.segment, props.variant));
 
 const endText = computed(() => (props.segment.endTime === '24:00' ? '00:00' : props.segment.endTime));
 const isToday = computed(() => props.segment.date === clock.today);

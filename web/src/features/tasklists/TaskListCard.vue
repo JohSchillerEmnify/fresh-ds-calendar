@@ -24,6 +24,7 @@ import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
+import { showsHandles } from '@/features/calendar/resize';
 import { ProgressRing } from '@/motion';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
@@ -83,7 +84,7 @@ const tl = computed(() => {
   return i;
 });
 /** Resize handles show after a release without moving (time grid blocks only). */
-const resizing = computed(() => !props.grown && props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
+const resizing = computed(() => !props.grown && showsHandles(ui.resizing, props.segment, props.variant));
 const cats = useTaskCategories();
 const icon = computed(() => (!cats.on.value ? null : (tl.value.categoryInfo === undefined ? settings.categoryById(tl.value.categoryId)?.icon : tl.value.categoryInfo?.icon)) ?? null);
 const color = computed(() => cats.color(tl.value));
