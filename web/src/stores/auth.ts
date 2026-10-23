@@ -62,7 +62,8 @@ export const useAuthStore = defineStore('auth', () => {
       else if (window.location.pathname !== '/signin') {
         // this full-page jump can unload the page before the router guard has stashed the deep link, so stash it here
         const { pathname, search, hash } = window.location;
-        try { if (pathname !== '/') sessionStorage.setItem(RETURN_KEY, pathname + search + hash); } catch { /* private mode: no deep link */ }
+        const full = pathname + search + hash;
+        try { if (full !== '/') sessionStorage.setItem(RETURN_KEY, full); } catch { /* private mode: no deep link */ }
         window.location.assign('/signin');
       }
     });

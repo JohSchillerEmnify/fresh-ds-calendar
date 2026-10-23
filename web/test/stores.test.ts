@@ -237,6 +237,16 @@ describe('auth store 401 listener', () => {
     expect(assign).toHaveBeenCalledWith('/signin');
     expect(sessionStorage.getItem(RETURN_KEY)).toBeNull();
   });
+
+  // like the router guard: only the bare "/" is skipped, its query is a deep link too
+  it('remembers the start page with a query', async () => {
+    mockFetch({ 'GET /api/auth/me': () => apiError(401, 'UNAUTHENTICATED') });
+    at('/?categories=work');
+    const off = useAuthStore().listen();
+    await useAuthStore().check();
+    off();
+    expect(sessionStorage.getItem(RETURN_KEY)).toBe('/?categories=work');
+  });
 });
 
 describe('auth store sign-out', () => {
