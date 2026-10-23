@@ -3,7 +3,8 @@ import { box, touchDrag } from './ui.js';
 import { attr, tid, type World } from './world.js';
 
 /**
- * Open a task list's sheet: tap its card (it grows over the calendar), then tap the grown card (feature tasklists-expand-card).
+ * Open a task list's sheet: tap its card; when it grows over the calendar instead (Labs, feature tasklists-expand-card),
+ * tap the grown card.
  * On phones a tap inside a month cell opens the day view instead (feature navigation); in that case the card is
  * tapped again in the day view.
  */
