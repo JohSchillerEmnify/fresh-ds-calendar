@@ -826,6 +826,7 @@ I go to the next month in the month picker
 I go to the previous month in the month picker
 I swipe left in the month picker
 I swipe right in the month picker
+I slowly drag left with the mouse in the month picker
 I pick {date} in the month picker
 {date} is selected in the month picker
 {date} is marked as having items in the month picker
@@ -843,6 +844,8 @@ the bottom bar ends at the bottom of the viewport
   `data-has-items="true"`.
 - "I drag up and down inside the month picker": touch drag of 150 px up, then 150 px down, over the picker's grid
   (CDP touch events; falls back to a mouse wheel on non-touch projects).
+- "I slowly drag left with the mouse in the month picker": a mouse drag of 200 px to the left across the picker that
+  takes 900 ms from press to release (half the way, a pause, the rest).
 - "the page is not scrolled": `document.scrollingElement.scrollTop === 0` and `scrollHeight <= innerHeight`.
 - "the bottom bar ends at the bottom of the viewport": `bottom-bar` bottom edge equals `innerHeight` (±1 px).
 
