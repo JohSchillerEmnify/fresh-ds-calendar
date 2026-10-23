@@ -80,7 +80,8 @@ async function createFixture(world: World, path: string, body: Record<string, un
   await world.api.setMotivation({ plant: { growth: before.growth, lastWatered: before.lastWatered, todayPoints: before.todayPoints } });
 }
 
-async function createEvent(world: World, body: Record<string, unknown>) {
+/** Creates an event through the public API as a fixture (see `createFixture`). */
+export async function createEvent(world: World, body: Record<string, unknown>) {
   await createFixture(world, '/api/events', body);
 }
 

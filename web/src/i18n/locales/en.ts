@@ -34,6 +34,7 @@ export default {
     day: 'Day',
     tasks: 'Tasks',
     clock: 'Clock',
+    clockRings: 'Clock: rings',
     timeline: 'Timeline',
     strip: 'Strip',
     zoom: 'Zoom month',

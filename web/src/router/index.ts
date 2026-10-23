@@ -45,10 +45,13 @@ function viewRoute(view: ViewKind): RouteRecordRaw {
 }
 
 /** Experimental Labs views (always routable; the view switcher offers them only with Labs on). */
-const labDated = (name: 'clock' | 'strip' | 'zoom' | 'horizontal', component: () => Promise<unknown>, noSwipe = false): RouteRecordRaw => ({
+const labDated = (
+  name: 'clock' | 'clock-rings' | 'strip' | 'zoom' | 'horizontal', component: () => Promise<unknown>, noSwipe = false, props?: Record<string, unknown>,
+): RouteRecordRaw => ({
   path: `/${name}/:param`,
   name,
   component: component as () => Promise<Component>,
+  props,
   meta: { lab: name, noSwipe },
   beforeEnter: (to) => (parseParam('day', to.params.param as string) ? true : { path: `/${name}/${toIsoDate(useClockStore().todayDate)}`, replace: true }),
 });
@@ -66,6 +69,7 @@ export const routes: RouteRecordRaw[] = [
   },
   ...CAL_VIEWS.map(viewRoute),
   labDated('clock', () => import('@/features/labs/clock/ClockView.vue')),
+  labDated('clock-rings', () => import('@/features/labs/clock/ClockView.vue'), false, { variant: 'rings' }),
   { path: '/timeline', name: 'timeline', component: () => import('@/features/labs/timeline/TimelineView.vue'), meta: { lab: 'timeline' } },
   { path: '/runway', name: 'runway', component: () => import('@/features/labs/runway/RunwayView.vue'), meta: { lab: 'runway', noSwipe: true } },
   labDated('strip', () => import('@/features/labs/strip/StripView.vue')),

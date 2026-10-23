@@ -31,6 +31,7 @@ export default {
     day: 'Tag, Digga',
     tasks: 'Aufgaben, yo',
     clock: 'Uhr, krass',
+    clockRings: 'Uhr: Ringe, krass',
     timeline: 'Zeitstrahl, yo',
     strip: 'Streifen, yo',
     zoom: 'Zoom-Monat, yo',
