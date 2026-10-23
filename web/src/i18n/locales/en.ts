@@ -40,6 +40,7 @@ export default {
     zoom: 'Zoom month',
     horizontal: 'Horizontal',
     runway: 'Runway',
+    now: 'Now',
   },
   horizontal: {
     timeIn: 'Zoom in time',

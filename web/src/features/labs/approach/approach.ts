@@ -25,7 +25,7 @@ export function approachEntries(daySegments: Segment[], nowMin: number, windowMi
  * The segment as it sits on the track, or none when it has no time today. A carried-over task list renders untimed on
  * today but keeps its time, so on the track it sits at that time, as long as a timed task list lasts.
  */
-function timedToday(s: Segment): Segment[] {
+export function timedToday(s: Segment): Segment[] {
   if (s.allDay) return [];
   if (s.startTime !== null) return [s];
   if (!s.carriedFrom || s.item.kind !== 'tasklist' || !s.item.time) return [];

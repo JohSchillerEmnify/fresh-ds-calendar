@@ -34,6 +34,7 @@ export default {
     zoom: 'Zoom-Monat',
     horizontal: 'Horizontal',
     runway: 'Bis ins Bett',
+    now: 'Jetzt',
   },
   horizontal: {
     timeIn: 'Zeit vergrößern',

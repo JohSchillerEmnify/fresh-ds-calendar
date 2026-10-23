@@ -6,6 +6,7 @@ import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
+import { datelessLab } from '@/features/labs/labs';
 import { useNav } from '@/composables/useNav';
 import { topBarWidgets } from '@/extensions/registry';
 import { useCalendarStore } from '@/stores/calendar';
@@ -28,6 +29,8 @@ const router = useRouter();
 const route = useRoute();
 const filters = useFilters();
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
+/** A date-less Labs view (Now, Timeline): the title is the view's name and there is no moving through periods. */
+const dateless = computed(() => datelessLab(route.meta.lab as string | undefined));
 
 function toggleFilters() {
   if (filters.active.value) return; // always shown while a filter is active
@@ -40,10 +43,11 @@ function toggleFilters() {
     <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
       <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">{{ t('views.tasks') }}</span></h1>
+      <h1 v-else-if="dateless" class="title" data-testid="view-title"><span class="t">{{ t(dateless.labelKey) }}</span></h1>
       <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>
-      <div v-if="!route.meta.tasks" class="nav">
+      <div v-if="!route.meta.tasks && !dateless" class="nav">
         <IconButton :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
         <Button variant="tonal" class="today" data-testid="nav-today" @click="nav.today()">{{ t('calendar.topBar.today') }}</Button>
         <IconButton :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
@@ -65,7 +69,7 @@ function toggleFilters() {
         <IconButton :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
-    <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks" />
+    <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks && !dateless" />
   </TopAppBar>
 </template>
 

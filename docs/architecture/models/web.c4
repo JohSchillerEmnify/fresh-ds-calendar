@@ -186,6 +186,10 @@ model {
       #experimental
       description 'One bar from now to tonight\'s bedtime that fills the screen and shrinks as the evening goes on, with tonight\'s timed entries to scale and the free time'
     }
+    labsNowNext = component 'Labs Now and Next' {
+      #experimental
+      description 'Today as big cards: what runs now with the time left, what comes next and how soon, the rest folded'
+    }
     approachTrack = component 'Approaching track' {
       description 'The time axis in the Now card on which today\'s timed entries come closer'
     }
@@ -203,6 +207,8 @@ model {
     labsRunway -> items 'shows tonight\'s timed entries; opens one on a tap'
     labsRunway -> prefs 'reads the minimum event length'
     clock -> labsRunway 'shrinks the runway every minute'
+    labsNowNext -> items 'shows today\'s entries and opens a tapped one'
+    clock -> labsNowNext 'counts the time left down once a minute'
   }
 
   // Themes

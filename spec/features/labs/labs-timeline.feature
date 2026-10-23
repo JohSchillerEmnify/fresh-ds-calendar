@@ -1,7 +1,8 @@
 @labs @timeline-view @id:labs-timeline
 Feature: Labs: the timeline view
   The timeline view puts every event and task list on one continuous line across days, spaced by time, with a marker
-  for now. It can be zoomed in and out.
+  for now. It can be zoomed in and out. It spans many days, so the top bar names the view instead of a date and does
+  not move through periods.
 
   Background:
     Given the calendar is empty
@@ -31,6 +32,11 @@ Feature: Labs: the timeline view
     When I open the timeline view
     Then the timeline runs from top to bottom
     And the title of "Dentist" on the timeline reads left to right in one line
+
+  Scenario: The top bar names the timeline instead of a date
+    When I open the timeline view
+    Then the top bar names the view "Timeline"
+    And the top bar has no date navigation
 
   Scenario: Overlapping entries sit side by side on the timeline
     Given the calendar contains an event "Review" on 2026-10-14 from 09:30 to 10:30

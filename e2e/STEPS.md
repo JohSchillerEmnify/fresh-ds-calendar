@@ -1272,6 +1272,19 @@ in the strip {string} is about {int} times as tall as {string}
 {string} is in the strip's all-day band
 the hour lines of the strip columns of {date} and {date} are at the same height
 the all-day bands of the strip columns of {date} and {date} are equally tall
+I open the Now view
+the Now card shows {string} with {string}
+the time bar of the Now card is {int} % full
+I tap the Now card
+the Next card shows {string} in {string} at {time}
+the Now card shows the task list {string} with its next task {string}
+the Now card says {string}
+the Later card says {string}
+I unfold the Later card
+the Later card lists {string}
+the Now card says that {string} is also running
+the top bar has no date navigation
+the top bar names the view {string}
 I open the zoom month for {date}
 the zoom month shows {string}
 the zoom month shows the whole month
@@ -1394,11 +1407,24 @@ I note the height of {string} on the runway
   panned" that it moved by more than 40 px.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
+- Date-less Labs views (Now, Timeline): the top bar title is the heading `view-title` with the view's name (no
+  `period-title`); "has no date navigation" = no `period-title`, `nav-prev`, `nav-next`, `nav-today` in `top-bar`. "says that X is also running": `nownext-also` lists the other
+  running events, its `data-titles` = the titles joined with ", ".
+- Now view (`@now-next`): "I open the Now view" goes to `/now` and waits for `nownext-view` with `data-loaded="true"`.
+  Cards: `nownext-now` (`data-kind` `running|tasks|free`, `data-title`), its `nownext-now-left` text and
+  `nownext-bar` (progressbar, `aria-valuenow` = % of the event still left, "N % full" allows ±1);
+  `nownext-task` (first unticked item); `nownext-next` (`data-title`) with `nownext-next-in` ("in …" text, compared
+  as "in <duration>") and `nownext-next-time`; `nownext-later` with `nownext-later-toggle` (`aria-expanded`) holding
+  `nownext-later-more` ("N more") and, unfolded, `nownext-later-item` rows (`data-time`, `data-title`), listed as
+  "HH:MM Title". "the Now card says" compares its main line `nownext-now-line` exactly, "the Later card says"
+  `nownext-later-more`. "the task list X with its next task Y": `data-kind="tasks"`, `data-title` X, `nownext-task`
+  `data-task` Y.
 
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
   `zoom`, `horizontal`, `runway`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `clock-rings`,
   `timeline`, `strip`, `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
+  `zoom`, `horizontal`, `now`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   "the approach bar shows its entries in N rows": the `approach-item` chips occupy exactly N distinct vertical
   positions. "on the timeline A and B are side by side": the two `timeline-item`s overlap vertically and not
   horizontally.

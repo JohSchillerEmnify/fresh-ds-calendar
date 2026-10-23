@@ -33,6 +33,7 @@ export default {
     zoom: 'Zoom-Monad',
     horizontal: 'Waagrechd',
     runway: 'Bis ins Bedd',
+    now: 'Etz',
   },
   horizontal: {
     timeIn: 'Zeid nei zoomma',
