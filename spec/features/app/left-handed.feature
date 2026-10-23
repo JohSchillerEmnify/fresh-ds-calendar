@@ -77,9 +77,16 @@ Feature: Left-handed mode
     And the "settings button" is on the "left" side of the screen
     And the "Today button" is on the "right" side of the screen
 
+  @tablet
+  Scenario: On an iPad in left-handed mode the open tasks tray sits next to the navigation rail at the left
+    Given left-handed mode is on
+    When I open the month view for 2026-10
+    Then the "open tasks tray" is on the "left" side of the screen
+
   @desktop
   Scenario: The desktop layout does not change
     Given left-handed mode is on
     When I open the month view for 2026-10
     Then the "create button" is on the "right" side of the screen
     And the "settings button" is on the "right" side of the screen
+    And the "open tasks tray" is on the "right" side of the screen

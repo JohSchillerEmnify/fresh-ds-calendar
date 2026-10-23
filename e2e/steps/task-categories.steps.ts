@@ -1,6 +1,6 @@
 /** Task categories switch steps (STEPS.md "Task categories switch"): the per-person setting that hides every category UI. */
 import { expect } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { inSheet } from './support/tasks-sheets.js';
 import { attr, type World } from './support/world.js';
 import { pathname } from './support/ui.js';
@@ -65,4 +65,48 @@ When('I open the new task list dialog in the Tasks view', async function (this: 
   if (pathname(this.page) !== '/tasks') await this.page.goto('/tasks');
   await this.page.getByTestId('create-button').click();
   await expect(this.page.getByTestId('tasklist-dialog')).toBeVisible();
+});
+
+Given('task categories are off', async function (this: World) {
+  await this.api.patch('/api/prefs', { taskCategories: false });
+});
+
+/** Labs view name -> path (from the date) and root testid. */
+const LABS_VIEWS: Record<string, { path: (d: string) => string; root: string }> = {
+  clock: { path: (d) => `/clock/${d}`, root: 'clock-view' },
+  timeline: { path: () => '/timeline', root: 'timeline-view' },
+  strip: { path: (d) => `/strip/${d}`, root: 'strip-view' },
+  'zoom month': { path: (d) => `/zoom/${d}`, root: 'zoom-view' },
+  horizontal: { path: (d) => `/horizontal/${d}`, root: 'htime-view' },
+};
+/** Root testid of the Labs view the page shows (by the first path segment). */
+const labsRootOf = (w: World) => Object.values(LABS_VIEWS).find((v) => v.path('x').split('/')[1] === pathname(w.page).split('/')[1])!.root;
+
+When('I open the Labs view {string} for {date}', async function (this: World, name: string, date: string) {
+  const v = LABS_VIEWS[name];
+  expect(v, `known Labs view "${name}"`).toBeDefined();
+  await this.page.goto(v.path(date));
+  await expect(this.page.getByTestId(v.root)).toBeVisible();
+});
+
+Then('the Labs view draws {string} in the colour of its calendar, never of its category', async function (this: World, title: string) {
+  const { items } = await this.api.get<{ items: { kind: string; title: string; color: string; calendarColor: string }[] }>('/api/tasklists/all-open');
+  const list = items.find((i) => i.kind === 'tasklist' && i.title === title);
+  expect(list, `task list "${title}"`).toBeDefined();
+  expect(list!.color.toLowerCase(), 'the category colour differs from the calendar colour').not.toBe(list!.calendarColor.toLowerCase());
+  // every colour an element of the view is drawn with, as sRGB hex
+  const drawn = () => this.page.getByTestId(labsRootOf(this)).evaluate((root) => {
+    const ctx = document.createElement('canvas').getContext('2d')!;
+    const hex = (v: string) => { ctx.fillStyle = '#000'; ctx.fillStyle = v; return ctx.fillStyle; };
+    const out = new Set<string>();
+    for (const el of [root, ...root.querySelectorAll('*')]) {
+      const cs = getComputedStyle(el);
+      for (const v of [cs.color, cs.backgroundColor, cs.borderTopColor, cs.borderLeftColor, cs.outlineColor, cs.fill, cs.stroke, cs.getPropertyValue('--c').trim()]) {
+        if (v && v !== 'none' && CSS.supports('color', v)) out.add(hex(v).toLowerCase());
+      }
+    }
+    return [...out];
+  });
+  await expect.poll(async () => (await drawn()).includes(list!.calendarColor.toLowerCase()), { message: 'drawn in the calendar colour' }).toBe(true);
+  expect(await drawn(), 'never in the category colour').not.toContain(list!.color.toLowerCase());
 });

@@ -13,6 +13,7 @@ import { addDays, addMonths, isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useFilters } from '@/composables/useFilters';
 import { isPhone } from '@/composables/useViewport';
+import { useTaskCategories } from '@/features/tasklists/categories';
 import { allotHeights } from '@/features/tasklists/layout';
 import { monthGrid, parseIsoDate, periodTitle, routePath, toIsoDate, weekdayLabels } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
@@ -32,6 +33,7 @@ const items = useItemsStore();
 const cals = useCalendarsStore();
 const clock = useClockStore();
 const filters = useFilters();
+const cats = useTaskCategories();
 
 const anchorDate = computed(() => parseIsoDate(route.params.param as string) ?? clock.todayDate);
 const weeks = computed(() => monthGrid(anchorDate.value));
@@ -171,7 +173,7 @@ const back = () => router.push({ path: routePath('month', anchorDate.value), que
           <button class="num" type="button" data-testid="zoom-cell-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="openDay(day)">{{ day.getDate() }}</button>
           <div class="body">
             <div v-if="detail.dots > 0.01" class="dots" :style="{ opacity: detail.dots }" data-testid="zoom-dots">
-              <span v-for="s in dotsOf(toIsoDate(day))" :key="s.item.id + s.date" class="dot" :class="{ list: s.item.kind === 'tasklist' }" :style="{ background: s.item.color }" />
+              <span v-for="s in dotsOf(toIsoDate(day))" :key="s.item.id + s.date" class="dot" :class="{ list: s.item.kind === 'tasklist' }" :style="{ background: cats.itemColor(s.item) }" />
             </div>
             <template v-if="isNear(i)">
               <div

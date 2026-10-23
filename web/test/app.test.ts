@@ -58,6 +58,20 @@ describe('routing', () => {
     const { router } = await mountAt('/week/2026-10-15?categories=work');
     expect(router.currentRoute.value.fullPath).toBe('/week/2026-10-12?categories=work');
   });
+  it('the start page returns to the page remembered before signing in, once', async () => {
+    sessionStorage.setItem('signin-return', '/week/2026-10-12');
+    const { router } = await mountAt('/');
+    expect(router.currentRoute.value.path).toBe('/week/2026-10-12');
+    expect(sessionStorage.getItem('signin-return')).toBeNull();
+  });
+  it('the start page ignores a remembered return that is not a path of this app', async () => {
+    for (const bad of ['//evil.example/x', 'https://evil.example/', 'week/2026-10-12']) {
+      sessionStorage.setItem('signin-return', bad);
+      const { router } = await mountAt('/');
+      expect(router.currentRoute.value.path, bad).toBe('/month/2026-10');
+      wrapper?.unmount();
+    }
+  });
   it('/year/YYYY and /settings are lazy routes that render', async () => {
     const { w } = await mountAt('/year/2026');
     await wait(() => expect(w.find(tid('year-view')).exists()).toBe(true));

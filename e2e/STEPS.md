@@ -696,6 +696,9 @@ I open the new task list dialog in the Tasks view
 the task list dialog has no category field
 the task lists {string} and {string} have the same color
 I retitle the task list {string} to {string} in the Tasks view
+task categories are off
+I open the Labs view {string} for {date}
+the Labs view draws {string} in the colour of its calendar, never of its category
 ```
 
 - "I turn the task categories on/off": clicks `settings-task-categories` (Settings screen is open) when its `aria-checked`
@@ -707,6 +710,14 @@ I retitle the task list {string} to {string} in the Tasks view
 - "the task list dialog has no category field": `tasklist-category` is absent from the open `tasklist-dialog`.
 - "the task lists A and B have the same color": equal `data-color` on their `tasklist-card`s.
 - "I retitle ...": opens the list's dialog from its title in the Tasks view, replaces the title and saves.
+- "task categories are off": `PATCH /api/prefs { "taskCategories": false }` through the API before the page is opened.
+- "I open the Labs view V for D": opens the Labs view by its path (`clock` = `/clock/D`, `timeline` = `/timeline`,
+  `strip` = `/strip/D`, `zoom month` = `/zoom/D`, `horizontal` = `/horizontal/D`; Labs views are always routable) and
+  waits for its root (`clock-view`, `timeline-view`, `strip-view`, `zoom-view`, `htime-view`).
+- "the Labs view draws L in the colour of its calendar, never of its category": takes L's `color` (category) and
+  `calendarColor` from `GET /api/tasklists/all-open`; inside the view root, the colours each element is drawn with (computed
+  `color`, `background-color`, the border and outline colours, SVG `fill` and `stroke`, and the `--c` item colour) include
+  the calendar colour and never the category colour (compared as sRGB; polled).
 
 ## Event colors (`@colors`)
 
@@ -815,6 +826,7 @@ I go to the next month in the month picker
 I go to the previous month in the month picker
 I swipe left in the month picker
 I swipe right in the month picker
+I slowly drag left with the mouse in the month picker
 I pick {date} in the month picker
 {date} is selected in the month picker
 {date} is marked as having items in the month picker
@@ -832,6 +844,8 @@ the bottom bar ends at the bottom of the viewport
   `data-has-items="true"`.
 - "I drag up and down inside the month picker": touch drag of 150 px up, then 150 px down, over the picker's grid
   (CDP touch events; falls back to a mouse wheel on non-touch projects).
+- "I slowly drag left with the mouse in the month picker": a mouse drag of 200 px to the left across the picker that
+  takes 900 ms from press to release (half the way, a pause, the rest).
 - "the page is not scrolled": `document.scrollingElement.scrollTop === 0` and `scrollHeight <= innerHeight`.
 - "the bottom bar ends at the bottom of the viewport": `bottom-bar` bottom edge equals `innerHeight` (±1 px).
 
@@ -904,8 +918,10 @@ I drag the bar {string} by its day {date} to {date}
 I drag the task list {string} to {date} at {time}
 I drag the event {string} back and forth {int} times
 I pick up the event {string}
+I pick up the event {string} in the {view} view for {date}
 I release the event without moving it
 the event {string} is lifted
+the finger is on the event {string}
 the event {string} is not lifted
 a haptic tick was requested
 the event {string} shows resize handles in the day view for {date}
@@ -916,6 +932,7 @@ I drag the bottom handle of {string} up by {int} minutes
 I drag the top handle of {string} up by {int} minutes
 the event {string} shows resize handles
 the event {string} shows no resize handles
+I tap the event {string} right beside the bottom handle of {string}
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
@@ -923,13 +940,21 @@ the event {string} shows no resize handles
   `week-allday-cell` of the date.
 - Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
-- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = press and hold 500 ms without
-  moving; "release without moving" = mouse up / touch end.
+- "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
+  without moving; "release without moving" = mouse up / touch end.
+- "I pick up the event X in the week/day view for D" opens that view (as "I open the ... view") and then picks X up; any other
+  view is an error (it needs a time grid).
+- "the finger is on the event X" (after "I pick up"): X is lifted, narrower than 90 % of its day column (side by side),
+  and, once the card has settled (its box unchanged over 150 ms, at most 3 s), the point where it was pressed lies
+  inside X's chip box.
 - "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
 - "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
 - "X shows resize handles in the day/week view for D" (Given): opens that view, picks X up and releases it without
   moving, then checks the handles are shown. "shows resize handles" = both `resize-handle-top` and
   `resize-handle-bottom` of X are visible; "shows no resize handles" = neither is.
+- "I tap the event X right beside the bottom handle of Y": tap (touch on the phone, click on desktop) inside X's chip
+  box 3 px from its left edge, at the vertical centre of Y's `resize-handle-bottom`; the point must lie inside X and
+  within 22 px of Y's horizontal centre (a centred 44 px handle on Y would have covered it).
 - "I drag the top/bottom handle of X up/down by N minutes": press on the handle centre (mouse; touch without the
   long press) and move N minutes of grid height in 10 steps, release; then wait for the save as after a drop.
 
@@ -1654,7 +1679,7 @@ the support cat walks in from the {string}
   / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
   `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
-  `time-grid`).
+  `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
 - "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
 - "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
   side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
@@ -1702,13 +1727,23 @@ my own theme {string} has {string} set to {string}
   the Labs steps do. The block with the import (always there) is `theme-own` (with the paste field
   `theme-import-text`); the AI prompt button inside it is `theme-ai`.
 - "Create with AI" = `theme-ai` button; the prompt is `theme-ai-prompt` (contains the schema id); "copy" clicks
-  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text.
-- "import the theme file" uploads through `theme-import-file`; "paste" fills `theme-import-text` and submits.
-  Preview = `theme-import-preview` (`data-name`); errors = `theme-import-error` items (exact text of one of them);
-  "cannot save" = `theme-import-save` disabled; "unsafe content was removed" = `theme-import-sanitized` visible;
-  "no script runs" = `window.__pwned` is undefined after 1 s and no `<script>` inside the scene.
-- "imported the theme file" = `POST /api/themes` with the fixture as that person. "delete" = the theme card's
-  `theme-delete` (with undo snackbar like other deletes; the step waits until it is gone).
+  `theme-ai-copy` and checks the clipboard (granted permission) equals the prompt text. "copy the repair prompt"
+  clicks `theme-repair-copy` and checks the clipboard equals `theme-repair-prompt`.
+- "import the theme file" uploads through `theme-import-file`; "paste the theme text" fills `theme-import-text` and
+  submits (`theme-import-submit`); "paste the AI answer" does the same with the text of the fixture file; "upload the
+  picture file" uploads through `theme-picture-file` (and checks again). Preview = `theme-import-preview`
+  (`data-name`); errors = `theme-import-error` items (exact text of one of them); "cannot save" = `theme-import-save`
+  disabled; "unsafe content was removed" = `theme-import-sanitized` visible; "no script runs" = `window.__pwned` is
+  undefined after 1 s and no `<script>` inside the preview or the top bar scene.
+- "the top bar draws the decor" = `top-bar-scene` contains `drawn-scene` with that `data-decor`; "shows the picture of
+  the theme" = it contains `scene-image` and no `drawn-scene`. Both go back to the calendar first.
+- "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
+  theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
+  snackbar like other deletes; the step waits until it is gone).
+- "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
+  `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
+  "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
+
 ## Tasks view (`@tasks-view`)
 
 ```
@@ -1766,23 +1801,6 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
   (a `tasklist-view`, the tray's own item component).
 - "the calendar shows L on D" opens the day view for D and expects the `tasklist-card` L there. "neither … nor …"
   opens the day view for D and expects no `tasklist-card` L, opens the open tasks tray and expects it not to list L.
-
-  `theme-ai-copy` and checks the clipboard equals the prompt text. "copy the repair prompt" clicks `theme-repair-copy`
-  and checks the clipboard equals `theme-repair-prompt`.
-- "import the theme file" uploads through `theme-import-file`; "paste the theme text" fills `theme-import-text` and
-  submits (`theme-import-submit`); "paste the AI answer" does the same with the text of the fixture file; "upload the
-  picture file" uploads through `theme-picture-file` (and checks again). Preview = `theme-import-preview`
-  (`data-name`); errors = `theme-import-error` items (exact text of one of them); "cannot save" = `theme-import-save`
-  disabled; "unsafe content was removed" = `theme-import-sanitized` visible; "no script runs" = `window.__pwned` is
-  undefined after 1 s and no `<script>` inside the preview or the top bar scene.
-- "the top bar draws the decor" = `top-bar-scene` contains `drawn-scene` with that `data-decor`; "shows the picture of
-  the theme" = it contains `scene-image` and no `drawn-scene`. Both go back to the calendar first.
-- "imported the theme file" = `POST /api/themes` with `{ theme: <fixture> }` as that person. "uses the imported
-  theme" = `PATCH /api/prefs/theme` with that theme's id. "delete" = the theme card's `theme-delete` (with undo
-  snackbar like other deletes; the step waits until it is gone).
-- "save my look as my own theme named" clicks `theme-save-own`, fills `theme-save-name` in `theme-save-dialog`, clicks
-  `theme-save-confirm` and waits until the theme is saved and chosen (`POST /api/themes`, then the saved choice).
-  "my own theme has … set to …" reads `GET /api/themes` as that person and compares one field of the document.
 
 ## Tasks archive (`@tasks-archive`)
 
@@ -2007,6 +2025,7 @@ there is no button to back up now
 - "the saved support cat setting is S": `GET /api/prefs` has the `supportCat` value of S (`Off`, `Sometimes`, `Every time`).
 - "I am asked to allow backups to Google Drive": `settings-backup-allow` is visible and `settings-backup-status` has
   `data-state="off"`. "there is no button to back up now": no `settings-backup-now` and no `settings-backup-restore`.
+
 ## Sharing task lists (`@sharing`)
 
 ```
@@ -2063,6 +2082,7 @@ I can share only with {string}
 - "the item I of the task list T in the Tasks view is ticked": `data-done="true"` of the item's `tasklist-item-checkbox`.
 - "I edit the task list T in the Tasks view": opens the Tasks view and the task list dialog of T (tap on
   `tasklist-expanded-title`).
+
 ## View switcher position (`@nav-position`)
 
 ```

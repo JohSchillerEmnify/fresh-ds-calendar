@@ -40,6 +40,14 @@ Feature: Month picker in the top app bar
     When I go to the previous month in the month picker
     Then the month picker shows "September 2026"
 
+  # a mouse drag has no time limit (a slow, deliberate drag still turns the month); the touch swipe stays a quick flick
+  @desktop
+  Scenario: A slow mouse drag changes the month inside the picker
+    When I open the month view for 2026-10
+    And I open the month picker
+    And I slowly drag left with the mouse in the month picker
+    Then the month picker shows "November 2026"
+
   Scenario Outline: Picking a day jumps the current view to it
     When I open the <view> view for <period>
     And I open the month picker

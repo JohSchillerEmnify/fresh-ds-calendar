@@ -174,4 +174,10 @@ function toggleFold(id: string) {
   html[data-hand='left'][data-touch] .head { padding: 0 12px 0 0; }
   html[data-hand='left'][data-touch] .mv { order: -1; }
 }
+/* Left-handed mode (touch tablet): the side panel moves next to the navigation rail at the left; its edge and fold chevron mirror. */
+@media (min-width: 768px) {
+  html[data-hand='left'][data-touch] .tray { order: -1; border-left: 0; border-right: 1px solid var(--md-sys-color-outline-variant); }
+  html[data-hand='left'][data-touch] .open .chev { transform: rotate(-90deg); }
+  html[data-hand='left'][data-touch] .tray.collapsed .chev { transform: rotate(90deg); }
+}
 </style>

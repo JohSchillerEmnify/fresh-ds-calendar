@@ -64,6 +64,7 @@ async function push(): Promise<void> {
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
     language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes,
+    categoriesOn: usePrefsStore().taskCategories,
   });
   const content = JSON.stringify({ ...snapshot, generatedAt: '' });
   if (content === lastPushed) return;

@@ -79,11 +79,12 @@ export const routes: RouteRecordRaw[] = [
   { path: '/:pathMatch(.*)*', redirect: (to) => ({ path: routePath('month', useClockStore().todayDate), query: to.query }) },
 ];
 
+/** Takes (and forgets) the remembered return; only a path of this app counts (no `//host` or `scheme:` URL). */
 function takeReturn(): string | null {
   try {
     const v = sessionStorage.getItem(RETURN_KEY);
     sessionStorage.removeItem(RETURN_KEY);
-    return v;
+    return v && /^\/(?!\/)/.test(v) ? v : null;
   } catch {
     return null;
   }
