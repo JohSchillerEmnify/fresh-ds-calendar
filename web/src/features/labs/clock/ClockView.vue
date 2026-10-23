@@ -144,14 +144,14 @@ const handles = computed(() => {
   if (!a) return [];
   return (['top', 'bottom'] as const).map((edge) => ({ key: `${a.key}-${edge}`, edge, arc: a, ...pointAt(edge === 'top' ? a.from : a.to, a.r) }));
 });
-/**
- * What names keep clear of in the middle: the hub, the room the dragged arc's times take while dragging (always kept,
- * so a drag never moves a name), and today the time and the line under it.
- */
+const middleRect = (halfW: number, y0: number, y1: number) => ({ x0: CENTER - halfW - 4, y0, x1: CENTER + halfW + 4, y1 });
+/** Where the dragged arc's times stand in the middle while it moves ("HH:MM–HH:MM", 22 units, ~0.6 em per character). */
+const DRAG_BOX = middleRect((11 * 0.6 * 22) / 2, CENTER + 18, CENTER + 46);
+/** What names keep clear of in the middle: the hub, and today the time and the line under it. */
 const middleBox = computed(() => {
   const { font, maxChars } = sizing.value;
-  const box = (halfW: number, y0: number, y1: number) => ({ x0: CENTER - halfW - 4, y0, x1: CENTER + halfW + 4, y1 });
-  const keep = [box(10, CENTER - 10, CENTER + 10), box((11 * 0.6 * 22) / 2, CENTER + 18, CENTER + 46)];
+  const box = middleRect;
+  const keep = [box(10, CENTER - 10, CENTER + 10)];
   if (!isToday.value) return keep;
   const line = nowLine.value ? clip(nowLine.value.text, maxChars + 6) : '';
   return [...keep, box((5 * 0.6 * 22) / 2, CENTER + 14, CENTER + 40), box((line.length * 0.56 * font) / 2, CENTER + 56 - font * 0.7, CENTER + 56 + font * 0.7)];
@@ -183,12 +183,17 @@ const named = computed(() => {
   ).map((p) => [p.key, p]));
   return all.map((a) => ({ a, shown: placed.get(a.key)!.shown, near: placed.get(a.key)!, along: undefined }));
 });
-/** Names on the plate (classic variant); the dragged arc's own name is hidden while it moves. */
-const labels = computed(() => named.value.flatMap(({ a, shown, near }) => (shown && near && preview.value?.key !== a.key
+/**
+ * Names on the plate (classic variant). While an arc moves its own name hides, and so does any name under the dragged
+ * times in the middle; the others stay where they are.
+ */
+const underDrag = (b: { x0: number; y0: number; x1: number; y1: number }) => b.x0 < DRAG_BOX.x1 && DRAG_BOX.x0 < b.x1 && b.y0 < DRAG_BOX.y1 && DRAG_BOX.y0 < b.y1;
+const labels = computed(() => named.value.flatMap(({ a, shown, near }) => (shown && near && preview.value?.key !== a.key && !(preview.value && underDrag(near.box))
   ? [{ key: a.key, title: a.title, text: near.text, color: a.color, anchor: near.anchor, x: near.x, y: near.y, fx: near.fx, fy: near.fy }]
   : [])));
-/** Names along the rings (rings variant); the dragged arc's own name is hidden while it moves. */
+/** Names along the rings (rings variant); while an arc moves, its own name and any under the dragged times hide. */
 const alongLabels = computed(() => named.value.flatMap(({ a, shown, along }) => (shown && along && preview.value?.key !== a.key
+  && !(preview.value && alongHits(a.from, along.textTo, a.r, along.font, [DRAG_BOX]))
   ? [{ key: a.key, title: a.title, text: along.text, d: along.d, font: along.font, offset: along.offset, anchor: along.anchor }]
   : [])));
 /** Entries whose name found no room on the dial (or that have no ring): listed next to it with their time, in time order. */

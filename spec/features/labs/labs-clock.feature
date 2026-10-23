@@ -122,9 +122,9 @@ Feature: Labs: experimental views and the 24-hour clock
       | Sync     | 09:00 | 10:00 |
       | Retro    | 09:00 | 10:00 |
       | Planning | 09:00 | 10:00 |
-      | Coffee   | 09:00 | 10:00 |
+      | Coffee   | 09:15 | 10:00 |
     When I open the clock view for 2026-10-14
-    Then the clock lists "09:00 Coffee" next to the dial
+    Then the clock lists "09:15 Coffee" next to the dial
     When I tap "Coffee" in the list next to the clock
     Then the event dialog is open
 

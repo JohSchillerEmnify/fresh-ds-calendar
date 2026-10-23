@@ -210,39 +210,51 @@ export function placeLabelsNear(names: NameInput[], arcs: ArcBand[], opts: { fon
     return { key: n.key, shown: false, text: n.text, x: p.x, y: p.y, anchor: 'middle', box: { x0: p.x, y0: p.y, x1: p.x, y1: p.y }, fx: p.x, fy: p.y };
   });
 
+  /** Minutes to try for an arc: its middle, then outwards over its span (at most 6 steps each way), then up to an hour beyond. */
+  function minutesFor(n: NameInput): number[] {
+    const span = n.to - n.from, mid = n.from + span / 2;
+    const offs = [0], step = Math.max(10, span / 12);
+    for (let k = step; k < span / 2; k += step) offs.push(k, -k);
+    for (let k = span / 2 + 5; k < span / 2 + 90; k += 10) offs.push(k, -k);
+    return offs.map((o) => (mid + o + 1440) % 1440);
+  }
+
+  /** Whether a box is free: on the plate, off earlier names and the middle, off every arc band. */
+  function isFree(box: Rect): boolean {
+    // cheap tests first: the plate (a box is farthest out at a corner), other names, then only the rings it reaches
+    const [near, far] = radialRange(box);
+    if (far > plate || taken.some((t) => overlaps(t, box))) return false;
+    const reach = arcs.filter((a) => a.r + a.w / 2 + pad >= near && a.r - a.w / 2 - pad <= far && angleReach(box, near, a, 2));
+    if (!reach.length) return true;
+    const pts = outline(box);
+    return !reach.some((a) => pts.some(([x, y]) => onBand(x, y, a, pad)));
+  }
+
+  /**
+   * The box of a name `w` wide placed at minute `m`, `row` rows in from the innermost arc there: text points inwards
+   * from the rim, so the box hangs below the point at the top, above it at the bottom, and inwards on the sides.
+   */
+  function candidate(m: number, row: number, w: number) {
+    const sin = Math.sin((angleOf(m) * Math.PI) / 180), cos = Math.cos((angleOf(m) * Math.PI) / 180);
+    const anchor: PlacedName['anchor'] = Math.abs(sin) < 0.35 ? 'middle' : sin > 0 ? 'end' : 'start';
+    const p = pointAt(m, innerEdgeAt(m, arcs, plate) - pad - row * h * 0.9);
+    const yc = anchor === 'middle' ? p.y + (cos > 0 ? h / 2 : -h / 2) : p.y;
+    const x0 = anchor === 'end' ? p.x - w : anchor === 'start' ? p.x : p.x - w / 2;
+    // a little room on both sides, so two names on one line never read as one
+    return { x: p.x, y: yc, anchor, box: { x0: x0 - font * 0.3, y0: yc - h / 2, x1: x0 + w + font * 0.3, y1: yc + h / 2 } };
+  }
+
   /** The first free place for `n`'s name written as `text`, or null. */
   function placeOne(n: NameInput, text: string): PlacedName | null {
     const w = text.length * font * 0.56;
-    const span = n.to - n.from, mid = n.from + span / 2;
-    // minutes to try: the arc's middle, then outwards over its span (at most 6 steps each way), then up to an hour beyond
-    const tries = [0], step = Math.max(10, span / 12);
-    for (let k = step; k < span / 2; k += step) tries.push(k, -k);
-    for (let k = span / 2; k < span / 2 + 60; k += 15) tries.push(k, -k);
-    for (const off of tries) {
-      const m = (mid + off + 1440) % 1440;
-      const sin = Math.sin((angleOf(m) * Math.PI) / 180), cos = Math.cos((angleOf(m) * Math.PI) / 180);
-      const anchor: PlacedName['anchor'] = Math.abs(sin) < 0.35 ? 'middle' : sin > 0 ? 'end' : 'start';
-      const edge = innerEdgeAt(m, arcs, plate) - pad;
+    for (const m of minutesFor(n)) {
       for (let row = 0; row < rows; row++) {
-        const p = pointAt(m, edge - row * h * 0.9);
-        // the box hangs inwards from the point: below it at the top, above it at the bottom
-        const yc = anchor === 'middle' ? p.y + (cos > 0 ? h / 2 : -h / 2) : p.y;
-        const x0 = anchor === 'end' ? p.x - w : anchor === 'start' ? p.x : p.x - w / 2;
-        // a little room on both sides, so two names on one line never read as one
-        const box = { x0: x0 - font * 0.3, y0: yc - h / 2, x1: x0 + w + font * 0.3, y1: yc + h / 2 };
-        // cheap tests first: the plate (a box is farthest out at a corner), other names, then only the rings it reaches
-        const [near, far] = radialRange(box);
-        if (far > plate) continue;
-        if (taken.some((t) => overlaps(t, box))) continue;
-        const reach = arcs.filter((a) => a.r + a.w / 2 + pad >= near && a.r - a.w / 2 - pad <= far && angleReach(box, near, a, 2));
-        if (reach.length) {
-          const pts = outline(box);
-          if (reach.some((a) => pts.some(([x, y]) => onBand(x, y, a, pad)))) continue;
-        }
-        taken.push(box);
+        const c = candidate(m, row, w);
+        if (!isFree(c.box)) continue;
+        taken.push(c.box);
         // the leader starts on the arc itself, at the nearest minute of its span
         const f = pointAt(nearestInSpan(m, n.from, n.to), n.r - n.w / 2);
-        return { key: n.key, shown: true, text, x: p.x, y: yc, anchor, box, fx: f.x, fy: f.y };
+        return { key: n.key, shown: true, text, ...c, fx: f.x, fy: f.y };
       }
     }
     return null;
