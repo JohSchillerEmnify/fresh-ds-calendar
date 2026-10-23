@@ -1036,6 +1036,7 @@ Google no longer accepts the access of {string}
 their session expires
 someone opens the week view for {date} without signing in
 they sign out in the settings
+they sign in with Google again
 {string} is also signed in on another device
 they sign out everywhere in the settings
 the other device is signed out too
@@ -1074,6 +1075,9 @@ the app is asked to sign in again
   context's `GET /api/auth/me` answers 401.
 - "their session expires": the browser loses the session cookie (all cookies of the page's context are cleared), so the
   next request is refused as unauthenticated; a page that is already open keeps its old state (the stale shell).
+- "they sign in with Google again": on the sign-in page that is already shown, presses `signin-google` as the person of
+  the last sign-in step (no page is opened first, so the page the person was sent away from stays the place to return
+  to) and waits for the calendar.
 - "Google no longer accepts the access": the test double answers that person's token refresh with `invalid_grant`.
 - "answered without calendar access": the fake consent screen returns a token whose `scope` lacks the calendar scope
   (the person left Google's "Google Calendar" checkbox unticked). "told ... is missing": the banner
