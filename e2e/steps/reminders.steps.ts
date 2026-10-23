@@ -132,6 +132,12 @@ Then('the app keeps the reminders {string} for the event {string}', async functi
   await expect.poll(async () => (await this.api.get<{ reminders: { minutes: number[] } }>(`/api/events/${encodeURIComponent(id)}`)).reminders.minutes.join(', ')).toBe(minutesOf(list).join(', '));
 });
 
+Given('the app keeps the default reminders {string} for the calendar {string}', async function (this: World, list: string, name: string) {
+  // Google refuses the read-only calendar's defaults, so the app keeps them itself (call throws unless 2xx)
+  await this.api.put('/api/__test/remote/reader-reminders', { allow: false });
+  await this.api.call('PATCH', `/api/calendars/${encodeURIComponent(await calendarId(this, name))}`, { defaultReminders: minutesOf(list) });
+});
+
 // --- Settings → Reminders ----------------------------------------------------------------------------------------
 
 async function openReminderSettings(this: World) {

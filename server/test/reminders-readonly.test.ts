@@ -66,7 +66,7 @@ describe('reminders of a read-only event', () => {
     expect((await t.json('GET', `/api/events/${id}`)).body.reminders.minutes).toEqual([30, 15]);
     const items = (await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-19')).body.items;
     expect(items.find((i: any) => i.id === id).reminders).toEqual({ useDefault: false, minutes: [30, 15] });
-    expect(readFile()).toEqual({ localSince: { 'anna@example.org': expect.any(Number) }, paths: { 'anna@example.org': 'local' }, events: { 'anna@example.org': { [id]: { useDefault: false, minutes: [30, 15] } } } });
+    expect(readFile()).toEqual({ localSince: { 'anna@example.org': expect.any(Number) }, paths: { 'anna@example.org': 'local' }, events: { 'anna@example.org': { [id]: { useDefault: false, minutes: [30, 15] } } }, defaults: {} });
   });
 
   it('can go back to the calendar default and to none', async () => {
@@ -164,5 +164,142 @@ describe('reminders of a read-only event', () => {
     await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [10] } });
     const files = t.app.ctx.backup.collect(LOCAL_PERSON);
     expect(JSON.stringify(files)).toContain('reminder-overrides.json');
+  });
+});
+
+describe('default reminders of a read-only calendar', () => {
+  /** Anna's reader calendar with the Google defaults popup 30 and email 60, plus the event "Standup" on the default. */
+  async function anna() {
+    await yoga();
+    await t.req('PUT', '/api/__test/remote/calendars/anna%40example.org/default-reminders', { defaultReminders: [...popup(30), { method: 'email', minutes: 60 }] });
+    const ev = (await t.json('POST', '/api/__test/remote/events', { summary: 'Standup', calendarId: 'anna@example.org', ...when })).body;
+    return ev.id as string;
+  }
+  const googleDefaults = async () => (await t.json('GET', '/api/__test/remote/calendars')).body.calendars.find((k: any) => k.id === 'anna@example.org').defaultReminders;
+  const apiDefaults = async () => (await t.json('GET', '/api/calendars')).body.calendars.find((k: any) => k.id === 'anna@example.org').defaultReminders;
+  const setDefaults = (minutes: unknown) => t.json('PATCH', '/api/calendars/anna%40example.org', { defaultReminders: minutes });
+
+  it('mock: refuses calendarList defaults on a reader calendar by default and accepts them after allow', async () => {
+    await anna();
+    const p = t.app.ctx.provider;
+    await expect(p.setCalendarDefaultReminders('anna@example.org', popup(15))).rejects.toBeInstanceOf(ProviderForbiddenError);
+    await allow(true);
+    await p.setCalendarDefaultReminders('anna@example.org', popup(15));
+    expect(await googleDefaults()).toEqual(popup(15));
+  });
+
+  it('go to Google when Google accepts, email defaults kept, nothing kept by the app', async () => {
+    await anna();
+    await allow(true);
+    const r = await setDefaults([30, 15]);
+    expect(r.status).toBe(200);
+    expect(r.body.defaultReminders).toEqual([30, 15]);
+    expect(await googleDefaults()).toEqual([{ method: 'email', minutes: 60 }, ...popup(30, 15)]);
+    expect(fs.existsSync(overridesFile()) ? readFile().defaults ?? {} : {}).toEqual({});
+  });
+
+  it('are kept by the app when Google refuses, Google unchanged, shown on every read', async () => {
+    const id = await anna();
+    const r = await setDefaults([30, 15]);
+    expect(r.status).toBe(200);
+    expect(r.body.defaultReminders).toEqual([30, 15]);
+    expect(await googleDefaults()).toEqual([...popup(30), { method: 'email', minutes: 60 }]);
+    expect(await apiDefaults()).toEqual([30, 15]);
+    expect(readFile().defaults).toEqual({ 'anna@example.org': { minutes: [30, 15], since: expect.any(Number) } });
+    // an event on the calendar default uses the kept list
+    const items = (await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-19')).body.items;
+    expect(items.find((i: any) => i.id === id).reminders).toEqual({ useDefault: true, minutes: [30, 15] });
+    expect((await t.json('GET', `/api/events/${id}`)).body.reminders).toEqual({ useDefault: true, minutes: [30, 15] });
+  });
+
+  it('do not override an event\'s own reminders (Google\'s or kept by the app)', async () => {
+    await anna();
+    const id = (await t.json('GET', '/api/__test/remote/events?q=Yoga')).body.items[0].id as string;
+    await setDefaults([15]);
+    const items = (await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-19')).body.items;
+    expect(items.find((i: any) => i.id === id).reminders).toEqual({ useDefault: false, minutes: [30] });
+    await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [5] } });
+    expect((await t.json('GET', `/api/events/${id}`)).body.reminders).toEqual({ useDefault: false, minutes: [5] });
+  });
+
+  it('an event the app keeps on the default follows the kept defaults', async () => {
+    const id = await anna();
+    await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: true, minutes: [] } });
+    await setDefaults([20]);
+    expect((await t.json('GET', `/api/events/${id}`)).body.reminders).toEqual({ useDefault: true, minutes: [20] });
+  });
+
+  it('within a day of a refusal Google is not asked again; after a day it is, and a success drops the kept list', async () => {
+    await anna();
+    const spy = vi.spyOn(t.app.ctx.provider, 'setCalendarDefaultReminders');
+    await setDefaults([10]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    await allow(true);
+    await setDefaults([20]);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(await apiDefaults()).toEqual([20]);
+    const aged = readFile();
+    aged.defaults['anna@example.org'].since = Date.now() - LOCAL_PATH_TTL_MS - 1000;
+    fs.writeFileSync(overridesFile(), JSON.stringify(aged));
+    await setDefaults([25]);
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
+    expect(await googleDefaults()).toEqual([{ method: 'email', minutes: 60 }, ...popup(25)]);
+    expect(readFile().defaults).toEqual({});
+    expect(await apiDefaults()).toEqual([25]);
+  });
+
+  it('keep a refusal fresh when Google refuses again after a day', async () => {
+    await anna();
+    await setDefaults([10]);
+    const aged = readFile();
+    const old = Date.now() - LOCAL_PATH_TTL_MS - 1000;
+    aged.defaults['anna@example.org'].since = old;
+    fs.writeFileSync(overridesFile(), JSON.stringify(aged));
+    await setDefaults([20]);
+    expect(readFile().defaults['anna@example.org'].minutes).toEqual([20]);
+    expect(readFile().defaults['anna@example.org'].since).toBeGreaterThan(old);
+  });
+
+  it('do not mix with the events\' path: a refused event change does not stop asking Google for the defaults', async () => {
+    const id = await anna();
+    await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [10] } });
+    await allow(true);
+    await setDefaults([15]);
+    expect(await googleDefaults()).toEqual([{ method: 'email', minutes: 60 }, ...popup(15)]);
+  });
+
+  it('pass an outage on and store nothing; limits stay', async () => {
+    await anna();
+    await t.req('POST', '/api/__test/outage', { down: true });
+    const r = await setDefaults([10]);
+    await t.req('POST', '/api/__test/outage', { down: false });
+    expect(r.status).toBe(503);
+    expect(fs.existsSync(overridesFile())).toBe(false);
+    // email 60 + 5 popups = 6 > 5 in Google's list
+    expect((await setDefaults([1, 2, 3, 4, 5])).status).toBe(400);
+    expect((await setDefaults([1, 1])).status).toBe(400);
+  });
+
+  it('a calendar that became writable drops the stale app copy on its next change', async () => {
+    // a copy kept while "primary" was read-only; it is writable now
+    t.app.ctx.prefs.reminderOverrides.setLocalDefaults(LOCAL_PERSON, 'primary', [10], Date.now());
+    const r = await t.json('PATCH', '/api/calendars/primary', { defaultReminders: [20] });
+    expect(r.body.defaultReminders).toEqual([20]);
+    expect(readFile().defaults).toEqual({});
+  });
+
+  it('a freeBusyReader calendar is kept by the app as well', async () => {
+    await t.json('POST', '/api/__test/remote/calendars', { summary: 'Busy', id: 'busy@example.org', accessRole: 'freeBusyReader', ownerEmail: 'busy@example.org' });
+    expect((await t.json('PATCH', '/api/calendars/busy%40example.org', { defaultReminders: [10] })).body.defaultReminders).toEqual([10]);
+    expect(readFile().defaults['busy@example.org'].minutes).toEqual([10]);
+  });
+
+  it('a writable calendar is never kept by the app', async () => {
+    const spy = vi.spyOn(t.app.ctx.prefs.reminderOverrides, 'setLocalDefaults');
+    const r = await t.json('PATCH', '/api/calendars/primary', { defaultReminders: [15] });
+    expect(r.status).toBe(200);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

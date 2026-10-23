@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-23
+- Calendars you can only read: their default reminders can now be set in Settings → Reminders too. Google keeps them for you where it allows; otherwise the app keeps them, and they ring like any other.
 - Reminders no longer say "starts in 30 min", which was wrong by the time you looked: they name the appointment with its times, like Google Calendar ("12:00 – 13:30", with the day first when it is not today's).
 - Each kind of notification has its own icon: a calendar page for appointments, a checklist for task lists, a sunrise for the morning overview and the moon only for bedtime.
 - Android app: a reminder counts down live to the start, then shows just the times until the appointment ends and disappears; the bedtime reminder says "Bedtime at 23:00", counts down to it and goes away at wake-up. Please install the new app from the download link to get this.

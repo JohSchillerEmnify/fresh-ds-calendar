@@ -81,9 +81,18 @@ export class CalendarService {
   private async providerCalendars(): Promise<ProviderCalendar[]> {
     const now = this.clock.real();
     if (this.calCache && now - this.calCache.at < CAL_TTL_MS) return this.calCache.cals;
-    const cals = await this.provider.listCalendars();
+    const cals = this.withKeptDefaults(await this.provider.listCalendars());
     this.calCache = { at: now, cals };
     return cals;
+  }
+
+  /** A read-only calendar whose defaults Google refused gets the popup list the app keeps (other methods stay Google's). */
+  private withKeptDefaults(cals: ProviderCalendar[]): ProviderCalendar[] {
+    return cals.map((c) => {
+      const kept = hasWriteRole(c) ? undefined : this.prefs.reminderOverrides.defaultsOf(this.sub, c.id);
+      if (!kept) return c;
+      return { ...c, defaultReminders: [...(c.defaultReminders ?? []).filter((r) => r.method !== 'popup'), ...kept.map((m) => ({ method: 'popup', minutes: m }))] };
+    });
   }
 
   /** Calendars that hold events: not switched off in Google's list and not the tasks calendar. */
@@ -103,17 +112,41 @@ export class CalendarService {
 
   /**
    * Replaces the popup default list of a calendar (`calendarList.patch`); email defaults stay. `tasksCalendar` addresses the
-   * person's tasks calendar, which is not in {@link calendars}. Returns the list as stored.
+   * person's tasks calendar, which is not in {@link calendars}. A read-only calendar goes through
+   * {@link setReadOnlyDefaults}. Returns the list as stored.
    */
   async setDefaultReminders(id: string, minutes: number[], tasksCalendar = false): Promise<number[]> {
     const calId = tasksCalendar ? await this.tasks.id() : id;
     const cal = (await this.providerCalendars()).find((c) => c.id === calId && (tasksCalendar || !c.hidden && c.id !== this.tasks.knownId()));
     if (!cal) throw notFound('Calendar not found');
-    if (!hasWriteRole(cal)) throw forbidden('This calendar is read-only', 'reminders.readOnly');
     const next = this.remindersToGoogle(minutes, cal.defaultReminders);
-    await this.provider.setCalendarDefaultReminders(calId, next);
+    if (!hasWriteRole(cal)) await this.setReadOnlyDefaults(calId, next, minutes);
+    else {
+      await this.provider.setCalendarDefaultReminders(calId, next);
+      // a calendar that became writable: Google holds its defaults again, a stale app copy must not return later
+      this.prefs.reminderOverrides.setGoogleDefaults(this.sub, calId);
+    }
     this.calCache = null;
     return minutes;
+  }
+
+  /**
+   * The defaults of a calendar the person can only read (feature reminders): Google first (the list entry's defaults are per
+   * person); a permission 403 makes the app keep the popup list itself, and Google is not asked again for a day.
+   */
+  private async setReadOnlyDefaults(calId: string, next: GoogleReminder[], minutes: number[]): Promise<void> {
+    const store = this.prefs.reminderOverrides;
+    const now = this.clock.real();
+    if (!store.defaultsRefusedAt(this.sub, calId, now)) {
+      try {
+        await this.provider.setCalendarDefaultReminders(calId, next);
+        store.setGoogleDefaults(this.sub, calId);
+        return;
+      } catch (e) {
+        if (!(e instanceof ProviderForbiddenError)) throw e;
+      }
+    }
+    store.setLocalDefaults(this.sub, calId, minutes, now);
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */

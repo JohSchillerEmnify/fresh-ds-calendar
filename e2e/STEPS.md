@@ -2252,6 +2252,7 @@ Google accepts reminder changes in calendars I can only read
 Google refuses reminder changes in calendars I can only read
 the event {string} in Google is still {string} on {date} from {time} to {time}
 the app keeps the reminders {string} for the event {string}
+the app keeps the default reminders {string} for the calendar {string}
 I open the reminder settings
 I open the reminders settings
 the reminder settings show {string} for the calendar {string}
@@ -2279,7 +2280,9 @@ the server plans the push {string} saying {string} for {date} {time}
   provider's reader-reminder policy (`PUT /api/__test/remote/reader-reminders {allow}`; reset restores "refuses"). "the
   event T in Google is still S on D from A to B": the stored Google event has that title and those start/end instants.
   "the app keeps the reminders L for the event T": `GET /api/events/:id` shows exactly those popup minutes. The reminder
-  steps above work in the read-only dialog too (no save: each change is sent at once).
+  steps above work in the read-only dialog too (no save: each change is sent at once). The same policy covers a read-only
+  calendar's default reminders (`calendarList.patch`). "the app keeps the default reminders L for the calendar C": with
+  Google refusing, `PATCH /api/calendars/:id {defaultReminders}` answers 200, so the app keeps L as C's popup defaults.
 - "I open the reminder settings": `/settings` → `settings-reminders` → `reminders-settings` visible. "show X for the calendar
   C": the `reminders-calendar` named C lists X; "add the default reminder R for C": its add button, pick R (saves at once).
   "switch on reminders for task lists": `reminders-tasklists` on.

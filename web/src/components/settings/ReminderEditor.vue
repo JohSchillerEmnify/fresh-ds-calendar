@@ -21,7 +21,6 @@ const props = defineProps<{
   allowDefault?: boolean;
   /** The popup leads of the calendar default, for the "Calendar default (30 min, 10 min)" line. */
   defaultMinutes?: number[];
-  readonly?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [v: Reminders] }>();
 
@@ -64,19 +63,19 @@ const none = () => { picking.value = false; emit('update:modelValue', { useDefau
     <ul v-else-if="list.length" class="chips">
       <li v-for="m in list" :key="m" class="chip" :data-testid="`${prefix}-reminder`" :data-minutes="m">
         <span class="txt">{{ formatLead(m) }}</span>
-        <button v-if="!readonly" type="button" class="x" :aria-label="t('calendar.reminders.remove', { label: formatLead(m) })" :data-testid="`${prefix}-reminder-remove`" @click="remove(m)"><IconClose /></button>
+        <button type="button" class="x" :aria-label="t('calendar.reminders.remove', { label: formatLead(m) })" :data-testid="`${prefix}-reminder-remove`" @click="remove(m)"><IconClose /></button>
       </li>
     </ul>
     <p v-else class="state muted" :data-testid="`${prefix}-reminders-none`">{{ t('calendar.reminders.none') }}</p>
 
-    <div v-if="!readonly" class="acts">
+    <div class="acts">
       <Button variant="tonal" :disabled="full" :data-testid="`${prefix}-reminder-add`" @click="picking = !picking"><template #icon><IconAdd /></template>{{ t('calendar.reminders.add') }}</Button>
       <Button v-if="allowDefault && !modelValue.useDefault" variant="text" :data-testid="`${prefix}-reminders-default`" @click="useDefault">{{ t('calendar.reminders.useDefault') }}</Button>
       <Button v-if="allowDefault && (modelValue.useDefault || list.length)" variant="text" :data-testid="`${prefix}-reminders-none`" @click="none">{{ t('calendar.reminders.noReminders') }}</Button>
     </div>
-    <p v-if="full && !readonly" class="muted note" :data-testid="`${prefix}-reminders-max`">{{ t('calendar.reminders.max') }}</p>
+    <p v-if="full" class="muted note" :data-testid="`${prefix}-reminders-max`">{{ t('calendar.reminders.max') }}</p>
 
-    <div v-if="picking && !readonly && !full" class="picker" role="group" :aria-label="t('calendar.reminders.pick')">
+    <div v-if="picking && !full" class="picker" role="group" :aria-label="t('calendar.reminders.pick')">
       <div class="opts">
         <button v-for="m in options" :key="m" type="button" class="opt" :data-testid="`${prefix}-reminder-option`" :data-minutes="m" @click="add(m)">{{ formatLead(m) }}</button>
       </div>

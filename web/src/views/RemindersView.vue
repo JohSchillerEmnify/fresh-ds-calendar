@@ -2,7 +2,7 @@
 /**
  * Reminders settings (`/settings/reminders`, feature reminders): one section per calendar with
  * Google's default reminder list of that calendar, edited like an event's list and saved at once (`calendarList.patch`,
- * popup only); read-only calendars show theirs without editing. Then "Task lists": the switch whether the app reminds about
+ * popup only); read-only calendars too (Google first, else the app keeps them, see API.md). Then "Task lists": the switch whether the app reminds about
  * task lists (`prefs.notify.tasklists`, off by default) and the tasks calendar's default list.
  */
 import { computed, onMounted, ref } from 'vue';
@@ -93,8 +93,7 @@ async function setTaskListSwitch(on: boolean) {
       <p class="sub note">{{ t('settings.reminders.intro') }}</p>
       <section v-for="c in shown" :key="c.id" class="card" data-testid="reminders-calendar" :data-calendar-id="c.id" :data-name="c.name" :aria-label="c.name">
         <h2><i class="dot" :style="{ background: c.color }" aria-hidden="true" />{{ c.name }}</h2>
-        <p v-if="!c.writable" class="sub note">{{ t('settings.reminders.readOnly') }}</p>
-        <ReminderEditor :model-value="{ useDefault: false, minutes: c.defaultReminders ?? [] }" prefix="calendar-default" :readonly="!c.writable" data-testid="reminders-calendar-list" @update:model-value="saveCalendar(c.id, $event.minutes)" />
+        <ReminderEditor :model-value="{ useDefault: false, minutes: c.defaultReminders ?? [] }" prefix="calendar-default" data-testid="reminders-calendar-list" @update:model-value="saveCalendar(c.id, $event.minutes)" />
       </section>
       <section v-if="pushAvailable" class="card" data-testid="reminders-push-section">
         <h2>{{ t('settings.reminders.push.title') }}</h2>

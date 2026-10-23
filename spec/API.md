@@ -259,7 +259,15 @@ short hash of date and text. A missing or unparsable file gives an empty list.
 
 Body `{ hidden?: boolean; defaultReminders?: number[] }` (at least one). `hidden` stores the person's choice. `defaultReminders`
 (at most 5 different whole numbers 0-40320) replaces the calendar's popup defaults in Google (`calendarList.patch`; email defaults
-stay; more than 5 reminders in all is `400`; a read-only calendar is `403`). Returns the updated `Calendar`. 404 for an unknown id.
+stay; more than 5 reminders in all is `400`). Returns the updated `Calendar`. 404 for an unknown id.
+
+**Read-only calendars.** `defaultReminders` on a calendar without writer/owner role goes to Google first as well (the list
+entry's defaults are per person). When Google answers 403 for a permission reason (quota 403s and outages do not count)
+the server keeps the popup list itself (`reminder-overrides.json`, `defaults[calendarId] = { minutes, since }`, in the Drive
+backup) and does not ask Google again for a day; after that the next change tries Google again, and a Google success drops
+the kept list. While a calendar is read-only, every read (`GET /api/calendars`, this answer, items and events with
+`useDefault`) uses the kept list as its popup defaults; email defaults stay Google's. An event's own reminders still win.
+Why: the owner wants to adjust reminders on calendars he cannot edit (requirements 20261023T041512Z_readonly_default_reminders).
 
 ### `GET` / `PATCH /api/reminders/tasks-calendar` → 200
 
@@ -752,7 +760,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
 | `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly?, accessRole?, ownerEmail? }` | Adds a calendar to the account's list as another Google client would; `id`, `color`, `readOnly` (role `reader`), `accessRole` and `ownerEmail` (Google `dataOwner`) let a test add a calendar shared by another person or add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
-| `PUT` | `/api/__test/remote/reader-reminders` | `{ allow: boolean; owner? }` | Whether the mock Google accepts an `events.patch` that carries only `reminders` on a `reader` / `freeBusyReader` calendar (`false`, the default: 403; reset restores it). `200 { allow }` |
+| `PUT` | `/api/__test/remote/reader-reminders` | `{ allow: boolean; owner? }` | Whether the mock Google accepts an `events.patch` that carries only `reminders`, and a `calendarList.patch` of `defaultReminders`, on a `reader` / `freeBusyReader` calendar (`false`, the default: permission 403; reset restores it). `200 { allow }` |
 | `PUT` | `/api/__test/remote/calendars/:id/default-reminders` | `{ defaultReminders: { method, minutes }[]; owner? }` | Sets a calendar's Google `defaultReminders` as another Google client would. `200 { ok }` |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |

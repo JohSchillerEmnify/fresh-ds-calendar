@@ -69,10 +69,10 @@ describe('calendar default reminders', () => {
     expect(cal.defaultReminders).toEqual([{ method: 'email', minutes: 60 }, ...popup(30, 15)]);
   });
 
-  it('refuses a read-only calendar and an unknown one', async () => {
+  it('takes a read-only calendar (feature reminders: kept by the app when Google refuses) and refuses an unknown one', async () => {
     await t.json('POST', '/api/__test/calendars', { owner: 'a@b.c', calendars: [] });
     await t.json('POST', '/api/__test/remote/calendars', { summary: 'Holidays', id: 'ro@x', readOnly: true });
-    expect((await t.json('PATCH', '/api/calendars/ro@x', { defaultReminders: [10] })).status).toBe(403);
+    expect((await t.json('PATCH', '/api/calendars/ro@x', { defaultReminders: [10] })).body.defaultReminders).toEqual([10]);
     expect((await t.json('PATCH', '/api/calendars/nope', { defaultReminders: [10] })).status).toBe(404);
     expect((await t.json('PATCH', '/api/calendars/primary', { defaultReminders: [1, 2, 3, 4, 5, 6] })).status).toBe(400);
     expect((await t.json('PATCH', '/api/calendars/primary', {})).status).toBe(400);
