@@ -105,3 +105,17 @@ today). ADR 0023, LikeC4 `calendar.web.lastKnown` + dynamic view `openingWithLas
 7. Server `/api/__test/slow` + API.md → server test.
 8. e2e steps; run the 5 scenarios mobile + desktop, then @offline, @pwa, sign-out, @visual, goldens.
    PR boundary: everything above is one reviewable PR (one feature, atomic commits).
+
+## Implementation notes (2026-10-23)
+
+- Review round 1 (code-reviewer): a `/me` answer for another person now stops saving, clears `savedAt`, drops the
+  restored items, wipes the store and reloads the page (nothing of person A can stay on screen or be saved as B's);
+  `wipeLastKnown` also stops the page from saving again (a pending debounced save after sign-out writes nothing);
+  reading the snapshot is raced against 1 s so a hanging IndexedDB cannot keep the app from starting.
+- Known, accepted: any successful sync (the full sync loop, which includes the visible range) ends the restored state;
+  the year view's summary load also counts as a sync, so there the note can disappear before the day data is fresh.
+- e2e "I open the app again" waits until a calendar view shows (the desktop tray is mounted then), not for data.
+- A2 (Android, by code reading only): the shell loads `https://cal.example.org` in the WebView (`MainActivity`,
+  `server.url`); Capacitor shows `error.html` only when the main-frame load fails. Once the web app's service worker has
+  cached the shell (any earlier online start), an offline start is served by it and the page's IndexedDB snapshot is
+  shown like in a browser. Not run on a device tonight.

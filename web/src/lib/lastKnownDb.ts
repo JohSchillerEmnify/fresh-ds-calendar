@@ -68,14 +68,18 @@ export function memoryKv(): KvStore & { data: Map<string, unknown> } {
 }
 
 let kv: KvStore | null = null;
+/** Set by `wipeLastKnown`: this page keeps nothing any more (a save still pending must not write it back). */
+let wiped = false;
 /** The store in use: IndexedDB when the browser has it, else `null` (nothing is kept). */
 export function lastKnownDb(): KvStore | null {
+  if (wiped) return null;
   if (!kv && typeof indexedDB !== 'undefined') kv = idbKv();
   return kv;
 }
 /** Replaces the store (tests); `null` goes back to the default. */
 export function setLastKnownDb(next: KvStore | null): void {
   kv = next;
+  wiped = false;
 }
 
 /** The person whose snapshot this device keeps, or `null`. */
@@ -86,8 +90,10 @@ export function setLastKnownPerson(person: string): void {
   try { localStorage.setItem(PERSON_KEY, person); } catch { /* storage blocked: the snapshot cannot be found offline */ }
 }
 
-/** Removes what this device keeps of the last known state (sign-out, the sign-in page). Never throws. */
+/** Removes what this device keeps of the last known state (sign-out, the sign-in page) and stops this page from saving again. Never throws. */
 export async function wipeLastKnown(): Promise<void> {
+  const db = lastKnownDb();
+  wiped = true;
   try { localStorage.removeItem(PERSON_KEY); } catch { /* storage blocked */ }
-  try { await lastKnownDb()?.clear(); } catch { /* IndexedDB blocked or broken: nothing readable is left either */ }
+  try { await db?.clear(); } catch { /* IndexedDB blocked or broken: nothing readable is left either */ }
 }

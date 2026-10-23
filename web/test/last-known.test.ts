@@ -178,10 +178,12 @@ describe('last known state store', () => {
     expect(await useLastKnownStore().restore('/week/2026-10-12')).toBe(false);
   });
 
-  it('a session of another person drops the restored data and the stored snapshot', async () => {
+  it('a session of another person drops the restored data and the stored snapshot, then starts the page afresh', async () => {
     server(() => [ev('Dentist', '2026-10-13')]);
     await session();
     freshPinia();
+    const reload = vi.fn();
+    vi.stubGlobal('location', { ...window.location, reload });
     mockFetch({
       'GET /api/auth/me': () => ({ email: 'Anna@example.com', name: 'Anna' }),
       'GET /api/config': () => config(),
@@ -194,7 +196,20 @@ describe('last known state store', () => {
     await vi.advanceTimersByTimeAsync(10);
     expect(useItemsStore().get('Dentist')).toBeUndefined();
     expect(lk.restored).toBe(false);
+    expect(lk.savedAt).toBeNull();
     expect(kv.data.size).toBe(0);
+    expect(reload).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('after a wipe a pending save writes nothing back', async () => {
+    server(() => [ev('Dentist', '2026-10-13')]);
+    await session();
+    useItemsStore().upsert(ev('Call', '2026-10-14'));
+    await wipeLastKnown();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(kv.data.size).toBe(0);
+    expect(localStorage.getItem(PERSON_KEY)).toBeNull();
   });
 
   it('the sign-in page wipes what the device kept', async () => {

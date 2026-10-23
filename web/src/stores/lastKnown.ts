@@ -19,6 +19,7 @@ import { useThemeStore } from './theme';
 /** Days kept on either side of today (owner, 2026-10-23: "about the last 4 weeks around today"). */
 export const KEEP_DAYS = 28;
 const SAVE_DEBOUNCE_MS = 300;
+const RESTORE_TIMEOUT_MS = 1000;
 
 /** One range the app showed, with its items as the server last answered (and local changes since). */
 export interface SavedRange { from: LocalDate; to: LocalDate; items: CalendarItem[] }
@@ -85,14 +86,16 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
   /** Applies the stored snapshot when one exists for the person last signed in here; the sign-in page wipes it instead. */
   async function restore(path: string): Promise<boolean> {
     if (path === '/signin') {
-      await wipeLastKnown();
+      await Promise.race([wipeLastKnown(), new Promise((resolve) => { setTimeout(resolve, RESTORE_TIMEOUT_MS); })]);
       return false;
     }
     const who = lastKnownPerson();
     const db = lastKnownDb();
     if (who === null || !db) return false;
     let snap: LastKnownSnapshot | undefined;
-    try { snap = await db.get<LastKnownSnapshot>(who); } catch { return false; }
+    // a hanging IndexedDB (some private modes) must not keep the app from starting: then nothing is restored
+    const late = new Promise<undefined>((resolve) => { setTimeout(() => resolve(undefined), RESTORE_TIMEOUT_MS); });
+    try { snap = await Promise.race([db.get<LastKnownSnapshot>(who), late]); } catch { return false; }
     if (!snap || snap.v !== 1 || snap.person !== who) return false;
     const clock = useClockStore();
     clock.restore(snap.config);
@@ -179,11 +182,13 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
         const who = sessionPerson();
         if (!who) return;
         if (person !== null && who !== person) {
-          if (restored.value) items.dropRestored();
+          // nothing of the other person may stay on screen or be saved as this one's: wipe and start clean
+          stop();
+          savedAt.value = null;
           restored.value = false;
-          saved = [];
-          base = null;
-          void wipeLastKnown();
+          items.dropRestored();
+          void wipeLastKnown().then(() => window.location.reload());
+          return;
         }
         person = who;
         // the person is known only now: a fresh answer that came first is saved now
