@@ -182,6 +182,10 @@ model {
       #experimental
       description 'One day as a 24-hour dial on which entries are opened, turned, resized and created'
     }
+    labsNowNext = component 'Labs Now and Next' {
+      #experimental
+      description 'Today as big cards: what runs now with the time left, what comes next and how soon, the rest folded'
+    }
     approachTrack = component 'Approaching track' {
       description 'The time axis in the Now card on which today\'s timed entries come closer'
     }
@@ -194,6 +198,8 @@ model {
     approachTrack -> prefs 'reads whether the track is on and its window'
     approachTrack -> items 'shows today\'s timed entries within the window, carried-over lists included'
     clock -> approachTrack 'moves the entries closer'
+    labsNowNext -> items 'shows today\'s entries and opens a tapped one'
+    clock -> labsNowNext 'counts the time left down once a minute'
   }
 
   // Themes
