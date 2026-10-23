@@ -189,6 +189,28 @@ Feature: Several reminders per event, read from and written to Google
     And I open the week view for 2026-10-12
     Then I see the transition warning "Taxes starts in 29 min"
 
+  Scenario: An all-day event rings the evening before by its reminder
+    Like Google: an all-day event starts at 00:00 of its day, so "5 min" rings at 23:55 the evening before (Google shows
+    it as "1 day before at 23:55"; 45 min rings at 23:15, 90 min at 22:30) (owner, 2026-10-23).
+    Given the calendar "Personal" has the default reminders "5"
+    And the calendar contains an all-day event "Anna's birthday" on 2026-10-13
+    And the time is 2026-10-12 23:50 and the clock is running
+    When I open the week view for 2026-10-12
+    Then I do not see a transition warning
+    When 5 minutes pass
+    Then I see the transition warning "Anna's birthday starts in 5 min"
+
+  @web-push
+  Scenario: A multi-day all-day event rings once, saying its day
+    Only its first day rings; the notification gives the day and "all day", never "in 30 min".
+    Given the calendar contains an all-day event "Holiday" from 2026-10-13 to 2026-10-15
+    And the event "Holiday" has its own reminders "30" in Google
+    And the time is 2026-10-12 10:00
+    When I open the reminders settings
+    And I switch on reminders in this browser
+    Then the server has 1 planned pushes for this browser
+    And the server plans the push "Holiday" saying "Tue 13 Oct, all day" for 2026-10-12 23:30
+
   @web-push
   Scenario: The browser push switch subscribes this browser
     When I open the reminders settings
