@@ -1,11 +1,13 @@
 /** Pure model of the Labs Now / Next deck (feature labs-now-next): what the Now, Next and Later cards show for today. */
+import { differenceInCalendarDays, parseIsoDate, timeToMinutes } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
 import { nowCardModel } from '@/features/calendar/timeline';
 import { timedToday } from '@/features/labs/approach/approach';
 
 /** What the Now card shows: the running event, else the first open task list, else free time. */
 export type NowState =
-  | { kind: 'running'; segment: Segment; leftMin: number; leftPercent: number }
+  /** `endTime`: the event's real end (HH:MM), also when it ends on another day. */
+  | { kind: 'running'; segment: Segment; leftMin: number; leftPercent: number; endTime: string }
   | { kind: 'tasks'; segment: Segment; task: string }
   /** `untilMin`: start of the next timed entry of today; null when nothing is left today. */
   | { kind: 'free'; untilMin: number | null };
@@ -32,9 +34,14 @@ function nowState(segs: Segment[], nowMin: number, next: UpNext | null): NowStat
   // One rule for "running" across the app: reuse the Approaching card's choice.
   const cur = nowCardModel(segs, nowMin).current;
   const running = cur ? segs.find((s) => s.item.id === cur.id && s.startTime !== null) : undefined;
-  if (running) {
-    const leftMin = running.endMin - nowMin;
-    return { kind: 'running', segment: running, leftMin, leftPercent: Math.round((leftMin / (running.endMin - running.startMin)) * 100) };
+  if (running && running.item.kind === 'event') {
+    // the event's real span, not the day's segment: one across midnight counts on into the next day
+    const { start, end } = running.item;
+    const days = (iso: string) => differenceInCalendarDays(parseIsoDate(iso.slice(0, 10))!, parseIsoDate(start.slice(0, 10))!);
+    const startAbs = timeToMinutes(start.slice(11, 16));
+    const endAbs = days(end) * 1440 + timeToMinutes(end.slice(11, 16));
+    const leftMin = endAbs - (days(running.date) * 1440 + nowMin);
+    return { kind: 'running', segment: running, leftMin, leftPercent: Math.round((leftMin / (endAbs - startAbs)) * 100), endTime: end.slice(11, 16) };
   }
   const lists = segs.filter((s) => s.item.kind === 'tasklist' && s.item.items.some((i) => !i.done) && isDue(s, nowMin));
   // stable sort: the oldest list first, the day's order within a date

@@ -62,4 +62,21 @@ describe('Now / Next deck model', () => {
     const late = nowNextModel(segsOf([dentist, trip], D), m('20:00'));
     expect(late).toEqual({ now: { kind: 'free', untilMin: null }, next: null, later: [] });
   });
+  it('an event across midnight counts its real time left, share and end', () => {
+    const night = ev('night', t(D, '22:00'), t('2026-10-15', '02:00'), { title: 'Night shift' });
+    const before = nowNextModel(segsOf([night], D), m('23:30')).now;
+    expect(before).toMatchObject({ kind: 'running', leftMin: 150, leftPercent: 63, endTime: '02:00' });
+    const after = nowNextModel(segsOf([night], '2026-10-15'), m('01:00')).now;
+    expect(after).toMatchObject({ kind: 'running', leftMin: 60, leftPercent: 25, endTime: '02:00' });
+  });
+  it('of two running events the one ending first is Now', () => {
+    const long = ev('long', t(D, '14:00'), t(D, '16:00'), { title: 'Workshop' });
+    const r = nowNextModel(segsOf([long, dentist], D), m('14:30'));
+    expect(r.now.kind === 'running' && r.now.segment.item.title).toBe('Dentist');
+  });
+  it('a carried-over list with a time still to come is Next, not Now', () => {
+    const r = nowNextModel(today([list('Old', { date: '2026-10-12', time: '18:00' })]), m('10:00'));
+    expect(r.now).toEqual({ kind: 'free', untilMin: m('18:00') });
+    expect(title(r.next)).toBe('Old');
+  });
 });

@@ -83,6 +83,11 @@ with a stack of three cards; on a wide screen the same stack is a centred column
   (`noSwipe`, there are no periods to move through).
 - A8 — Filters from the URL and hidden calendars apply, as in the Approaching card (`useDaySegments`).
 
+- A9 — Known limit (review): when two events overlap, the one ending first is Now (Approaching card rule) and the
+  other, already started, is on no card until the first ends. An "also now" line is a follow-up for the owner to decide.
+- A10 — Known limit: like `/timeline`, the top bar keeps its period title and prev/next/Today on `/now`; in the day view
+  they stay on `/now` (always today). Hiding them for date-less Labs views is a shell change left for the owner.
+
 ## Testing Plan
 
 - Unit (vitest): `web/test/nowNext.test.ts` for the pure model `nowNextModel(segments, nowMin)` — running / task list /
@@ -102,3 +107,12 @@ with a stack of three cards; on a wide screen the same stack is a centred column
 6. `@visual`, own screenshots (light/dark), `pnpm --silent verify`.
 
 PR boundary: all of the above is one reviewable unit (one experimental view behind a default-off switch).
+
+## Implementation notes
+
+- Model `web/src/features/labs/nownext/nowNext.ts` reuses `nowCardModel` (running rule) and the approach track's
+  `timedToday` (now exported) for timed entries; the view reads only `clock.minutesNow` (the one ticker).
+- Code review (subagent) applied: task-list colours via `useTaskCategories().itemColor`; an event across midnight
+  counts its real time left/share/end (unit test); the Now card is a `div` whose title button covers the card, so the
+  progress bar stays exposed to screen readers; `loaded` resets on a day turnover; `aria-controls` on the Later toggle;
+  the bar step polls. Overlap (A9) and the top bar (A10) recorded as known limits.

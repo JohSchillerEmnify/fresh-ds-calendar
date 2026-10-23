@@ -18,8 +18,8 @@ Then('the Now card shows {string} with {string}', async function (this: World, t
 });
 
 Then('the time bar of the Now card is {int} % full', async function (this: World, percent: number) {
-  const v = Number(await this.page.getByTestId('nownext-bar').getAttribute('aria-valuenow'));
-  expect(Math.abs(v - percent)).toBeLessThanOrEqual(1);
+  const bar = this.page.getByTestId('nownext-bar');
+  await expect.poll(async () => Math.abs(Number(await bar.getAttribute('aria-valuenow')) - percent)).toBeLessThanOrEqual(1);
 });
 
 When('I tap the Now card', async function (this: World) {
