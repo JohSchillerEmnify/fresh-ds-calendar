@@ -9,7 +9,7 @@ import { ApiException, forbidden, notFound, preconditionFailed, validation } fro
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import {
-  NotFoundError, PreconditionFailedError, ProviderForbiddenError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type GoogleReminder,
+  NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type GoogleReminder,
   type ProviderCalendar,
 } from '../providers/CalendarProvider.js';
 import type { MotivationService } from './motivation.js';
@@ -81,18 +81,9 @@ export class CalendarService {
   private async providerCalendars(): Promise<ProviderCalendar[]> {
     const now = this.clock.real();
     if (this.calCache && now - this.calCache.at < CAL_TTL_MS) return this.calCache.cals;
-    const cals = this.withKeptDefaults(await this.provider.listCalendars());
+    const cals = await this.provider.listCalendars();
     this.calCache = { at: now, cals };
     return cals;
-  }
-
-  /** A read-only calendar whose defaults Google refused gets the popup list the app keeps (other methods stay Google's). */
-  private withKeptDefaults(cals: ProviderCalendar[]): ProviderCalendar[] {
-    return cals.map((c) => {
-      const kept = hasWriteRole(c) ? undefined : this.prefs.reminderOverrides.defaultsOf(this.sub, c.id);
-      if (!kept) return c;
-      return { ...c, defaultReminders: [...(c.defaultReminders ?? []).filter((r) => r.method !== 'popup'), ...kept.map((m) => ({ method: 'popup', minutes: m }))] };
-    });
   }
 
   /** Calendars that hold events: not switched off in Google's list and not the tasks calendar. */
@@ -112,41 +103,17 @@ export class CalendarService {
 
   /**
    * Replaces the popup default list of a calendar (`calendarList.patch`); email defaults stay. `tasksCalendar` addresses the
-   * person's tasks calendar, which is not in {@link calendars}. A read-only calendar goes through
-   * {@link setReadOnlyDefaults}. Returns the list as stored.
+   * person's tasks calendar, which is not in {@link calendars}. A calendar the person can only read goes
+   * to Google as well (the list entry is per person). Returns the list as stored.
    */
   async setDefaultReminders(id: string, minutes: number[], tasksCalendar = false): Promise<number[]> {
     const calId = tasksCalendar ? await this.tasks.id() : id;
     const cal = (await this.providerCalendars()).find((c) => c.id === calId && (tasksCalendar || !c.hidden && c.id !== this.tasks.knownId()));
     if (!cal) throw notFound('Calendar not found');
     const next = this.remindersToGoogle(minutes, cal.defaultReminders);
-    if (!hasWriteRole(cal)) await this.setReadOnlyDefaults(calId, next, minutes);
-    else {
-      await this.provider.setCalendarDefaultReminders(calId, next);
-      // a calendar that became writable: Google holds its defaults again, a stale app copy must not return later
-      this.prefs.reminderOverrides.setGoogleDefaults(this.sub, calId);
-    }
+    await this.provider.setCalendarDefaultReminders(calId, next);
     this.calCache = null;
     return minutes;
-  }
-
-  /**
-   * The defaults of a calendar the person can only read (feature reminders): Google first (the list entry's defaults are per
-   * person); a permission 403 makes the app keep the popup list itself, and Google is not asked again for a day.
-   */
-  private async setReadOnlyDefaults(calId: string, next: GoogleReminder[], minutes: number[]): Promise<void> {
-    const store = this.prefs.reminderOverrides;
-    const now = this.clock.real();
-    if (!store.defaultsRefusedAt(this.sub, calId, now)) {
-      try {
-        await this.provider.setCalendarDefaultReminders(calId, next);
-        store.setGoogleDefaults(this.sub, calId);
-        return;
-      } catch (e) {
-        if (!(e instanceof ProviderForbiddenError)) throw e;
-      }
-    }
-    store.setLocalDefaults(this.sub, calId, minutes, now);
   }
 
   /** The popup default list of the person's tasks calendar (created on first use like any task list access). */
@@ -229,7 +196,7 @@ export class CalendarService {
     };
   }
 
-  /** The reminders the app keeps for a read-only event because Google refused them, shown as the event's own list. */
+  /** The reminders the app keeps for a read-only event, shown as the event's own list. */
   private ownReminders(ev: GoogleEvent, calDefaults: GoogleReminder[] | undefined): Reminders | undefined {
     const own = this.prefs.reminderOverrides.get(this.sub, ev.calendarId, ev.id);
     return own && { useDefault: own.useDefault, minutes: own.useDefault ? popups(calDefaults) : [...own.minutes] };
@@ -402,7 +369,8 @@ export class CalendarService {
   async updateEvent(id: string, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
     const cur = await this.locateKind(id, false);
     if (specialOf(cur)) return this.updateBirthday(cur, input, ifMatch);
-    if (onlyReminders(input) && readOnlyReason(cur, await this.providerCalendars())) return this.updateReadOnlyReminders(cur, input.reminders!);
+    const reason = onlyReminders(input) ? readOnlyReason(cur, await this.providerCalendars()) : null;
+    if (reason) return this.updateReadOnlyReminders(cur, input.reminders!, reason.kind === 'calendar');
     await this.requireOwnEvent(cur);
     const curApi = this.toEvent(cur, '');
     const m = {
@@ -429,23 +397,15 @@ export class CalendarService {
   }
 
   /**
-   * The person's reminders for an event they can only read (feature reminders): Google first (`reminders` is per person, so
-   * only that field is sent); when Google refuses with 403 the app keeps them itself. The path that worked is remembered per
-   * calendar, so a refusing calendar is not asked again; a calendar that took the change last time is tried first.
+   * The person's reminders for an event they can only read (feature reminders). In a calendar shared read-only Google has no
+   * per-event reminders (its UI only offers notifications for the whole calendar), so the app keeps them itself and Google is
+   * never asked. An invitation in the person's own calendar is different: Google stores its `reminders` (per person), so only
+   * that field is sent.
    */
-  private async updateReadOnlyReminders(cur: GoogleEvent, input: Reminders): Promise<CalendarEvent> {
-    const store = this.prefs.reminderOverrides;
+  private async updateReadOnlyReminders(cur: GoogleEvent, input: Reminders, sharedCalendar: boolean): Promise<CalendarEvent> {
     const color = await this.calendarColor(cur.calendarId);
-    if (store.pathOf(this.sub, cur.calendarId, this.clock.real()) !== 'local') {
-      try {
-        const ev = await this.provider.patchEvent(cur.calendarId, cur.id, { reminders: this.remindersOf(input, cur.reminders) });
-        store.setGoogle(this.sub, cur.calendarId, cur.id);
-        return this.toEvent(ev, color);
-      } catch (e) {
-        if (!(e instanceof ProviderForbiddenError)) throw e;
-      }
-    }
-    store.setLocal(this.sub, cur.calendarId, cur.id, { useDefault: input.useDefault, minutes: input.useDefault ? [] : input.minutes }, this.clock.real());
+    if (!sharedCalendar) return this.toEvent(await this.provider.patchEvent(cur.calendarId, cur.id, { reminders: this.remindersOf(input, cur.reminders) }), color);
+    this.prefs.reminderOverrides.set(this.sub, cur.calendarId, cur.id, { useDefault: input.useDefault, minutes: input.useDefault ? [] : input.minutes });
     return this.toEvent(cur, color);
   }
 

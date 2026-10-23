@@ -261,13 +261,10 @@ Body `{ hidden?: boolean; defaultReminders?: number[] }` (at least one). `hidden
 (at most 5 different whole numbers 0-40320) replaces the calendar's popup defaults in Google (`calendarList.patch`; email defaults
 stay; more than 5 reminders in all is `400`). Returns the updated `Calendar`. 404 for an unknown id.
 
-**Read-only calendars.** `defaultReminders` on a calendar without writer/owner role goes to Google first as well (the list
-entry's defaults are per person). When Google answers 403 for a permission reason (quota 403s and outages do not count)
-the server keeps the popup list itself (`reminder-overrides.json`, `defaults[calendarId] = { minutes, since }`, in the Drive
-backup) and does not ask Google again for a day; after that the next change tries Google again, and a Google success drops
-the kept list. While a calendar is read-only, every read (`GET /api/calendars`, this answer, items and events with
-`useDefault`) uses the kept list as its popup defaults; email defaults stay Google's. An event's own reminders still win.
-Why: the owner wants to adjust reminders on calendars he cannot edit (requirements 20261023T041512Z_readonly_default_reminders).
+**Read-only calendars.** `defaultReminders` on a calendar without writer/owner role goes to Google exactly like on a writable
+calendar (`calendarList.patch`: Google stores a calendar's notifications per person, also for calendars the person cannot edit).
+A Google error surfaces like any other save error; the app keeps no copy. Why: the owner, 2026-10-23: "the app should not ask
+google ... behaviour that we know fails" (requirements 20261023T073351Z_readonly_reminders_no_google).
 
 ### `GET` / `PATCH /api/reminders/tasks-calendar` → 200
 
@@ -282,13 +279,13 @@ is the popup list in effect: the calendar's default while `useDefault`, else the
 `useDefault: true` ignores `minutes`); a write keeps the item's non-popup (email) overrides, and a `PATCH` without
 `reminders` leaves them alone. Why: Google is the source of truth (feature reminders).
 
-**Read-only events.** A `PATCH` whose body holds nothing but `reminders` is allowed on an event with `readOnly` (the reminders
-are per person in Google). The server sends only `reminders` to Google first; when Google answers 403 for a permission reason (`forbidden`; quota 403s do not count) it keeps the person's
-reminders for that event itself (`DATA_DIR/users/<sub>/reminder-overrides.json`, in the Drive backup, keyed by calendar id and
-event id), remembers per calendar which way worked (a calendar that refused is not asked again for a day), and shows the kept list as the
-event's `reminders` on every read. Any other field in the body is still `403 calendar.event.notOwn`. Why: the owner wants to
-adjust reminders on calendars he cannot edit; Google's docs do not say whether a reader may patch that field (requirements
-20261023T015842Z_readonly_reminders). Birthdays are not covered.
+**Read-only events.** A `PATCH` whose body holds nothing but `reminders` is allowed on an event with `readOnly`. In a calendar
+shared read-only the server never asks Google (Google has no per-event reminders there; its UI offers notifications only for
+the whole calendar): it keeps the person's reminders for that event itself (`DATA_DIR/users/<sub>/reminder-overrides.json`,
+`{ events: { calendarId: { eventId: Reminders } } }`, in the Drive backup) and shows the kept list as the event's `reminders` on
+every read. Files of the older format (path memory, kept defaults) are read for `events` only. An invitation in the person's own
+calendar (read-only by its organizer) still goes to Google, which stores `reminders` per person. Any other field in the body is
+still `403 calendar.event.notOwn`. Why: owner decision of 2026-10-23, see ADR 0015 addendum. Birthdays are not covered.
 
 ### Web Push
 
@@ -760,7 +757,6 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
 | `POST` | `/api/__test/remote/events` | `GoogleEvent` (subset) + optional `calendarId` | Inserts as if created in Google (new id, etag, `updated`). `201 GoogleEvent` |
 | `POST` | `/api/__test/remote/calendars` | `{ summary, hidden?, owner?, id?, color?, readOnly?, accessRole?, ownerEmail? }` | Adds a calendar to the account's list as another Google client would; `id`, `color`, `readOnly` (role `reader`), `accessRole` and `ownerEmail` (Google `dataOwner`) let a test add a calendar shared by another person or add the contacts Birthdays calendar (`addressbook#contacts@group.v.calendar.google.com`). `201` calendar |
-| `PUT` | `/api/__test/remote/reader-reminders` | `{ allow: boolean; owner? }` | Whether the mock Google accepts an `events.patch` that carries only `reminders`, and a `calendarList.patch` of `defaultReminders`, on a `reader` / `freeBusyReader` calendar (`false`, the default: permission 403; reset restores it). `200 { allow }` |
 | `PUT` | `/api/__test/remote/calendars/:id/default-reminders` | `{ defaultReminders: { method, minutes }[]; owner? }` | Sets a calendar's Google `defaultReminders` as another Google client would. `200 { ok }` |
 | `PATCH` | `/api/__test/remote/events/:id` | partial `GoogleEvent` | Google patch semantics (deep merge of `extendedProperties.private`). Bumps etag and `updated`. `200 GoogleEvent` |
 | `DELETE` | `/api/__test/remote/events/:id` | – | Marks `status: 'cancelled'` (Google semantics). `204` |
