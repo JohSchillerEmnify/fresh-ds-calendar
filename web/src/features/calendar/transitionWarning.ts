@@ -1,7 +1,7 @@
 /**
  * Reminders in the open app, in the Android app and by Web Push (feature reminders). All follow the reminder plan
- * (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
- * reminder lead of the item. Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
+ * (`reminderPlan.ts`): one reminder per event (an all-day one at 00:00 of its first day minus the lead), and per dated
+ * task list when the person switched those on, and per reminder lead of the item. Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
  * In the app, a dismissible snackbar "<title> starts in <minutes>" shows once per event and lead from its time until the
  * start and counts down the minutes really left on every tick (several due leads show the nearest one). Events of hidden
  * calendars never remind.

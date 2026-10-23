@@ -6,6 +6,9 @@
 in-app snackbar, not as Android native reminder, not as Web Push (all three read the same plan). Bug confirmed by the owner.
 
 ## To Be
+**Rule (owner, 2026-10-23): an all-day event rings at 00:00 of its first day, in the calendar's time zone, minus each
+reminder that is set for it** (its own list, else the calendar default). The time is whatever reminder is set, not a fixed
+23:55: "5 min" -> 23:55 the evening before, "90 min" -> 22:30, 900 min (Google: "1 day before at 09:00") -> 09:00 the day before.
 Like Google (one reminder list; minutes before the start; an all-day event starts at 00:00 of its day in the calendar
 zone): every all-day event rings at 00:00 of its first day (calendar zone, DST safe via `localToIso`) minus each lead.
 "5 min" rings 23:55 the evening before, 45 min 23:15, 90 min 22:30. A multi-day all-day event rings only for its first day.
@@ -31,7 +34,8 @@ then disappear" works without an APK change.
 3. Unit: untimed dated list -> rings with switch, not without; carried-over list -> none.
 4. Unit: body "Tue 13 Oct, all day".
 5. Unit: across 2026-10-25 (Sun 00:00 is +02:00) and 2027-03-28 the instants are right; `endAt` correct.
-6. e2e: scenarios "An all-day event rings the evening before by its reminder" (snackbar) and
+6. e2e: outline "An all-day event rings at 00:00 of its day minus each reminder set for it" (5 / 90 / 900 min,
+   snackbar), "An all-day event's own reminder wins over the calendar default" (45 min own vs 5 min default) and
    "A multi-day all-day event rings once, saying its day" (push plan) pass.
 
 ## Testing Plan

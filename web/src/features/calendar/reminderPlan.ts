@@ -1,6 +1,7 @@
 /**
- * The reminder plan: which reminders ring when, computed from the loaded items. One reminder per timed event (or timed task
- * list) and reminder lead, at start minus lead (feature reminders). Pure: the in-app snackbars and
+ * The reminder plan: which reminders ring when, computed from the loaded items. One reminder per event (or dated task
+ * list) and reminder lead, at start minus lead (feature reminders); like Google, an all-day item starts at 00:00 of its
+ * first day in the calendar zone, so a 5 min lead rings at 23:55 the evening before. Pure: the in-app snackbars and
  * the native notification scheduling (`transitionWarning.ts`) both read this list. Also the shared wording of a lead.
  */
 import type { CalendarItem } from '@/api/types';
@@ -47,7 +48,8 @@ export interface PlannedReminder {
   kind: 'event' | 'tasklist';
   /**
    * Notification text: the item's times, "11:00 – 11:30", never "in 30 min" (a notification may be read much later).
-   * Prefixed with the day when the item is not on the day the reminder rings: "Tue 13 Oct, 11:00 – 11:30".
+   * Prefixed with the day when the item is not on the day the reminder rings: "Tue 13 Oct, 11:00 – 11:30". An all-day
+   * item always names its day: "Tue 13 Oct, all day".
    */
   body: string;
 }
@@ -66,15 +68,16 @@ const instant = (date: string, time: string, tz: string): number => Date.parse(l
 const zonedDate = (ms: number, tz: string): string => fromWallMinutes(Math.floor(ms / 60_000) + offsetMinutes(ms, tz)).date;
 
 /**
- * The start of a timed item, epoch ms: an event's own instant (its offset settles the repeated hour of a clock change); a
- * task list only has a wall-clock date and time, rebuilt in the calendar zone. Null for an untimed one.
+ * The start of an item, epoch ms: a timed event's own instant (its offset settles the repeated hour of a clock change); a
+ * task list only has a wall-clock date and time, rebuilt in the calendar zone; an all-day event or a list without a time
+ * starts at 00:00 of its (first) day in the calendar zone, as in Google. Null for an undated list.
  *
  * @param item The event or task list.
  * @param tz The calendar time zone.
  */
 export function itemStart(item: CalendarItem, tz: string): number | null {
-  if (item.kind === 'event') return item.allDay ? null : Date.parse(item.start);
-  return item.date && item.time ? instant(item.date, item.time, tz) : null;
+  if (item.kind === 'event') return item.allDay ? instant(item.start.slice(0, 10), '00:00', tz) : Date.parse(item.start);
+  return item.date ? instant(item.date, item.time ?? '00:00', tz) : null;
 }
 
 /** The wall-clock end of an item: on its last segment, which may lie beyond the planned days; `24:00` is 00:00 of the next day. */
@@ -101,7 +104,8 @@ function itemTimes(s: Segment, end: { date: string; time: string }): string {
 export interface PlanKinds { events: boolean; tasklists: boolean }
 
 /**
- * Every reminder of the timed items on the given days whose event has not started yet, soonest first. The ones with `at`
+ * Every reminder of the items starting on the given days that have not started yet, soonest first (an all-day item at
+ * 00:00 of its first day only; a list carried over to today never). The ones with `at`
  * at or before now are due (their snackbar shows); the later ones are still ahead (scheduled natively). Instants come
  * from the wall-clock times in the calendar zone, so a reminder across a clock change rings at the right moment.
  *
@@ -116,21 +120,28 @@ export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds,
   const out: PlannedReminder[] = [];
   for (const segs of days) {
     for (const s of segs) {
-      if (s.allDay || !s.first || s.startTime === null || s.carriedFrom) continue;
+      if (!s.first || s.carriedFrom) continue;
       if (s.item.kind === 'event' ? !kinds.events : !kinds.tasklists) continue;
-      // an event carries exact instants (its offsets settle the repeated hour of a clock change); a task list's are rebuilt
-      const exact = s.item.kind === 'event' ? s.item : null;
       const startAt = itemStart(s.item, tz)!;
       if (startAt <= minuteStart) continue;
       const itemTitle = s.item.title.trim() || untitled;
-      const occurrence = `${s.item.id}@${s.date}T${s.startTime}`;
-      const end = itemEnd(s);
-      const endAt = Math.max(startAt, exact ? Date.parse(exact.end) : instant(end.date, end.time, tz));
-      const times = itemTimes(s, end);
+      // an all-day item (or a list without a time): its notification stays until the end of its first day
+      const allDay = s.startTime === null;
+      const occurrence = allDay ? `${s.item.id}@${s.date}` : `${s.item.id}@${s.date}T${s.startTime}`;
+      let endAt: number, times: string;
+      if (allDay) {
+        endAt = instant(toIsoDate(addDays(parseIsoDate(s.date)!, 1)), '00:00', tz);
+        times = t('calendar.reminders.notification.allDay', { day: dayLabel(s.date) });
+      } else {
+        // an event carries exact instants (its offsets settle the repeated hour of a clock change); a task list's are rebuilt
+        const end = itemEnd(s);
+        endAt = Math.max(startAt, s.item.kind === 'event' ? Date.parse(s.item.end) : instant(end.date, end.time, tz));
+        times = itemTimes(s, end);
+      }
       for (const lead of new Set(s.item.reminders?.minutes ?? [])) {
         const at = startAt - lead * 60_000;
         // the day goes first when the reminder rings on another day than the item (a day lead, or just before midnight)
-        const body = zonedDate(at, tz) === s.date ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times });
+        const body = allDay || zonedDate(at, tz) === s.date ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times });
         out.push({ key: `${occurrence}-${lead}`, occurrence, at, startAt, endAt, lead, itemTitle, itemId: s.item.id, kind: s.item.kind, body });
       }
     }
