@@ -32,7 +32,11 @@ stores them per calendar (defaults) and per event. The app should ring itself, e
 
 ## Addendum (owner, 2026-10-23)
 
-- On calendars the person can only read, Google stays first but may refuse: then the app keeps the person's own reminders
-  (an event's list, and since the same day the calendar's default list) in `reminder-overrides.json` and applies them on
-  every read, so they ring like Google's (requirements 20261023T015842Z_readonly_reminders and
-  20261023T041512Z_readonly_default_reminders).
+- On calendars the person can only read: the calendar's default reminders go to Google like on any calendar (Google stores
+  notifications per person for the whole calendar). Single events there have no per-event reminders in Google, so the
+  app always keeps the person's own reminders for them in `reminder-overrides.json` and applies them on every read, so they
+  ring like Google's; Google is never asked for them. Reason (owner, 2026-10-23): "the app should not ask google. how does
+  it make sense to have behaviour that we know fails." This replaces the earlier "Google first, app copy when Google refuses"
+  and its retry/path memory (requirements 20261023T015842Z_readonly_reminders, 20261023T041512Z_readonly_default_reminders,
+  superseded by 20261023T073351Z_readonly_reminders_no_google). Alternatives weighed: retry Google three times then stop
+  (dropped, a known failure is not worth trying).

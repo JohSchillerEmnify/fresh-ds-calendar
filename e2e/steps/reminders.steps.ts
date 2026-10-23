@@ -112,14 +112,6 @@ Then('the event {string} still has the email reminder {string} in Google', async
   await expect.poll(async () => ((await googleEvent(this, title)).reminders as { overrides?: Reminder[] } | undefined)?.overrides?.filter((r) => r.method === 'email').map((r) => r.minutes).join(', ')).toBe(minutes);
 });
 
-Given('Google accepts reminder changes in calendars I can only read', async function (this: World) {
-  await this.api.put('/api/__test/remote/reader-reminders', { allow: true });
-});
-
-Given('Google refuses reminder changes in calendars I can only read', async function (this: World) {
-  await this.api.put('/api/__test/remote/reader-reminders', { allow: false });
-});
-
 Then('the event {string} in Google is still {string} on {date} from {time} to {time}', async function (this: World, title: string, summary: string, date: string, from: string, to: string) {
   const e = await googleEvent(this, title);
   expect(e.summary).toBe(summary);
@@ -130,12 +122,6 @@ Then('the event {string} in Google is still {string} on {date} from {time} to {t
 Then('the app keeps the reminders {string} for the event {string}', async function (this: World, list: string, title: string) {
   const id = (await googleEvent(this, title)).id;
   await expect.poll(async () => (await this.api.get<{ reminders: { minutes: number[] } }>(`/api/events/${encodeURIComponent(id)}`)).reminders.minutes.join(', ')).toBe(minutesOf(list).join(', '));
-});
-
-Given('the app keeps the default reminders {string} for the calendar {string}', async function (this: World, list: string, name: string) {
-  // Google refuses the read-only calendar's defaults, so the app keeps them itself (call throws unless 2xx)
-  await this.api.put('/api/__test/remote/reader-reminders', { allow: false });
-  await this.api.call('PATCH', `/api/calendars/${encodeURIComponent(await calendarId(this, name))}`, { defaultReminders: minutesOf(list) });
 });
 
 // --- Settings → Reminders ----------------------------------------------------------------------------------------

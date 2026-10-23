@@ -55,30 +55,19 @@ Feature: Several reminders per event, read from and written to Google
     When I open the event "Concert"
     Then I cannot add another reminder
 
-  Scenario: Reminders of a read-only event can be changed and Google gets them
-    Only the reminders: the rest of the event stays look-only (owner, 2026-10-23).
+  Scenario: Reminders of a read-only event are kept by the app and survive a reload
+    Google has no reminders for single events of a calendar I can only read, so the app keeps them and never asks
+    Google (owner, 2026-10-23).
     Given a calendar "Anna" shared with me read-only by "anna@example.org"
     And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
     And the event "Yoga" has its own reminders "30" in Google
-    And Google accepts reminder changes in calendars I can only read
     When I open the week view for 2026-10-12
     And I open the event "Yoga"
     And I add the reminder "15 min"
     Then the event reminders are "30 min, 15 min"
     And the event dialog is read-only
-    And the event "Yoga" has the reminders "30, 15" in Google
-    And the event "Yoga" in Google is still "Yoga" on 2026-10-14 from 07:00 to 08:00
-
-  Scenario: When Google refuses, the app keeps the reminders and they survive a reload
-    Given a calendar "Anna" shared with me read-only by "anna@example.org"
-    And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
-    And the event "Yoga" has its own reminders "30" in Google
-    And Google refuses reminder changes in calendars I can only read
-    When I open the week view for 2026-10-12
-    And I open the event "Yoga"
-    And I add the reminder "15 min"
-    Then the event reminders are "30 min, 15 min"
     And the event "Yoga" has the reminders "30" in Google
+    And the event "Yoga" in Google is still "Yoga" on 2026-10-14 from 07:00 to 08:00
     And the app keeps the reminders "30, 15" for the event "Yoga"
     When I reload the page
     And I open the event "Yoga"
@@ -87,7 +76,6 @@ Feature: Several reminders per event, read from and written to Google
   Scenario: Reminders kept by the app ring like any other
     Given a calendar "Anna" shared with me read-only by "anna@example.org"
     And the calendar "Anna" contains an event "Yoga" on 2026-10-12 from 11:00 to 12:00
-    And Google refuses reminder changes in calendars I can only read
     And the time is 2026-10-12 10:25 and the clock is running
     When I open the week view for 2026-10-12
     And I open the event "Yoga"
@@ -114,27 +102,16 @@ Feature: Several reminders per event, read from and written to Google
     Then the calendar "Personal" has the default reminders "30, 15" in Google
 
   Scenario: Settings change a read-only calendar's default reminders, and Google gets them
-    Like the reminders of a read-only event: only my own reminders, never the owner's calendar (owner, 2026-10-23).
+    Google stores notifications for the whole calendar per person, also for a calendar I can only read (owner, 2026-10-23).
     Given a calendar "Anna" shared with me read-only by "anna@example.org"
     And the calendar "Anna" has the default reminders "30"
-    And Google accepts reminder changes in calendars I can only read
     When I open the reminder settings
     And I add the default reminder "15 min" for the calendar "Anna"
     Then the calendar "Anna" has the default reminders "30, 15" in Google
 
-  Scenario: When Google refuses, the app keeps the calendar's default reminders and they survive a reload
+  Scenario: Events that use the calendar default ring with it
     Given a calendar "Anna" shared with me read-only by "anna@example.org"
-    And the calendar "Anna" has the default reminders "30"
-    And Google refuses reminder changes in calendars I can only read
-    When I open the reminder settings
-    And I add the default reminder "15 min" for the calendar "Anna"
-    Then the calendar "Anna" has the default reminders "30" in Google
-    When I reload the page
-    Then the reminder settings show "30 min, 15 min" for the calendar "Anna"
-
-  Scenario: Events that use the calendar default ring with the defaults the app kept
-    Given a calendar "Anna" shared with me read-only by "anna@example.org"
-    And the app keeps the default reminders "15" for the calendar "Anna"
+    And the calendar "Anna" has the default reminders "15"
     And the calendar "Anna" contains an event "Standup" on 2026-10-12 from 10:00 to 10:30
     And the time is 2026-10-12 09:40 and the clock is running
     When I open the week view for 2026-10-12
@@ -143,7 +120,7 @@ Feature: Several reminders per event, read from and written to Google
 
   Scenario: An event's own reminders still win over the calendar default
     Given a calendar "Anna" shared with me read-only by "anna@example.org"
-    And the app keeps the default reminders "15" for the calendar "Anna"
+    And the calendar "Anna" has the default reminders "15"
     And the calendar "Anna" contains an event "Standup" on 2026-10-12 from 10:00 to 10:30
     And the event "Standup" has its own reminders "5" in Google
     And the time is 2026-10-12 09:40 and the clock is running
