@@ -187,7 +187,7 @@ export default {
     reload: 'Neu laden, fresh',
   },
   reminders: {
-    notification: { times: '{start} – {end}', dayTime: '{day}, {time}' },
+    notification: { times: '{start} – {end}', dayTime: '{day}, {time}', allDay: '{day}, ganztägig, Digga' },
     title: 'Erinnerungen, yo',
     atStart: 'Zum Start',
     days: '{days} Tag | {days} Tage',

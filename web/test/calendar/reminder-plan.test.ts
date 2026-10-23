@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarItem } from '@/api/types';
 import { diffInput, formFromEvent, newForm, ownReminders, toInput } from '@/features/calendar/eventForm';
-import { formatLead, formatLeads, pushPlan, reminderPlan } from '@/features/calendar/reminderPlan';
+import { formatLead, formatLeads, itemStart, pushPlan, reminderPlan } from '@/features/calendar/reminderPlan';
+import { itemSegments } from '@/lib/items';
 import { ev, segsOf, t } from './helpers';
 
 const D = '2026-10-12';
@@ -38,9 +39,8 @@ describe('reminder plan', () => {
     expect(plan([started])).toEqual([]);
   });
 
-  it('has none for an event without reminders, all-day events and hidden kinds', () => {
+  it('has none for an event without reminders and hidden kinds', () => {
     expect(plan([ev('n', t(D, '11:00'), t(D, '11:30'), remind([], true))])).toEqual([]);
-    expect(plan([ev('a', D, '2026-10-13', { allDay: true, ...remind([30]) })])).toEqual([]);
     const list = { kind: 'tasklist', id: 'l', calendarId: 'tasks', title: '', date: D, time: '12:00', items: [], doneCount: 0, totalCount: 1, estimateMinutes: null, categoryId: null, tags: [], color: '#000', ...remind([60]), etag: 'e', updated: '' } as unknown as CalendarItem;
     expect(plan([list])).toEqual([]);
     expect(plan([list], { events: false, tasklists: true }).map((r) => [r.kind, r.itemTitle, r.body])).toEqual([['tasklist', 'Untitled', '12:00 – 12:30']]);
@@ -100,6 +100,60 @@ describe('reminder plan', () => {
     const p = reminderPlan([[], segsOf([night], '2027-03-28')], now, kinds, 'x', TZ);
     expect(p.map((r) => [new Date(r.at).toISOString(), new Date(r.startAt).toISOString(), new Date(r.endAt).toISOString(), r.body]))
       .toEqual([['2027-03-27T23:30:00.000Z', '2027-03-28T00:30:00.000Z', '2027-03-28T01:30:00.000Z', '01:30 – 03:30']]);
+  });
+});
+
+describe('all-day reminders', () => {
+  const at = (ms: number) => new Date(ms).toISOString();
+  const list = (date: string, extra: Record<string, unknown> = {}) => ({ kind: 'tasklist', id: 'l', calendarId: 'tasks', title: 'Shop', date, time: null, items: [], doneCount: 0, totalCount: 1, estimateMinutes: null, categoryId: null, tags: [], color: '#000', ...remind([5]), etag: 'e', updated: '', ...extra }) as unknown as CalendarItem;
+
+  it('rings an all-day event at 00:00 of its first day minus each lead set for it (5 min at 23:55, 900 min at 09:00 the day before)', () => {
+    const birthday = ev('b', '2026-10-13', '2026-10-14', { allDay: true, title: "Anna's birthday", ...remind([5, 45, 90, 900]) });
+    const p = reminderPlan([[], segsOf([birthday], '2026-10-13')], Date.parse('2026-10-12T08:00:00+02:00'), kinds, 'x', TZ);
+    expect(p.map((r) => [r.key, r.lead, at(r.at), r.body])).toEqual([
+      ['b@2026-10-13-900', 900, '2026-10-12T07:00:00.000Z', 'Tue 13 Oct, all day'],
+      ['b@2026-10-13-90', 90, '2026-10-12T20:30:00.000Z', 'Tue 13 Oct, all day'],
+      ['b@2026-10-13-45', 45, '2026-10-12T21:15:00.000Z', 'Tue 13 Oct, all day'],
+      ['b@2026-10-13-5', 5, '2026-10-12T21:55:00.000Z', 'Tue 13 Oct, all day'],
+    ]);
+    // counts down to 00:00 of its day, and its notification goes at the end of that day
+    expect([at(p[0]!.startAt), at(p[0]!.endAt), p[0]!.occurrence, p[0]!.kind]).toEqual(['2026-10-12T22:00:00.000Z', '2026-10-13T22:00:00.000Z', 'b@2026-10-13', 'event']);
+  });
+
+  it('rings a multi-day all-day event only for its first day, and not once that day has begun', () => {
+    const holiday = ev('h', '2026-10-13', '2026-10-16', { allDay: true, title: 'Holiday', ...remind([30]) });
+    const days = ['2026-10-13', '2026-10-14', '2026-10-15'].map((d) => segsOf([holiday], d));
+    const p = reminderPlan([[], ...days], NOW, kinds, 'x', TZ);
+    expect(p.map((r) => [r.key, at(r.at), at(r.endAt)])).toEqual([['h@2026-10-13-30', '2026-10-12T21:30:00.000Z', '2026-10-13T22:00:00.000Z']]);
+    expect(plan([ev('a', D, '2026-10-13', { allDay: true, ...remind([30]) })])).toEqual([]);
+  });
+
+  it('takes 00:00 in the calendar zone across both clock changes', () => {
+    const sunday = ev('w', '2026-10-25', '2026-10-26', { allDay: true, title: 'Winter', ...remind([30]) });
+    const pw = reminderPlan([[], segsOf([sunday], '2026-10-25')], Date.parse('2026-10-24T10:00:00+02:00'), kinds, 'x', TZ);
+    // Sun 25 Oct 00:00 is still summer time (+02:00), its end Mon 00:00 winter time (+01:00): a 25-hour day
+    expect(pw.map((r) => [at(r.at), at(r.startAt), at(r.endAt)])).toEqual([['2026-10-24T21:30:00.000Z', '2026-10-24T22:00:00.000Z', '2026-10-25T23:00:00.000Z']]);
+    const spring = ev('s', '2027-03-28', '2027-03-29', { allDay: true, title: 'Spring', ...remind([30]) });
+    const ps = reminderPlan([[], segsOf([spring], '2027-03-28')], Date.parse('2027-03-27T10:00:00+01:00'), kinds, 'x', TZ);
+    expect(ps.map((r) => [at(r.at), at(r.startAt), at(r.endAt)])).toEqual([['2027-03-27T22:30:00.000Z', '2027-03-27T23:00:00.000Z', '2027-03-28T22:00:00.000Z']]);
+  });
+
+  it('rings a dated task list without a time the same way, only with the task-list switch, never a carried-over one', () => {
+    const tomorrow = list('2026-10-13');
+    const lists = { events: false, tasklists: true };
+    expect(reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, kinds, 'x', TZ)).toEqual([]);
+    expect(reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, lists, 'x', TZ).map((r) => [r.kind, at(r.at), r.body]))
+      .toEqual([['tasklist', '2026-10-12T21:55:00.000Z', 'Tue 13 Oct, all day']]);
+    // an open list of yesterday is carried over to today: it does not ring
+    const carried = itemSegments(list('2026-10-11'), D);
+    expect(carried.map((c) => c.carriedFrom)).toEqual(['2026-10-11']);
+    expect(reminderPlan([carried], NOW, lists, 'x', TZ)).toEqual([]);
+  });
+
+  it('gives the start of an all-day event or an untimed list as 00:00 of its first day in the calendar zone', () => {
+    expect(at(itemStart(ev('h', '2026-10-13', '2026-10-16', { allDay: true }), TZ)!)).toBe('2026-10-12T22:00:00.000Z');
+    expect(at(itemStart(list('2026-10-13'), TZ)!)).toBe('2026-10-12T22:00:00.000Z');
+    expect(itemStart(list(null as unknown as string), TZ)).toBeNull();
   });
 });
 
