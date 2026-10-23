@@ -7,7 +7,7 @@
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { IconClose, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd } from '@/components/icons';
+import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd } from '@/components/icons';
 import { api, ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
@@ -27,7 +27,8 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, isComplete } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
-import { addItem, forget, moveItem, patchItem, removeItem, stableKey } from './ops';
+import { addItem, forget, moveItemTo, patchItem, removeItem, stableKey } from './ops';
+import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
@@ -205,10 +206,18 @@ async function leave() {
     ui.notify(e instanceof ApiError ? e.userMessage : t('sharing.leaveFailed'));
   }
 }
-function move(itemId: string, dir: -1 | 1) {
+/** An item was dropped on place `to`: a pending item delete is sent first (the server needs every item id), then the move. */
+function move(itemId: string, to: number) {
   pendingDeletes.flushList(props.id);
-  moveItem(props.id, itemId, dir);
+  moveItemTo(props.id, itemId, to);
 }
+useItemDrag({
+  root,
+  signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => stableKey(i.id)).join(',')}`,
+  gripOnly: () => !!props.compact,
+  disabled: () => !!editingItem.value,
+  onMove: move,
+});
 /** An item still being added (temporary id) has nothing to undo on the server yet: removed directly. */
 function removeEntry(item: TaskItem, index: number) {
   if (item.id.startsWith('tmp-')) removeItem(props.id, item.id);
@@ -264,8 +273,7 @@ defineExpose({ root, busy });
               @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
             />
             <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
-            <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveUp')" data-testid="tasklist-item-up" :disabled="i === 0" @click="move(item.id, -1)"><IconUp /></IconButton>
-            <IconButton v-if="!compact" class="act" :label="t('tasks.list.moveDown')" data-testid="tasklist-item-down" :disabled="i === tl.items.length - 1" @click="move(item.id, 1)"><IconDown /></IconButton>
+            <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>
             <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
           </li>
         </ul>
@@ -328,7 +336,10 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .ticked .ititle { opacity: 0.55; }
 .item-in { flex: 1; }
 .act { width: 36px; height: 44px; opacity: 0.75; }
-.act:disabled { opacity: 0.2; }
+.grip { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 44px; opacity: 0.55; cursor: grab; color: var(--md-sys-color-on-surface-variant); }
+.row[data-dragging='true'] { cursor: grabbing; }
+/* a long press picks a row up: no text selection or iOS callout then */
+.row { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
 .add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }

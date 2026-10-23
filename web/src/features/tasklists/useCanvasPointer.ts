@@ -130,6 +130,8 @@ export function bindCanvasPointer(el: HTMLElement, h: CanvasPointerHooks): Dispo
     const kind = (drag?.dataset.canvasDrag ?? null) as DragKind | null;
     // any pointer going down elsewhere than on a resize handle hides the handles
     if (kind !== 'area-resize') h.deselect();
+    // an item's drag handle belongs to the item: it reorders the list (feature tasklist-items)
+    if (kind === 'note' && target.closest('[data-item-grip]')) return;
     // with a mouse, a button, box or field inside a note does its own thing; a finger lifts the note from anywhere
     if (pointers.size === 0 && kind === 'note' && e.pointerType === 'mouse' && target.closest(OWN_POINTER)) return;
     pointers.set(e.pointerId, at(e));

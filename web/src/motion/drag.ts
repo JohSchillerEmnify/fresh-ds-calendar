@@ -195,7 +195,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const onWinUp = (e: PointerEvent) => handleUp(e);
   const onWinCancel = (e: PointerEvent) => handleCancelEvent(e);
   const onTouchMove = (e: TouchEvent) => {
-    if (state === 'dragging' && e.cancelable) e.preventDefault();
+    if (state !== 'dragging') return;
+    // a sheet's own swipe-to-dismiss underneath never sees the moves of a drag
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && (state === 'dragging' || state === 'pending')) cancel();

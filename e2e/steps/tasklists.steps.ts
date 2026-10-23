@@ -4,9 +4,9 @@ import type { DataTable } from 'playwright-bdd';
 import { Then, When } from './fixtures.js';
 import { field, fillField, readField, type FieldKind } from './support/forms.js';
 import { expectPositioned } from './support/grid.js';
-import { expandTaskList, itemById } from './support/tasklist.js';
+import { dragItem, expandTaskList, itemById } from './support/tasklist.js';
 import { cellValue, formRows } from './support/tables.js';
-import { expectInViewport, expectJoined } from './support/ui.js';
+import { box, expectInViewport, expectJoined } from './support/ui.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 
 const dialog = (w: World) => w.page.getByTestId('tasklist-dialog');
@@ -279,12 +279,50 @@ When('I delete the item {string}', async function (this: World, title: string) {
   await expect(item).toHaveCount(0);
 });
 
-When('I move the item {string} up', async function (this: World, title: string) {
-  await (await itemById(this, title)).getByTestId('tasklist-item-up').click();
+When('I drag the item {string} above the item {string}', async function (this: World, title: string, above: string) {
+  await dragItem(this, this.expanded, title, { above });
 });
 
-When('I move the item {string} down', async function (this: World, title: string) {
-  await (await itemById(this, title)).getByTestId('tasklist-item-down').click();
+When('I long-press the item {string} and drag it above the item {string}', async function (this: World, title: string, above: string) {
+  if (!this.testInfo.project.use.hasTouch) throw new Error('a long press needs the touch (mobile) project');
+  await dragItem(this, this.expanded, title, { above });
+});
+
+When('I drag the item {string} and drop it where it was', async function (this: World, title: string) {
+  await dragItem(this, this.expanded, title, 'home');
+});
+
+When('I tap the item {string}', async function (this: World, title: string) {
+  await (await itemById(this, title)).getByTestId('tasklist-item-checkbox').tap();
+});
+
+When('I pick up the item {string}', async function (this: World, title: string) {
+  const row = await itemById(this, title);
+  const b = await box(row.getByTestId('tasklist-item-title'));
+  const from = { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) };
+  const cdp = await this.context.newCDPSession(this.page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] });
+  this.heldAt = from;
+  this.held = async () => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
+    await cdp.detach().catch(() => {});
+    this.held = undefined;
+    this.heldAt = undefined;
+  };
+  await this.page.waitForTimeout(500);
+});
+
+When('I release the item without moving it', async function (this: World) {
+  if (!this.held) throw new Error('nothing is picked up');
+  await this.held();
+});
+
+Then('the item {string} is lifted', async function (this: World, title: string) {
+  await expect(this.expandedItem(title)).toHaveAttribute('data-dragging', 'true');
+});
+
+Then('the item {string} has the drag handle {string}', async function (this: World, title: string, label: string) {
+  await expect(this.expandedItem(title).getByTestId('tasklist-item-grip')).toHaveAttribute('aria-label', label);
 });
 
 When('I edit the task list details', async function (this: World) {
