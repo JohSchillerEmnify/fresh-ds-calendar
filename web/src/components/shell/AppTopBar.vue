@@ -43,7 +43,7 @@ function toggleFilters() {
     <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
       <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">{{ t('views.tasks') }}</span></h1>
-      <h1 v-else-if="dateless" class="title" data-testid="period-title"><span class="t">{{ t(dateless.labelKey) }}</span></h1>
+      <h1 v-else-if="dateless" class="title" data-testid="view-title"><span class="t">{{ t(dateless.labelKey) }}</span></h1>
       <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>

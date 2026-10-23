@@ -30,10 +30,13 @@ const laterOpen = ref(false);
 const loaded = ref(false);
 
 /** Today through the shared items store (same path as the other views); again when the date turns over. */
+let loadSeq = 0;
 function load(): void {
   loaded.value = false;
+  // only the latest load may mark the deck loaded (a day turnover can overtake an earlier one)
+  const seq = ++loadSeq;
   items.setVisible(clock.today, toIsoDate(addDays(clock.todayDate, 1)), true).then(
-    () => { loaded.value = true; if (sync.error) sync.clearError(); },
+    () => { if (seq !== loadSeq) return; loaded.value = true; if (sync.error) sync.clearError(); },
     (e) => sync.reportError(e),
   );
 }
@@ -48,7 +51,8 @@ const open = (s: Segment) => openItem(s.item);
 
 <template>
   <section class="deck" data-testid="nownext-view" :data-loaded="loaded" :aria-label="t('calendar.nowNext.label')">
-    <div class="col">
+    <!-- no cards before today's data is in: a cold open must not say "Free for the rest of today" -->
+    <div v-if="loaded" class="col">
       <!-- a div, not a button: the progress bar must stay visible to screen readers; the title's button covers the card -->
       <div
         v-if="now.kind !== 'free'" class="card now tap" data-testid="nownext-now" :data-kind="now.kind"

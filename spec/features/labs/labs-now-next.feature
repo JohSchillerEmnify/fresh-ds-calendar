@@ -28,7 +28,7 @@ Feature: Labs: Now and Next
 
   Scenario: The top bar names the Now view instead of a date
     When I open the Now view
-    Then the period title is "Now"
+    Then the top bar names the view "Now"
     And the top bar has no date navigation
 
   Scenario: The Next card says how soon the next entry starts

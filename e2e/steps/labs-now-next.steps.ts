@@ -63,8 +63,12 @@ Then('the Now card says that {string} is also running', async function (this: Wo
   await expect(nowCard(this).getByTestId('nownext-also')).toHaveAttribute('data-titles', titles);
 });
 
+Then('the top bar names the view {string}', async function (this: World, name: string) {
+  await expect(this.page.getByTestId('top-bar').getByTestId('view-title')).toHaveText(exactText(name));
+});
+
 Then('the top bar has no date navigation', async function (this: World) {
   const bar = this.page.getByTestId('top-bar');
-  await expect(bar.getByTestId('period-title')).toBeVisible();
-  for (const id of ['nav-prev', 'nav-next', 'nav-today']) await expect(bar.getByTestId(id)).toHaveCount(0);
+  await expect(bar.getByTestId('view-title')).toBeVisible();
+  for (const id of ['period-title', 'nav-prev', 'nav-next', 'nav-today']) await expect(bar.getByTestId(id)).toHaveCount(0);
 });

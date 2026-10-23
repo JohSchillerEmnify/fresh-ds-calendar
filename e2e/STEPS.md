@@ -1274,6 +1274,7 @@ I unfold the Later card
 the Later card lists {string}
 the Now card says that {string} is also running
 the top bar has no date navigation
+the top bar names the view {string}
 I open the zoom month for {date}
 the zoom month shows {string}
 the zoom month shows the whole month
@@ -1370,8 +1371,8 @@ I tap the day label {date} in the horizontal view
   panned" that it moved by more than 40 px.
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
-- Date-less Labs views (Now, Timeline): `period-title` is a heading with the view's name; "has no date navigation" =
-  no `nav-prev`, `nav-next`, `nav-today` in `top-bar`. "says that X is also running": `nownext-also` lists the other
+- Date-less Labs views (Now, Timeline): the top bar title is the heading `view-title` with the view's name (no
+  `period-title`); "has no date navigation" = no `period-title`, `nav-prev`, `nav-next`, `nav-today` in `top-bar`. "says that X is also running": `nownext-also` lists the other
   running events, its `data-titles` = the titles joined with ", ".
 - Now view (`@now-next`): "I open the Now view" goes to `/now` and waits for `nownext-view` with `data-loaded="true"`.
   Cards: `nownext-now` (`data-kind` `running|tasks|free`, `data-title`), its `nownext-now-left` text and

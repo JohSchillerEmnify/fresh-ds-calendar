@@ -35,7 +35,7 @@ Feature: Labs: the timeline view
 
   Scenario: The top bar names the timeline instead of a date
     When I open the timeline view
-    Then the period title is "Timeline"
+    Then the top bar names the view "Timeline"
     And the top bar has no date navigation
 
   Scenario: Overlapping entries sit side by side on the timeline
