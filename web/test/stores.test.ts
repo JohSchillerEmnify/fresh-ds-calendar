@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/client';
 import { RETURN_KEY, useAuthStore } from '@/stores/auth';
+import { memoryKv, setLastKnownDb } from '@/lib/lastKnownDb';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
@@ -274,6 +275,17 @@ describe('auth store sign-out', () => {
     expect(Object.keys(localStorage).sort()).toEqual(['cal.theme', 'cal.themeCss', 'cal.themeMode', 'language', 'other']);
     expect(sessionStorage.length).toBe(0);
     expect(replace).toHaveBeenCalledWith('/signin');
+  });
+
+  it('removes the last known state of this device (feature last-known-state)', async () => {
+    mockFetch({ 'POST /api/auth/signout': () => ({ status: 204 }) });
+    stubLocation();
+    const kv = memoryKv();
+    setLastKnownDb(kv);
+    await kv.setOnly('-', { v: 1 });
+    await useAuthStore().signOut();
+    expect(kv.data.size).toBe(0);
+    setLastKnownDb(null);
   });
 
   it('leaves even when the server refuses (already signed out)', async () => {

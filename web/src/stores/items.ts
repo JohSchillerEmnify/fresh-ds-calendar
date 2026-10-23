@@ -44,6 +44,11 @@ export const useItemsStore = defineStore('items', () => {
    * no response may (re-)add them. Holds task list item ids too; those are stripped from their list.
    */
   const deleted = new Set<string>();
+  /**
+   * Items of the last known state (feature last-known-state): shown until a fresh answer covers their days, kept by gc,
+   * but in no range, so only fresh data counts as loaded (reminder scheduling, `windowLoaded`).
+   */
+  const restoredIds = new Set<string>();
   const loading = ref(false);
   let ctrl: AbortController | null = null;
 
@@ -73,7 +78,7 @@ export const useItemsStore = defineStore('items', () => {
     const keep = new Set<string>();
     for (const r of Object.values(ranges.value)) r.ids.forEach((i) => keep.add(i));
     const next: Record<string, CalendarItem> = {};
-    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id) || keptIds.has(id)) next[id] = it;
+    for (const [id, it] of Object.entries(byId.value)) if (keep.has(id) || pending.has(id) || carriedIds.has(id) || keptIds.has(id) || restoredIds.has(id)) next[id] = it;
     byId.value = next;
   }
 
@@ -81,6 +86,14 @@ export const useItemsStore = defineStore('items', () => {
   function applyResponse(from: LocalDate, to: LocalDate, items: CalendarItem[], syncedAt: string) {
     const next = { ...byId.value };
     const key = rangeKey(from, to);
+    // the fresh answer replaces the last known state on its days (an item no longer there was moved or deleted)
+    const fresh = new Set(items.map((i) => i.id));
+    for (const id of restoredIds) {
+      const it = next[id];
+      if (it && !fresh.has(id) && !overlaps(it, { from, to, ids: [], syncedAt: '' })) continue;
+      restoredIds.delete(id);
+      if (!pending.has(id)) delete next[id];
+    }
     for (const it of items) {
       if (deleted.has(it.id)) continue; // stale response from before the delete
       if (pending.has(it.id)) continue; // keep optimistic state (also optimistic deletes)
@@ -369,6 +382,24 @@ export const useItemsStore = defineStore('items', () => {
     }));
   }
 
+  /** Shows the items of the last known state (feature last-known-state) until fresh answers replace them. */
+  function restore(list: CalendarItem[]): void {
+    const next = { ...byId.value };
+    for (const it of list) {
+      if (next[it.id] || deleted.has(it.id)) continue;
+      next[it.id] = it;
+      restoredIds.add(it.id);
+    }
+    byId.value = next;
+  }
+  /** Removes every item still shown from the last known state (it belongs to another person). */
+  function dropRestored(): void {
+    const next = { ...byId.value };
+    for (const id of restoredIds) delete next[id];
+    restoredIds.clear();
+    byId.value = next;
+  }
+
   /** Test / logout helper. */
   function $reset() {
     ctrl?.abort();
@@ -379,6 +410,7 @@ export const useItemsStore = defineStore('items', () => {
     pending.clear();
     carriedIds.clear();
     keptIds.clear();
+    restoredIds.clear();
     prefetchFailed.clear();
     summaryByKey.clear();
     summaryKeys.value = [];
@@ -387,7 +419,7 @@ export const useItemsStore = defineStore('items', () => {
 
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
-    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, upsert, remove, beginPending, endPending, setCarried, setKept,
+    isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, restore, dropRestored, upsert, remove, beginPending, endPending, setCarried, setKept,
     createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem, optimisticItemPatch,
     loadSummary, refreshSummaries, $reset,
   };

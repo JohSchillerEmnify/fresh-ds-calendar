@@ -5,6 +5,7 @@ import { parseParam, routePath, toIsoDate, type ViewKind } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { RETURN_KEY, useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
+import { useLastKnownStore } from '@/stores/lastKnown';
 import { useSettingsStore } from '@/stores/settings';
 
 const CAL_VIEWS: ViewKind[] = ['year', 'month', 'week', 'day'];
@@ -102,7 +103,9 @@ export function createAppRouter(history: RouterHistory = createWebHistory()): Ro
   router.beforeEach(async (to) => {
     if (to.meta.public) return true;
     const auth = useAuthStore();
-    await auth.check();
+    const asked = auth.check();
+    // with the last known state on screen the answer is not waited for: a refused session still goes to /signin (auth.listen)
+    if (!useLastKnownStore().restored) await asked;
     if (auth.status !== 'out') return true;
     try { if (to.fullPath !== '/') sessionStorage.setItem(RETURN_KEY, to.fullPath); } catch { /* private mode: no deep link */ }
     return { path: '/signin', replace: true };

@@ -83,6 +83,15 @@ export const usePrefsStore = defineStore('prefs', () => {
     minEventMinutes.value = p.minEventMinutes ?? minEventMinutes.value;
   }
 
+  /** Every preference as it is now (the rollback copy of `set`, and what the last known state keeps). */
+  function current(): Prefs {
+    return {
+      labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
+      tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value, weekTwoRow: weekTwoRow.value, weekTwoRowTop: weekTwoRowTop.value, labsGrowCards: labsGrowCards.value, minEventMinutes: minEventMinutes.value,
+    };
+  }
+
   async function load(): Promise<void> {
     try {
       apply(await api.prefs());
@@ -91,11 +100,7 @@ export const usePrefsStore = defineStore('prefs', () => {
 
   /** Optimistic change; rolls back when the server refuses. */
   async function set(p: Partial<Prefs>): Promise<void> {
-    const before = {
-      labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
-      tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value, weekTwoRow: weekTwoRow.value, weekTwoRowTop: weekTwoRowTop.value, labsGrowCards: labsGrowCards.value, minEventMinutes: minEventMinutes.value,
-    };
+    const before = current();
     apply(p);
     try {
       await api.patchPrefs(p);
@@ -105,5 +110,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, load, set };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, load, set, current, restore: apply };
 });

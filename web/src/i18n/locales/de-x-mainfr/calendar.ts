@@ -33,6 +33,8 @@ export default {
     syncing: 'Gleichd grad ab',
     synced: 'Abgeglichn',
     unreachable: 'Google Kalender is ned erreichbar. Es sin die letzdn bekanndn Daden zu sehn.',
+    lastUpdated: 'Zuledzd aktualisierd {time}',
+    lastUpdatedOn: 'Zuledzd aktualisierd {date}, {time}',
   },
   reauth: {
     message: 'Google lässd di nemmer rein. Meld di nochamal mit Google an, damits den Kalender widda siehsd.',
