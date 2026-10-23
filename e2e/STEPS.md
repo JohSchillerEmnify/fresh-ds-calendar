@@ -1366,9 +1366,11 @@ I tap the day label {date} in the horizontal view
   Cards: `nownext-now` (`data-kind` `running|tasks|free`, `data-title`), its `nownext-now-left` text and
   `nownext-bar` (progressbar, `aria-valuenow` = % of the event still left, "N % full" allows ±1);
   `nownext-task` (first unticked item); `nownext-next` (`data-title`) with `nownext-next-in` ("in …" text, compared
-  as "in <duration>") and `nownext-next-time`; `nownext-later` with `nownext-later-toggle` ("N more") and, unfolded,
-  `nownext-later-item` rows whose text is "HH:MM Title". "the Now card says" compares its main line `nownext-now-line` exactly, "the Later card says" the
-  toggle's text.
+  as "in <duration>") and `nownext-next-time`; `nownext-later` with `nownext-later-toggle` (`aria-expanded`) holding
+  `nownext-later-more` ("N more") and, unfolded, `nownext-later-item` rows (`data-time`, `data-title`), listed as
+  "HH:MM Title". "the Now card says" compares its main line `nownext-now-line` exactly, "the Later card says"
+  `nownext-later-more`. "the task list X with its next task Y": `data-kind="tasks"`, `data-title` X, `nownext-task`
+  `data-task` Y.
 
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
   `zoom`, `horizontal`, `now`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.

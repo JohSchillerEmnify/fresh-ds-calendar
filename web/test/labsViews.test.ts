@@ -10,6 +10,10 @@ describe('Labs views offered in the view switcher', () => {
   it('offers Clock and Timeline but not Strip by default', () => {
     expect(ids(true, {})).toEqual(['clock', 'timeline', 'zoom', 'horizontal']);
   });
+  it('offers Now only once switched on', () => {
+    expect(ids(true, {})).not.toContain('now');
+    expect(ids(true, { now: true })).toContain('now');
+  });
   it('follows the person\'s choices over the defaults', () => {
     expect(ids(true, { strip: true, clock: false })).toEqual(['timeline', 'strip', 'zoom', 'horizontal']);
   });

@@ -80,6 +80,18 @@ export default {
     track: 'Als Nächsdes',
     inDuration: 'in {duration}',
   },
+  nowNext: {
+    label: 'Etz und als Nächsdes',
+    now: 'Etz',
+    next: 'Als Nächsdes',
+    later: 'Schbäder heid',
+    left: 'noch {left}',
+    progress: 'Wie viel Zeid no bleibd',
+    nextTask: 'Nächsde Aufgab: {task}',
+    freeUntil: 'Frei bis {time}',
+    freeRest: 'Heid is nix mehr',
+    more: '{count} mehr',
+  },
   duration: {
     minutes: '{minutes} Min.',
     hours: '{hours} Std.',

@@ -1,6 +1,6 @@
 import type { Component } from 'vue';
 import type { MessageKey } from '@/i18n';
-import { IconSchedule as IconClock, IconTimeline, IconSwapHoriz, IconViewColumn as IconStrip, IconZoomIn } from '@/components/icons';
+import { IconSchedule as IconClock, IconTimeline, IconSwapHoriz, IconViewAgenda, IconViewColumn as IconStrip, IconZoomIn } from '@/components/icons';
 import { toIsoDate } from '@/lib/dates';
 
 /** One experimental view the view switcher can offer. */
@@ -23,6 +23,7 @@ export const LABS_VIEWS: readonly LabsView[] = [
   { id: 'strip', labelKey: 'views.strip', icon: IconStrip, route: '/strip', defaultOn: false },
   { id: 'zoom', labelKey: 'views.zoom', icon: IconZoomIn, route: '/zoom', defaultOn: true },
   { id: 'horizontal', labelKey: 'views.horizontal', icon: IconSwapHoriz, route: '/horizontal', defaultOn: true },
+  { id: 'now', labelKey: 'views.now', icon: IconViewAgenda, route: '/now', defaultOn: false },
 ];
 
 /** Whether the person has the Labs view `id` switched on; without a stored choice the registry default applies, and an unknown id is on. */
@@ -35,7 +36,7 @@ export function visibleLabsViews(labsOn: boolean, chosen: Record<string, boolean
   return labsOn ? LABS_VIEWS.filter((v) => isLabsViewOn(v.id, chosen)) : [];
 }
 
-/** Route path of an experimental Labs view; the timeline has no date. */
+/** Route path of an experimental Labs view; the timeline and Now (always today) have no date. */
 export function labPath(lab: string, d: Date): string {
-  return lab === 'timeline' ? '/timeline' : `/${lab}/${toIsoDate(d)}`;
+  return lab === 'timeline' || lab === 'now' ? `/${lab}` : `/${lab}/${toIsoDate(d)}`;
 }

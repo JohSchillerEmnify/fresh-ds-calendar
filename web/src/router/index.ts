@@ -70,6 +70,7 @@ export const routes: RouteRecordRaw[] = [
   labDated('strip', () => import('@/features/labs/strip/StripView.vue')),
   labDated('zoom', () => import('@/features/labs/zoom/ZoomMonthView.vue')),
   labDated('horizontal', () => import('@/features/labs/htime/HorizontalTimeView.vue'), true),
+  { path: '/now', name: 'now', component: () => import('@/features/labs/nownext/NowNextView.vue'), meta: { lab: 'now', noSwipe: true } },
   { path: '/tasks', name: 'tasks', component: () => import('@/features/tasklists/TasksView.vue'), meta: { tasks: true } },
   { path: '/signin', name: 'signin', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
   { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { settings: true } },

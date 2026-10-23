@@ -32,6 +32,7 @@ export default {
     strip: 'Streifen',
     zoom: 'Zoom-Monat',
     horizontal: 'Horizontal',
+    now: 'Jetzt',
   },
   horizontal: {
     timeIn: 'Zeit vergrößern',

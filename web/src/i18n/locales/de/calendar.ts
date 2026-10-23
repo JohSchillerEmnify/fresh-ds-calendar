@@ -92,6 +92,18 @@ export default {
     track: 'Als Nächstes',
     inDuration: 'in {duration}',
   },
+  nowNext: {
+    label: 'Jetzt und als Nächstes',
+    now: 'Jetzt',
+    next: 'Als Nächstes',
+    later: 'Später heute',
+    left: 'noch {left}',
+    progress: 'Verbleibende Zeit',
+    nextTask: 'Nächste Aufgabe: {task}',
+    freeUntil: 'Frei bis {time}',
+    freeRest: 'Heute frei',
+    more: '{count} weitere',
+  },
   duration: {
     minutes: '{minutes} Min.',
     hours: '{hours} Std.',

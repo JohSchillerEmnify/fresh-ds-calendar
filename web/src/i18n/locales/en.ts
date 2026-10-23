@@ -38,6 +38,7 @@ export default {
     strip: 'Strip',
     zoom: 'Zoom month',
     horizontal: 'Horizontal',
+    now: 'Now',
   },
   horizontal: {
     timeIn: 'Zoom in time',

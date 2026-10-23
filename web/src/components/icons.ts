@@ -91,6 +91,9 @@ import ZoomInS from '~icons/material-symbols/zoom-in-sharp';
 import ViewColumnO from '~icons/material-symbols/view-column';
 import ViewColumnR from '~icons/material-symbols/view-column-rounded';
 import ViewColumnS from '~icons/material-symbols/view-column-sharp';
+import ViewAgendaO from '~icons/material-symbols/view-agenda-outline';
+import ViewAgendaR from '~icons/material-symbols/view-agenda-outline-rounded';
+import ViewAgendaS from '~icons/material-symbols/view-agenda-outline-sharp';
 import UnfoldLessO from '~icons/material-symbols/unfold-less';
 import UnfoldLessR from '~icons/material-symbols/unfold-less-rounded';
 import UnfoldLessS from '~icons/material-symbols/unfold-less-sharp';
@@ -146,6 +149,7 @@ export const IconSchedule = appIcon('IconSchedule', { outlined: ScheduleO, round
 export const IconTimeline = appIcon('IconTimeline', { outlined: TimelineO, rounded: TimelineR, sharp: TimelineS });
 export const IconZoomIn = appIcon('IconZoomIn', { outlined: ZoomInO, rounded: ZoomInR, sharp: ZoomInS });
 export const IconViewColumn = appIcon('IconViewColumn', { outlined: ViewColumnO, rounded: ViewColumnR, sharp: ViewColumnS });
+export const IconViewAgenda = appIcon('IconViewAgenda', { outlined: ViewAgendaO, rounded: ViewAgendaR, sharp: ViewAgendaS });
 export const IconUnfoldLess = appIcon('IconUnfoldLess', { outlined: UnfoldLessO, rounded: UnfoldLessR, sharp: UnfoldLessS });
 export const IconUnfoldMore = appIcon('IconUnfoldMore', { outlined: UnfoldMoreO, rounded: UnfoldMoreR, sharp: UnfoldMoreS });
 export const IconScience = appIcon('IconScience', { outlined: ScienceO, rounded: ScienceR, sharp: ScienceS });

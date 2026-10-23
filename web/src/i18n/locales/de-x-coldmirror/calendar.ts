@@ -92,6 +92,18 @@ export default {
     track: 'Als Nächstes, yo',
     inDuration: 'in {duration}, yo',
   },
+  nowNext: {
+    label: 'Jetzt und gleich, yo',
+    now: 'Jetzt, yo',
+    next: 'Gleich droppt',
+    later: 'Später heute, Digga',
+    left: 'noch {left}, yo',
+    progress: 'Restzeit, Bruder',
+    nextTask: 'Next Task, yo: {task}',
+    freeUntil: 'Chillen bis {time}',
+    freeRest: 'Heute nur noch chillen, yo',
+    more: '{count} weitere, yo',
+  },
   duration: {
     minutes: '{minutes} Min.',
     hours: '{hours} Std.',

@@ -35,6 +35,7 @@ export default {
     strip: 'Streifen, yo',
     zoom: 'Zoom-Monat, yo',
     horizontal: 'Horizontal, yo',
+    now: 'Jetzt, yo',
   },
   horizontal: {
     timeIn: 'Zeit reinzoomen, yo',

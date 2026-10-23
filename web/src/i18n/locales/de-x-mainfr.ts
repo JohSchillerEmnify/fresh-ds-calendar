@@ -32,6 +32,7 @@ export default {
     tasks: 'Aufgabn',
     zoom: 'Zoom-Monad',
     horizontal: 'Waagrechd',
+    now: 'Etz',
   },
   horizontal: {
     timeIn: 'Zeid nei zoomma',
