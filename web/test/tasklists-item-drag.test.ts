@@ -20,7 +20,8 @@ function setup(gripOnly: boolean) {
   });
   const w = mount(Host, { attachTo: document.body });
   const rows = Array.from((w.element as HTMLElement).querySelectorAll<HTMLElement>('li'));
-  rows.forEach((r, i) => { r.getBoundingClientRect = () => rect(i * 40); });
+  // like a browser, the rect includes the translateY the hook gives rows that make room
+  rows.forEach((r, i) => { r.getBoundingClientRect = () => rect(i * 40 + parseFloat(/translateY\((-?[\d.]+)px\)/.exec(r.style.transform)?.[1] ?? '0')); });
   return { w, rows, onMove };
 }
 const touch = (el: Element, type: string, y: number) => el.dispatchEvent(pe(type, { x: 10, y, pointerType: 'touch' }));
@@ -30,6 +31,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => cb(performance.now()), 16) as unknown as number);
   vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
+  // jsdom has no DOMMatrix (every real browser has); a stand-in that reads the translateY the hook writes
+  vi.stubGlobal('DOMMatrix', class { m42: number; constructor(t: string) { this.m42 = parseFloat(/translateY\((-?[\d.]+)px\)/.exec(t)?.[1] ?? '0'); } });
   installWaapi();
   setAnimationSetting('full'); __setSystemReducedForTest(false);
 });
