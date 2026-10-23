@@ -116,8 +116,9 @@ const frames = () => new Promise<void>((r) => requestAnimationFrame(() => reques
  *   name: Baseline name of the state.
  *   cells: The sized component boxes to draw side by side.
  *   setup: Prepares stores before the render (prefs, settings).
+ *   drive: Brings the rendered sheet into the state to shoot (a held drag); it may return a cleanup run after the shot.
  */
-export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia) => void): Promise<void> {
+export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia) => void, drive?: (container: HTMLElement) => Promise<void | (() => void)>): Promise<void> {
   viewport ??= acquireViewport();
   // only Date is faked: timers, animation frames and resize observers stay real
   vi.useFakeTimers({ toFake: ['Date'], now: NOW });
@@ -135,7 +136,9 @@ export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia)
       await document.fonts.ready;
       // the measured tiers (mini, narrow) settle after the first resize observation
       await frames();
+      const cleanup = await drive?.(screen.container);
       await expect.element(page.elementLocator(screen.container)).toMatchScreenshot(`${name}-${theme}-${width}`);
+      cleanup?.();
       await screen.unmount();
     }
   }

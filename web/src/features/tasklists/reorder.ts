@@ -35,3 +35,20 @@ export function slotOffset(spans: readonly RowSpan[], from: number, to: number):
   if (to === from) return 0;
   return to < from ? spans[to].top - spans[from].top : spans[to].bottom - spans[from].bottom;
 }
+
+/**
+ * Vertical shift (px) of every row while row `from` is lifted over place `to`, so the rows open a gap of the lifted
+ * row's height (plus the spacing between rows) at `to`: moving down the rows after `from` up to `to` move up, moving up
+ * the rows from `to` before `from` move down. `spans` are the rows' layout places (no shift applied); the lifted row's
+ * own entry is 0 (it follows the pointer).
+ */
+export function rowShifts(spans: readonly RowSpan[], from: number, to: number): number[] {
+  const out = spans.map(() => 0);
+  if (from < 0 || from >= spans.length || to === from) return out;
+  const own = spans[from];
+  const spacing = from > 0 ? own.top - spans[from - 1].bottom : from + 1 < spans.length ? spans[from + 1].top - own.bottom : 0;
+  const step = own.bottom - own.top + spacing;
+  if (to > from) for (let i = from + 1; i <= to && i < spans.length; i++) out[i] = -step;
+  else for (let i = Math.max(to, 0); i < from; i++) out[i] = step;
+  return out;
+}

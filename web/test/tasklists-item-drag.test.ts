@@ -20,7 +20,8 @@ function setup(gripOnly: boolean) {
   });
   const w = mount(Host, { attachTo: document.body });
   const rows = Array.from((w.element as HTMLElement).querySelectorAll<HTMLElement>('li'));
-  rows.forEach((r, i) => { r.getBoundingClientRect = () => rect(i * 40); });
+  // like a browser, the rect includes the translateY the hook gives rows that make room
+  rows.forEach((r, i) => { r.getBoundingClientRect = () => rect(i * 40 + parseFloat(/translateY\((-?[\d.]+)px\)/.exec(r.style.transform)?.[1] ?? '0')); });
   return { w, rows, onMove };
 }
 const touch = (el: Element, type: string, y: number) => el.dispatchEvent(pe(type, { x: 10, y, pointerType: 'touch' }));
@@ -30,6 +31,8 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => cb(performance.now()), 16) as unknown as number);
   vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
+  // jsdom has no DOMMatrix (every real browser has); a stand-in that reads the translateY the hook writes
+  vi.stubGlobal('DOMMatrix', class { m42: number; constructor(t: string) { this.m42 = parseFloat(/translateY\((-?[\d.]+)px\)/.exec(t)?.[1] ?? '0'); } });
   installWaapi();
   setAnimationSetting('full'); __setSystemReducedForTest(false);
 });
@@ -45,6 +48,47 @@ async function longPressDrag(row: HTMLElement, from: number, to: number, target:
 }
 
 describe('useItemDrag', () => {
+  it('the gap is the lifted row\'s layout height, however its lifted (scaled, tilted) rect looks', () => {
+    const { w, rows } = setup(false);
+    // the lifted card is drawn larger than its place (scale 1.05, tilt): 50 px tall instead of 40
+    rows[2].getBoundingClientRect = () => (rows[2].dataset.dragging ? { ...rect(75), height: 50, bottom: 125 } : rect(80)) as DOMRect;
+    touch(rows[2], 'pointerdown', 100);
+    vi.advanceTimersByTime(400);
+    win('pointermove', 10);
+    vi.advanceTimersByTime(100);
+    expect(rows[0].style.transform).toBe('translateY(40px)');
+    expect(rows[1].style.transform).toBe('translateY(40px)');
+    win('pointerup', 10);
+    w.unmount();
+  });
+  it('a row that goes while another is held: the gap is opened again for the same place', async () => {
+    const ids = ref(['a', 'b', 'c', 'd']);
+    const Host = defineComponent({
+      setup() {
+        const root = ref<HTMLElement | null>(null);
+        useItemDrag({ root, signature: () => ids.value.join(','), gripOnly: () => false, disabled: () => false, onMove: vi.fn() });
+        return () => h('ul', { ref: root }, ids.value.map((id) => h('li', { key: id, 'data-testid': 'tasklist-item', 'data-item-id': id }, id)));
+      },
+    });
+    const w = mount(Host, { attachTo: document.body });
+    const mock = () => Array.from((w.element as HTMLElement).querySelectorAll<HTMLElement>('li')).forEach((r, i) => {
+      r.getBoundingClientRect = () => rect(i * 40 + parseFloat(/translateY\((-?[\d.]+)px\)/.exec(r.style.transform)?.[1] ?? '0'));
+    });
+    mock();
+    const lis = () => Array.from((w.element as HTMLElement).querySelectorAll<HTMLElement>('li'));
+    touch(lis()[3], 'pointerdown', 140);
+    vi.advanceTimersByTime(400);
+    win('pointermove', 50);
+    vi.advanceTimersByTime(100);
+    expect(lis()[1].style.transform).toBe('translateY(40px)');
+    ids.value = ['a', 'b', 'c', 'd', 'e'].filter((x) => x !== 'a');
+    await flush();
+    mock();
+    // the rows after the new place stay shifted: the gap is not left closed
+    expect(lis().filter((r) => r.style.transform).length).toBeGreaterThan(0);
+    win('pointerup', 50);
+    w.unmount();
+  });
   it('a row dropped on another row reports that place', async () => {
     const { w, rows, onMove } = setup(false);
     await longPressDrag(rows[2], 100, 10);
