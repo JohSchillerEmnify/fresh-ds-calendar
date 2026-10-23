@@ -397,6 +397,9 @@ Google becomes available again
 Google asks the app to slow down for the next sync
 ```
 
+`Google asks the app to slow down for the next sync` → `POST /api/__test/rate-limit { "retryAfterSec": 4 }` (the next
+provider call answers "rate limited", ADR 0007), then waits for the next `/api/items` answer carrying `X-Stale: 1`.
+
 `the Google event X has:` compares dotted paths of the raw Google event resource (`calendarId` is the calendar the
 event lives in) with the given values.
 
@@ -414,6 +417,8 @@ once the slow-down is over I see the event {string} on {date}
 ```
 
 - Network: `context.setOffline(true|false)`.
+- `once the slow-down is over I see the event X on D`: waits until 4 s after the stale answer (the slow-down's end at
+  the latest), then for the event chip within the poll interval + 5 s.
 - Focus: dispatch `visibilitychange` (with `document.visibilityState` = `visible`) and `focus` on `window`.
 
 ## Mobile

@@ -88,6 +88,8 @@ export class World {
   private ownContexts: BrowserContext[] = [];
   colorScheme: 'light' | 'dark' | null = null;
   pollIntervalMs = DEFAULT_POLL_MS;
+  /** Epoch ms by which Google's slow-down ("Google asks the app to slow down ...") has ended at the latest. */
+  slowDownUntil = 0;
   /** Epoch ms the app clock currently shows (set by "the time is ... and the clock is running"). */
   clockNowMs?: number;
 

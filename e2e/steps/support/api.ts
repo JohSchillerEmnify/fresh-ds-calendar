@@ -89,6 +89,8 @@ export class Api {
   /** The fake consent screen grants the calendar scope (true) or leaves the checkbox unticked (false). */
   setCalendarGranted(granted: boolean) { return this.setup('/api/__test/oauth/calendar-access', { granted }); }
   setOutage(down: boolean) { return this.setup('/api/__test/outage', down ? { down, status: 503 } : { down }); }
+  /** The next provider call answers "rate limited" with this `Retry-After` (seconds), as Google does (ADR 0007). */
+  rateLimitNext(retryAfterSec: number) { return this.setup('/api/__test/rate-limit', { retryAfterSec }); }
 
   /**
    * Setup-only test endpoint call. With E2E_SOFT_TEST_API=1 a failure is logged instead of thrown: a diagnostic

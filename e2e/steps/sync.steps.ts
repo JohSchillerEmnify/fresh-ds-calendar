@@ -47,6 +47,15 @@ When('I wait for the automatic sync', async function (this: World) {
   await expect(status).not.toHaveAttribute('data-state', 'syncing');
 });
 
+/** Waits out Google's slow-down (`world.slowDownUntil`), then for the event within one poll interval + 5 s. */
+Then('once the slow-down is over I see the event {string} on {date}', async function (this: World, title: string, date: string) {
+  const wait = Math.max(0, this.slowDownUntil - Date.now());
+  const timeout = (this.pollIntervalMs || 30_000) + 5_000;
+  this.extendTimeout(wait + timeout);
+  await this.page.waitForTimeout(wait);
+  await expect(this.eventChip(title, date)).toBeVisible({ timeout });
+});
+
 When('I retry the sync', async function (this: World) {
   await this.page.getByTestId('sync-retry').click();
 });
