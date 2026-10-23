@@ -32,6 +32,11 @@ Given('a calendar {string} shared with me with edit rights by {string}', async f
   await this.api.remoteInsertCalendar(name, false, undefined, { id: owner, accessRole: 'writer', ownerEmail: owner });
 });
 
+Given('a calendar {string} shared with me read-only by {string}', async function (this: World, name: string, owner: string) {
+  // another person's primary calendar, my role is reader
+  await this.api.remoteInsertCalendar(name, false, undefined, { id: owner, accessRole: 'reader', ownerEmail: owner });
+});
+
 Given(
   'the calendar {string} contains an event {string} on {date} from {time} to {time}',
   async function (this: World, calendar: string, title: string, date: string, from: string, to: string) {

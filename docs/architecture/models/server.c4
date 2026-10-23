@@ -6,6 +6,9 @@ model {
     prefsStore = store 'Stored prefs' {
       description 'Per-person preferences on disk, the source of truth'
     }
+    reminderOverrides = store 'Reminder overrides' {
+      description 'The person\'s own reminders for events they can only read, kept when Google refuses them, and which way each calendar took'
+    }
     tasksApi = component 'Tasks API' {
       description 'Creates and updates a person\'s task lists, their tags included'
     }
@@ -109,6 +112,8 @@ model {
     backup -> themeFiles 'collects and restores, re-checking each theme like an import'
     canvasApi -> canvasStore 'reads and writes atomically'
     backup -> canvasStore 'collects and restores with the person\'s files'
+    calendarService -> reminderOverrides 'keeps and applies the reminders of read-only events when Google refuses them'
+    backup -> reminderOverrides 'collects and restores with the person\'s files'
     calendarService -> prefsStore 'reads what finishing an undated list does, on every completing write'
     calendarService -> googleProvider 'reads undated and finished lists by their private markers, without a date range'
     plugins -> doorPlugin 'mounts under /api/door when DOOR_API_TOKEN is set'

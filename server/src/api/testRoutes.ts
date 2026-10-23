@@ -162,6 +162,14 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json({ ok: true });
   });
 
+  // "Google accepts / refuses reminder changes in calendars I can only read": the mock's policy for reminders-only patches on reader calendars.
+  t.put('/remote/reader-reminders', async (c) => {
+    const b = (await body(c)) as { owner?: string; allow?: unknown } | undefined;
+    if (typeof b?.allow !== 'boolean') throw validation('allow must be a boolean', 'allow');
+    store(b.owner).setReaderReminders(b.allow);
+    return c.json({ allow: b.allow });
+  });
+
   // The person's tasks calendar id, found or created like the app does on first use.
   t.get('/tasks-calendar', async (c) => c.json({ id: await calendarOf(c.req.query('owner')).tasks.id() }));
 

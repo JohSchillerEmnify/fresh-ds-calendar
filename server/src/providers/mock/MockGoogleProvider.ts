@@ -5,7 +5,7 @@ import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDat
 import type { Clock } from '../../lib/clock.js';
 import { RateGuard } from '../google/RateGuard.js';
 import {
-  NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
+  NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
   type CalendarProvider, type GoogleEvent, type GoogleReminder, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
@@ -39,6 +39,8 @@ export class MockGoogleProvider implements CalendarProvider {
   private rateLimitNext: number | null = null;
   private revoked = false;
   private calendarMissing = false;
+  /** Whether Google takes a `reminders`-only patch on a calendar the person can only read (refused by default, like events.patch needs write access). */
+  private readerReminders: 'refuse' | 'allow' = 'refuse';
   private calendars: ProviderCalendar[] = MOCK_CALENDARS.map((c) => ({ ...c }));
   private timer: NodeJS.Timeout | null = null;
   private readonly file: string | null;
@@ -85,6 +87,11 @@ export class MockGoogleProvider implements CalendarProvider {
     this.calendarMissing = missing;
   }
 
+  /** Chooses whether a `reminders`-only patch on a reader / freeBusyReader calendar is accepted or answered with 403. */
+  setReaderReminders(allow: boolean): void {
+    this.readerReminders = allow ? 'allow' : 'refuse';
+  }
+
   setRevoked(revoked: boolean): void {
     this.revoked = revoked;
   }
@@ -102,6 +109,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.outage = null;
     this.guard = newGuard();
     this.rateLimitNext = null;
+    this.readerReminders = 'refuse';
     this.scheduleFlush();
   }
   get size(): number {
@@ -216,6 +224,7 @@ export class MockGoogleProvider implements CalendarProvider {
   async patchEvent(calendarId: string, eventId: string, patch: GoogleEventPatch, o?: WriteOptions): Promise<GoogleEvent> {
     this.check();
     this.requireCalendar(calendarId);
+    this.checkReaderPatch(calendarId, patch);
     const cur = this.events.get(key(calendarId, eventId)) ?? this.virtualInstance(calendarId, eventId);
     if (cur?.eventType === 'birthday') checkBirthdayPatch(cur, patch);
     return this.doPatch(calendarId, eventId, patch, o);
@@ -250,6 +259,15 @@ export class MockGoogleProvider implements CalendarProvider {
   // ---- internals ----
   private requireCalendar(id: string): void {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
+  }
+
+  /** Google answers 403 to a reminders-only patch on a calendar the person can only read (unless the test allows it). */
+  private checkReaderPatch(calendarId: string, patch: GoogleEventPatch): void {
+    const role = this.calendars.find((c) => c.id === calendarId)?.accessRole;
+    const keys = Object.entries(patch).filter(([, v]) => v !== undefined).map(([k]) => k);
+    if (this.readerReminders === 'refuse' && (role === 'reader' || role === 'freeBusyReader') && keys.length === 1 && keys[0] === 'reminders') {
+      throw new ProviderForbiddenError('Google 403: you need write access to this calendar');
+    }
   }
 
   private doSetDefaultReminders(calendarId: string, reminders: GoogleReminder[]): void {

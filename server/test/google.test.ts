@@ -5,7 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
-import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError } from '../src/providers/CalendarProvider.js';
+import { NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError, ReauthRequiredError } from '../src/providers/CalendarProvider.js';
 import { createGoogleProvider, GoogleProvider, makeApi, mapGoogleError } from '../src/providers/google/GoogleProvider.js';
 import { GoogleOAuth } from '../src/providers/google/auth.js';
 import { hasDriveScope } from '../src/auth/people.js';
@@ -327,5 +327,15 @@ describe('insufficient scope', () => {
     expect(mapGoogleError(e({ errors: [{ reason: 'insufficientPermissions' }] }))).toBeInstanceOf(CalendarPermissionMissingError);
     expect(mapGoogleError(e({ details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }] }))).toBeInstanceOf(CalendarPermissionMissingError);
     expect(mapGoogleError(e({ errors: [{ reason: 'rateLimitExceeded' }] }))).toBeInstanceOf(ProviderUnavailableError);
+  });
+
+  it('tells a permission 403 (forbidden) from quota 403s, which stay merely unavailable', () => {
+    const e = (reason: string) => Object.assign(new Error('x'), { response: { status: 403, data: { error: { errors: [{ reason }] } } } });
+    for (const reason of ['forbidden', 'requiredAccessLevel', 'writerAccess']) expect(mapGoogleError(e(reason))).toBeInstanceOf(ProviderForbiddenError);
+    for (const reason of ['quotaExceeded', 'dailyLimitExceeded', 'calendarUsageLimitsExceeded']) {
+      const m = mapGoogleError(e(reason));
+      expect(m).toBeInstanceOf(ProviderUnavailableError);
+      expect(m).not.toBeInstanceOf(ProviderForbiddenError);
+    }
   });
 });
