@@ -285,7 +285,7 @@ describe('test endpoints are 404 when TEST_MODE is off', () => {
   it('hides /api/__test/*', async () => {
     const p = makeApp({ TEST_MODE: 'false' });
     try {
-      for (const [m, u] of [['POST', '/api/__test/reset'], ['GET', '/api/__test/memory'], ['POST', '/api/__test/clock']]) {
+      for (const [m, u] of [['POST', '/api/__test/reset'], ['GET', '/api/__test/memory'], ['POST', '/api/__test/clock'], ['POST', '/api/__test/rate-limit']]) {
         const r = await p.json(m!, u!);
         expect(r.status).toBe(404);
         expect(r.body.error.code).toBe('NOT_FOUND');

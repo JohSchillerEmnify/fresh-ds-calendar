@@ -398,7 +398,8 @@ Google asks the app to slow down for the next sync
 ```
 
 `Google asks the app to slow down for the next sync` → `POST /api/__test/rate-limit { "retryAfterSec": 4 }` (the next
-provider call answers "rate limited", ADR 0007), then waits for the next `/api/items` answer carrying `X-Stale: 1`.
+provider call answers "rate limited", ADR 0007), then waits for two `/api/items` answers carrying `X-Stale: 1` (the
+sync that hits the limit and one full poll inside the cooldown).
 
 `the Google event X has:` compares dotted paths of the raw Google event resource (`calendarId` is the calendar the
 event lives in) with the given values.
@@ -1922,7 +1923,7 @@ the Canvas zoom is above {float}
 - "the Canvas has the area A with the note T in it" (fixture): `PUT /api/canvas` adds the area A (x 300, y 200, 480 x 360)
   to the saved ones, and `PATCH /api/tasklists/:id { canvas: { x: 320, y: 256 } }` places T 20, 56 inside it.
 - "I delete the area A on the Canvas": opens the Canvas, clicks A's `canvas-area-header` (opens the editor), clicks
-  `canvas-area-delete`, then waits until A is gone from the page and from `GET /api/canvas`. "the note T is in no area":
+  `canvas-area-delete` (first checking that a note lies in A: `data-area` A), then waits until A is gone from the page and from `GET /api/canvas`. "the note T is in no area":
   T is visible and has no (or an empty) `data-area`.
 - "I long-press the area A and drag it by DX, DY pixels": notes A's `data-x`/`data-y`, then a finger on the body of A
   (as "release without moving"), held 500 ms, moved by DX, DY in 10 steps and lifted. "the area A has moved by DX, DY":

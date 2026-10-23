@@ -141,6 +141,9 @@ When('I delete the area {string} on the Canvas', async function (this: World, na
   await openCanvas(this);
   const a = area(this, name);
   await expect(a).toBeVisible();
+  // the premise: the fixture's note lies in the area before it goes
+  const placedHere = this.byTestId('canvas-note', attr('data-area', name));
+  await expect(placedHere.first()).toBeVisible();
   await a.getByTestId('canvas-area-header').click();
   await this.page.getByTestId('canvas-area-delete').click();
   await expect(a).toHaveCount(0);

@@ -2,7 +2,7 @@
  * Provider-side steps (STEPS.md "Google (provider) side", colors, categories): read and change the raw Google events
  * through /api/__test/remote/*. Assertions poll, because UI-triggered writes (optimistic ticks) land asynchronously.
  */
-import { expect } from '@playwright/test';
+import { expect, type Response } from '@playwright/test';
 import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import type { GoogleEvent } from './support/api.js';
@@ -220,19 +220,19 @@ When('Google becomes available again', async function (this: World) {
 const SLOW_DOWN_SEC = 4;
 
 /**
- * The next Google call answers "rate limited" (ADR 0007). Waits for the sync that hits it: an `/api/items` answer the
- * server marked `X-Stale` (served from its cache during the cooldown). The cooldown ends at the latest
- * {@link SLOW_DOWN_SEC} after that answer (`world.slowDownUntil`).
+ * The next Google call answers "rate limited" (ADR 0007). Waits for two `/api/items` answers the server marked `X-Stale`
+ * (served from its cache during the cooldown): the sync that hits the limit and one full poll after it, so later steps
+ * see the app after a poll inside the cooldown. The cooldown ends at the latest {@link SLOW_DOWN_SEC} after the first
+ * (`world.slowDownUntil`).
  */
 When('Google asks the app to slow down for the next sync', async function (this: World) {
   if (this.page.url().startsWith('http')) await this.settled().catch(() => undefined);
   const timeout = (this.pollIntervalMs || 30_000) + 5_000;
-  this.extendTimeout(timeout);
-  const stale = this.page.waitForResponse(
-    (r) => new URL(r.url()).pathname === '/api/items' && r.headers()['x-stale'] === '1',
-    { timeout },
-  );
+  this.extendTimeout(2 * timeout);
+  const isStale = (r: Response) => new URL(r.url()).pathname === '/api/items' && r.headers()['x-stale'] === '1';
+  const first = this.page.waitForResponse(isStale, { timeout });
   await this.api.rateLimitNext(SLOW_DOWN_SEC);
-  await stale;
+  await first;
   this.slowDownUntil = Date.now() + SLOW_DOWN_SEC * 1000;
+  await this.page.waitForResponse(isStale, { timeout });
 });
