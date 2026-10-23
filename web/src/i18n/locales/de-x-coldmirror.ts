@@ -180,7 +180,6 @@ export default {
       appCert: { label: 'Signaturzertifikat der App (SHA-256), yo', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleich es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was geht ab, yo', hint: 'Die frischen Änderungen an der App', button: 'Zeig mal' },
       androidApp: { label: 'Android-App, fresh', updateLabel: 'App-Update, yo', hint: 'Fresh D. auf dein Handy, mit Wochen-Widget. Läuft überall, Digga', download: 'Runterladen, yo' },
-      server: { label: 'Server: {host}', hint: 'Auf welchem Fresh-D.-Server dein Kalender hängt, yo', change: 'Wechseln, yo' },
       installApp: { label: 'App installieren, yo', hint: 'Fresh D. auf deinen Home-Bildschirm, Digga', button: 'Zeig mal', title: 'Fresh D. installieren', step1: 'Tipp auf den Teilen-Button, yo', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügen, BÄMbus!', close: 'Alles klar, Digga' },
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },

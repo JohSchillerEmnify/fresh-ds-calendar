@@ -175,7 +175,7 @@ Given('the app runs inside the Android app with version code {int}', async funct
   await this.context.addInitScript((versionCode) => {
     (window as unknown as { Capacitor: unknown }).Capacitor = {
       isNativePlatform: () => true,
-      Plugins: { ServerChoice: { get: async () => ({}), appVersion: async () => ({ versionCode }) } },
+      Plugins: { ServerChoice: { appVersion: async () => ({ versionCode }) } },
     };
   }, code);
 });

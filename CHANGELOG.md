@@ -8,6 +8,7 @@
 - While the app is open, a reminder counts down the minutes really left ("Dentist starts in 28 min"), and the bedtime reminder stays until bedtime, counting down too.
 - With "Reminders in this browser" on, the bedtime reminder and the morning overview now also arrive as browser notifications, as chosen in Settings → Notifications.
 - Android widget: while task categories are switched off, task lists show their calendar's colour there too (with the new app).
+- Android app: no more "Which calendar?" question and no Server row in the settings: the app always uses cal.example.org (with the new app; if you used the home-network calendar, sign in once more).
 
 ## 2026-10-21
 - New setting "Minimum event length" (Settings → Calendar): Off, 15 or 30 minutes. Shorter events and task lists are then drawn at least that long everywhere, the phone widget included, so their titles stay readable; their real times don't change.

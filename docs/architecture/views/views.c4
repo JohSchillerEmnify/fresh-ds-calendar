@@ -287,15 +287,12 @@ views {
   }
 
   // Android app, widget and reminders
-  dynamic view chooseServer {
-    title 'Choosing the server in the Android app'
+  dynamic view startApp {
+    title 'Starting the Android app (ADR 0022: one configured server)'
 
-    owner -> calendar.androidApp.serverChoice 'picks "everywhere (internet)" at the first start'
-    calendar.androidApp.serverChoice -> calendar.web.appShell 'loads that server\'s web app, plugins working'
-    owner -> calendar.web.settings 'taps Change under Server'
-    calendar.web.settings -> calendar.androidApp.serverChoice 'clears the choice: the chooser shows again'
-    calendar.androidApp.serverChoice -> calendar.widget.store 'drops the old server\'s week and snapshot'
-    calendar.widget.fetcher -> calendar.server.itemsApi 'reads the week from the new server'
+    owner -> calendar.androidApp.shell 'opens the app: no question, the server is configuration'
+    calendar.androidApp.shell -> calendar.web.appShell 'loads https://cal.example.org\'s web app, plugins working'
+    calendar.widget.fetcher -> calendar.server.itemsApi 'reads the week from the same server'
   }
 
   dynamic view signInFromApp {

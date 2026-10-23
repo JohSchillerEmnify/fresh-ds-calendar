@@ -1,7 +1,7 @@
 # 0012 — The Android app is a Capacitor shell that loads the chosen server
 
-- Status: accepted (owner, 2026-10-13; server choice 2026-10-14)
-- Views shaped: `androidApp`, `chooseServer`, `prod`
+- Status: accepted (owner, 2026-10-13; server choice 2026-10-14, superseded by ADR 0022 on 2026-10-23)
+- Views shaped: `androidApp`, `startApp`, `prod`
 
 ## Context
 

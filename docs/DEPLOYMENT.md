@@ -165,9 +165,8 @@ scripts/android-build.sh --no-publish
 - **Pinned signing certificate.** `scripts/android-build.sh` and `scripts/vps.sh deploy` check the APK's signing
   certificate against the SHA-256 in `android/release-cert.sha256` (`scripts/apk-cert.sh`) and publish nothing else;
   `/app.json` next to the APK carries the fingerprint, which Settings → About shows.
-- The app is a Capacitor shell that loads the server chosen on the first start (`https://cal.example.org` or
-  `http://cal.mordor.lan`; Settings → Account & data → Server → Change goes back to the chooser); web changes reach it on
-  the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
+- The app is a Capacitor shell that always loads `https://cal.example.org` (`ServerConfig.BASE_URL`, ADR 0022; no
+  first-start question); web changes reach it on the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
 - From another machine than sauron, `scripts/android-build.sh` publishes with scp/ssh to sauron (`SAURON=user@host`). Build
   with sauron's key (`~/calendar-android-key`): an APK signed with another key cannot update the installed app.
 - **Public server (VPS)**: the APK is not in the image. `scripts/vps.sh deploy` (run from the laptop clone) also copies

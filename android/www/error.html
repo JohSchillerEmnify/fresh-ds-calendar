@@ -8,23 +8,20 @@
   body { font: 16px system-ui, sans-serif; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; background: #faf9fe; color: #2f323a; }
   @media (prefers-color-scheme: dark) { body { background: #121318; color: #e3e2e9; } }
   a { display: inline-block; margin: 16px 6px 0; padding: 12px 24px; border-radius: 24px; background: #495f8b; color: #fff; text-decoration: none; }
-  a.alt { background: transparent; color: inherit; border: 1px solid #afb1bc; }
 </style>
 </head>
 <body>
 <main>
   <h1 id="title">Calendar not reachable</h1>
-  <p id="hint">Check your connection (the home-network calendar needs the home Wi-Fi or VPN) and try again.</p>
+  <p id="hint">Check your internet connection and try again.</p>
   <a id="retry" href="/__server/retry">Try again</a>
-  <a id="other" class="alt" href="/__server/choose">Choose another calendar</a>
 </main>
 <script>
   if ((navigator.language || '').startsWith('de')) {
     document.documentElement.lang = 'de';
     document.getElementById('title').textContent = 'Kalender nicht erreichbar';
-    document.getElementById('hint').textContent = 'Verbindung prüfen (der Kalender im Heimnetz braucht das Heim-WLAN oder VPN) und nochmal versuchen.';
+    document.getElementById('hint').textContent = 'Internetverbindung prüfen und nochmal versuchen.';
     document.getElementById('retry').textContent = 'Nochmal versuchen';
-    document.getElementById('other').textContent = 'Anderen Kalender wählen';
   }
 </script>
 </body>
