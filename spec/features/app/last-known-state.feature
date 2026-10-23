@@ -39,8 +39,8 @@ Feature: The app opens with the last known state
       | Eggs | no   |
     And I open the day view for 2026-10-12
     And I open the settings
-    And I choose the theme mode "Dark"
     And I choose "Deutsch" as the language
+    And I choose the theme mode "Dark"
     And I have seen the day view for 2026-10-12
     And the network connection is lost
     When I open the app again

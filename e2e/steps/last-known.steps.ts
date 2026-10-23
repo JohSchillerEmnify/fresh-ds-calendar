@@ -42,8 +42,9 @@ Given('I have seen the {view} view for {date}', async function (this: World, vie
 });
 
 When('I open the app again', async function (this: World) {
-  // the page must not wait for the app's data: only for the document and its scripts
+  // the app is open once a calendar view shows; nothing waits for its data (a slow server must not hold the step up)
   await this.page.reload({ waitUntil: 'domcontentloaded' });
+  await this.calendarShown();
 });
 
 Given('the server answers only after {int} seconds', async function (this: World, seconds: number) {

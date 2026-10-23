@@ -458,7 +458,8 @@ this device keeps no last known calendar
   service worker controls the page (so the app shell also opens offline) and the app has saved its last known state
   (`<html data-last-known="saved">`, set after the debounced IndexedDB write, and the stored snapshot holds a range
   containing D).
-- "I open the app again": reloads the page (the last opened view) without waiting for the app to settle.
+- "I open the app again": reloads the page (the last opened view) and waits until a calendar view shows, not for the
+  app to settle (its data may not come).
 - "the server answers only after N seconds": `POST /api/__test/slow { ms: N*1000 }` (API.md); every later `/api` answer
   but `/api/__test/*` waits that long, until reset.
 - "the server has answered": waits (slow-down + 10 s at most) until `sync-status` carries a `data-last-sync` (a fresh

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-23
+- On a bad or no connection the app now opens at once with what it showed last on this device (the days you looked at in the last four weeks, your task lists, settings and language), with a small "Last updated 08:12" note; fresh data replaces it as soon as the server answers. Changes still need a connection. Signing out removes it from the device.
 - Dragging a task list item: the other items now slide aside to open a gap where it will land, instead of the item lying on top of them.
 - Calendars you can only read: their default reminders can now be set in Settings → Reminders too. Google keeps them for you where it allows; otherwise the app keeps them, and they ring like any other.
 - Reminders no longer say "starts in 30 min", which was wrong by the time you looked: they name the appointment with its times, like Google Calendar ("12:00 – 13:30", with the day first when it is not today's).
