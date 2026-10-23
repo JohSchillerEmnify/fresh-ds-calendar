@@ -24,7 +24,7 @@ public class WeekDataTest {
     }
 
     private static WeekData parse(String... items) throws Exception {
-        return WeekData.fromItems(new JSONArray("[" + String.join(",", items) + "]"), TODAY, MONDAY, 0);
+        return WeekData.fromItems(new JSONArray("[" + String.join(",", items) + "]"), TODAY, MONDAY, 0, true);
     }
 
     @Test

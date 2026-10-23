@@ -153,14 +153,15 @@ final class WeekData {
      * @param today the current date (open task lists of the past days are carried over to it, like the web app)
      * @param weekStart the Monday of the requested week
      * @param timeMillis when the response was fetched
+     * @param categoriesOn the person's "Task categories" switch; off, a task list takes its calendar's colour, as in the app
      */
-    static WeekData fromItems(JSONArray items, LocalDate today, LocalDate weekStart, long timeMillis) throws JSONException {
+    static WeekData fromItems(JSONArray items, LocalDate today, LocalDate weekStart, long timeMillis, boolean categoriesOn) throws JSONException {
         WeekData w = new WeekData(weekStart, timeMillis);
         List<Candidate> candidates = new ArrayList<>();
         for (int i = 0; i < items.length(); i++) {
             JSONObject it = items.getJSONObject(i);
             if ("tasklist".equals(it.optString("kind"))) {
-                addTaskList(w, it, today);
+                addTaskList(w, it, today, categoriesOn);
                 continue;
             }
             LocalDate[] range = barRange(it);
@@ -248,7 +249,7 @@ final class WeekData {
     /** Open lists dated up to this many days before today are carried over to today (web: CARRY_OVER_DAYS). */
     static final int CARRY_OVER_DAYS = 30;
 
-    private static void addTaskList(WeekData w, JSONObject it, LocalDate today) {
+    private static void addTaskList(WeekData w, JSONObject it, LocalDate today, boolean categoriesOn) {
         if (it.isNull("date") || it.optString("date").length() < 10) return; // undated: in no calendar view
         LocalDate date = LocalDate.parse(it.optString("date").substring(0, 10));
         boolean carried = date.isBefore(today) && it.optInt("doneCount") < it.optInt("totalCount")
@@ -267,7 +268,9 @@ final class WeekData {
             JSONObject n = names.optJSONObject(i);
             if (n != null && !n.optBoolean("done")) open.add(n.optString("title"));
         }
-        put(w, date, Item.taskList(it.optString("id"), it.optString("title"), start, end, it.optString("color"),
+        // no category colours while task categories are off (owner rule): the calendar's colour, as in the app
+        String color = categoriesOn ? it.optString("color") : it.optString("calendarColor", it.optString("color"));
+        put(w, date, Item.taskList(it.optString("id"), it.optString("title"), start, end, color,
                 it.optInt("doneCount"), it.optInt("totalCount"), open));
     }
 

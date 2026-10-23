@@ -5,6 +5,9 @@
 - Each kind of notification has its own icon: a calendar page for appointments, a checklist for task lists, a sunrise for the morning overview and the moon only for bedtime.
 - Android app: a reminder counts down live to the start, then shows just the times until the appointment ends and disappears; the bedtime reminder says "Bedtime at 23:00", counts down to it and goes away at wake-up. Please install the new app from the download link to get this.
 - Reminders in the browser now also reach you on days without appointments today, and reminders around the change to winter time ring at the right moment.
+- While the app is open, a reminder counts down the minutes really left ("Dentist starts in 28 min"), and the bedtime reminder stays until bedtime, counting down too.
+- With "Reminders in this browser" on, the bedtime reminder and the morning overview now also arrive as browser notifications, as chosen in Settings → Notifications.
+- Android widget: while task categories are switched off, task lists show their calendar's colour there too (with the new app).
 
 ## 2026-10-21
 - New setting "Minimum event length" (Settings → Calendar): Off, 15 or 30 minutes. Shorter events and task lists are then drawn at least that long everywhere, the phone widget included, so their titles stay readable; their real times don't change.
