@@ -22,8 +22,10 @@ export const MAX_PLAN = 500;
 
 /** The browser's push endpoint and its encryption keys, as `PushSubscription.toJSON()` returns them. */
 export interface PushTarget { endpoint: string; keys: { p256dh: string; auth: string } }
+/** What a push is about; the service worker shows each kind with its own icon (absent in plans stored before kinds). */
+export type PushKind = 'event' | 'tasklist' | 'summary' | 'bedtime';
 /** One push to send at `at` (epoch ms). */
-export interface PlanEntry { at: number; title: string; body: string; key: string }
+export interface PlanEntry { at: number; title: string; body: string; key: string; kind?: PushKind }
 interface StoredSubscription extends PushTarget { plan: PlanEntry[]; sent: Array<{ key: string; at: number }> }
 interface StoredPush { subscriptions: StoredSubscription[] }
 /** What one tick did for one browser: the keys it sent and whether the push service said the subscription is gone. */
@@ -101,9 +103,9 @@ export function webPushSender(vapid: VapidKeys, subject: string, o: { fetchFn?: 
 
 /** E2E sender: records every push instead of calling a push service (`GET /api/__test/pushes`). */
 export class RecordingSender implements PushSender {
-  readonly sent: Array<{ endpoint: string; title: string; body: string; key: string }> = [];
+  readonly sent: Array<{ endpoint: string; title: string; body: string; key: string; kind?: PushKind }> = [];
   async send(target: PushTarget, payload: string): Promise<void> {
-    this.sent.push({ endpoint: target.endpoint, ...(JSON.parse(payload) as { title: string; body: string; key: string }) });
+    this.sent.push({ endpoint: target.endpoint, ...(JSON.parse(payload) as { title: string; body: string; key: string; kind?: PushKind }) });
   }
   reset(): void { this.sent.length = 0; }
 }
@@ -229,7 +231,7 @@ export class PushService {
     for (const e of s.plan) {
       if (e.at > now || now - e.at > CATCH_UP_MS || s.sent.some((x) => x.key === e.key)) continue;
       try {
-        await this.d.sender.send(s, JSON.stringify({ title: e.title, body: e.body, key: e.key }));
+        await this.d.sender.send(s, JSON.stringify({ title: e.title, body: e.body, key: e.key, kind: e.kind }));
         if (job.open) job.sent.push({ key: e.key, at: e.at });
       } catch (err) {
         const code = (err as { statusCode?: number }).statusCode;

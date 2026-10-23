@@ -172,6 +172,7 @@ export default {
     reload: 'Reload',
   },
   reminders: {
+    notification: { times: '{start} – {end}', dayTime: '{day}, {time}' },
     title: 'Reminders',
     atStart: 'At start',
     days: '{days} day | {days} days',

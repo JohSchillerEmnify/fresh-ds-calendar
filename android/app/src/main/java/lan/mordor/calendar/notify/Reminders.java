@@ -6,7 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import androidx.core.app.NotificationManagerCompat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,27 +24,50 @@ public final class Reminders {
 
     private Reminders() {}
 
-    /** One reminder: when it is due (epoch ms) and its notification text. */
+    /** The kinds of reminders; each shows with its own status bar icon. */
+    static final List<String> KINDS = Arrays.asList("event", "tasklist", "summary", "bedtime");
+
+    /**
+     * The kind of a reminder: the given one when known, else the one its id implies (reminders stored by an older web app
+     * carry none): {@code bedtime} and {@code morning} (the overview, kind {@code summary}), every other id an event.
+     */
+    static String kindOf(String id, String kind) {
+        if (kind != null && KINDS.contains(kind)) return kind;
+        if ("bedtime".equals(id)) return "bedtime";
+        if ("morning".equals(id)) return "summary";
+        return "event";
+    }
+
+    /**
+     * One reminder: when it is due (epoch ms), its notification text, its kind, the start it counts down to while it is
+     * shown (epoch ms; 0 = no countdown) and the end at which the notification goes away (epoch ms; 0 = it stays).
+     */
     public static final class Entry {
         public final String id;
         public final long at;
         public final String title;
         public final String body;
+        public final String kind;
+        public final long start;
+        public final long end;
 
-        Entry(String id, long at, String title, String body) {
+        Entry(String id, long at, String title, String body, String kind, long start, long end) {
             this.id = id;
             this.at = at;
             this.title = title;
             this.body = body;
+            this.kind = kindOf(id, kind);
+            this.start = start;
+            this.end = end;
         }
 
         String toJson() throws JSONException {
-            return new JSONObject().put("at", at).put("title", title).put("body", body).toString();
+            return new JSONObject().put("at", at).put("title", title).put("body", body).put("kind", kind).put("start", start).put("end", end).toString();
         }
 
         static Entry fromJson(String id, String json) throws JSONException {
             JSONObject o = new JSONObject(json);
-            return new Entry(id, o.getLong("at"), o.getString("title"), o.optString("body", ""));
+            return new Entry(id, o.getLong("at"), o.getString("title"), o.optString("body", ""), o.optString("kind", null), o.optLong("start", 0), o.optLong("end", 0));
         }
     }
 
@@ -56,10 +81,12 @@ public final class Reminders {
         setAlarm(ctx, e);
     }
 
-    /** Removes the reminder and its alarm. */
+    /** Removes the reminder, its alarm, the alarm of its start and its notification if it is showing. */
     public static void cancel(Context ctx, String id) {
         prefs(ctx).edit().remove(id).apply();
         alarms(ctx).cancel(pendingIntent(ctx, id));
+        alarms(ctx).cancel(ReminderReceiver.startedAlarm(ctx, id, null));
+        NotificationManagerCompat.from(ctx).cancel(id.hashCode());
     }
 
     /** The ids of every stored reminder (the web app cancels the ones its current plan no longer holds). */
@@ -106,10 +133,14 @@ public final class Reminders {
      * fires at once, so a reminder missed while the phone was off still shows after the reboot.
      */
     private static void setAlarm(Context ctx, Entry e) {
+        setAlarm(ctx, e.at, pendingIntent(ctx, e.id));
+    }
+
+    /** Sets an alarm at {@code at} (epoch ms), exact while idle when the app may (see above). */
+    static void setAlarm(Context ctx, long at, PendingIntent pi) {
         AlarmManager am = alarms(ctx);
-        PendingIntent pi = pendingIntent(ctx, e.id);
         boolean exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms();
-        if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, e.at, pi);
-        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, e.at, pi);
+        if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
     }
 }

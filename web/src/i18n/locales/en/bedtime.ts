@@ -2,6 +2,7 @@
 export default {
   reminder: 'Bedtime in {count} minute | Bedtime in {count} minutes',
   moon: 'Bedtime {time}',
+  notification: 'Bedtime at {time}',
   sun: 'Wake-up {time}',
   settings: {
     on: { label: 'Bedtime mode', hint: 'Shows the night in the calendar views and reminds you before bedtime' },

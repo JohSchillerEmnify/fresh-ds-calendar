@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-23
+- Reminders no longer say "starts in 30 min", which was wrong by the time you looked: they name the appointment with its times, like Google Calendar ("12:00 – 13:30", with the day first when it is not today's).
+- Each kind of notification has its own icon: a calendar page for appointments, a checklist for task lists, a sunrise for the morning overview and the moon only for bedtime.
+- Android app: a reminder counts down live to the start, then shows just the times until the appointment ends and disappears; the bedtime reminder says "Bedtime at 23:00", counts down to it and goes away at wake-up. Please install the new app from the download link to get this.
+- Reminders in the browser now also reach you on days without appointments today, and reminders around the change to winter time ring at the right moment.
+
 ## 2026-10-21
 - New setting "Minimum event length" (Settings → Calendar): Off, 15 or 30 minutes. Shorter events and task lists are then drawn at least that long everywhere, the phone widget included, so their titles stay readable; their real times don't change.
 - Events in the day and week views are now always drawn exactly as long as they last, so back-to-back events of the same length look the same; very short events are drawn thin.

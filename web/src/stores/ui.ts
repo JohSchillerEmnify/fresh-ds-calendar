@@ -98,9 +98,13 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = [...snackbars.value.slice(-2), { id, text, duration: 4000, ...opts }];
     return id;
   }
+  /** Changes the text of a snackbar that is still shown (a reminder counting down); unknown ids are ignored. */
+  function update(id: number, text: string): void {
+    if (snackbars.value.some((s) => s.id === id && s.text !== text)) snackbars.value = snackbars.value.map((s) => (s.id === id ? { ...s, text } : s));
+  }
   function dismiss(id: number): void {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, dismiss };
+  return { pickerOpen, filtersShown, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, update, dismiss };
 });

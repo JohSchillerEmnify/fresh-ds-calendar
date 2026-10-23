@@ -7,11 +7,12 @@
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkOnly } from 'workbox-strategies';
+import { notificationLook } from './pwa/notificationLook';
 
 /** The parts of the worker scope this file uses (the project compiles with the DOM lib, not the WebWorker one). */
 interface WorkerScope {
   __WB_MANIFEST: Array<string | { url: string; revision: string | null }>;
-  registration: { showNotification(title: string, o: { body: string; tag: string; data: { key: string } }): Promise<void> };
+  registration: { showNotification(title: string, o: { body: string; tag: string; badge: string; icon: string; data: { key: string } }): Promise<void> };
   clients: {
     claim(): Promise<void>;
     matchAll(o: { type: 'window'; includeUncontrolled: boolean }): Promise<Array<{ focus(): Promise<unknown> }>>;
@@ -35,11 +36,14 @@ sw.addEventListener('message', (e: { data?: { type?: string } }) => {
   if (e.data?.type === 'SKIP_WAITING') void sw.skipWaiting();
 });
 
-/** A reminder arrives: `{ title, body, key }`, shown with `tag: key` so a re-send replaces it instead of doubling. */
-sw.addEventListener('push', (e: { data?: { json(): { title?: string; body?: string; key?: string } } | null; waitUntil(p: Promise<unknown>): void }) => {
-  let m: { title?: string; body?: string; key?: string } = {};
+/**
+ * A reminder arrives: `{ title, body, key, kind }`, shown with `tag: key` so a re-send replaces it instead of doubling, and
+ * with the badge and icon of its kind.
+ */
+sw.addEventListener('push', (e: { data?: { json(): { title?: string; body?: string; key?: string; kind?: string } } | null; waitUntil(p: Promise<unknown>): void }) => {
+  let m: { title?: string; body?: string; key?: string; kind?: string } = {};
   try { m = e.data?.json() ?? {}; } catch { /* an unreadable payload still shows a notification, as browsers require */ }
-  e.waitUntil(sw.registration.showNotification(m.title ?? 'Calendar', { body: m.body ?? '', tag: m.key ?? 'reminder', data: { key: m.key ?? '' } }));
+  e.waitUntil(sw.registration.showNotification(m.title ?? 'Calendar', { body: m.body ?? '', tag: m.key ?? 'reminder', ...notificationLook(m.kind), data: { key: m.key ?? '' } }));
 });
 
 /** Tapping a reminder closes it and brings the app forward (a window that is open, else a new one). */

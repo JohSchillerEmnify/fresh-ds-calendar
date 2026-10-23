@@ -4,6 +4,7 @@ import type { PartialMessages } from '../../schema';
 export default {
   reminder: 'Gleich is Bettzeit, in {count} Minuhd | Gleich is Bettzeit, in {count} Minuden',
   moon: 'Ins Bett um {time}',
+  notification: 'Ins Bett um {time}',
   sun: 'Aufstehn um {time}',
   settings: {
     on: { label: 'Bettzeit', hint: 'Zeigt die Nachd im Kalender un sacht dir vorher Bescheid' },

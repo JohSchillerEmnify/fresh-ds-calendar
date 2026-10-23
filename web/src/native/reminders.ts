@@ -3,8 +3,15 @@
  * show as system notifications when the app is not in the foreground. Absent in a browser; reached through
  * `window.Capacitor.Plugins` like the widget bridge, so the web bundle needs no Capacitor dependency.
  */
+/** What a notification is about; the native side shows each kind with its own status bar icon. */
+export type ReminderKind = 'event' | 'tasklist' | 'summary' | 'bedtime';
+
 export interface RemindersPlugin {
-  schedule(o: { id: string; at: number; title: string; body: string }): Promise<unknown>;
+  /**
+   * `start` (epoch ms): what the notification counts down to while it is shown; absent = no countdown. `end` (epoch ms): the
+   * notification shows only the text from `start` on and disappears at `end`; absent = it stays.
+   */
+  schedule(o: { id: string; at: number; title: string; body: string; kind: ReminderKind; start?: number; end?: number }): Promise<unknown>;
   cancel(o: { id: string }): Promise<unknown>;
   /** The ids of every reminder the plugin still holds. */
   list(): Promise<{ ids: string[] }>;

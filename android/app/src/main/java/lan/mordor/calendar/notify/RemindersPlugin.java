@@ -25,7 +25,11 @@ import org.json.JSONException;
 public class RemindersPlugin extends Plugin {
     static final String NOTIFICATIONS = "notifications";
 
-    /** {@code schedule({ id, at, title, body })}: {@code at} in epoch ms; replaces a pending reminder with the same id. */
+    /**
+     * {@code schedule({ id, at, title, body, kind?, start?, end? })}: times in epoch ms; replaces a pending reminder with the
+     * same id. {@code kind} picks the status bar icon; {@code start} is what the notification counts down to, {@code end}
+     * when it goes away.
+     */
     @PluginMethod
     public void schedule(PluginCall call) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState(NOTIFICATIONS) == PermissionState.PROMPT) {
@@ -51,7 +55,9 @@ public class RemindersPlugin extends Plugin {
         String body = call.getString("body", "");
         if (body.length() > 500) body = body.substring(0, 500);
         try {
-            Reminders.schedule(getContext(), new Reminders.Entry(id, at, title, body));
+            Long start = call.getLong("start", 0L);
+            Long end = call.getLong("end", 0L);
+            Reminders.schedule(getContext(), new Reminders.Entry(id, at, title, body, call.getString("kind"), start == null ? 0 : start, end == null ? 0 : end));
         } catch (JSONException e) {
             call.reject("could not store the reminder", e);
             return;

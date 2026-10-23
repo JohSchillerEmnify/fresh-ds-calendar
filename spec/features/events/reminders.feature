@@ -62,7 +62,8 @@ Feature: Several reminders per event, read from and written to Google
     When I add the default reminder "15 min" for the calendar "Personal"
     Then the calendar "Personal" has the default reminders "30, 15" in Google
 
-  Scenario: The app reminds at every reminder of an event
+  Scenario: The app reminds at every reminder of an event and counts down while it is open
+    The reminder in the open app says how long is left and keeps that right as the minutes pass.
     Given the calendar contains an event "Dentist" on 2026-10-12 from 11:00 to 11:30
     And the event "Dentist" has its own reminders "30, 15" in Google
     And the time is 2026-10-12 10:25 and the clock is running
@@ -70,8 +71,10 @@ Feature: Several reminders per event, read from and written to Google
     Then I do not see a transition warning
     When 5 minutes pass
     Then I see the transition warning "Dentist starts in 30 min"
+    When 2 minutes pass
+    Then I see the transition warning "Dentist starts in 28 min"
     When I dismiss the transition warning
-    And 15 minutes pass
+    And 13 minutes pass
     Then I see the transition warning "Dentist starts in 15 min"
 
   Scenario: No reminder when neither the calendar nor the event has one
@@ -93,7 +96,7 @@ Feature: Several reminders per event, read from and written to Google
     When I open the reminder settings
     And I switch on reminders for task lists
     And I open the week view for 2026-10-12
-    Then I see the transition warning "Taxes starts in 30 min"
+    Then I see the transition warning "Taxes starts in 29 min"
 
   @web-push
   Scenario: The browser push switch subscribes this browser
@@ -110,7 +113,35 @@ Feature: Several reminders per event, read from and written to Google
     And I switch on reminders in this browser
     Then the server has 2 planned pushes for this browser
     When the time is 2026-10-12 10:10
-    Then the push "Dentist starts in 30 min" was sent once
+    Then the push "Dentist" saying "10:40 – 11:30" was sent once
+
+  @web-push
+  Scenario: A reminder push names the event's times, not how long until it starts
+    The push may be read long after it came, so it never says "in 30 min"; like Google Calendar it gives the times,
+    and the day first when the event is not on the day the reminder comes.
+    Given the calendar contains an event "Trip" on 2026-10-13 from 12:00 to 13:30
+    And the event "Trip" has its own reminders "1440, 30" in Google
+    And the time is 2026-10-12 10:00
+    When I open the reminders settings
+    And I switch on reminders in this browser
+    Then the server plans the push "Trip" saying "Tue 13 Oct, 12:00 – 13:30" for 2026-10-12 12:00
+    And the server plans the push "Trip" saying "12:00 – 13:30" for 2026-10-13 11:30
+
+  @web-push
+  Scenario: Each kind of reminder push has its own icon
+    Given the calendar contains an event "Dentist" on 2026-10-12 from 11:00 to 11:30
+    And the event "Dentist" has its own reminders "30" in Google
+    And the calendar contains a task list "Taxes" on 2026-10-12 at 11:00 for 30 minutes with items:
+      | item  | done |
+      | Forms | no   |
+    And the task list "Taxes" has its own reminders "30" in Google
+    And the time is 2026-10-12 10:00
+    When I open the reminder settings
+    And I switch on reminders for task lists
+    And I switch on reminders in this browser
+    And the time is 2026-10-12 10:30
+    Then the push "Dentist" was sent once with the "calendar page" icon
+    And the push "Taxes" was sent once with the "checklist" icon
 
   @web-push @backlog
   Scenario: Signing out stops reminders in this browser
