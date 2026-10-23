@@ -152,9 +152,8 @@ export function startTransitionWarnings(): () => void {
           const old = shown.get(occurrence);
           if (old) ui.dismiss(old.id);
           // the minutes left, counted down on every tick while it is shown
-          const text = liveText(p.itemTitle, p.startAt, minuteStart);
-          // screen readers hear it once, not every minute of the countdown
-          const id = ui.notify(text, { duration: 0, testid: 'transition-warning', announce: text });
+          // read out when it appears, not on every minute of the countdown
+          const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning', countdown: true });
           shown.set(occurrence, { id, startAt: p.startAt, itemTitle: p.itemTitle });
         }
       },
@@ -166,7 +165,8 @@ export function startTransitionWarnings(): () => void {
       void refreshPushState();
       let sentSig = '';
       watch(
-        () => [items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, prefs.bedtime, pushEndpoint.value] as const,
+        // a new day moves the window on: an open tab keeps the server's plan 7 days ahead
+        () => [clock.today, items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, prefs.bedtime, pushEndpoint.value] as const,
         async () => {
           const endpoint = pushEndpoint.value;
           if (!endpoint) { sentSig = ''; return; }
@@ -177,7 +177,9 @@ export function startTransitionWarnings(): () => void {
           if (prefs.notify.bedtime && prefs.bedtime.enabled) {
             const range = { from: clock.today, to: toIsoDate(addDays(clock.todayDate, PLAN_DAYS)) };
             const source = { get: (date: string) => (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
-            entries.push(...bedtimePushPlan(bedtimeWindows(range, prefs.bedtime, source), prefs.bedtime.reminderMinutes, clock.nowTick, clock.timeZone));
+            // a night ending after the loaded days may depend on an appointment not loaded yet (dynamic mode): left out
+            const nights = bedtimeWindows(range, prefs.bedtime, source).filter((w) => w.wakeDate < range.to);
+            entries.push(...bedtimePushPlan(nights, prefs.bedtime.reminderMinutes, clock.nowTick, clock.timeZone));
           }
           if (prefs.notify.morning) entries.push(...morningPushPlan(datedDays(), prefs.notify.morningTime, clock.nowTick, clock.timeZone));
           entries.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key));

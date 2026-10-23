@@ -14,10 +14,10 @@ export interface SnackbarMessage {
   /** Called when the person closes the snackbar with ✕ (not when the action is taken or the time runs out). */
   onClose?: () => void;
   /**
-   * What screen readers hear, once, instead of the text: for a countdown whose text changes every minute (hearing each
-   * change would be noise).
+   * A countdown whose text changes every minute: screen readers hear it when it appears and can read it any time, but its
+   * changes are not announced (hearing each minute would be noise).
    */
-  announce?: string;
+  countdown?: boolean;
 }
 
 export interface OpenDialog {

@@ -137,8 +137,8 @@ export function startBedtimeReminder(): () => void {
   /** The snackbar on screen and its night: it counts down on every tick and goes away at bedtime. */
   let shown: { id: number; night: string } | null = null;
   const offSnackbar = addReminderSink((r) => {
-    // screen readers hear it once, not every minute of the countdown
-    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder', announce: text(r.inMin) }), night: r.night };
+    // read out when it appears, not on every minute of the countdown
+    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder', countdown: true }), night: r.night };
   });
 
   scope = effectScope(true);
