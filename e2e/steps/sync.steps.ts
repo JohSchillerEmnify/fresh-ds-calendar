@@ -8,6 +8,8 @@ import type { World } from './support/world.js';
 const FOCUS_DEBOUNCE_MS = 500;
 
 When('the network connection is lost', async function (this: World) {
+  // The connection drops after the open page has loaded (its lazy chunks and first fetches), not in the middle of it.
+  if (this.page.url().startsWith('http')) await this.page.waitForLoadState('networkidle').catch(() => undefined);
   await this.context.setOffline(true);
 });
 

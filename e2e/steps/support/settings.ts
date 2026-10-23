@@ -1,5 +1,5 @@
 /** Shared helpers for steps that change settings in the Settings screen. */
-import { expect, type Locator } from '@playwright/test';
+import { expect, type Locator, type Request } from '@playwright/test';
 import { chooseOption, selectedLabel } from './ui.js';
 import type { World } from './world.js';
 
@@ -9,9 +9,15 @@ import type { World } from './world.js';
  */
 export async function saveSetting(world: World, alreadySelected: boolean, act: () => Promise<void>) {
   if (alreadySelected) return act();
-  const saved = world.page.waitForResponse(
-    (r) => new URL(r.url()).pathname === '/api/settings' && ['PATCH', 'PUT'].includes(r.request().method()),
-  );
+  const isSave = (r: Request) => new URL(r.url()).pathname === '/api/settings' && ['PATCH', 'PUT'].includes(r.method());
+  // Offline ("the network connection is lost") the save cannot answer: wait for it to fail instead.
+  if (!(await world.page.evaluate(() => navigator.onLine))) {
+    const failed = world.page.waitForEvent('requestfailed', isSave);
+    await act();
+    await failed;
+    return;
+  }
+  const saved = world.page.waitForResponse((r) => isSave(r.request()));
   await act();
   expect((await saved).status(), 'settings saved').toBe(200);
 }

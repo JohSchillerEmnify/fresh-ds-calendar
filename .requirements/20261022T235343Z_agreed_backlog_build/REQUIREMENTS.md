@@ -30,6 +30,18 @@ bad body); both scenarios green on mobile and desktop; seen red first (404 on th
 Assumptions: "for the next sync" = the next provider call (the first call of the next poll); the cooldown length is a
 test choice (4 s: longer than the assertions, short against the 2 s poll).
 
+### R2 (group 2) Dialog tap-beside, failed setting, yesterday's timed list
+
+R2.1 `I tap beside the dialog` (events-crud, 2 scenarios): clicks `sheet-scrim` at a viewport corner the open panel does
+not cover. The app already closes only a clean dialog (`AdaptiveSheet` `dismissOnScrim = !dirty`): only the step was
+missing.
+R2.2 "A setting that cannot be saved goes back to what it was": the app already rolls back and shows the banner. Two
+step fixes: `the network connection is lost` first waits for `networkidle` (it cut the lazy settings chunk, leaving a
+blank page), and `saveSetting` waits for the save request to fail while the browser is offline (it waited for a 200).
+R2.3 "A list I did not finish yesterday waits on today without a time": already implemented; tag removed only.
+
+Acceptance: the four scenarios green on mobile and desktop; the other scenarios using the network step stay green.
+
 ## Testing Plan
 
 Per group: unit/server test where server behaviour changes, then the targeted e2e scenarios red → green, then
