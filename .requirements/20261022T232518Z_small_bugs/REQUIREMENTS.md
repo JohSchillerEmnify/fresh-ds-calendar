@@ -122,3 +122,25 @@ The zoom month dots use `useTaskCategories().itemColor`, like every other item.
    draw no category colour while task categories are off" (clock, timeline, strip, zoom month, horizontal): the list
    is drawn in its calendar colour (non-vacuous) and the category colour is drawn nowhere in the view. Red before the fix
    for the zoom month only, 5/5 green after; the existing switch scenarios stay green.
+
+## Review follow-ups (coordinator review 2026-10-23)
+
+- **W2 (changes item 2's assumption):** the month picker's mouse drag no longer has a time limit (a slow, deliberate
+  drag turns the month); the 60 px and direction checks still reject clicks. The touch swipe keeps its 600 ms flick
+  limit (`bindSwipe`, untouched). AC: new @desktop scenario "A slow mouse drag changes the month inside the picker"
+  (900 ms press to release), red before, green after; all month-picker scenarios green on mobile and desktop.
+  Assumption: a slow mouse drag is a deliberate gesture, unlike a slow touch, which is more likely a scroll attempt.
+- **S2:** the 401 listener skips only the bare `/` (full path), like the router guard (`to.fullPath !== '/'`); `/?q`
+  is remembered. AC: unit test "remembers the start page with a query".
+- **S3:** `takeReturn()` uses the remembered return only when it is a path of this app (`^/(?!/)`), so a `//host`,
+  `scheme:` or relative value is ignored. AC: unit tests in `app.test.ts` ("the start page returns to ...", "... ignores
+  a remembered return that is not a path of this app").
+- **S4:** the Android widget snapshot's task lists use `listColor(l, categoriesOn)` (`categoriesOn` from the prefs, default
+  on). AC: unit test in `widget-snapshot.test.ts`. Gap, not changed: the native widget's own week fetch
+  (`WeekData.java` ~270, `it.optString("color")` from `/api/items`) still draws task lists in the category colour; it
+  needs the switch in the snapshot (or `calendarColor`) on the Java side and an APK build to verify.
+- **W1, not done (spec conflict):** moving the "+" button right of the open tray (`left: rail + --tray-w + 24px`) puts
+  its centre past the middle of an 820 px tablet, so the owner's scenario "On an iPad in left-handed mode the add button
+  sits on the left" fails (checked: red). With the tray open, every spot that does not cover the tray is in the right
+  half. Owner to choose: keep it over the tray, move it right of the tray and change that scenario, or another place.
+- **S1** (scenario for a session expiring mid-use): left for the owner.
