@@ -108,7 +108,7 @@ export default {
       },
     },
     notifications: {
-      hint: 'In the Android app these reminders also arrive while the app is closed. In the browser they appear inside the app only (notifications there need the HTTPS address).',
+      hint: 'These reminders also arrive while the app is closed: in the Android app, and in a browser where “Reminders in this browser” is on (Settings → Reminders; it needs the HTTPS address).',
       bedtime: 'Bedtime reminder',
       events: { label: 'Before appointments', hint: 'At each reminder of an appointment (Settings → Reminders)' },
       tasklists: 'Before task lists with a time',

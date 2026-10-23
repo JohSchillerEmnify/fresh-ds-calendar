@@ -17,7 +17,9 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
-import { itemStart, pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
+import { itemStart, PUSH_PLAN_DAYS, pushPlan, reminderPlan, reminderText, type PlannedReminder, type PushPlanEntry } from './reminderPlan';
+import { bedtimeWindows } from '@/features/bedtime/bedtime';
+import { bedtimePushPlan } from '@/features/bedtime/bedtimeReminder';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
@@ -58,6 +60,26 @@ export function morningOverview(segs: Segment[]): { title: string; body: string 
   return { title: t('settings.notifications.overview.title'), body: parts.join(' · ') };
 }
 
+/**
+ * The morning overviews the server pushes while the app is closed (Web Push): one per day whose overview time lies ahead
+ * within the next 7 days, with the same text as the native one, keyed by the day.
+ *
+ * @param days The planned days with their segments (hidden calendars already filtered out).
+ * @param time The overview time, `HH:MM`.
+ * @param nowMs Now, epoch ms.
+ * @param tz The calendar time zone.
+ * @returns The push plan entries, kind `summary`.
+ */
+export function morningPushPlan(days: ReadonlyArray<{ date: string; segs: Segment[] }>, time: string, nowMs: number, tz: string): PushPlanEntry[] {
+  const minuteStart = nowMs - (nowMs % 60_000);
+  const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
+  return days.flatMap(({ date, segs }) => {
+    const at = Date.parse(localToIso(date, time, tz));
+    if (at <= minuteStart || at > until) return [];
+    return [{ at, key: `morning:${date}`, kind: 'summary' as const, ...morningOverview(segs.filter((s) => !s.carriedFrom)) }];
+  });
+}
+
 let scope: EffectScope | null = null;
 
 /** Starts the watchers on the active Pinia (previous ones are stopped first). Returns a stop function. */
@@ -75,11 +97,12 @@ export function startTransitionWarnings(): () => void {
   const liveText = (itemTitle: string, startAt: number, minuteStart: number): string => reminderText(itemTitle, Math.round((startAt - minuteStart) / 60_000));
   let day = clock.today;
 
-  /** The next `PLAN_DAYS` days of segments, today first, without the calendars the person switched off. */
-  const days = (): Segment[][] => Array.from({ length: PLAN_DAYS }, (_, i) => {
+  /** The next `PLAN_DAYS` days with their segments, today first, without the calendars the person switched off. */
+  const datedDays = (): Array<{ date: string; segs: Segment[] }> => Array.from({ length: PLAN_DAYS }, (_, i) => {
     const date = i === 0 ? clock.today : toIsoDate(addDays(clock.todayDate, i));
-    return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
+    return { date, segs: (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
   });
+  const days = (): Segment[][] => datedDays().map((d) => d.segs);
   /**
    * Whether loaded ranges cover all `PLAN_DAYS` days from today, so a plan built now is complete (`byDate` has no entry for
    * a day without appointments, so it cannot tell). If not, the window is fetched; the watchers run again once it is in.
@@ -139,13 +162,21 @@ export function startTransitionWarnings(): () => void {
       void refreshPushState();
       let sentSig = '';
       watch(
-        () => [items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
+        () => [items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, prefs.bedtime, pushEndpoint.value] as const,
         async () => {
           const endpoint = pushEndpoint.value;
           if (!endpoint) { sentSig = ''; return; }
           // a plan of a partly loaded week would wipe the server's pushes of the days not loaded
           if (!windowLoaded()) return;
           const entries = pushPlan(plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }), clock.nowTick);
+          // the bedtime reminders and the morning overviews, as chosen in Settings → Notifications, by the same rules
+          if (prefs.notify.bedtime && prefs.bedtime.enabled) {
+            const range = { from: clock.today, to: toIsoDate(addDays(clock.todayDate, PLAN_DAYS)) };
+            const source = { get: (date: string) => (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
+            entries.push(...bedtimePushPlan(bedtimeWindows(range, prefs.bedtime, source), prefs.bedtime.reminderMinutes, clock.nowTick, clock.timeZone));
+          }
+          if (prefs.notify.morning) entries.push(...morningPushPlan(datedDays(), prefs.notify.morningTime, clock.nowTick, clock.timeZone));
+          entries.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key));
           const sig = `${endpoint}|${JSON.stringify(entries)}`;
           if (sig === sentSig) return;
           if (await sendPushPlan(endpoint, entries)) sentSig = sig;

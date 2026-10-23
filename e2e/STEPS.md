@@ -2356,6 +2356,8 @@ the clock widget says {string}
   "a K notification shows" / "its status bar icon is the I": the notification of kind K (event reminder, task list
   reminder, morning overview, bedtime reminder) uses the small icon I (`ic_stat_event` calendar page, `ic_stat_tasklist`
   checklist, `ic_stat_summary` sunrise, `ic_stat_bedtime` moon). Proven by `ReminderNotificationTest`.
+- "the morning overview is on at T" also runs in the browser suite (Web Push): `PATCH /api/prefs { notify: { morning: true,
+  morningTime: T } }`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 

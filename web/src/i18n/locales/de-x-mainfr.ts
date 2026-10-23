@@ -74,7 +74,7 @@ export default {
       notifications: 'Benachrichdigungen',
     },
     notifications: {
-      hint: 'In der Android-App kumma die Erinnerungen a, wenn die App zu is. Im Browser nur in der App (dafür brauchts die HTTPS-Adress).',
+      hint: 'Die Erinnerungen kumma a, wenn die App zu is: in der Android-App und im Browser, wenn „Erinnerungen in diesem Browser“ an is (dafür brauchts die HTTPS-Adress).',
       bedtime: 'Erinnerung vorm Bettgehn',
       events: { label: 'Vor Termin', hint: 'Bei jeder Erinnerung vom Termin' },
       tasklists: 'Vor Listen mit Uhrzeit',

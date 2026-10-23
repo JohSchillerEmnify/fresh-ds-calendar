@@ -105,7 +105,7 @@ export default {
       },
     },
     notifications: {
-      hint: 'In der Android-App kommen die Erinnerungen auch bei zugeklappter App, Digga. Im Browser nur in der App (da braucht es HTTPS).',
+      hint: 'Die Erinnerungen kommen auch bei zugeklappter App, Digga: in der Android-App und im Browser, wenn „Erinnerungen in diesem Browser“ an ist (da braucht es HTTPS).',
       bedtime: 'Bettzeit-Alarm',
       events: { label: 'Vor Terminen', hint: 'Bei jeder Erinnerung eines Termins (Einstellungen → Erinnerungen), yo' },
       tasklists: 'Vor Listen mit Uhrzeit',

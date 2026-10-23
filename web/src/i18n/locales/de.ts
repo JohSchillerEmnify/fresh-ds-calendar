@@ -102,7 +102,7 @@ export default {
       },
     },
     notifications: {
-      hint: 'In der Android-App kommen diese Erinnerungen auch, wenn die App geschlossen ist. Im Browser erscheinen sie nur in der App (Benachrichtigungen brauchen dort die HTTPS-Adresse).',
+      hint: 'Diese Erinnerungen kommen auch, wenn die App geschlossen ist: in der Android-App und in einem Browser, in dem „Erinnerungen in diesem Browser“ an ist (Einstellungen → Erinnerungen; dafür braucht es die HTTPS-Adresse).',
       bedtime: 'Erinnerung vor der Schlafenszeit',
       events: { label: 'Vor Terminen', hint: 'Bei jeder Erinnerung eines Termins (Einstellungen → Erinnerungen)' },
       tasklists: 'Vor Aufgabenlisten mit Uhrzeit',

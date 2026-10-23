@@ -16,6 +16,7 @@ import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { remindersPlugin } from '@/native/reminders';
 import { localToIso } from '@/features/calendar/zone';
+import { PUSH_PLAN_DAYS, type PushPlanEntry } from '@/features/calendar/reminderPlan';
 
 /** A reminder that is due. */
 export interface BedtimeReminder {
@@ -82,6 +83,27 @@ export function upcomingReminder(windows: readonly BedtimeWindow[], nowAbs: numb
   if (minutes <= 0) return null;
   const w = windows.filter((x) => x.start - minutes > nowAbs).sort((a, b) => a.start - b.start)[0];
   return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11), from: w.from, to: w.to } : null;
+}
+
+/**
+ * The bedtime reminders the server pushes while the app is closed (Web Push): one per night whose reminder time lies ahead
+ * within the next 7 days, saying the bedtime itself ("Bedtime at 23:00", never "in 30 minutes"), keyed by the night.
+ *
+ * @param windows The night windows of the planned days.
+ * @param minutes Reminder lead in minutes; 0 means no reminder.
+ * @param nowMs Now, epoch ms.
+ * @param tz The calendar time zone.
+ * @returns The push plan entries, kind `bedtime`.
+ */
+export function bedtimePushPlan(windows: readonly BedtimeWindow[], minutes: number, nowMs: number, tz: string): PushPlanEntry[] {
+  if (minutes <= 0) return [];
+  const minuteStart = nowMs - (nowMs % 60_000);
+  const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
+  return windows.flatMap((w) => {
+    const at = Date.parse(localToIso(w.from.slice(0, 10), w.from.slice(11), tz)) - minutes * 60_000;
+    if (at <= minuteStart || at > until) return [];
+    return [{ at, title: t('bedtime.notification', { time: w.from.slice(11) }), body: '', key: `bedtime:${w.wakeDate}`, kind: 'bedtime' as const }];
+  });
 }
 
 /** Id of the bedtime reminder in the native plugin (one pending at a time). */
