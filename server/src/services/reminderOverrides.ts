@@ -15,11 +15,15 @@ export type ReminderPath = 'google' | 'local';
 interface Stored {
   /** Per calendar id: the path that worked last, so a refused calendar is not asked again every time. */
   paths: Record<string, ReminderPath>;
+  /** Per calendar id: when `local` was recorded (epoch ms); it expires so Google is asked again. */
+  localSince: Record<string, number>;
   /** Calendar id -> event id -> the person's reminders for that event. */
   events: Record<string, Record<string, Reminders>>;
 }
 
 const FILE = 'reminder-overrides.json';
+/** How long a refusal is remembered before Google is asked again (a calendar's sharing may have changed). */
+export const LOCAL_PATH_TTL_MS = 24 * 3_600_000;
 
 /** Per-person reminder overrides of read-only events and the remembered storage path per calendar. */
 export class ReminderOverrideStore {
@@ -44,7 +48,7 @@ export class ReminderOverrideStore {
     const hit = this.cache.get(sub);
     if (hit && hit.stamp === stamp) return hit.data;
     const raw = stamp === 'none' ? null : readJson<Partial<Stored>>(file);
-    const data: Stored = { paths: raw?.paths ?? {}, events: raw?.events ?? {} };
+    const data: Stored = { paths: raw?.paths ?? {}, localSince: raw?.localSince ?? {}, events: raw?.events ?? {} };
     this.cache.set(sub, { stamp, data });
     return data;
   }
@@ -59,15 +63,18 @@ export class ReminderOverrideStore {
     return this.read(sub).events[calendarId]?.[eventId];
   }
 
-  /** The path remembered for the calendar, or `undefined` before the first change there. */
-  pathOf(sub: string, calendarId: string): ReminderPath | undefined {
-    return this.read(sub).paths[calendarId];
+  /** The path remembered for the calendar at `now` (epoch ms), or `undefined` before the first change there or once a `local` record is older than a day. */
+  pathOf(sub: string, calendarId: string, now: number): ReminderPath | undefined {
+    const d = this.read(sub);
+    if (d.paths[calendarId] === 'local' && now - (d.localSince[calendarId] ?? 0) >= LOCAL_PATH_TTL_MS) return undefined;
+    return d.paths[calendarId];
   }
 
   /** Remembers the reminders of an event as the app's own and that the calendar needs this path. */
-  setLocal(sub: string, calendarId: string, eventId: string, reminders: Reminders): void {
+  setLocal(sub: string, calendarId: string, eventId: string, reminders: Reminders, now: number): void {
     const d = structuredClone(this.read(sub));
     d.paths[calendarId] = 'local';
+    d.localSince[calendarId] = now;
     (d.events[calendarId] ??= {})[eventId] = reminders;
     this.write(sub, d);
   }
@@ -76,6 +83,7 @@ export class ReminderOverrideStore {
   setGoogle(sub: string, calendarId: string, eventId: string): void {
     const d = structuredClone(this.read(sub));
     d.paths[calendarId] = 'google';
+    delete d.localSince[calendarId];
     if (d.events[calendarId]) {
       delete d.events[calendarId][eventId];
       if (Object.keys(d.events[calendarId]).length === 0) delete d.events[calendarId];

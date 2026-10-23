@@ -133,7 +133,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
   });
 
   it.each([
-    [401, ProviderUnavailableError], [403, ProviderForbiddenError], [404, NotFoundError], [410, NotFoundError],
+    [401, ProviderUnavailableError], [403, ProviderUnavailableError], [404, NotFoundError], [410, NotFoundError],
     [412, PreconditionFailedError], [500, ProviderUnavailableError], [503, ProviderUnavailableError], [400, ProviderError],
   ])('maps HTTP %i', async (status, cls) => {
     const { provider } = setup(() => ({ status, json: { error: { code: status, message: 'boom' } } }));
@@ -327,5 +327,15 @@ describe('insufficient scope', () => {
     expect(mapGoogleError(e({ errors: [{ reason: 'insufficientPermissions' }] }))).toBeInstanceOf(CalendarPermissionMissingError);
     expect(mapGoogleError(e({ details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }] }))).toBeInstanceOf(CalendarPermissionMissingError);
     expect(mapGoogleError(e({ errors: [{ reason: 'rateLimitExceeded' }] }))).toBeInstanceOf(ProviderUnavailableError);
+  });
+
+  it('tells a permission 403 (forbidden) from quota 403s, which stay merely unavailable', () => {
+    const e = (reason: string) => Object.assign(new Error('x'), { response: { status: 403, data: { error: { errors: [{ reason }] } } } });
+    for (const reason of ['forbidden', 'requiredAccessLevel', 'writerAccess']) expect(mapGoogleError(e(reason))).toBeInstanceOf(ProviderForbiddenError);
+    for (const reason of ['quotaExceeded', 'dailyLimitExceeded', 'calendarUsageLimitsExceeded']) {
+      const m = mapGoogleError(e(reason));
+      expect(m).toBeInstanceOf(ProviderUnavailableError);
+      expect(m).not.toBeInstanceOf(ProviderForbiddenError);
+    }
   });
 });

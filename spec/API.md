@@ -275,9 +275,9 @@ is the popup list in effect: the calendar's default while `useDefault`, else the
 `reminders` leaves them alone. Why: Google is the source of truth (feature reminders).
 
 **Read-only events.** A `PATCH` whose body holds nothing but `reminders` is allowed on an event with `readOnly` (the reminders
-are per person in Google). The server sends only `reminders` to Google first; when Google answers 403 it keeps the person's
+are per person in Google). The server sends only `reminders` to Google first; when Google answers 403 for a permission reason (`forbidden`; quota 403s do not count) it keeps the person's
 reminders for that event itself (`DATA_DIR/users/<sub>/reminder-overrides.json`, in the Drive backup, keyed by calendar id and
-event id), remembers per calendar which way worked (a calendar that refused is not asked again), and shows the kept list as the
+event id), remembers per calendar which way worked (a calendar that refused is not asked again for a day), and shows the kept list as the
 event's `reminders` on every read. Any other field in the body is still `403 calendar.event.notOwn`. Why: the owner wants to
 adjust reminders on calendars he cannot edit; Google's docs do not say whether a reader may patch that field (requirements
 20261023T015842Z_readonly_reminders). Birthdays are not covered.

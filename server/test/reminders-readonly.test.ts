@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProviderForbiddenError } from '../src/providers/CalendarProvider.js';
+import { LOCAL_PATH_TTL_MS } from '../src/services/reminderOverrides.js';
 import { LOCAL_PERSON } from '../src/services/prefsStore.js';
 import { freeze, makeApp, type TestApp } from './helpers.js';
 
@@ -65,7 +66,7 @@ describe('reminders of a read-only event', () => {
     expect((await t.json('GET', `/api/events/${id}`)).body.reminders.minutes).toEqual([30, 15]);
     const items = (await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-19')).body.items;
     expect(items.find((i: any) => i.id === id).reminders).toEqual({ useDefault: false, minutes: [30, 15] });
-    expect(readFile()).toEqual({ paths: { 'anna@example.org': 'local' }, events: { 'anna@example.org': { [id]: { useDefault: false, minutes: [30, 15] } } } });
+    expect(readFile()).toEqual({ localSince: { 'anna@example.org': expect.any(Number) }, paths: { 'anna@example.org': 'local' }, events: { 'anna@example.org': { [id]: { useDefault: false, minutes: [30, 15] } } } });
   });
 
   it('can go back to the calendar default and to none', async () => {
@@ -76,7 +77,7 @@ describe('reminders of a read-only event', () => {
     expect(n.body.reminders).toEqual({ useDefault: false, minutes: [] });
   });
 
-  it('skips the Google attempt once a calendar is known to refuse, and tries again when Google starts to accept', async () => {
+  it('skips the Google attempt once a calendar is known to refuse, even when Google would accept now', async () => {
     const { id } = await yoga();
     const patch = vi.spyOn(t.app.ctx.provider, 'patchEvent');
     await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [10] } });
@@ -85,6 +86,36 @@ describe('reminders of a read-only event', () => {
     await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [20] } });
     expect(patch).toHaveBeenCalledTimes(1); // path "local": not asked again
     patch.mockRestore();
+  });
+
+  it('asks Google again once the remembered refusal is a day old, and keeps asking while it is fresh', async () => {
+    const { id } = await yoga();
+    await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [10] } });
+    const store = t.app.ctx.prefs.reminderOverrides;
+    const now = Date.now();
+    expect(store.pathOf(LOCAL_PERSON, 'anna@example.org', now)).toBe('local');
+    expect(store.pathOf(LOCAL_PERSON, 'anna@example.org', now + LOCAL_PATH_TTL_MS - 1000)).toBe('local');
+    expect(store.pathOf(LOCAL_PERSON, 'anna@example.org', now + LOCAL_PATH_TTL_MS + 1000)).toBeUndefined();
+    // age the record on disk, let Google accept: the next change goes to Google and the path becomes "google"
+    const aged = readFile();
+    aged.localSince['anna@example.org'] = now - LOCAL_PATH_TTL_MS - 1000;
+    fs.writeFileSync(overridesFile(), JSON.stringify(aged));
+    await allow(true);
+    const r = await t.json('PATCH', `/api/events/${id}`, { reminders: { useDefault: false, minutes: [20] } });
+    expect(r.body.reminders.minutes).toEqual([20]);
+    expect((await google(id)).reminders.overrides).toEqual(popup(20));
+    expect(readFile().paths).toEqual({ 'anna@example.org': 'google' });
+  });
+
+  it('changes one instance of a repeating event only', async () => {
+    const cal = (await t.json('POST', '/api/__test/remote/calendars', { summary: 'Anna', id: 'anna@example.org', accessRole: 'reader', ownerEmail: 'anna@example.org' })).body;
+    await t.json('POST', '/api/__test/remote/events', { summary: 'Daily', calendarId: cal.id, ...when, recurrence: ['RRULE:FREQ=DAILY'] });
+    const list = async () => (await t.json('GET', '/api/items?from=2026-10-13&to=2026-10-16')).body.items as Array<{ id: string; reminders: { minutes: number[] } }>;
+    const [first, second] = await list();
+    await t.json('PATCH', `/api/events/${first!.id}`, { reminders: { useDefault: false, minutes: [10] } });
+    const after = await list();
+    expect(after.find((i) => i.id === first!.id)!.reminders.minutes).toEqual([10]);
+    expect(after.find((i) => i.id === second!.id)!.reminders.minutes).toEqual([]);
   });
 
   it('drops the app copy when Google takes a later change', async () => {

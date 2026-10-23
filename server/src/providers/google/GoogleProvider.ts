@@ -31,6 +31,15 @@ function isInsufficientScope(body: string | GoogleErrorBody | undefined): boolea
   return [...(body.errors ?? []), ...(body.details ?? [])].some((x) => x.reason === 'insufficientPermissions' || x.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT');
 }
 
+/** Google's 403 reasons that mean "you may not do this on this calendar" (quota and rate reasons are not among them). */
+const PERMISSION_REASONS = new Set(['forbidden', 'requiredAccessLevel', 'writerAccess']);
+
+/** True when a 403 body names a permission reason, so only a real refusal is told apart from quota and other 403s. */
+function isPermissionRefusal(body: string | GoogleErrorBody | undefined): boolean {
+  if (!body || typeof body === 'string') return false;
+  return [...(body.errors ?? []), ...(body.details ?? [])].some((x) => x.reason !== undefined && PERMISSION_REASONS.has(x.reason));
+}
+
 /** Maps googleapis/gaxios errors to the provider error classes and notes the cause for the `api_unavailable` log line. */
 export function mapGoogleError(e: unknown): Error {
   const mapped = mapGoogleErrorInner(e);
@@ -47,8 +56,8 @@ function mapGoogleErrorInner(e: unknown): Error {
   if (isInsufficientScope(err.response?.data?.error)) return new CalendarPermissionMissingError(err.message ?? 'insufficient scope');
   const status = Number(err.response?.status ?? err.status ?? (typeof err.code === 'number' ? err.code : NaN));
   const msg = err.message ?? 'Google API error';
-  if (status === 403) return new ProviderForbiddenError(msg);
-  if (status === 401 || status === 429) return new ProviderUnavailableError(msg);
+  if (status === 403 && isPermissionRefusal(err.response?.data?.error)) return new ProviderForbiddenError(msg);
+  if (status === 401 || status === 403 || status === 429) return new ProviderUnavailableError(msg);
   if (status === 404 || status === 410) return new NotFoundError(msg);
   if (status === 412) return new PreconditionFailedError(msg);
   if (status >= 500) return new ProviderUnavailableError(msg);

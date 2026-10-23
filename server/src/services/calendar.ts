@@ -199,7 +199,7 @@ export class CalendarService {
   /** The reminders the app keeps for a read-only event because Google refused them, shown as the event's own list. */
   private ownReminders(ev: GoogleEvent, calDefaults: GoogleReminder[] | undefined): Reminders | undefined {
     const own = this.prefs.reminderOverrides.get(this.sub, ev.calendarId, ev.id);
-    return own && { useDefault: own.useDefault, minutes: own.useDefault ? popups(calDefaults) : own.minutes };
+    return own && { useDefault: own.useDefault, minutes: own.useDefault ? popups(calDefaults) : [...own.minutes] };
   }
 
   private toTaskList(ev: GoogleEvent, calColor: string, cats: Category[]): TaskList {
@@ -403,7 +403,7 @@ export class CalendarService {
   private async updateReadOnlyReminders(cur: GoogleEvent, input: Reminders): Promise<CalendarEvent> {
     const store = this.prefs.reminderOverrides;
     const color = await this.calendarColor(cur.calendarId);
-    if (store.pathOf(this.sub, cur.calendarId) !== 'local') {
+    if (store.pathOf(this.sub, cur.calendarId, this.clock.real()) !== 'local') {
       try {
         const ev = await this.provider.patchEvent(cur.calendarId, cur.id, { reminders: this.remindersOf(input, cur.reminders) });
         store.setGoogle(this.sub, cur.calendarId, cur.id);
@@ -412,7 +412,7 @@ export class CalendarService {
         if (!(e instanceof ProviderForbiddenError)) throw e;
       }
     }
-    store.setLocal(this.sub, cur.calendarId, cur.id, { useDefault: input.useDefault, minutes: input.useDefault ? [] : input.minutes });
+    store.setLocal(this.sub, cur.calendarId, cur.id, { useDefault: input.useDefault, minutes: input.useDefault ? [] : input.minutes }, this.clock.real());
     return this.toEvent(cur, color);
   }
 

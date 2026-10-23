@@ -279,7 +279,7 @@ function remove() {
       <p v-if="original.description" class="lab" data-testid="event-readonly-description">{{ original.description }}</p>
       <p v-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
       <p v-else class="lab">{{ t('calendar.event.readOnly') }}</p>
-      <div v-if="!original.special" class="colors">
+      <div v-if="!original.special" class="colors" :inert="saving" :aria-busy="saving">
         <span class="lab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor :model-value="original.reminders ?? { useDefault: true, minutes: [] }" prefix="event" allow-default :default-minutes="readOnlyDefaults" data-testid="event-reminders" @update:model-value="saveReadOnlyReminders" />
       </div>
