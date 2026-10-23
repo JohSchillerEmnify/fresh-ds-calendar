@@ -237,7 +237,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .allday { padding: 3px 6px 4px 6px; }
 .allday .ring { display: none; }
 /* block: timed, sized by estimate */
-.block { height: 100%; padding: 3px 5px; border-radius: var(--r-block); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
+.block { height: 100%; padding: 3px 5px; border-radius: var(--r-block); box-shadow: var(--block-sh); }
 .block { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-content: start; }
 .block .row { min-width: 0; }
 .block .items { min-height: 0; }
@@ -271,7 +271,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
    padding on the host; the list keeps its breathing room inside the extension instead */
 .tl.grown:not(.flat) .extbox { padding: 3px 0; }
 /* the real layer wears the block card's own ring and shadow, so the collapsed card underneath never shows as a second edge */
-.block.grown:not(.flat) .real { box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
+.block.grown:not(.flat) .real { box-shadow: var(--block-sh); }
 /* flat (month cell card): the card's own look, as tall as its content */
 .tl.grown.flat { min-height: 0; }
 .gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }

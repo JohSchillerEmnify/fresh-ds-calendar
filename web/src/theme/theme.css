@@ -60,6 +60,8 @@ html[data-check='dot'] .rcb-check[data-glyph='dot'] { display: inline; }
 .skin {
   --on: var(--e-fg, var(--on-solid));
   --glow-sh: 0 0 var(--glow-r) var(--glow-s) color-mix(in srgb, var(--c) var(--glow-a), transparent);
+  /* a time grid block: a surface-coloured ring that separates side-by-side blocks, a small drop shadow, the glow */
+  --block-sh: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh);
   color: var(--on);
   background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface));
   border: var(--e-bw) solid var(--c);
