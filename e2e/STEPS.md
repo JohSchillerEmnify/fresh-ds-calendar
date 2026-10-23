@@ -1951,6 +1951,8 @@ the note {string} is at {int}, {int} on the Canvas
 the note {string} is in the Unsorted stack
 the note {string} is not in the Unsorted stack
 I tick the item {string} of the note {string} on the Canvas
+I drag the item {string} above the item {string} of the note {string} on the Canvas
+the note {string} on the Canvas shows the items {string}
 the page is a little taller than the screen
 I add an area on the Canvas
 the add button covers no control of the {string}
@@ -2020,6 +2022,7 @@ the Canvas zoom is above {float}
 - "I long-press the area A and drag it by DX, DY pixels": notes A's `data-x`/`data-y`, then a finger on the body of A
   (as "release without moving"), held 500 ms, moved by DX, DY in 10 steps and lifted. "the area A has moved by DX, DY":
   `data-x`/`data-y` and the saved area are the noted place + (DX, DY) / `data-zoom` of `canvas-viewport` (± 1).
+- "I drag the item I above the item J of the note T on the Canvas": item drag by the item's `tasklist-item-grip` (a finger long-presses it; the Canvas picks the note up from anywhere else), waits for the saved order, and expects the note's `data-x`/`data-y` unchanged. "the note T on the Canvas shows the items" = the `tasklist-item` `data-title`s of that note joined by ", ".
 - "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until

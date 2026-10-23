@@ -50,17 +50,17 @@ const isOrderPut = (r: { url(): string; request(): { method(): string } }) =>
 
 /**
  * Drag the item `title` inside `list` (a `tasklist-view` or the sheet) and drop it where `drop` says: `above` an item (the place
- * just before it), or `home` (away and back). A mouse grabs the drag handle; a finger long-presses the row (`touch`),
+ * just before it), or `home` (away and back). A mouse (or `byGrip`) grabs the drag handle; a finger long-presses the row,
  * as the calendar's drag steps do. Waits for the saved order (`PUT .../items/order`) unless the drop changes nothing.
  */
-export async function dragItem(world: World, list: Locator, title: string, drop: { above: string } | 'home') {
+export async function dragItem(world: World, list: Locator, title: string, drop: { above: string } | 'home', byGrip = false) {
   const rows = list.getByTestId('tasklist-item');
   const row = rows.filter({ has: world.page.locator(attr('data-title', title)) }).or(rows.and(world.page.locator(attr('data-title', title)))).first();
   await row.scrollIntoViewIfNeeded();
   const titles = await rows.evaluateAll((els) => els.map((e) => e.getAttribute('data-title')));
   const touch = !!world.testInfo.project.use.hasTouch;
   const rb = await box(row);
-  const grab = touch ? { x: rb.x + rb.width * 0.5, y: rb.y + rb.height / 2 } : await box(row.getByTestId('tasklist-item-grip')).then((g) => ({ x: g.x + g.width / 2, y: g.y + g.height / 2 }));
+  const grab = touch && !byGrip ? { x: rb.x + rb.width * 0.5, y: rb.y + rb.height / 2 } : await box(row.getByTestId('tasklist-item-grip')).then((g) => ({ x: g.x + g.width / 2, y: g.y + g.height / 2 }));
   let to = { ...grab };
   let moves = false;
   if (drop !== 'home') {
