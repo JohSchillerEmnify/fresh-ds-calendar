@@ -39,7 +39,7 @@ const lift = computed(() => (isPhone.value ? 0 : ui.snackbars.filter((s) => s.du
   html[data-nav-pos='rail'] .fab-wrap { right: calc(var(--rail-w) + var(--safe-right) + 12px); }
 }
 @media (min-width: 768px) { html[data-nav-pos='bottom'] .fab-wrap { bottom: calc(var(--navbar-h) + var(--safe-bottom) + 24px + var(--snack-lift, 0px)); } } /* above the full-width bar */
-/* Left-handed mode: the button sits at the left. Phone: slides out to the left; tablet: right of the rail (the tray stays at the right edge). */
+/* Left-handed mode: the button sits at the left. Phone: slides out to the left; tablet: right of the rail and the side tray (which moves to the left there), never over it. */
 html[data-hand='left'][data-touch] .fab-wrap { right: auto; align-items: flex-start; }
 @media (max-width: 767.98px) {
   html[data-hand='left'][data-touch] .fab-wrap { left: calc(16px + var(--safe-left)); }
@@ -47,7 +47,7 @@ html[data-hand='left'][data-touch] .fab-wrap { right: auto; align-items: flex-st
   html[data-hand='left'][data-touch] .fab-wrap.away { transform: translateX(calc(-100% - 24px)); }
 }
 @media (min-width: 768px) {
-  html[data-hand='left'][data-touch] .fab-wrap { left: 24px; }
-  html[data-hand='left'][data-touch][data-nav-pos='rail'] .fab-wrap { left: calc(var(--rail-w) + 24px); }
+  html[data-hand='left'][data-touch] .fab-wrap { left: calc(var(--tray-w, 0px) + 24px); }
+  html[data-hand='left'][data-touch][data-nav-pos='rail'] .fab-wrap { left: calc(var(--rail-w) + var(--tray-w, 0px) + 24px); }
 }
 </style>

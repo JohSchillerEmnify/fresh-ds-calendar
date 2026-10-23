@@ -1673,6 +1673,7 @@ I do not see a bedtime reminder
 ```
 left-handed mode is on
 the {string} is on the {string} side of the screen
+the create button sits right of the open tasks tray
 the switches in the settings are on the {string} side of the screen
 the support cat walks in from the {string}
 ```
@@ -1686,6 +1687,8 @@ the support cat walks in from the {string}
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
   `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
   `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
+- "the create button sits right of the open tasks tray": the left edge of `create-button` is at or right of the right
+  edge of `task-tray` (polled: the tray animates its width).
 - "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
 - "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
   side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
