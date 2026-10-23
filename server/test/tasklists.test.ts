@@ -298,6 +298,65 @@ describe('chunking, description fallback, recurrence', () => {
   });
 });
 
+describe('recurring task lists: an item change splits off the occurrence', () => {
+  const weekly = (extra: object = {}) => mk({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }], ...extra });
+  const weeks = async () => (await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-26')).body.items
+    .filter((i: any) => i.title === 'Clean').map((i: any) => [i.date, i.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(',')]);
+
+  it('a tick sent to the series (its first week) makes the first week its own; the master and the other weeks stay unticked', async () => {
+    const a = await weekly();
+    const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
+    expect(tick.status).toBe(200);
+    expect(tick.body).toMatchObject({ date: '2026-10-14', doneCount: 1, recurrence: 'weekly' });
+    expect(tick.body.id).not.toBe(a.id);
+    expect(await weeks()).toEqual([['2026-10-14', 'Sink:1,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
+    const master = await raw(a.id);
+    expect(JSON.parse(master.extendedProperties.private.items).map((i: any) => i.d)).toEqual([0, 0]);
+    const exception = await raw(tick.body.id);
+    expect(exception.recurringEventId).toBe(a.id);
+  });
+
+  it('unticking the split-off first week again keeps it its own and leaves the other weeks alone', async () => {
+    const a = await weekly();
+    const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
+    const untick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: false });
+    expect(untick.body.id).toBe(tick.body.id);
+    expect(await weeks()).toEqual([['2026-10-14', 'Sink:0,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
+    expect((await raw(tick.body.id)).recurringEventId).toBe(a.id);
+  });
+
+  it('renaming, adding, removing and reordering items on the series id change only the first week', async () => {
+    const a = await weekly();
+    const [sink, floor] = a.items;
+    await t.json('PATCH', `/api/tasklists/${a.id}/items/${sink.id}`, { title: 'Basin' });
+    await t.json('POST', `/api/tasklists/${a.id}/items`, { title: 'Mirror' });
+    await t.json('DELETE', `/api/tasklists/${a.id}/items/${floor.id}`);
+    const cur = (await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items[0];
+    await t.json('PUT', `/api/tasklists/${a.id}/items/order`, { itemIds: [...cur.items].reverse().map((i: any) => i.id) });
+    expect(await weeks()).toEqual([['2026-10-14', 'Mirror:0,Basin:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
+  });
+
+  it('a timed weekly list splits off its first week too', async () => {
+    const a = await weekly({ time: '09:00' });
+    const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
+    expect(tick.body).toMatchObject({ date: '2026-10-14', time: '09:00', doneCount: 1 });
+    expect(await weeks()).toEqual([['2026-10-14', 'Sink:1,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
+  });
+
+  it('editing the list itself through the series id still changes every week', async () => {
+    const a = await weekly();
+    const r = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: 'Clean', items: [{ title: 'Tub', done: false }] });
+    expect(r.body.id).toBe(a.id);
+    expect(await weeks()).toEqual([['2026-10-14', 'Tub:0'], ['2026-10-21', 'Tub:0']]);
+  });
+
+  it('an item change on a one-off list is not affected', async () => {
+    const a = await mk();
+    const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
+    expect(tick.body.id).toBe(a.id);
+  });
+});
+
 describe('open task lists (carry-over)', () => {
   it('returns lists with open items in [today-days, today], ordered', async () => {
     await mk({ title: 'Old', date: '2026-10-05', items: [{ title: 'a' }] });

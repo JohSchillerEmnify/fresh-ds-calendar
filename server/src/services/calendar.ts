@@ -565,14 +565,34 @@ export class CalendarService {
     return c ? { name: c.name, color: c.color, icon: c.icon } : null;
   }
 
-  /** Read-modify-write; on a provider-side 412 re-reads and retries (up to 3 attempts) unless `ifMatch` is pinned. */
-  private async modify(id: string, fn: (d: TaskListData) => TaskListData, ifMatch?: string, reminders?: Reminders): Promise<TaskList> {
+  /**
+   * The first occurrence of a repeating list (the instance on the master's own start day, as a range read lists it). An
+   * item change addressed to the series lands here, so it becomes an exception of its own (feature adhd-support).
+   */
+  private async firstOccurrence(master: GoogleEvent): Promise<GoogleEvent> {
+    const day = decodeTaskList(master, this.tz).date!; // a repeating list always has a date
+    const timeMin = formatInZone(startOfLocalDay(day, this.tz), this.tz);
+    const timeMax = formatInZone(startOfLocalDay(addDays(day, 1), this.tz), this.tz);
+    const r = await this.provider.listEvents({ calendarId: master.calendarId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
+    const first = r.items.find((e) => e.recurringEventId === master.id && e.status !== 'cancelled');
+    // the first occurrence was deleted (or moved off its day): there is nothing of that week left to change
+    if (!first) throw notFound('Task list not found');
+    return first;
+  }
+
+  /**
+   * Read-modify-write; on a provider-side 412 re-reads and retries (up to 3 attempts) unless `ifMatch` is pinned. With
+   * `occurrence` (item changes) a write addressed to a repeating series goes to its first occurrence instead.
+   */
+  private async modify(id: string, fn: (d: TaskListData) => TaskListData, ifMatch?: string, reminders?: Reminders, occurrence = false): Promise<TaskList> {
     if (isSharedId(id)) {
       if (reminders) throw validation('Shared lists have no reminders', 'reminders', 'reminders.sharedList');
       return this.modifyShared(id, fn, ifMatch);
     }
     for (let attempt = 1; ; attempt++) {
-      const cur = await this.locateKind(id, true);
+      let cur = await this.locateKind(id, true);
+      // ticking (or any item change) never changes the other weeks of a repeating list: split the first week off
+      if (occurrence && cur.recurrence?.length && !cur.recurringEventId) cur = await this.firstOccurrence(cur);
       if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
       const before = decodeTaskList(cur, this.tz);
       const d = { ...fn(before) };
@@ -580,7 +600,7 @@ export class CalendarService {
       try {
         const patch = encodeTaskListPatch(d, this.tz, this.colorFor(d), cur);
         if (reminders) patch.reminders = this.remindersOf(reminders, cur.reminders);
-        const ev = await this.provider.patchEvent(cur.calendarId, id, patch, { ifMatch: cur.etag });
+        const ev = await this.provider.patchEvent(cur.calendarId, cur.id, patch, { ifMatch: cur.etag });
         return this.toTaskList(ev, await this.calendarColor(ev.calendarId), this.settings.categories());
       } catch (e) {
         if (e instanceof PreconditionFailedError) {
@@ -630,7 +650,7 @@ export class CalendarService {
       const at = input.index === undefined ? items.length : Math.min(input.index, items.length);
       items.splice(at, 0, item);
       return { ...d, items };
-    });
+    }, undefined, undefined, true);
   }
 
   async patchItem(id: string, itemId: string, input: { title?: string; done?: boolean }): Promise<TaskList> {
@@ -644,7 +664,7 @@ export class CalendarService {
       const items = [...d.items];
       items[idx] = { ...cur, title: input.title ?? cur.title, done: input.done ?? cur.done };
       return { ...d, items };
-    });
+    }, undefined, undefined, true);
     if (ticked) this.motivation.award('tick', itemId);
     return list;
   }
@@ -653,7 +673,7 @@ export class CalendarService {
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
       return { ...d, items: d.items.filter((i) => i.id !== itemId) };
-    });
+    }, undefined, undefined, true);
   }
 
   async reorder(id: string, itemIds: string[]): Promise<TaskList> {
@@ -664,7 +684,7 @@ export class CalendarService {
       }
       const byId = new Map(d.items.map((i) => [i.id, i]));
       return { ...d, items: itemIds.map((x) => byId.get(x)!) };
-    });
+    }, undefined, undefined, true);
   }
 
   // ---------- sharing ----------
