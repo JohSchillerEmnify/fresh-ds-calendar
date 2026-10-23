@@ -120,7 +120,10 @@ describe('rate limit (ADR 0007 through the mock)', () => {
   });
 
   it('is cleared by a reset', async () => {
+    await t.json('GET', range);
     await t.json('POST', '/api/__test/rate-limit', { retryAfterSec: 60 });
+    // a real cooldown is running: the read is stale
+    expect((await t.json('GET', range)).res.headers.get('x-stale')).toBe('1');
     await t.json('POST', '/api/__test/reset');
     const r = await t.json('GET', range);
     expect([r.status, r.res.headers.get('x-stale')]).toEqual([200, null]);
