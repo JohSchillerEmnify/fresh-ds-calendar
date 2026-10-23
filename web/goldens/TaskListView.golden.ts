@@ -23,8 +23,15 @@ async function holdBreadBetweenMilkAndEggs(container: HTMLElement): Promise<() =
   fire(window, 'pointermove', x, g.top + g.height / 2 - 12);
   for (let i = 1; i <= 10; i++) fire(window, 'pointermove', x, g.top + g.height / 2 + (y - g.top - g.height / 2) * (i / 10));
   // the lifted card follows the pointer by spring, the rows glide for 150 ms: let both come to rest
-  await sleep(900);
-  await frames();
+  await sleep(600);
+  // rest means the lifted card's rect is the same over 12 frames in a row, however loaded the machine is
+  let last = '', still = 0;
+  for (let n = 0; n < 400 && still < 12; n++) {
+    await frames();
+    const b = row('Bread').getBoundingClientRect(), k = `${b.top}|${b.left}|${b.width}`;
+    still = k === last ? still + 1 : 0;
+    last = k;
+  }
   return () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 }
 
