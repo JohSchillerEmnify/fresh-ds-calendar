@@ -54,11 +54,16 @@ export function useItemDrag(o: ItemDragOptions): void {
   /** Layout places of the rows: their rects without the shift the other rows carry to make room. */
   const layoutSpans = (rows: HTMLElement[]) => rows.map((r) => { const b = r.getBoundingClientRect(), s = shiftOf(r); return { top: b.top - s, bottom: b.bottom - s }; });
 
+  /** The row being dragged, the place it hovers and where it sat at pick-up, so a gap can be reopened after a re-layout. */
+  let held: { row: HTMLElement; to: number; own: () => { top: number; bottom: number } } | null = null;
+
   /** Moves the rows other than `lifted` so that a gap opens at place `to` (null: everything back). */
-  function makeRoom(lifted: HTMLElement, to: number | null): void {
+  function makeRoom(lifted: HTMLElement, to: number | null, own?: () => { top: number; bottom: number }): void {
     const rows = rowsOf();
     const from = rows.indexOf(lifted);
-    const shifts = to === null ? rows.map(() => 0) : rowShifts(layoutSpans(rows), from, to);
+    // the lifted card's live rect is scaled and tilted: its own place is its pick-up rect
+    const spans = layoutSpans(rows).map((r, i) => (i === from && own ? own() : r));
+    const shifts = to === null ? rows.map(() => 0) : rowShifts(spans, from, to);
     const animated = getMotionLevel() === 'full';
     rows.forEach((r, i) => {
       if (i === from) return;
@@ -74,6 +79,13 @@ export function useItemDrag(o: ItemDragOptions): void {
   function bind(row: HTMLElement): void {
     let fromGrip = false;
     let seenScroll: number | null = null;
+    let pickup: DOMRect | null = null;
+    /** The row's own place: where it was picked up, moved up by the scroll since. */
+    const ownSpan = () => {
+      const sp = scrollParent(row);
+      const shift = (sp?.scrollTop ?? 0) - (seenScroll ?? 0);
+      return { top: pickup!.top - shift, bottom: pickup!.bottom - shift };
+    };
     const onDown = (e: Event) => { fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP); };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
@@ -86,6 +98,7 @@ export function useItemDrag(o: ItemDragOptions): void {
         // rows that made room are measured at their layout place, so the drop index never depends on the shift
         const live = layoutSpans(rows);
         // the dragged row's own slot is where it was picked up, moved up by the scroll since; the others are live
+        pickup = ctx.originRect;
         const own = { top: ctx.originRect.top - shift, bottom: ctx.originRect.bottom - shift };
         const to = dropIndex(live.map((r, i) => (i === from ? own : r)), y);
         // the controller adds the scroll shift itself: offsets are from the pick-up rect
@@ -97,9 +110,13 @@ export function useItemDrag(o: ItemDragOptions): void {
       },
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip),
       scrollEl: () => scrollParent(row),
-      onTarget: (t) => { if (t) makeRoom(row, t.key); else if (ctl.state === 'dragging') makeRoom(row, null); },
+      onTarget: (t) => {
+        held = t ? { row, to: t.key, own: ownSpan } : null;
+        if (t) makeRoom(row, t.key, ownSpan); else if (ctl.state === 'dragging') makeRoom(row, null);
+      },
       onStateChange: (st) => {
         if (st === 'idle') seenScroll = null;
+        if (st !== 'dragging') held = null;
         // a drop reorders the rows at once; a cancel lets the rows glide back until the card has settled
         if (st === 'dropping' || st === 'idle') clearRoom();
         else if (st === 'returning') makeRoom(row, null);
@@ -114,6 +131,8 @@ export function useItemDrag(o: ItemDragOptions): void {
     for (const [row, b] of bound) {
       if (!rows.has(row)) { b.ctl.destroy(); b.unlisten(); bound.delete(row); clearRoom(); }
     }
+    // a row that went mid-drag cleared every shift: open the gap again for the current target
+    if (held && rows.has(held.row)) makeRoom(held.row, held.to, held.own);
     for (const row of rows) if (!bound.has(row)) bind(row);
   }
 

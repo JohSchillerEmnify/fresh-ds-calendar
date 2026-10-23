@@ -48,6 +48,47 @@ async function longPressDrag(row: HTMLElement, from: number, to: number, target:
 }
 
 describe('useItemDrag', () => {
+  it('the gap is the lifted row\'s layout height, however its lifted (scaled, tilted) rect looks', () => {
+    const { w, rows } = setup(false);
+    // the lifted card is drawn larger than its place (scale 1.05, tilt): 50 px tall instead of 40
+    rows[2].getBoundingClientRect = () => (rows[2].dataset.dragging ? { ...rect(75), height: 50, bottom: 125 } : rect(80)) as DOMRect;
+    touch(rows[2], 'pointerdown', 100);
+    vi.advanceTimersByTime(400);
+    win('pointermove', 10);
+    vi.advanceTimersByTime(100);
+    expect(rows[0].style.transform).toBe('translateY(40px)');
+    expect(rows[1].style.transform).toBe('translateY(40px)');
+    win('pointerup', 10);
+    w.unmount();
+  });
+  it('a row that goes while another is held: the gap is opened again for the same place', async () => {
+    const ids = ref(['a', 'b', 'c', 'd']);
+    const Host = defineComponent({
+      setup() {
+        const root = ref<HTMLElement | null>(null);
+        useItemDrag({ root, signature: () => ids.value.join(','), gripOnly: () => false, disabled: () => false, onMove: vi.fn() });
+        return () => h('ul', { ref: root }, ids.value.map((id) => h('li', { key: id, 'data-testid': 'tasklist-item', 'data-item-id': id }, id)));
+      },
+    });
+    const w = mount(Host, { attachTo: document.body });
+    const mock = () => Array.from((w.element as HTMLElement).querySelectorAll<HTMLElement>('li')).forEach((r, i) => {
+      r.getBoundingClientRect = () => rect(i * 40 + parseFloat(/translateY\((-?[\d.]+)px\)/.exec(r.style.transform)?.[1] ?? '0'));
+    });
+    mock();
+    const lis = () => Array.from((w.element as HTMLElement).querySelectorAll<HTMLElement>('li'));
+    touch(lis()[3], 'pointerdown', 140);
+    vi.advanceTimersByTime(400);
+    win('pointermove', 50);
+    vi.advanceTimersByTime(100);
+    expect(lis()[1].style.transform).toBe('translateY(40px)');
+    ids.value = ['a', 'b', 'c', 'd', 'e'].filter((x) => x !== 'a');
+    await flush();
+    mock();
+    // the rows after the new place stay shifted: the gap is not left closed
+    expect(lis().filter((r) => r.style.transform).length).toBeGreaterThan(0);
+    win('pointerup', 50);
+    w.unmount();
+  });
   it('a row dropped on another row reports that place', async () => {
     const { w, rows, onMove } = setup(false);
     await longPressDrag(rows[2], 100, 10);

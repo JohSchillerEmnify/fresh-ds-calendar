@@ -32,6 +32,10 @@ async function holdBreadBetweenMilkAndEggs(container: HTMLElement): Promise<() =
     still = k === last ? still + 1 : 0;
     last = k;
   }
+  // the compositor re-rasterises a will-change layer's text at its final scale at an arbitrary moment: do it now
+  row('Bread').style.willChange = 'auto';
+  await sleep(300);
+  await frames();
   return () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 }
 
