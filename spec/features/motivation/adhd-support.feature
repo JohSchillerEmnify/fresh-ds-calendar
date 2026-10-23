@@ -1,5 +1,5 @@
 @adhd @id:adhd-support
-Feature: ADHD support: estimates, transition warnings, next task, calm mode
+Feature: ADHD support: estimates, transition warnings, calm mode
   Evidence-based helpers (see docs/ADHD-RESEARCH.md): duration estimates make time visible,
   transition warnings ease switching, and calm mode reduces visual clutter. A task list can
   optionally repeat weekly, each week ticked on its own. Wording is always supportive.
