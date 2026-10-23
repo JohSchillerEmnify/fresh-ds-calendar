@@ -37,6 +37,77 @@ export function fitItems(i: FitInput): Fit {
   return { shown: lines, more: i.count - lines, inline: false };
 }
 
+/** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
+export const INLINE_BELOW_PX = 62;
+
+/** What the collapsed (or grown) task list card knows about its host and its list, for {@link cardLayout}. */
+export interface CardLayoutInput {
+  /** Host variant: `block` (time grid), `allday` (band), `card` (month cell), `chip`. */
+  variant: string;
+  /** The expanded card (`ExpandedCard`): every item, nothing cut. */
+  grown: boolean;
+  /** Section mode "titles only" on an all-day band card: no item rows. */
+  titles: boolean;
+  /** Narrow card (mini tier, 9 px rows). */
+  mini: boolean;
+  /** Pixels available to the card; 0 or undefined = not measured. */
+  height?: number;
+  /** The list has a start time (a time foot can show). */
+  timed: boolean;
+  /** The list has a title (no lead needed). */
+  titled: boolean;
+  /** Open (not ticked) items, the ones the overview shows. */
+  open: number;
+  /** All items, ticked ones included (the grown card shows them all). */
+  total: number;
+}
+
+/** Result of {@link cardLayout}: the item fit plus the rows around it. */
+export interface CardLayout extends Fit {
+  /** A timed block too short for a second row: no time line, names inline (or rows on a mini card). */
+  shortBlock: boolean;
+  /** The time foot row shows. */
+  foot: boolean;
+  /** Titleless and no item text below: the first item stands in the title slot. */
+  lead: boolean;
+}
+
+/**
+ * The one place that decides how a task list card uses its room: how many open item names show, whether they run
+ * inline next to the title, whether the time foot shows, and whether a titleless list shows its first item as the lead.
+ * Mini cards are too narrow for inline names (rows below the title instead); the lead only appears when no item renders
+ * below, so nothing is shown twice.
+ */
+export function cardLayout(i: CardLayoutInput): CardLayout {
+  const block = i.variant === 'block';
+  // a block too short for a second row drops the time line, also when no open item is left to go inline
+  const shortBlock = !i.grown && block && !!i.height && i.height < INLINE_BELOW_PX;
+  const fit = ((): Fit => {
+    if (i.titles || !i.open) return { shown: 0, more: 0, inline: false };
+    // grown: every item, one per line, nothing cut
+    if (i.grown) return { shown: i.total, more: 0, inline: false };
+    const f = fitItems({
+      count: i.open,
+      height: i.height || undefined,
+      titleH: i.mini ? 15 : 17,
+      rowH: i.mini ? 11 : 14,
+      pad: block ? 6 : 5,
+      footH: block && i.timed && !i.mini ? 14 : 0,
+      minLines: block ? 0 : 1,
+    });
+    // mini cards are too narrow for inline names: rows below the title
+    if (i.mini && (f.inline || shortBlock)) {
+      const shown = f.inline ? 0 : f.shown;
+      return { shown, more: i.open - shown, inline: false };
+    }
+    // inline names run on in one line and fade out at the right edge, so every open one is shown
+    if (f.inline || shortBlock) return { shown: i.open, more: 0, inline: true };
+    return f;
+  })();
+  const lead = !i.grown && !i.titled && (i.variant === 'chip' || i.titles || fit.shown === 0);
+  return { ...fit, shortBlock, foot: i.timed && !fit.inline && !shortBlock, lead };
+}
+
 /**
  * Splits `avail` px between entries: nobody gets more than they need, the leftovers go to the hungry ones (water filling),
  * nobody gets less than `min`.

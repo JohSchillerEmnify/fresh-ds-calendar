@@ -16,6 +16,8 @@
     "verify": "node scripts/verify.mjs",
     "i18n:scan": "node web/scripts/i18n-scan.ts",
     "e2e:affected": "node scripts/e2e-affected.mjs",
+    "goldens": "bash scripts/goldens.sh run",
+    "goldens:update": "bash scripts/goldens.sh update",
     "dedup": "jscpd web/src server/src shared",
     "lint": "eslint ."
   },

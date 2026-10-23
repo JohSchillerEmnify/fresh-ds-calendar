@@ -12,7 +12,7 @@ import { neutralName, type Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
-import { useUiStore } from '@/stores/ui';
+import { useUiStore, type ResizingEntry } from '@/stores/ui';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 import { t } from '@/i18n';
 
@@ -26,6 +26,14 @@ const LENIENCY = 2;
 
 /** Block geometry the grid draws instead of the stored one while a handle is dragged (or springing back). */
 export const resizePreview = shallowRef<{ id: string; date: string; startMin: number; endMin: number; settle?: boolean } | null>(null);
+
+/**
+ * Whether a renderer draws its resize handles: the entry was released without moving (`ui.resizing`), and only on its
+ * time grid block of that day. The one rule for events and task lists alike.
+ */
+export function showsHandles(r: ResizingEntry | null, seg: Segment, variant: string): boolean {
+  return variant === 'block' && !!r && r.kind === seg.item.kind && r.id === seg.item.id && r.date === seg.date;
+}
 
 export interface ResizePlan {
   startMin: number;

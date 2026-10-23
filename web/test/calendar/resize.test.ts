@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planResize, resizeEdges } from '@/features/calendar/resize';
+import { planResize, resizeEdges, showsHandles } from '@/features/calendar/resize';
 import { itemSegments } from '@/lib/items';
 import { ev, t } from './helpers';
 
@@ -45,5 +45,20 @@ describe('planResize', () => {
   it('task lists: bottom changes the estimate, top changes time and estimate so the end stays', () => {
     expect(planResize(list('18:00', 30), 'bottom', 30, 'Europe/Berlin')!.patch).toEqual({ estimateMinutes: 60 });
     expect(planResize(list('18:00', 30), 'top', -30, 'Europe/Berlin')!.patch).toEqual({ time: '17:30', estimateMinutes: 60 });
+  });
+});
+
+describe('showsHandles', () => {
+  it('only the released block of the same kind, id and day shows its handles', () => {
+    const s = seg();
+    const mine = { kind: 'event' as const, id: s.item.id, date: s.date };
+    expect(showsHandles(mine, s, 'block')).toBe(true);
+    expect(showsHandles(mine, s, 'chip')).toBe(false);
+    expect(showsHandles(null, s, 'block')).toBe(false);
+    expect(showsHandles({ ...mine, kind: 'tasklist' }, s, 'block')).toBe(false);
+    expect(showsHandles({ ...mine, id: 'other' }, s, 'block')).toBe(false);
+    expect(showsHandles({ ...mine, date: '2026-10-15' }, s, 'block')).toBe(false);
+    const l = list('08:00', 60);
+    expect(showsHandles({ kind: 'tasklist', id: 'l', date: '2026-10-15' }, l, 'block')).toBe(true);
   });
 });

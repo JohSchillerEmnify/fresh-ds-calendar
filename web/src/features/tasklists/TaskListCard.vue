@@ -3,7 +3,7 @@
  * Collapsed task list card (registered for kind 'tasklist'), used in month cells, week/day all-day rows and as timed blocks.
  * A task list is marked as a task: a tiny checkbox (empty / partly filled / checked by done count) before the title, solid
  * fill in the list colour (like events) with a white or black on-colour.
- * Item names are never dropped when the list has items. The degradation ladder (`fitItems`, budget from the `height` prop or
+ * Item names are never dropped when the list has items. The degradation ladder (`cardLayout` in ./layout, budget from the `height` prop or
  * a default) goes: one name per line -> ellipsised names, as many lines as fit, the rest fading out at the bottom (no count)
  * -> (cards narrower than 92 px, "mini" tier) 9 px rows with a tiny checkbox glyph each -> (timed block without a spare row)
  * names inline next to the title; mini cards never go inline (no room beside the title), their names go in rows below it. All items stay in the DOM (`.over` hides the surplus) so text content and screen readers see the full list.
@@ -24,20 +24,19 @@ import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
+import { showsHandles } from '@/features/calendar/resize';
 import { ProgressRing } from '@/motion';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
-import { fitItems } from './layout';
+import { cardLayout } from './layout';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
 
 const ExpandedCard = defineAsyncComponent(() => import('./ExpandedCard.vue'));
 
-/** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
-const INLINE_BELOW_PX = 62;
 /** Cards narrower than this (border box) use the mini tier; about the old content-box 84 px of a full-padding card. */
 const MINI_BELOW_PX = 92;
 const props = defineProps<ItemRendererProps & { grown?: boolean; /** Where a grown card extends beyond its real time block. */ growDir?: 'down' | 'up'; /** Grown over a short real block: the head row drops its extras so it fits the pill. */ tight?: boolean }>();
@@ -85,7 +84,7 @@ const tl = computed(() => {
   return i;
 });
 /** Resize handles show after a release without moving (time grid blocks only). */
-const resizing = computed(() => !props.grown && props.variant === 'block' && ui.resizing?.kind === 'tasklist' && ui.resizing.id === tl.value.id && ui.resizing.date === props.segment.date);
+const resizing = computed(() => !props.grown && showsHandles(ui.resizing, props.segment, props.variant));
 const cats = useTaskCategories();
 const icon = computed(() => (!cats.on.value ? null : (tl.value.categoryInfo === undefined ? settings.categoryById(tl.value.categoryId)?.icon : tl.value.categoryInfo?.icon)) ?? null);
 const color = computed(() => cats.color(tl.value));
@@ -102,9 +101,6 @@ const title = computed(() => displayTitle(tl.value));
 const label = computed(() => t(title.value ? 'tasks.card.label' : 'tasks.card.labelUntitled', { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount }));
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < MINI_BELOW_PX);
-/** A block too short for a second row (the inline threshold) drops the time line, also when no open item is left to go inline. */
-const shortBlock = computed(() => !props.grown && props.variant === 'block' && !!props.height && props.height < INLINE_BELOW_PX);
-const hasFoot = computed(() => !!tl.value.time && !fit.value.inline && !shortBlock.value);
 /** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
 const openItems = computed(() => tl.value.items.filter((i) => !i.done));
 const section = inject(sectionKey, () => 'full' as const);
@@ -112,40 +108,15 @@ const section = inject(sectionKey, () => 'full' as const);
 // the band's title form is for the pill only: the grown card always shows its items, whatever the band's section mode
 const titles = computed(() => !props.grown && section() === 'titles' && props.variant === 'allday');
 const collapsed = computed(() => titles.value);
-const fit = computed(() => {
-  const block = props.variant === 'block';
-  const footVisible = block && !!tl.value.time && !mini.value;
-  const open = openItems.value.length;
-  if (collapsed.value || !open) return { shown: 0, more: 0, inline: false };
-  // grown: every item, one per line, nothing cut
-  if (props.grown) return { shown: tl.value.items.length, more: 0, inline: false };
-  const f = fitItems({
-    count: open,
-    height: props.height || undefined,
-    titleH: mini.value ? 15 : 17,
-    rowH: mini.value ? 11 : 14,
-    pad: block ? 6 : 5,
-    footH: footVisible ? 14 : 0,
-    minLines: block ? 0 : 1,
-  });
-  // Mini cards are too narrow for inline names: rows below the title.
-  if (mini.value && (f.inline || shortBlock.value)) {
-    const shown = f.inline ? 0 : f.shown;
-    return { shown, more: open - shown, inline: false };
-  }
-  // Inline names run on in one line and fade out at the right edge, so every open one is shown.
-  if (f.inline || shortBlock.value) return { shown: open, more: 0, inline: true };
-  return { shown: f.shown, more: f.more, inline: false };
-});
+/** Item fit, time foot and lead, decided in one place (`cardLayout`). */
+const fit = computed(() => cardLayout({
+  variant: props.variant, grown: !!props.grown, titles: titles.value, mini: mini.value, height: props.height,
+  timed: !!tl.value.time, titled: !!title.value, open: openItems.value.length, total: tl.value.items.length,
+}));
 /** Untitled list whose card would otherwise show no item text (chip, titles mode, or a card/block too short to fit any
  * item): surface the FIRST item where the title would be, so the overview is never blank, in every view. It renders as an
- * item, never stored as the event title; the grown/opened card shows the whole list below with no title. No duplication:
- * the lead only appears when `fit.shown === 0`, i.e. when no items render below. */
-const lead = computed(() => {
-  if (props.grown || title.value) return null;
-  const noItemsShown = props.variant === 'chip' || titles.value || fit.value.shown === 0;
-  return noItemsShown ? (tl.value.items[0] ?? null) : null;
-});
+ * item, never stored as the event title; the grown/opened card shows the whole list below with no title. */
+const lead = computed(() => (fit.value.lead ? (tl.value.items[0] ?? null) : null));
 /** Rank among open items: ticked items are hidden, open ones past the budget are `over`. */
 const rank = computed(() => {
   const m = new Map<string, number>();
@@ -184,7 +155,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <template v-if="!calm">
       <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
-    <span v-if="hasFoot" class="foot">
+    <span v-if="fit.foot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
       <span v-else-if="tl.time" class="sr" data-testid="tasklist-card-time">{{ tl.time }}</span>
     </span>
@@ -266,7 +237,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .allday { padding: 3px 6px 4px 6px; }
 .allday .ring { display: none; }
 /* block: timed, sized by estimate */
-.block { height: 100%; padding: 3px 5px; border-radius: var(--r-block); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
+.block { height: 100%; padding: 3px 5px; border-radius: var(--r-block); box-shadow: var(--block-sh); }
 .block { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-content: start; }
 .block .row { min-width: 0; }
 .block .items { min-height: 0; }
@@ -300,7 +271,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
    padding on the host; the list keeps its breathing room inside the extension instead */
 .tl.grown:not(.flat) .extbox { padding: 3px 0; }
 /* the real layer wears the block card's own ring and shadow, so the collapsed card underneath never shows as a second edge */
-.block.grown:not(.flat) .real { box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
+.block.grown:not(.flat) .real { box-shadow: var(--block-sh); }
 /* flat (month cell card): the card's own look, as tall as its content */
 .tl.grown.flat { min-height: 0; }
 .gl { position: absolute; z-index: -1; box-sizing: border-box; pointer-events: none; --bw: var(--e-bw, 0px); }
@@ -364,7 +335,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
 .mini { padding: 1px 2px 2px 3px; }
 .mini .row { gap: 2px; min-height: 14px; }
-.mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
+.mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: var(--cb-r, 2.5px); }
 .mini .cb[data-state='done']::after { left: 1.7px; top: -0.5px; width: 2.4px; height: 5px; border-width: 0 1.2px 1.2px 0; }
 .mini .items, .mini .it { line-height: 11px; }

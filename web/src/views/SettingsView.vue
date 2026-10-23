@@ -32,6 +32,7 @@ import { useItemsStore } from '@/stores/items';
 import { systemReducedMotion } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
+import { useSaveSettings } from '@/composables/useSaveSettings';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { shownVersion } from '@/pwa/version';
@@ -65,15 +66,8 @@ async function savePrefs(p: Partial<Prefs>) {
   try { await labs.set(p); } catch (e) { ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed')); }
 }
 
-/** Persist a patch; failures roll back in the store and surface as the banner or a snackbar. */
-async function save(p: Parameters<typeof settings.patch>[0]) {
-  try {
-    await settings.patch(p);
-  } catch (e) {
-    if (e instanceof ApiError && e.isUnavailable) sync.reportError(e);
-    else ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
-  }
-}
+/** Persist a settings patch (failures: banner or snackbar, see `useSaveSettings`). */
+const save = useSaveSettings();
 
 function back() {
   if (window.history.state?.back) router.back();

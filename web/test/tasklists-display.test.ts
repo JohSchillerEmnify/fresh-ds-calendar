@@ -4,7 +4,7 @@ import { defineComponent, h } from 'vue';
 import type { TaskList } from '@/api/types';
 import { dragPreview, planMove } from '@/features/calendar/dnd';
 import { checkState } from '@/features/tasklists/format';
-import { allotHeights, fitItems } from '@/features/tasklists/layout';
+import { allotHeights, cardLayout, fitItems } from '@/features/tasklists/layout';
 import TaskListCard from '@/features/tasklists/TaskListCard.vue';
 import { itemSegments } from '@/lib/items';
 import { useItemsStore } from '@/stores/items';
@@ -44,6 +44,42 @@ describe('fitItems (line budget)', () => {
   it('timed blocks without a spare row go inline', () => {
     expect(fitItems({ ...g, count: 3, height: 22, minLines: 0 })).toEqual({ shown: 3, more: 0, inline: true });
     expect(fitItems({ ...g, count: 3, height: 60, minLines: 0, maxLines: 12 }).inline).toBe(false);
+  });
+});
+
+describe('cardLayout (the card\'s one layout decision)', () => {
+  const at = { variant: 'card', grown: false, titles: false, mini: false, timed: false, titled: true, open: 3, total: 3 };
+  it('titles mode shows no items; a titleless list leads with its first item', () => {
+    expect(cardLayout({ ...at, variant: 'allday', titles: true })).toEqual({ shown: 0, more: 0, inline: false, shortBlock: false, foot: false, lead: false });
+    expect(cardLayout({ ...at, variant: 'allday', titles: true, titled: false }).lead).toBe(true);
+  });
+  it('a list with nothing open shows no items; titleless it leads with its first (ticked) item', () => {
+    expect(cardLayout({ ...at, open: 0, total: 2 })).toMatchObject({ shown: 0, more: 0, inline: false, lead: false });
+    expect(cardLayout({ ...at, open: 0, total: 2, titled: false }).lead).toBe(true);
+  });
+  it('grown shows every item, ticked ones included, and never a lead', () => {
+    expect(cardLayout({ ...at, variant: 'block', grown: true, height: 30, timed: true, open: 2, total: 4, titled: false }))
+      .toEqual({ shown: 4, more: 0, inline: false, shortBlock: false, foot: true, lead: false });
+  });
+  it('an unmeasured card shows every open name; a short one keeps one row and fades the rest', () => {
+    expect(cardLayout(at)).toEqual({ shown: 3, more: 0, inline: false, shortBlock: false, foot: false, lead: false });
+    expect(cardLayout({ ...at, height: 40, open: 5, total: 5 })).toMatchObject({ shown: 1, more: 4, inline: false });
+    expect(cardLayout({ ...at, variant: 'block', height: 0, timed: true })).toMatchObject({ shown: 3, shortBlock: false, foot: true });
+  });
+  it('a tall timed block shows rows and the time foot', () => {
+    expect(cardLayout({ ...at, variant: 'block', height: 100, timed: true })).toEqual({ shown: 3, more: 0, inline: false, shortBlock: false, foot: true, lead: false });
+  });
+  it('a short wide block runs every open name inline and drops the foot', () => {
+    expect(cardLayout({ ...at, variant: 'block', height: 45, timed: true })).toEqual({ shown: 3, more: 0, inline: true, shortBlock: true, foot: false, lead: false });
+  });
+  it('a short mini block never goes inline: rows below the title, or none and the lead', () => {
+    expect(cardLayout({ ...at, variant: 'block', height: 25, timed: true, mini: true, titled: false }))
+      .toEqual({ shown: 0, more: 3, inline: false, shortBlock: true, foot: false, lead: true });
+    expect(cardLayout({ ...at, variant: 'block', height: 50, timed: true, mini: true, open: 4, total: 4 }))
+      .toEqual({ shown: 2, more: 2, inline: false, shortBlock: true, foot: false, lead: false });
+  });
+  it('a titleless chip always leads with its first item', () => {
+    expect(cardLayout({ ...at, variant: 'chip', titled: false })).toMatchObject({ shown: 3, lead: true });
   });
 });
 

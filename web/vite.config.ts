@@ -3,18 +3,13 @@ import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import Icons from 'unplugin-icons/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { appDefines } from './app-defines';
 
 /** Build version (X.Y.Z+<sha>); must equal the server's APP_VERSION (default '0.1.0') for /api/config comparison. */
 const APP_VERSION = process.env.APP_VERSION ?? '0.1.0';
 
 export default defineConfig({
-  define: {
-    __APP_VERSION__: JSON.stringify(APP_VERSION),
-    // vue-i18n feature flags (docs "Optimization"): Composition API only, no plugin install, no devtools hooks
-    __VUE_I18N_FULL_INSTALL__: false,
-    __VUE_I18N_LEGACY_API__: false,
-    __INTLIFY_PROD_DEVTOOLS__: false,
-  },
+  define: appDefines(APP_VERSION),
   plugins: [
     vue(),
     // <html data-app-version> carries the build version (e2e reads it after a reload).
