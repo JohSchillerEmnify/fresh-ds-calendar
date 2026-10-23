@@ -696,6 +696,9 @@ I open the new task list dialog in the Tasks view
 the task list dialog has no category field
 the task lists {string} and {string} have the same color
 I retitle the task list {string} to {string} in the Tasks view
+task categories are off
+I open the Labs view {string} for {date}
+the Labs view draws {string} in the colour of its calendar, never of its category
 ```
 
 - "I turn the task categories on/off": clicks `settings-task-categories` (Settings screen is open) when its `aria-checked`
@@ -707,6 +710,14 @@ I retitle the task list {string} to {string} in the Tasks view
 - "the task list dialog has no category field": `tasklist-category` is absent from the open `tasklist-dialog`.
 - "the task lists A and B have the same color": equal `data-color` on their `tasklist-card`s.
 - "I retitle ...": opens the list's dialog from its title in the Tasks view, replaces the title and saves.
+- "task categories are off": `PATCH /api/prefs { "taskCategories": false }` through the API before the page is opened.
+- "I open the Labs view V for D": opens the Labs view by its path (`clock` = `/clock/D`, `timeline` = `/timeline`,
+  `strip` = `/strip/D`, `zoom month` = `/zoom/D`, `horizontal` = `/horizontal/D`; Labs views are always routable) and
+  waits for its root (`clock-view`, `timeline-view`, `strip-view`, `zoom-view`, `htime-view`).
+- "the Labs view draws L in the colour of its calendar, never of its category": takes L's `color` (category) and
+  `calendarColor` from `GET /api/tasklists/all-open`; inside the view root, the colours each element is drawn with (computed
+  `color`, `background-color`, the border and outline colours, SVG `fill` and `stroke`, and the `--c` item colour) include
+  the calendar colour and never the category colour (compared as sRGB; polled).
 
 ## Event colors (`@colors`)
 
@@ -815,6 +826,7 @@ I go to the next month in the month picker
 I go to the previous month in the month picker
 I swipe left in the month picker
 I swipe right in the month picker
+I slowly drag left with the mouse in the month picker
 I pick {date} in the month picker
 {date} is selected in the month picker
 {date} is marked as having items in the month picker
@@ -832,6 +844,8 @@ the bottom bar ends at the bottom of the viewport
   `data-has-items="true"`.
 - "I drag up and down inside the month picker": touch drag of 150 px up, then 150 px down, over the picker's grid
   (CDP touch events; falls back to a mouse wheel on non-touch projects).
+- "I slowly drag left with the mouse in the month picker": a mouse drag of 200 px to the left across the picker that
+  takes 900 ms from press to release (half the way, a pause, the rest).
 - "the page is not scrolled": `document.scrollingElement.scrollTop === 0` and `scrollHeight <= innerHeight`.
 - "the bottom bar ends at the bottom of the viewport": `bottom-bar` bottom edge equals `innerHeight` (±1 px).
 
@@ -1665,7 +1679,7 @@ the support cat walks in from the {string}
   / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
   `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
-  `time-grid`).
+  `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
 - "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
 - "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
   side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.

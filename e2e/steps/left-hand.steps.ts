@@ -12,6 +12,7 @@ const ELEMENTS: Record<string, string> = {
   'Today button': 'nav-today',
   'undo action': 'undo-action',
   'time axis': 'time-axis',
+  'open tasks tray': 'task-tray',
 };
 
 /** Polls until the element's centre is on the wanted side of the viewport centre (animations settle, sheets slide in). */

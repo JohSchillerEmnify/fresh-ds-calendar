@@ -274,3 +274,18 @@ Feature: Task list categories, tags and filters
     And I open the path "/day/2026-10-14"
     Then the task list "Oat milk" has the color "#0b8043"
     And the task list "Oat milk" shows the icon "🛒"
+
+  # owner, 2026-10-23: the Labs views follow the switch like the rest of the app
+  Scenario Outline: The Labs views draw no category colour while task categories are off
+    Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14
+    And task categories are off
+    When I open the Labs view "<view>" for 2026-10-14
+    Then the Labs view draws "Milk" in the colour of its calendar, never of its category
+
+    Examples:
+      | view       |
+      | clock      |
+      | timeline   |
+      | strip      |
+      | zoom month |
+      | horizontal |
