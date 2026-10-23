@@ -90,6 +90,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `tasks-tab-canvas`, `tasks-canvas`, `canvas-viewport` (`data-zoom`, `data-pan-x`, `data-pan-y`), `canvas-note` (`data-tasklist-id`, `data-x`, `data-y`, `data-placed`, `data-area`, `data-dimmed`; `canvas-note-grip`, `canvas-note-date`), `canvas-unsorted`, `canvas-area` (`data-area-id`, `data-name`, `data-color`, `data-x/y/w/h`, `data-selected`; `canvas-area-header`, `canvas-area-handle` `data-corner`), `canvas-area-add`, `canvas-area-editor` (`canvas-area-name-input`, `canvas-area-color`, `canvas-area-delete`, `canvas-area-editor-close`) | Canvas |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
 | `sync-error-banner`, `sync-retry` | error strip |
+| `last-updated-note` | "Last updated HH:mm" while the shown calendar is the last known state (feature last-known-state) |
 | `install-app-button`, `ios-install-hint`, `ios-install-hint-dismiss` | install prompts |
 
 ## Setup and clock
@@ -439,6 +440,33 @@ once the slow-down is over I see the event {string} on {date}
 - `once the slow-down is over I see the event X on D`: waits until 4 s after the stale answer (the slow-down's end at
   the latest), then for the event chip within the poll interval + 5 s.
 - Focus: dispatch `visibilitychange` (with `document.visibilityState` = `visible`) and `focus` on `window`.
+
+## Last known state (`@last-known-state`)
+
+```
+I have seen the {view} view for {date}
+I open the app again
+the server answers only after {int} seconds
+the server has answered
+I am told the calendar was last updated at {string}
+I am not told when the calendar was last updated
+this device keeps a last known calendar
+this device keeps no last known calendar
+```
+
+- "I have seen the V view for D": opens that view (a month view opens D's month), waits until it has settled, the
+  service worker controls the page (so the app shell also opens offline) and the app has saved its last known state
+  (`<html data-last-known="saved">`, set after the debounced IndexedDB write, and the stored snapshot holds a range
+  containing D).
+- "I open the app again": reloads the page (the last opened view) without waiting for the app to settle.
+- "the server answers only after N seconds": `POST /api/__test/slow { ms: N*1000 }` (API.md); every later `/api` answer
+  but `/api/__test/*` waits that long, until reset.
+- "the server has answered": waits (slow-down + 10 s at most) until `sync-status` carries a `data-last-sync` (a fresh
+  answer of this page) and is not `syncing`.
+- "last updated at T": `last-updated-note` is visible and its text ends with T (`Last updated 08:12`); "not told": it
+  is absent.
+- "keeps a last known calendar": the IndexedDB database `calendar-last-known` holds a snapshot (store `snapshots`);
+  "keeps no ...": it holds none (or does not exist) and localStorage has no `cal.lastKnownPerson`.
 
 ## Mobile
 
