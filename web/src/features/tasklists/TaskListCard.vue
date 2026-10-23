@@ -335,7 +335,7 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 /* mini tier (cards narrower than 92 px: phone month, phone week columns): 9 px rows */
 .mini { padding: 1px 2px 2px 3px; }
 .mini .row { gap: 2px; min-height: 14px; }
-.mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
+.mini .title { font-size: 10px; line-height: 14px; text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 .mini .cb { width: 9px; height: 9px; border-width: 1.2px; border-radius: var(--cb-r, 2.5px); }
 .mini .cb[data-state='done']::after { left: 1.7px; top: -0.5px; width: 2.4px; height: 5px; border-width: 0 1.2px 1.2px 0; }
 .mini .items, .mini .it { line-height: 11px; }

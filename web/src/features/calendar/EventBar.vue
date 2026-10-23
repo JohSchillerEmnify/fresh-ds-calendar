@@ -64,5 +64,5 @@ html[data-calm='true'] .bar { filter: saturate(0.6); }
 .bar.chip { gap: 4px; margin: 0 var(--pad, 1px); padding: 1px 4px; line-height: 16px; }
 .bar.chip.from { margin-left: 0; }
 .bar.chip.next { margin-right: 0; }
-@media (max-width: 767.98px) { .bar.chip { padding: 0 2px 0 3px; font-size: 10px; line-height: 14px; } .bar.chip .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); } }
+@media (max-width: 767.98px) { .bar.chip { padding: 0 2px 0 3px; font-size: 10px; line-height: 14px; } .bar.chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); } }
 </style>

@@ -129,8 +129,8 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 /* phones: smaller type, tight padding, no ellipsis in the month: clip with a fade instead */
 @media (max-width: 767.98px) {
   .chip { font: var(--md-sys-typescale-label-small); font-size: 10px; line-height: 14px; min-height: 16px; padding: 0 2px 0 3px; }
-  .chip .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
+  .chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   .allday { font-size: 10px; line-height: 14px; min-height: 18px; padding: 0 3px; }
-  .allday .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
+  .allday .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
 </style>

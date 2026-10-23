@@ -8,6 +8,8 @@
   --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial;
   --e-fill: 100%; --e-bw: 0px; --e-bl: initial; --e-fg: initial; --e-mark: initial;
   --r-chip: 6px; --r-block: 8px;
+  /* a one-line entry title clipped without an ellipsis fades out over its last 7 px (phone chips, mini cards) */
+  --fade-end: linear-gradient(90deg, #000 calc(100% - 7px), transparent);
 }
 [data-glow='off'] { --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial; }
 [data-glow='soft'] { --glow-r: 9px; --glow-s: 0px; --glow-a: 55%; --glow-anim: initial; }
