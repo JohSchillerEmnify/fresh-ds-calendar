@@ -1309,6 +1309,14 @@ the horizontal view does not show the hour {time}
 the horizontal view shows the hour {time}
 I scroll the horizontal view sideways
 I tap the day label {date} in the horizontal view
+I open the runway
+the runway reads {string}
+the runway says {string}
+{string} is above {string} on the runway
+I tap {string} on the runway
+on the runway {string} is about {int} times as tall as {string}
+I note the height of {string} on the runway
+{string} is taller on the runway than noted
 ```
 
 - Zoom switch (feature zoom-month): "until three and a half day columns fit across the screen"
@@ -1360,10 +1368,15 @@ I tap the day label {date} in the horizontal view
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
-  `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
+  `zoom`, `horizontal`, `runway`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   "the approach bar shows its entries in N rows": the `approach-item` chips occupy exactly N distinct vertical
   positions. "on the timeline A and B are side by side": the two `timeline-item`s overlap vertically and not
   horizontally.
+- Runway (feature labs-bedtime-runway): "I open the runway" opens `/runway` and waits for `runway-view`. "reads" is the
+  exact text of `runway-header`; "says" the exact text of `runway-message` (the off / after-bedtime state). Entries are
+  `runway-entry` (`data-title`) inside `runway-bar`; "above" compares their top edges, "about N times as tall" is a
+  ±15 % ratio of their heights, "taller than noted" compares with the height noted before. "I tap X on the runway"
+  clicks the middle of its entry.
 
 ## App updates
 

@@ -182,6 +182,10 @@ model {
       #experimental
       description 'One day as a 24-hour dial on which entries are opened, turned, resized and created'
     }
+    labsRunway = component 'Labs bedtime runway' {
+      #experimental
+      description 'One bar from now to tonight\'s bedtime that fills the screen and shrinks as the evening goes on, with tonight\'s timed entries to scale and the free time'
+    }
     approachTrack = component 'Approaching track' {
       description 'The time axis in the Now card on which today\'s timed entries come closer'
     }
@@ -194,6 +198,10 @@ model {
     approachTrack -> prefs 'reads whether the track is on and its window'
     approachTrack -> items 'shows today\'s timed entries within the window, carried-over lists included'
     clock -> approachTrack 'moves the entries closer'
+    labsRunway -> bedtime 'takes tonight\'s bedtime'
+    labsRunway -> items 'shows tonight\'s timed entries; opens one on a tap'
+    labsRunway -> prefs 'reads the minimum event length'
+    clock -> labsRunway 'shrinks the runway every minute'
   }
 
   // Themes

@@ -17,4 +17,12 @@ export default {
     lead: { label: 'Time before the first appointment', minutes: '{count} min', none: 'None' },
     reminder: { label: 'Remind me before bedtime', minutes: '{count} min', off: 'Off' },
   },
+  runway: {
+    header: '{left} until bed · {free} free',
+    now: 'Now {time}',
+    bed: 'Bed {time}',
+    off: 'Bedtime is off — set it in the settings',
+    passed: 'Bedtime was at {time}',
+    openSettings: 'Open settings',
+  },
 };

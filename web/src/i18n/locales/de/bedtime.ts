@@ -19,4 +19,12 @@ export default {
     lead: { label: 'Zeit vor dem ersten Termin', minutes: '{count} Min.', none: 'Keine' },
     reminder: { label: 'Vor der Schlafenszeit erinnern', minutes: '{count} Min.', off: 'Aus' },
   },
+  runway: {
+    header: 'Noch {left} bis ins Bett · {free} frei',
+    now: 'Jetzt {time}',
+    bed: 'Bett {time}',
+    off: 'Die Schlafenszeit ist aus – stell sie in den Einstellungen ein',
+    passed: 'Schlafenszeit war um {time}',
+    openSettings: 'Einstellungen öffnen',
+  },
 } satisfies Messages['bedtime'];

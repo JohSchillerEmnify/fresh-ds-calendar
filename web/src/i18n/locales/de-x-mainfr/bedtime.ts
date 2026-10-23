@@ -19,4 +19,12 @@ export default {
     lead: { label: 'Zeit vor dem erschdn Termin', minutes: '{count} Min.', none: 'Kei' },
     reminder: { label: 'Vorher Bescheid sachn', minutes: '{count} Min.', off: 'Aus' },
   },
+  runway: {
+    header: 'Noch {left} bis ins Bedd · {free} frei',
+    now: 'Edz {time}',
+    bed: 'Bedd {time}',
+    off: 'Bettzeit is aus – stell sa in die Einstellunga ei',
+    passed: 'Ins Bedd wärs um {time} ganga',
+    openSettings: 'Einstellunga aufmach',
+  },
 } satisfies PartialMessages['bedtime'];
