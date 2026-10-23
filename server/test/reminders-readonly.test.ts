@@ -281,6 +281,20 @@ describe('default reminders of a read-only calendar', () => {
     expect((await setDefaults([1, 1])).status).toBe(400);
   });
 
+  it('a calendar that became writable drops the stale app copy on its next change', async () => {
+    // a copy kept while "primary" was read-only; it is writable now
+    t.app.ctx.prefs.reminderOverrides.setLocalDefaults(LOCAL_PERSON, 'primary', [10], Date.now());
+    const r = await t.json('PATCH', '/api/calendars/primary', { defaultReminders: [20] });
+    expect(r.body.defaultReminders).toEqual([20]);
+    expect(readFile().defaults).toEqual({});
+  });
+
+  it('a freeBusyReader calendar is kept by the app as well', async () => {
+    await t.json('POST', '/api/__test/remote/calendars', { summary: 'Busy', id: 'busy@example.org', accessRole: 'freeBusyReader', ownerEmail: 'busy@example.org' });
+    expect((await t.json('PATCH', '/api/calendars/busy%40example.org', { defaultReminders: [10] })).body.defaultReminders).toEqual([10]);
+    expect(readFile().defaults['busy@example.org'].minutes).toEqual([10]);
+  });
+
   it('a writable calendar is never kept by the app', async () => {
     const spy = vi.spyOn(t.app.ctx.prefs.reminderOverrides, 'setLocalDefaults');
     const r = await t.json('PATCH', '/api/calendars/primary', { defaultReminders: [15] });

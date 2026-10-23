@@ -121,7 +121,11 @@ export class CalendarService {
     if (!cal) throw notFound('Calendar not found');
     const next = this.remindersToGoogle(minutes, cal.defaultReminders);
     if (!hasWriteRole(cal)) await this.setReadOnlyDefaults(calId, next, minutes);
-    else await this.provider.setCalendarDefaultReminders(calId, next);
+    else {
+      await this.provider.setCalendarDefaultReminders(calId, next);
+      // a calendar that became writable: Google holds its defaults again, a stale app copy must not return later
+      this.prefs.reminderOverrides.setGoogleDefaults(this.sub, calId);
+    }
     this.calCache = null;
     return minutes;
   }

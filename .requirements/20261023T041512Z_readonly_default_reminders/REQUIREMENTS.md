@@ -38,6 +38,12 @@ calendar's popup defaults. Settings show read-only calendars editable, without t
 - D3 The mock's existing reader-reminders switch covers both `events.patch` reminders and `calendarList.patch` defaults on
   reader / freeBusyReader calendars (one switch; the scenarios' wording "Google accepts reminder changes in calendars I
   can only read" covers both). Default stays "refuse".
+- D4 "Same TTL mechanism" is taken literally: like the events' `local` path, every change kept by the app re-stamps
+  `since`, so Google is asked again a day after the last kept change (not the first refusal). Review noted that a person
+  who changes the defaults daily is never re-tried at Google; kept for consistency with the shipped event path — if the
+  owner wants "a day after the first refusal", both paths should change together.
+- D5 A change on a writable calendar drops any app copy left from when it was read-only (no stale list can return if
+  the role drops back).
 
 ## Requirements
 
