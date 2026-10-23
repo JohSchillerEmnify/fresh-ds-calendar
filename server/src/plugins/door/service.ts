@@ -20,8 +20,8 @@ export interface DoorEvent {
   allDay: boolean;
 }
 
-/** A repeating list's occurrences share the master's id before the `_YYYYMMDD` suffix. */
-const masterId = (id: string) => id.replace(/_\d{8}$/, '');
+/** A repeating list's occurrences share the master's id before the `_YYYYMMDD` (timed: `_YYYYMMDDTHHMMSSZ`) suffix. */
+const masterId = (id: string) => id.replace(/_\d{8}(T\d{6}Z)?$/, '');
 
 /**
  * Door-tagged lists that are due today (dated today or earlier, or undated), one per repeating list — its latest
@@ -31,7 +31,7 @@ export function dueDoorLists(lists: TaskList[], today: string): TaskList[] {
   const due = lists.filter((l) => l.tags.includes(DOOR_TAG) && (l.date === null || l.date <= today));
   const latest = new Map<string, TaskList>();
   for (const l of due) {
-    const key = l.recurrence ? masterId(l.id) : l.id;
+    const key = l.seriesId ?? (l.recurrence ? masterId(l.id) : l.id);
     const seen = latest.get(key);
     if (!seen || (l.date ?? '') > (seen.date ?? '')) latest.set(key, l);
   }

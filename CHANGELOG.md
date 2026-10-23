@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-23
+- Repeating task lists: ticking an item in one week no longer ticks it in the other weeks, also right after creating the list; undoing or deleting a list you just created removes all its weeks.
 - All-day events now ring too: at midnight of their day minus each reminder set for them, as in Google (e.g. 5 min → 23:55 the evening before); events over several days ring once, saying the day and "all day".
 - Calendars you can only read: reminders for the whole calendar are saved in Google; reminders on single events of such calendars are kept by the app straight away (Google does not allow them there), without waiting for Google first.
 - Dragging a task list item: the other items now slide aside to open a gap where it will land, instead of the item lying on top of them.

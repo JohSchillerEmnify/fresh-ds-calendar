@@ -226,6 +226,12 @@ export class MockGoogleProvider implements CalendarProvider {
     const cur = this.resolve(calendarId, eventId);
     if (cur.status === 'cancelled') throw new NotFoundError('Resource has been deleted');
     this.doPatch(calendarId, eventId, { status: 'cancelled' }, o);
+    // deleting a series deletes its exceptions with it (Google)
+    if (cur.recurrence) {
+      for (const e of [...this.events.values()]) {
+        if (e.calendarId === calendarId && e.recurringEventId === eventId && e.status !== 'cancelled') this.doPatch(calendarId, e.id, { status: 'cancelled' });
+      }
+    }
   }
 
   async moveEvent(calendarId: string, eventId: string, destinationCalendarId: string): Promise<GoogleEvent> {
@@ -287,12 +293,15 @@ export class MockGoogleProvider implements CalendarProvider {
     throw new NotFoundError('Not Found');
   }
 
+  /** Google's instance ids: `<masterId>_<YYYYMMDD>` for all-day series, `<masterId>_<YYYYMMDD>T<HHMMSS>Z` (UTC start) for timed ones. */
   private virtualInstance(calendarId: string, id: string): GoogleEvent | null {
-    const m = /^(.+)_(\d{8})$/.exec(id);
+    const m = /^(.+)_(\d{8})(?:T(\d{6})Z)?$/.exec(id);
     if (!m) return null;
     const master = this.events.get(key(calendarId, m[1]!));
     if (!master?.recurrence || master.status === 'cancelled') return null;
-    const date = `${m[2]!.slice(0, 4)}-${m[2]!.slice(4, 6)}-${m[2]!.slice(6)}`;
+    const day = `${m[2]!.slice(0, 4)}-${m[2]!.slice(4, 6)}-${m[2]!.slice(6)}`;
+    // a timed id names the UTC start: its local day may be another one
+    const date = m[3] ? localDateOf(Date.parse(`${day}T${m[3].slice(0, 2)}:${m[3].slice(2, 4)}:${m[3].slice(4)}Z`), this.tz) : day;
     const min = startOfLocalDay(date, this.tz);
     return this.expand(master, min, min + 86_400_000, new Set()).find((x) => x.id === id) ?? null;
   }
@@ -317,18 +326,22 @@ export class MockGoogleProvider implements CalendarProvider {
       const date = rule === 'DAILY' ? addDays(base, n) : rule === 'WEEKLY' ? addDays(base, 7 * n) : rule === 'MONTHLY' ? addMonthsClamp(base, n).date : this.yearly(base, n, lastOfFeb);
       if (!date) continue; // 29 February in a year without one: Google skips it
       if (startOfLocalDay(date, this.tz) >= max) break;
-      const id = `${m.id}_${date.replaceAll('-', '')}`;
-      if (exceptions.has(`${m.id}|${id}`)) continue;
-      const inst: GoogleEvent = { ...clone(m), id, recurringEventId: m.id, recurrence: undefined };
+      // Google instance: the master's fields with its own id, start and etag, `recurringEventId` and `originalStartTime`
+      const inst: GoogleEvent = { ...clone(m), recurringEventId: m.id };
       delete inst.recurrence;
       if (m.start.date) {
+        inst.id = `${m.id}_${date.replaceAll('-', '')}`;
         inst.start = { date };
         inst.end = { date: addDays(date, spanDays) };
       } else {
         const s = zonedToUtc(date, baseTime!, this.tz);
+        inst.id = `${m.id}_${new Date(s).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`;
         inst.start = { dateTime: formatInZone(s, this.tz), timeZone: m.start.timeZone ?? this.tz };
         inst.end = { dateTime: formatInZone(s + durationMs, this.tz), timeZone: m.end.timeZone ?? this.tz };
       }
+      if (exceptions.has(`${m.id}|${inst.id}`)) continue;
+      inst.originalStartTime = { ...inst.start };
+      inst.etag = `"${m.etag.replaceAll('"', '')}-${inst.id.slice(m.id.length + 1)}"`;
       const [s0, e0] = this.bounds(inst);
       if (e0 > min && s0 < max) out.push(inst);
     }

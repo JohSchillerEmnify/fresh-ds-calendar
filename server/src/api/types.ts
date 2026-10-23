@@ -79,6 +79,8 @@ export interface TaskList {
   totalCount: number;
   estimateMinutes: number | null;
   recurrence: Recurrence | null;
+  /** On an occurrence of a repeating list: the id of its series (Google `recurringEventId`); absent otherwise. */
+  seriesId?: string;
   categoryId: string | null;
   tags: string[];
   color: string;

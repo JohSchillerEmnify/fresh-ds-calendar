@@ -44,6 +44,8 @@ export const useItemsStore = defineStore('items', () => {
    * no response may (re-)add them. Holds task list item ids too; those are stripped from their list.
    */
   const deleted = new Set<string>();
+  /** First week id -> series id of the repeating lists created in this session: deleting one of them deletes the series. */
+  const createdSeries = new Map<string, string>();
   const loading = ref(false);
   let ctrl: AbortController | null = null;
 
@@ -268,6 +270,7 @@ export const useItemsStore = defineStore('items', () => {
   async function createTaskList(input: CreateTaskListInput): Promise<TaskList> {
     try {
       const tl = await api.createTaskList(input);
+      if (tl.seriesId) createdSeries.set(tl.id, tl.seriesId);
       upsert(tl);
       return tl;
     } catch (e) { return report(e); }
@@ -280,8 +283,16 @@ export const useItemsStore = defineStore('items', () => {
     } catch (e) { return report(e); }
   }
   async function deleteTaskList(id: string, etag?: string, o: RequestOptions = {}): Promise<void> {
+    const series = createdSeries.get(id);
     try {
-      await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
+      if (series) {
+        // a repeating list deleted (or its undo time over) right after it was created goes as a whole: no If-Match, the etag is its first week's
+        await api.deleteTaskList(series, o);
+        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && it.seriesId === series) { deleted.add(it.id); remove(it.id); }
+        createdSeries.delete(id);
+      } else {
+        await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
+      }
       deleted.add(id);
       remove(id);
     } catch (e) { report(e); }
@@ -379,6 +390,7 @@ export const useItemsStore = defineStore('items', () => {
     pending.clear();
     carriedIds.clear();
     keptIds.clear();
+    createdSeries.clear();
     prefetchFailed.clear();
     summaryByKey.clear();
     summaryKeys.value = [];

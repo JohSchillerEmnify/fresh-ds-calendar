@@ -21,7 +21,7 @@ const answer = (w: World): DoorAnswer => {
   return a;
 };
 
-interface ListRow { id: string; title: string; date: string | null; tags: string[]; recurrence: string | null; items: { id: string; title: string; done: boolean }[] }
+interface ListRow { id: string; title: string; date: string | null; tags: string[]; recurrence: string | null; seriesId?: string; items: { id: string; title: string; done: boolean }[] }
 /** Every open list the owner has, dated and undated (the instance view of repeating lists). */
 const openLists = (w: World) => w.api.get<{ items: ListRow[] }>('/api/tasklists/all-open').then((r) => r.items);
 async function listByTitle(w: World, title: string, date?: string): Promise<ListRow> {
@@ -48,8 +48,8 @@ Given("the door board's key is taken away", async function (this: World) {
 // ---- lists ----
 Given('{string} is set to show on the door', async function (this: World, title: string) {
   const l = await listByTitle(this, title);
-  // a repeating list is tagged on its master (an occurrence id ends in _YYYYMMDD), so every occurrence carries the tag
-  const id = l.recurrence ? l.id.replace(/_\d{8}$/, '') : l.id;
+  // a repeating list is tagged on its series (master), so every occurrence carries the tag
+  const id = l.seriesId ?? l.id;
   await this.api.patch(`/api/tasklists/${id}`, { tags: [...l.tags.filter((t) => t !== 'door'), 'door'] });
 });
 Given('the calendar contains a weekly task list {string} on Mondays since {date} with items:', async function (this: World, title: string, since: string, table: DataTable) {
