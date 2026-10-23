@@ -24,7 +24,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png', 'icons/logo-small.svg'],
+      // the notification badges and icons are precached: a push may arrive while the network is poor
+      includeAssets: ['icons/apple-touch-icon-180.png', 'icons/favicon-32.png', 'icons/logo-small.svg', 'icons/badge-*-96.png', 'icons/notification-*-192.png'],
       manifest: {
         id: '/',
         name: "Fresh-D's Kalender",

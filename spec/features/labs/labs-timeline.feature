@@ -32,7 +32,6 @@ Feature: Labs: the timeline view
     Then the timeline runs from top to bottom
     And the title of "Dentist" on the timeline reads left to right in one line
 
-  @backlog
   Scenario: Overlapping entries sit side by side on the timeline
     Given the calendar contains an event "Review" on 2026-10-14 from 09:30 to 10:30
     When I open the timeline view

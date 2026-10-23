@@ -4,41 +4,24 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
-- **Notification icon is always the moon** (owner, 2026-10-19: "the notification icon is always a moon, which is
-  bullshit"). Every push notification (event and task-list reminders, morning summary) shows the bedtime moon; each
-  kind should carry its own icon (event, task list, morning, bedtime). Look at the icon/badge the push payload sets
-  (`server/src/services/push*`, the service worker's `showNotification` options) and the PWA icon set.
-- **Two-row overview: a lone entry leaves the grown list no room** (2026-10-19, seen in the visual gate). The shared
-  window is the week's earliest start to its latest end (min 60 min); when the only entry is one task list, its block
-  fills the whole row, so the grown card's list has no space above or below and stays hidden. Options: a minimum
-  window around the entries (e.g. ±2 h), or let the grown list overlay the band/header. Owner's call.
-- **Desktop month-picker swipe fails** (2026-10-18). `month-picker.feature` "Arrows and swipes change the month
-  inside the picker" fails on `--project=desktop` (mouse-drag branch of `swipePicker` in `year.steps.ts`,
-  `expect(...).not.toHaveText` on the month). Pre-existing (fails on main), not from the dedup work. Investigate the
-  desktop drag-swipe in the picker.
-
-- **Zooming is broken on the month overview** (2026-10-16, owner). The pinch/Ctrl-wheel zoom on the month view is
-  broken; investigate and fix. (Separate from the zoom-month lab.)
-- **Deep-link return after sign-in is sometimes lost** (2026-10-16, owner chose backlog). Opening a specific page while
-  signed out should return there after sign-in; ~1 in 8 it lands on the default month view instead. Pre-existing, cosmetic
-  (you are signed in correctly, just on the wrong starting page). The return is stashed in `sessionStorage` (`RETURN_KEY`)
-  by the router `beforeEach` and read by the `/` redirect (`takeReturn`, `web/src/router/index.ts`); the two cross during
-  the sign-in redirect. Reproduce: `e2e/run.sh --grep "and sees their calendar" --repeat-each 8` (fails ~1/8 on main).
+- **Left-handed tablet: the + button covers the open tray** (2026-10-23, owner to decide). In left-handed mode on a
+  tablet the add button sits over the open task tray. Moving it right of the tray puts it past the middle of an 820 px
+  tablet, which breaks the owner's scenario "On an iPad in left-handed mode the add button sits on the left" (checked:
+  red). Owner to choose: keep it over the tray, move it right of the tray and change that scenario, or another place.
+- **Android: the widget's own week fetch still shows category colours while categories are off** (2026-10-23; being
+  fixed on `fix/notification-icons`). The widget snapshot was fixed (`listColor(l, categoriesOn)`), but the native week
+  fetch (`WeekData.java`, `it.optString("color")` from `/api/items`) still draws task lists in their category colour.
+  Needs the switch on the Java side and an APK build to verify.
+- **Zooming on the month overview** (2026-10-16, owner; findings 2026-10-23, owner to decide). There never was a zoom
+  in the month view, so nothing broke: on the phone, pinch is blocked because the swipe area sets `touch-action: pan-y`
+  (`SwipeCarousel.vue`); on the desktop, Ctrl+wheel is the browser's own page zoom. Owner to choose: (a) an app zoom
+  like the zoom-month Labs view, (b) allow the browser's pinch zoom, or (c) the zoom month becomes the month view.
 - **Android back gesture fix: verify on the phone** (branch `android-back-notify`, needs an APK build). Back should
   close the open overlay, then go to the previous view, and leave the app only with no history left.
 - **Canvas: long press on an item row does not pick up the note** (2026-10-13, owner, phone). Not reproducible in
   Chromium mobile emulation; a defensive fix (`touch-action`, `user-select`, `-webkit-touch-callout`, prevented
   `contextmenu`/`selectstart`) shipped. Owner to retest on the phone; if it still fails, capture a remote-debug log of the
   pointer/touch events on one row.
-
-## Waiting for the real Google login (branches on sauron and GitHub, in the preview)
-
-- `shared-lists` — share task lists with the partner (per list and per category), server storage.
-- `drive-backup` — back up all server data to the hidden Google Drive app folder; restore (contains `shared-lists`).
-- `perf-budget2` — first-load JS 167 → 135 KB, Lighthouse budget = median of 3 runs ≥ 70.
-
-Prerequisites (owner): HTTPS on a real domain (Cloudflare DNS + token in `~/docker-compose/traefik/.env.cloudflare`),
-Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Tech debt
 
@@ -53,18 +36,26 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
 - **Review and prune the e2e suite** (owner, 2026-10-16: "169 tests for just a task list seems a lot; check if all of
   them are really necessary"). The task-list features alone match ~169 scenarios; the whole suite is large and slow
   (workers=1, one shared server). Audit for redundant/overlapping scenarios, collapse Scenario Outlines, drop
-  low-value cases, and see whether some belong as unit tests instead. Goal: a leaner, faster suite.
+  low-value cases, and see whether some belong as unit tests instead. Goal: a leaner, faster suite. The
+  coverage-preserving part is done (2026-10-23); the rest waits for the owner's tick in
+  [proposals/2026-10-23-spec-e2e-cleanup.md](proposals/2026-10-23-spec-e2e-cleanup.md).
 - **Clean up the spec** (owner, 2026-10-19: "wir müssen echt den spec mal aufräumen"). Scenarios and prose that
   predate later owner decisions contradict them without failing: `tasklists-expand.feature` "A long title wraps and
   stays fully readable in the grown card" (a 30-minute list) now shows a tight one-line pill with an ellipsis, as decided
   on 2026-10-19 ("Pille = Blockhöhe, Titel mit Ellipsis"); the architecture prose carried an invented "item rows run on
   across both" rule until it was corrected the same day. Go feature by feature with the owner (requirements step, one
   scenario at a time): drop or reword scenarios whose name no longer matches their steps, make every `Then` say what is
-  seen, and dedupe the union-merged sections of `e2e/STEPS.md`. Pairs with the e2e pruning above.
+  seen, and dedupe the union-merged sections of `e2e/STEPS.md`. Pairs with the e2e pruning above. The safe part is done
+  (2026-10-23); the contradictions, duplicates and rewordings wait for the owner in
+  [proposals/2026-10-23-spec-e2e-cleanup.md](proposals/2026-10-23-spec-e2e-cleanup.md).
 
 ## Features
 
-
+- **In-app: should a session expiring mid-use return to the open page?** (2026-10-23, owner to confirm). The 401
+  listener remembers the open page before it leaves for sign-in (unit-tested in `web/test/stores.test.ts`), but no
+  scenario specifies it.
+- **Android 16 lock-screen countdown (Live Update)** (2026-10-23). See
+  [proposals/2026-10-23-calendar-view-ideas.md](proposals/2026-10-23-calendar-view-ideas.md), idea 3.
 - **Reorder list items by drag and drop** (owner, 2026-10-23; needs its own slice + spec first). Inside a task list,
   pick up an item and drop it at another place in the list. Today items move only with the up/down buttons
   (`tasklist-items` "Reorder items", `@optional`).
@@ -77,14 +68,9 @@ Google Cloud OAuth client (values in `~/projects/calendar/deploy/.env`). See [DE
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
   frames also drop, so check the ambient scene/top-bar animations with remote debugging on the phone.
-- Push notifications in the PWA (Web Push, needs HTTPS). The Android app shows the bedtime reminder as a notification
-  (branch `android-back-notify`; needs an APK build and a check on the phone).
 - Tags (shelved earlier).
 - iOS home-screen widget (needs a native shell; a PWA cannot provide widgets on iOS).
 - Android widget: verify on a real device (drawn as a bitmap of the week view, never rendered on a device yet).
-- Two-row week overview (owner, 2026-10-16): instead of 7 narrow day columns, lay the week out in two rows — the first
-  four days on top, the rest below — to use the width better and read as a nicer overview. A layout option/view for the
-  week.
 - Phone UI feels overwhelming and too small (owner, 2026-10-14). Clarify with the owner first which part bothers most.
   Candidates: a larger "comfortable" density on phones; a month view with dots per day plus the selected day's list
   below; fewer toolbar controls; a day/agenda start view on phones.

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
+import { flushPromises } from '@vue/test-utils';
 import { addReminderSink, dueReminder, NATIVE_REMINDER_ID, REMINDED_KEY, upcomingReminder, startBedtimeReminder, stopBedtimeReminder } from '@/features/bedtime/bedtimeReminder';
 import { absMinutes, bedtimeWindows, DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { useClockStore } from '@/stores/clock';
@@ -26,8 +27,8 @@ describe('dueReminder', () => {
 
 describe('upcomingReminder', () => {
   it('is tonight until its reminder time, then the next night', () => {
-    expect(upcomingReminder(windows, at('12:00'), 30)).toEqual({ night: '2026-10-15', at: at('22:30'), bedtime: '23:00' });
-    expect(upcomingReminder(windows, at('22:30'), 30)).toEqual({ night: '2026-10-16', at: at('22:30') + 1440, bedtime: '23:00' });
+    expect(upcomingReminder(windows, at('12:00'), 30)).toEqual({ night: '2026-10-15', at: at('22:30'), bedtime: '23:00', from: '2026-10-14 23:00', to: '2026-10-15 07:00' });
+    expect(upcomingReminder(windows, at('22:30'), 30)).toEqual({ night: '2026-10-16', at: at('22:30') + 1440, bedtime: '23:00', from: '2026-10-15 23:00', to: '2026-10-16 07:00' });
   });
 
   it('never with a lead of 0 minutes', () => {
@@ -58,6 +59,22 @@ describe('startBedtimeReminder', () => {
     await nextTick();
     expect(ui.snackbars).toHaveLength(1);
     expect(localStorage.getItem(REMINDED_KEY)).toBe('2026-10-15');
+    stop();
+  });
+
+  it('counts down while the app is open and goes away at bedtime', async () => {
+    const clock = setup('2026-10-14T22:30:00+02:00');
+    const stop = startBedtimeReminder();
+    const ui = useUiStore();
+    clock.nowTick = Date.parse('2026-10-14T22:40:00+02:00');
+    await flushPromises();
+    expect(ui.snackbars.map((s) => [s.text, s.duration])).toEqual([['Bedtime in 20 minutes', 0]]);
+    clock.nowTick = Date.parse('2026-10-14T22:59:00+02:00');
+    await flushPromises();
+    expect(ui.snackbars.map((s) => s.text)).toEqual(['Bedtime in 1 minute']);
+    clock.nowTick = Date.parse('2026-10-14T23:00:00+02:00');
+    await flushPromises();
+    expect(ui.snackbars).toEqual([]);
     stop();
   });
 
@@ -111,13 +128,36 @@ describe('startBedtimeReminder', () => {
       const clock = setup('2026-10-14T12:00:00+02:00');
       const stop = startBedtimeReminder();
       expect(plugin.schedule.mock.calls).toEqual([[{
-        id: NATIVE_REMINDER_ID, at: Date.parse('2026-10-14T22:30:00+02:00'), title: 'Bedtime in 30 minutes', body: 'Bedtime 23:00',
+        // the bedtime itself, and the phone counts down to it (a fixed "in 30 minutes" would go stale); gone at wake-up
+        id: NATIVE_REMINDER_ID, at: Date.parse('2026-10-14T22:30:00+02:00'), title: 'Bedtime at 23:00', body: '', kind: 'bedtime',
+        start: Date.parse('2026-10-14T23:00:00+02:00'), end: Date.parse('2026-10-15T07:00:00+02:00'),
       }]]);
       clock.nowTick = Date.parse('2026-10-14T12:01:00+02:00');
       await nextTick();
       expect(plugin.schedule).toHaveBeenCalledTimes(1);
       clock.nowTick = Date.parse('2026-10-14T22:30:00+02:00');
       await nextTick();
+      expect(plugin.schedule).toHaveBeenLastCalledWith(expect.objectContaining({ at: Date.parse('2026-10-15T22:30:00+02:00') }));
+      stop();
+    });
+
+    it('schedules the right instants across the change back to winter time (2026-10-25)', () => {
+      // 01:00 summer time; tonight's 23:00 is winter time, 23 wall hours but 23 h + 1 h later
+      setup('2026-10-25T01:00:00+02:00');
+      const stop = startBedtimeReminder();
+      expect(plugin.schedule.mock.calls).toEqual([[expect.objectContaining({
+        at: Date.parse('2026-10-25T22:30:00+01:00'), start: Date.parse('2026-10-25T23:00:00+01:00'), end: Date.parse('2026-10-26T07:00:00+01:00'),
+      })]]);
+      stop();
+    });
+
+    it('never cancels tonight\'s reminder once it rang: opening the app schedules the next night instead', async () => {
+      const clock = setup('2026-10-14T22:00:00+02:00');
+      const stop = startBedtimeReminder();
+      // it rings at 22:30 while the app is closed; the app is opened at 22:40, before bedtime
+      clock.nowTick = Date.parse('2026-10-14T22:40:00+02:00');
+      await nextTick();
+      expect(plugin.cancel).not.toHaveBeenCalled();
       expect(plugin.schedule).toHaveBeenLastCalledWith(expect.objectContaining({ at: Date.parse('2026-10-15T22:30:00+02:00') }));
       stop();
     });

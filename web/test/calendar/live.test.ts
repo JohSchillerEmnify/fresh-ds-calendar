@@ -22,6 +22,8 @@ const at = (hm: string) => new Date(`${D}T${hm}:00+02:00`);
 const laundry = { kind: 'tasklist', id: 'laundry', calendarId: 'tasks', title: 'Laundry', date: D, time: '18:00', items: [], doneCount: 0, totalCount: 1,
   estimateMinutes: 60, categoryId: null, tags: [], color: '#0b8043', reminders: { useDefault: false, minutes: [30] }, etag: 'e', updated: '' } as unknown as CalendarItem;
 const ten = { useDefault: false, minutes: [10] };
+/** End of the 8 planned days from D: the native schedule and the push plan wait until all of them are loaded. */
+const W = '2026-10-20';
 
 async function boot(hm: string, running: boolean) {
   const pinia = freshPinia();
@@ -29,7 +31,7 @@ async function boot(hm: string, running: boolean) {
   const clock = useClockStore();
   await clock.load();
   const items = useItemsStore();
-  items.applyResponse(D, '2026-10-13', [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist', reminders: ten }), ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call', reminders: ten })], 's');
+  items.applyResponse(D, W, [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist', reminders: ten }), ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call', reminders: ten })], 's');
   useSettingsStore().$patch({});
   return { pinia, clock, items };
 }
@@ -74,7 +76,7 @@ describe('now card', () => {
       kind: 'tasklist', id: 'tax', calendarId: 'primary', title: 'Tax paperwork', date: '2026-10-09', time: '02:00', items: [], doneCount: 0, totalCount: 2,
       estimateMinutes: null, categoryId: null, tags: [], color: '#000000', etag: 'e', updated: '',
     } as unknown as CalendarItem;
-    items.applyResponse(D, '2026-10-13', [tax, ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' })], 's');
+    items.applyResponse(D, W, [tax, ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' })], 's');
     const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<i/>' } }] });
     const w = mount(NowCard, { global: { plugins: [pinia, router] } });
     const chips = w.findAll('[data-testid="approach-item"]');
@@ -168,14 +170,14 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     await flushPromises();
     expect(ui.snackbars.some((s) => s.testid === 'transition-warning')).toBe(false);
     ui.snackbars = [];
-    useItemsStore().applyResponse(D, '2026-10-13', [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later', reminders: { useDefault: true, minutes: [] } })], 's');
+    useItemsStore().applyResponse(D, W, [ev('later', t(D, '11:00'), t(D, '12:00'), { title: 'Later', reminders: { useDefault: true, minutes: [] } })], 's');
     await vi.advanceTimersByTimeAsync(50 * 60000);
     expect(ui.snackbars).toHaveLength(0);
   });
 
-  it('rings at every lead of an event, the nearest due one only, and shows a day lead in words', async () => {
+  it('rings at every lead of an event, the nearest due one only, and counts down the minutes left', async () => {
     const { clock, items } = await boot('10:25', true);
-    items.applyResponse(D, '2026-10-13', [ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', reminders: { useDefault: false, minutes: [30, 15] } })], 's');
+    items.applyResponse(D, W, [ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', reminders: { useDefault: false, minutes: [30, 15] } })], 's');
     const ui = useUiStore();
     startTransitionWarnings();
     clock.startTicker();
@@ -183,16 +185,19 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     expect(warn()).toEqual([]);
     await vi.advanceTimersByTimeAsync(5 * 60000);
     expect(warn()).toEqual(['Dentist starts in 30 min']);
+    // while it is open it counts down
+    await vi.advanceTimersByTimeAsync(2 * 60000);
+    expect(warn()).toEqual(['Dentist starts in 28 min']);
     ui.snackbars = [];
-    await vi.advanceTimersByTimeAsync(15 * 60000);
+    await vi.advanceTimersByTimeAsync(13 * 60000);
     expect(warn()).toEqual(['Dentist starts in 15 min']);
-    // joining late: both leads are due, only the nearest speaks
+    // joining late: both leads are due, only the nearest speaks, with the minutes really left
     stopTransitionWarnings();
     ui.snackbars = [];
     vi.setSystemTime(at('10:50'));
     clock.nowTick = at('10:50').getTime();
     startTransitionWarnings();
-    expect(warn()).toEqual(['Dentist starts in 15 min']);
+    expect(warn()).toEqual(['Dentist starts in 10 min']);
   });
 
   it('stays quiet for an event of a hidden calendar and speaks up when it is shown again', async () => {
@@ -210,7 +215,7 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     cals.list = [{ ...cals.list[0]!, hidden: false }];
     await vi.advanceTimersByTimeAsync(60000);
     await flushPromises();
-    expect(ui.snackbars.filter((s) => s.testid === 'transition-warning').map((s) => s.text)).toEqual(['Dentist starts in 10 min']);
+    expect(ui.snackbars.filter((s) => s.testid === 'transition-warning').map((s) => s.text)).toEqual(['Dentist starts in 9 min']);
   });
 });
 
@@ -219,39 +224,88 @@ describe('transition warnings as Android notifications', () => {
 
   it('schedules them through the plugin, re-sends only changes and cancels what is gone', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number; end?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
     const { clock, items } = await boot('09:00', false);
     useSettingsStore().settings = settingsFixture();
     startTransitionWarnings();
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_REMINDER_PREFIX), o.title, o.at]))
-      .toEqual([[true, 'Dentist starts in 10 min', at('10:30').getTime()], [true, 'Call starts in 10 min', at('12:50').getTime()]]);
+    // named by the event with its times and a start the phone counts down to, never "starts in 10 min"
+    // and kept until the event ends
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id.startsWith(NATIVE_REMINDER_PREFIX), o.title, o.body, o.kind, o.at, o.start, o.end]))
+      .toEqual([
+        [true, 'Dentist', '10:40 – 11:30', 'event', at('10:30').getTime(), at('10:40').getTime(), at('11:30').getTime()],
+        [true, 'Call', '13:00 – 13:30', 'event', at('12:50').getTime(), at('13:00').getTime(), at('13:30').getTime()],
+      ]);
     clock.nowTick = at('09:01').getTime();
     await nextTick();
     expect(plugin.schedule).toHaveBeenCalledTimes(2);
-    items.applyResponse(D, '2026-10-13', [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's3');
+    items.applyResponse(D, W, [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call' })], 's3');
     await nextTick();
     expect(plugin.cancel).toHaveBeenCalledWith({ id: expect.stringContaining('dentist') });
   });
 
+  it('leaves a reminder that rang alone while its item is there (its notification stays), and cancels it when the item goes', async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    const { clock, items } = await boot('09:00', false);
+    startTransitionWarnings();
+    const dentist = `${NATIVE_REMINDER_PREFIX}dentist@${D}T10:40-10`;
+    expect(plugin.schedule.mock.calls.map(([o]) => o.id)).toContain(dentist);
+    // the app goes to the background, the reminder rings there, the person comes back before the start
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    clock.nowTick = at('10:33').getTime();
+    await nextTick();
+    hidden.mockReturnValue(false);
+    clock.nowTick = at('10:34').getTime();
+    await nextTick();
+    expect(plugin.cancel).not.toHaveBeenCalled();
+    hidden.mockRestore();
+    // the event is deleted: its notification goes with it
+    items.applyResponse(D, W, [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call', reminders: ten })], 's8');
+    await nextTick();
+    expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toEqual([dentist]);
+  });
+
+  it('keeps the schedule while planned days are evicted from the range cache, and fetches them again', async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    const { items } = await boot('09:00', false);
+    const { calls } = mockFetch({ 'GET /api/items': () => ({ items: [], syncedAt: 's9' }) });
+    items.applyResponse(D, W, [ev('trip', t('2026-10-17', '12:00'), t('2026-10-17', '13:00'), { title: 'Trip', reminders: ten })], 's6');
+    startTransitionWarnings();
+    expect(plugin.schedule.mock.calls.map(([o]) => o.id)).toEqual([`${NATIVE_REMINDER_PREFIX}trip@2026-10-17T12:00-10`]);
+    // browsing months pushes the window out of the 6-range cache: only today stays loaded
+    for (let m = 1; m <= 6; m++) items.applyResponse(`2027-0${m}-01`, `2027-0${m}-28`, [], `m${m}`);
+    items.applyResponse(D, '2026-10-13', [], 's7');
+    await nextTick();
+    expect(plugin.cancel).not.toHaveBeenCalled();
+    expect(calls.filter((c) => c.path === '/api/items').map((c) => c.url.searchParams.get('to'))).toEqual([W]);
+  });
+
   it('builds the morning overview', async () => {
     const { items } = await boot('09:00', false);
-    items.applyResponse(D, '2026-10-13', [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), laundry], 's4');
+    items.applyResponse(D, W, [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist' }), laundry], 's4');
     expect(morningOverview(items.byDate.get(D) ?? [])).toEqual({ title: 'Your day', body: '1 appointment · 1 list · first: Dentist 10:40' });
     expect(morningOverview([]).body).toBe('no appointments · no lists');
   });
 
   it('schedules a timed task list only with the switch on, and cleans up ids the plan does not hold', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number; end?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
       list: vi.fn(() => Promise.resolve({ ids: ['reminder:gone@2026-10-12T10:00-10', 'transition:old@2026-10-12T10:00', 'morning', 'other'] })),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
     const { items } = await boot('09:00', false);
-    items.applyResponse(D, '2026-10-13', [laundry], 's5');
+    items.applyResponse(D, W, [laundry], 's5');
     const prefs = usePrefsStore();
     prefs.notify = { ...prefs.notify, tasklists: false };
     startTransitionWarnings();
@@ -260,13 +314,13 @@ describe('transition warnings as Android notifications', () => {
     expect(plugin.cancel.mock.calls.map(([o]) => o.id).sort()).toEqual(['reminder:gone@2026-10-12T10:00-10', 'transition:old@2026-10-12T10:00']);
     prefs.notify = { ...prefs.notify, tasklists: true };
     await nextTick();
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.title, o.at])).toEqual([[`${NATIVE_REMINDER_PREFIX}laundry@${D}T18:00-30`, 'Laundry starts in 30 min', at('17:30').getTime()]]);
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.title, o.kind, o.at, o.start])).toEqual([[`${NATIVE_REMINDER_PREFIX}laundry@${D}T18:00-30`, 'Laundry', 'tasklist', at('17:30').getTime(), at('18:00').getTime()]]);
     expect(NATIVE_LEGACY_PREFIX).toBe('transition:');
   });
 
   it('schedules the morning overview only when chosen, and nothing for switched-off kinds', async () => {
     const plugin = {
-      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string }) => Promise.resolve()),
+      schedule: vi.fn((_o: { id: string; at: number; title: string; body: string; kind: string; start?: number; end?: number }) => Promise.resolve()),
       cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
     };
     (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
@@ -275,7 +329,7 @@ describe('transition warnings as Android notifications', () => {
     const prefs = usePrefsStore();
     prefs.notify = { bedtime: true, events: false, tasklists: false, morning: true, morningTime: '07:30' };
     startTransitionWarnings();
-    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.at, o.title])).toEqual([[NATIVE_MORNING_ID, at('07:30').getTime(), 'Your day']]);
+    expect(plugin.schedule.mock.calls.map(([o]) => [o.id, o.at, o.title, o.kind, o.start])).toEqual([[NATIVE_MORNING_ID, at('07:30').getTime(), 'Your day', 'summary', undefined]]);
     prefs.notify = { ...prefs.notify, morning: false };
     await nextTick();
     expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_MORNING_ID });

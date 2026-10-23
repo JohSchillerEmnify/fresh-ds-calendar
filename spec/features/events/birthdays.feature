@@ -1,8 +1,10 @@
 @birthdays @events @id:birthdays
 Feature: Birthdays
-  Google's "Birthdays" calendar (made from the person's contacts) is shown like any other calendar, but its entries are
-  recognisable as birthdays: an all-day chip with a cake marker (a ring for an anniversary), in the colour of the
-  Birthdays calendar. Birthdays are read-only: opening one shows the details, with no way to edit or delete it.
+  Birthdays are recognisable in every view: an all-day chip with a cake marker (a ring for an anniversary). They come
+  from Google's "Birthdays" calendar (made from the person's contacts), shown in its colour and read-only there, and
+  from Google Calendar birthday events in a normal calendar. Those I can create, rename, move and delete like in Google
+  Calendar: they repeat every year (29 February on the last day of February), and one linked to a Google contact keeps
+  its date but can be renamed. Other events never get the marker.
 
   Background:
     Given the calendar is empty

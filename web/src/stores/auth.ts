@@ -54,12 +54,18 @@ export const useAuthStore = defineStore('auth', () => {
     return checking;
   }
 
-  /** Subscribes to 401 answers of any call: signed out -> sign-in page, lost Google access -> banner. */
+  /** Subscribes to 401 answers of any call: signed out -> sign-in page (the page left is kept as `RETURN_KEY`), lost Google access -> banner. */
   function listen(): () => void {
     return api.onAuthError((code) => {
       if (code === 'GOOGLE_REAUTH') reauth.value = true;
       else if (code === 'CALENDAR_PERMISSION_MISSING') calendarMissing.value = true;
-      else if (window.location.pathname !== '/signin') window.location.assign('/signin');
+      else if (window.location.pathname !== '/signin') {
+        // this full-page jump can unload the page before the router guard has stashed the deep link, so stash it here
+        const { pathname, search, hash } = window.location;
+        const full = pathname + search + hash;
+        try { if (full !== '/') sessionStorage.setItem(RETURN_KEY, full); } catch { /* private mode: no deep link */ }
+        window.location.assign('/signin');
+      }
     });
   }
 

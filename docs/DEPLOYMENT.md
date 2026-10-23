@@ -1,90 +1,70 @@
 # Deployment guide
 
-How the calendar app is built, previewed, deployed and installed. The host is **sauron** (`ssh sauron@192.168.1.38`).
-The architecture is in `docs/architecture` (LikeC4) and `docs/adrs`; this page is the runbook.
+How the calendar app is built, deployed and installed. Everything runs from the laptop checkout: the GitHub repository
+is the source, the public server (VPS) only runs what the laptop ships. The architecture is in `docs/architecture`
+(LikeC4) and `docs/adrs`; this page is the runbook.
 
 ## Overview
 
 | What | Where | How it updates |
 |---|---|---|
-| Production | `http://cal.mordor.lan` (alias `cal.mordor.local`) | automatically after every merge into `main` on sauron |
-| Preview | `http://preview.cal.mordor.lan` | automatically after every merge into the `preview` branch on sauron |
-| Android app | `http://cal.mordor.lan/app.apk` and `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | `scripts/android-build.sh` on sauron (Gradle in Docker); `scripts/vps.sh deploy` puts the APK on the VPS |
-| Source mirror | `github.com/JohSchillerEmnify/fresh-ds-calendar` (private), branch `main` | push from a clone (see below) |
+| Source | `git@github.com:JohSchillerEmnify/fresh-ds-calendar.git` (remote `github`), branch `main` | merge on the laptop, `git push github main` |
+| Production | `https://cal.example.org` (VPS, Caddy terminates HTTPS) | `scripts/vps.sh deploy` from the laptop, by hand after a merge |
+| Android app | `https://cal.example.org/app.apk` (also Settings → Account & data → Android app) | built on the laptop with `scripts/android-build.sh --no-publish`, shipped by `scripts/vps.sh deploy` |
 
-Everything is LAN-only: the `*.mordor.lan` names resolve through Pi-hole to `192.168.1.38`; Traefik routes them to the
-containers.
+There is no automatic deploy and no preview deployment any more: to show work before a merge, run it locally
+(`pnpm dev:server` and `pnpm dev:web`). sauron is no longer a deploy target; its scripts (`scripts/auto-deploy.sh`,
+`scripts/deploy.sh`, `scripts/preview-branch.sh`, and the auto-deploy git hooks in `scripts/hooks`, which the laptop
+does not enable) are still in the repo but not part of this flow.
 
-## Repository layout on sauron
+## Release flow
 
-- Main checkout: `~/projects/calendar` (branch **`main`**). Git hooks live in `scripts/hooks`
-  (`core.hooksPath=scripts/hooks`).
-- Worktrees: `~/projects/calendar-wt/<branch>`; the preview worktree is `~/projects/calendar-wt/preview`.
-- Compose: `deploy/docker-compose.yaml` in the repo (`~/projects/calendar/deploy/`; `~/docker-compose/calendar` is a symlink to it); data volume `deploy/data` (git-ignored) → `/data` in the
-  container (`DATA_DIR`).
-
-## Production deploy
-
-1. Merge into `main` in `~/projects/calendar` (fast-forward or merge commit).
-2. The `post-merge` / `post-commit` hook runs `scripts/auto-deploy.sh` detached:
-   unit tests → Docker build (`APP_VERSION` from `scripts/version.sh`, semver from conventional commits) → `docker compose
-   up -d --force-recreate` → health check. On failure the old container keeps running.
-3. Check the result:
+1. Work on a branch (worktrees in `~/projects/calendar-wt/<branch>`, main checkout `~/projects/calendar`).
+2. Run the quick gate in the checkout (≈45 s, terse output) and the targeted e2e it suggests:
 
    ```bash
-   scripts/deploy-status.sh            # from a clone; prints "deploy: OK <sha> at HH:MM" or the failing test
+   pnpm --silent verify          # tsc web/server/e2e, unit tests, i18n check, step contract
+   pnpm --silent e2e:affected    # prints the --grep for a targeted e2e run of what changed
+   pnpm run build:e2e
+   CI_LOWPRIO=1 E2E_SKIP_BUILD=1 bash e2e/run.sh --project=mobile --workers=1 --reporter=line --grep "@tasks-view"
    ```
 
-   Log on sauron: `/tmp/calendar-autodeploy.log`.
+3. Merge into `main` (adding the release-notes lines, see below) and push: `git push github main`.
+4. Deploy (next section).
 
-Manual redeploy: `pnpm redeploy` (= `scripts/deploy.sh`) on sauron.
-
-**Before every merge**, run the quick gate in your checkout (≈45 s, terse output):
-
-```bash
-pnpm --silent verify          # tsc web/server/e2e, unit tests, i18n check, step contract
-pnpm --silent e2e:affected    # prints the --grep for a targeted e2e run of what changed
-```
-
-e2e runs on the laptop (never on sauron), targeted and with one worker, e.g.:
+## Production deploy (VPS)
 
 ```bash
-pnpm run build:e2e
-CI_LOWPRIO=1 E2E_SKIP_BUILD=1 bash e2e/run.sh --project=mobile --workers=1 --reporter=line --grep "@tasks-view"
+VPS_HOST=<ip> VPS_USER=root scripts/vps.sh deploy
 ```
 
-### Public server (VPS)
+`scripts/vps.sh` runs from the laptop checkout; the VPS (1 CPU, 1 GB) never builds. `deploy` builds the checked-out
+commit into the `calendar:latest` image here (`APP_VERSION` = `scripts/version.sh` + short sha), copies
+`deploy/vps/compose.yml` and `deploy/vps/Caddyfile` to `/opt/calendar/`, sends the image over SSH (`docker save | docker
+load`), runs `docker compose up -d`, and then ships the Android APK (below). Caddy gets and renews the Let's Encrypt
+certificate for `cal.example.org` itself.
 
-`scripts/vps.sh` runs from the laptop clone (the VPS never builds): `env` writes `/opt/calendar/.env`, `deploy` builds
-the checked-out commit, ships it and the Android APK and restarts, `logs` follows the app and Caddy. Deploys connect as
-`VPS_USER` (default `root`, the owner's choice of 2026-10-16) to `VPS_HOST`. `scripts/vps.sh harden` is opt-in: it
-creates a `deploy` user (docker group) with the laptop's key, switches SSH to keys only and adds fail2ban, and turns
-root login off only after the deploy user's login works; after it, deploy with `VPS_USER=deploy`.
+- `VPS_HOST` is required (the address is deliberately not in the repo); `VPS_USER` defaults to `root` (the owner's
+  choice of 2026-10-16); `VPS_KEY` defaults to `~/.ssh/id_ed25519`.
+- `scripts/vps.sh env` writes `/opt/calendar/.env` (asks for the Google client and the allowed emails); `deploy`
+  refuses to run without it. `scripts/vps.sh logs` follows the app and Caddy.
+- `scripts/vps.sh harden` is opt-in: it creates a `deploy` user (docker group) with the laptop's key, switches SSH to
+  keys only, adds fail2ban, and turns root login off only after the deploy user's login works; after it, deploy with
+  `VPS_USER=deploy`.
+- Check: `curl -s https://cal.example.org/api/health`.
 
 ### Rollback
 
-Revert the merge on `main` (`git revert -m 1 <merge-sha>`) — the hook deploys the reverted state. Data is not touched
-by deploys; the Drive backup (below) covers data.
+Check out the last good commit on the laptop and deploy it again (`git checkout <sha>` then the deploy command), then
+revert the bad merge on `main` (`git revert -m 1 <merge-sha>`) and push. Data is not touched by deploys; the Drive
+backup (below) covers data.
 
-## Preview
+## Configuration (`/opt/calendar/.env` on the VPS)
 
-```bash
-scripts/preview-branch.sh add <branch>   # merge a branch into `preview` and rebuild
-scripts/preview-branch.sh reset          # reset `preview` to main (after main merges)
-scripts/preview-branch.sh status         # what `preview` has on top of main
-```
-
-Log: `/tmp/calendar-autopreview.log`. Preview builds (version `…-preview+<sha>`) reload themselves in the browser when a
-new build is out.
-
-## Configuration (`~/projects/calendar/deploy/.env`)
-
-The compose file reads `.env` (mode 600, not in git). Edit on sauron, then redeploy:
-
-```bash
-nano ~/projects/calendar/deploy/.env
-cd ~/projects/calendar && pnpm redeploy
-```
+The VPS compose file (`deploy/vps/compose.yml`) reads `.env` (mode 600, not in git) and sets `PROVIDER=google` and
+`SEED=false` itself. `scripts/vps.sh env` writes `PUBLIC_URL=https://cal.example.org`, the Google client,
+`ALLOWED_EMAILS` and `TZ`; edit other values on the VPS, then deploy again (or `docker compose up -d` in
+`/opt/calendar`).
 
 | Variable | Meaning |
 |---|---|
@@ -124,11 +104,9 @@ All variables (defaults from `server/src/config.ts`):
 
 Google only accepts an HTTPS redirect URI on a real domain, so HTTPS comes first.
 
-1. **DNS at Cloudflare** — move the domain's nameservers (Namecheap) to Cloudflare (free). Create an API token with the
-   *Edit zone DNS* template for that domain. Put it into `~/docker-compose/traefik/.env.cloudflare`
-   (`CF_DNS_API_TOKEN=…`, `CAL_DOMAIN=…`). Guide: `~/docker-compose/traefik/HTTPS-GUIDE.md`.
-2. **Traefik** gets a Let's Encrypt wildcard certificate via DNS-01 and a `websecure` router for
-   `cal.<sub>.<domain>`; Pi-hole resolves `*.<sub>.<domain>` to sauron (LAN only, no public records).
+1. **DNS** — an A record for `cal.example.org` points at the VPS.
+2. **HTTPS** — Caddy (`deploy/vps/Caddyfile`) gets the Let's Encrypt certificate on the first deploy; nothing to do
+   by hand.
 3. **Google Cloud Console** (project e.g. "home-calendar"):
    - enable **Google Calendar API**;
    - OAuth consent screen: *External*; scopes `…/auth/calendar` and `…/auth/drive.appdata` (backups);
@@ -136,8 +114,8 @@ Google only accepts an HTTPS redirect URI on a real domain, so HTTPS comes first
    - App logo (optional): `docs/branding/logo-120.png` (120×120, as Google recommends; vector in `logo.svg`). Uploading a
      logo on the consent screen triggers Google's app verification, so only upload it if verification is wanted;
      without it the app works as before (unverified is fine for personal use);
-   - Credentials → OAuth client ID → *Web application*, redirect URI `https://cal.<sub>.<domain>/api/auth/google/callback`.
-4. Fill `PROVIDER=google`, `PUBLIC_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS` in `.env`; redeploy.
+   - Credentials → OAuth client ID → *Web application*, redirect URI `https://cal.example.org/api/auth/google/callback`.
+4. Run `scripts/vps.sh env` (client ID, secret, `ALLOWED_EMAILS`), then deploy.
 5. Sign in; in Settings → Account & data press **Allow backups to Google Drive** once.
 6. Check `GET /api/health` → `provider: "google"`, `providerStatus: "ok"`.
 
@@ -150,17 +128,22 @@ automatically at sign-in; Settings → Account & data has **Back up now** and **
 
 ## Android app
 
-Build and publish on sauron (Gradle runs in the `calendar-android-build` image from `android/build.Dockerfile`, capped at
-3 CPUs / 4 GB with low CPU shares; about 1 min with a warm cache in `~/.cache/calendar-gradle`):
+Build on the laptop (Gradle runs in the `calendar-android-build` image from `android/build.Dockerfile`, capped at
+3 CPUs / 4 GB with low CPU shares; about 1 min with a warm cache in `~/.cache/calendar-gradle`), then ship it with the
+deploy:
 
 ```bash
-scripts/android-build.sh            # builds a release-signed APK and copies it to DATA_DIR/downloads/app.apk
 scripts/android-build.sh --no-publish
+CAL_APK=android/app/build/outputs/apk/release/app-release.apk \
+CAL_APK_INFO=android/app/build/outputs/apk/release/app.json \
+VPS_HOST=<ip> VPS_USER=root scripts/vps.sh deploy
 ```
 
-- The signing key is `~/calendar-android-key/release.jks` (`CAL_ANDROID_KEY_DIR` overrides the folder; new key since
-  2026-10-13: the laptop's key is gone, so the app had to be reinstalled once; not in a dot directory because the build
-  container cannot mount those here) (password in `keystore.properties` next to it), **outside git — back it up**:
+Without `--no-publish` the script copies the APK to sauron (`SAURON=user@host`), which is no longer needed.
+
+- The signing key is `~/calendar-android-key/release.jks` on the build machine (`CAL_ANDROID_KEY_DIR` overrides the
+  folder; not in a dot directory because the build container cannot mount those; the key is new since 2026-10-13, so
+  the app had to be reinstalled once) (password in `keystore.properties` next to it), **outside git — back it up**:
   updates of an installed app must be signed with the same key. Without it the first build generates a new one.
 - **Pinned signing certificate.** `scripts/android-build.sh` and `scripts/vps.sh deploy` check the APK's signing
   certificate against the SHA-256 in `android/release-cert.sha256` (`scripts/apk-cert.sh`) and publish nothing else;
@@ -168,15 +151,13 @@ scripts/android-build.sh --no-publish
 - The app is a Capacitor shell that loads the server chosen on the first start (`https://cal.example.org` or
   `http://cal.mordor.lan`; Settings → Account & data → Server → Change goes back to the chooser); web changes reach it on
   the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
-- From another machine than sauron, `scripts/android-build.sh` publishes with scp/ssh to sauron (`SAURON=user@host`). Build
-  with sauron's key (`~/calendar-android-key`): an APK signed with another key cannot update the installed app.
-- **Public server (VPS)**: the APK is not in the image. `scripts/vps.sh deploy` (run from the laptop clone) also copies
-  `deploy/data/downloads/app.apk` into the running app container (`/data/downloads/app.apk`, volume `calendar_data`), so
-  `https://cal.example.org/app.apk` and the Settings button work there. Check:
-  `curl -sI https://cal.example.org/app.apk` (200, `application/vnd.android.package-archive`). To update only the APK, run
-  the same deploy (the image is re-sent but unchanged) or do the `scp` + `docker compose cp` steps by hand.
+- **On the VPS** the APK is not in the image: `scripts/vps.sh deploy` copies `CAL_APK` (default
+  `deploy/data/downloads/app.apk`) and its `app.json` sidecar (`CAL_APK_INFO`, default next to the APK) into the running
+  app container (`/data/downloads/`, volume `calendar_data`), only if the APK's certificate matches the pinned one.
+  Without an APK the server is deployed and `/app.apk` stays as it is. Check: `curl -sI https://cal.example.org/app.apk`
+  (200, `application/vnd.android.package-archive`).
 
-Install on a phone: open `https://cal.example.org/app.apk` or (home Wi-Fi) `http://cal.mordor.lan/app.apk` (or Settings → Android app → Download), allow the
+Install on a phone: open `https://cal.example.org/app.apk` (or Settings → Android app → Download), allow the
 browser to install unknown apps, install ("Install anyway" if Play Protect warns), open the app once, then add the
 widget from the home screen's widget list.
 
@@ -190,12 +171,3 @@ widget from the home screen's widget list.
 - Every merge to main adds one or two plain, user-facing English sentences as `- ` bullets under a `## YYYY-MM-DD`
   heading at the top of `CHANGELOG.md`, in the merge commit itself (test, tooling and spec-only merges add nothing).
   Text under `## Older history` is ignored. The server image includes `CHANGELOG.md`.
-
-## GitHub mirror
-
-```bash
-git remote add github git@github.com:JohSchillerEmnify/fresh-ds-calendar.git   # once
-git fetch origin && git push github origin/main:refs/heads/main
-```
-
-`origin` is the sauron repo: `sauron@192.168.1.38:projects/calendar`.

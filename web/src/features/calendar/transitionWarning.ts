@@ -17,12 +17,13 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
-import { pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
+import { itemStart, pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
-import { remindersPlugin } from '@/native/reminders';
+import { remindersPlugin, type ReminderKind } from '@/native/reminders';
+import { localToIso } from './zone';
 import { pushEndpoint, pushSupported, refreshPushState, sendPushPlan } from '@/pwa/push';
 
 /** The wording of a snackbar for an event starting in `minutes` (kept as the one name tests and callers know). */
@@ -68,8 +69,10 @@ export function startTransitionWarnings(): () => void {
   const ui = useUiStore();
   const prefs = usePrefsStore();
   const warned = new Set<string>();
-  /** occurrence -> { snackbar id, start (epoch ms) } of the reminders currently shown. */
-  const shown = new Map<string, { id: number; startAt: number }>();
+  /** occurrence -> { snackbar id, start (epoch ms), item title } of the reminders currently shown. */
+  const shown = new Map<string, { id: number; startAt: number; itemTitle: string }>();
+  /** The snackbar text at `minuteStart`: the minutes really left, so it stays right while it is open. */
+  const liveText = (itemTitle: string, startAt: number, minuteStart: number): string => reminderText(itemTitle, Math.round((startAt - minuteStart) / 60_000));
   let day = clock.today;
 
   /** The next `PLAN_DAYS` days of segments, today first, without the calendars the person switched off. */
@@ -77,8 +80,19 @@ export function startTransitionWarnings(): () => void {
     const date = i === 0 ? clock.today : toIsoDate(addDays(clock.todayDate, i));
     return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
   });
+  /**
+   * Whether loaded ranges cover all `PLAN_DAYS` days from today, so a plan built now is complete (`byDate` has no entry for
+   * a day without appointments, so it cannot tell). If not, the window is fetched; the watchers run again once it is in.
+   */
+  const windowLoaded = (): boolean => {
+    const ranges = Object.values(items.ranges);
+    const dates = Array.from({ length: PLAN_DAYS }, (_, i) => toIsoDate(addDays(clock.todayDate, i)));
+    if (dates.every((d) => ranges.some((r) => r.from <= d && d < r.to))) return true;
+    items.prefetch(clock.today, toIsoDate(addDays(clock.todayDate, PLAN_DAYS)));
+    return false;
+  };
   const plan = (kinds: { events: boolean; tasklists: boolean }): PlannedReminder[] =>
-    reminderPlan(days(), clock.nowTick, clock.minutesNow, kinds, t('tasks.list.fallbackLabel'));
+    reminderPlan(days(), clock.nowTick, kinds, t('tasks.list.fallbackLabel'), clock.timeZone);
 
   scope = effectScope(true);
   scope.run(() => {
@@ -95,6 +109,8 @@ export function startTransitionWarnings(): () => void {
           if (minuteStart >= w.startAt || !occurrences.has(key) || !ui.snackbars.some((x) => x.id === w.id)) {
             ui.dismiss(w.id);
             shown.delete(key);
+          } else {
+            ui.update(w.id, liveText(w.itemTitle, w.startAt, minuteStart));
           }
         }
         // of the leads due for one event only the nearest one speaks; the earlier ones count as said
@@ -110,9 +126,9 @@ export function startTransitionWarnings(): () => void {
           if (!fresh) continue;
           const old = shown.get(occurrence);
           if (old) ui.dismiss(old.id);
-          // the text names the reminder's own lead ("starts in 30 min"), not the minutes left
-          const id = ui.notify(p.title, { duration: 0, testid: 'transition-warning' });
-          shown.set(occurrence, { id, startAt: p.startAt });
+          // the minutes left, counted down on every tick while it is shown
+          const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning' });
+          shown.set(occurrence, { id, startAt: p.startAt, itemTitle: p.itemTitle });
         }
       },
       { immediate: true },
@@ -123,12 +139,12 @@ export function startTransitionWarnings(): () => void {
       void refreshPushState();
       let sentSig = '';
       watch(
-        () => [items.byDate, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
+        () => [items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
         async () => {
           const endpoint = pushEndpoint.value;
           if (!endpoint) { sentSig = ''; return; }
-          // before today's items are loaded an empty plan would wipe the server's
-          if (!items.byDate.has(clock.today)) return;
+          // a plan of a partly loaded week would wipe the server's pushes of the days not loaded
+          if (!windowLoaded()) return;
           const entries = pushPlan(plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }), clock.nowTick);
           const sig = `${endpoint}|${JSON.stringify(entries)}`;
           if (sig === sentSig) return;
@@ -141,27 +157,42 @@ export function startTransitionWarnings(): () => void {
     // Android app: keep the next reminders scheduled as notifications (shown only while the app is not in front)
     const plugin = remindersPlugin();
     if (!plugin) return;
-    const sent = new Map<string, string>();
+    /** id -> what was scheduled: its signature, when it rings, and for an item reminder the item, its start and end. */
+    const sent = new Map<string, { sig: string; at: number; itemId?: string; startAt?: number; end?: number }>();
+    /** Whether the item is still there with that start (not deleted, not moved). */
+    const stillAt = (itemId: string, startAt: number): boolean => {
+      const it = items.get(itemId);
+      return !!it && itemStart(it, clock.timeZone) === startAt;
+    };
     let cleaned = false;
     watch(
-      () => [clock.nowTick, items.byDate, cals.hidden, language.value, prefs.notify] as const,
+      () => [clock.nowTick, items.byDate, items.ranges, cals.hidden, language.value, prefs.notify] as const,
       () => {
         if (typeof document !== 'undefined' && document.hidden) return; // the schedule stays as it was left
+        // with planned days missing (not loaded yet, or evicted from the range cache) their reminders would look gone and be
+        // cancelled: the schedule stays as it was until the window is loaded again (it is fetched)
+        if (!windowLoaded()) return;
         const tomorrow = toIsoDate(addDays(clock.todayDate, 1));
         const minuteStart = clock.nowTick - (clock.nowTick % 60_000);
         const next = plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }).filter((p) => p.at > minuteStart).slice(0, NATIVE_REMINDER_LIMIT);
-        const want = new Map<string, { at: number; title: string; body: string }>(next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.title, body: p.body }]));
+        // named by the item with its times; the phone counts down to the start (a fixed "in 10 min" would go stale) and
+        // keeps the notification until the end
+        const want = new Map<string, { at: number; title: string; body: string; kind: ReminderKind; start?: number; end?: number }>(
+          next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.itemTitle, body: p.body, kind: p.kind, start: p.startAt, end: p.endAt }]),
+        );
+        const itemOf = new Map(next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, p.itemId]));
         // the morning overview: today's if its time is still ahead, else tomorrow's (loaded on demand)
         if (prefs.notify.morning) {
           const [h, m] = prefs.notify.morningTime.split(':').map(Number);
-          const at = h * 60 + m;
-          const dayOfOverview = at > clock.minutesNow ? clock.today : tomorrow;
+          const dayOfOverview = h * 60 + m > clock.minutesNow ? clock.today : tomorrow;
           if (dayOfOverview === tomorrow) items.prefetch(tomorrow, toIsoDate(addDays(clock.todayDate, 2)));
           const visible = (items.byDate.get(dayOfOverview) ?? []).filter((s) => !cals.isHidden(s.item.calendarId) && !s.carriedFrom);
-          want.set(NATIVE_MORNING_ID, { at: minuteStart + ((dayOfOverview === tomorrow ? 1440 : 0) + at - clock.minutesNow) * 60_000, ...morningOverview(visible) });
+          // the instant of that wall-clock time in the calendar zone (right across a clock change)
+          const at = Date.parse(localToIso(dayOfOverview, prefs.notify.morningTime, clock.timeZone));
+          want.set(NATIVE_MORNING_ID, { at, kind: 'summary', ...morningOverview(visible) });
         }
-        // once per start, once today's items are loaded: whatever the plugin still holds that is not planned is stale
-        if (!cleaned && items.byDate.has(clock.today)) {
+        // once per start (the planned days are loaded here): whatever the plugin still holds that is not planned is stale
+        if (!cleaned) {
           cleaned = true;
           // an older APK has no `list`: the call then fails and nothing is cleaned
           void Promise.resolve().then(() => plugin.list()).then(({ ids }) => {
@@ -170,16 +201,22 @@ export function startTransitionWarnings(): () => void {
             }
           }, () => undefined);
         }
-        for (const id of [...sent.keys()]) {
+        for (const [id, s] of [...sent]) {
           if (want.has(id)) continue;
+          // a reminder that rang is showing until its item ends: it leaves the plan but must not be cancelled (that would
+          // take its notification away); only a deleted or moved item takes it with it
+          if (s.at <= minuteStart && s.itemId && s.startAt !== undefined && stillAt(s.itemId, s.startAt)) {
+            if ((s.end ?? 0) <= minuteStart) sent.delete(id);
+            continue;
+          }
           sent.delete(id);
           void plugin.cancel({ id }).catch(() => undefined);
         }
         for (const [id, w] of want) {
-          const sig = `${w.at}|${w.title}|${w.body}`;
-          if (sent.get(id) === sig) continue;
-          sent.set(id, sig);
-          void plugin.schedule({ id, at: w.at, title: w.title, body: w.body }).catch(() => undefined);
+          const sig = `${w.at}|${w.title}|${w.body}|${w.kind}|${w.start ?? ''}|${w.end ?? ''}`;
+          if (sent.get(id)?.sig === sig) continue;
+          sent.set(id, { sig, at: w.at, itemId: itemOf.get(id), startAt: w.start, end: w.end });
+          void plugin.schedule({ id, ...w }).catch(() => undefined);
         }
       },
       { immediate: true },

@@ -95,10 +95,24 @@ async function swipePicker(world: World, dx: number) {
     if (world.testInfo.project.use.hasTouch) return touchDrag(world.page, from, to, { durationMs: 150 });
     await world.page.mouse.move(from.x, from.y);
     await world.page.mouse.down();
-    await world.page.mouse.move(to.x, to.y, { steps: 10 });
+    // a quick flick, like the touch swipe (each step is a round trip, ~60 ms on a busy machine)
+    await world.page.mouse.move(to.x, to.y, { steps: 2 });
     await world.page.mouse.up();
   });
 }
+
+When('I slowly drag left with the mouse in the month picker', async function (this: World) {
+  const b = await box(picker(this));
+  const x = b.x + b.width / 2, y = b.y + b.height / 2;
+  await changeMonth(this, async () => {
+    await this.page.mouse.move(x + 100, y);
+    await this.page.mouse.down();
+    await this.page.mouse.move(x, y, { steps: 2 });
+    await this.page.waitForTimeout(900);
+    await this.page.mouse.move(x - 100, y, { steps: 2 });
+    await this.page.mouse.up();
+  });
+});
 
 When('I swipe left in the month picker', async function (this: World) {
   await swipePicker(this, -200);

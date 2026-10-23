@@ -397,6 +397,9 @@ Google becomes available again
 Google asks the app to slow down for the next sync
 ```
 
+`Google asks the app to slow down for the next sync` → `POST /api/__test/rate-limit { "retryAfterSec": 4 }` (the next
+provider call answers "rate limited", ADR 0007), then waits for the next `/api/items` answer carrying `X-Stale: 1`.
+
 `the Google event X has:` compares dotted paths of the raw Google event resource (`calendarId` is the calendar the
 event lives in) with the given values.
 
@@ -414,6 +417,8 @@ once the slow-down is over I see the event {string} on {date}
 ```
 
 - Network: `context.setOffline(true|false)`.
+- `once the slow-down is over I see the event X on D`: waits until 4 s after the stale answer (the slow-down's end at
+  the latest), then for the event chip within the poll interval + 5 s.
 - Focus: dispatch `visibilitychange` (with `document.visibilityState` = `visible`) and `focus` on `window`.
 
 ## Mobile
@@ -696,6 +701,9 @@ I open the new task list dialog in the Tasks view
 the task list dialog has no category field
 the task lists {string} and {string} have the same color
 I retitle the task list {string} to {string} in the Tasks view
+task categories are off
+I open the Labs view {string} for {date}
+the Labs view draws {string} in the colour of its calendar, never of its category
 ```
 
 - "I turn the task categories on/off": clicks `settings-task-categories` (Settings screen is open) when its `aria-checked`
@@ -707,6 +715,14 @@ I retitle the task list {string} to {string} in the Tasks view
 - "the task list dialog has no category field": `tasklist-category` is absent from the open `tasklist-dialog`.
 - "the task lists A and B have the same color": equal `data-color` on their `tasklist-card`s.
 - "I retitle ...": opens the list's dialog from its title in the Tasks view, replaces the title and saves.
+- "task categories are off": `PATCH /api/prefs { "taskCategories": false }` through the API before the page is opened.
+- "I open the Labs view V for D": opens the Labs view by its path (`clock` = `/clock/D`, `timeline` = `/timeline`,
+  `strip` = `/strip/D`, `zoom month` = `/zoom/D`, `horizontal` = `/horizontal/D`; Labs views are always routable) and
+  waits for its root (`clock-view`, `timeline-view`, `strip-view`, `zoom-view`, `htime-view`).
+- "the Labs view draws L in the colour of its calendar, never of its category": takes L's `color` (category) and
+  `calendarColor` from `GET /api/tasklists/all-open`; inside the view root, the colours each element is drawn with (computed
+  `color`, `background-color`, the border and outline colours, SVG `fill` and `stroke`, and the `--c` item colour) include
+  the calendar colour and never the category colour (compared as sRGB; polled).
 
 ## Event colors (`@colors`)
 
@@ -815,6 +831,7 @@ I go to the next month in the month picker
 I go to the previous month in the month picker
 I swipe left in the month picker
 I swipe right in the month picker
+I slowly drag left with the mouse in the month picker
 I pick {date} in the month picker
 {date} is selected in the month picker
 {date} is marked as having items in the month picker
@@ -832,6 +849,8 @@ the bottom bar ends at the bottom of the viewport
   `data-has-items="true"`.
 - "I drag up and down inside the month picker": touch drag of 150 px up, then 150 px down, over the picker's grid
   (CDP touch events; falls back to a mouse wheel on non-touch projects).
+- "I slowly drag left with the mouse in the month picker": a mouse drag of 200 px to the left across the picker that
+  takes 900 ms from press to release (half the way, a pause, the rest).
 - "the page is not scrolled": `document.scrollingElement.scrollTop === 0` and `scrollHeight <= innerHeight`.
 - "the bottom bar ends at the bottom of the viewport": `bottom-bar` bottom edge equals `innerHeight` (±1 px).
 
@@ -928,16 +947,19 @@ I tap the event {string} right beside the bottom handle of {string}
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
 - "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
   without moving; "release without moving" = mouse up / touch end.
-- "I pick up the event X in the week/day view for D" opens that view (as "I open the ... view") and then picks X up.
-- "the finger is on the event X" (after "I pick up"): X is lifted and, once the card has settled (its box unchanged
-  over 150 ms, at most 3 s), the point where it was pressed lies inside X's chip box.
+- "I pick up the event X in the week/day view for D" opens that view (as "I open the ... view") and then picks X up; any other
+  view is an error (it needs a time grid).
+- "the finger is on the event X" (after "I pick up"): X is lifted, narrower than 90 % of its day column (side by side),
+  and, once the card has settled (its box unchanged over 150 ms, at most 3 s), the point where it was pressed lies
+  inside X's chip box.
 - "haptic tick": an init script wraps `navigator.vibrate` and records calls; at least one call with a duration ≤ 30 ms.
 - "back and forth N times": N moves of +1 day and −1 day alternately (each persisted).
 - "X shows resize handles in the day/week view for D" (Given): opens that view, picks X up and releases it without
   moving, then checks the handles are shown. "shows resize handles" = both `resize-handle-top` and
   `resize-handle-bottom` of X are visible; "shows no resize handles" = neither is.
 - "I tap the event X right beside the bottom handle of Y": tap (touch on the phone, click on desktop) inside X's chip
-  box 3 px from its left edge, at the vertical centre of Y's `resize-handle-bottom`.
+  box 3 px from its left edge, at the vertical centre of Y's `resize-handle-bottom`; the point must lie inside X and
+  within 22 px of Y's horizontal centre (a centred 44 px handle on Y would have covered it).
 - "I drag the top/bottom handle of X up/down by N minutes": press on the handle centre (mouse; touch without the
   long press) and move N minutes of grid height in 10 steps, release; then wait for the save as after a drop.
 
@@ -1662,7 +1684,7 @@ the support cat walks in from the {string}
   / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
   `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
-  `time-grid`).
+  `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
 - "the switches in the settings are on …": every `role=switch` inside `settings-view` (at least one) has its centre on that side.
 - "the support cat walks in from the S": the visible `support-cat` element has `data-from` = `left` | `right` (the
   side it enters from; the drag helper cat keeps `data-side` for the side it stands on). Polled while the cat is shown.
@@ -1897,6 +1919,14 @@ the Canvas zoom is above {float}
   (a handle drags at once, no long press). "the area A is W wide and H high": `data-w`, `data-h` and the saved area
   (`GET /api/canvas`) agree.
 - "in / not in the Unsorted stack": `data-placed` is `"false"` / `"true"`.
+- "the Canvas has the area A with the note T in it" (fixture): `PUT /api/canvas` adds the area A (x 300, y 200, 480 x 360)
+  to the saved ones, and `PATCH /api/tasklists/:id { canvas: { x: 320, y: 256 } }` places T 20, 56 inside it.
+- "I delete the area A on the Canvas": opens the Canvas, clicks A's `canvas-area-header` (opens the editor), clicks
+  `canvas-area-delete`, then waits until A is gone from the page and from `GET /api/canvas`. "the note T is in no area":
+  T is visible and has no (or an empty) `data-area`.
+- "I long-press the area A and drag it by DX, DY pixels": notes A's `data-x`/`data-y`, then a finger on the body of A
+  (as "release without moving"), held 500 ms, moved by DX, DY in 10 steps and lifted. "the area A has moved by DX, DY":
+  `data-x`/`data-y` and the saved area are the noted place + (DX, DY) / `data-zoom` of `canvas-viewport` (± 1).
 - "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
@@ -2129,7 +2159,9 @@ I switch on reminders in this browser
 this browser has no push subscription on the server
 this browser has a push subscription on the server
 the server has {int} planned pushes for this browser
-the push {string} was sent once
+the push {string} saying {string} was sent once
+the push {string} was sent once with the {string} icon
+the server plans the push {string} saying {string} for {date} {time}
 ```
 
 - Minutes lists are comma-separated integers (`"90, 30, 15"`, `""` = none); labels use the app's duration format
@@ -2150,7 +2182,11 @@ the push {string} was sent once
   unique `https://push.example.test/...` endpoint kept in `window.__e2ePushEndpoint`), then turns `reminders-push` on (`aria-checked`).
   The server side is read from the TEST_MODE routes `GET /api/__test/push-subscriptions` ("has a push subscription": one with this
   endpoint exists; "N planned pushes": its plan has N entries) and `GET /api/__test/pushes` (the recorder that replaces the push
-  service; "was sent once": exactly one recorded push with this title for this endpoint). `POST /api/__test/clock` (the step "the
+  service; "T saying B was sent once": exactly one recorded push with title T and body B for this endpoint; "was sent once with
+  the I icon": exactly one recorded push with this title whose `kind` is the one of icon I — "calendar page" = `event`,
+  "checklist" = `tasklist`, "sunrise" = `summary`, "moon" = `bedtime` (the service worker picks the icon files by `kind`;
+  its unit test covers that mapping). "the server plans the push T saying B for D T": this browser's plan holds an entry
+  with that title and body at that app time). `POST /api/__test/clock` (the step "the
   time is D T") runs the server's push loop once on the new app time, so a push that became due is sent before the step returns.
 - Warnings reuse "I see the transition warning X" / "I do not see a transition warning" / "N minutes pass".
 
@@ -2332,6 +2368,10 @@ the app runs inside the Android app
 the morning overview is on at {time}
 a notification {string} is planned for {date} {time}
 a notification {string} saying {string} is planned for {date} {time}
+the notification {string} planned for {date} {time} counts down to {date} {time}
+from {date} {time} the notification {string} shows no countdown and goes away at {date} {time}
+a {string} notification shows
+its status bar icon is the {string}
 the phone widget refreshes
 the phone widget does not show the event {string}
 the phone widget shows the event {string} on {date} at {time}
@@ -2343,6 +2383,12 @@ I look at the clock widget
 the clock widget says {string}
 ```
 
+- "counts down to D T": the scheduled native reminder carries that start (`setWhen` + a counting-down chronometer).
+  "from D T … shows no countdown and goes away at D2 T2": at the start an alarm re-posts it silently without the
+  chronometer, and `setTimeoutAfter` removes it at the end (the event's end; wake-up for bedtime).
+  "a K notification shows" / "its status bar icon is the I": the notification of kind K (event reminder, task list
+  reminder, morning overview, bedtime reminder) uses the small icon I (`ic_stat_event` calendar page, `ic_stat_tasklist`
+  checklist, `ic_stat_summary` sunrise, `ic_stat_bedtime` moon). Proven by `ReminderNotificationTest`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 

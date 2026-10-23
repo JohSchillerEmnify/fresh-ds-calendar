@@ -10,7 +10,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import BedtimeColumn from '@/features/bedtime/BedtimeColumn.vue';
 import { formatDate, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
-import { packColumns, blockGeometry, MIN_BLOCK_PX, STACK_INDENT_PX, type PlacedSegment, type Segment } from '@/lib/items';
+import { packColumns, blockGeometry, MIN_BLOCK_PX, type PlacedSegment, type Segment } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
 import { useItemsStore } from '@/stores/items';
@@ -99,22 +99,22 @@ const timedTop = computed(() => HEAD_H + bandH.value);
 const laneH = computed(() => Math.min(MAX_LANE_H, Math.max(MIN_LANE_H, Math.floor((viewH.value - timedTop.value - 12) / lanes.value))));
 const axisH = computed(() => Math.max(viewH.value, timedTop.value + lanes.value * laneH.value + 12));
 
-/** Phone: per day the all-day entries and the packed timed blocks (overlaps side by side). */
+/** Per day the all-day entries and the packed timed blocks: overlaps side by side, never cascaded (owner, 2026-10-22). */
 const vdays = computed(() => days.value.map((d) => {
   const iso = toIsoDate(d);
   const segs = segments.value.filter((s) => s.date === iso);
   return {
     d, iso,
     allday: segs.filter(isAllDay),
-    blocks: packColumns(segs, (MIN_BLOCK_PX / HH) * 60, true, 0, prefs.minEventMinutes),
+    blocks: packColumns(segs, (MIN_BLOCK_PX / HH) * 60, false, 0, prefs.minEventMinutes),
   };
 }));
 const blockStyle = (p: PlacedSegment) => {
   const g = blockGeometry(p.top, p.top + p.height, HH, 0);
   return {
-    top: g.top + 'px', height: g.height + 'px', '--z': 1 + p.level,
-    left: `calc(${GUTTER}px + (100% - ${GUTTER}px) * ${p.col / p.cols} + ${p.level * STACK_INDENT_PX}px)`,
-    width: `calc((100% - ${GUTTER}px) * ${p.span / p.cols} - ${p.level * STACK_INDENT_PX}px)`,
+    top: g.top + 'px', height: g.height + 'px',
+    left: `calc(${GUTTER}px + (100% - ${GUTTER}px) * ${p.col / p.cols})`,
+    width: `calc((100% - ${GUTTER}px) * ${p.span / p.cols})`,
   };
 };
 const blockH = (p: PlacedSegment) => blockGeometry(p.top, p.top + p.height, HH, 0).height;

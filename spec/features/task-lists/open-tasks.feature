@@ -210,7 +210,6 @@ Feature: Open tasks stay in sight
     And I tap the task list "Groceries"
     Then the task list "Groceries" opens as the list sheet
 
-  @backlog
   Scenario: A list I did not finish yesterday waits on today without a time
     Given the calendar contains a task list "Errands" on 2026-10-11 at 10:00 with items:
       | item | done |

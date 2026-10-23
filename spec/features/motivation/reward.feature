@@ -2,9 +2,10 @@
 Feature: Rewarding feedback and delightful motion
   Ticking an item must feel satisfying: springy checkbox with a drawn check, animated strike-through
   and a small sparkle burst. Completing a whole list earns a bigger celebration: confetti-like burst,
-  card bounce, progress ring filled, "All done! 🎉". Effects are short (≤ ~700 ms), never block input
-  and are removed from the page afterwards. The animation level (Full / Reduced / Off) and the
-  system "reduce motion" preference are honoured; reduce motion caps the level at Reduced.
+  card bounce, progress ring filled, "All done! 🎉". Effects are short (the tick sparkle is gone
+  within 1 s, the list celebration within 1.5 s), never block input and are removed from the page
+  afterwards. The animation level (Full / Reduced / Off) and the system "reduce motion" preference
+  are honoured; reduce motion caps the level at Reduced unless full animations are allowed despite it.
   Ticking in the open tasks tray rewards exactly like ticking in the expanded list: the same checkbox,
   strike-through speed, sparkle, bouncing done count and, for the last item, the same celebration.
 

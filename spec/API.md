@@ -283,8 +283,10 @@ Per person (`local` while sign-in is off); all `204` unless noted. Why: feature 
   `web.push.apple.com`, `*.notify.windows.com`, port 443, no IP literal, else `400`; TEST_MODE also accepts `push.example.test`; same
   endpoint again updates its keys and keeps its plan; at most 10 per person, else `400`).
 - `DELETE /api/push/subscriptions` `{ endpoint }`: removes it (also when unknown).
-- `PUT /api/reminders/plan` `{ endpoint, plan: { at, title, body, key }[] }`: replaces that browser's plan (`at` epoch ms, at most
-  500 entries). `404` when the endpoint is not subscribed. The server sends `{ title, body, key }` at `at`, up to 10 minutes late,
+- `PUT /api/reminders/plan` `{ endpoint, plan: { at, title, body, key, kind? }[] }`: replaces that browser's plan (`at` epoch ms, at most
+  500 entries; `kind`, when known, one of `event`, `tasklist`, `summary`, `bedtime`, which the service worker shows with its own
+  icon, else `400`; an entry without it, from an older web app, shows as an event).
+  `404` when the endpoint is not subscribed. The server sends `{ title, body, key, kind }` (`kind` when the entry has one) at `at`, up to 10 minutes late,
   once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription. Every send has a
   10 s timeout and each browser is served on its own, so one endpoint that never answers holds back nobody.
 
@@ -736,6 +738,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/door` | `{ token: string; person: string }` or `{ off: true }` | The door plugin's key and person from now on, in place of the config's; `off` takes the door away (404). Reset clears it. `200 AppConfig` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
+| `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. `200 { retryAfterSec }` |
 | `POST` | `/api/__test/release-notes` | `{ notes: { date, text }[] }` | `GET /api/release-notes` answers this list (as given, at most 50) until the next reset. `200 { notes }` |
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |

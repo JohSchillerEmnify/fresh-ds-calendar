@@ -77,6 +77,15 @@ describe('buildWidgetSnapshot', () => {
     expect(s.minEventMinutes).toBe(30);
   });
 
+  it('gives a task list its calendar colour while task categories are off, its category colour while on', () => {
+    const l = { ...list('Milk', '2026-10-14', 0, 1), categoryId: 'shopping', color: '#0b8043', calendarColor: '#039be5' };
+    const at = (categoriesOn?: boolean) =>
+      buildWidgetSnapshot({ items: [l], today: '2026-10-14', theme, dark: true, language: 'de', now: new Date('2026-10-14T08:30:00Z'), categoriesOn }).tasklists[0].color;
+    expect(at(false)).toBe('#039be5');
+    expect(at(true)).toBe('#0b8043');
+    expect(at()).toBe('#0b8043');
+  });
+
   it('marks birthdays and anniversaries in the title, so the widget needs no format change', () => {
     const s = build([
       { ...ev('b', 'Anna', '2026-10-14', '2026-10-15', true), special: 'birthday' },
