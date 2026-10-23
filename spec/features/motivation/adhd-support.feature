@@ -84,3 +84,20 @@ Feature: ADHD support: estimates, transition warnings, calm mode
     And I open the week view for 2026-10-19
     Then I see the task list "Clean bathroom" on 2026-10-21
     And the task list "Clean bathroom" shows the done count "0/2"
+
+  @optional
+  Scenario: Ticking a weekly task list right after creating it ticks only that week
+    Given today is 2026-10-12
+    When I open the week view for 2026-10-12
+    And I start creating a task list
+    And I fill in the task list form with:
+      | title  | Water plants |
+      | date   | 2026-10-14   |
+      | repeat | Weekly       |
+      | items  | Ficus; Fern  |
+    And I save the task list
+    And I expand the task list "Water plants"
+    And I tick the item "Ficus"
+    Then I see the task list "Water plants" once on 2026-10-14
+    When I open the week view for 2026-10-19
+    Then the task list "Water plants" shows the done count "0/2"

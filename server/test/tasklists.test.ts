@@ -299,7 +299,13 @@ describe('chunking, description fallback, recurrence', () => {
 });
 
 describe('recurring task lists: an item change splits off the occurrence', () => {
-  const weekly = (extra: object = {}) => mk({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }], ...extra });
+  const create = (extra: object = {}) => mk({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }], ...extra });
+  /** The series itself (the master), as `GET /api/tasklists/:id` hands it out. */
+  const weekly = async (extra: object = {}) => {
+    await create(extra);
+    const master = (await t.json('GET', '/api/__test/remote/events')).body.items.find((e: any) => e.summary === 'Clean' && e.recurrence);
+    return (await t.json('GET', `/api/tasklists/${master.id}`)).body;
+  };
   const weeks = async () => (await t.json('GET', '/api/items?from=2026-10-12&to=2026-10-26')).body.items
     .filter((i: any) => i.title === 'Clean').map((i: any) => [i.date, i.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(',')]);
 
@@ -348,6 +354,17 @@ describe('recurring task lists: an item change splits off the occurrence', () =>
     const r = await t.json('PATCH', `/api/tasklists/${a.id}`, { title: 'Clean', items: [{ title: 'Tub', done: false }] });
     expect(r.body.id).toBe(a.id);
     expect(await weeks()).toEqual([['2026-10-14', 'Tub:0'], ['2026-10-21', 'Tub:0']]);
+  });
+
+  it('creating a repeating list answers with its first occurrence, the id every range read shows', async () => {
+    const a = await create();
+    const listed = (await t.json('GET', '/api/items?from=2026-10-14&to=2026-10-15')).body.items[0];
+    expect(a).toMatchObject({ id: listed.id, date: '2026-10-14', recurrence: 'weekly', totalCount: 2 });
+    expect((await raw(a.id))).toBeUndefined(); // still a plain instance of the series, not an exception
+    expect(await weeks()).toEqual([['2026-10-14', 'Sink:0,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
+    const tick = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
+    expect(tick.body.id).toBe(a.id);
+    expect(await weeks()).toEqual([['2026-10-14', 'Sink:1,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0']]);
   });
 
   it('an item change on a one-off list is not affected', async () => {

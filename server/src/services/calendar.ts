@@ -528,7 +528,9 @@ export class CalendarService {
     if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
     this.motivation.award('create');
-    return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories());
+    // a repeating list answers with its first week, under the id every range read uses (a held series id would show twice)
+    const shown = d.recurrence ? await this.firstOccurrence(ev) : ev;
+    return this.toTaskList(shown, await this.calendarColor(calendarId), this.settings.categories());
   }
 
   async getTaskList(id: string): Promise<TaskList> {
