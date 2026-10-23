@@ -141,8 +141,11 @@ export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds,
 /** The Web Push plan covers this many days ahead (feature reminders). */
 export const PUSH_PLAN_DAYS = 7;
 
-/** One push the server sends at `at` (epoch ms); `key` is `reminder:<itemId>@<date>T<start>-<lead>`; `kind` picks its icon. */
-export interface PushPlanEntry { at: number; title: string; body: string; key: string; kind: PlannedReminder['kind'] }
+/**
+ * One push the server sends at `at` (epoch ms); `key` is `reminder:<itemId>@<date>T<start>-<lead>`, `bedtime:<night>` or
+ * `morning:<date>`; `kind` picks its icon.
+ */
+export interface PushPlanEntry { at: number; title: string; body: string; key: string; kind: 'event' | 'tasklist' | 'summary' | 'bedtime' }
 
 /**
  * The reminders the server pushes while the app is closed: the ones still ahead within the next 7 days, titled with the

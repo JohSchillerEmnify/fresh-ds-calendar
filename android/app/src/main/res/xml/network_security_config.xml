@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Plain HTTP only for the LAN calendar (there is no HTTPS there); everything else stays HTTPS-only. -->
+<!-- HTTPS only: the app talks to https://cal.example.org alone. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">cal.mordor.lan</domain>
-    </domain-config>
 </network-security-config>

@@ -164,6 +164,10 @@ const subscriptionOf = async (w: World) => {
   return endpoint ? (await w.api.call<PushState>('GET', '/api/__test/push-subscriptions')).subscriptions.find((s) => s.endpoint === endpoint) : undefined;
 };
 
+Given('the morning overview is on at {time}', async function (this: World, time: string) {
+  await this.api.patch('/api/prefs', { notify: { morning: true, morningTime: time } });
+});
+
 When('I switch on reminders in this browser', async function (this: World) {
   // headless Chromium has no push service: the browser's permission and subscription are replaced by a fake with a unique https endpoint
   await this.page.evaluate(() => {

@@ -148,9 +148,8 @@ Without `--no-publish` the script copies the APK to sauron (`SAURON=user@host`),
 - **Pinned signing certificate.** `scripts/android-build.sh` and `scripts/vps.sh deploy` check the APK's signing
   certificate against the SHA-256 in `android/release-cert.sha256` (`scripts/apk-cert.sh`) and publish nothing else;
   `/app.json` next to the APK carries the fingerprint, which Settings → About shows.
-- The app is a Capacitor shell that loads the server chosen on the first start (`https://cal.example.org` or
-  `http://cal.mordor.lan`; Settings → Account & data → Server → Change goes back to the chooser); web changes reach it on
-  the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
+- The app is a Capacitor shell that always loads `https://cal.example.org` (`ServerConfig.BASE_URL`, ADR 0022; no
+  first-start question); web changes reach it on the next start, no new APK needed. Only native changes (widget, shell) need a rebuild.
 - **On the VPS** the APK is not in the image: `scripts/vps.sh deploy` copies `CAL_APK` (default
   `deploy/data/downloads/app.apk`) and its `app.json` sidecar (`CAL_APK_INFO`, default next to the APK) into the running
   app container (`/data/downloads/`, volume `calendar_data`), only if the APK's certificate matches the pinned one.

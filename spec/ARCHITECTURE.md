@@ -31,8 +31,8 @@ Every section of the former prose was ported to the novibe layout and removed he
   the grown card, the one "new" dialog): model (`web`, `server`, `tapTaskList`, `moveNote`, `finishList`), ADRs
   0017–0019, `task-lists/*` features.
 - Android app and widget, own-events editing, birthdays, reminders and notifications, security hardening: model
-  (`androidApp`, `widget`, `chooseServer`, `signInFromApp`, `widgetWeekRefresh`, `remindersRing`, `prod`), ADRs
-  0012–0015, `API.md` "Web Push", "Birthdays", "Sign-in", "`GET /app.apk`", `docs/DEPLOYMENT.md` "Android app" and
+  (`androidApp`, `widget`, `startApp`, `signInFromApp`, `widgetWeekRefresh`, `remindersRing`, `prod`), ADRs
+  0012–0015 and 0022, `API.md` "Web Push", "Birthdays", "Sign-in", "`GET /app.apk`", `docs/DEPLOYMENT.md` "Android app" and
   "Public server (VPS)", `events/events-readonly`, `events/birthdays`, `events/reminders`, `google/signin`, `app/pwa`,
   `app/android-app`, `app/phone-widget` features.
 

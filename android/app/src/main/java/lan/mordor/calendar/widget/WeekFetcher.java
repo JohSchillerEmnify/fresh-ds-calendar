@@ -23,7 +23,8 @@ final class WeekFetcher {
     enum Status { OK, SIGN_IN, ERROR }
 
     /**
-     * Fetches {@code GET /api/items} for the week of {@code today}, with the minimum event length from {@code GET /api/prefs},
+     * Fetches {@code GET /api/items} for the week of {@code today}, with the minimum event length and the "Task categories"
+     * switch from {@code GET /api/prefs},
      * and stores the result. {@code excludeHidden=1} makes the
      * server leave out the calendars the person switched off in the app (that state lives on the server, not here).
      *
@@ -32,9 +33,7 @@ final class WeekFetcher {
      */
     static Status fetchAndStore(Context context, WidgetStore store, LocalDate today) {
         LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1);
-        String base = ServerConfig.baseUrl(context);
-        // no server chosen yet: nothing to call, the widget keeps asking to open the app
-        if (base == null) return Status.ERROR;
+        String base = ServerConfig.BASE_URL;
         HttpURLConnection c = null;
         try {
             c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + monday.plusDays(7) + "&excludeHidden=1").openConnection();
@@ -53,10 +52,8 @@ final class WeekFetcher {
             keepCookies(base, c.getHeaderFields().get("Set-Cookie"));
             JSONObject res = new JSONObject(read(c.getInputStream()));
             JSONObject week = new JSONObject().put("weekStart", monday.toString()).put("items", res.getJSONArray("items"));
-            Integer minLength = minEventMinutes(base, cookie);
-            if (minLength != null) week.put("minEventMinutes", minLength);
-            // the server was changed while this call was running: its answer belongs to the old one
-            if (!base.equals(ServerConfig.baseUrl(context))) return Status.ERROR;
+            JSONObject prefs = prefs(base, cookie);
+            if (prefs != null) week.put("minEventMinutes", prefs.optInt("minEventMinutes", 0)).put("taskCategories", prefs.optBoolean("taskCategories", true));
             store.saveFetched(week.toString(), System.currentTimeMillis());
             return Status.OK;
         } catch (Exception e) {
@@ -66,8 +63,8 @@ final class WeekFetcher {
         }
     }
 
-    /** The person's minimum event length from {@code GET /api/prefs}, or null when it cannot be read (the snapshot's value then stands). */
-    private static Integer minEventMinutes(String base, String cookie) {
+    /** The person's {@code GET /api/prefs}, or null when they cannot be read (the snapshot's values then stand). */
+    private static JSONObject prefs(String base, String cookie) {
         HttpURLConnection c = null;
         try {
             c = (HttpURLConnection) new URL(base + "/api/prefs").openConnection();
@@ -76,7 +73,7 @@ final class WeekFetcher {
             c.setRequestProperty("Accept", "application/json");
             if (cookie != null && !cookie.isEmpty()) c.setRequestProperty("Cookie", cookie);
             if (c.getResponseCode() != 200) return null;
-            return new JSONObject(read(c.getInputStream())).optInt("minEventMinutes", 0);
+            return new JSONObject(read(c.getInputStream()));
         } catch (Exception e) {
             return null;
         } finally {

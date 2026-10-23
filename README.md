@@ -51,8 +51,8 @@ Theme tokens: `pnpm -F @calendar/web tokens`. Deployment notes: [docs/DEPLOYMENT
 
 ## Android app
 
-A Capacitor shell around the calendar server you choose at first start, plus a weekly home-screen widget
-(`android/`, architecture: views `androidApp` and `widget`, ADRs 0012–0015). `scripts/android-build.sh` builds an unsigned release APK
+A Capacitor shell around the calendar server `https://cal.example.org`, plus a weekly home-screen widget
+(`android/`, architecture: views `androidApp` and `widget`, ADRs 0012–0015, 0022). `scripts/android-build.sh` builds an unsigned release APK
 in a Docker image (JDK 21 + Android SDK 36) and signs it with your own release keystore, which is kept outside git
 (`*.jks`, `keystore.properties` are ignored). Back the key up: an installed app can only be updated by an APK signed with the same key.
 Native unit tests: `./gradlew testDebugUnitTest` in `android/`.

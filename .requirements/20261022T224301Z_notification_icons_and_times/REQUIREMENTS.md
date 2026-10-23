@@ -27,7 +27,9 @@ Owner request 2026-10-23 (relayed by the night-run coordinator; the owner was as
   API needs 24).
 - Bedtime (owner decision during the run): Android title "Bedtime at 23:00" with the same live countdown to bedtime;
   the moon stays.
-- In-app snackbars are unchanged ("Dentist starts in 30 min", "Bedtime in 30 minutes").
+- In-app snackbars count down live while the app is open (owner decision, phase 2): "Dentist starts in 28 min" a minute
+  after "… 29 min", gone at the start; "Bedtime in 20 minutes", gone at bedtime. Screen readers hear each once.
+- Bedtime reminders and morning overviews also come by Web Push (owner decision, phase 2), with the same texts and icons.
 
 ## Requirements
 
@@ -39,6 +41,10 @@ Owner request 2026-10-23 (relayed by the night-run coordinator; the owner was as
 6. R6 Compatibility: a stored native reminder from an older web bundle (no `kind`/`start`) still shows, with the icon
    derived from its id (`bedtime` → moon, `morning` → sunrise, else calendar page) and no countdown; a Web Push without
    `kind` shows the calendar-page icon.
+7. R7 While the app is open, the in-app reminder of an event or task list and the bedtime reminder say the minutes really
+   left and update on every clock tick; they go away at the start (bedtime); screen readers hear them once.
+8. R8 With "Reminders in this browser" on, the bedtime reminders and the morning overviews of the next 7 days are pushed
+   as chosen in Settings → Notifications, with the native texts and their own icons.
 
 ## Acceptance Criteria
 
@@ -52,6 +58,13 @@ Owner request 2026-10-23 (relayed by the night-run coordinator; the owner was as
 - R4: unit (bedtime reminder): scheduled title "Bedtime at 22:30", `start` = bedtime, kind `bedtime`.
 - R5: `pnpm i18n:check` passes.
 - R6: Robolectric: an entry without kind/start uses the id-derived icon and no chronometer.
+- R7: unit (`live.test.ts`): "Dentist starts in 30 min" at the lead, "… 28 min" two minutes later, the nearest lead
+  joining late says the minutes left; unit (`bedtime-reminder.test.ts`): "Bedtime in 20 minutes" at 22:40, "… 1 minute"
+  at 22:59, gone at 23:00, snackbar stays (duration 0); the snackbar carries a fixed `announce` text (aria). e2e:
+  reminders.feature "… counts down while it is open", bedtime.feature "The bedtime reminder counts down while the app is open".
+- R8: unit (`push-plan-sync.test.ts`): 7 bedtime entries ("Bedtime at 23:00", '', `bedtime:<night>`) and 7 morning
+  entries ("Your day", the overview, `morning:<date>`), none when switched off. e2e: reminders.feature "The bedtime
+  reminder and the morning overview also come as browser pushes" (planned, then sent once with the moon / sunrise icon).
 
 ## Testing Plan
 
@@ -72,11 +85,9 @@ One PR: the pieces share the payload contract and ship together.
 
 ## Assumptions (owner asleep)
 
-- A1 Snackbars stay as they are: the owner spoke about notifications; the bedtime snackbar lasts 10 s and the event
-  snackbar disappears at the start. Flagged in the report.
-- A2 Bedtime and the morning overview are not sent by Web Push today; adding them would be a new feature, so the
-  "Bedtime at 23:00" web-push text of the owner's decision has nothing to apply to. The web icons for all four kinds exist
-  and the service worker maps all four, so such pushes would get the right look. Flagged.
+- A1 (superseded by the owner's phase-2 decision, R7) In the first version the snackbars kept their fixed lead text.
+- A2 (superseded by the owner's phase-2 decision, R8) In the first version bedtime and the morning overview were not
+  pushed; the web icons and the service worker mapping for all four kinds were already in place.
 - A3 The day prefix uses the app's `weekdayDayMonth` date format ("Tue 13 Oct"); a date never goes stale, unlike
   "tomorrow".
 - A4 (owner decision after review, replaces the first version) The native notification counts down to the start; at
@@ -95,8 +106,8 @@ One PR: the pieces share the payload contract and ship together.
   (in-app log showed the watcher returning before planning; a Trip on 13 Oct was planned once today got an item). Now
   it checks that a loaded range covers today (`push-plan-sync.test.ts` reproduces it). The native clean-up used the same
   guard and was fixed with it.
-- The bedtime native scenario lives in `android-app.feature` (native), so `bedtime.feature` is unchanged; its in-app
-  snackbar "Bedtime in 30 minutes" is kept (A1).
+- The bedtime native scenario lives in `android-app.feature` (native); `bedtime.feature` gained only the in-app countdown
+  scenario (R7).
 - PNGs were rendered from the SVG sources with Playwright's Chromium (one-off script, not committed).
 - Review round 1 (coordinator): an item ending at a later midnight names the day after its last segment
   ("22:00 – Wed 14 Oct, 00:00"); push plan and native clean-up wait until loaded ranges cover all 8 planned days and fetch
@@ -118,3 +129,17 @@ One PR: the pieces share the payload contract and ship together.
   `Reminders.schedule` — ids of item reminders are unique per occurrence and lead and are never re-scheduled once they
   rang, and the only reused id is `bedtime`, whose schedule for the next night would then cancel tonight's start
   re-post (tonight's notification would count up past bedtime instead of showing "Bedtime at 23:00").
+- Review round 4: a rung reminder is also cancelled when its calendar is hidden or its kind switched off in Settings →
+  Notifications (the person no longer wants it; recorded decision, coordinator agreed); it is forgotten without a cancel
+  at its end. The bedtime reminder is cancelled when switched off or when a still pending (not rung) reminder has no night
+  left in the settings; one that rang stays until wake-up. Countdown snackbars carry a fixed `announce` text, so screen
+  readers hear them once.
+- Phase 2 (owner decisions): live snackbar countdown (R7), bedtime and morning overview by Web Push (R8), and the Android
+  app's server chooser removed: the server is configuration (`ServerConfig.BASE_URL` = `https://cal.example.org`,
+  ADR 0022). Gone: the chooser page (the bundled `index.html` is now an empty start page Capacitor requires), the Settings
+  "Server" row and its texts, the plugin's `get`/`choose`, the "Choose another calendar" link of the offline page (which
+  keeps "Try again"), the cleartext exception for `cal.mordor.lan`, and the widget's server-change clean-up. The plugin
+  keeps the name `ServerChoice` for the deployed web app's `appVersion` call. No migration: a phone that chose the
+  home-network server signs in once on the public one; its widget follows with the next fetch.
+- Also in this branch (coordinator): the widget's own week fetch uses the calendar colour for task lists while task
+  categories are off (`taskCategories` read with the prefs; default on when unreadable).

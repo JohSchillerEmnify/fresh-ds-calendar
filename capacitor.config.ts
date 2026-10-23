@@ -2,9 +2,9 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * Android shell for the self-hosted calendar (ARCHITECTURE "Android app and widget"): a Capacitor WebView that loads the
- * calendar server the person chose. `server.url` is static in Capacitor, so it is NOT set here: `MainActivity` builds the
- * runtime config with the chosen server as `server.url` (or none, which shows the bundled chooser page). `webDir` holds
- * that chooser (`index.html`) and the offline page (`error.html`).
+ * calendar server `https://cal.example.org`. Its URL is set by `MainActivity` from `ServerConfig.BASE_URL`, the one place
+ * the widget reads it too, so it is not repeated here. `webDir` holds the (unused) start page and the offline page
+ * (`error.html`).
  */
 const config: CapacitorConfig = {
   appId: 'lan.mordor.calendar',

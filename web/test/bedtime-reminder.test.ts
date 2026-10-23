@@ -162,6 +162,34 @@ describe('startBedtimeReminder', () => {
       stop();
     });
 
+    it('with no night left (bedtime = wake-up) cancels a pending reminder but keeps one that rang; switching off cancels', async () => {
+      const prefs = usePrefsStore();
+      const clock = setup('2026-10-14T22:00:00+02:00');
+      const stop = startBedtimeReminder();
+      expect(plugin.schedule).toHaveBeenCalledTimes(1);
+      // tonight's reminder (22:30) has rung; then the settings leave no night at all
+      clock.nowTick = Date.parse('2026-10-14T22:40:00+02:00');
+      prefs.bedtime = { ...prefs.bedtime, wake: '23:00' };
+      await nextTick();
+      expect(plugin.cancel).not.toHaveBeenCalled();
+      // switching the notification off takes it away
+      prefs.notify = { ...prefs.notify, bedtime: false };
+      await nextTick();
+      expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_REMINDER_ID });
+      stop();
+    });
+
+    it('cancels a pending reminder when the settings leave no night', async () => {
+      const prefs = usePrefsStore();
+      setup('2026-10-14T22:00:00+02:00');
+      const stop = startBedtimeReminder();
+      expect(plugin.schedule).toHaveBeenCalledTimes(1);
+      prefs.bedtime = { ...prefs.bedtime, wake: '23:00' };
+      await nextTick();
+      expect(plugin.cancel).toHaveBeenCalledWith({ id: NATIVE_REMINDER_ID });
+      stop();
+    });
+
     it('keeps the reminder in the app only when its notification is switched off', async () => {
       setup('2026-10-14T12:00:00+02:00');
       const stop = startBedtimeReminder();

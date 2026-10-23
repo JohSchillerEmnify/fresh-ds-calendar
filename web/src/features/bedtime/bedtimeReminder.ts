@@ -16,6 +16,7 @@ import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { remindersPlugin } from '@/native/reminders';
 import { localToIso } from '@/features/calendar/zone';
+import { PUSH_PLAN_DAYS, type PushPlanEntry } from '@/features/calendar/reminderPlan';
 
 /** A reminder that is due. */
 export interface BedtimeReminder {
@@ -84,6 +85,27 @@ export function upcomingReminder(windows: readonly BedtimeWindow[], nowAbs: numb
   return w ? { night: w.wakeDate, at: w.start - minutes, bedtime: w.from.slice(11), from: w.from, to: w.to } : null;
 }
 
+/**
+ * The bedtime reminders the server pushes while the app is closed (Web Push): one per night whose reminder time lies ahead
+ * within the next 7 days, saying the bedtime itself ("Bedtime at 23:00", never "in 30 minutes"), keyed by the night.
+ *
+ * @param windows The night windows of the planned days.
+ * @param minutes Reminder lead in minutes; 0 means no reminder.
+ * @param nowMs Now, epoch ms.
+ * @param tz The calendar time zone.
+ * @returns The push plan entries, kind `bedtime`.
+ */
+export function bedtimePushPlan(windows: readonly BedtimeWindow[], minutes: number, nowMs: number, tz: string): PushPlanEntry[] {
+  if (minutes <= 0) return [];
+  const minuteStart = nowMs - (nowMs % 60_000);
+  const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
+  return windows.flatMap((w) => {
+    const at = Date.parse(localToIso(w.from.slice(0, 10), w.from.slice(11), tz)) - minutes * 60_000;
+    if (at <= minuteStart || at > until) return [];
+    return [{ at, title: t('bedtime.notification', { time: w.from.slice(11) }), body: '', key: `bedtime:${w.wakeDate}`, kind: 'bedtime' as const }];
+  });
+}
+
 /** Id of the bedtime reminder in the native plugin (one pending at a time). */
 export const NATIVE_REMINDER_ID = 'bedtime';
 
@@ -115,7 +137,8 @@ export function startBedtimeReminder(): () => void {
   /** The snackbar on screen and its night: it counts down on every tick and goes away at bedtime. */
   let shown: { id: number; night: string } | null = null;
   const offSnackbar = addReminderSink((r) => {
-    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder' }), night: r.night };
+    // screen readers hear it once, not every minute of the countdown
+    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder', announce: text(r.inMin) }), night: r.night };
   });
 
   scope = effectScope(true);
@@ -144,6 +167,8 @@ export function startBedtimeReminder(): () => void {
     const plugin = remindersPlugin();
     if (!plugin) return;
     let sent = '';
+    /** When the reminder last scheduled rings (epoch ms; 0 = none): before then it is pending, after it it may be showing. */
+    let sentAt = 0;
     watch(
       () => [clock.nowTick, prefs.bedtime, prefs.notify.bedtime, windows.value, language.value] as const,
       () => {
@@ -151,11 +176,14 @@ export function startBedtimeReminder(): () => void {
         // Settings → Notifications can keep the reminder in the app only
         const next = prefs.notify.bedtime ? upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes) : null;
         if (!next) {
-          // only switching it off takes it away: a reminder that rang may be showing until wake-up, and a cancel would
-          // remove that notification
+          // a reminder that rang may be showing until wake-up, and a cancel would remove that notification: only switching
+          // it off takes it away, or a reminder still pending (not rung) that the settings no longer give
           const off = !prefs.notify.bedtime || !prefs.bedtime.enabled || prefs.bedtime.reminderMinutes <= 0;
-          if (off && sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
-          if (off) sent = 'none';
+          if (sent !== 'none' && (off || sentAt > clock.nowTick)) {
+            void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
+            sent = 'none';
+            sentAt = 0;
+          }
           return;
         }
         // the bedtime itself, with the phone counting down to it: a fixed "in 30 minutes" would be stale when read later;
@@ -169,6 +197,7 @@ export function startBedtimeReminder(): () => void {
         const key = `${at}|${title}|${start}|${end}`;
         if (key === sent) return;
         sent = key;
+        sentAt = at;
         void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body: '', kind: 'bedtime', start, end }).catch(() => undefined);
       },
       { immediate: true },
