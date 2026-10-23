@@ -80,7 +80,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `transition-warning` | snackbar |
 | `task-tray`, `task-tray-toggle`, `task-tray-count`, `task-tray-item`, `task-tray-title`, `task-tray-unfold` | open tasks tray; open rows contain a `tasklist-view` |
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
-| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-delete`, `tasklist-item-up`, `tasklist-item-down`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
+| `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-no-date` (`aria-pressed`), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
@@ -296,8 +296,14 @@ the task list {string} does not contain the item {string}
 I rename the item {string} to {string}
 I rename the item {string} to {string} but press Escape
 I delete the item {string}
-I move the item {string} up
-I move the item {string} down
+I drag the item {string} above the item {string}
+I long-press the item {string} and drag it above the item {string}
+I drag the item {string} and drop it where it was
+I tap the item {string}
+I pick up the item {string}
+I release the item without moving it
+the item {string} is lifted
+the item {string} has the drag handle {string}
 I edit the task list details
 I delete the task list
 the task list tap setting is {string}
@@ -343,6 +349,16 @@ I zoom the time grid in on the lower edge of the grown card
 I zoom the time grid in far from the grown card
 the real time block of the expanded task list matches the card {string}
 ```
+
+- Item drag (`tasklists-items.feature`): "I drag the item X above the item Y" = a mouse presses the item's `tasklist-item-grip`, moves in
+  10 steps to just above Y's row (when X moves down: to the place of the item before Y) and releases; on the phone project the finger
+  long-presses X's row (500 ms hold, CDP touch, as the calendar's drag steps) and moves the same way. It waits for the saved order
+  (`PUT /api/tasklists/:id/items/order`, 200) and for `data-dragging` to go. "I long-press the item X and drag it above Y" = the
+  same, phone project only. "drag X and drop it where it was" = away and back (a finger: held and released in place); no request
+  is expected. "I tap the item X" taps its `tasklist-item-checkbox` (a short tap ticks and starts no drag). "I pick up the item X" =
+  a finger held 500 ms on its title and kept down; "is lifted" = `data-dragging="true"` on its row; "I release the item without
+  moving it" lifts the finger. "has the drag handle L" = `aria-label` L on its `tasklist-item-grip`. In the Tasks view the same
+  drag acts on the `tasklist-view` of that list's `tasks-item`.
 
 "the task list X shows the done count" checks the expanded header if X is expanded, else the collapsed card.
 "the task list X shows the item Y below / next to its title": the `tasklist-card-item` with `data-title` Y in X's
@@ -1837,6 +1853,7 @@ I group the Tasks view by {string}
 I sort the Tasks view by {string}
 I sort the Tasks view by {string} in reversed order
 I tick the item {string} of the task list {string} in the Tasks view
+I drag the item {string} above the item {string} of the task list {string} in the Tasks view
 the Tasks view lists {string} under {string}
 the Tasks view lists {string}
 the Tasks view groups are {string}
@@ -1934,6 +1951,8 @@ the note {string} is at {int}, {int} on the Canvas
 the note {string} is in the Unsorted stack
 the note {string} is not in the Unsorted stack
 I tick the item {string} of the note {string} on the Canvas
+I drag the item {string} above the item {string} of the note {string} on the Canvas
+the note {string} on the Canvas shows the items {string}
 the page is a little taller than the screen
 I add an area on the Canvas
 the add button covers no control of the {string}
@@ -2003,6 +2022,7 @@ the Canvas zoom is above {float}
 - "I long-press the area A and drag it by DX, DY pixels": notes A's `data-x`/`data-y`, then a finger on the body of A
   (as "release without moving"), held 500 ms, moved by DX, DY in 10 steps and lifted. "the area A has moved by DX, DY":
   `data-x`/`data-y` and the saved area are the noted place + (DX, DY) / `data-zoom` of `canvas-viewport` (± 1).
+- "I drag the item I above the item J of the note T on the Canvas": item drag by the item's `tasklist-item-grip` (a finger long-presses it; the Canvas picks the note up from anywhere else), waits for the saved order, and expects the note's `data-x`/`data-y` unchanged. "the note T on the Canvas shows the items" = the `tasklist-item` `data-title`s of that note joined by ", ".
 - "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until

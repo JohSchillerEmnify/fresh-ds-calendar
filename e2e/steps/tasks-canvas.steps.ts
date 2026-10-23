@@ -2,6 +2,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { box, expectJoined, pathname, touchDrag } from './support/ui.js';
+import { dragItem } from './support/tasklist.js';
 import { attr, type World } from './support/world.js';
 
 const isTasklistWrite = (method: string, tail = '') => (r: { url(): string; request(): { method(): string } }) =>
@@ -109,6 +110,17 @@ When('I tick the item {string} of the note {string} on the Canvas', async functi
   const saved = this.page.waitForResponse(isTasklistWrite('PATCH', '/items/[^/]+'));
   await row.getByTestId('tasklist-item-checkbox').click();
   expect((await saved).status(), 'tick saved').toBe(200);
+});
+
+When('I drag the item {string} above the item {string} of the note {string} on the Canvas', async function (this: World, title: string, above: string, noteTitle: string) {
+  const at = async () => [await note(this, noteTitle).getAttribute('data-x'), await note(this, noteTitle).getAttribute('data-y')];
+  const before = await at();
+  await dragItem(this, note(this, noteTitle), title, { above }, true);
+  expect(await at(), 'the note stayed where it was').toEqual(before);
+});
+
+Then('the note {string} on the Canvas shows the items {string}', async function (this: World, noteTitle: string, items: string) {
+  await expectJoined(note(this, noteTitle).getByTestId('tasklist-item'), items, 'data-title');
 });
 
 When('I create the area {string} on the Canvas', async function (this: World, name: string) {

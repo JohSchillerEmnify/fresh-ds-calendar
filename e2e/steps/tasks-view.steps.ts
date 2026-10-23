@@ -4,6 +4,7 @@ import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import { itemsFrom } from './support/tables.js';
 import { chooseOption, expectJoined, pathname, selectedLabel } from './support/ui.js';
+import { dragItem } from './support/tasklist.js';
 import { inSheet } from './support/tasks-sheets.js';
 import { attr, exactText, type World } from './support/world.js';
 
@@ -216,4 +217,9 @@ Then('the add field of the task list {string} in the Tasks view is shown', async
 
 When('I tap Add item of the task list {string} in the Tasks view', async function (this: World, title: string) {
   await cardView(this, title).getByTestId('tasklist-add').click();
+});
+
+When('I drag the item {string} above the item {string} of the task list {string} in the Tasks view', async function (this: World, title: string, above: string, list: string) {
+  await openTasksView(this);
+  await dragItem(this, cardView(this, list), title, { above });
 });

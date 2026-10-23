@@ -108,6 +108,15 @@ Feature: The Canvas places task lists as sticky notes
     Then the note "Taxes" is at 100, 260 on the Canvas
     And the item "Stamp" of the note "Taxes" is not ticked
 
+  Scenario: An item's handle reorders the list and leaves the note where it is
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item  | done |
+      | Form  | no   |
+      | Stamp | no   |
+    When I open the Canvas
+    And I drag the item "Stamp" above the item "Form" of the note "Taxes" on the Canvas
+    Then the note "Taxes" on the Canvas shows the items "Stamp, Form"
+
   @mobile
   Scenario: A drag on a note without a long press does nothing
     Given the calendar contains an undated task list "Taxes" with items:

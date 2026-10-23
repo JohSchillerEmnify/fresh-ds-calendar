@@ -1,6 +1,6 @@
 @tasklists @items @id:tasklist-items
 Feature: Working with task list items
-  Items are ticked, unticked, added, renamed, removed and (optionally) reordered inside an
+  Items are ticked, unticked, added, renamed, removed and reordered (by dragging) inside an
   expanded task list. Every change is saved to Google immediately (optimistic UI).
 
   Background:
@@ -93,14 +93,43 @@ Feature: Working with task list items
     And I delete the item "Bread"
     Then the task list "Groceries" shows the done count "0/0"
 
-  @reorder @optional
-  Scenario: Reorder items
-    When I move the item "Bread" up
-    Then the expanded task list items are "Milk, Bread, Eggs"
-    When I move the item "Milk" down
-    Then the expanded task list items are "Bread, Milk, Eggs"
-    When I reload the page
-    Then the collapsed task list "Groceries" lists the items "Bread, Milk, Eggs"
+  Rule: Items are reordered by dragging them (there are no up and down buttons)
+
+    Dragging works wherever a list's items are shown and can be edited: the expanded list, the open tasks tray, the Tasks
+    view and the Canvas note (there by the item's handle, because a press anywhere else on a note moves the note). The
+    grown card over the calendar is read-only; a tap on it opens the expanded list. The move is optimistic like a tick and
+    rolled back with a message if saving fails. Every item has a drag handle labelled "Drag <item> to reorder".
+
+    Scenario: Dragging an item to another place reorders the list, and it stays that way
+      When I drag the item "Bread" above the item "Milk"
+      And I reload the page
+      Then the collapsed task list "Groceries" lists the items "Bread, Milk, Eggs"
+
+    @mobile
+    Scenario: On a phone an item is picked up with a long press and moved
+      When I long-press the item "Bread" and drag it above the item "Eggs"
+      Then the expanded task list items are "Milk, Bread, Eggs"
+
+    @mobile
+    Scenario: A short tap on an item still ticks it and starts no drag
+      When I tap the item "Eggs"
+      Then the item "Eggs" is ticked
+      And the expanded task list items are "Milk, Eggs, Bread"
+
+    Scenario: An item dropped where it was changes nothing
+      When I drag the item "Eggs" and drop it where it was
+      Then the expanded task list items are "Milk, Eggs, Bread"
+
+    @mobile
+    Scenario: Picking up an item gives the same haptic tick as picking up an event
+      When I pick up the item "Eggs"
+      Then the item "Eggs" is lifted
+      And a haptic tick was requested
+      When I release the item without moving it
+      Then the expanded task list items are "Milk, Eggs, Bread"
+
+    Scenario: Every item has a labelled drag handle
+      Then the item "Eggs" has the drag handle "Drag Eggs to reorder"
 
   Rule: A task list too big to store in Google is refused, and nothing is lost
 

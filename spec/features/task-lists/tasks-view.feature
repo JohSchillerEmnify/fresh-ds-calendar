@@ -79,3 +79,14 @@ Feature: The Tasks view lists every open task list
     When I open the Tasks view
     Then the Tasks view groups are "Overdue, Today, Later"
     And the Tasks view lists "Rent" under "Overdue"
+
+  Scenario: Items are reordered by dragging in the Tasks view too
+    Given the calendar contains an undated task list "Garage" with items:
+      | item  | done |
+      | Sweep | no   |
+      | Paint | no   |
+      | Sand  | no   |
+    When I drag the item "Sand" above the item "Sweep" of the task list "Garage" in the Tasks view
+    Then the card of the task list "Garage" in the Tasks view shows the items "Sand, Sweep, Paint"
+    When I reload the page
+    Then the card of the task list "Garage" in the Tasks view shows the items "Sand, Sweep, Paint"

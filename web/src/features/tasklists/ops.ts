@@ -15,6 +15,7 @@ import { t } from '@/i18n';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
+import { moveTo } from './reorder';
 
 type Resolve = (id: string) => string;
 interface Queue {
@@ -164,23 +165,16 @@ export function removeItem(listId: string, itemId: string, o: RequestOptions = {
   });
 }
 
-/** Move an item one step; `dir` -1 = up. */
-export function moveItem(listId: string, itemId: string, dir: -1 | 1): void {
-  const swapped = <T,>(l: T[], i: number): T[] => {
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= l.length) return l;
-    const out = [...l];
-    [out[i], out[j]] = [out[j], out[i]];
-    return out;
-  };
+/** Move an item to index `to` (a drag and drop); optimistic like a tick, rolled back with a snackbar if saving fails. */
+export function moveItemTo(listId: string, itemId: string, to: number): void {
   enqueue(listId, {
     inflight: false,
-    apply: (tl, r) => ({ ...tl, items: swapped(tl.items, tl.items.findIndex((i) => i.id === r(itemId))) }),
+    apply: (tl, r) => ({ ...tl, items: moveTo(tl.items, tl.items.findIndex((i) => i.id === r(itemId)), to) }),
     call: async (q, r) => {
       const ids = q.base.items.map((i) => i.id);
       const id = r(itemId);
       if (id.startsWith('tmp-') || !ids.includes(id)) return q.base;
-      return api.reorderTaskItems(listId, swapped(ids, ids.indexOf(id)));
+      return api.reorderTaskItems(listId, moveTo(ids, ids.indexOf(id), to));
     },
   });
 }

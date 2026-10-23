@@ -67,6 +67,9 @@ import IosShareS from '~icons/material-symbols/ios-share-sharp';
 import KeyboardArrowDownO from '~icons/material-symbols/keyboard-arrow-down';
 import KeyboardArrowDownR from '~icons/material-symbols/keyboard-arrow-down-rounded';
 import KeyboardArrowDownS from '~icons/material-symbols/keyboard-arrow-down-sharp';
+import DragIndicatorO from '~icons/material-symbols/drag-indicator';
+import DragIndicatorR from '~icons/material-symbols/drag-indicator-rounded';
+import DragIndicatorS from '~icons/material-symbols/drag-indicator-sharp';
 import KeyboardArrowUpO from '~icons/material-symbols/keyboard-arrow-up';
 import KeyboardArrowUpR from '~icons/material-symbols/keyboard-arrow-up-rounded';
 import KeyboardArrowUpS from '~icons/material-symbols/keyboard-arrow-up-sharp';
@@ -141,6 +144,7 @@ export const IconExpandMore = appIcon('IconExpandMore', { outlined: ExpandMoreO,
 export const IconFilterList = appIcon('IconFilterList', { outlined: FilterListO, rounded: FilterListR, sharp: FilterListS });
 export const IconIosShare = appIcon('IconIosShare', { outlined: IosShareO, rounded: IosShareR, sharp: IosShareS });
 export const IconKeyboardArrowDown = appIcon('IconKeyboardArrowDown', { outlined: KeyboardArrowDownO, rounded: KeyboardArrowDownR, sharp: KeyboardArrowDownS });
+export const IconDragIndicator = appIcon('IconDragIndicator', { outlined: DragIndicatorO, rounded: DragIndicatorR, sharp: DragIndicatorS });
 export const IconKeyboardArrowUp = appIcon('IconKeyboardArrowUp', { outlined: KeyboardArrowUpO, rounded: KeyboardArrowUpR, sharp: KeyboardArrowUpS });
 export const IconChecklist = appIcon('IconChecklist', { outlined: ChecklistO, rounded: ChecklistR, sharp: ChecklistS });
 export const IconSwapVert = appIcon('IconSwapVert', { outlined: SwapVertO, rounded: SwapVertR, sharp: SwapVertS });

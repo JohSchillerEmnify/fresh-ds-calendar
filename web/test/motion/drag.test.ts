@@ -64,6 +64,34 @@ describe('drag state machine', () => {
     expect(document.querySelectorAll('[data-testid="reward-effect"][data-kind="drop"]').length).toBeLessThanOrEqual(1);
     delete (navigator as unknown as { vibrate?: unknown }).vibrate;
   });
+  it('touchmove is stopped while dragging (a sheet swipe underneath never sees it) and left alone when idle', () => {
+    const seen = vi.fn();
+    el.parentElement!.addEventListener('touchmove', seen);
+    const tm = () => {
+      const e = new Event('touchmove', { bubbles: true, cancelable: true });
+      el.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    const { c } = make();
+    expect(tm()).toBe(false);
+    expect(seen).toHaveBeenCalledTimes(1);
+    down();
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    expect(tm()).toBe(true);
+    expect(seen).toHaveBeenCalledTimes(1); // not called again
+    c.destroy();
+  });
+  it('scale: the translate is the viewport offset divided by the ancestor scale', async () => {
+    const { c } = make({ scale: () => 0.5 });
+    down();
+    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(600);
+    expect(c.state).toBe('dragging');
+    // magnet target dx 100, dy 60 viewport px -> 200, 120 local px
+    expect(el.style.transform).toContain('translate3d(200.00px, 120.00px');
+    c.destroy();
+  });
   it('touch: moving before the long-press fires cancels (scroll wins)', () => {
     const { c, onDrop } = make();
     down();

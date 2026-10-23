@@ -51,6 +51,8 @@ export interface DragOptions<K = unknown> {
   /** true (default): onDrop is called immediately and the transform cleared (the consumer applies an optimistic move). */
   optimistic?: boolean;
   disabled?: () => boolean;
+  /** Scale of the element's ancestors (a zoomed Canvas): a translate of 1 px moves it by this many screen px. Read at pick-up; default 1. */
+  scale?: () => number;
   onStateChange?: (s: DragState) => void;
   onTarget?: (t: DropTarget<K> | null) => void;
   /**
@@ -147,6 +149,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let scroll0: Point = { x: 0, y: 0 };
   let lastShift: Point = { x: 0, y: 0 };
   let anims: Animation[] = [];
+  /** Ancestor scale at pick-up: viewport offsets are divided by it to get the element's own translate. */
+  let k = 1;
   let claimedHere = false;
   let listening = false;
   let prevStyle = { transform: '', transition: '', zIndex: '', boxShadow: '', touchAction: '', userSelect: '', willChange: '', position: '' };
@@ -195,7 +199,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const onWinUp = (e: PointerEvent) => handleUp(e);
   const onWinCancel = (e: PointerEvent) => handleCancelEvent(e);
   const onTouchMove = (e: TouchEvent) => {
-    if (state === 'dragging' && e.cancelable) e.preventDefault();
+    if (state !== 'dragging') return;
+    // a sheet's own swipe-to-dismiss underneath never sees the moves of a drag
+    e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && (state === 'dragging' || state === 'pending')) cancel();
@@ -301,6 +308,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       transform: el.style.transform, transition: el.style.transition, zIndex: el.style.zIndex, boxShadow: el.style.boxShadow,
       touchAction: el.style.touchAction, userSelect: el.style.userSelect, willChange: el.style.willChange, position: el.style.position,
     };
+    k = opts.scale?.() || 1;
     el.dataset.dragging = 'true';
     el.style.transition = 'none';
     el.style.zIndex = '60';
@@ -429,7 +437,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     lastT = t;
     // scroll first so this frame's transform already matches the new scroll position
     autoScroll(dt);
-    const o = offsets();
+    const o0 = offsets();
+    const o = { x: o0.x / k, y: o0.y / k };
     const lvl = getMotionLevel();
     // a scroll moves the card's layout box: shift the spring with it, so only pointer motion lags, never the scroll
     const s = scrollShift();
@@ -457,8 +466,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     }
     // the drawn card = pick-up rect + spring offset - scroll since pick-up (the layout box moved with the scroll)
     const s = scrollShift();
-    const dx = sx.x - s.x;
-    const dy = sy.x - s.y;
+    const dx = sx.x * k - s.x;
+    const dy = sy.x * k - s.y;
     const r = ctx.originRect;
     const { vx, vy } = vt.velocity();
     lastFrame = { phase, rect: { left: r.left + dx, top: r.top + dy, width: r.width, height: r.height }, dx, dy, vx, vy, stillMs: Math.max(0, t - stillSince) };
@@ -528,7 +537,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     const shift = scrollShift();
     const at = t.dx !== undefined && t.dy !== undefined ? { x: t.dx, y: t.dy } : { x: cur.x - start.x, y: cur.y - start.y };
     // `at` is relative to the pick-up rect (viewport); the card's transform also has to undo the scroll since pick-up
-    const dest = { x: at.x + shift.x, y: at.y + shift.y };
+    const dest = { x: (at.x + shift.x) / k, y: (at.y + shift.y) / k };
     const blingAt = ctx
       ? { x: ctx.originRect.left + ctx.originRect.width / 2 + at.x, y: ctx.originRect.top + ctx.originRect.height / 2 + at.y }
       : cur;

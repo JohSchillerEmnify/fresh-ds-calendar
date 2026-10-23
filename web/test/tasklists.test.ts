@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { createMemoryHistory, type Router } from 'vue-router';
 import { createAppRouter } from '@/router';
 import type { TaskList } from '@/api/types';
@@ -8,6 +8,7 @@ import { displayTitle, itemSegments, neutralName } from '@/lib/items';
 import { enableTimerCounting } from '@/lib/timers';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { useDaySegments } from '@/composables/useDaySegments';
@@ -17,6 +18,7 @@ import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
 import TaskTray from '@/features/tasklists/TaskTray.vue';
 import { setAnimationSetting } from '@/motion/level';
 import { carriedLabel, formatEstimate } from '@/features/tasklists/format';
+import { moveItemTo } from '@/features/tasklists/ops';
 import { useTaskListsStore } from '@/features/tasklists/store';
 import { catSwipe } from '@/features/motivation/supportCat';
 import { validateForm } from '@/features/tasklists/validate';
@@ -208,6 +210,20 @@ describe('expanded list', () => {
     expect(useItemsStore().get('G')).toMatchObject({ doneCount: 0 });
   });
 
+  it('a dropped item moves at once with one PUT of the full order, and a failed save puts it back', async () => {
+    const list = tl('G');
+    const titles = (w: VueWrapper) => w.findAll(tid('tasklist-item-title')).map((x) => x.text());
+    const { w, m } = await open(list, { 'PUT /api/tasklists/G/items/order': () => ({ status: 500, body: { error: { code: 'INTERNAL', message: 'boom' } } }) });
+    const before = titles(w);
+    moveItemTo('G', 'G-i2', 0);
+    await nextTick();
+    expect(titles(w)).toEqual([before[2], before[0], before[1]]);
+    await flushPromises();
+    expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', 'G-i1']);
+    expect(titles(w)).toEqual(before);
+    expect(useUiStore().snackbars.some((x) => x.testid === 'tasklist-rollback')).toBe(true);
+  });
+
   it('rapid ticks stay correct: one failure rolls back only itself, others survive', async () => {
     const list = tl('G');
     const s = server(list, { fail: (n) => n === 2, delay: 5 });
@@ -337,7 +353,9 @@ describe('expanded list', () => {
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Oat milk', 'Bread', 'Butter']);
     expect(m.calls.some((c) => c.method === 'DELETE')).toBe(false); // sent when the undo time is over
     // a reorder sends the pending item delete first (the server needs every item id)
-    await w.findAll(tid('tasklist-item-up'))[1].trigger('click');
+    usePendingDeletesStore().flushList('G'); // what a drop does first
+    moveItemTo('G', 'G-i2', 0);
+    await nextTick();
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Bread', 'Oat milk', 'Butter']);
     await flushPromises();
     expect(m.calls.filter((c) => c.method === 'DELETE' || c.method === 'PUT').map((c) => c.method)).toEqual(['DELETE', 'PUT']);

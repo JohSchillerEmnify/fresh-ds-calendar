@@ -1,4 +1,5 @@
-import { expect } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
+import { box, touchDrag } from './ui.js';
 import { attr, tid, type World } from './world.js';
 
 /**
@@ -42,4 +43,44 @@ export async function itemById(world: World, title: string) {
   await expect(item).toHaveCount(1);
   const id = await item.getAttribute('data-item-id');
   return id ? world.expanded.locator(`${tid('tasklist-item')}${attr('data-item-id', id)}`) : item;
+}
+
+const isOrderPut = (r: { url(): string; request(): { method(): string } }) =>
+  r.request().method() === 'PUT' && /\/api\/tasklists\/[^/]+\/items\/order$/.test(new URL(r.url()).pathname);
+
+/**
+ * Drag the item `title` inside `list` (a `tasklist-view` or the sheet) and drop it where `drop` says: `above` an item (the place
+ * just before it), or `home` (away and back). A mouse (or `byGrip`) grabs the drag handle; a finger long-presses the row,
+ * as the calendar's drag steps do. Waits for the saved order (`PUT .../items/order`) unless the drop changes nothing.
+ */
+export async function dragItem(world: World, list: Locator, title: string, drop: { above: string } | 'home', byGrip = false) {
+  const rows = list.getByTestId('tasklist-item');
+  const row = rows.filter({ has: world.page.locator(attr('data-title', title)) }).or(rows.and(world.page.locator(attr('data-title', title)))).first();
+  await row.scrollIntoViewIfNeeded();
+  const titles = await rows.evaluateAll((els) => els.map((e) => e.getAttribute('data-title')));
+  const touch = !!world.testInfo.project.use.hasTouch;
+  const rb = await box(row);
+  const grab = touch && !byGrip ? { x: rb.x + rb.width * 0.5, y: rb.y + rb.height / 2 } : await box(row.getByTestId('tasklist-item-grip')).then((g) => ({ x: g.x + g.width / 2, y: g.y + g.height / 2 }));
+  let to = { ...grab };
+  let moves = false;
+  if (drop !== 'home') {
+    const target = rows.nth(titles.indexOf(drop.above));
+    const tb = await box(target);
+    // moving down, "above X" is the place of the item before X
+    to = { x: grab.x, y: titles.indexOf(title) < titles.indexOf(drop.above) ? tb.y - 4 : tb.y + 4 };
+    moves = titles.indexOf(drop.above) - (titles.indexOf(title) < titles.indexOf(drop.above) ? 1 : 0) !== titles.indexOf(title);
+  }
+  const saved = moves ? world.page.waitForResponse(isOrderPut) : null;
+  if (touch) {
+    await touchDrag(world.page, grab, to, { steps: 10, durationMs: 300, holdMs: 500 });
+  } else {
+    const { mouse } = world.page;
+    await mouse.move(grab.x, grab.y);
+    await mouse.down();
+    if (drop === 'home') await mouse.move(grab.x, grab.y + 30, { steps: 5 });
+    await mouse.move(to.x, to.y, { steps: 10 });
+    await mouse.up();
+  }
+  if (saved) expect((await saved).status(), 'order saved').toBe(200);
+  await expect(list.locator('[data-testid="tasklist-item"][data-dragging]:not([data-dragging="false"])')).toHaveCount(0);
 }
