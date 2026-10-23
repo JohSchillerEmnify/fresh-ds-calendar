@@ -299,6 +299,8 @@ I delete the item {string}
 I drag the item {string} above the item {string}
 I long-press the item {string} and drag it above the item {string}
 I drag the item {string} and drop it where it was
+I drag the item {string} over the gap between {string} and {string} and hold
+the items {string} and {string} do not overlap the dragged item {string} and it lies between them
 I tap the item {string}
 I pick up the item {string}
 I release the item without moving it
@@ -357,7 +359,7 @@ the real time block of the expanded task list matches the card {string}
   same, phone project only. "drag X and drop it where it was" = away and back (a finger: held and released in place); no request
   is expected. "I tap the item X" taps its `tasklist-item-checkbox` (a short tap ticks and starts no drag). "I pick up the item X" =
   a finger held 500 ms on its title and kept down; "is lifted" = `data-dragging="true"` on its row; "I release the item without
-  moving it" lifts the finger. "has the drag handle L" = `aria-label` L on its `tasklist-item-grip`. In the Tasks view the same
+  moving it" lifts the finger. "I drag X over the gap between A and B and hold" = grip (a finger: long-press) moved in 10 steps to the upper edge of B and kept down for 900 ms (released by the world's cleanup); "the items A and B do not overlap the dragged item X ..." = A's bottom <= X's top and X's bottom <= B's top (4 px tolerance for the 1.05 lift scale), i.e. the other rows made room. "has the drag handle L" = `aria-label` L on its `tasklist-item-grip`. In the Tasks view the same
   drag acts on the `tasklist-view` of that list's `tasks-item`.
 
 "the task list X shows the done count" checks the expanded header if X is expanded, else the collapsed card.

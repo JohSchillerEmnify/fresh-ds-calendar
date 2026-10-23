@@ -292,6 +292,43 @@ When('I drag the item {string} and drop it where it was', async function (this: 
   await dragItem(this, this.expanded, title, 'home');
 });
 
+When('I drag the item {string} over the gap between {string} and {string} and hold', async function (this: World, title: string, upper: string, lower: string) {
+  const grip = (await box((await itemById(this, title)).getByTestId('tasklist-item-grip')));
+  const from = { x: Math.round(grip.x + grip.width / 2), y: Math.round(grip.y + grip.height / 2) };
+  // just inside the upper half of the lower item: the place right after the upper one
+  const lowerBox = await box(await itemById(this, lower));
+  const to = { x: from.x, y: Math.round(lowerBox.y + 6) };
+  void upper;
+  if (this.testInfo.project.use.hasTouch) {
+    const cdp = await this.context.newCDPSession(this.page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...from, id: 1 }] });
+    await this.page.waitForTimeout(500);
+    for (let i = 1; i <= 10; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x, y: Math.round(from.y + ((to.y - from.y) * i) / 10), id: 1 }] });
+    }
+    this.held = async () => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
+      await cdp.detach().catch(() => {});
+      this.held = undefined;
+    };
+  } else {
+    const { mouse } = this.page;
+    await mouse.move(from.x, from.y);
+    await mouse.down();
+    await mouse.move(to.x, to.y, { steps: 10 });
+    this.held = async () => { await mouse.up(); this.held = undefined; };
+  }
+  // the card follows by spring and the other rows glide: wait until the lifted row is at rest
+  await this.page.waitForTimeout(900);
+});
+
+Then('the items {string} and {string} do not overlap the dragged item {string} and it lies between them', async function (this: World, upper: string, lower: string, dragged: string) {
+  const [u, l, d] = await Promise.all([upper, lower, dragged].map(async (t) => box(await itemById(this, t))));
+  // the lifted card is drawn 5% larger (scale 1.05): a few px of tolerance for that
+  expect(u.y + u.height, `"${upper}" ends above "${dragged}"`).toBeLessThanOrEqual(d.y + 4);
+  expect(d.y + d.height, `"${dragged}" ends above "${lower}"`).toBeLessThanOrEqual(l.y + 4);
+});
+
 When('I tap the item {string}', async function (this: World, title: string) {
   await (await itemById(this, title)).getByTestId('tasklist-item-checkbox').tap();
 });
