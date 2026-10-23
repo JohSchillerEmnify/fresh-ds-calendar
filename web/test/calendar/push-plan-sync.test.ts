@@ -6,6 +6,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
+import { useCalendarsStore } from '@/stores/calendars';
 import type { PushPlanEntry } from '@/features/calendar/reminderPlan';
 import { config, freshPinia, mockFetch } from '../helpers';
 import { ev, t } from './helpers';
@@ -73,5 +74,68 @@ describe('the Web Push plan (feature reminders)', () => {
     prefs.notify = { ...prefs.notify, bedtime: false, morning: false };
     await flushPromises();
     expect(sent.at(-1)!.map((p) => p.kind)).toEqual(['event']);
+  });
+
+  /** Boots at `iso` with the planned days loaded (`items`), bedtime and morning overview on, and starts the plan. */
+  async function bootAt(iso: string, items: unknown[], bedtime: Partial<typeof DEFAULT_BEDTIME> = {}) {
+    freshPinia();
+    mockFetch({ 'GET /api/config': () => config({ now: new Date(iso).toISOString(), clockFrozen: true }), 'GET /api/items': () => ({ items: [], syncedAt: 'x' }) });
+    const clock = useClockStore();
+    await clock.load();
+    const prefs = usePrefsStore();
+    prefs.bedtime = { ...DEFAULT_BEDTIME, enabled: true, ...bedtime };
+    prefs.notify = { ...prefs.notify, events: true, bedtime: true, morning: true, morningTime: '07:30' };
+    const store = useItemsStore();
+    store.applyResponse(clock.today, '2026-11-30', items as never[], 's');
+    startTransitionWarnings();
+    await flushPromises();
+    return { clock, prefs, store };
+  }
+  const kinds = (kind: string) => sent.at(-1)!.filter((p) => p.kind === kind);
+
+  it('pushes no bedtime reminder while bedtime mode is off or its lead is 0', async () => {
+    const { prefs } = await bootAt(`${D}T20:00:00+02:00`, []);
+    expect(kinds('bedtime')).toHaveLength(7);
+    prefs.bedtime = { ...prefs.bedtime, reminderMinutes: 0 };
+    await flushPromises();
+    expect(kinds('bedtime')).toEqual([]);
+    prefs.bedtime = { ...prefs.bedtime, reminderMinutes: 30, enabled: false };
+    await flushPromises();
+    expect(kinds('bedtime')).toEqual([]);
+  });
+
+  it('never plans a night that ends after the loaded days (its first appointment may not be known yet)', async () => {
+    // after tonight's reminder: the reminder of the night 19 -> 20 Oct (22:30 on the 19th) is within 7 days
+    await bootAt(`${D}T22:45:00+02:00`, [], { mode: 'dynamic' });
+    const nights = kinds('bedtime').map((p) => p.key);
+    expect(nights.at(-1)).toBe('bedtime:2026-10-19');
+    expect(nights).not.toContain('bedtime:2026-10-20');
+  });
+
+  it('moves the plan on with the day while the tab stays open', async () => {
+    const { clock } = await bootAt(`${D}T20:00:00+02:00`, []);
+    expect(kinds('summary').at(-1)!.key).toBe('morning:2026-10-19');
+    clock.nowTick = Date.parse('2026-10-13T08:00:00+02:00');
+    await flushPromises();
+    expect(kinds('summary').at(-1)!.key).toBe('morning:2026-10-20');
+  });
+
+  it('leaves the events of hidden calendars out of the morning overview', async () => {
+    const work = ev('w', t('2026-10-13', '09:00'), t('2026-10-13', '10:00'), { title: 'Standup', calendarId: 'work' });
+    await bootAt(`${D}T20:00:00+02:00`, [trip, work]);
+    expect(kinds('summary')[0]!.body).toBe('2 appointments · no lists · first: Standup 09:00');
+    const cals = useCalendarsStore();
+    cals.list = [{ id: 'work', name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true }];
+    await flushPromises();
+    expect(kinds('summary')[0]!.body).toBe('1 appointment · no lists · first: Trip 12:00');
+  });
+
+  it('pushes the bedtime reminder and the overview at their wall-clock times across the change to winter time', async () => {
+    await bootAt('2026-10-24T12:00:00+02:00', []);
+    const at = (key: string) => new Date(sent.at(-1)!.find((p) => p.key === key)!.at).toISOString();
+    // 22:30 summer time on the 24th, 07:30 and 22:30 winter time on the 25th
+    expect(at('bedtime:2026-10-25')).toBe('2026-10-24T20:30:00.000Z');
+    expect(at('morning:2026-10-25')).toBe('2026-10-25T06:30:00.000Z');
+    expect(at('bedtime:2026-10-26')).toBe('2026-10-25T21:30:00.000Z');
   });
 });

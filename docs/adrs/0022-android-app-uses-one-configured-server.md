@@ -23,5 +23,6 @@ Change in the settings. The owner wants no such question: the app is for the pub
 ## Consequences
 
 - A phone that had chosen the home-network server switches to the public one with the new APK and has to sign in there
-  once; its widget shows the public server's week after the next fetch.
+  once; the widget's first fetch drops the old choice and its week and snapshot (once), so it shows the public server's
+  week after that fetch.
 - The offline page offers only "Try again".

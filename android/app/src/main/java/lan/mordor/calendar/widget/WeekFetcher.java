@@ -34,6 +34,8 @@ final class WeekFetcher {
     static Status fetchAndStore(Context context, WidgetStore store, LocalDate today) {
         LocalDate monday = today.minusDays(today.getDayOfWeek().getValue() - 1);
         String base = ServerConfig.BASE_URL;
+        // the first fetch after the update from the app with the server chooser drops that server's week and snapshot
+        ServerConfig.forgetLegacyChoice(context);
         HttpURLConnection c = null;
         try {
             c = (HttpURLConnection) new URL(base + "/api/items?from=" + monday + "&to=" + monday.plusDays(7) + "&excludeHidden=1").openConnection();

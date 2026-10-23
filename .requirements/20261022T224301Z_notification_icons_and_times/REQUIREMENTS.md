@@ -60,7 +60,7 @@ Owner request 2026-10-23 (relayed by the night-run coordinator; the owner was as
 - R6: Robolectric: an entry without kind/start uses the id-derived icon and no chronometer.
 - R7: unit (`live.test.ts`): "Dentist starts in 30 min" at the lead, "… 28 min" two minutes later, the nearest lead
   joining late says the minutes left; unit (`bedtime-reminder.test.ts`): "Bedtime in 20 minutes" at 22:40, "… 1 minute"
-  at 22:59, gone at 23:00, snackbar stays (duration 0); the snackbar carries a fixed `announce` text (aria). e2e:
+  at 22:59, gone at 23:00, snackbar stays (duration 0); the snackbar is `countdown` (`aria-live="off"`, `snackbar-announce.test.ts`). e2e:
   reminders.feature "… counts down while it is open", bedtime.feature "The bedtime reminder counts down while the app is open".
 - R8: unit (`push-plan-sync.test.ts`): 7 bedtime entries ("Bedtime at 23:00", '', `bedtime:<night>`) and 7 morning
   entries ("Your day", the overview, `morning:<date>`), none when switched off. e2e: reminders.feature "The bedtime
@@ -132,8 +132,7 @@ One PR: the pieces share the payload contract and ship together.
 - Review round 4: a rung reminder is also cancelled when its calendar is hidden or its kind switched off in Settings →
   Notifications (the person no longer wants it; recorded decision, coordinator agreed); it is forgotten without a cancel
   at its end. The bedtime reminder is cancelled when switched off or when a still pending (not rung) reminder has no night
-  left in the settings; one that rang stays until wake-up. Countdown snackbars carry a fixed `announce` text, so screen
-  readers hear them once.
+  left in the settings; one that rang stays until wake-up. Countdown snackbars were read out once (replaced in the follow-ups by `aria-live="off"`).
 - Phase 2 (owner decisions): live snackbar countdown (R7), bedtime and morning overview by Web Push (R8), and the Android
   app's server chooser removed: the server is configuration (`ServerConfig.BASE_URL` = `https://cal.example.org`,
   ADR 0022). Gone: the chooser page (the bundled `index.html` is now an empty start page Capacitor requires), the Settings
@@ -143,3 +142,9 @@ One PR: the pieces share the payload contract and ship together.
   home-network server signs in once on the public one; its widget follows with the next fetch.
 - Also in this branch (coordinator): the widget's own week fetch uses the calendar colour for task lists while task
   categories are off (`taskCategories` read with the prefs; default on when unreadable).
+- Follow-ups (branch fix/notification-followups): the push plan leaves out a night whose wake-up day is beyond the loaded
+  days (dynamic bedtime could not know its first appointment); the plan watcher names `clock.today` (it already moved on
+  with the day through `byDate`, which the test shows); a countdown snackbar keeps its text readable and only switches
+  off the re-announcement of its changes (`aria-live="off"` on it; its appearance in the polite host is announced), the
+  `announce` text is gone; the widget's first fetch after the update forgets a legacy server choice once, with the
+  widget's data. More tests: bedtime off / lead 0, hidden calendars in the overview, the 2026-10-25 clock change.
