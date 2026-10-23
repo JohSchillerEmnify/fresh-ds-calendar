@@ -1,8 +1,14 @@
 /** Labs steps used by labs-clock.feature (STEPS.md "Labs"): the Labs switch and the 24-hour clock view. */
 import { expect } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import type { DataTable } from 'playwright-bdd';
+import { Given, Then, When } from './fixtures.js';
+import { createEvent } from './setup.steps.js';
+import { berlinIso } from './support/dates.js';
 import { exactText, tid, type World } from './support/world.js';
 import { setLabsSwitch, turnOnLabsSwitch } from './support/ui.js';
+
+/** A Labs view label as its registry id: lower case, words joined by "-" ("Clock: rings" → "clock-rings"). */
+const labId = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 When('I turn on experimental views in the settings', async function (this: World) {
   await turnOnLabsSwitch(this.page, 'settings-labs');
@@ -10,7 +16,7 @@ When('I turn on experimental views in the settings', async function (this: World
 
 Then('the view switcher offers the experimental views {string}', async function (this: World, labels: string) {
   for (const label of labels.split(', ')) {
-    const entry = this.page.getByTestId(`view-switch-${label.toLowerCase()}`);
+    const entry = this.page.getByTestId(`view-switch-${labId(label)}`);
     await expect(entry).toBeVisible();
     await expect(entry).toContainText(label);
     await expect(entry).toHaveAttribute('data-experimental', 'true');
@@ -18,15 +24,15 @@ Then('the view switcher offers the experimental views {string}', async function 
 });
 
 Then('the view switcher does not offer {string}', async function (this: World, label: string) {
-  await expect(this.page.getByTestId(`view-switch-${label.toLowerCase()}`)).toHaveCount(0);
+  await expect(this.page.getByTestId(`view-switch-${labId(label)}`)).toHaveCount(0);
 });
 
 When('I switch the Labs view {string} on in the settings', async function (this: World, label: string) {
-  await setLabsSwitch(this.page, `settings-labs-view-${label.toLowerCase()}`, true);
+  await setLabsSwitch(this.page, `settings-labs-view-${labId(label)}`, true);
 });
 
 When('I switch the Labs view {string} off in the settings', async function (this: World, label: string) {
-  await setLabsSwitch(this.page, `settings-labs-view-${label.toLowerCase()}`, false);
+  await setLabsSwitch(this.page, `settings-labs-view-${labId(label)}`, false);
 });
 
 When('I open the clock view for {date}', async function (this: World, date: string) {
@@ -56,15 +62,113 @@ Then(
   },
 );
 
-/** The two arcs must not share a lane: their drawn extents (round caps) would cover each other. */
+/** What an arc covers on the dial: its ring (radius and band width) and its drawn span in minutes. */
+interface Drawn { title: string; r: number; w: number; d0: number; d1: number }
+
+/** The drawn extent of every clock arc (STEPS.md "Clock rings"). */
+async function drawnArcs(w: World): Promise<Drawn[]> {
+  const arcs = w.page.locator(tid('clock-arc'));
+  await expect(arcs.first()).toBeVisible();
+  return arcs.evaluateAll((els) => els.map((el) => ({
+    title: el.getAttribute('data-title')!, r: Number(el.getAttribute('data-r')), w: Number(el.getAttribute('data-w')),
+    d0: Number(el.getAttribute('data-draw-start')), d1: Number(el.getAttribute('data-draw-end')),
+  })));
+}
+
+/** Two arcs cover each other when their bands overlap radially and their drawn spans overlap in time. */
+const covers = (a: Drawn, b: Drawn) => Math.abs(a.r - b.r) < (a.w + b.w) / 2 && a.d0 < b.d1 && b.d0 < a.d1;
+
+async function drawnOf(w: World, title: string): Promise<Drawn> {
+  const found = (await drawnArcs(w)).filter((a) => a.title === title);
+  expect(found, `one arc "${title}"`).toHaveLength(1);
+  return found[0];
+}
+
 Then(
   'the arc of {string} is not covered by the arc of {string}',
   async function (this: World, title: string, other: string) {
-    const r = (t: string) => this.page.locator(tid('clock-arc') + `[data-title="${t}"]`);
-    await expect(r(title)).toBeVisible();
-    await expect(r(title)).not.toHaveAttribute('data-r', (await r(other).getAttribute('data-r'))!);
+    const [a, b] = [await drawnOf(this, title), await drawnOf(this, other)];
+    expect(covers(a, b), `${title} ${JSON.stringify(a)} vs ${other} ${JSON.stringify(b)}`).toBe(false);
   },
 );
+
+Then('the arcs of {string} are on different rings', async function (this: World, titles: string) {
+  const arcs = await Promise.all(titles.split(', ').map((t) => drawnOf(this, t)));
+  expect(new Set(arcs.map((a) => a.r)).size, JSON.stringify(arcs)).toBe(arcs.length);
+});
+
+Then(
+  'the arcs of {string} and {string} are on the same ring with a gap between them',
+  async function (this: World, first: string, second: string) {
+    const [a, b] = [await drawnOf(this, first), await drawnOf(this, second)];
+    expect(b.r, 'same ring').toBe(a.r);
+    expect(a.d1, `a gap between ${JSON.stringify(a)} and ${JSON.stringify(b)}`).toBeLessThan(b.d0);
+  },
+);
+
+Then('no two arcs on the clock cover each other', async function (this: World) {
+  const arcs = await drawnArcs(this);
+  for (const a of arcs) for (const b of arcs) {
+    if (a !== b) expect(covers(a, b), `${JSON.stringify(a)} vs ${JSON.stringify(b)}`).toBe(false);
+  }
+});
+
+Given('the calendar contains these events on {date}:', async function (this: World, date: string, table: DataTable) {
+  for (const row of table.hashes()) {
+    await createEvent(this, { title: row.title, allDay: false, start: berlinIso(date, row.from), end: berlinIso(date, row.to) });
+  }
+});
+
+Then('every arc on the clock is named on the dial or next to it', async function (this: World) {
+  const arcs = await drawnArcs(this);
+  for (const a of arcs) {
+    const named = this.page.locator(`${tid('clock-label')}[data-title="${a.title}"], ${tid('clock-overflow')}[data-title="${a.title}"]`);
+    await expect(named.locator('visible=true'), `a name for "${a.title}"`).toHaveCount(1);
+    const chip = this.page.locator(`${tid('clock-overflow')}[data-title="${a.title}"]`);
+    if (await chip.count()) await expect(chip).toHaveText(new RegExp(`^\\d\\d:\\d\\d ${a.title.slice(0, 6)}`));
+  }
+  // most names are on the dial: the list next to it is only for those that find no room
+  const onDial = await this.page.locator(tid('clock-label')).locator('visible=true').count();
+  expect(onDial, `${onDial} of ${arcs.length} names on the dial`).toBeGreaterThanOrEqual(Math.ceil(arcs.length / 2));
+});
+
+/** Names overlap when any two of their characters' boxes do (per character, so names curved along rings count right). */
+Then('no two names on the clock overlap', async function (this: World) {
+  const names = await this.page.locator(`${tid('clock-label')}, ${tid('clock-now-line')}, ${tid('clock-time')}`).evaluateAll((els) => els.map((el) => {
+    const t = el as SVGTextContentElement, m = t.getScreenCTM()!;
+    const chars = Array.from({ length: t.getNumberOfChars() }, (_, i) => {
+      const e = t.getExtentOfChar(i);
+      const pts = [[e.x, e.y], [e.x + e.width, e.y], [e.x, e.y + e.height], [e.x + e.width, e.y + e.height]]
+        .map(([x, y]) => new DOMPoint(x, y).matrixTransform(m));
+      return { x0: Math.min(...pts.map((p) => p.x)), y0: Math.min(...pts.map((p) => p.y)), x1: Math.max(...pts.map((p) => p.x)), y1: Math.max(...pts.map((p) => p.y)) };
+    }).filter((c) => c.x1 - c.x0 > 0.5);
+    return { name: t.textContent, chars };
+  }));
+  expect(names.length).toBeGreaterThan(0);
+  const hit = (a: { x0: number; y0: number; x1: number; y1: number }, b: typeof a) => a.x0 < b.x1 - 1 && b.x0 < a.x1 - 1 && a.y0 < b.y1 - 1 && b.y0 < a.y1 - 1;
+  for (const a of names) for (const b of names) {
+    if (a === b) continue;
+    expect(a.chars.some((c) => b.chars.some((d) => hit(c, d))), `"${a.name}" overlaps "${b.name}"`).toBe(false);
+  }
+});
+
+When('I open the rings clock for {date}', async function (this: World, date: string) {
+  await this.page.goto(`/clock-rings/${date}`);
+  await expect(this.page.locator(`${tid('clock-view')}[data-variant="rings"]`)).toBeVisible();
+});
+
+Then('no name on the clock is upside down', async function (this: World) {
+  const labels = this.page.locator(tid('clock-label'));
+  await expect(labels.first()).toBeVisible();
+  const runs = await labels.evaluateAll((els) => els.map((el) => {
+    const t = el as SVGTextContentElement, n = t.getNumberOfChars();
+    const [a, b] = [t.getStartPositionOfChar(0), t.getEndPositionOfChar(n - 1)];
+    const m = t.getScreenCTM()!;
+    const [p, q] = [new DOMPoint(a.x, a.y).matrixTransform(m), new DOMPoint(b.x, b.y).matrixTransform(m)];
+    return { name: t.textContent, dx: q.x - p.x, dy: q.y - p.y };
+  }));
+  for (const r of runs) expect(r.dx, `"${r.name}" reads ${JSON.stringify(r)}`).toBeGreaterThan(-Math.abs(r.dy));
+});
 
 Then('the clock lists {string} without a time', async function (this: World, text: string) {
   const entry = this.page.locator(tid('clock-untimed')).filter({ hasText: exactText(text) });

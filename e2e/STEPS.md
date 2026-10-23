@@ -1198,6 +1198,14 @@ the clock lists {string} without a time
 the clock fills the available space
 the arc of {string} is labelled {string}
 the arc of {string} is not covered by the arc of {string}
+the arcs of {string} are on different rings
+the arcs of {string} and {string} are on the same ring with a gap between them
+no two arcs on the clock cover each other
+the calendar contains these events on {date}:
+every arc on the clock is named on the dial or next to it
+no two names on the clock overlap
+I open the rings clock for {date}
+no name on the clock is upside down
 I tap the arc of {string}
 I turn the arc of {string} to {time}
 I select the arc of {string}
@@ -1306,6 +1314,20 @@ I tap the day label {date} in the horizontal view
   and release; "select" = a long press released in place (the arc gets `data-selected="true"` and `clock-handle`s with
   `data-edge` `start|end`); "drag the start|end handle" = press the handle and move round to T; "tap the clock at T" =
   a tap on the plate at radius 120. Touch projects use CDP touch events, others the mouse.
+- Clock rings (owner 2026-10-23): every `clock-arc` carries `data-r` (ring radius), `data-w` (band width) and
+  `data-draw-start` / `data-draw-end` (minutes of the drawn span: at least 15 minutes and the minimum event length,
+  trimmed by the gap to its ring neighbours). "on different rings": pairwise different `data-r`. "cover each other":
+  two arcs whose bands overlap radially (|r1 − r2| < (w1 + w2) / 2) and whose drawn spans overlap. "the same ring with
+  a gap": equal `data-r` and the first one's drawn end lies before the second one's drawn start. "is not covered by":
+  the two do not cover each other. "these events on D:" a table `title | from | to`, created like the single-event
+  step. "named on the dial or next to it": each arc's title has a visible `clock-label` or a visible
+  `clock-overflow` chip (`data-title`, text "HH:MM title"), and at least half of the arcs are named on the dial. "no
+  two names overlap": no character box (SVG extent of each character, on screen) of one `clock-label` overlaps one
+  of another or of `clock-time` / `clock-now-line` (the middle), by more than 1 px. "I open the rings clock for D" opens `/clock-rings/D`
+  (`clock-view` with `data-variant="rings"`). "upside down": a `clock-label`'s first character lies right of its last
+  one by more than the text's vertical run (its reading direction points into the left half-plane).
+- Labs labels to ids: a Labs view label is turned into its id by lower-casing it and joining its words with "-"
+  ("Clock: rings" → `clock-rings`).
 - "the middle of the clock says": `clock-now-line` text; "shades the time until T": `clock-wedge` `data-to`;
   all-day events: `clock-allday` (`data-title`).
 - Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
@@ -1339,8 +1361,8 @@ I tap the day label {date} in the horizontal view
 - Timeline (owner): vertical axis on every device (`timeline` has `data-orientation="vertical"`, later items have larger y);
   "reads left to right in one line": the item's title is not rotated and its text box is wider than tall.
 
-- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `timeline`, `strip`,
-  `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
+- Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `clock-rings`,
+  `timeline`, `strip`, `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   "the approach bar shows its entries in N rows": the `approach-item` chips occupy exactly N distinct vertical
   positions. "on the timeline A and B are side by side": the two `timeline-item`s overlap vertically and not
   horizontally.
