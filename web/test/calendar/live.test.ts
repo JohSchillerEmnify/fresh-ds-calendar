@@ -246,6 +246,31 @@ describe('transition warnings as Android notifications', () => {
     expect(plugin.cancel).toHaveBeenCalledWith({ id: expect.stringContaining('dentist') });
   });
 
+  it('leaves a reminder that rang alone while its item is there (its notification stays), and cancels it when the item goes', async () => {
+    const plugin = {
+      schedule: vi.fn((_o: { id: string }) => Promise.resolve()),
+      cancel: vi.fn((_o: { id: string }) => Promise.resolve()),
+    };
+    (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+    const { clock, items } = await boot('09:00', false);
+    startTransitionWarnings();
+    const dentist = `${NATIVE_REMINDER_PREFIX}dentist@${D}T10:40-10`;
+    expect(plugin.schedule.mock.calls.map(([o]) => o.id)).toContain(dentist);
+    // the app goes to the background, the reminder rings there, the person comes back before the start
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    clock.nowTick = at('10:33').getTime();
+    await nextTick();
+    hidden.mockReturnValue(false);
+    clock.nowTick = at('10:34').getTime();
+    await nextTick();
+    expect(plugin.cancel).not.toHaveBeenCalled();
+    hidden.mockRestore();
+    // the event is deleted: its notification goes with it
+    items.applyResponse(D, W, [ev('call', t(D, '13:00'), t(D, '13:30'), { title: 'Call', reminders: ten })], 's8');
+    await nextTick();
+    expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toEqual([dentist]);
+  });
+
   it('keeps the schedule while planned days are evicted from the range cache, and fetches them again', async () => {
     const plugin = {
       schedule: vi.fn((_o: { id: string }) => Promise.resolve()),

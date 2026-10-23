@@ -17,7 +17,7 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
-import { pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
+import { itemStart, pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
@@ -157,7 +157,13 @@ export function startTransitionWarnings(): () => void {
     // Android app: keep the next reminders scheduled as notifications (shown only while the app is not in front)
     const plugin = remindersPlugin();
     if (!plugin) return;
-    const sent = new Map<string, string>();
+    /** id -> what was scheduled: its signature, when it rings, and for an item reminder the item, its start and end. */
+    const sent = new Map<string, { sig: string; at: number; itemId?: string; startAt?: number; end?: number }>();
+    /** Whether the item is still there with that start (not deleted, not moved). */
+    const stillAt = (itemId: string, startAt: number): boolean => {
+      const it = items.get(itemId);
+      return !!it && itemStart(it, clock.timeZone) === startAt;
+    };
     let cleaned = false;
     watch(
       () => [clock.nowTick, items.byDate, items.ranges, cals.hidden, language.value, prefs.notify] as const,
@@ -174,6 +180,7 @@ export function startTransitionWarnings(): () => void {
         const want = new Map<string, { at: number; title: string; body: string; kind: ReminderKind; start?: number; end?: number }>(
           next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, { at: p.at, title: p.itemTitle, body: p.body, kind: p.kind, start: p.startAt, end: p.endAt }]),
         );
+        const itemOf = new Map(next.map((p) => [NATIVE_REMINDER_PREFIX + p.key, p.itemId]));
         // the morning overview: today's if its time is still ahead, else tomorrow's (loaded on demand)
         if (prefs.notify.morning) {
           const [h, m] = prefs.notify.morningTime.split(':').map(Number);
@@ -194,15 +201,21 @@ export function startTransitionWarnings(): () => void {
             }
           }, () => undefined);
         }
-        for (const id of [...sent.keys()]) {
+        for (const [id, s] of [...sent]) {
           if (want.has(id)) continue;
+          // a reminder that rang is showing until its item ends: it leaves the plan but must not be cancelled (that would
+          // take its notification away); only a deleted or moved item takes it with it
+          if (s.at <= minuteStart && s.itemId && s.startAt !== undefined && stillAt(s.itemId, s.startAt)) {
+            if ((s.end ?? 0) <= minuteStart) sent.delete(id);
+            continue;
+          }
           sent.delete(id);
           void plugin.cancel({ id }).catch(() => undefined);
         }
         for (const [id, w] of want) {
           const sig = `${w.at}|${w.title}|${w.body}|${w.kind}|${w.start ?? ''}|${w.end ?? ''}`;
-          if (sent.get(id) === sig) continue;
-          sent.set(id, sig);
+          if (sent.get(id)?.sig === sig) continue;
+          sent.set(id, { sig, at: w.at, itemId: itemOf.get(id), startAt: w.start, end: w.end });
           void plugin.schedule({ id, ...w }).catch(() => undefined);
         }
       },

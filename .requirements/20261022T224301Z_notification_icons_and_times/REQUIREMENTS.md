@@ -110,6 +110,11 @@ One PR: the pieces share the payload contract and ship together.
   untouched while the planned days are not all loaded (evicted from the 6-range cache), and the window is fetched again;
   I chose not to pin the window against eviction, because a pinned range would never be refetched and its reminders
   would go stale. Only the start re-post is silent (`setOnlyAlertOnce`), so the next morning overview alerts again.
-  Cancelling a reminder also cancels its start alarm and its notification: opening the app after a reminder fired
-  therefore takes its notification away (the in-app snackbar shows it then). A start alarm after the end removes the
+  Cancelling a reminder also cancels its start alarm and its notification. A start alarm after the end removes the
   notification.
+- Review round 3: a reminder that rang leaves the plan but is not cancelled while its item is still there with the same
+  start, so opening the app keeps its notification (it disappears at the item's end, A4); deleting or moving the item
+  cancels it. The bedtime reminder is cancelled only when it is switched off. Not done: cancelling the start alarm in
+  `Reminders.schedule` — ids of item reminders are unique per occurrence and lead and are never re-scheduled once they
+  rang, and the only reused id is `bedtime`, whose schedule for the next night would then cancel tonight's start
+  re-post (tonight's notification would count up past bedtime instead of showing "Bedtime at 23:00").

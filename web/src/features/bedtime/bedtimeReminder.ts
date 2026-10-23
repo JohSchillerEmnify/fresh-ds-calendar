@@ -151,8 +151,11 @@ export function startBedtimeReminder(): () => void {
         // Settings → Notifications can keep the reminder in the app only
         const next = prefs.notify.bedtime ? upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes) : null;
         if (!next) {
-          if (sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
-          sent = 'none';
+          // only switching it off takes it away: a reminder that rang may be showing until wake-up, and a cancel would
+          // remove that notification
+          const off = !prefs.notify.bedtime || !prefs.bedtime.enabled || prefs.bedtime.reminderMinutes <= 0;
+          if (off && sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
+          if (off) sent = 'none';
           return;
         }
         // the bedtime itself, with the phone counting down to it: a fixed "in 30 minutes" would be stale when read later;

@@ -151,6 +151,17 @@ describe('startBedtimeReminder', () => {
       stop();
     });
 
+    it('never cancels tonight\'s reminder once it rang: opening the app schedules the next night instead', async () => {
+      const clock = setup('2026-10-14T22:00:00+02:00');
+      const stop = startBedtimeReminder();
+      // it rings at 22:30 while the app is closed; the app is opened at 22:40, before bedtime
+      clock.nowTick = Date.parse('2026-10-14T22:40:00+02:00');
+      await nextTick();
+      expect(plugin.cancel).not.toHaveBeenCalled();
+      expect(plugin.schedule).toHaveBeenLastCalledWith(expect.objectContaining({ at: Date.parse('2026-10-15T22:30:00+02:00') }));
+      stop();
+    });
+
     it('keeps the reminder in the app only when its notification is switched off', async () => {
       setup('2026-10-14T12:00:00+02:00');
       const stop = startBedtimeReminder();

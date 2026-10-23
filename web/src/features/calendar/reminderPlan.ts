@@ -3,6 +3,7 @@
  * list) and reminder lead, at start minus lead (feature reminders). Pure: the in-app snackbars and
  * the native notification scheduling (`transitionWarning.ts`) both read this list. Also the shared wording of a lead.
  */
+import type { CalendarItem } from '@/api/types';
 import { itemSegments, type Segment } from '@/lib/items';
 import { t } from '@/i18n';
 import { addDays, formatDate, parseIsoDate, toIsoDate } from '@/lib/dates';
@@ -40,6 +41,8 @@ export interface PlannedReminder {
   lead: number;
   /** The item's title as shown (an untitled list gets its placeholder). */
   itemTitle: string;
+  /** The item's id (a reminder that rang stays shown while its item is still there with this start). */
+  itemId: string;
   /** Which kind of item reminds (the notifications pick their icon by it). */
   kind: 'event' | 'tasklist';
   /**
@@ -61,6 +64,18 @@ const instant = (date: string, time: string, tz: string): number => Date.parse(l
 
 /** The calendar-zone date of an instant. */
 const zonedDate = (ms: number, tz: string): string => fromWallMinutes(Math.floor(ms / 60_000) + offsetMinutes(ms, tz)).date;
+
+/**
+ * The start of a timed item, epoch ms: an event's own instant (its offset settles the repeated hour of a clock change); a
+ * task list only has a wall-clock date and time, rebuilt in the calendar zone. Null for an untimed one.
+ *
+ * @param item The event or task list.
+ * @param tz The calendar time zone.
+ */
+export function itemStart(item: CalendarItem, tz: string): number | null {
+  if (item.kind === 'event') return item.allDay ? null : Date.parse(item.start);
+  return item.date && item.time ? instant(item.date, item.time, tz) : null;
+}
 
 /** The wall-clock end of an item: on its last segment, which may lie beyond the planned days; `24:00` is 00:00 of the next day. */
 function itemEnd(s: Segment): { date: string; time: string } {
@@ -103,10 +118,9 @@ export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds,
     for (const s of segs) {
       if (s.allDay || !s.first || s.startTime === null || s.carriedFrom) continue;
       if (s.item.kind === 'event' ? !kinds.events : !kinds.tasklists) continue;
-      // an event carries exact instants (its offsets settle the repeated hour of a clock change); a task list only has a
-      // wall-clock date and time, so its instants are rebuilt in the calendar zone
+      // an event carries exact instants (its offsets settle the repeated hour of a clock change); a task list's are rebuilt
       const exact = s.item.kind === 'event' ? s.item : null;
-      const startAt = exact ? Date.parse(exact.start) : instant(s.date, s.startTime, tz);
+      const startAt = itemStart(s.item, tz)!;
       if (startAt <= minuteStart) continue;
       const itemTitle = s.item.title.trim() || untitled;
       const occurrence = `${s.item.id}@${s.date}T${s.startTime}`;
@@ -117,7 +131,7 @@ export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds,
         const at = startAt - lead * 60_000;
         // the day goes first when the reminder rings on another day than the item (a day lead, or just before midnight)
         const body = zonedDate(at, tz) === s.date ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times });
-        out.push({ key: `${occurrence}-${lead}`, occurrence, at, startAt, endAt, lead, itemTitle, kind: s.item.kind, body });
+        out.push({ key: `${occurrence}-${lead}`, occurrence, at, startAt, endAt, lead, itemTitle, itemId: s.item.id, kind: s.item.kind, body });
       }
     }
   }
