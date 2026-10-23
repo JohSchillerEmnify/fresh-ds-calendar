@@ -1,40 +1,33 @@
-# Three red scenarios of the full e2e run on main fee9502
+# e2e failures of the full run on fee9502
+
+Reconstructed after the merge: the original file was untracked in the worktree and was lost when the worktree was
+removed. The content follows the agent's report.
 
 ## As Is
-Full e2e on fee9502: 1634 passed, 3 failed. Bisected on a separate worktree (each scenario run alone):
-1. [mobile] performance "Switching views ... does not leak memory", step "I expand and collapse the task list" — red since
-   the week-two-row merge a0005e9 (2fb5f5c, 2026-10-19), green on its first parent 7c938a4. 2fb5f5c put growing in place
-   behind the Labs pref `labsGrowCards` (off by default); off, a tap on a task-list card opens the list sheet at once.
-   `expandTaskList` (e2e/steps/support/tasklist.ts) handles that ("first tap opens the sheet") except on the phone month
-   path, where after the cell tap opens the day view it insists on the grown overlay.
-2. [mobile] performance "The first load stays within the JavaScript budget": 156.6 KB vs 150 KB. Red since the zoom-month
-   merge 08113dd (2026-10-14: 142.2 -> 153.6 KB). Not caused by tonight's merges (3859f72: 165.2 KB, fee9502: 156.6 KB).
-3. [desktop] door-board "Marking a list for the door from its sheet" — red since the door merge eb89f04 (born red on
-   desktop). The desktop tray is open and already shows the list, so a tap on the card reveals the tray row instead of
-   opening a second copy as the sheet (feature since cc3c2cf, 2026-10-18; `ui.revealTask`). The step taps the card by hand
-   instead of using `expandTaskList`, which collapses an open desktop tray first.
+The full e2e run on main fee9502 (1637 tests) had 3 failures; all 3 also fail on 3859f72 (before the night run):
+1. [mobile] performance "does not leak memory": `expandTaskList` waited for the grown card on the phone month path.
+   Since 2fb5f5c (week-two-row merge a0005e9) growing in place is a Labs setting, off by default, so a tap opens the
+   list sheet.
+2. [desktop] door-board "Marking a list for the door from its sheet": the step tapped the card while the desktop tray
+   was open; the tray then shows the list's row instead of a sheet (intended since cc3c2cf). Failing since eb89f04.
+3. [mobile] first-load JS 156.6 KB > 150 KB: over since the zoom-month merge 08113dd (142.2 -> 153.6 KB); the night
+   run lowered it from 165.2 KB.
 
 ## To Be
-1 and 3: the steps open the list sheet the way the product now behaves; no product change (the product does what its spec
-says). 2: report only (needs lazy-loading/bundling work bigger than "small"; budget not raised).
+1 and 2 pass without weakening any check; 3 stays red until the owner picks a lazy-loading option.
 
 ## Requirements
-R1. `expandTaskList` opens the sheet on the phone month path when the day-view tap opens the sheet directly (grow off),
-    and still goes through the grown card when the Labs grow is on.
-R2. "I open the list sheet of T and turn Show on door on" opens the sheet via `expandTaskList` (tray collapsed first on desktop).
-R3. No test weakened, no budget raised, spec unchanged.
-
-## Acceptance Criteria
-AC1 (R1): the perf scenario gets past "I expand and collapse the task list" on mobile (its later heap/DOM checks are the
-     known failures in e2e/KNOWN-FAILURES.md and are out of scope).
-AC2 (R2): "Marking a list for the door from its sheet" passes on mobile and desktop.
-AC3 (R3): the scenarios using `expandTaskList` that ran green stay green (tasklists-expand, a sample); `pnpm --silent verify` OK.
+- R1 `expandTaskList` accepts the sheet as the result of the first tap on every path (Acceptance: perf leak scenario
+  passes incl. heap/DOM/listener checks).
+- R2 The door sheet step waits for the data and opens the sheet through `expandTaskList` (Acceptance: passes on mobile
+  and desktop, 3 runs each).
+- R3 The 150 KB budget is not raised (Acceptance: unchanged in perf.steps.ts).
 
 ## Testing Plan
-The failing scenarios are the reproducing tests (red on fee9502, evidence in the run logs). After the change: run the three
-scenarios (mobile + desktop), plus the tasklists-expand feature scenarios that use the helper, then `pnpm --silent verify`.
+Targeted e2e of both scenarios on fee9502 (red) and with the fix (green); the 4 other month-view list scenarios;
+check-steps; `pnpm --silent verify`.
 
 ## Implementation Plan
-1. tasklist.ts: phone-month path accepts the sheet after the second tap -> run perf scenario (AC1).
-2. door.steps.ts: use `expandTaskList`; STEPS.md wording -> run door scenario both projects (AC2).
-3. verify + helper users (AC3). One PR-sized unit (test-only).
+One test-only commit (31c240d) plus a doc fix (3260f67); no product code. Budget options for the owner: (a) load the
+tray's list content when the tray opens (~9 KB), (b) split icons by style (~5 KB), (c) precompiled messages (~5 KB, new
+dev dependency), (d) merge small startup chunks (header bytes).
