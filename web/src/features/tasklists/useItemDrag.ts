@@ -12,6 +12,15 @@ import { dropIndex, slotOffset } from './reorder';
 export const ITEM_GRIP = '[data-item-grip]';
 const ROW = '[data-testid="tasklist-item"]';
 
+/** Nearest ancestor that scrolls vertically (sheet body, tray, Tasks view): it auto-scrolls during a drag. */
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+    const o = getComputedStyle(n).overflowY;
+    if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n;
+  }
+  return null;
+}
+
 export interface ItemDragOptions {
   /** The list's root element, which holds the rows. */
   root: Ref<HTMLElement | null>;
@@ -33,21 +42,31 @@ export function useItemDrag(o: ItemDragOptions): void {
 
   function bind(row: HTMLElement): void {
     let fromGrip = false;
+    let seenScroll: number | null = null;
     const onDown = (e: Event) => { fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP); };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
       hitTest: (_x, y, ctx) => {
         const rows = rowsOf();
         const from = rows.indexOf(row);
-        // the dragged row's own slot is where it was picked up; the others have not moved
-        const spans = rows.map((r, i) => (i === from ? ctx.originRect : r.getBoundingClientRect()));
-        const to = dropIndex(spans, y);
-        return { key: to, dx: 0, dy: slotOffset(spans, from, to) };
+        const sp = scrollParent(row);
+        if (seenScroll === null) seenScroll = sp?.scrollTop ?? 0;
+        const shift = (sp?.scrollTop ?? 0) - seenScroll;
+        const live = rows.map((r) => r.getBoundingClientRect());
+        // the dragged row's own slot is where it was picked up, moved up by the scroll since; the others are live
+        const own = { top: ctx.originRect.top - shift, bottom: ctx.originRect.bottom - shift };
+        const to = dropIndex(live.map((r, i) => (i === from ? own : r)), y);
+        // the controller adds the scroll shift itself: offsets are from the pick-up rect
+        const fromPickup = live.map((r, i) => (i === from ? ctx.originRect : r));
+        return { key: to, dx: 0, dy: slotOffset(fromPickup, from, to) };
       },
       onDrop: (t) => {
         if (t.key !== rowsOf().indexOf(row) && row.dataset.itemId) o.onMove(row.dataset.itemId, t.key);
       },
       disabled: () => o.disabled() || (o.gripOnly() && !fromGrip),
+      scrollEl: () => scrollParent(row),
+      onStateChange: (st) => { if (st === 'idle') seenScroll = null; },
+      scale: () => (row.offsetWidth ? row.getBoundingClientRect().width / row.offsetWidth : 1),
     });
     bound.set(row, { ctl, unlisten: () => row.removeEventListener('pointerdown', onDown, true) });
   }

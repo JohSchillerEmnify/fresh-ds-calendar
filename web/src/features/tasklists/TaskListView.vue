@@ -340,6 +340,8 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .row[data-dragging='true'] { cursor: grabbing; }
 /* a long press picks a row up: no text selection or iOS callout then */
 .row { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* the title field stays editable (iOS refuses to edit user-select: none fields) */
+.row input { user-select: text; -webkit-user-select: text; }
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
 .add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }
