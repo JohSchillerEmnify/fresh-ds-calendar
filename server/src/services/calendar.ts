@@ -9,7 +9,7 @@ import { ApiException, forbidden, notFound, preconditionFailed, validation } fro
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
 import {
-  NotFoundError, PreconditionFailedError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type GoogleReminder,
+  NotFoundError, PreconditionFailedError, ProviderForbiddenError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleEventPatch, type GoogleReminder,
   type ProviderCalendar,
 } from '../providers/CalendarProvider.js';
 import type { MotivationService } from './motivation.js';
@@ -192,8 +192,14 @@ export class CalendarService {
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
       color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}),
       ...(readOnly ? { readOnly: true as const } : {}), ...(reason && !inContactsCalendar(ev) ? { readOnlyReason: reason } : {}), ...(special && !readOnly && birthdayDateLocked(ev) ? { dateLocked: true as const } : {}),
-      reminders: this.remindersView(ev, calDefaults), etag: ev.etag, updated: ev.updated,
+      reminders: (readOnly && this.ownReminders(ev, calDefaults)) || this.remindersView(ev, calDefaults), etag: ev.etag, updated: ev.updated,
     };
+  }
+
+  /** The reminders the app keeps for a read-only event because Google refused them, shown as the event's own list. */
+  private ownReminders(ev: GoogleEvent, calDefaults: GoogleReminder[] | undefined): Reminders | undefined {
+    const own = this.prefs.reminderOverrides.get(this.sub, ev.calendarId, ev.id);
+    return own && { useDefault: own.useDefault, minutes: own.useDefault ? popups(calDefaults) : own.minutes };
   }
 
   private toTaskList(ev: GoogleEvent, calColor: string, cats: Category[]): TaskList {
@@ -363,6 +369,7 @@ export class CalendarService {
   async updateEvent(id: string, input: UpdateEventInput, ifMatch?: string): Promise<CalendarEvent> {
     const cur = await this.locateKind(id, false);
     if (specialOf(cur)) return this.updateBirthday(cur, input, ifMatch);
+    if (onlyReminders(input) && readOnlyReason(cur, await this.providerCalendars())) return this.updateReadOnlyReminders(cur, input.reminders!);
     await this.requireOwnEvent(cur);
     const curApi = this.toEvent(cur, '');
     const m = {
@@ -386,6 +393,27 @@ export class CalendarService {
     let ev = await this.provider.patchEvent(cur.calendarId, id, patch, { ifMatch: ifMatch ?? cur.etag });
     if (m.calendarId !== cur.calendarId) ev = await this.provider.moveEvent(cur.calendarId, id, m.calendarId);
     return this.toEvent(ev, await this.calendarColor(ev.calendarId));
+  }
+
+  /**
+   * The person's reminders for an event they can only read (feature reminders): Google first (`reminders` is per person, so
+   * only that field is sent); when Google refuses with 403 the app keeps them itself. The path that worked is remembered per
+   * calendar, so a refusing calendar is not asked again; a calendar that took the change last time is tried first.
+   */
+  private async updateReadOnlyReminders(cur: GoogleEvent, input: Reminders): Promise<CalendarEvent> {
+    const store = this.prefs.reminderOverrides;
+    const color = await this.calendarColor(cur.calendarId);
+    if (store.pathOf(this.sub, cur.calendarId) !== 'local') {
+      try {
+        const ev = await this.provider.patchEvent(cur.calendarId, cur.id, { reminders: this.remindersOf(input, cur.reminders) });
+        store.setGoogle(this.sub, cur.calendarId, cur.id);
+        return this.toEvent(ev, color);
+      } catch (e) {
+        if (!(e instanceof ProviderForbiddenError)) throw e;
+      }
+    }
+    store.setLocal(this.sub, cur.calendarId, cur.id, { useDefault: input.useDefault, minutes: input.useDefault ? [] : input.minutes });
+    return this.toEvent(cur, color);
   }
 
   async deleteEvent(id: string, ifMatch?: string): Promise<void> {
@@ -775,5 +803,10 @@ export class CalendarService {
   localTime(ms: number): string { return localTimeOf(ms, this.tz); }
 }
 
+/** True when an update changes nothing but the reminders. */
+const onlyReminders = (input: UpdateEventInput): boolean => {
+  const keys = Object.entries(input).filter(([, v]) => v !== undefined).map(([k]) => k);
+  return keys.length === 1 && keys[0] === 'reminders';
+};
 const etagEq = (a: string, b: string) => a.replace(/^W\//, '').replaceAll('"', '') === b.replace(/^W\//, '').replaceAll('"', '');
 export { ApiException };

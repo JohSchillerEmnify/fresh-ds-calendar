@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { listUserSubs, userDir } from '../auth/people.js';
+import { ReminderOverrideStore } from './reminderOverrides.js';
 
 /** The person used while sign-in is off. */
 export const LOCAL_PERSON = 'local';
@@ -248,7 +249,12 @@ interface StoredPrefs extends Prefs {
 
 /** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, support cat, theme, tasks calendar). */
 export class PrefsStore {
-  constructor(private readonly dataDir: string) {}
+  /** The person's own reminders for events they can only read (its own file next to `prefs.json`). */
+  readonly reminderOverrides: ReminderOverrideStore;
+
+  constructor(private readonly dataDir: string) {
+    this.reminderOverrides = new ReminderOverrideStore(dataDir);
+  }
 
   private file(sub: string): string {
     return path.join(userDir(this.dataDir, sub), 'prefs.json');
@@ -401,6 +407,7 @@ export class PrefsStore {
 
   /** Forgets every person's preferences (test reset). */
   reset(): void {
+    this.reminderOverrides.reset();
     for (const u of listUserSubs(this.dataDir)) fs.rmSync(path.join(userDir(this.dataDir, u), 'prefs.json'), { force: true });
   }
 }

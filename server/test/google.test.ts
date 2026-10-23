@@ -5,7 +5,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { loadConfig } from '../src/config.js';
-import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError } from '../src/providers/CalendarProvider.js';
+import { NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError, ReauthRequiredError } from '../src/providers/CalendarProvider.js';
 import { createGoogleProvider, GoogleProvider, makeApi, mapGoogleError } from '../src/providers/google/GoogleProvider.js';
 import { GoogleOAuth } from '../src/providers/google/auth.js';
 import { hasDriveScope } from '../src/auth/people.js';
@@ -133,7 +133,7 @@ describe('GoogleProvider (mocked HTTP)', () => {
   });
 
   it.each([
-    [401, ProviderUnavailableError], [403, ProviderUnavailableError], [404, NotFoundError], [410, NotFoundError],
+    [401, ProviderUnavailableError], [403, ProviderForbiddenError], [404, NotFoundError], [410, NotFoundError],
     [412, PreconditionFailedError], [500, ProviderUnavailableError], [503, ProviderUnavailableError], [400, ProviderError],
   ])('maps HTTP %i', async (status, cls) => {
     const { provider } = setup(() => ({ status, json: { error: { code: status, message: 'boom' } } }));

@@ -2,7 +2,7 @@ import { calendar as makeCalendar, type calendar_v3 } from '@googleapis/calendar
 import type { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import {
-  NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError,
+  NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError,
   ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
@@ -47,7 +47,8 @@ function mapGoogleErrorInner(e: unknown): Error {
   if (isInsufficientScope(err.response?.data?.error)) return new CalendarPermissionMissingError(err.message ?? 'insufficient scope');
   const status = Number(err.response?.status ?? err.status ?? (typeof err.code === 'number' ? err.code : NaN));
   const msg = err.message ?? 'Google API error';
-  if (status === 401 || status === 403 || status === 429) return new ProviderUnavailableError(msg);
+  if (status === 403) return new ProviderForbiddenError(msg);
+  if (status === 401 || status === 429) return new ProviderUnavailableError(msg);
   if (status === 404 || status === 410) return new NotFoundError(msg);
   if (status === 412) return new PreconditionFailedError(msg);
   if (status >= 500) return new ProviderUnavailableError(msg);

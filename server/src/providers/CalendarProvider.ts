@@ -93,6 +93,8 @@ export class RateLimitedError extends ProviderUnavailableError {
     super('Google rate limit: cooling down');
   }
 }
+/** Google answered 403 for a permission reason (not a rate limit, not a missing scope): the person may not do this on that calendar. */
+export class ProviderForbiddenError extends ProviderUnavailableError {}
 /** Google no longer accepts the person's refresh token (invalid_grant): they must sign in again. */
 export class ReauthRequiredError extends Error {}
 /** Google refuses calendar calls because the person did not grant the calendar scope at sign-in. */
