@@ -19,6 +19,7 @@ export interface LabsView {
 /** Every Labs view; adding an entry here adds its switch in the settings and its tab in the view switcher. */
 export const LABS_VIEWS: readonly LabsView[] = [
   { id: 'clock', labelKey: 'views.clock', icon: IconClock, route: '/clock', defaultOn: true },
+  { id: 'clock-rings', labelKey: 'views.clockRings', icon: IconClock, route: '/clock-rings', defaultOn: false },
   { id: 'timeline', labelKey: 'views.timeline', icon: IconTimeline, route: '/timeline', defaultOn: true },
   { id: 'strip', labelKey: 'views.strip', icon: IconStrip, route: '/strip', defaultOn: false },
   { id: 'zoom', labelKey: 'views.zoom', icon: IconZoomIn, route: '/zoom', defaultOn: true },

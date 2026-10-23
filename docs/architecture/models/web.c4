@@ -180,7 +180,7 @@ model {
     }
     labsClock = component 'Labs clock' {
       #experimental
-      description 'One day as a 24-hour dial on which entries are opened, turned, resized and created'
+      description 'One day as a 24-hour dial on which entries are opened, turned, resized and created; overlapping entries on separate rings, names beside their arcs or listed next to the dial; one component for the Clock and its variant Clock: rings (names along the rings)'
     }
     approachTrack = component 'Approaching track' {
       description 'The time axis in the Now card on which today\'s timed entries come closer'
@@ -191,6 +191,7 @@ model {
     labsViews -> items 'shows; no server API of their own'
     labsClock -> items 'shows the day and saves a turned or resized entry'
     labsClock -> resize 'reuses the start and end limits of the grid'
+    labsClock -> prefs 'reads the minimum event length'
     approachTrack -> prefs 'reads whether the track is on and its window'
     approachTrack -> items 'shows today\'s timed entries within the window, carried-over lists included'
     clock -> approachTrack 'moves the entries closer'

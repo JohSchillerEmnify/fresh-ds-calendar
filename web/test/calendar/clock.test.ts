@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarItem } from '@/api/types';
 import { clockSegments, clockText, focusWedge, tappedTime, turnedStart } from '@/features/labs/clock/clock';
-import { CENTER, clip, fadingRows, labelSizing, minuteAt, pointAt, sectorPath, VIEW, wrapDelta } from '@/features/labs/clock/geometry';
+import {
+  alongArcLabel, CENTER, clip, fadingRows, gapTrimmed, labelSizing, minuteAt, placeLabelsNear, pointAt, radiusAt, ringLayout, sectorPath, VIEW, wrapDelta,
+} from '@/features/labs/clock/geometry';
 import { ev, segsOf, t } from './helpers';
 
 const D = '2026-10-14';
@@ -30,7 +32,7 @@ describe('clock selection', () => {
     expect([by('Laundry').startTime, by('Laundry').endTime, by('Laundry').lane]).toEqual(['09:30', '11:00', 1]);
     expect([by('Call').startTime, by('Call').endTime, by('Call').lane]).toEqual(['18:00', '18:30', 0]);
   });
-  it('keeps a short task list off the lane of an event that starts where it ends (the round cap would cover it)', () => {
+  it('keeps entries that only touch on one ring (square ends and a gap keep them apart)', () => {
     const { timed: tl } = clockSegments(segsOf([
       list('Einkaufsliste', '17:00', { estimateMinutes: 15 }),
       ev('evening', t(D, '17:15'), t(D, '21:30'), { title: 'Evening' }),
@@ -38,8 +40,38 @@ describe('clock selection', () => {
       ev('plain2', t(D, '09:00'), t(D, '10:00'), { title: 'Plain2' }),
     ], D));
     const lane = (title: string) => tl.find((s) => s.item.title === title)!.lane;
-    expect(lane('Einkaufsliste')).not.toBe(lane('Evening'));
-    expect(lane('Plain')).toBe(lane('Plain2')); // events touching each other keep sharing a lane
+    expect(lane('Einkaufsliste')).toBe(lane('Evening'));
+    expect(lane('Plain')).toBe(lane('Plain2'));
+  });
+  it('draws every entry at least 15 minutes long, longer with a minimum event length, and lays out rings by that', () => {
+    const day = segsOf([
+      ev('pill', t(D, '11:00'), t(D, '11:05'), { title: 'Pill' }),
+      ev('vit', t(D, '11:05'), t(D, '11:15'), { title: 'Vitamins' }),
+      ev('a', t(D, '13:00'), t(D, '13:15'), { title: 'A' }),
+      ev('b', t(D, '13:15'), t(D, '13:30'), { title: 'B' }),
+      ev('late', t(D, '23:55'), '2026-10-15T00:00:00+02:00', { title: 'Late' }),
+    ], D);
+    const by = (tl: ReturnType<typeof clockSegments>['timed'], title: string) => tl.find((s) => s.item.title === title)!;
+    const plain = clockSegments(day).timed;
+    expect([by(plain, 'Pill').drawStart, by(plain, 'Pill').drawEnd]).toEqual([660, 675]);
+    expect([by(plain, 'Pill').startTime, by(plain, 'Pill').endTime]).toEqual(['11:00', '11:05']); // real times stay
+    expect(by(plain, 'Pill').lane).not.toBe(by(plain, 'Vitamins').lane);
+    expect(by(plain, 'A').lane).toBe(by(plain, 'B').lane);
+    expect([by(plain, 'Late').drawStart, by(plain, 'Late').drawEnd]).toEqual([1425, 1440]); // kept on the day
+    const min30 = clockSegments(day, 30).timed;
+    expect([by(min30, 'A').drawStart, by(min30, 'A').drawEnd]).toEqual([780, 810]);
+    expect(by(min30, 'A').lane).not.toBe(by(min30, 'B').lane);
+  });
+  it('keeps the next entry off a ring until the name before it has room, when names need room', () => {
+    const day = segsOf([
+      ev('lunch', t(D, '12:00'), t(D, '12:30'), { title: 'Lunch' }),
+      ev('dentist', t(D, '12:30'), t(D, '13:00'), { title: 'Dentist' }),
+      ev('later', t(D, '14:00'), t(D, '15:00'), { title: 'Later' }),
+    ], D);
+    const tl = clockSegments(day, 0, () => 60).timed;
+    const lane = (title: string) => tl.find((s) => s.item.title === title)!.lane;
+    expect(lane('Dentist')).not.toBe(lane('Lunch'));
+    expect(lane('Later')).toBe(lane('Lunch'));
   });
   it('names task lists with their done count, untitled ones neutrally as "Task list"', () => {
     expect(clockText(list('Laundry', '18:00', { doneCount: 1, totalCount: 2 }))).toBe('Laundry 1/2');
@@ -109,37 +141,95 @@ describe('clock gestures', () => {
   });
 });
 
-describe('clock labels', () => {
-  it('places crowded labels without overlaps and leaves out what fits nowhere', async () => {
-    const { placeLabels } = await import('@/features/labs/clock/geometry');
-    const labels = ['Standup', 'Dentist', 'Lunch with Sam', 'Call', 'Gym', 'Deep work'].map((text, i) => ({ key: text, mid: 560 + i * 25, text }));
-    const placed = placeLabels(labels, 12, 140, 40);
+describe('clock rings', () => {
+  it('puts rings 20 apart with a 4-unit gap and squeezes them when many are needed', () => {
+    const few = ringLayout(3, { outer: 158, inner: 96, step: 20, gap: 4 });
+    expect([few.r(0), few.r(1), few.r(2), few.width]).toEqual([158, 138, 118, 16]);
+    const many = ringLayout(7, { outer: 158, inner: 96, step: 20, gap: 4 });
+    expect(many.r(6)).toBeCloseTo(96);
+    expect(many.r(0) - many.r(1) - many.width).toBeCloseTo(4);
+  });
+  it('trims both ends of an arc by half the gap, so back-to-back arcs on a ring stay apart, but keeps a sliver', () => {
+    const a = gapTrimmed(540, 600, 158, 4), b = gapTrimmed(600, 660, 158, 4);
+    expect(a.to).toBeLessThan(b.from);
+    expect(a.from).toBeGreaterThan(540);
+    expect(((b.from - a.to) / 1440) * 2 * Math.PI * 158).toBeCloseTo(4);
+    const tiny = gapTrimmed(600, 601, 158, 4);
+    expect(tiny.to - tiny.from).toBeGreaterThan(0);
+  });
+});
+
+describe('clock labels near their arcs', () => {
+  const ring = (key: string, from: number, to: number, r = 158, w = 16) => ({ key, from, to, r, w });
+  const keep = { x0: CENTER - 95, y0: CENTER - 12, x1: CENTER + 95, y1: CENTER + 70 };
+  it('puts a lone arc\'s name right inside it, on its own angle', () => {
+    const arcs = [ring('night', 1380, 1439)];
+    const [p] = placeLabelsNear([{ ...arcs[0], text: 'Night train' }], arcs, { font: 12, plate: 176, keepOut: [keep] });
+    expect(p.shown).toBe(true);
+    // just inside the ring: closer to it than to the middle
+    expect(radiusAt(p.x, p.y)).toBeGreaterThan(110);
+    expect(Math.abs(wrapDelta(minuteAt(p.x, p.y), 1410))).toBeLessThan(90);
+  });
+  it('never lets a name overlap another name, an arc or the middle; what has no room overflows', () => {
+    const arcs = [
+      ring('a', 540, 600), ring('b', 570, 660, 138), ring('c', 585, 615, 118), ring('lunch', 720, 780), ring('physio', 780, 825),
+      ring('parcel', 840, 855), ring('sync', 850, 865, 138), ring('gym', 1020, 1110), ring('dinner', 1170, 1320), ring('night', 1380, 1439),
+    ];
+    const texts: Record<string, string> = { a: 'Dentist', b: 'Design review…', c: 'Call', lunch: 'Lunch', physio: 'Physio', parcel: 'Pick up parcel', sync: 'Quick sync', gym: 'Gym', dinner: 'Dinner with A…', night: 'Night train' };
+    const placed = placeLabelsNear(arcs.map((a) => ({ ...a, text: texts[a.key] })), arcs, { font: 12, plate: 176, keepOut: [keep] });
     const shown = placed.filter((p) => p.shown);
-    expect(shown.length).toBeGreaterThanOrEqual(4);
-    const box = (p: typeof placed[0]) => {
-      const w = labels.find((l) => l.key === p.key)!.text.length * 12 * 0.56;
-      const x0 = p.anchor === 'end' ? p.x - w : p.anchor === 'start' ? p.x : p.x - w / 2;
-      return [x0, p.y - 7.2, x0 + w, p.y + 7.2];
-    };
-    for (const a of shown) for (const b of shown) {
-      if (a === b) continue;
-      const [ax0, ay0, ax1, ay1] = box(a), [bx0, by0, bx1, by1] = box(b);
-      expect(ax0 < bx1 && bx0 < ax1 && ay0 < by1 && by0 < ay1, `${a.key} vs ${b.key}`).toBe(false);
+    expect(shown.length).toBeGreaterThanOrEqual(7);
+    for (const a of shown) {
+      expect(a.box.x0 < keep.x1 && keep.x0 < a.box.x1 && a.box.y0 < keep.y1 && keep.y0 < a.box.y1, `${a.key} in the middle`).toBe(false);
+      for (const b of shown) {
+        if (a === b) continue;
+        const [x, y] = [a.box, b.box];
+        expect(x.x0 < y.x1 && y.x0 < x.x1 && x.y0 < y.y1 && y.y0 < x.y1, `${a.key} vs ${b.key}`).toBe(false);
+      }
+      // no corner of a name lies on an arc band
+      for (const [cx, cy] of [[a.box.x0, a.box.y0], [a.box.x1, a.box.y0], [a.box.x0, a.box.y1], [a.box.x1, a.box.y1]]) {
+        const r = radiusAt(cx, cy), m = minuteAt(cx, cy);
+        for (const arc of arcs) expect(Math.abs(r - arc.r) < arc.w / 2 && m > arc.from && m < arc.to, `${a.key} on ${arc.key}`).toBe(false);
+      }
     }
   });
-  it('keeps labels out of the middle', async () => {
-    const { placeLabels } = await import('@/features/labs/clock/geometry');
-    const keep = { x0: CENTER - 95, y0: CENTER - 12, x1: CENTER + 95, y1: CENTER + 70 };
-    const [p] = placeLabels([{ key: 'a', mid: 720, text: 'Lunch' }], 12, 60, 20, [keep]);
-    expect(p.shown).toBe(false);
+  it('starts every leader line on its own arc, also across midnight', () => {
+    const arcs = [ring('late', 1425, 1440), ring('crowd', 1380, 1425, 138)];
+    const [p] = placeLabelsNear([{ ...arcs[0], text: 'Night bus home' }], arcs, { font: 12, plate: 176, keepOut: [keep] });
+    expect(p.shown).toBe(true);
+    expect(radiusAt(p.fx, p.fy)).toBeCloseTo(158 - 8);
+    const m = minuteAt(p.fx, p.fy);
+    expect(m >= 1424.9 || m <= 0.1, `leader at minute ${m}`).toBe(true);
   });
-  it('finds room for the label of a short list on the left side of the dial beside the time in the middle', async () => {
-    const { placeLabels } = await import('@/features/labs/clock/geometry');
-    const keep = { x0: CENTER - 95, y0: CENTER - 12, x1: CENTER + 95, y1: CENTER + 70 };
-    const placed = placeLabels([
-      { key: 'evening', mid: 1162, text: 'Abend zu zweit' },
-      { key: 'list', mid: 1027, text: 'Einkaufsliste 0/1' },
-    ], 10, 125, 40, [keep]);
-    expect(placed.find((p) => p.key === 'list')!.shown).toBe(true);
+  it('cuts a long name that fits nowhere whole, and overflows one with no room at all', () => {
+    const arcs = [ring('x', 700, 740)];
+    const long = 'A name far too long to fit anywhere on this tiny plate';
+    const [cut] = placeLabelsNear([{ ...arcs[0], text: long }], arcs, { font: 12, plate: 176, keepOut: [keep] });
+    expect(cut.shown).toBe(true);
+    expect(cut.text.endsWith('…')).toBe(true);
+    expect(cut.text.length).toBeLessThan(long.length);
+    const everything = { x0: 0, y0: 0, x1: 440, y1: 440 };
+    const [none] = placeLabelsNear([{ ...arcs[0], text: 'Lunch' }], arcs, { font: 12, plate: 176, keepOut: [everything] });
+    expect(none.shown).toBe(false);
+  });
+});
+
+describe('clock names along the rings (rings variant)', () => {
+  it('runs clockwise on the upper half and turns on the lower half, so the text is never upside down', () => {
+    const top = alongArcLabel(1320, 1439, 150, 11, 'Night'), bottom = alongArcLabel(660, 780, 150, 11, 'Lunch');
+    expect(top.flipped).toBe(false);
+    expect([top.anchor, top.offset > 0]).toEqual(['start', true]);
+    expect(bottom.flipped).toBe(true);
+    // the turned path runs from the end of the free run back to the arc's start, where the text ends
+    expect(bottom.d.startsWith(`M ${pointAt(780, bottom.rBase).x.toFixed(2)}`)).toBe(true);
+    expect(bottom.anchor).toBe('end');
+  });
+  it('lets the name run on along the free ring and cuts it where the next arc starts, giving up below three characters', () => {
+    const long = alongArcLabel(540, 600, 150, 11, 'Design review with the whole team');
+    expect(long.text.endsWith('…')).toBe(true);
+    expect(long.text.length).toBeLessThan(12);
+    expect(alongArcLabel(540, 720, 150, 11, 'Design review with the whole team').text.length).toBeGreaterThan(long.text.length);
+    expect(alongArcLabel(540, 545, 150, 11, 'Call').text).toBe('');
+    expect(alongArcLabel(540, 720, 150, 11, 'Call').text).toBe('Call');
   });
 });

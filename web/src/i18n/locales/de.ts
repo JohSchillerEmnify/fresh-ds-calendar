@@ -28,6 +28,7 @@ export default {
     day: 'Tag',
     tasks: 'Aufgaben',
     clock: 'Uhr',
+    clockRings: 'Uhr: Ringe',
     timeline: 'Zeitstrahl',
     strip: 'Streifen',
     zoom: 'Zoom-Monat',

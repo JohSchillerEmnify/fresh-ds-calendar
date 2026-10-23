@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { formatDate, toIsoDate, minutesToTime } from '@/lib/dates';
 import { displayTitle, neutralName, type Segment } from '@/lib/items';
@@ -13,13 +13,25 @@ import { useCalendarStore } from '@/stores/calendar';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
-import { clockSegments, clockText, focusWedge, SNAP_MIN, tappedTime } from './clock';
-import { angleOf, arcPath, CENTER, clip, labelSizing, minuteAt, placeLabels, pointAt, radiusAt, sectorPath, VIEW } from './geometry';
+import { usePrefsStore } from '@/stores/prefs';
+import { clockSegments, clockText, focusWedge, MIN_ARC_MIN, SNAP_MIN, tappedTime } from './clock';
+import {
+  alongArcLabel, angleOf, arcPath, CENTER, clip, gapTrimmed, labelSizing, minuteAt, placeLabelsNear, pointAt, radiusAt, ringLayout, sectorPath, VIEW,
+} from './geometry';
 import { useDialGesture } from './useDialGesture';
 import { useTaskCategories } from '@/features/tasklists/categories';
 import { t } from '@/i18n';
 
+/**
+ * `classic`: names on the plate beside their arcs (labs-clock). `rings`: thick rings with each name written along its arc
+ * (labs-clock-rings, a variant to compare).
+ */
+const props = withDefaults(defineProps<{ variant?: 'classic' | 'rings' }>(), { variant: 'classic' });
+/** Prefix of the ids the along-ring names refer to, unique per mounted clock (two may exist during a swipe). */
+const uid = useId();
+
 const cal = useCalendarStore();
+const prefs = usePrefsStore();
 const clock = useClockStore();
 const items = useItemsStore();
 const cals = useCalendarsStore();
@@ -29,12 +41,31 @@ const dateLabel = computed(() => formatDate(cal.anchor, 'weekdayDayMonthLong'));
 
 const segments = computed(() => (items.byDate.get(date.value) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)));
 const cats = useTaskCategories();
-const split = computed(() => clockSegments(segments.value));
+const split = computed(() => clockSegments(segments.value, prefs.minEventMinutes, props.variant === 'rings' ? nameRoom : undefined));
 
-/** The dial is a square as large as the area below the date allows (owner, 2026-10-13). */
+/**
+ * The dial is a square as large as the space allows (owner, 2026-10-13). On a wide screen the chips stand beside it and
+ * it takes the area between them; stacked (a phone), it takes what the chips above and below leave, and dial and chips
+ * are centred together, so the chips sit right at the dial instead of at the screen's edges.
+ */
+const root = ref<HTMLElement | null>(null);
+const layout = ref<HTMLElement | null>(null);
 const area = ref<HTMLElement | null>(null);
+const topChips = ref<HTMLElement | null>(null);
+const bottomChips = ref<HTMLElement | null>(null);
+const { width: rootW, height: rootH } = useElementSize(root);
+const { width: layoutW, height: layoutH } = useElementSize(layout);
 const { width: areaW, height: areaH } = useElementSize(area);
-const size = computed(() => Math.floor(Math.min(areaW.value, areaH.value > 0 ? areaH.value : areaW.value)));
+const { height: topH } = useElementSize(topChips, undefined, { box: 'border-box' });
+const { height: bottomH } = useElementSize(bottomChips, undefined, { box: 'border-box' });
+/** Mirrors the stylesheet's `@container (min-aspect-ratio: 5/4)`: chips beside the dial. */
+const wide = computed(() => rootH.value > 0 && rootW.value / rootH.value >= 5 / 4);
+const size = computed(() => {
+  if (wide.value) return Math.floor(Math.min(areaW.value, areaH.value > 0 ? areaH.value : areaW.value));
+  const gaps = 6 * ((topChips.value ? 1 : 0) + (bottomChips.value ? 1 : 0));
+  const h = layoutH.value - (topChips.value ? topH.value : 0) - (bottomChips.value ? bottomH.value : 0) - gaps;
+  return Math.max(0, Math.floor(Math.min(layoutW.value, h > 0 ? h : layoutW.value)));
+});
 const sizing = computed(() => labelSizing(size.value));
 const VIEW_BOX = `${CENTER - VIEW / 2} ${CENTER - VIEW / 2} ${VIEW} ${VIEW}`;
 
@@ -42,30 +73,44 @@ const face = ref<SVGSVGElement | null>(null);
 const { preview, selected, arcDown, handleDown } = useDialGesture(() => face.value);
 
 const R_OUTER = 172;
-const LANE_GAP = 17;
-const ARC_W = 14;
+/** Gap between two rings and between two arcs that meet on one ring, in viewBox units. */
+const GAP = 4;
+/** Ring sizes per variant: the classic clock keeps the plate free for names, the rings variant writes in the bands. */
+const RINGS = { classic: { outer: 158, inner: 96, step: 20, gap: GAP }, rings: { outer: 156, inner: 84, step: 28, gap: GAP } } as const;
+/** Rings variant: an entry's name (up to 16 characters) needs this many minutes of the outer ring before the next entry. */
+const nameRoom = (s: Segment) => (Math.min(16, clockText(s.item).length) * 0.56 * sizing.value.font + sizing.value.font) / (2 * Math.PI * RINGS.rings.outer) * 1440;
+const ring = computed(() => ringLayout(Math.max(1, ...split.value.timed.map((s) => s.lane + 1)), RINGS[props.variant]));
 /**
- * Timed events and task lists as arcs, overlapping ones on inner lanes; task lists thinner and dashed (a short one, where dashes would hide it, solid). The arc being
- * dragged is drawn where the preview puts it (lifted).
+ * Timed events and task lists as arcs on their rings (overlapping ones further in), square-ended and trimmed by the
+ * gap so neighbours on a ring stay apart; task lists thinner and dashed (a short one, where dashes would hide it,
+ * solid). The arc being dragged is drawn where the preview puts it (lifted).
  */
 const arcs = computed(() =>
   split.value.timed.map((s) => {
-    const r = R_OUTER - 14 - s.lane * LANE_GAP;
+    const r = ring.value.r(s.lane), w = ring.value.width;
     const tasklist = s.item.kind === 'tasklist';
     const key = `${s.item.id}-${s.date}`;
     const p = preview.value?.key === key ? preview.value : null;
     const startMin = p ? p.startMin : s.startMin, endMin = p ? p.endMin : s.endMin;
     const start = p ? minutesToTime(startMin) : s.startTime!, end = p ? minutesToTime(endMin % 1440) : s.endTime!;
+    // a dragged arc is drawn by the same rule as a resting one: at least the minimum length, kept on the day
+    const len = Math.max(endMin - startMin, prefs.minEventMinutes, MIN_ARC_MIN);
+    const pEnd = Math.min(1440, startMin + len);
+    const drawn = p ? gapTrimmed(Math.min(startMin, pEnd - len), pEnd, r, GAP) : gapTrimmed(s.drawStart, s.drawEnd, r, GAP);
+    const width = tasklist && props.variant === 'classic' ? w / 2 : w;
     return {
       key, seg: s as Segment, kind: s.item.kind, title: neutralName(s.item), text: clockText(s.item),
-      start, end, startMin, endMin, color: cats.itemColor(s.item), mid: (startMin + endMin) / 2, r, d: arcPath(startMin, endMin, r),
-      width: tasklist ? ARC_W / 2 : ARC_W, dash: tasklist && endMin - startMin >= 30 ? '5 4' : undefined, thin: tasklist,
+      start, end, startMin, endMin, color: cats.itemColor(s.item), r, w: width, from: drawn.from, to: drawn.to, d: arcPath(drawn.from, drawn.to, r),
+      lane: s.lane, edge: props.variant === 'rings' ? arcPath(drawn.from, drawn.to, r + width / 2 - 1.5) : undefined,
+      dash: tasklist && props.variant === 'classic' && endMin - startMin >= 30 ? '5 4' : undefined, list: tasklist,
       done: s.item.kind === 'tasklist' && s.item.doneCount >= s.item.totalCount,
       lifted: !!p, selected: selected.value === key,
       aria: t('calendar.clock.arc', { title: clockText(s.item), start: s.startTime!, end: s.endTime! }),
     };
   }),
 );
+/** Faint full circles under the rings in use (rings variant), so the rings read as lanes. */
+const tracks = computed(() => (props.variant === 'rings' ? [...new Set(split.value.timed.map((s) => s.lane))].map((l) => ring.value.r(l)) : []));
 /** Handles at both ends of the selected arc (drag to change the start or the end). */
 const handles = computed(() => {
   const a = arcs.value.find((x) => x.selected);
@@ -75,25 +120,52 @@ const handles = computed(() => {
     return { key: `${a.key}-${edge}`, edge, arc: a, ...pointAt(m, a.r) };
   });
 });
-/** Radius the labels start from: inside the innermost lane. */
-const rLabels = computed(() => (arcs.value.length ? Math.min(...arcs.value.map((a) => a.r)) : R_OUTER - 14) - 16);
-/**
- * One label per arc, placed without overlaps (`placeLabels`): on the arc's angle, moved inwards until free, never over
- * the time in the middle; a label that fits nowhere is left out (its arc still opens on a tap and names itself).
- */
-const labels = computed(() => {
+/** The middle text's box (today's time and line, or the dragged arc's times), which names keep clear of. */
+const middleBox = computed(() => {
   const { font, maxChars } = sizing.value;
-  const inputs = [...arcs.value].sort((x, y) => (y.endMin - y.startMin) - (x.endMin - x.startMin))
-    .map((a) => ({ key: a.key, mid: a.mid, text: clip(a.text, maxChars) }));
-  const middle = isToday.value || dragTime.value ? [{ x0: CENTER - 95, y0: CENTER - 12, x1: CENTER + 95, y1: CENTER + 70 }] : [];
-  const placed = new Map(placeLabels(inputs, font, rLabels.value, 40, middle).map((p) => [p.key, p]));
-  return arcs.value.flatMap((a) => {
-    const p = placed.get(a.key)!;
-    if (!p.shown) return [];
-    const from = pointAt(a.mid, a.r - 8);
-    return [{ key: a.key, title: a.title, text: clip(a.text, maxChars), color: a.color, anchor: p.anchor, x: p.x, y: p.y, fx: from.x, fy: from.y }];
-  });
+  const box = (halfW: number, y0: number, y1: number) => ({ x0: CENTER - halfW - 4, y0, x1: CENTER + halfW + 4, y1 });
+  // the hub, then the big time (22 units, about 0.6 em per digit) and the line under it
+  const hub = box(10, CENTER - 10, CENTER + 10);
+  if (dragTime.value) return [hub, box((dragTime.value.length * 0.6 * 22) / 2, CENTER + 18, CENTER + 46)];
+  if (!isToday.value) return [hub];
+  const line = nowLine.value ? clip(nowLine.value.text, maxChars + 6) : '';
+  return [hub, box((5 * 0.6 * 22) / 2, CENTER + 14, CENTER + 40), box((line.length * 0.56 * font) / 2, CENTER + 56 - font * 0.7, CENTER + 56 + font * 0.7)];
 });
+/**
+ * Classic: each arc's name on the plate beside its arc (`placeLabelsNear`), shorter arcs first, never over another name,
+ * an arc or the middle. Rings: each name along its arc, inside the band. A name with no room is listed next to the dial.
+ */
+const named = computed(() => {
+  const { font, maxChars } = sizing.value;
+  if (props.variant === 'rings') {
+    const f = Math.min(font, ring.value.width * 0.62);
+    return arcs.value.map((a) => {
+      // the name may run on along its ring up to the next arc there (half the dial at most)
+      const next = arcs.value.filter((o) => o.lane === a.lane && o !== a).map((o) => (o.from > a.from ? o.from : o.from + 1440));
+      const l = alongArcLabel(a.from, Math.min(a.from + 720, ...next), a.r, f, a.text);
+      return { a, shown: !!l.text, along: { ...l, font: f }, near: undefined };
+    });
+  }
+  const bands = arcs.value.map((a) => ({ key: a.key, from: a.from, to: a.to, r: a.r, w: a.w }));
+  // short arcs first: they have the fewest places beside them, long ones can move along themselves
+  const order = [...arcs.value].sort((x, y) => (x.to - x.from) - (y.to - y.from) || x.from - y.from);
+  const placed = new Map(placeLabelsNear(
+    order.map((a) => ({ key: a.key, from: a.from, to: a.to, r: a.r, w: a.w, text: clip(a.text, maxChars) })),
+    bands, { font, plate: 176, keepOut: middleBox.value },
+  ).map((p) => [p.key, p]));
+  return arcs.value.map((a) => ({ a, shown: placed.get(a.key)!.shown, near: placed.get(a.key)!, along: undefined }));
+});
+/** Names on the plate (classic variant). */
+const labels = computed(() => named.value.flatMap(({ a, shown, near }) => (shown && near
+  ? [{ key: a.key, title: a.title, text: near.text, color: a.color, anchor: near.anchor, x: near.x, y: near.y, fx: near.fx, fy: near.fy }]
+  : [])));
+/** Names along the arcs (rings variant). */
+const alongLabels = computed(() => named.value.flatMap(({ a, shown, along }) => (shown && along
+  ? [{ key: a.key, title: a.title, text: along.text, d: along.d, font: along.font, offset: along.offset, anchor: along.anchor }]
+  : [])));
+/** Arcs whose name found no room on the dial: listed next to it with their time, in time order. */
+const overflow = computed(() => named.value.filter((n) => !n.shown).map(({ a }) => a).sort((x, y) => x.startMin - y.startMin)
+  .map((a) => ({ key: a.key, title: a.title, text: `${a.start} ${a.text}`, color: a.color, item: a.seg.item })));
 /** Untimed task lists and all-day events: chips next to the dial (below/above it upright, beside it on a wide screen). */
 const untimed = computed(() => split.value.untimed.map((s) => ({ key: s.item.id, item: s.item, text: clockText(s.item), color: cats.itemColor(s.item) })));
 const allDay = computed(() => split.value.allDay.map((s) => ({ key: `${s.item.id}-${s.date}`, item: s.item, title: neutralName(s.item), color: cats.itemColor(s.item) })));
@@ -145,17 +217,17 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
 </script>
 
 <template>
-  <section class="clock" data-testid="clock-view" :data-date="date">
+  <section ref="root" class="clock" :class="[variant, { stacked: !wide }]" data-testid="clock-view" :data-date="date" :data-variant="variant">
     <h2 class="date">{{ dateLabel }}</h2>
-    <div class="layout">
-    <ul v-if="allDay.length" class="chips allday-chips" data-testid="clock-allday-list">
+    <div ref="layout" class="layout">
+    <ul v-if="allDay.length" ref="topChips" class="chips allday-chips" data-testid="clock-allday-list">
       <li v-for="a in allDay" :key="a.key">
         <button type="button" class="chip" :style="{ '--c': a.color }" data-testid="clock-allday" :data-title="a.title" @click="openItem(a.item)">
           <span class="dot" />{{ a.title }}
         </button>
       </li>
     </ul>
-    <div ref="area" class="area">
+    <div ref="area" class="area" :style="!wide && size > 0 ? { height: `${size}px` } : undefined">
       <svg
         ref="face" class="face" :class="{ dragging: !!preview }" :viewBox="VIEW_BOX" role="img" :aria-label="t('calendar.clock.face', { date: dateLabel })"
         :style="size > 0 ? { width: `${size}px`, height: `${size}px` } : undefined"
@@ -176,24 +248,39 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
             <text v-if="t.label" :x="t.label.x" :y="t.label.y" text-anchor="middle" dominant-baseline="central">{{ String(t.h).padStart(2, '0') }}</text>
           </template>
         </g>
+        <circle v-for="r in tracks" :key="`track-${r}`" :cx="CENTER" :cy="CENTER" :r="r" class="ring-track deco" :stroke-width="ring.width" />
         <path
-          v-for="a in arcs" :key="a.key" :d="a.d" class="arc" :class="{ done: a.done, lifted: a.lifted, selected: a.selected }" :stroke="a.color"
-          :stroke-width="a.lifted ? a.width + 6 : a.width" :stroke-dasharray="a.dash" :stroke-linecap="a.thin ? 'butt' : 'round'"
-          data-testid="clock-arc" :data-r="a.r" :data-kind="a.kind" :data-title="a.title" :data-start="a.start" :data-end="a.end"
+          v-for="a in arcs" :key="a.key" :d="a.d" class="arc" :class="{ done: a.done, lifted: a.lifted, selected: a.selected, list: a.list }" :stroke="a.color"
+          :stroke-width="a.lifted ? a.w + 6 : a.w" :stroke-dasharray="a.dash"
+          data-testid="clock-arc" :data-r="a.r" :data-w="a.w" :data-draw-start="a.from.toFixed(2)" :data-draw-end="a.to.toFixed(2)"
+          :data-kind="a.kind" :data-title="a.title" :data-start="a.start" :data-end="a.end"
           :data-selected="a.selected ? 'true' : undefined" :data-lifted="a.lifted ? 'true' : undefined"
         />
+        <template v-if="variant === 'rings'">
+          <path
+            v-for="a in arcs" :key="`${a.key}-edge`" :d="a.edge" class="edge deco" :stroke="a.color" stroke-width="3"
+            :stroke-dasharray="a.list ? '6 3' : undefined"
+          />
+          <g class="along deco">
+            <path v-for="(l, i) in alongLabels" :id="`${uid}-name-${i}`" :key="`p-${l.key}`" :d="l.d" fill="none" />
+            <text
+              v-for="(l, i) in alongLabels" :key="l.key" :style="{ fontSize: `${l.font}px` }"
+              dominant-baseline="central" data-testid="clock-label" :data-title="l.title"
+            ><textPath :href="`#${uid}-name-${i}`" :startOffset="l.offset" :text-anchor="l.anchor">{{ l.text }}</textPath></text>
+          </g>
+        </template>
         <g v-if="isToday" class="hand deco" data-testid="clock-hand" :data-time="handTime" :transform="`rotate(${angleOf(clock.minutesNow)} ${CENTER} ${CENTER})`">
           <line :x1="CENTER" :y1="CENTER" :x2="CENTER" :y2="CENTER - (R_OUTER - 6)" />
           <circle :cx="CENTER" :cy="CENTER - (R_OUTER - 6)" r="5" />
         </g>
         <!-- wide invisible strokes take the pointer, so a thin arc is still easy to hit -->
         <path
-          v-for="a in arcs" :key="`${a.key}-hit`" :d="a.d" class="hit" stroke-width="26" role="button" tabindex="0" :aria-label="a.aria"
+          v-for="a in arcs" :key="`${a.key}-hit`" :d="a.d" class="hit" :stroke-width="Math.max(26, a.w + 4)" role="button" tabindex="0" :aria-label="a.aria"
           data-testid="clock-arc-hit" :data-title="a.title"
           @pointerdown="arcDown($event, a.seg, a.key)" @keydown="arcKey($event, a)"
         ><title>{{ a.text }} {{ a.start }}-{{ a.end }}</title></path>
         <g v-for="l in labels" :key="l.key" class="lbl" :style="{ fontSize: `${sizing.font}px` }">
-          <line :x1="l.fx" :y1="l.fy" :x2="l.x" :y2="l.y" :stroke="l.color" />
+          <line v-if="Math.hypot(l.fx - l.x, l.fy - l.y) > 6" :x1="l.fx" :y1="l.fy" :x2="l.x" :y2="l.y" :stroke="l.color" />
           <text
             :x="l.x" :y="l.y" :text-anchor="l.anchor" dominant-baseline="central" data-testid="clock-label" :data-title="l.title"
             @click="openItem(arcs.find((a) => a.key === l.key)!.seg.item)"
@@ -213,7 +300,7 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
         <circle :cx="CENTER" :cy="CENTER" r="7" class="hub deco" />
         <text v-if="dragTime" :x="CENTER" :y="CENTER + 40" text-anchor="middle" class="now drag" data-testid="clock-drag-time">{{ dragTime }}</text>
         <template v-else-if="isToday">
-          <text :x="CENTER" :y="CENTER + 34" text-anchor="middle" class="now">{{ handTime }}</text>
+          <text :x="CENTER" :y="CENTER + 34" text-anchor="middle" class="now" data-testid="clock-time">{{ handTime }}</text>
           <text
             v-if="nowLine" :x="CENTER" :y="CENTER + 56" text-anchor="middle" dominant-baseline="central" class="now-line"
             :style="{ fontSize: `${sizing.font}px` }" data-testid="clock-now-line"
@@ -221,7 +308,12 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
         </template>
       </svg>
     </div>
-    <ul v-if="untimed.length" class="chips untimed-chips" data-testid="clock-untimed-list">
+    <ul v-if="untimed.length || overflow.length" ref="bottomChips" class="chips untimed-chips" data-testid="clock-untimed-list">
+      <li v-for="o in overflow" :key="o.key">
+        <button type="button" class="chip" :style="{ '--c': o.color }" data-testid="clock-overflow" :data-title="o.title" @click="openItem(o.item)">
+          <span class="dot" /><span class="txt">{{ o.text }}</span>
+        </button>
+      </li>
       <li v-for="u in untimed" :key="u.key">
         <button type="button" class="chip list" :style="{ '--c': u.color }" data-testid="clock-untimed" @click="openItem(u.item)">
           <span class="dot" />{{ u.text }}
@@ -235,8 +327,11 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
 <style scoped>
 .clock { container-type: size; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; padding: 4px 8px 8px; gap: 2px; overflow: hidden; }
 .date { margin: 0; font: var(--md-sys-typescale-title-small); color: var(--md-sys-color-on-surface-variant); }
-.layout { flex: 1; align-self: stretch; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.layout { flex: 1; align-self: stretch; min-width: 0; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
 .area { flex: 1; min-width: 0; min-height: 0; display: grid; place-items: center; overflow: hidden; }
+.stacked .area { flex: none; }
+/* stacked (a phone): keep the chips clear of the create button in the corner */
+.stacked .layout { padding-bottom: 64px; }
 .chips { list-style: none; margin: 0; padding: 0 4px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-height: 30%; overflow-y: auto; flex: none; }
 .chip {
   display: inline-flex; align-items: center; gap: 6px; max-width: 16em; min-height: 32px; padding: 4px 12px; border-radius: 16px;
@@ -245,6 +340,7 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .chip:hover, .chip:focus-visible { background: var(--md-sys-color-surface-container-high); outline: none; }
+.chip .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chip .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 .chip.list .dot { border-radius: 3px; }
 /* wide screens: the chips go beside the dial */
@@ -264,12 +360,17 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
 .face.dragging { cursor: grabbing; }
 .deco { pointer-events: none; }
 .plate { cursor: copy; }
-.wedge { opacity: 0.16; pointer-events: none; }
+.wedge { opacity: 0.22; pointer-events: none; }
 .arc { fill: none; opacity: 0.92; pointer-events: none; transition: stroke-width 120ms ease; }
+.rings .arc { opacity: 0.3; }
+.rings .arc.lifted, .rings .arc.selected { opacity: 0.5; }
+.edge { fill: none; }
+.ring-track { fill: none; stroke: var(--md-sys-color-surface-container-highest); opacity: 0.6; }
+.along text { font-family: var(--md-ref-typeface-plain, system-ui); font-weight: 600; fill: var(--md-sys-color-on-surface); }
 .arc.done { opacity: 0.45; }
 .arc.lifted { opacity: 1; filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.35)); }
 .arc.selected { opacity: 1; }
-.hit { fill: none; stroke: transparent; pointer-events: stroke; cursor: grab; outline: none; }
+.hit { fill: none; stroke: transparent; stroke-linecap: round; pointer-events: stroke; cursor: grab; outline: none; }
 .hit:focus-visible { stroke: var(--md-sys-color-primary); stroke-opacity: 0.25; }
 .handle { cursor: ew-resize; outline: none; touch-action: none; }
 .handle-hit { fill: transparent; }

@@ -9,21 +9,36 @@ import { assignLanes } from './geometry';
 export const SNAP_MIN = 15;
 
 /**
- * Minutes a task list's thin butt-ended arc needs clear of an event's round-capped arc on the same lane: the cap reaches
- * about 10 minutes past the event's end (as the day view lets a short block count its drawn extent), so a list touching
- * an event would be covered by it. Two events (both round) keep sharing a lane when they touch.
+ * Shortest arc the dial draws, in minutes (its snap step): at 24 hours per turn a shorter one would be a dot, too small
+ * to see or tap (owner, 2026-10-23). The entry's real times never change.
  */
-const LIST_CLEARANCE_MIN = 15;
+export const MIN_ARC_MIN = SNAP_MIN;
+
+/** A timed entry on the dial: its ring (`lane`, 0 outermost) and the span it is drawn over, in minutes of the day. */
+export type ClockArc = Segment & { lane: number; drawStart: number; drawEnd: number };
 
 /**
- * Splits a day's segments: timed events and timed task lists become arcs (on lanes), untimed task lists the middle,
- * all-day events (and days inside a multi-day event) the chips above the hub.
+ * Splits a day's segments: timed events and timed task lists become arcs, untimed task lists the chips below, all-day
+ * events (and days inside a multi-day event) the chips above. Each arc is drawn at least {@link MIN_ARC_MIN} and
+ * `minMinutes` (the minimum event length setting) long, kept on the day, and entries whose drawn spans overlap go on
+ * separate rings; arcs that only touch share a ring (they are drawn with square ends and a gap). `room` is how many
+ * minutes of its ring an entry needs from its start (for a name written along the ring), default none.
  */
-export function clockSegments(segs: Segment[]): { timed: Array<Segment & { lane: number }>; untimed: Segment[]; allDay: Segment[] } {
-  const timed = segs.filter((s) => !s.allDay && s.startTime && s.endTime);
+export function clockSegments(
+  segs: Segment[], minMinutes = 0, room: (s: Segment) => number = () => 0,
+): { timed: ClockArc[]; untimed: Segment[]; allDay: Segment[] } {
+  const timed = segs.filter((s) => !s.allDay && s.startTime && s.endTime).map((s) => {
+    const len = Math.max(s.endMin - s.startMin, minMinutes, MIN_ARC_MIN);
+    const drawEnd = Math.min(1440, s.startMin + len);
+    return { ...s, drawStart: Math.min(s.startMin, drawEnd - len), drawEnd };
+  });
   const untimed = segs.filter((s) => s.item.kind === 'tasklist' && !s.startTime);
   const allDay = segs.filter((s) => s.item.kind === 'event' && s.allDay);
-  return { timed: assignLanes(timed, (p, n) => (p.item.kind === n.item.kind ? 0 : LIST_CLEARANCE_MIN)), untimed, allDay };
+  const laned = assignLanes(
+    timed.map((s) => ({ s, startMin: s.drawStart, endMin: s.drawEnd })),
+    (prev) => Math.max(0, room(prev.s) - (prev.endMin - prev.startMin)),
+  );
+  return { timed: laned.map(({ s, lane }) => ({ ...s, lane })), untimed, allDay };
 }
 
 /**
