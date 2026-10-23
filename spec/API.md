@@ -110,6 +110,7 @@ interface TaskList {
   totalCount: number;
   estimateMinutes: number | null; // 5–720; a timed list lasts this long in Google (default 30 when null)
   recurrence: 'daily' | 'weekly' | 'monthly' | null;  // @optional feature; instances have their own ids and ticks
+  seriesId?: string;      // on an occurrence of a repeating list: the id of its series (Google recurringEventId); absent otherwise
   categoryId: string | null;   // null = no category; unknown/deleted ids are returned as null
   tags: string[];              // max 10, each 1–30 chars, no commas, unique case-insensitively, order kept
   color: string;               // category color, else calendar color
@@ -429,9 +430,12 @@ Item ops return the whole updated `TaskList`. On a repeating list every occurren
 2026-10-23: "split on first tick"): an item op on an occurrence id patches that Google instance (an exception from then
 on, also when unticked again), and an item op addressed to the series id (the master, which only `GET /api/tasklists/:id`
 with that id hands out) goes to its first occurrence the same way; the answer is then that occurrence, with
-its own `id`. The master's items never change by an item op (404 when the first occurrence was deleted). Creating a
-repeating list answers with its first occurrence (the id range reads list), so a client never holds the series id from
-a create. `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). `index` inserts at a position (default: append). `itemIds` must be a
+its own `id`. The master's items never change by an item op. When the first occurrence is no longer on the master's start day
+(deleted, or moved to another day), an item op addressed to the series id answers 404 `Task list not found` and changes
+nothing. Creating a repeating list answers with its first occurrence (the id range reads list, with `seriesId`), so a
+client never holds the series id from a create; the web app deletes a repeating list it created in this session as a
+whole series (`DELETE` of its `seriesId`), any other occurrence on its own. Deleting the series removes its
+split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.

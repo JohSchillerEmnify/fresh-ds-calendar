@@ -95,3 +95,17 @@ occurrence (`events.patch` on the instance id), so the other weeks stay unticked
   Google's own propagation rules apply on real Google. Not changed here.
 - No LikeC4/ADR change: no new component or cross-cutting decision; the provider contract (patching an instance makes
   an exception) is already in API.md.
+
+## Review round 1 (coordinator, 2026-10-23)
+
+- R9 — Every occurrence carries `seriesId` (Google `recurringEventId`), the create answer too. The web store remembers
+  the repeating lists it created this session; deleting one (dialog / list delete, also after its undo time) sends
+  `DELETE` for the series and drops every cached week of it. Other occurrences delete on their own (unchanged).
+  Chosen over "delete always resolves the series": smallest change that keeps occurrence deletes as they were.
+  Tests: web `stores.test.ts` "a repeating list"; server "deleting the series removes every week".
+- R10 — The split-off week keeps title, category, door tag and reminders (server test). Mock realism: an instance has
+  its own etag and `originalStartTime`; deleting a series cancels its exceptions (Google).
+- R11 — Mock instance ids follow Google: all-day `_YYYYMMDD`, timed `_YYYYMMDDTHHMMSSZ` (UTC start); `virtualInstance`
+  reads both. The door plugin groups by `seriesId` (falls back to the id suffix, both formats).
+- R12 — Two ticks on the same week at once both land (412 → retry), server test.
+- Dialog edits stay "this week only" (owner still deciding on "all weeks").

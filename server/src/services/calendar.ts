@@ -241,7 +241,8 @@ export class CalendarService {
     const done = d.items.filter((i) => i.done).length;
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
-      totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, categoryId: cat ? cat.id : null,
+      totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, ...(ev.recurringEventId ? { seriesId: ev.recurringEventId } : {}),
+      categoryId: cat ? cat.id : null,
       tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas,
       reminders: this.remindersView(ev, this.defaultsSync(ev.calendarId)), etag: ev.etag, updated: ev.updated,
     };

@@ -506,4 +506,34 @@ describe('deleted items', () => {
     items.applyResponse('2026-10-01', '2026-11-01', [list], 's');
     expect(items.get('g')).toBeUndefined();
   });
+
+  describe('a repeating list', () => {
+    const week = (id: string, date: string) =>
+      ({ kind: 'tasklist', id, seriesId: 'm', recurrence: 'weekly', title: 'Clean', date, time: null, items: [], doneCount: 0, totalCount: 0, categoryId: null, tags: [], color: '#000', etag: `"${id}"` }) as never;
+
+    it('deleted right after it was created goes as a whole series: every cached week leaves', async () => {
+      freshPinia();
+      const items = useItemsStore();
+      const m = mockFetch({ 'POST /api/tasklists': () => week('m_20261014', '2026-10-14'), 'DELETE /api/tasklists/m': () => ({}) });
+      const created = await items.createTaskList({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly' } as never);
+      items.upsert(week('m_20261021', '2026-10-21'));
+      await items.deleteTaskList(created.id, created.etag);
+      expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m']);
+      expect(items.get('m_20261014')).toBeUndefined();
+      expect(items.get('m_20261021')).toBeUndefined();
+      items.applyResponse('2026-10-19', '2026-10-26', [week('m_20261021', '2026-10-21')], 's'); // a fetch from before the delete
+      expect(items.get('m_20261021')).toBeUndefined();
+    });
+
+    it('a week the app did not just create is deleted on its own', async () => {
+      freshPinia();
+      const items = useItemsStore();
+      items.upsert(week('m_20261014', '2026-10-14'));
+      items.upsert(week('m_20261021', '2026-10-21'));
+      const m = mockFetch({ 'DELETE /api/tasklists/m_20261014': () => ({}) });
+      await items.deleteTaskList('m_20261014');
+      expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m_20261014']);
+      expect(items.get('m_20261021')).toBeDefined();
+    });
+  });
 });

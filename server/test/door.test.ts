@@ -30,4 +30,18 @@ describe('door plugin: which lists are due', () => {
     ], today);
     expect(got.map((l) => l.id)).toEqual(['m_20261019']);
   });
+
+  it('counts a timed repeating list once too (Google ids _YYYYMMDDTHHMMSSZ)', () => {
+    const today = '2026-10-19';
+    const got = dueDoorLists([
+      list({ id: 'm_20261012T070000Z', title: 'Bin day', date: '2026-10-12', time: '09:00', recurrence: 'weekly', seriesId: 'm' }),
+      list({ id: 'm_20261019T070000Z', title: 'Bin day', date: today, time: '09:00', recurrence: 'weekly', seriesId: 'm' }),
+    ], today);
+    expect(got.map((l) => l.id)).toEqual(['m_20261019T070000Z']);
+    const noSeries = dueDoorLists([
+      list({ id: 'm_20261012T070000Z', title: 'Bin day', date: '2026-10-12', time: '09:00', recurrence: 'weekly' }),
+      list({ id: 'm_20261019T070000Z', title: 'Bin day', date: today, time: '09:00', recurrence: 'weekly' }),
+    ], today);
+    expect(noSeries.map((l) => l.id)).toEqual(['m_20261019T070000Z']);
+  });
 });

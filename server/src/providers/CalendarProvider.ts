@@ -11,6 +11,8 @@ export interface GoogleEvent {
   recurrence?: string[];
   /** Set on instances/exceptions of a recurring event. */
   recurringEventId?: string;
+  /** Google `originalStartTime` of an instance/exception: its start by the series' rule (stays when the instance is moved). */
+  originalStartTime?: GoogleEventDateTime;
   /** Google `eventType` (`default`, `birthday`, ...); written only when a birthday is created. */
   eventType?: string;
   /** Google `visibility` / `transparency`; written only when a birthday is created (`private` / `transparent`). */

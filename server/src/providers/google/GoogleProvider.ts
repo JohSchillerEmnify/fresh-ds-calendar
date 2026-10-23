@@ -226,6 +226,7 @@ function fromApi(e: calendar_v3.Schema$Event, calendarId: string): GoogleEvent {
   if (e.sequence != null) ev.sequence = e.sequence;
   if (e.recurrence) ev.recurrence = e.recurrence;
   if (e.recurringEventId) ev.recurringEventId = e.recurringEventId;
+  if (e.originalStartTime) ev.originalStartTime = dt(e.originalStartTime);
   if (e.eventType) ev.eventType = e.eventType;
   if (e.visibility) ev.visibility = e.visibility;
   if (e.transparency) ev.transparency = e.transparency;
@@ -245,7 +246,7 @@ function fromApi(e: calendar_v3.Schema$Event, calendarId: string): GoogleEvent {
 }
 
 function toApi(x: GoogleEventInput | GoogleEventPatch): calendar_v3.Schema$Event {
-  const { recurringEventId: _r, ...rest } = x as Record<string, unknown>;
+  const { recurringEventId: _r, originalStartTime: _o, ...rest } = x as Record<string, unknown>;
   return structuredClone(rest) as calendar_v3.Schema$Event;
 }
 
