@@ -69,8 +69,10 @@ export function startTransitionWarnings(): () => void {
   const ui = useUiStore();
   const prefs = usePrefsStore();
   const warned = new Set<string>();
-  /** occurrence -> { snackbar id, start (epoch ms) } of the reminders currently shown. */
-  const shown = new Map<string, { id: number; startAt: number }>();
+  /** occurrence -> { snackbar id, start (epoch ms), item title } of the reminders currently shown. */
+  const shown = new Map<string, { id: number; startAt: number; itemTitle: string }>();
+  /** The snackbar text at `minuteStart`: the minutes really left, so it stays right while it is open. */
+  const liveText = (itemTitle: string, startAt: number, minuteStart: number): string => reminderText(itemTitle, Math.round((startAt - minuteStart) / 60_000));
   let day = clock.today;
 
   /** The next `PLAN_DAYS` days of segments, today first, without the calendars the person switched off. */
@@ -107,6 +109,8 @@ export function startTransitionWarnings(): () => void {
           if (minuteStart >= w.startAt || !occurrences.has(key) || !ui.snackbars.some((x) => x.id === w.id)) {
             ui.dismiss(w.id);
             shown.delete(key);
+          } else {
+            ui.update(w.id, liveText(w.itemTitle, w.startAt, minuteStart));
           }
         }
         // of the leads due for one event only the nearest one speaks; the earlier ones count as said
@@ -122,9 +126,9 @@ export function startTransitionWarnings(): () => void {
           if (!fresh) continue;
           const old = shown.get(occurrence);
           if (old) ui.dismiss(old.id);
-          // the text names the reminder's own lead ("starts in 30 min"), not the minutes left
-          const id = ui.notify(p.title, { duration: 0, testid: 'transition-warning' });
-          shown.set(occurrence, { id, startAt: p.startAt });
+          // the minutes left, counted down on every tick while it is shown
+          const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning' });
+          shown.set(occurrence, { id, startAt: p.startAt, itemTitle: p.itemTitle });
         }
       },
       { immediate: true },

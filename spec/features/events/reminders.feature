@@ -62,7 +62,8 @@ Feature: Several reminders per event, read from and written to Google
     When I add the default reminder "15 min" for the calendar "Personal"
     Then the calendar "Personal" has the default reminders "30, 15" in Google
 
-  Scenario: The app reminds at every reminder of an event
+  Scenario: The app reminds at every reminder of an event and counts down while it is open
+    The reminder in the open app says how long is left and keeps that right as the minutes pass.
     Given the calendar contains an event "Dentist" on 2026-10-12 from 11:00 to 11:30
     And the event "Dentist" has its own reminders "30, 15" in Google
     And the time is 2026-10-12 10:25 and the clock is running
@@ -70,8 +71,10 @@ Feature: Several reminders per event, read from and written to Google
     Then I do not see a transition warning
     When 5 minutes pass
     Then I see the transition warning "Dentist starts in 30 min"
+    When 2 minutes pass
+    Then I see the transition warning "Dentist starts in 28 min"
     When I dismiss the transition warning
-    And 15 minutes pass
+    And 13 minutes pass
     Then I see the transition warning "Dentist starts in 15 min"
 
   Scenario: No reminder when neither the calendar nor the event has one
@@ -93,7 +96,7 @@ Feature: Several reminders per event, read from and written to Google
     When I open the reminder settings
     And I switch on reminders for task lists
     And I open the week view for 2026-10-12
-    Then I see the transition warning "Taxes starts in 30 min"
+    Then I see the transition warning "Taxes starts in 29 min"
 
   @web-push
   Scenario: The browser push switch subscribes this browser

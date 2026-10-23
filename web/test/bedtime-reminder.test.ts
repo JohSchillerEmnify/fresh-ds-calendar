@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
+import { flushPromises } from '@vue/test-utils';
 import { addReminderSink, dueReminder, NATIVE_REMINDER_ID, REMINDED_KEY, upcomingReminder, startBedtimeReminder, stopBedtimeReminder } from '@/features/bedtime/bedtimeReminder';
 import { absMinutes, bedtimeWindows, DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { useClockStore } from '@/stores/clock';
@@ -58,6 +59,22 @@ describe('startBedtimeReminder', () => {
     await nextTick();
     expect(ui.snackbars).toHaveLength(1);
     expect(localStorage.getItem(REMINDED_KEY)).toBe('2026-10-15');
+    stop();
+  });
+
+  it('counts down while the app is open and goes away at bedtime', async () => {
+    const clock = setup('2026-10-14T22:30:00+02:00');
+    const stop = startBedtimeReminder();
+    const ui = useUiStore();
+    clock.nowTick = Date.parse('2026-10-14T22:40:00+02:00');
+    await flushPromises();
+    expect(ui.snackbars.map((s) => [s.text, s.duration])).toEqual([['Bedtime in 20 minutes', 0]]);
+    clock.nowTick = Date.parse('2026-10-14T22:59:00+02:00');
+    await flushPromises();
+    expect(ui.snackbars.map((s) => s.text)).toEqual(['Bedtime in 1 minute']);
+    clock.nowTick = Date.parse('2026-10-14T23:00:00+02:00');
+    await flushPromises();
+    expect(ui.snackbars).toEqual([]);
     stop();
   });
 

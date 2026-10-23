@@ -42,8 +42,6 @@ export interface PlannedReminder {
   itemTitle: string;
   /** Which kind of item reminds (the notifications pick their icon by it). */
   kind: 'event' | 'tasklist';
-  /** In-app snackbar text: "Dentist starts in 30 min" (shown live, gone at the start). */
-  title: string;
   /**
    * Notification text: the item's times, "11:00 – 11:30", never "in 30 min" (a notification may be read much later).
    * Prefixed with the day when the item is not on the day the reminder rings: "Tue 13 Oct, 11:00 – 11:30".
@@ -119,7 +117,7 @@ export function reminderPlan(days: Segment[][], nowMs: number, kinds: PlanKinds,
         const at = startAt - lead * 60_000;
         // the day goes first when the reminder rings on another day than the item (a day lead, or just before midnight)
         const body = zonedDate(at, tz) === s.date ? times : t('calendar.reminders.notification.dayTime', { day: dayLabel(s.date), time: times });
-        out.push({ key: `${occurrence}-${lead}`, occurrence, at, startAt, endAt, lead, itemTitle, kind: s.item.kind, title: reminderText(itemTitle, lead), body });
+        out.push({ key: `${occurrence}-${lead}`, occurrence, at, startAt, endAt, lead, itemTitle, kind: s.item.kind, body });
       }
     }
   }

@@ -1,5 +1,5 @@
 /**
- * Bedtime reminder: "Bedtime in N minutes" once per night while the app is open. Driven by the shared clock tick
+ * Bedtime reminder: "Bedtime in N minutes" once per night while the app is open, counting down until bedtime. Driven by the shared clock tick
  * (`clock.nowTick`, which pauses while the app is hidden), so it has no timer of its own. The reminder is handed to a
  * list of sinks; the snackbar is the first one and a later push notification can add another without touching the
  * schedule (feature bedtime). Inside the Android app the next reminder is also handed ahead of time to the
@@ -111,8 +111,11 @@ export function startBedtimeReminder(): () => void {
   const ui = useUiStore();
   const windows = useBedtimeWindows(() => ({ from: clock.today, to: toIsoDate(addDays(clock.todayDate, 2)) }));
   let last = remembered();
+  const text = (inMin: number) => t('bedtime.reminder', { count: inMin }, inMin);
+  /** The snackbar on screen and its night: it counts down on every tick and goes away at bedtime. */
+  let shown: { id: number; night: string } | null = null;
   const offSnackbar = addReminderSink((r) => {
-    ui.notify(t('bedtime.reminder', { count: r.inMin }, r.inMin), { duration: 10_000, testid: 'bedtime-reminder' });
+    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder' }), night: r.night };
   });
 
   scope = effectScope(true);
@@ -123,6 +126,11 @@ export function startBedtimeReminder(): () => void {
         // nothing while the app is hidden: the tick resumes when it is visible again
         if (typeof document !== 'undefined' && document.hidden) return;
         const due = dueReminder(windows.value, absMinutes(clock.today, clock.minutesNow), prefs.bedtime.reminderMinutes);
+        if (shown) {
+          // the minutes really left while it is open; gone at bedtime (or when bedtime mode changed)
+          if (due && due.night === shown.night) ui.update(shown.id, text(due.inMin));
+          else { ui.dismiss(shown.id); shown = null; }
+        }
         if (!due || due.night === last) return;
         last = due.night;
         remember(due.night);

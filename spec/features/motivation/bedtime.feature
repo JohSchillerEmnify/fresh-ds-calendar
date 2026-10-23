@@ -51,6 +51,14 @@ Feature: Bedtime mode
     When I open the day view for 2026-10-14
     Then I see the bedtime reminder "Bedtime in 30 minutes"
 
+  Scenario: The bedtime reminder counts down while the app is open
+    Given the time is 2026-10-14 22:30 and the clock is running
+    And bedtime mode is on with fixed times 23:00 and 07:00
+    When I open the day view for 2026-10-14
+    Then I see the bedtime reminder "Bedtime in 30 minutes"
+    When 10 minutes pass
+    Then I see the bedtime reminder "Bedtime in 20 minutes"
+
   Scenario: The band shows on the Approaching track
     Given the time is 2026-10-14 21:00
     And bedtime mode is on with fixed times 23:00 and 07:00

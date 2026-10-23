@@ -24,9 +24,9 @@ describe('reminder plan', () => {
 
   it('has one reminder per lead at start minus lead, soonest first', () => {
     const p = plan([dentist]);
-    expect(p.map((r) => [r.key, r.kind, r.title, r.body, r.at - NOW])).toEqual([
-      [`d@${D}T11:00-30`, 'event', 'Dentist starts in 30 min', '11:00 – 11:30', 5 * 60000],
-      [`d@${D}T11:00-15`, 'event', 'Dentist starts in 15 min', '11:00 – 11:30', 20 * 60000],
+    expect(p.map((r) => [r.key, r.kind, r.itemTitle, r.body, r.at - NOW])).toEqual([
+      [`d@${D}T11:00-30`, 'event', 'Dentist', '11:00 – 11:30', 5 * 60000],
+      [`d@${D}T11:00-15`, 'event', 'Dentist', '11:00 – 11:30', 20 * 60000],
     ]);
     expect(p[0]!.startAt - NOW).toBe(35 * 60000);
   });
@@ -43,14 +43,14 @@ describe('reminder plan', () => {
     expect(plan([ev('a', D, '2026-10-13', { allDay: true, ...remind([30]) })])).toEqual([]);
     const list = { kind: 'tasklist', id: 'l', calendarId: 'tasks', title: '', date: D, time: '12:00', items: [], doneCount: 0, totalCount: 1, estimateMinutes: null, categoryId: null, tags: [], color: '#000', ...remind([60]), etag: 'e', updated: '' } as unknown as CalendarItem;
     expect(plan([list])).toEqual([]);
-    expect(plan([list], { events: false, tasklists: true }).map((r) => [r.kind, r.title, r.body])).toEqual([['tasklist', 'Untitled starts in 1 h', '12:00 – 12:30']]);
+    expect(plan([list], { events: false, tasklists: true }).map((r) => [r.kind, r.itemTitle, r.body])).toEqual([['tasklist', 'Untitled', '12:00 – 12:30']]);
     expect(plan([{ ...list, estimateMinutes: 45 } as CalendarItem], { events: false, tasklists: true }).map((r) => r.body)).toEqual(['12:00 – 12:45']);
   });
 
-  it('plans a day lead for an event of tomorrow and says the lead once per duplicate', () => {
+  it('plans a day lead for an event of tomorrow, a duplicate lead once', () => {
     const tomorrow = ev('t', t('2026-10-13', '12:00'), t('2026-10-13', '13:00'), { title: 'Trip', ...remind([1440, 1440]) });
     const p = reminderPlan([[], segsOf([tomorrow], '2026-10-13')], NOW, kinds, 'x', TZ);
-    expect(p.map((r) => [r.title, r.at - NOW])).toEqual([['Trip starts in 1 day', (1440 + 12 * 60 - NOW_MIN - 1440) * 60000]]);
+    expect(p.map((r) => [r.lead, r.at - NOW])).toEqual([[1440, (1440 + 12 * 60 - NOW_MIN - 1440) * 60000]]);
   });
 
   it('gives the times, with the day first when the item is not on the day the reminder rings', () => {

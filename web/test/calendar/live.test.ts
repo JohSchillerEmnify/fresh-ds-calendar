@@ -175,7 +175,7 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     expect(ui.snackbars).toHaveLength(0);
   });
 
-  it('rings at every lead of an event, the nearest due one only, and shows a day lead in words', async () => {
+  it('rings at every lead of an event, the nearest due one only, and counts down the minutes left', async () => {
     const { clock, items } = await boot('10:25', true);
     items.applyResponse(D, W, [ev('d', t(D, '11:00'), t(D, '11:30'), { title: 'Dentist', reminders: { useDefault: false, minutes: [30, 15] } })], 's');
     const ui = useUiStore();
@@ -185,16 +185,19 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     expect(warn()).toEqual([]);
     await vi.advanceTimersByTimeAsync(5 * 60000);
     expect(warn()).toEqual(['Dentist starts in 30 min']);
+    // while it is open it counts down
+    await vi.advanceTimersByTimeAsync(2 * 60000);
+    expect(warn()).toEqual(['Dentist starts in 28 min']);
     ui.snackbars = [];
-    await vi.advanceTimersByTimeAsync(15 * 60000);
+    await vi.advanceTimersByTimeAsync(13 * 60000);
     expect(warn()).toEqual(['Dentist starts in 15 min']);
-    // joining late: both leads are due, only the nearest speaks
+    // joining late: both leads are due, only the nearest speaks, with the minutes really left
     stopTransitionWarnings();
     ui.snackbars = [];
     vi.setSystemTime(at('10:50'));
     clock.nowTick = at('10:50').getTime();
     startTransitionWarnings();
-    expect(warn()).toEqual(['Dentist starts in 15 min']);
+    expect(warn()).toEqual(['Dentist starts in 10 min']);
   });
 
   it('stays quiet for an event of a hidden calendar and speaks up when it is shown again', async () => {
@@ -212,7 +215,7 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     cals.list = [{ ...cals.list[0]!, hidden: false }];
     await vi.advanceTimersByTimeAsync(60000);
     await flushPromises();
-    expect(ui.snackbars.filter((s) => s.testid === 'transition-warning').map((s) => s.text)).toEqual(['Dentist starts in 10 min']);
+    expect(ui.snackbars.filter((s) => s.testid === 'transition-warning').map((s) => s.text)).toEqual(['Dentist starts in 9 min']);
   });
 });
 
