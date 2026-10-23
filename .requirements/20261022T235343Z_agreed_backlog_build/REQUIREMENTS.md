@@ -55,6 +55,18 @@ R3.3 "A Labs view that is not offered still opens by its address": already imple
 
 Acceptance: the three scenarios and the rest of labs-timeline.feature green on mobile and desktop; screenshots looked at.
 
+### R4 (group 4) Tasks filter, Tasks view, Canvas areas
+
+R4.1 "This week ends on Sunday": already implemented; tag removed only.
+R4.2 "Deleting an area leaves its notes where they lie" and "A long press on an area moves it": already implemented;
+steps added (fixture through `PUT /api/canvas` + `PATCH /api/tasklists/:id { canvas }`, delete through the area
+editor, long-press drag with a finger). The fixture's premise (the note is in the area before the delete) was checked
+once with a temporary assertion.
+R4.3 "Tomorrow puts an undated list in the calendar on the next day": NOT built, stays `@backlog`. The owner removed the
+Today/Tomorrow quick actions of the Tasks view on 2026-10-13 (commit fd388b6, "re-date by dragging in the calendar"),
+together with this very step; the scenario was re-derived on 2026-10-22 from the feature prose, which still mentions
+"Today, Tomorrow". Building it would bring back a removed control: owner decision.
+
 ## Testing Plan
 
 Per group: unit/server test where server behaviour changes, then the targeted e2e scenarios red → green, then

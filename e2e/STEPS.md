@@ -1905,6 +1905,14 @@ the Canvas zoom is above {float}
   (a handle drags at once, no long press). "the area A is W wide and H high": `data-w`, `data-h` and the saved area
   (`GET /api/canvas`) agree.
 - "in / not in the Unsorted stack": `data-placed` is `"false"` / `"true"`.
+- "the Canvas has the area A with the note T in it" (fixture): `PUT /api/canvas` adds the area A (x 300, y 200, 480 x 360)
+  to the saved ones, and `PATCH /api/tasklists/:id { canvas: { x: 320, y: 256 } }` places T 20, 56 inside it.
+- "I delete the area A on the Canvas": opens the Canvas, clicks A's `canvas-area-header` (opens the editor), clicks
+  `canvas-area-delete`, then waits until A is gone from the page and from `GET /api/canvas`. "the note T is in no area":
+  T is visible and has no (or an empty) `data-area`.
+- "I long-press the area A and drag it by DX, DY pixels": notes A's `data-x`/`data-y`, then a finger on the body of A
+  (as "release without moving"), held 500 ms, moved by DX, DY in 10 steps and lifted. "the area A has moved by DX, DY":
+  `data-x`/`data-y` and the saved area are the noted place + (DX, DY) / `data-zoom` of `canvas-viewport` (± 1).
 - "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until

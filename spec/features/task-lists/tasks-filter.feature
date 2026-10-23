@@ -74,7 +74,6 @@ Feature: One filter for the whole Tasks view
     And the Tasks view When filter is "This week"
     And the Tasks view lists "Milk"
 
-  @backlog
   Scenario: This week ends on Sunday
     Given the calendar contains a task list "Market" on 2026-10-18 with items:
       | item  | done |
