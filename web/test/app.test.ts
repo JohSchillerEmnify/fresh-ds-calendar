@@ -470,7 +470,9 @@ describe('settings', () => {
     await wait(() => expect(w.findAll(tid('reminders-calendar'))).toHaveLength(2));
     const personal = () => w.get('[data-calendar-id="primary"]');
     expect(personal().findAll(tid('calendar-default-reminder')).map((c) => c.text())).toEqual(['30 min']);
-    expect(w.get('[data-calendar-id="ro"]').find(tid('calendar-default-reminder-add')).exists()).toBe(false);
+    // a read-only calendar's defaults are editable too (Google first, else kept by the app), without a read-only note
+    expect(w.get('[data-calendar-id="ro"]').find(tid('calendar-default-reminder-add')).exists()).toBe(true);
+    expect(w.get('[data-calendar-id="ro"]').find('.note').exists()).toBe(false);
     await personal().get(tid('calendar-default-reminder-add')).trigger('click');
     await personal().get('[data-testid="calendar-default-reminder-option"][data-minutes="15"]').trigger('click');
     await flushPromises();

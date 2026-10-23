@@ -95,7 +95,6 @@ export default {
       hint: 'When the app rings before an appointment, per calendar',
       title: 'Reminders',
       intro: 'These are Google Calendar\'s own reminders. A calendar\'s default applies to every appointment that has no list of its own.',
-      readOnly: 'Read-only calendar',
       defaultFor: 'Default reminders of {name}',
       push: {
         title: 'Browser',

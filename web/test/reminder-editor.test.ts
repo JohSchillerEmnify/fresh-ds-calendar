@@ -52,11 +52,4 @@ describe('ReminderEditor', () => {
     expect(chips(w)).toEqual([]);
     expect(w.text()).toContain('Enter minutes from 0 to 40320');
   });
-
-  it('is read-only without add and remove controls', () => {
-    const w = editor({ useDefault: false, minutes: [10] }, { readonly: true, allowDefault: false });
-    expect(chips(w)).toEqual([['10', '10 min']]);
-    expect(w.find(tid('e-reminder-add')).exists()).toBe(false);
-    expect(w.find(tid('e-reminder-remove')).exists()).toBe(false);
-  });
 });

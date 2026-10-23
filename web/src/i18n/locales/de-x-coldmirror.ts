@@ -92,7 +92,6 @@ export default {
       hint: 'Wann die App vor einem Termin klingelt, pro Kalender',
       title: 'Erinnerungen, yo',
       intro: 'Das sind die Erinnerungen von Google Kalender. Der Standard eines Kalenders gilt für jeden Termin ohne eigene Liste, Digga.',
-      readOnly: 'Nur lesen, yo',
       defaultFor: 'Standard-Erinnerungen von {name}',
       push: {
         title: 'Browser',
