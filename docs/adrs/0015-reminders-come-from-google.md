@@ -29,3 +29,10 @@ stores them per calendar (defaults) and per event. The app should ring itself, e
 - An event changed only in Google gets its notifications and pushes updated at the next sync of one of the person's
   apps (owner accepted); the widget's background fetch does not schedule.
 - Two separate "minutes before" settings cannot contradict each other: there is only Google's.
+
+## Addendum (owner, 2026-10-23)
+
+- On calendars the person can only read, Google stays first but may refuse: then the app keeps the person's own reminders
+  (an event's list, and since the same day the calendar's default list) in `reminder-overrides.json` and applies them on
+  every read, so they ring like Google's (requirements 20261023T015842Z_readonly_reminders and
+  20261023T041512Z_readonly_default_reminders).
