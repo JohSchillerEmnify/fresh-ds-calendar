@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
-import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -75,6 +75,12 @@ export function testRoutes(ctx: Ctx): Hono {
     const b = parse(testConfigSchema, await body(c));
     if (b.pollIntervalMs !== undefined) ctx.overrides.pollIntervalMs = b.pollIntervalMs;
     return c.json(configResponse(ctx));
+  });
+
+  // "The server answers only after N seconds": every later non-test /api answer waits `ms` (cleared by reset).
+  t.post('/slow', async (c) => {
+    ctx.overrides.slowMs = parse(testSlowSchema, await body(c)).ms;
+    return c.json({ ms: ctx.overrides.slowMs });
   });
 
   // "A new version of the app is deployed": /api/config reports this build version from now on.
