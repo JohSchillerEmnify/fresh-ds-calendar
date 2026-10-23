@@ -374,7 +374,7 @@ Item steps act on the currently expanded task list.
 "the task list tap setting is S" (S = `inline` | `drawer`): `PATCH /api/prefs { taskOpen: S }` as that person, before the view opens.
 Expanded card (`tasklists-expand.feature`; feature tasklists-expand-card): "I expand the task list X" opens the list
 sheet: it taps the card, waits for the grown card (`tasklist-expanded` with `data-presentation="overlay"`), taps it and waits
-for the sheet. "I tap the task list X" is only the first tap; "I tap the expanded task list X" taps the grown card
+for the sheet; when the first tap already opens the sheet (growing is a Labs setting, off by default) it stops there. "I tap the task list X" is only the first tap; "I tap the expanded task list X" taps the grown card
 (`tasklist-card-grown`), "the item I of the expanded task list" an item row (`tasklist-card-item`) of it. "opens as the list
 sheet": a `tasklist-expanded` that is not the overlay is visible and the overlay is gone. "I tap outside the expanded task
 list" clicks a point of the viewport outside it and not on a button, link or field. "I note where the task list cards are" /
@@ -2387,8 +2387,9 @@ the door board gets {string} from {string}
 - "I edit the task list T": the Tasks view, a tap on T's title (`tasks-item` → `tasklist-expanded-title`) opens its
   form (`tasklist-dialog`). The switch is `tasklist-door-switch` (row `tasklist-door`); "there is no ... switch": none
   in the form. "... and turn Show on door on": clicks the switch and saves (`tasklist-save`, PATCH 200).
-  "I open the list sheet of T and turn ... on": the day view of T's date, a tap on T's card opens its sheet
-  (`tasklist-expanded` without `data-presentation=overlay`), the switch there patches the tag at once.
+  "I open the list sheet of T and turn ... on": the day view of T's date, T's sheet opened as "I expand the task list"
+  does (an open desktop tray is collapsed first; `tasklist-expanded` without `data-presentation=overlay`), the switch
+  there patches the tag at once.
 
 ## Visual states (`@visual`)
 
