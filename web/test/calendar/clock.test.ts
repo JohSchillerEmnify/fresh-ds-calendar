@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CalendarItem } from '@/api/types';
 import { clockSegments, clockText, focusWedge, tappedTime, turnedStart } from '@/features/labs/clock/clock';
 import {
-  alongArcLabel, CENTER, clip, fadingRows, gapTrimmed, labelSizing, minuteAt, placeLabelsNear, pointAt, radiusAt, ringLayout, sectorPath, VIEW, wrapDelta,
+  alongArcLabel, alongHits, CENTER, clip, fadingRows, gapTrimmed, labelSizing, minuteAt, placeLabelsNear, pointAt, radiusAt, ringLayout, sectorPath, VIEW, wrapDelta,
 } from '@/features/labs/clock/geometry';
 import { ev, segsOf, t } from './helpers';
 
@@ -142,12 +142,16 @@ describe('clock gestures', () => {
 });
 
 describe('clock rings', () => {
-  it('puts rings 20 apart with a 4-unit gap and squeezes them when many are needed', () => {
-    const few = ringLayout(3, { outer: 158, inner: 96, step: 20, gap: 4 });
-    expect([few.r(0), few.r(1), few.r(2), few.width]).toEqual([158, 138, 118, 16]);
-    const many = ringLayout(7, { outer: 158, inner: 96, step: 20, gap: 4 });
-    expect(many.r(6)).toBeCloseTo(96);
+  it('puts rings 20 apart with a 4-unit gap, squeezes them when many are needed, but never below the narrowest band', () => {
+    const spec = { outer: 158, inner: 96, step: 20, gap: 4, minWidth: 8 };
+    const few = ringLayout(3, spec);
+    expect([few.r(0), few.r(1), few.r(2), few.width, few.shown]).toEqual([158, 138, 118, 16, 3]);
+    const many = ringLayout(6, spec);
+    expect(many.r(5)).toBeCloseTo(96);
     expect(many.r(0) - many.r(1) - many.width).toBeCloseTo(4);
+    const tooMany = ringLayout(12, spec);
+    expect(tooMany.shown).toBe(6);
+    expect(tooMany.width).toBeGreaterThanOrEqual(8);
   });
   it('trims both ends of an arc by half the gap, so back-to-back arcs on a ring stay apart, but keeps a sliver', () => {
     const a = gapTrimmed(540, 600, 158, 4), b = gapTrimmed(600, 660, 158, 4);
@@ -186,10 +190,10 @@ describe('clock labels near their arcs', () => {
         const [x, y] = [a.box, b.box];
         expect(x.x0 < y.x1 && y.x0 < x.x1 && x.y0 < y.y1 && y.y0 < x.y1, `${a.key} vs ${b.key}`).toBe(false);
       }
-      // no corner of a name lies on an arc band
-      for (const [cx, cy] of [[a.box.x0, a.box.y0], [a.box.x1, a.box.y0], [a.box.x0, a.box.y1], [a.box.x1, a.box.y1]]) {
-        const r = radiusAt(cx, cy), m = minuteAt(cx, cy);
-        for (const arc of arcs) expect(Math.abs(r - arc.r) < arc.w / 2 && m > arc.from && m < arc.to, `${a.key} on ${arc.key}`).toBe(false);
+      // no point of a name's box (its whole area, every unit) lies on an arc band
+      for (let x = a.box.x0; x <= a.box.x1; x += 1) for (let y = a.box.y0; y <= a.box.y1; y += 1) {
+        const r = radiusAt(x, y), m = minuteAt(x, y);
+        for (const arc of arcs) expect(Math.abs(r - arc.r) < arc.w / 2 && m > arc.from && m < arc.to, `${a.key} on ${arc.key} at ${x},${y}`).toBe(false);
       }
     }
   });
@@ -200,6 +204,13 @@ describe('clock labels near their arcs', () => {
     expect(radiusAt(p.fx, p.fy)).toBeCloseTo(158 - 8);
     const m = minuteAt(p.fx, p.fy);
     expect(m >= 1424.9 || m <= 0.1, `leader at minute ${m}`).toBe(true);
+  });
+  it('starts the leader on an arc longer than half a day at its nearest end', () => {
+    const arcs = [ring('long', 120, 1080)];
+    const [p] = placeLabelsNear([{ ...arcs[0], text: 'Conference' }], arcs, { font: 12, plate: 176, keepOut: [keep] });
+    expect(p.shown).toBe(true);
+    const m = minuteAt(p.fx, p.fy);
+    expect(m >= 119.9 && m <= 1080.1, `leader at minute ${m}`).toBe(true);
   });
   it('cuts a long name that fits nowhere whole, and overflows one with no room at all', () => {
     const arcs = [ring('x', 700, 740)];
@@ -215,6 +226,12 @@ describe('clock labels near their arcs', () => {
 });
 
 describe('clock names along the rings (rings variant)', () => {
+  it('tells when a name along a ring runs into the middle text', () => {
+    const middle = [{ x0: CENTER - 80, y0: CENTER + 40, x1: CENTER + 80, y1: CENTER + 70 }];
+    expect(alongHits(660, 780, 60, 12, middle)).toBe(true); // lower half, a ring that far in: right through the line
+    expect(alongHits(660, 780, 156, 12, middle)).toBe(false); // outer ring passes below it
+    expect(alongHits(0, 120, 60, 12, middle)).toBe(false); // upper half
+  });
   it('runs clockwise on the upper half and turns on the lower half, so the text is never upside down', () => {
     const top = alongArcLabel(1320, 1439, 150, 11, 'Night'), bottom = alongArcLabel(660, 780, 150, 11, 'Lunch');
     expect(top.flipped).toBe(false);

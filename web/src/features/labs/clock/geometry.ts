@@ -89,16 +89,22 @@ export function sectorPath(from: number, to: number, r: number): string {
 /** Minutes of the dial that an arc length of `units` (viewBox units) spans at radius `r`. */
 const unitsToMin = (units: number, r: number): number => (units / (2 * Math.PI * r)) * 1440;
 
-/** Ring sizes: centre radius of the outermost ring, the smallest allowed centre radius, ring pitch and gap. */
-export interface RingSpec { outer: number; inner: number; step: number; gap: number }
+/**
+ * Ring sizes: centre radius of the outermost ring, the smallest allowed centre radius, ring pitch, gap, and the
+ * narrowest band still drawn.
+ */
+export interface RingSpec { outer: number; inner: number; step: number; gap: number; minWidth: number }
 
 /**
  * Radius of each ring (lane 0 outermost) and the band width for `lanes` rings: `step` apart with `gap` between bands,
- * squeezed when they would reach further in than `inner`, so the middle stays free however many entries overlap.
+ * squeezed when they would reach further in than `inner`, so the middle stays free however many entries overlap; but
+ * never narrower than `minWidth`: `shown` is how many rings are drawn, entries on further rings are only listed.
  */
-export function ringLayout(lanes: number, spec: RingSpec): { r: (lane: number) => number; width: number } {
-  const step = lanes > 1 ? Math.min(spec.step, (spec.outer - spec.inner) / (lanes - 1)) : spec.step;
-  return { r: (lane) => spec.outer - lane * step, width: Math.max(4, step - spec.gap) };
+export function ringLayout(lanes: number, spec: RingSpec): { r: (lane: number) => number; width: number; shown: number } {
+  const fit = Math.floor((spec.outer - spec.inner) / (spec.minWidth + spec.gap)) + 1;
+  const shown = Math.max(1, Math.min(lanes, fit));
+  const step = shown > 1 ? Math.min(spec.step, (spec.outer - spec.inner) / (shown - 1)) : spec.step;
+  return { r: (lane) => spec.outer - lane * step, width: step - spec.gap, shown };
 }
 
 /**
@@ -153,6 +159,34 @@ function innerEdgeAt(m: number, arcs: ArcBand[], fallback: number): number {
   return edge;
 }
 
+/** The minute of an arc's span nearest to minute `m` (`m` itself when inside), wrap-aware for spans of any length. */
+function nearestInSpan(m: number, from: number, to: number): number {
+  const off = (((m - from) % 1440) + 1440) % 1440, span = to - from;
+  if (off <= span) return m;
+  return 1440 - off < off - span ? from : to;
+}
+
+/**
+ * Whether a box can touch an arc by angle: compares the minutes of the box's corners with the arc's span (with `slack`
+ * minutes); a box round the centre reaches every angle.
+ */
+function angleReach(b: Rect, near: number, a: ArcBand, slack: number): boolean {
+  if (near < 1) return true;
+  const ms = [minuteAt(b.x0, b.y0), minuteAt(b.x1, b.y0), minuteAt(b.x0, b.y1), minuteAt(b.x1, b.y1)];
+  // the box's angular range is under a half turn: measure it from its first corner, the short way
+  const ds = ms.map((m) => wrapDelta(ms[0], m));
+  const lo = ms[0] + Math.min(...ds), hi = ms[0] + Math.max(...ds);
+  const off = (((lo - slack - a.from) % 1440) + 1440) % 1440;
+  return off <= a.to - a.from || off >= 1440 - (hi - lo + 2 * slack);
+}
+
+/** Nearest and farthest distance of a box from the dial's centre. */
+function radialRange(b: Rect): [number, number] {
+  const nx = Math.min(Math.max(CENTER, b.x0), b.x1), ny = Math.min(Math.max(CENTER, b.y0), b.y1);
+  const far = Math.max(radiusAt(b.x0, b.y0), radiusAt(b.x1, b.y0), radiusAt(b.x0, b.y1), radiusAt(b.x1, b.y1));
+  return [radiusAt(nx, ny), far];
+}
+
 /**
  * Places each arc's name on the plate beside its own arc, without overlaps (owner, 2026-10-23: names drawn badly). A
  * name is tried on minutes inside its arc's span (middle first), then a little beyond it, each time starting just inside
@@ -180,9 +214,10 @@ export function placeLabelsNear(names: NameInput[], arcs: ArcBand[], opts: { fon
   function placeOne(n: NameInput, text: string): PlacedName | null {
     const w = text.length * font * 0.56;
     const span = n.to - n.from, mid = n.from + span / 2;
-    // minutes to try: the arc's middle, then outwards over its span in 10-minute steps, then up to an hour beyond it
-    const tries = [0];
-    for (let k = 10; k < span / 2 + 60; k += 10) tries.push(k, -k);
+    // minutes to try: the arc's middle, then outwards over its span (at most 6 steps each way), then up to an hour beyond
+    const tries = [0], step = Math.max(10, span / 12);
+    for (let k = step; k < span / 2; k += step) tries.push(k, -k);
+    for (let k = span / 2; k < span / 2 + 60; k += 15) tries.push(k, -k);
     for (const off of tries) {
       const m = (mid + off + 1440) % 1440;
       const sin = Math.sin((angleOf(m) * Math.PI) / 180), cos = Math.cos((angleOf(m) * Math.PI) / 180);
@@ -195,14 +230,18 @@ export function placeLabelsNear(names: NameInput[], arcs: ArcBand[], opts: { fon
         const x0 = anchor === 'end' ? p.x - w : anchor === 'start' ? p.x : p.x - w / 2;
         // a little room on both sides, so two names on one line never read as one
         const box = { x0: x0 - font * 0.3, y0: yc - h / 2, x1: x0 + w + font * 0.3, y1: yc + h / 2 };
-        const pts = outline(box);
-        if (pts.some(([x, y]) => radiusAt(x, y) > plate)) continue;
+        // cheap tests first: the plate (a box is farthest out at a corner), other names, then only the rings it reaches
+        const [near, far] = radialRange(box);
+        if (far > plate) continue;
         if (taken.some((t) => overlaps(t, box))) continue;
-        if (arcs.some((a) => pts.some(([x, y]) => onBand(x, y, a, pad)))) continue;
+        const reach = arcs.filter((a) => a.r + a.w / 2 + pad >= near && a.r - a.w / 2 - pad <= far && angleReach(box, near, a, 2));
+        if (reach.length) {
+          const pts = outline(box);
+          if (reach.some((a) => pts.some(([x, y]) => onBand(x, y, a, pad)))) continue;
+        }
         taken.push(box);
         // the leader starts on the arc itself, at the nearest minute of its span
-        const off = wrapDelta(n.from, m), mm = off >= 0 && off <= span ? m : Math.abs(off) < Math.abs(wrapDelta(n.to, m)) ? n.from : n.to;
-        const f = pointAt(mm, n.r - n.w / 2);
+        const f = pointAt(nearestInSpan(m, n.from, n.to), n.r - n.w / 2);
         return { key: n.key, shown: true, text, x: p.x, y: yc, anchor, box, fx: f.x, fy: f.y };
       }
     }
@@ -219,7 +258,7 @@ export function placeLabelsNear(names: NameInput[], arcs: ArcBand[], opts: { fon
  * `offset` is where along the path the text is anchored (`anchor`).
  */
 export function alongArcLabel(from: number, runTo: number, r: number, font: number, text: string): {
-  d: string; text: string; flipped: boolean; rBase: number; offset: number; anchor: 'start' | 'end';
+  d: string; text: string; flipped: boolean; rBase: number; offset: number; anchor: 'start' | 'end'; textTo: number;
 } {
   const pad = font * 0.4, charW = font * 0.56;
   const end = Math.min(runTo, from + 1439.9);
@@ -236,5 +275,22 @@ export function alongArcLabel(from: number, runTo: number, r: number, font: numb
   const large = end - from > 720 ? 1 : 0;
   const d = `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${rBase.toFixed(2)} ${rBase.toFixed(2)} 0 ${large} ${flipped ? 0 : 1} ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
   const pathLen = ((end - from) / 1440) * 2 * Math.PI * rBase;
-  return { d, text: shown, flipped, rBase, offset: flipped ? pathLen - pad : pad, anchor: flipped ? 'end' : 'start' };
+  const textTo = from + unitsToMin(2 * pad + shown.length * charW, r);
+  return { d, text: shown, flipped, rBase, offset: flipped ? pathLen - pad : pad, anchor: flipped ? 'end' : 'start', textTo };
+}
+
+/**
+ * Whether a name written along a ring from minute `from` to `to` at radius `r` (glyphs `font` high, centred on the
+ * ring) touches any of the `rects` (the middle text): its band is sampled every couple of units.
+ */
+export function alongHits(from: number, to: number, r: number, font: number, rects: Rect[]): boolean {
+  if (!rects.length) return false;
+  const n = Math.max(2, Math.ceil((((to - from) / 1440) * 2 * Math.PI * r) / 2));
+  for (let i = 0; i <= n; i++) {
+    for (const dr of [-font / 2, 0, font / 2]) {
+      const p = pointAt(from + ((to - from) * i) / n, r + dr);
+      if (rects.some((b) => p.x >= b.x0 && p.x <= b.x1 && p.y >= b.y0 && p.y <= b.y1)) return true;
+    }
+  }
+  return false;
 }

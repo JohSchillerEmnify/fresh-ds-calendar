@@ -1206,6 +1206,8 @@ every arc on the clock is named on the dial or next to it
 no two names on the clock overlap
 I open the rings clock for {date}
 no name on the clock is upside down
+the clock lists {string} next to the dial
+I tap {string} in the list next to the clock
 I tap the arc of {string}
 I turn the arc of {string} to {time}
 I select the arc of {string}
@@ -1314,11 +1316,12 @@ I tap the day label {date} in the horizontal view
   and release; "select" = a long press released in place (the arc gets `data-selected="true"` and `clock-handle`s with
   `data-edge` `start|end`); "drag the start|end handle" = press the handle and move round to T; "tap the clock at T" =
   a tap on the plate at radius 120. Touch projects use CDP touch events, others the mouse.
-- Clock rings (owner 2026-10-23): every `clock-arc` carries `data-r` (ring radius), `data-w` (band width) and
-  `data-draw-start` / `data-draw-end` (minutes of the drawn span: at least 15 minutes and the minimum event length,
-  trimmed by the gap to its ring neighbours). "on different rings": pairwise different `data-r`. "cover each other":
+- Clock rings (owner 2026-10-23): each `clock-arc` path is measured as rendered: its radius is the mean distance from
+  the dial's centre (viewBox 220, 220) of 33 points along it (`getPointAtLength`), its drawn span the unwrapped minutes
+  of those points, its band the rendered stroke width (`data-r` / `data-w` / `data-draw-*` carry the intended values
+  for debugging). "on different rings": pairwise different radii (rounded). "cover each other":
   two arcs whose bands overlap radially (|r1 − r2| < (w1 + w2) / 2) and whose drawn spans overlap. "the same ring with
-  a gap": equal `data-r` and the first one's drawn end lies before the second one's drawn start. "is not covered by":
+  a gap": equal radii and the first one's drawn end lies before the second one's drawn start. "is not covered by":
   the two do not cover each other. "these events on D:" a table `title | from | to`, created like the single-event
   step. "named on the dial or next to it": each arc's title has a visible `clock-label` or a visible
   `clock-overflow` chip (`data-title`, text "HH:MM title"), and at least half of the arcs are named on the dial. "no
@@ -1326,6 +1329,9 @@ I tap the day label {date} in the horizontal view
   of another or of `clock-time` / `clock-now-line` (the middle), by more than 1 px. "I open the rings clock for D" opens `/clock-rings/D`
   (`clock-view` with `data-variant="rings"`). "upside down": a `clock-label`'s first character lies right of its last
   one by more than the text's vertical run (its reading direction points into the left half-plane).
+- "the clock lists T next to the dial": a visible `clock-overflow` chip with exactly the text T ("HH:MM title"); "I tap
+  X in the list next to the clock" clicks the `clock-overflow` chip with `data-title` X. Entries on rings beyond the
+  narrowest band (6 on the clock, 4 on the rings clock) have no arc and are only listed.
 - Labs labels to ids: a Labs view label is turned into its id by lower-casing it and joining its words with "-"
   ("Clock: rings" → `clock-rings`).
 - "the middle of the clock says": `clock-now-line` text; "shades the time until T": `clock-wedge` `data-to`;

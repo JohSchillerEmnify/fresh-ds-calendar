@@ -9,8 +9,9 @@ Feature: Labs: experimental views and the 24-hour clock
   Overlapping entries are drawn on separate rings, so no arc ever covers another; entries back to back on one ring keep
   a gap between them. On the dial an arc is at least 15 minutes long (longer with a minimum event length), so a short
   entry stays visible and tappable; its real times never change. Each name sits beside its own arc, never over another
-  name, an arc or the middle; a name that finds no room on the dial is listed next to it with its time (owner,
-  2026-10-23: "separate events overlap each other, the names are not drawn very well").
+  name, an arc or the middle; a name that finds no room on the dial is listed next to it with its time, and so is an
+  entry beyond the sixth ring, which gets no arc (owner, 2026-10-23: "separate events overlap each other, the names
+  are not drawn very well"). Names stay where they are while an arc is dragged; only the dragged one's name hides.
   The clock is a full calendar view (owner, 2026-10-13): a tap on an arc opens the entry, a long press picks it up and
   turns it round the dial (15-minute steps, its length kept), a long press released in place shows handles at both ends
   that change the start or the end, and a tap on the empty dial creates an entry at that time. Today the middle says
@@ -111,6 +112,21 @@ Feature: Labs: experimental views and the 24-hour clock
     When I open the clock view for 2026-10-14
     Then every arc on the clock is named on the dial or next to it
     And no two names on the clock overlap
+
+  Scenario: An entry listed next to the dial opens with a tap
+    Given the calendar contains these events on 2026-10-14:
+      | title    | from  | to    |
+      | Standup  | 09:00 | 10:00 |
+      | Review   | 09:00 | 10:00 |
+      | Call     | 09:00 | 10:00 |
+      | Sync     | 09:00 | 10:00 |
+      | Retro    | 09:00 | 10:00 |
+      | Planning | 09:00 | 10:00 |
+      | Coffee   | 09:00 | 10:00 |
+    When I open the clock view for 2026-10-14
+    Then the clock lists "09:00 Coffee" next to the dial
+    When I tap "Coffee" in the list next to the clock
+    Then the event dialog is open
 
   Scenario: Task lists without a time are listed next to the dial
     Given the calendar contains a task list "Groceries" on 2026-10-14 with items:

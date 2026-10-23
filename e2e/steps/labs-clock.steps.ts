@@ -65,14 +65,28 @@ Then(
 /** What an arc covers on the dial: its ring (radius and band width) and its drawn span in minutes. */
 interface Drawn { title: string; r: number; w: number; d0: number; d1: number }
 
-/** The drawn extent of every clock arc (STEPS.md "Clock rings"). */
+/**
+ * The drawn extent of every clock arc, measured from the rendered path (STEPS.md "Clock rings"): its radius from
+ * points sampled along it, its span from the minutes of those points (unwrapped), its band from the rendered stroke width.
+ */
 async function drawnArcs(w: World): Promise<Drawn[]> {
   const arcs = w.page.locator(tid('clock-arc'));
   await expect(arcs.first()).toBeVisible();
-  return arcs.evaluateAll((els) => els.map((el) => ({
-    title: el.getAttribute('data-title')!, r: Number(el.getAttribute('data-r')), w: Number(el.getAttribute('data-w')),
-    d0: Number(el.getAttribute('data-draw-start')), d1: Number(el.getAttribute('data-draw-end')),
-  })));
+  return arcs.evaluateAll((els) => els.map((el) => {
+    const path = el as SVGPathElement, len = path.getTotalLength(), n = 32;
+    const pts = Array.from({ length: n + 1 }, (_, i) => path.getPointAtLength((len * i) / n));
+    const minute = (p: DOMPoint) => ((((Math.atan2(p.x - 220, 220 - p.y) * 180) / Math.PI + 360) % 360) / 360) * 1440;
+    let d0 = minute(pts[0]), prev = d0, d1 = d0;
+    for (const p of pts.slice(1)) {
+      let m = minute(p);
+      while (m < prev - 720) m += 1440;
+      prev = m;
+      d1 = m;
+    }
+    const r = pts.reduce((sum, p) => sum + Math.hypot(p.x - 220, p.y - 220), 0) / pts.length;
+    if (d1 < d0) [d0, d1] = [d1, d0];
+    return { title: el.getAttribute('data-title')!, r, w: parseFloat(getComputedStyle(el).strokeWidth), d0, d1 };
+  }));
 }
 
 /** Two arcs cover each other when their bands overlap radially and their drawn spans overlap in time. */
@@ -94,14 +108,14 @@ Then(
 
 Then('the arcs of {string} are on different rings', async function (this: World, titles: string) {
   const arcs = await Promise.all(titles.split(', ').map((t) => drawnOf(this, t)));
-  expect(new Set(arcs.map((a) => a.r)).size, JSON.stringify(arcs)).toBe(arcs.length);
+  expect(new Set(arcs.map((a) => Math.round(a.r))).size, JSON.stringify(arcs)).toBe(arcs.length);
 });
 
 Then(
   'the arcs of {string} and {string} are on the same ring with a gap between them',
   async function (this: World, first: string, second: string) {
     const [a, b] = [await drawnOf(this, first), await drawnOf(this, second)];
-    expect(b.r, 'same ring').toBe(a.r);
+    expect(b.r, 'same ring').toBeCloseTo(a.r, 0);
     expect(a.d1, `a gap between ${JSON.stringify(a)} and ${JSON.stringify(b)}`).toBeLessThan(b.d0);
   },
 );
@@ -168,6 +182,14 @@ Then('no name on the clock is upside down', async function (this: World) {
     return { name: t.textContent, dx: q.x - p.x, dy: q.y - p.y };
   }));
   for (const r of runs) expect(r.dx, `"${r.name}" reads ${JSON.stringify(r)}`).toBeGreaterThan(-Math.abs(r.dy));
+});
+
+Then('the clock lists {string} next to the dial', async function (this: World, text: string) {
+  await expect(this.page.locator(tid('clock-overflow')).filter({ hasText: exactText(text) })).toBeVisible();
+});
+
+When('I tap {string} in the list next to the clock', async function (this: World, title: string) {
+  await this.page.locator(`${tid('clock-overflow')}[data-title="${title}"]`).click();
 });
 
 Then('the clock lists {string} without a time', async function (this: World, text: string) {

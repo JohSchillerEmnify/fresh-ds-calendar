@@ -48,6 +48,16 @@ Feature: Labs: the clock with names along its rings
     Then every arc on the clock is named on the dial or next to it
     And no two names on the clock overlap
 
+  Scenario: On the rings clock no name runs into the middle
+    Given the time is 2026-10-14 08:50
+    And the calendar contains these events on 2026-10-14:
+      | title                                                    | from  | to    |
+      | Quarterly planning review with the whole leadership team | 08:55 | 11:00 |
+      | Call                                                     | 09:20 | 10:15 |
+      | Sync                                                     | 09:25 | 10:00 |
+    When I open the rings clock for 2026-10-14
+    Then no two names on the clock overlap
+
   Scenario: A tap on an arc of the rings clock opens the event
     When I open the rings clock for 2026-10-14
     And I tap the arc of "Dentist"
