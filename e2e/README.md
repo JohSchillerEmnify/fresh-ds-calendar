@@ -53,7 +53,8 @@ browser reports a `securitypolicyviolation` (the Content-Security-Policy is the 
    timers (and the app's minute ticker) fire only through `N minutes pass`. Debounces using `setTimeout` also freeze
    in such scenarios. The server clock is set with `frozen:false` (real-time running) and re-set after each advance.
 4. **Settings saved wait**: "I choose/enter ..." waits for `PATCH`/`PUT /api/settings` 200, except when the control
-   already shows the value (the app may then send nothing).
+   already shows the value (the app may then send nothing). While the browser is offline it waits for that request to
+   fail instead.
 5. **Plant stage names**: `data-stage` format is not specified ("Small plant" vs `small-plant`); compared ignoring case
    and non-alphanumerics. `plant-card-stage` is compared the same way.
 6. **"no reward effect appears"** (1 500 ms after the previous step): implemented as waiting 1 500 ms, then asserting no

@@ -215,3 +215,24 @@ Given('Google becomes unavailable', async function (this: World) {
 When('Google becomes available again', async function (this: World) {
   await this.api.setOutage(false);
 });
+
+/** How long Google's slow-down lasts (its `Retry-After`): long enough to assert on, short against the 2 s poll. */
+const SLOW_DOWN_SEC = 4;
+
+/**
+ * The next Google call answers "rate limited" (ADR 0007). Waits for the sync that hits it: an `/api/items` answer the
+ * server marked `X-Stale` (served from its cache during the cooldown). The cooldown ends at the latest
+ * {@link SLOW_DOWN_SEC} after that answer (`world.slowDownUntil`).
+ */
+When('Google asks the app to slow down for the next sync', async function (this: World) {
+  if (this.page.url().startsWith('http')) await this.settled().catch(() => undefined);
+  const timeout = (this.pollIntervalMs || 30_000) + 5_000;
+  this.extendTimeout(timeout);
+  const stale = this.page.waitForResponse(
+    (r) => new URL(r.url()).pathname === '/api/items' && r.headers()['x-stale'] === '1',
+    { timeout },
+  );
+  await this.api.rateLimitNext(SLOW_DOWN_SEC);
+  await stale;
+  this.slowDownUntil = Date.now() + SLOW_DOWN_SEC * 1000;
+});

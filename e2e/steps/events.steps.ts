@@ -300,6 +300,18 @@ Then('the event dialog is closed', async function (this: World) {
   await expect(dialog(this)).toBeHidden();
 });
 
+/** Clicks the topmost dialog's `sheet-scrim` at the first viewport corner (10 px in) that its panel does not cover. */
+When('I tap beside the dialog', async function (this: World) {
+  const panel = this.page.locator('[role="dialog"][aria-modal="true"]').last();
+  await expect(panel).toBeVisible();
+  const p = await box(panel);
+  const vp = this.page.viewportSize()!;
+  const corners = [[10, 10], [vp.width - 10, 10], [10, vp.height - 10], [vp.width - 10, vp.height - 10]];
+  const free = corners.find(([x, y]) => x < p.x || x > p.x + p.width || y < p.y || y > p.y + p.height);
+  if (!free) throw new Error('The dialog covers every corner of the viewport');
+  await this.page.getByTestId('sheet-scrim').last().click({ position: { x: free[0]!, y: free[1]! } });
+});
+
 Then('the event dialog shows the error {string}', async function (this: World, message: string) {
   await expect(dialog(this).getByTestId('event-error')).toHaveText(message);
 });

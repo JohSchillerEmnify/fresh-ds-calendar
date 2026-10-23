@@ -90,6 +90,7 @@ model {
     calendarService -> taskCodec 'encodes and decodes task lists with'
     calendarService -> googleProvider 'reads and writes through'
     calendarService -> mockProvider 'reads and writes through, when started with the mock'
+    mockProvider -> rateGuard 'guards its calls with the same rate guard, so a test can make the next call rate limited'
     tasksCalendar -> googleProvider 'finds or creates the hidden calendar through'
     auth -> sessions 'keeps sessions and tokens in'
     auth -> backup 'restores a person with no data at sign-in'

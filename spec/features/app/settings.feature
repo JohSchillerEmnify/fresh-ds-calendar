@@ -153,7 +153,6 @@ Feature: Settings
       | /settings/theme    |
       | /settings/reminders |
 
-  @backlog
   Scenario: A setting that cannot be saved goes back to what it was
     Given I open the path "/settings"
     And the network connection is lost

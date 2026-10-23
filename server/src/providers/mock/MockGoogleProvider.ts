@@ -3,6 +3,7 @@ import path from 'node:path';
 import { googleEventId } from '../../lib/ids.js';
 import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../../lib/time.js';
 import type { Clock } from '../../lib/clock.js';
+import { RateGuard } from '../google/RateGuard.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
   type CalendarProvider, type GoogleEvent, type GoogleReminder, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
@@ -32,6 +33,10 @@ export class MockGoogleProvider implements CalendarProvider {
   private events = new Map<string, GoogleEvent>();
   private seq = 0;
   private outage: { status: 500 | 503 } | null = null;
+  /** The real provider's rate guard (ADR 0007), without a fresh-cache window: every read still reaches the store. */
+  private guard = newGuard();
+  /** `Retry-After` (seconds) of the "rate limited" answer the next call gets; null = none queued. */
+  private rateLimitNext: number | null = null;
   private revoked = false;
   private calendarMissing = false;
   private calendars: ProviderCalendar[] = MOCK_CALENDARS.map((c) => ({ ...c }));
@@ -67,6 +72,13 @@ export class MockGoogleProvider implements CalendarProvider {
   setOutage(down: boolean, status: 500 | 503 = 503): void {
     this.outage = down ? { status } : null;
   }
+  /** The next call answers "rate limited" with this `Retry-After`, starting the guard's cooldown as Google would. */
+  setRateLimitNext(retryAfterSec: number): void {
+    this.rateLimitNext = retryAfterSec;
+  }
+  cooldownMs(): number {
+    return this.guard.cooldownMs();
+  }
   /** Simulates Google answering this person's token refresh with `invalid_grant`. */
   /** Simulates Google refusing calls because the calendar scope was not granted. */
   setCalendarMissing(missing: boolean): void {
@@ -88,6 +100,8 @@ export class MockGoogleProvider implements CalendarProvider {
     this.events.clear();
     this.calendars = MOCK_CALENDARS.map((c) => ({ ...c }));
     this.outage = null;
+    this.guard = newGuard();
+    this.rateLimitNext = null;
     this.scheduleFlush();
   }
   get size(): number {
@@ -113,9 +127,18 @@ export class MockGoogleProvider implements CalendarProvider {
   private check(): void {
     if (this.revoked) throw new ReauthRequiredError('invalid_grant');
     if (this.calendarMissing) throw new CalendarPermissionMissingError('Calendar scope not granted');
-    if (!this.outage) return;
-    if (this.outage.status === 500) throw new ProviderError('Simulated provider error');
-    throw new ProviderUnavailableError('Simulated outage');
+    // as GoogleProvider.call: no call during a cooldown; a queued rate-limit answer starts one
+    this.guard.assertOpen();
+    if (this.rateLimitNext !== null) {
+      const retryAfter = this.rateLimitNext;
+      this.rateLimitNext = null;
+      throw this.guard.noteRateLimited('mock', retryAfter);
+    }
+    if (this.outage) {
+      if (this.outage.status === 500) throw new ProviderError('Simulated provider error');
+      throw new ProviderUnavailableError('Simulated outage');
+    }
+    this.guard.noteSuccess();
   }
 
   // ---- CalendarProvider ----
@@ -124,8 +147,10 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   async listCalendars(): Promise<ProviderCalendar[]> {
-    this.check();
-    return this.calendars.map((c) => ({ ...c }));
+    return this.guard.cached('calendarList', async () => {
+      this.check();
+      return this.calendars.map((c) => ({ ...c }));
+    });
   }
 
   async insertCalendar(summary: string): Promise<ProviderCalendar> {
@@ -146,6 +171,11 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
+    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${(p.privateExtendedProperty ?? []).join('&')}`;
+    return this.guard.cached(key, async () => this.readEvents(p));
+  }
+
+  private readEvents(p: ListEventsParams): ListEventsResult {
     this.check();
     this.requireCalendar(p.calendarId);
     const min = p.timeMin ? Date.parse(p.timeMin) : -Infinity;
@@ -451,4 +481,9 @@ function applyPatch(cur: GoogleEvent, patch: GoogleEventPatch): void {
       (cur as unknown as Record<string, unknown>)[k] = structuredClone(v);
     }
   }
+}
+
+/** A rate guard whose reads are never fresh (ttl 0), so it only answers from its cache while rate limited. */
+function newGuard(): RateGuard {
+  return new RateGuard({ ttlMs: 0 });
 }
