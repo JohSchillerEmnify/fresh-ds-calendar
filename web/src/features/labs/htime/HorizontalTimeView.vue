@@ -12,14 +12,13 @@ import { useElementSize } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
 import { addDays } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
-import { useFilters } from '@/composables/useFilters';
+import { useDaySegments } from '@/composables/useDaySegments';
+import { useLoadDays } from '../useLoadDays';
 import { parseIsoDate, periodTitle, routePath, toIsoDate, weekdayLabels, weekDays } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
 import { useCalendarStore } from '@/stores/calendar';
-import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { usePrefsStore } from '@/stores/prefs';
-import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 import { createZoomController } from '../zoom/zoomGestures';
@@ -31,12 +30,9 @@ import {
 const route = useRoute();
 const router = useRouter();
 const cal = useCalendarStore();
-const items = useItemsStore();
-const cals = useCalendarsStore();
 const clock = useClockStore();
 const prefs = usePrefsStore();
 const ui = useUiStore();
-const filters = useFilters();
 
 const anchorDate = computed(() => parseIsoDate(route.params.param as string) ?? clock.todayDate);
 const days = computed(() => weekDays(anchorDate.value));
@@ -53,10 +49,7 @@ const { width: vw, height: vh } = useElementSize(port, undefined, { box: 'border
 const zoom = shallowRef(readStoredHZoom() ?? DEFAULT_ZOOM);
 
 /** Segments of one day without hidden calendars, filters applied; multi-day events show on each of their days. */
-function segsOf(date: string): Segment[] {
-  const l = (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
-  return filters.active.value ? l.filter((s) => filters.matches(s.item)) : l;
-}
+const segsOf = useDaySegments({ withSpans: true });
 const dayList = computed(() => days.value.map((d) => ({ date: toIsoDate(d), segs: segsOf(toIsoDate(d)) })));
 const layoutAt = (z: { x: number; y: number }) => layoutRows(dayList.value, vw.value, vh.value, z, prefs.minEventMinutes);
 const layout = computed(() => layoutAt(zoom.value));
@@ -135,9 +128,7 @@ watch(() => toIsoDate(anchorDate.value), async () => {
   ctl.set(s.z, s.x, s.y);
 });
 
-const loadRange = () => { const d = days.value; void items.setVisible(toIsoDate(d[0]!), toIsoDate(addDays(d[d.length - 1]!, 1))).catch(() => undefined); };
-watch(days, loadRange);
-onMounted(async () => { await nextTick(); loadRange(); });
+useLoadDays(days);
 let unbind: (() => void) | null = null;
 onMounted(() => { if (port.value) unbind = ctl.bind(port.value); });
 onBeforeUnmount(() => { unbind?.(); });
