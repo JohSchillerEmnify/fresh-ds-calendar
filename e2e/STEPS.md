@@ -1171,6 +1171,7 @@ Google has no birthday {string}
 the calendar contains an event {string} on {date} from {time} to {time} organised by {string}
 the calendar contains an event {string} on {date} from {time} to {time} organised by {string} with guests allowed to edit
 a calendar {string} shared with me with edit rights by {string}
+a calendar {string} shared with me read-only by {string}
 the calendar {string} contains an event {string} on {date} from {time} to {time}
 I start a new event
 I try to rename the event {string} through the API
@@ -1185,6 +1186,7 @@ the calendar picker does not offer {string}
 - "a calendar C shared with me with edit rights by E": adds a calendar to the mock account's list with id E (another
   person's primary calendar), `accessRole` writer and owner address E (`POST /api/__test/remote/calendars` with
   `accessRole`, `ownerEmail`).
+- "a calendar C shared with me read-only by E": the same with `accessRole` reader.
 - "the calendar C contains an event ...": inserts into the calendar named C as another Google client would.
 - "I start a new event": opens the week view and the "new event" dialog (`create-button`, `new-kind-event`).
 - "I try to rename the event T through the API": `PATCH /api/events/:id` with a new title, without the UI; "the API
@@ -2226,6 +2228,10 @@ the event {string} has the reminders {string} in Google
 the event {string} does not use the calendar default in Google
 the event {string} uses the calendar default in Google
 the event {string} still has the email reminder {string} in Google
+Google accepts reminder changes in calendars I can only read
+Google refuses reminder changes in calendars I can only read
+the event {string} in Google is still {string} on {date} from {time} to {time}
+the app keeps the reminders {string} for the event {string}
 I open the reminder settings
 I open the reminders settings
 the reminder settings show {string} for the calendar {string}
@@ -2249,6 +2255,11 @@ the server plans the push {string} saying {string} for {date} {time}
   X; "are X": the `event-reminder` chips' labels in order; "add R": `event-reminder-add`, pick R; "remove R": the
   `event-reminder-remove` of chip R; "choose the calendar default": `event-reminders-default`; "cannot add another":
   `event-reminder-add` is disabled.
+- Read-only events (feature reminders): "Google accepts / refuses reminder changes in calendars I can only read" sets the mock
+  provider's reader-reminder policy (`PUT /api/__test/remote/reader-reminders {allow}`; reset restores "refuses"). "the
+  event T in Google is still S on D from A to B": the stored Google event has that title and those start/end instants.
+  "the app keeps the reminders L for the event T": `GET /api/events/:id` shows exactly those popup minutes. The reminder
+  steps above work in the read-only dialog too (no save: each change is sent at once).
 - "I open the reminder settings": `/settings` → `settings-reminders` → `reminders-settings` visible. "show X for the calendar
   C": the `reminders-calendar` named C lists X; "add the default reminder R for C": its add button, pick R (saves at once).
   "switch on reminders for task lists": `reminders-tasklists` on.

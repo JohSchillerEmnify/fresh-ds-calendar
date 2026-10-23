@@ -55,6 +55,57 @@ Feature: Several reminders per event, read from and written to Google
     When I open the event "Concert"
     Then I cannot add another reminder
 
+  Scenario: Reminders of a read-only event can be changed and Google gets them
+    Only the reminders: the rest of the event stays look-only (owner, 2026-10-23).
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
+    And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
+    And the event "Yoga" has its own reminders "30" in Google
+    And Google accepts reminder changes in calendars I can only read
+    When I open the week view for 2026-10-12
+    And I open the event "Yoga"
+    And I add the reminder "15 min"
+    Then the event reminders are "30 min, 15 min"
+    And the event dialog is read-only
+    And the event "Yoga" has the reminders "30, 15" in Google
+    And the event "Yoga" in Google is still "Yoga" on 2026-10-14 from 07:00 to 08:00
+
+  Scenario: When Google refuses, the app keeps the reminders and they survive a reload
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
+    And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
+    And the event "Yoga" has its own reminders "30" in Google
+    And Google refuses reminder changes in calendars I can only read
+    When I open the week view for 2026-10-12
+    And I open the event "Yoga"
+    And I add the reminder "15 min"
+    Then the event reminders are "30 min, 15 min"
+    And the event "Yoga" has the reminders "30" in Google
+    And the app keeps the reminders "30, 15" for the event "Yoga"
+    When I reload the page
+    And I open the event "Yoga"
+    Then the event reminders are "30 min, 15 min"
+
+  Scenario: Reminders kept by the app ring like any other
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
+    And the calendar "Anna" contains an event "Yoga" on 2026-10-12 from 11:00 to 12:00
+    And Google refuses reminder changes in calendars I can only read
+    And the time is 2026-10-12 10:25 and the clock is running
+    When I open the week view for 2026-10-12
+    And I open the event "Yoga"
+    And I add the reminder "30 min"
+    And I cancel the event dialog
+    And 5 minutes pass
+    Then I see the transition warning "Yoga starts in 30 min"
+
+  Scenario: The rest of a read-only event still cannot be edited
+    Given a calendar "Anna" shared with me read-only by "anna@example.org"
+    And the calendar "Anna" contains an event "Yoga" on 2026-10-14 from 07:00 to 08:00
+    When I open the week view for 2026-10-12
+    And I open the event "Yoga"
+    And I add the reminder "15 min"
+    Then the event dialog has no save or delete button
+    When I try to rename the event "Yoga" through the API
+    Then the API answers 403
+
   Scenario: Settings show and change a calendar's default reminders
     Given the calendar "Personal" has the default reminders "30"
     When I open the reminder settings
