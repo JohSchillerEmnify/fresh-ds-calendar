@@ -31,7 +31,9 @@ EventBar's pointer handler) belongs to the parallel track `fix/overlap-pickup` u
 
 1. R1 The fit/lead/visibility logic of `TaskListCard` is a pure function with unit tests that pin today's results for
    every variant and mode it handles.
-2. R2 `TaskListCard` drops the `chip` and `dot` branches and CSS that no host uses.
+2. R2 ~~`TaskListCard` drops the `chip` and `dot` branches and CSS that no host uses.~~ Moved to the proposal (it
+   would delete golden states; owner decision). Replaced by: repeated rules shared by the item renderers move to one
+   place each (`showsHandles`, `--fade-end`, `--block-sh`).
 3. R3 Clones outside the drag/grid code are deduplicated (Settings/Theme save, labs day-range loading where it does not
    touch gesture binding).
 4. R4 Steps that need the drag/pointer/hit-test code (EventItem, EventBar, TimeGrid, dnd, removing `dot` from
@@ -43,12 +45,14 @@ EventBar's pointer handler) belongs to the parallel track `fix/overlap-pickup` u
 
 - AC1 (R1) New unit tests pass against the unchanged component logic first (characterization), then the component uses
   the extracted function and all web unit tests still pass.
-- AC2 (R2) `grep` finds no `'chip'`/`'dot'` branch in `TaskListCard.vue`; unit tests that mounted `chip` mount `card`
-  and assert the same things.
+- AC2 (R2) Each moved rule has one definition and a unit test where it is logic (`showsHandles`); goldens identical.
 - AC3 (R1–R3) `pnpm --silent verify` prints `verify: OK`; `pnpm dedup` clone count does not rise.
 - AC4 (all) The `@visual` scenarios have the same result as on the untouched branch, no snapshot file changed, and the
   actual pictures were looked at.
-- AC5 (R4) No diff in `features/calendar/dnd*.ts`, `EventItem.vue`, `EventBar.vue`, `TimeGrid.vue`.
+- AC5 (R4) Before `fix/overlap-pickup` was merged: no diff in `features/calendar/dnd*.ts`, `EventItem.vue`,
+  `EventBar.vue`, `TimeGrid.vue`. After the merge (coordinator's go-ahead): EventItem / EventBar change only through the
+  shared rules of R2; drag, pointer and hit-test handling (`dnd*.ts`, `motion/drag.ts`, `TimeGrid.vue`, EventBar's
+  pointer handler) stay untouched.
 
 ## Testing Plan
 

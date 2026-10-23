@@ -8,7 +8,7 @@ import '@/features/calendar/calendar.css';
 import '@/features/tasklists/tasklists.css';
 import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import { defineComponent, h, provide, type Component } from 'vue';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-vue';
 import type { CalendarEvent, TaskItem, TaskList } from '@/api/types';
@@ -21,8 +21,10 @@ export const THEMES = ['light', 'dark'] as const;
 /** Phone and desktop viewport widths in CSS px. */
 export const WIDTHS = { phone: 360, desktop: 1280 } as const;
 
-/** A fixed day far from the real today, so no entry is drawn as past or running. */
+/** The day the fixtures sit on. */
 export const DAY = '2030-01-07';
+/** The mocked "now": a week before {@link DAY}, so no entry is drawn as past or running, whatever the real date. */
+export const NOW = new Date('2030-01-01T12:00:00Z');
 
 /** One sized box of a golden sheet: the component, its props and the room its host gives it. */
 export interface Cell {
@@ -117,6 +119,8 @@ const frames = () => new Promise<void>((r) => requestAnimationFrame(() => reques
  */
 export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia) => void): Promise<void> {
   viewport ??= acquireViewport();
+  // only Date is faked: timers, animation frames and resize observers stay real
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW });
   for (const theme of THEMES) {
     for (const [width, px] of Object.entries(WIDTHS)) {
       document.documentElement.dataset.theme = theme;
@@ -135,4 +139,5 @@ export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia)
       await screen.unmount();
     }
   }
+  vi.useRealTimers();
 }

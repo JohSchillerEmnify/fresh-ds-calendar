@@ -15,5 +15,5 @@
     "useDefineForClassFields": true,
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "test/**/*.ts", "goldens/**/*.ts", "vite.config.ts", "vitest.goldens.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "test/**/*.ts", "goldens/**/*.ts", "vite.config.ts", "vitest.goldens.config.ts", "app-defines.ts"]
 }

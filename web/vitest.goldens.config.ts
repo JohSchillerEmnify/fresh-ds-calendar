@@ -9,14 +9,10 @@ import vue from '@vitejs/plugin-vue';
 import Icons from 'unplugin-icons/vite';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
+import { appDefines } from './app-defines';
 
 export default defineConfig({
-  define: {
-    __APP_VERSION__: JSON.stringify('0.1.0'),
-    __VUE_I18N_FULL_INSTALL__: false,
-    __VUE_I18N_LEGACY_API__: false,
-    __INTLIFY_PROD_DEVTOOLS__: false,
-  },
+  define: appDefines('0.1.0'),
   plugins: [vue(), Icons({ compiler: 'vue3', scale: 1 })],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   // pre-bundled up front: a dependency first seen mid-run makes Vite reload the page ("failed to find the runner")
@@ -37,7 +33,7 @@ export default defineConfig({
         toMatchScreenshot: {
           // pixel-identical: the refactor these guard must not move a single pixel
           comparatorName: 'pixelmatch',
-          comparatorOptions: { threshold: 0, allowedMismatchedPixels: 0 },
+          comparatorOptions: { threshold: 0, includeAA: true, allowedMismatchedPixels: 0 },
           // one set of baselines for every host: the browser always runs on Linux in the image
           resolveScreenshotPath: ({ arg, ext, root, testFileDirectory, testFileName }) =>
             join(root, testFileDirectory, '__screenshots__', testFileName, `${arg}${ext}`),
