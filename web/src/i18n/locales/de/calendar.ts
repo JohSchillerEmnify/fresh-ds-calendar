@@ -103,6 +103,7 @@ export default {
     freeUntil: 'Frei bis {time}',
     freeRest: 'Heute frei',
     more: '{count} weitere',
+    alsoNow: 'Gleichzeitig: {titles}',
   },
   duration: {
     minutes: '{minutes} Min.',

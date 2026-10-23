@@ -2,7 +2,8 @@
 Feature: Labs: Now and Next
   Experimental (Labs, off by default): today as a stack of big cards instead of a grid. The Now card says what is
   running and how much of it is left, in words and as a shrinking bar; with nothing running it shows the first open
-  task list of today, and with nothing to do it says until when I am free. The Next card says what comes next and how
+  task list of today, and with nothing to do it says until when I am free. Other events running at the same time are
+  named on it ("Also now"). The top bar names the view instead of a date, without moving through days (it is always today). The Next card says what comes next and how
   soon. The rest of today waits folded in a Later card. A tap on a card opens the entry.
 
   Background:
@@ -17,6 +18,18 @@ Feature: Labs: Now and Next
     And the time bar of the Now card is 58 % full
     When I tap the Now card
     Then the event dialog is open
+
+  Scenario: Other events running at the same time are named on the Now card
+    Given the time is 2026-10-14 14:25
+    And the calendar contains an event "Workshop" on 2026-10-14 from 13:00 to 17:00
+    When I open the Now view
+    Then the Now card shows "Dentist" with "35 min left"
+    And the Now card says that "Workshop" is also running
+
+  Scenario: The top bar names the Now view instead of a date
+    When I open the Now view
+    Then the period title is "Now"
+    And the top bar has no date navigation
 
   Scenario: The Next card says how soon the next entry starts
     Given the time is 2026-10-14 14:25

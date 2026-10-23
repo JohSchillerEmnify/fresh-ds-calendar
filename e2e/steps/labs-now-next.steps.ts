@@ -58,3 +58,13 @@ Then('the Later card lists {string}', async function (this: World, list: string)
   const got = await rows.evaluateAll((els) => els.map((e) => `${e.getAttribute('data-time')} ${e.getAttribute('data-title')}`));
   expect(got.join(', ')).toBe(list);
 });
+
+Then('the Now card says that {string} is also running', async function (this: World, titles: string) {
+  await expect(nowCard(this).getByTestId('nownext-also')).toHaveAttribute('data-titles', titles);
+});
+
+Then('the top bar has no date navigation', async function (this: World) {
+  const bar = this.page.getByTestId('top-bar');
+  await expect(bar.getByTestId('period-title')).toBeVisible();
+  for (const id of ['nav-prev', 'nav-next', 'nav-today']) await expect(bar.getByTestId(id)).toHaveCount(0);
+});

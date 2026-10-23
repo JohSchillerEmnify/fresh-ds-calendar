@@ -7,7 +7,8 @@ import { timedToday } from '@/features/labs/approach/approach';
 /** What the Now card shows: the running event, else the first open task list, else free time. */
 export type NowState =
   /** `endTime`: the event's real end (HH:MM), also when it ends on another day. */
-  | { kind: 'running'; segment: Segment; leftMin: number; leftPercent: number; endTime: string }
+  /** `alsoNow`: the other events running at the same time, ending first first. */
+  | { kind: 'running'; segment: Segment; leftMin: number; leftPercent: number; endTime: string; alsoNow: Segment[] }
   | { kind: 'tasks'; segment: Segment; task: string }
   /** `untilMin`: start of the next timed entry of today; null when nothing is left today. */
   | { kind: 'free'; untilMin: number | null };
@@ -41,13 +42,19 @@ function nowState(segs: Segment[], nowMin: number, next: UpNext | null): NowStat
     const startAbs = timeToMinutes(start.slice(11, 16));
     const endAbs = days(end) * 1440 + timeToMinutes(end.slice(11, 16));
     const leftMin = endAbs - (days(running.date) * 1440 + nowMin);
-    return { kind: 'running', segment: running, leftMin, leftPercent: Math.round((leftMin / (endAbs - startAbs)) * 100), endTime: end.slice(11, 16) };
+    return { kind: 'running', segment: running, leftMin, leftPercent: Math.round((leftMin / (endAbs - startAbs)) * 100), endTime: end.slice(11, 16), alsoNow: alsoRunning(segs, nowMin, running) };
   }
   const lists = segs.filter((s) => s.item.kind === 'tasklist' && s.item.items.some((i) => !i.done) && isDue(s, nowMin));
   // stable sort: the oldest list first, the day's order within a date
   const first = [...lists].sort((a, b) => listDate(a).localeCompare(listDate(b)))[0];
   if (first && first.item.kind === 'tasklist') return { kind: 'tasks', segment: first, task: first.item.items.find((i) => !i.done)!.title };
   return { kind: 'free', untilMin: next?.startMin ?? null };
+}
+
+/** Timed events running at `nowMin` other than `cur`, by end (the Approaching card's running rule). */
+function alsoRunning(segs: Segment[], nowMin: number, cur: Segment): Segment[] {
+  return segs.filter((s) => s !== cur && s.item.kind === 'event' && !s.allDay && s.startTime !== null && s.startMin <= nowMin && nowMin < s.endMin)
+    .sort((a, b) => a.endMin - b.endMin || a.startMin - b.startMin);
 }
 
 /** A list without a time is due all day; one with a time (also when carried over) once that time has come. */

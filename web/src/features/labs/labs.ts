@@ -14,16 +14,18 @@ export interface LabsView {
   route: string;
   /** Whether the view is offered until the person decides otherwise. */
   defaultOn: boolean;
+  /** No date: the path has none and the top bar names the view instead of a period, without moving through time. */
+  dateless?: true;
 }
 
 /** Every Labs view; adding an entry here adds its switch in the settings and its tab in the view switcher. */
 export const LABS_VIEWS: readonly LabsView[] = [
   { id: 'clock', labelKey: 'views.clock', icon: IconClock, route: '/clock', defaultOn: true },
-  { id: 'timeline', labelKey: 'views.timeline', icon: IconTimeline, route: '/timeline', defaultOn: true },
+  { id: 'timeline', labelKey: 'views.timeline', icon: IconTimeline, route: '/timeline', defaultOn: true, dateless: true },
   { id: 'strip', labelKey: 'views.strip', icon: IconStrip, route: '/strip', defaultOn: false },
   { id: 'zoom', labelKey: 'views.zoom', icon: IconZoomIn, route: '/zoom', defaultOn: true },
   { id: 'horizontal', labelKey: 'views.horizontal', icon: IconSwapHoriz, route: '/horizontal', defaultOn: true },
-  { id: 'now', labelKey: 'views.now', icon: IconViewAgenda, route: '/now', defaultOn: false },
+  { id: 'now', labelKey: 'views.now', icon: IconViewAgenda, route: '/now', defaultOn: false, dateless: true },
 ];
 
 /** Whether the person has the Labs view `id` switched on; without a stored choice the registry default applies, and an unknown id is on. */
@@ -36,7 +38,12 @@ export function visibleLabsViews(labsOn: boolean, chosen: Record<string, boolean
   return labsOn ? LABS_VIEWS.filter((v) => isLabsViewOn(v.id, chosen)) : [];
 }
 
-/** Route path of an experimental Labs view; the timeline and Now (always today) have no date. */
+/** The registry entry of `lab` when it is a date-less view (see {@link LabsView.dateless}), else undefined. */
+export function datelessLab(lab: string | undefined): LabsView | undefined {
+  return LABS_VIEWS.find((v) => v.id === lab && v.dateless);
+}
+
+/** Route path of an experimental Labs view; a date-less one has no date. */
 export function labPath(lab: string, d: Date): string {
-  return lab === 'timeline' || lab === 'now' ? `/${lab}` : `/${lab}/${toIsoDate(d)}`;
+  return datelessLab(lab) ? `/${lab}` : `/${lab}/${toIsoDate(d)}`;
 }

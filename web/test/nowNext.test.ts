@@ -79,4 +79,10 @@ describe('Now / Next deck model', () => {
     expect(r.now).toEqual({ kind: 'free', untilMin: m('18:00') });
     expect(title(r.next)).toBe('Old');
   });
+  it('names the other events running at the same time', () => {
+    const long = ev('long', t(D, '13:00'), t(D, '17:00'), { title: 'Workshop' });
+    const r = nowNextModel(segsOf([long, dentist], D), m('14:25'));
+    expect(r.now.kind === 'running' && r.now.alsoNow.map((s) => s.item.title)).toEqual(['Workshop']);
+    expect(nowNextModel(segsOf([dentist], D), m('14:25')).now).toMatchObject({ alsoNow: [] });
+  });
 });

@@ -116,3 +116,6 @@ PR boundary: all of the above is one reviewable unit (one experimental view behi
   counts its real time left/share/end (unit test); the Now card is a `div` whose title button covers the card, so the
   progress bar stays exposed to screen readers; `loaded` resets on a day turnover; `aria-controls` on the Later toggle;
   the bar step polls. Overlap (A9) and the top bar (A10) recorded as known limits.
+- Owner decisions (2026-10-23): A9 yes, the Now card names the other events running at the same time ("Also now: …").
+  A10 yes, date-less Labs views (registry flag `dateless: true`: Now, Timeline; Runway can set it) show the view's
+  name as the top bar title and no prev/next/Today or month picker; `labPath` reads the same flag.

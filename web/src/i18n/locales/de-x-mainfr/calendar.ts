@@ -91,6 +91,7 @@ export default {
     freeUntil: 'Frei bis {time}',
     freeRest: 'Heid is nix mehr',
     more: '{count} mehr',
+    alsoNow: 'Aa grad: {titles}',
   },
   duration: {
     minutes: '{minutes} Min.',

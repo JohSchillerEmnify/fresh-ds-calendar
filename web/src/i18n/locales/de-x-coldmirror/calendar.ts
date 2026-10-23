@@ -103,6 +103,7 @@ export default {
     freeUntil: 'Chillen bis {time}',
     freeRest: 'Heute nur noch chillen, yo',
     more: '{count} weitere, yo',
+    alsoNow: 'Parallel am Start, yo: {titles}',
   },
   duration: {
     minutes: '{minutes} Min.',

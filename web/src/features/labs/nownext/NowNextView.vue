@@ -65,6 +65,9 @@ const open = (s: Segment) => openItem(s.item);
             ><span class="fill" :style="{ transform: `scaleX(${now.leftPercent / 100})` }" /></span>
             <span class="end">{{ now.endTime }}</span>
           </span>
+          <span
+            v-if="now.alsoNow.length" class="also" data-testid="nownext-also" :data-titles="now.alsoNow.map((s) => s.item.title).join(', ')"
+          >{{ t('calendar.nowNext.alsoNow', { titles: now.alsoNow.map((s) => neutralName(s.item)).join(', ') }) }}</span>
         </template>
         <span v-else class="task" data-testid="nownext-task" :data-task="now.task">{{ t('calendar.nowNext.nextTask', { task: now.task }) }}</span>
       </div>
@@ -144,6 +147,7 @@ button.card:focus-visible, .toggle:focus-visible, .row:focus-visible { outline: 
 .bar { flex: 1; height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--c) 22%, transparent); overflow: hidden; }
 .fill { display: block; height: 100%; width: 100%; background: var(--c); border-radius: 6px; transform-origin: left center; transition: transform 800ms var(--md-sys-motion-emphasized); }
 html[data-motion='off'] .fill, html[data-motion='reduced'] .fill { transition: none; }
+.also { font: var(--md-sys-typescale-body-large); opacity: 0.85; overflow-wrap: anywhere; }
 .end { font: var(--md-sys-typescale-label-large); font-variant-numeric: tabular-nums; }
 .when { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .in { font: var(--md-sys-typescale-title-large); }
