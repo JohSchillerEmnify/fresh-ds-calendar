@@ -106,7 +106,7 @@ export default {
       },
     },
     notifications: {
-      hint: 'In der Android-App kommen die Erinnerungen auch bei zugeklappter App, Digga. Im Browser nur in der App (da braucht es HTTPS).',
+      hint: 'Die Erinnerungen kommen auch bei zugeklappter App, Digga: in der Android-App und im Browser, wenn „Erinnerungen in diesem Browser“ an ist (da braucht es HTTPS).',
       bedtime: 'Bettzeit-Alarm',
       events: { label: 'Vor Terminen', hint: 'Bei jeder Erinnerung eines Termins (Einstellungen → Erinnerungen), yo' },
       tasklists: 'Vor Listen mit Uhrzeit',
@@ -181,7 +181,6 @@ export default {
       appCert: { label: 'Signaturzertifikat der App (SHA-256), yo', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleich es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was geht ab, yo', hint: 'Die frischen Änderungen an der App', button: 'Zeig mal' },
       androidApp: { label: 'Android-App, fresh', updateLabel: 'App-Update, yo', hint: 'Fresh D. auf dein Handy, mit Wochen-Widget. Läuft überall, Digga', download: 'Runterladen, yo' },
-      server: { label: 'Server: {host}', hint: 'Auf welchem Fresh-D.-Server dein Kalender hängt, yo', change: 'Wechseln, yo' },
       installApp: { label: 'App installieren, yo', hint: 'Fresh D. auf deinen Home-Bildschirm, Digga', button: 'Zeig mal', title: 'Fresh D. installieren', step1: 'Tipp auf den Teilen-Button, yo', step2: 'Wähl „Zum Home-Bildschirm“', step3: 'Tipp auf Hinzufügen, BÄMbus!', close: 'Alles klar, Digga' },
       versionCorner: { label: 'Version in der Ecke zeigen, yo', hint: 'Ein kleines Label unten links. Ey, wenn hier einer unnötige Anglismen verwendet, dann bin das immer noch ich.' },
     },

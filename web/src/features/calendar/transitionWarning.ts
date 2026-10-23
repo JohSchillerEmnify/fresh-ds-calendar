@@ -1,15 +1,17 @@
 /**
- * Reminders in the open app and in the Android app (feature reminders). Both follow the reminder
- * plan (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
+ * Reminders in the open app, in the Android app and by Web Push (feature reminders). All follow the reminder plan
+ * (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
  * reminder lead of the item. Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
- * In the app, a dismissible snackbar "<title> starts in <lead>" (the lead as the reminder names it) shows once per event and lead from its time until the start
- * (several due leads show the nearest one). Events of hidden calendars never remind. It sees the items of the loaded range
- * only, i.e. while a calendar view showing today is cached.
- * Inside the Android app the next reminders (the next week, as far as loaded) are also scheduled ahead with the native
- * `Reminders` plugin, so they arrive as notifications while the app is closed, as chosen in Settings → Notifications
- * (`prefs.notify`), plus the optional morning overview of the day. In a browser with Web Push switched on, the plan of the next
- * 7 days (`pushPlan`) is sent to the server whenever it changed (the server sends each push at its time). Stored ids no longer wanted are cancelled, once on start
- * for everything the plugin still holds.
+ * In the app, a dismissible snackbar "<title> starts in <minutes>" shows once per event and lead from its time until the
+ * start and counts down the minutes really left on every tick (several due leads show the nearest one). Events of hidden
+ * calendars never remind.
+ * The plan covers the next 8 days and waits until all of them are loaded (they are fetched otherwise). Inside the Android
+ * app the next reminders are scheduled ahead with the native `Reminders` plugin, so they arrive as notifications while the
+ * app is closed, as chosen in Settings → Notifications (`prefs.notify`), plus the optional morning overview of the day. In
+ * a browser with Web Push switched on, the plan of the next 7 days (`pushPlan`, with the bedtime reminders and morning
+ * overviews) is sent to the server whenever it changed (the server sends each push at its time). Native ids no longer
+ * wanted are cancelled (once on start for everything the plugin still holds); a reminder that rang is kept while its item
+ * is still there, shown and switched on, so its notification stays until the item ends.
  */
 import { effectScope, watch, type EffectScope } from 'vue';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -17,7 +19,9 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
 import { usePrefsStore } from '@/stores/prefs';
-import { itemStart, pushPlan, reminderPlan, reminderText, type PlannedReminder } from './reminderPlan';
+import { itemStart, PUSH_PLAN_DAYS, pushPlan, reminderPlan, reminderText, type PlannedReminder, type PushPlanEntry } from './reminderPlan';
+import { bedtimeWindows } from '@/features/bedtime/bedtime';
+import { bedtimePushPlan } from '@/features/bedtime/bedtimeReminder';
 import { t } from '@/i18n';
 import { language } from '@/i18n/language';
 import { addDays, toIsoDate } from '@/lib/dates';
@@ -58,6 +62,26 @@ export function morningOverview(segs: Segment[]): { title: string; body: string 
   return { title: t('settings.notifications.overview.title'), body: parts.join(' · ') };
 }
 
+/**
+ * The morning overviews the server pushes while the app is closed (Web Push): one per day whose overview time lies ahead
+ * within the next 7 days, with the same text as the native one, keyed by the day.
+ *
+ * @param days The planned days with their segments (hidden calendars already filtered out).
+ * @param time The overview time, `HH:MM`.
+ * @param nowMs Now, epoch ms.
+ * @param tz The calendar time zone.
+ * @returns The push plan entries, kind `summary`.
+ */
+export function morningPushPlan(days: ReadonlyArray<{ date: string; segs: Segment[] }>, time: string, nowMs: number, tz: string): PushPlanEntry[] {
+  const minuteStart = nowMs - (nowMs % 60_000);
+  const until = nowMs + PUSH_PLAN_DAYS * 86_400_000;
+  return days.flatMap(({ date, segs }) => {
+    const at = Date.parse(localToIso(date, time, tz));
+    if (at <= minuteStart || at > until) return [];
+    return [{ at, key: `morning:${date}`, kind: 'summary' as const, ...morningOverview(segs.filter((s) => !s.carriedFrom)) }];
+  });
+}
+
 let scope: EffectScope | null = null;
 
 /** Starts the watchers on the active Pinia (previous ones are stopped first). Returns a stop function. */
@@ -75,11 +99,12 @@ export function startTransitionWarnings(): () => void {
   const liveText = (itemTitle: string, startAt: number, minuteStart: number): string => reminderText(itemTitle, Math.round((startAt - minuteStart) / 60_000));
   let day = clock.today;
 
-  /** The next `PLAN_DAYS` days of segments, today first, without the calendars the person switched off. */
-  const days = (): Segment[][] => Array.from({ length: PLAN_DAYS }, (_, i) => {
+  /** The next `PLAN_DAYS` days with their segments, today first, without the calendars the person switched off. */
+  const datedDays = (): Array<{ date: string; segs: Segment[] }> => Array.from({ length: PLAN_DAYS }, (_, i) => {
     const date = i === 0 ? clock.today : toIsoDate(addDays(clock.todayDate, i));
-    return (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
+    return { date, segs: (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
   });
+  const days = (): Segment[][] => datedDays().map((d) => d.segs);
   /**
    * Whether loaded ranges cover all `PLAN_DAYS` days from today, so a plan built now is complete (`byDate` has no entry for
    * a day without appointments, so it cannot tell). If not, the window is fetched; the watchers run again once it is in.
@@ -127,7 +152,8 @@ export function startTransitionWarnings(): () => void {
           const old = shown.get(occurrence);
           if (old) ui.dismiss(old.id);
           // the minutes left, counted down on every tick while it is shown
-          const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning' });
+          // read out when it appears, not on every minute of the countdown
+          const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning', countdown: true });
           shown.set(occurrence, { id, startAt: p.startAt, itemTitle: p.itemTitle });
         }
       },
@@ -139,13 +165,24 @@ export function startTransitionWarnings(): () => void {
       void refreshPushState();
       let sentSig = '';
       watch(
-        () => [items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, pushEndpoint.value] as const,
+        // a new day moves the window on: an open tab keeps the server's plan 7 days ahead
+        () => [clock.today, items.byDate, items.ranges, cals.hidden, language.value, prefs.notify, prefs.bedtime, pushEndpoint.value] as const,
         async () => {
           const endpoint = pushEndpoint.value;
           if (!endpoint) { sentSig = ''; return; }
           // a plan of a partly loaded week would wipe the server's pushes of the days not loaded
           if (!windowLoaded()) return;
           const entries = pushPlan(plan({ events: prefs.notify.events, tasklists: prefs.notify.tasklists }), clock.nowTick);
+          // the bedtime reminders and the morning overviews, as chosen in Settings → Notifications, by the same rules
+          if (prefs.notify.bedtime && prefs.bedtime.enabled) {
+            const range = { from: clock.today, to: toIsoDate(addDays(clock.todayDate, PLAN_DAYS)) };
+            const source = { get: (date: string) => (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)) };
+            // a night ending after the loaded days may depend on an appointment not loaded yet (dynamic mode): left out
+            const nights = bedtimeWindows(range, prefs.bedtime, source).filter((w) => w.wakeDate < range.to);
+            entries.push(...bedtimePushPlan(nights, prefs.bedtime.reminderMinutes, clock.nowTick, clock.timeZone));
+          }
+          if (prefs.notify.morning) entries.push(...morningPushPlan(datedDays(), prefs.notify.morningTime, clock.nowTick, clock.timeZone));
+          entries.sort((a, b) => a.at - b.at || a.key.localeCompare(b.key));
           const sig = `${endpoint}|${JSON.stringify(entries)}`;
           if (sig === sentSig) return;
           if (await sendPushPlan(endpoint, entries)) sentSig = sig;
@@ -159,10 +196,14 @@ export function startTransitionWarnings(): () => void {
     if (!plugin) return;
     /** id -> what was scheduled: its signature, when it rings, and for an item reminder the item, its start and end. */
     const sent = new Map<string, { sig: string; at: number; itemId?: string; startAt?: number; end?: number }>();
-    /** Whether the item is still there with that start (not deleted, not moved). */
+    /**
+     * Whether a rung reminder's item still wants its notification: still there with that start (not deleted, not moved),
+     * its calendar shown, and its kind still switched on in Settings → Notifications.
+     */
     const stillAt = (itemId: string, startAt: number): boolean => {
       const it = items.get(itemId);
-      return !!it && itemStart(it, clock.timeZone) === startAt;
+      if (!it || cals.isHidden(it.calendarId) || !(it.kind === 'event' ? prefs.notify.events : prefs.notify.tasklists)) return false;
+      return itemStart(it, clock.timeZone) === startAt;
     };
     let cleaned = false;
     watch(

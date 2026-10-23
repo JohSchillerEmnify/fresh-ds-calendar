@@ -19,8 +19,8 @@ model {
   }
 
   extend calendar.androidApp {
-    serverChoice = component 'Server choice' {
-      description 'The chooser between the two known servers, at the first start and after Change, and the offline page'
+    shell = component 'App shell' {
+      description 'Loads the configured server (https://cal.example.org) as its own address; the offline page when it cannot be reached'
     }
     appSignIn = component 'App sign-in' {
       description 'The Google sign-in run in the system browser, coming back by deep link and one-time code'
@@ -30,12 +30,10 @@ model {
     }
   }
 
-  calendar.androidApp.serverChoice -> calendar.web 'loads the chosen server\'s web app as the shell\'s own address'
-  calendar.androidApp.serverChoice -> calendar.widget.store 'drops the cached week and the snapshot when the server changes'
+  calendar.androidApp.shell -> calendar.web 'loads the server\'s web app as the shell\'s own address'
   calendar.androidApp.appSignIn -> calendar.server.auth 'starts the sign-in with a challenge; exchanges the code with its verifier'
   calendar.widget.fetcher -> calendar.server.itemsApi 'reads the current week with the app\'s session, hidden calendars left out'
   calendar.widget.renderer -> calendar.androidApp 'opens a tapped day or week in the app'
-  calendar.web.settings -> calendar.androidApp.serverChoice 'shows the server and clears the choice on Change, only in the app'
   calendar.web.signin -> calendar.androidApp.appSignIn 'hands over its sign-in start, in the app'
   calendar.web.reminderPlan -> calendar.androidApp.nativeReminders 'schedules the next reminders as notifications, in the app'
   calendar.web.bedtime -> calendar.androidApp.nativeReminders 'schedules the next bedtime reminder as a notification, in the app'

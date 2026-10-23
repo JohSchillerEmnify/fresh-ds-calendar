@@ -72,6 +72,16 @@ Then('on the timeline {string} is about {int} times as long as {string}', async 
   expect(ratio).toBeLessThan(n * 1.15);
 });
 
+Then('on the timeline {string} and {string} are side by side', async function (this: World, a: string, b: string) {
+  const at = (t: string) => this.page.locator(`[data-testid="timeline-item"][data-title="${t}"]`);
+  await expect(at(a)).toHaveCount(1);
+  await expect(at(b)).toHaveCount(1);
+  const [p, q] = [await box(at(a)), await box(at(b))];
+  // they share some height (overlap in time) but no width (1 px tolerance for borders)
+  expect(p.y < q.y + q.height && q.y < p.y + p.height, 'overlap vertically').toBe(true);
+  expect(p.x + p.width <= q.x + 1 || q.x + q.width <= p.x + 1, 'do not overlap horizontally').toBe(true);
+});
+
 Then('{string} is in the all-day band above the timed entries', async function (this: World, title: string) {
   const band = this.page.getByTestId('timeline-allday');
   const entry = band.locator(`[data-testid="timeline-item"][data-title="${title}"]`);

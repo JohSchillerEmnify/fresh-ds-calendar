@@ -103,7 +103,7 @@ export default {
       },
     },
     notifications: {
-      hint: 'In der Android-App kommen diese Erinnerungen auch, wenn die App geschlossen ist. Im Browser erscheinen sie nur in der App (Benachrichtigungen brauchen dort die HTTPS-Adresse).',
+      hint: 'Diese Erinnerungen kommen auch, wenn die App geschlossen ist: in der Android-App und in einem Browser, in dem „Erinnerungen in diesem Browser“ an ist (Einstellungen → Erinnerungen; dafür braucht es die HTTPS-Adresse).',
       bedtime: 'Erinnerung vor der Schlafenszeit',
       events: { label: 'Vor Terminen', hint: 'Bei jeder Erinnerung eines Termins (Einstellungen → Erinnerungen)' },
       tasklists: 'Vor Aufgabenlisten mit Uhrzeit',
@@ -178,7 +178,6 @@ export default {
       appCert: { label: 'Signaturzertifikat der App (SHA-256)', hint: 'Die hier angebotene Android-App ist mit diesem Zertifikat signiert. Vergleich es, bevor du ein Update installierst.' },
       whatsNew: { label: 'Was ist neu', hint: 'Die letzten Änderungen an der App', button: 'Anzeigen' },
       androidApp: { label: 'Android-App', updateLabel: 'App aktualisieren', hint: 'Den Kalender als Android-App mit Wochen-Widget für den Homescreen installieren', download: 'Herunterladen' },
-      server: { label: 'Server: {host}', hint: 'Welchen Kalender-Server die App benutzt', change: 'Ändern' },
       installApp: { label: 'App installieren', hint: 'Den Kalender zum Home-Bildschirm hinzufügen', button: 'Anleitung', title: 'Kalender installieren', step1: 'Tippe auf den Teilen-Button', step2: 'Wähle „Zum Home-Bildschirm“', step3: 'Tippe auf Hinzufügen', close: 'Verstanden' },
       versionCorner: { label: 'Version in der Ecke zeigen', hint: 'Ein kleines Label in einer unteren Ecke' },
     },

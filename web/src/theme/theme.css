@@ -8,6 +8,8 @@
   --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial;
   --e-fill: 100%; --e-bw: 0px; --e-bl: initial; --e-fg: initial; --e-mark: initial;
   --r-chip: 6px; --r-block: 8px;
+  /* a one-line entry title clipped without an ellipsis fades out over its last 7 px (phone chips, mini cards) */
+  --fade-end: linear-gradient(90deg, #000 calc(100% - 7px), transparent);
 }
 [data-glow='off'] { --glow-r: 0px; --glow-s: 0px; --glow-a: 0%; --glow-anim: initial; }
 [data-glow='soft'] { --glow-r: 9px; --glow-s: 0px; --glow-a: 55%; --glow-anim: initial; }
@@ -58,6 +60,8 @@ html[data-check='dot'] .rcb-check[data-glyph='dot'] { display: inline; }
 .skin {
   --on: var(--e-fg, var(--on-solid));
   --glow-sh: 0 0 var(--glow-r) var(--glow-s) color-mix(in srgb, var(--c) var(--glow-a), transparent);
+  /* a time grid block: a surface-coloured ring that separates side-by-side blocks, a small drop shadow, the glow */
+  --block-sh: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh);
   color: var(--on);
   background: color-mix(in srgb, var(--c) var(--e-fill), var(--md-sys-color-surface));
   border: var(--e-bw) solid var(--c);

@@ -5,10 +5,7 @@ import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 const isIos = detectIos();
 const showIosInstall = isIos && !isStandalone();
 const installing = ref(false);
-// inside the Android app: the server it runs on (null until the plugin answers)
-const nativeHost = ref<string | null>(null);
-if (isNativeApp()) void nativeServerHost().then((host) => { nativeHost.value = host; });
-import { androidAppLabelKey, changeNativeServer, downloadApk, isNativeApp, nativeServerHost } from '@/native/app';
+import { androidAppLabelKey, downloadApk, isNativeApp } from '@/native/app';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardArrowDown as IconDown, IconAdd, IconChevronRight as IconNext } from '@/components/icons';
@@ -35,6 +32,7 @@ import { useItemsStore } from '@/stores/items';
 import { systemReducedMotion } from '@/motion';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
+import { useSaveSettings } from '@/composables/useSaveSettings';
 import { useThemeStore } from '@/stores/theme';
 import { useUiStore } from '@/stores/ui';
 import { shownVersion } from '@/pwa/version';
@@ -68,15 +66,8 @@ async function savePrefs(p: Partial<Prefs>) {
   try { await labs.set(p); } catch (e) { ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed')); }
 }
 
-/** Persist a patch; failures roll back in the store and surface as the banner or a snackbar. */
-async function save(p: Parameters<typeof settings.patch>[0]) {
-  try {
-    await settings.patch(p);
-  } catch (e) {
-    if (e instanceof ApiError && e.isUnavailable) sync.reportError(e);
-    else ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
-  }
-}
+/** Persist a settings patch (failures: banner or snackbar, see `useSaveSettings`). */
+const save = useSaveSettings();
 
 function back() {
   if (window.history.state?.back) router.back();
@@ -369,7 +360,6 @@ async function resetDemo() {
           <div v-if="isMock" class="row"><div class="grow"><span class="lab">{{ t('settings.account.resetDemo.label') }}</span><span class="sub">{{ t('settings.account.resetDemo.hint') }}</span></div><Button variant="outlined" :disabled="resetting" data-testid="settings-reset-demo" @click="resetDemo">{{ t('settings.account.resetDemo.button') }}</Button></div>
           <div v-if="showIosInstall" class="row"><div class="grow"><span class="lab">{{ t('settings.account.installApp.label') }}</span><span class="sub">{{ t('settings.account.installApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-install-app" @click="installing = true">{{ t('settings.account.installApp.button') }}</Button></div>
           <div v-if="!isIos" class="row"><div class="grow"><span class="lab">{{ t(androidAppLabelKey(isNativeApp())) }}</span><span class="sub">{{ t('settings.account.androidApp.hint') }}</span></div><Button variant="tonal" data-testid="settings-android-app" @click="downloadApk">{{ t('settings.account.androidApp.download') }}</Button></div>
-          <div v-if="isNativeApp() && nativeHost" class="row"><div class="grow"><span class="lab" data-testid="settings-server-label">{{ t('settings.account.server.label', { host: nativeHost }) }}</span><span class="sub">{{ t('settings.account.server.hint') }}</span></div><Button variant="outlined" data-testid="settings-server-change" @click="changeNativeServer()">{{ t('settings.account.server.change') }}</Button></div>
           <div class="row"><div class="grow" data-testid="settings-version"><span class="lab">{{ t('settings.account.version', { version: build.version }) }}</span><span v-if="build.sha" class="sub">{{ build.sha }}</span></div></div>
           <div v-if="clock.config.apk?.certSha256" class="row"><div class="grow" data-testid="settings-app-cert"><span class="lab">{{ t('settings.account.appCert.label') }}</span><span class="sub cert">{{ clock.config.apk.certSha256 }}</span><span class="sub">{{ t('settings.account.appCert.hint') }}</span></div></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.account.whatsNew.label') }}</span><span class="sub">{{ t('settings.account.whatsNew.hint') }}</span></div><Button variant="outlined" data-testid="settings-whats-new" @click="ui.openDialog('whats-new')">{{ t('settings.account.whatsNew.button') }}</Button></div>

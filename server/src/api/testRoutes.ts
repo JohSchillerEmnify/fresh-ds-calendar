@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
-import { parse, clockSchema, outageSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -112,6 +112,13 @@ export function testRoutes(ctx: Ctx): Hono {
     mock.setOutage(b.down, (b.status as 500 | 503 | undefined) ?? 503);
     ctx.health = null;
     return c.json({ down: b.down });
+  });
+
+  // "Google asks the app to slow down": the next provider call answers "rate limited" (ADR 0007).
+  t.post('/rate-limit', async (c) => {
+    const { retryAfterSec } = parse(rateLimitSchema, await body(c));
+    mock.setRateLimitNext(retryAfterSec);
+    return c.json({ retryAfterSec });
   });
 
   // `owner` (a Google address) selects that person's mock calendar; without it the shared one is used.

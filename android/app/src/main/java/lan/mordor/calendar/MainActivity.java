@@ -14,9 +14,8 @@ import lan.mordor.calendar.widget.ServerConfig;
 import lan.mordor.calendar.widget.WidgetBridgePlugin;
 
 /**
- * The Capacitor shell: loads the calendar server the person chose (or the bundled chooser while there is none), registers
- * the widget, reminder and server-choice plugins, opens widget deep links and turns the system back gesture into a back
- * step inside the web app.
+ * The Capacitor shell: loads the calendar server ({@link ServerConfig#BASE_URL}), registers the widget, reminder and
+ * app-shell plugins, opens widget deep links and turns the system back gesture into a back step inside the web app.
  */
 public class MainActivity extends BridgeActivity {
     /** Intent extra set by the widget's tap targets: the app path to open, e.g. {@code /day/2026-10-14} or {@code /clock/2026-10-14}. */
@@ -42,15 +41,11 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Capacitor's {@code server.url} is static, but the server is chosen at run time, so the config is built here: with a
-     * chosen server it is the {@code server.url}, which makes that origin the app's origin (the JavaScript bridge is
-     * injected there and plugins work); without one there is no URL and the bundled chooser page ({@code android/www}) loads.
+     * The server is the {@code server.url}, which makes that origin the app's origin (the JavaScript bridge is injected there
+     * and plugins work); the bundled offline page ({@code android/www/error.html}) shows when it cannot be reached.
      */
     private CapConfig capConfig() {
-        CapConfig.Builder builder = new CapConfig.Builder(this).setErrorPath("error.html");
-        String base = ServerConfig.baseUrl(this);
-        if (base != null) builder.setServerUrl(base);
-        return builder.create();
+        return new CapConfig.Builder(this).setErrorPath("error.html").setServerUrl(ServerConfig.BASE_URL).create();
     }
 
     /**
@@ -59,9 +54,9 @@ public class MainActivity extends BridgeActivity {
      * the file and shows its notification; any other host is ignored.
      */
     private void handDownloadsToTheSystem() {
-        String base = ServerConfig.baseUrl(this);
+        String base = ServerConfig.BASE_URL;
         getBridge().getWebView().setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
-            if (base == null || url == null || !(url.equals(base) || url.startsWith(base + "/"))) return;
+            if (url == null || !(url.equals(base) || url.startsWith(base + "/"))) return;
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } catch (ActivityNotFoundException ignored) {
@@ -115,7 +110,7 @@ public class MainActivity extends BridgeActivity {
      * cookie in this WebView.
      */
     private void openPathFrom(Intent intent) {
-        String base = ServerConfig.baseUrl(this);
+        String base = ServerConfig.BASE_URL;
         Uri link = intent == null ? null : intent.getData();
         String exchange = link == null ? null : AppSignIn.exchangeUrl(base, link.toString(), PendingSignIn.peek(this));
         if (exchange != null) {
@@ -128,8 +123,7 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         String path = intent == null ? null : intent.getStringExtra(EXTRA_PATH);
-        // no server chosen yet: the chooser is showing, there is nothing to open
-        if (base == null || path == null || !PATH.matcher(path).matches()) return;
+        if (path == null || !PATH.matcher(path).matches()) return;
         intent.removeExtra(EXTRA_PATH);
         WebView web = getBridge().getWebView();
         // posted so that it runs after the initial load of a cold start

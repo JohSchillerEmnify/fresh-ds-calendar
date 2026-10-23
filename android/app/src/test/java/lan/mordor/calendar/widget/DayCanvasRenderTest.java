@@ -37,7 +37,7 @@ public class DayCanvasRenderTest {
                 ev("Standup", t("09:30"), t("09:45"), false, "#039be5"), ev("Dentist", t("10:00"), t("11:00"), false, "#d50000"),
                 ev("Lunch with Sam", t("12:30"), t("13:30"), false, "#33b679"), ev("Deep work", t("14:00"), t("16:30"), false, "#3f51b5"),
                 ev("Gym", t("17:00"), t("18:00"), false, "#f4511e"), ev("Holiday in Lisbon", "2026-10-14", "2026-10-15", true, "#039be5"),
-                ev("Trip", "2026-10-13", "2026-10-16", true, "#8e24aa"), list) + "]"), TODAY, MONDAY, 0);
+                ev("Trip", "2026-10-13", "2026-10-16", true, "#8e24aa"), list) + "]"), TODAY, MONDAY, 0, true);
         File dir = new File("build/widget-pictures");
         dir.mkdirs();
         float d = 2.75f;

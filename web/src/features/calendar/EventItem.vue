@@ -17,6 +17,7 @@ import { useClockStore } from '@/stores/clock';
 import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
 import ResizeHandles from './ResizeHandles.vue';
+import { showsHandles } from './resize';
 import { blockBudget } from './lineBudget';
 import { formatDuration } from './timeline';
 import { t } from '@/i18n';
@@ -32,7 +33,7 @@ const ev = computed(() => props.segment.item as CalendarEvent);
 const marker = computed(() => specialMarker(ev.value));
 if (!inPreview()) useCalendarDrag(root, () => props.segment, () => props.variant, () => !!ev.value.special || !!ev.value.readOnly);
 /** Resize handles show after a release without moving (time grid blocks only). */
-const resizing = computed(() => props.variant === 'block' && ui.resizing?.kind === 'event' && ui.resizing.id === ev.value.id && ui.resizing.date === props.segment.date);
+const resizing = computed(() => showsHandles(ui.resizing, props.segment, props.variant));
 
 const endText = computed(() => (props.segment.endTime === '24:00' ? '00:00' : props.segment.endTime));
 const isToday = computed(() => props.segment.date === clock.today);
@@ -110,7 +111,7 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 .allday.nofirst { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .allday.nolast { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: var(--r-block); box-shadow: 0 0 0 1px var(--md-sys-color-surface), 0 1px 3px rgb(0 0 0 / 0.28), var(--glow-sh); }
+.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: var(--r-block); box-shadow: var(--block-sh); }
 .block .title {
   font: var(--md-sys-typescale-label-large); font-size: 13px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none;
@@ -128,8 +129,8 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 /* phones: smaller type, tight padding, no ellipsis in the month: clip with a fade instead */
 @media (max-width: 767.98px) {
   .chip { font: var(--md-sys-typescale-label-small); font-size: 10px; line-height: 14px; min-height: 16px; padding: 0 2px 0 3px; }
-  .chip .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
+  .chip .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
   .allday { font-size: 10px; line-height: 14px; min-height: 18px; padding: 0 3px; }
-  .allday .title { text-overflow: clip; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 7px), transparent); }
+  .allday .title { text-overflow: clip; -webkit-mask-image: var(--fade-end); mask-image: var(--fade-end); }
 }
 </style>

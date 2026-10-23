@@ -565,6 +565,20 @@ describe('filters', () => {
     await flushPromises();
     expect(out).toEqual(['E']);
   });
+  it('a multi-day event is a bar in the views, but on each of its days where there is no bar row (withSpans)', async () => {
+    const { pinia } = await setup();
+    useItemsStore().upsert({ kind: 'event', id: 'M', calendarId: 'p', title: 'M', description: '', location: '', allDay: true, start: '2026-10-13', end: '2026-10-16', colorId: null, color: '#000', etag: 'e', updated: 'x' });
+    let bars: string[] = [];
+    let spans: string[] = [];
+    wrapper = mount(defineComponent({ setup() {
+      const plain = useDaySegments();
+      const withSpans = useDaySegments({ withSpans: true });
+      return () => { bars = plain('2026-10-14').map((s) => s.item.id); spans = withSpans('2026-10-14').map((s) => s.item.id); return h('div'); };
+    } }), { global: { plugins: [pinia, router] } });
+    await flushPromises();
+    expect(bars).toEqual([]);
+    expect(spans).toEqual(['M']);
+  });
 });
 
 describe('cleanup', () => {

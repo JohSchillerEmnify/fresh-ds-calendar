@@ -11,7 +11,7 @@ import { createReusableTemplate } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IconArrowBack as IconBack, IconClose, IconEditOutline, IconSettingsOutline, IconDeleteOutline as IconDelete, IconDownload as IconExport } from '@/components/icons';
-import { ApiError, type StoredTheme } from '@/api/client';
+import type { StoredTheme } from '@/api/client';
 import { isHexColor, MORDOR_SEED, SEED_PRESETS } from '@/api/colors';
 import type { ThemeMode } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
@@ -31,9 +31,8 @@ import { useClockStore } from '@/stores/clock';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
-import { useSyncStore } from '@/stores/sync';
+import { useSaveSettings } from '@/composables/useSaveSettings';
 import { useThemeStore } from '@/stores/theme';
-import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
 import {
   CHECK_FILLS, CHECK_GLYPHS, CHECKBOXES, DEFAULT_TINT, DENSITIES, GLOW_STEPS, ICON_SETS, RADIUS_STEPS, RANGES,
@@ -142,18 +141,9 @@ function sampleAttrs(setting: keyof ThemeAttrs, value: string): Record<string, s
 }
 
 // --- mode (a setting) and seed colour (fine-tuning on top of the chosen theme, like the other options) ----------------
-const sync = useSyncStore();
-const ui = useUiStore();
 const s = computed(() => settings.settings);
-/** Persist a settings patch; failures roll back in the store and surface as the banner or a snackbar. */
-async function save(p: Parameters<typeof settings.patch>[0]) {
-  try {
-    await settings.patch(p);
-  } catch (e) {
-    if (e instanceof ApiError && e.isUnavailable) sync.reportError(e);
-    else ui.notify(e instanceof ApiError ? e.userMessage : t('settings.saveFailed'));
-  }
-}
+/** Persist a settings patch (failures: banner or snackbar, see `useSaveSettings`). */
+const save = useSaveSettings();
 const modes = computed(() => [{ value: 'system', label: t('theme.mode.system') }, { value: 'light', label: t('theme.mode.light') }, { value: 'dark', label: t('theme.mode.dark') }]);
 const seed = computed(() => (theme.resolved.seed ?? s.value.seedColor).toLowerCase());
 const presetNames = SEED_PRESETS.map((p) => p.hex);

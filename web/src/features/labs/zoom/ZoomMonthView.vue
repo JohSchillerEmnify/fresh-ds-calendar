@@ -6,21 +6,20 @@
  * times, task lists growing into cards, and at the largest sizes a mini day timeline with every task item
  * (feature zoom-month). Entries are the month view's own components (`ItemView`: events, `TaskListCard`).
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { useRoute, useRouter } from 'vue-router';
-import { addDays, addMonths, isSameMonth } from 'date-fns';
+import { addMonths, isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
-import { useFilters } from '@/composables/useFilters';
+import { useDaySegments } from '@/composables/useDaySegments';
+import { useLoadDays } from '../useLoadDays';
 import { isPhone } from '@/composables/useViewport';
 import { useTaskCategories } from '@/features/tasklists/categories';
 import { allotHeights } from '@/features/tasklists/layout';
 import { monthGrid, parseIsoDate, periodTitle, routePath, toIsoDate, weekdayLabels } from '@/lib/dates';
 import type { Segment } from '@/lib/items';
 import { useCalendarStore } from '@/stores/calendar';
-import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
-import { useItemsStore } from '@/stores/items';
 import { t } from '@/i18n';
 import ZoomTimeline from './ZoomTimeline.vue';
 import { cellNear, cellScale, cellSize, centerOnCell, COLS, detailAt, listHeight, MAX_ZOOM, MIN_ZOOM, MONTH_MODEL, readStoredZoom, rowSpan, stepZoom, writeStoredZoom } from './zoom';
@@ -29,10 +28,7 @@ import { createZoomController } from './zoomGestures';
 const route = useRoute();
 const router = useRouter();
 const cal = useCalendarStore();
-const items = useItemsStore();
-const cals = useCalendarsStore();
 const clock = useClockStore();
-const filters = useFilters();
 const cats = useTaskCategories();
 
 const anchorDate = computed(() => parseIsoDate(route.params.param as string) ?? clock.todayDate);
@@ -94,18 +90,13 @@ watch([vw, vh], ([w, h]) => {
 });
 // A new month starts centred on its day; the items of the whole grid are loaded.
 watch(() => toIsoDate(anchorDate.value).slice(0, 7), () => { if (placed) centerOnAnchor(); });
-const loadRange = () => { const d = days.value; void items.setVisible(toIsoDate(d[0]!), toIsoDate(addDays(d[d.length - 1]!, 1))).catch(() => undefined); };
-watch(days, loadRange);
-onMounted(async () => { await nextTick(); loadRange(); });
+useLoadDays(days);
 let unbind: (() => void) | null = null;
 onMounted(() => { if (port.value) unbind = ctl.bind(port.value); });
 onBeforeUnmount(() => { unbind?.(); });
 
 /** Segments of one day without hidden calendars, filters applied; multi-day events show on each of their days. */
-function segsOf(date: string): Segment[] {
-  const l = (items.byDate.get(date) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
-  return filters.active.value ? l.filter((s) => filters.matches(s.item)) : l;
-}
+const segsOf = useDaySegments({ withSpans: true });
 
 /** Entries of a cell as rows (task list heights grow from a chip to the card with `detail.lists`; they share the cell's pixels by need). */
 function entriesOf(date: string) {

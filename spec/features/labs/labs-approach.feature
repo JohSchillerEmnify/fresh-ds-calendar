@@ -87,7 +87,6 @@ Feature: The Approaching card and its track
     When I open the week view for 2026-10-12
     Then the approach bar shows 4 entries
 
-  @backlog
   Scenario: Overlapping entries take at most two rows
     Given the calendar contains an event "Call" on 2026-10-14 from 09:00 to 09:30
     And the calendar contains an event "Pills" on 2026-10-14 from 09:00 to 09:15

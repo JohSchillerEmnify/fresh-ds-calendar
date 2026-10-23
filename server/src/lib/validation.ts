@@ -187,6 +187,7 @@ export const testApkSchema = so({ versionCode: v.pipe(v.number(), v.integer(), v
 export const testVersionSchema = so({ version: v.pipe(v.string(), v.minLength(1)) });
 export const testReleaseNotesSchema = so({ notes: v.array(so({ date: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)), text: v.pipe(v.string(), v.minLength(1)) })) });
 export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))) });
+export const rateLimitSchema = so({ retryAfterSec: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(600)) });
 export const outageSchema = so({ down: v.boolean(), status: v.optional(v.picklist([500, 503])) });
 
 /** Parses with a schema; throws VALIDATION_ERROR with the first message and per-field details. */

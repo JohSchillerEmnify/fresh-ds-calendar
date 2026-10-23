@@ -29,6 +29,11 @@ final class WidgetStore {
         return true;
     }
 
+    /** Drops the snapshot, the fetched week and the fetch state (once, after the server choice went away). */
+    void clearAll() {
+        prefs.edit().clear().apply();
+    }
+
     /** The stored snapshot text, or null. */
     String rawSnapshot() {
         return prefs.getString("snapshot", null);
@@ -41,11 +46,6 @@ final class WidgetStore {
 
     long snapshotAtMillis() {
         return prefs.getLong("snapshotAt", 0);
-    }
-
-    /** Drops the snapshot, the fetched week and the fetch state (the server changed). */
-    void clearAll() {
-        prefs.edit().clear().apply();
     }
 
     /** The snapshot as written by the app, or null. */

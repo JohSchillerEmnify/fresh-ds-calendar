@@ -21,7 +21,7 @@ onBeforeUnmount(() => { stopWatch(); timers.forEach((s) => s()); timers.clear();
 
 <template>
   <div class="host" aria-live="polite">
-    <div v-for="s in ui.snackbars" :key="s.id" class="snack snack-skin" role="status" :data-testid="s.testid ?? 'snackbar'">
+    <div v-for="s in ui.snackbars" :key="s.id" class="snack snack-skin" role="status" :aria-live="s.countdown ? 'off' : undefined" :data-testid="s.testid ?? 'snackbar'">
       <span class="msg" data-testid="snackbar-text">{{ s.text }}</span>
       <button v-if="s.action" class="act" type="button" :data-testid="s.action.testid" @click="s.action.run(); ui.dismiss(s.id)">{{ s.action.label }}</button>
       <button class="x" type="button" :aria-label="t('calendar.actions.dismiss')" :data-testid="s.dismissTestid ?? (s.testid ? s.testid + '-dismiss' : 'snackbar-dismiss')" @click="s.onClose?.(); ui.dismiss(s.id)">✕</button>

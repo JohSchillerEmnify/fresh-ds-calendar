@@ -13,6 +13,11 @@ export interface SnackbarMessage {
   dismissTestid?: string;
   /** Called when the person closes the snackbar with ✕ (not when the action is taken or the time runs out). */
   onClose?: () => void;
+  /**
+   * A countdown whose text changes every minute: screen readers hear it when it appears and can read it any time, but its
+   * changes are not announced (hearing each minute would be noise).
+   */
+  countdown?: boolean;
 }
 
 export interface OpenDialog {

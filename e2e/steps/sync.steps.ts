@@ -8,6 +8,8 @@ import type { World } from './support/world.js';
 const FOCUS_DEBOUNCE_MS = 500;
 
 When('the network connection is lost', async function (this: World) {
+  // The connection drops after the open page has loaded (its lazy chunks and first fetches), not in the middle of it.
+  if (this.page.url().startsWith('http')) await this.page.waitForLoadState('networkidle').catch(() => undefined);
   await this.context.setOffline(true);
 });
 
@@ -45,6 +47,15 @@ When('I wait for the automatic sync', async function (this: World) {
   // Both only reject on timeout; the loser is left to settle quietly.
   if (!(await Promise.race([response, changed]))) throw new Error(`No automatic sync within ${timeout} ms`);
   await expect(status).not.toHaveAttribute('data-state', 'syncing');
+});
+
+/** Waits out Google's slow-down (`world.slowDownUntil`), then for the event within one poll interval + 5 s. */
+Then('once the slow-down is over I see the event {string} on {date}', async function (this: World, title: string, date: string) {
+  const wait = Math.max(0, this.slowDownUntil - Date.now());
+  const timeout = (this.pollIntervalMs || 30_000) + 5_000;
+  this.extendTimeout(wait + timeout);
+  await this.page.waitForTimeout(wait);
+  await expect(this.eventChip(title, date)).toBeVisible({ timeout });
 });
 
 When('I retry the sync', async function (this: World) {

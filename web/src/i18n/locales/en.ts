@@ -109,7 +109,7 @@ export default {
       },
     },
     notifications: {
-      hint: 'In the Android app these reminders also arrive while the app is closed. In the browser they appear inside the app only (notifications there need the HTTPS address).',
+      hint: 'These reminders also arrive while the app is closed: in the Android app, and in a browser where “Reminders in this browser” is on (Settings → Reminders; it needs the HTTPS address).',
       bedtime: 'Bedtime reminder',
       events: { label: 'Before appointments', hint: 'At each reminder of an appointment (Settings → Reminders)' },
       tasklists: 'Before task lists with a time',
@@ -184,7 +184,6 @@ export default {
       appCert: { label: 'App signing certificate (SHA-256)', hint: 'The Android app offered here is signed with this certificate. Compare it before you install an update.' },
       whatsNew: { label: 'What\'s new', hint: 'The latest changes to the app', button: 'Show' },
       androidApp: { label: 'Android app', updateLabel: 'Update the app', hint: 'Install the calendar as an Android app with a weekly home-screen widget', download: 'Download' },
-      server: { label: 'Server: {host}', hint: 'Which calendar server this app uses', change: 'Change' },
       installApp: { label: 'Install this app', hint: 'Add the calendar to your Home Screen', button: 'Show how', title: 'Install the calendar', step1: 'Tap the Share button', step2: 'Choose Add to Home Screen', step3: 'Tap Add', close: 'Got it' },
       versionCorner: { label: 'Show version in the corner', hint: 'A small label in a bottom corner' },
     },

@@ -1,6 +1,6 @@
 /** Tasks canvas steps (STEPS.md "Tasks canvas"): the Canvas tab of the Tasks view with its sticky notes, areas, zoom and pan. */
 import { expect, type Locator, type Page } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { box, expectJoined, pathname, touchDrag } from './support/ui.js';
 import { attr, type World } from './support/world.js';
 
@@ -121,6 +121,66 @@ When('I create the area {string} on the Canvas', async function (this: World, na
   // the answer of the last write is not a single response (the area was saved once when it was created), so ask the server
   // (the page's own request context carries the session cookie, so this also works while sign-in is on)
   await expect.poll(async () => ((await (await this.page.request.get('/api/canvas')).json()) as { areas: { name: string }[] }).areas.map((a) => a.name)).toContain(name);
+});
+
+interface SavedArea { id: string; name: string; color: string; x: number; y: number; w: number; h: number }
+const savedAreas = async (w: World): Promise<SavedArea[]> => (await w.api.get<{ areas: SavedArea[] }>('/api/canvas')).areas;
+
+/** Fixture: the area (300, 200, 480 x 360) through `PUT /api/canvas` and the note placed 20, 56 inside it (as "into the area"). */
+Given('the Canvas has the area {string} with the note {string} in it', async function (this: World, name: string, title: string) {
+  const a = { id: 'fixture-area', name, color: '#43a047', x: 300, y: 200, w: 480, h: 360 };
+  await this.api.put('/api/canvas', { areas: [...(await savedAreas(this)), a] });
+  const lists = (await this.api.get<{ items: { id: string; title: string }[] }>('/api/tasklists/all-open')).items;
+  const list = lists.find((l) => l.title === title);
+  if (!list) throw new Error(`no open task list "${title}"`);
+  await this.api.patch(`/api/tasklists/${list.id}`, { canvas: { x: a.x + 20, y: a.y + 56 } });
+});
+
+/** Opens the area's editor with a tap on its header, deletes it there and waits until the server no longer has it. */
+When('I delete the area {string} on the Canvas', async function (this: World, name: string) {
+  await openCanvas(this);
+  const a = area(this, name);
+  await expect(a).toBeVisible();
+  // the premise: the fixture's note lies in the area before it goes
+  const placedHere = this.byTestId('canvas-note', attr('data-area', name));
+  await expect(placedHere.first()).toBeVisible();
+  await a.getByTestId('canvas-area-header').click();
+  await this.page.getByTestId('canvas-area-delete').click();
+  await expect(a).toHaveCount(0);
+  await expect.poll(async () => (await savedAreas(this)).map((x) => x.name)).not.toContain(name);
+});
+
+Then('the note {string} is in no area', async function (this: World, title: string) {
+  await expect(note(this, title)).toBeVisible();
+  await expect(note(this, title)).not.toHaveAttribute('data-area', /./);
+});
+
+/** Where each area was before the last long-press drag ("has moved by"). */
+const areaBefore = new WeakMap<World, Pt>();
+
+When('I long-press the area {string} and drag it by {int}, {int} pixels', async function (this: World, name: string, dx: number, dy: number) {
+  const a = area(this, name);
+  await expect(a).toBeVisible();
+  areaBefore.set(this, { x: await num(a, 'data-x'), y: await num(a, 'data-y') });
+  const b = await box(a);
+  // the body of the area, away from its header and handles (as "release without moving")
+  const from = { x: b.x + b.width / 2, y: b.y + b.height * 0.7 };
+  await dragBetween(this, from, { x: from.x + dx, y: from.y + dy }, true);
+});
+
+Then('the area {string} has moved by {int}, {int} on the Canvas', async function (this: World, name: string, dx: number, dy: number) {
+  const was = areaBefore.get(this);
+  if (!was) throw new Error('needs "I long-press the area ... and drag it by ..." first');
+  const a = area(this, name);
+  const zoom = await num(viewport(this), 'data-zoom');
+  const want = { x: Math.round(was.x + dx / zoom), y: Math.round(was.y + dy / zoom) };
+  const near = (v: number, w: number) => Math.abs(v - w) <= 1;
+  await expect.poll(async () => near(await num(a, 'data-x'), want.x) && near(await num(a, 'data-y'), want.y), `moved to ${want.x}, ${want.y}`).toBe(true);
+  // and saved
+  await expect.poll(async () => {
+    const s = (await savedAreas(this)).find((x) => x.name === name);
+    return !!s && near(s.x, want.x) && near(s.y, want.y);
+  }, 'saved').toBe(true);
 });
 
 When('I move the note {string} into the area {string} on the Canvas', async function (this: World, title: string, name: string) {

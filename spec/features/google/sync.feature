@@ -180,7 +180,6 @@ Feature: Background sync with Google Calendar
 
   Rule: When Google asks the app to slow down, the calendar stays as it was, without an error, and catches up afterwards
 
-    @backlog
     Scenario: While Google asks the app to slow down, I keep seeing my calendar without an error
       Given automatic sync runs every 2 seconds
       And I open the week view for 2026-10-12
@@ -188,7 +187,6 @@ Feature: Background sync with Google Calendar
       Then I see the event "Dentist" on 2026-10-14
       And I do not see the sync error banner
 
-    @backlog
     Scenario: Once Google lets the app through again, a change made in the meantime appears
       Given automatic sync runs every 2 seconds
       And I open the week view for 2026-10-12

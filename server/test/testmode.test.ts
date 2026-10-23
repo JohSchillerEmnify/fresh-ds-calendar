@@ -95,6 +95,45 @@ describe('remote (Google-side) changes', () => {
   });
 });
 
+describe('rate limit (ADR 0007 through the mock)', () => {
+  const range = '/api/items?from=2026-10-12&to=2026-10-19';
+  const remote = (summary: string) => t.json('POST', '/api/__test/remote/events', {
+    summary, start: { dateTime: '2026-10-14T09:00:00+02:00' }, end: { dateTime: '2026-10-14T10:00:00+02:00' },
+  });
+
+  it('serves the last read as stale data, without a banner-worthy error, until the cooldown ends', async () => {
+    await remote('Dentist');
+    expect((await t.json('GET', range)).body.items.map((i: any) => i.title)).toEqual(['Dentist']);
+    expect((await t.json('POST', '/api/__test/rate-limit', { retryAfterSec: 1 })).status).toBe(200);
+    await remote('Call mom');
+    const r = await t.json('GET', range);
+    expect(r.status).toBe(200);
+    expect(r.res.headers.get('x-stale')).toBe('1');
+    expect(r.body.stale).toBe(true);
+    expect(r.body.items.map((i: any) => i.title)).toEqual(['Dentist']);
+    const w = await t.json('POST', '/api/events', { title: 'x', allDay: true, start: '2026-10-12', end: '2026-10-13' });
+    expect([w.status, w.body.error.code]).toEqual([503, 'RATE_LIMITED']);
+    await new Promise((res) => setTimeout(res, 1100));
+    const after = await t.json('GET', range);
+    expect(after.res.headers.get('x-stale')).toBeNull();
+    expect(after.body.items.map((i: any) => i.title).sort()).toEqual(['Call mom', 'Dentist']);
+  });
+
+  it('is cleared by a reset', async () => {
+    await t.json('GET', range);
+    await t.json('POST', '/api/__test/rate-limit', { retryAfterSec: 60 });
+    // a real cooldown is running: the read is stale
+    expect((await t.json('GET', range)).res.headers.get('x-stale')).toBe('1');
+    await t.json('POST', '/api/__test/reset');
+    const r = await t.json('GET', range);
+    expect([r.status, r.res.headers.get('x-stale')]).toEqual([200, null]);
+  });
+
+  it('rejects a bad body', async () => {
+    expect((await t.json('POST', '/api/__test/rate-limit', { retryAfterSec: 0 })).status).toBe(400);
+  });
+});
+
 describe('motivation / outage / memory', () => {
   it('sets history and plant', async () => {
     await freeze(t);

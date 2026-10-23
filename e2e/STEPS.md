@@ -397,6 +397,10 @@ Google becomes available again
 Google asks the app to slow down for the next sync
 ```
 
+`Google asks the app to slow down for the next sync` → `POST /api/__test/rate-limit { "retryAfterSec": 4 }` (the next
+provider call answers "rate limited", ADR 0007), then waits for two `/api/items` answers carrying `X-Stale: 1` (the
+sync that hits the limit and one full poll inside the cooldown).
+
 `the Google event X has:` compares dotted paths of the raw Google event resource (`calendarId` is the calendar the
 event lives in) with the given values.
 
@@ -414,6 +418,8 @@ once the slow-down is over I see the event {string} on {date}
 ```
 
 - Network: `context.setOffline(true|false)`.
+- `once the slow-down is over I see the event X on D`: waits until 4 s after the stale answer (the slow-down's end at
+  the latest), then for the event chip within the poll interval + 5 s.
 - Focus: dispatch `visibilitychange` (with `document.visibilityState` = `visible`) and `focus` on `window`.
 
 ## Mobile
@@ -1933,6 +1939,14 @@ the Canvas zoom is above {float}
   (a handle drags at once, no long press). "the area A is W wide and H high": `data-w`, `data-h` and the saved area
   (`GET /api/canvas`) agree.
 - "in / not in the Unsorted stack": `data-placed` is `"false"` / `"true"`.
+- "the Canvas has the area A with the note T in it" (fixture): `PUT /api/canvas` adds the area A (x 300, y 200, 480 x 360)
+  to the saved ones, and `PATCH /api/tasklists/:id { canvas: { x: 320, y: 256 } }` places T 20, 56 inside it.
+- "I delete the area A on the Canvas": opens the Canvas, clicks A's `canvas-area-header` (opens the editor), clicks
+  `canvas-area-delete` (first checking that a note lies in A: `data-area` A), then waits until A is gone from the page and from `GET /api/canvas`. "the note T is in no area":
+  T is visible and has no (or an empty) `data-area`.
+- "I long-press the area A and drag it by DX, DY pixels": notes A's `data-x`/`data-y`, then a finger on the body of A
+  (as "release without moving"), held 500 ms, moved by DX, DY in 10 steps and lifted. "the area A has moved by DX, DY":
+  `data-x`/`data-y` and the saved area are the noted place + (DX, DY) / `data-zoom` of `canvas-viewport` (± 1).
 - "I tick the item I of the note T on the Canvas": clicks `tasklist-item-checkbox` of that `tasklist-item` inside the
   note and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I create the area N": clicks `canvas-area-add`, fills `canvas-area-name-input` with N, presses Enter and waits until
@@ -2395,6 +2409,8 @@ the clock widget says {string}
   "a K notification shows" / "its status bar icon is the I": the notification of kind K (event reminder, task list
   reminder, morning overview, bedtime reminder) uses the small icon I (`ic_stat_event` calendar page, `ic_stat_tasklist`
   checklist, `ic_stat_summary` sunrise, `ic_stat_bedtime` moon). Proven by `ReminderNotificationTest`.
+- "the morning overview is on at T" also runs in the browser suite (Web Push): `PATCH /api/prefs { notify: { morning: true,
+  morningTime: T } }`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 

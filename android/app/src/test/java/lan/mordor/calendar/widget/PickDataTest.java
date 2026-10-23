@@ -55,4 +55,20 @@ public class PickDataTest {
         store.saveFetched(new JSONObject().put("weekStart", MONDAY.toString()).put("items", new JSONArray()).toString(), 2_000);
         assertEquals(15, WidgetRenderer.pickData(store, store.snapshot(), TODAY, MONDAY).minEventMinutes);
     }
+
+    @Test
+    public void taskListsTakeTheirCalendarColourWhileTaskCategoriesAreOff() throws Exception {
+        Context ctx = ApplicationProvider.getApplicationContext();
+        WidgetStore store = new WidgetStore(ctx);
+        String list = "{\"kind\":\"tasklist\",\"id\":\"l\",\"title\":\"Laundry\",\"date\":\"2026-10-14\",\"time\":\"18:00\",\"estimateMinutes\":60,"
+                + "\"doneCount\":0,\"totalCount\":1,\"color\":\"#0b8043\",\"calendarColor\":\"#1a73e8\",\"items\":[]}";
+        JSONObject fetched = new JSONObject().put("weekStart", MONDAY.toString()).put("items", new JSONArray("[" + list + "]"));
+        // the prefs could not be read: the server's default (categories on) applies
+        store.saveFetched(fetched.toString(), 1_000);
+        assertEquals("#0b8043", WidgetRenderer.pickData(store, null, TODAY, MONDAY).days.get(2).items.get(0).color);
+        store.saveFetched(fetched.put("taskCategories", false).toString(), 2_000);
+        assertEquals("#1a73e8", WidgetRenderer.pickData(store, null, TODAY, MONDAY).days.get(2).items.get(0).color);
+        store.saveFetched(fetched.put("taskCategories", true).toString(), 3_000);
+        assertEquals("#0b8043", WidgetRenderer.pickData(store, null, TODAY, MONDAY).days.get(2).items.get(0).color);
+    }
 }
