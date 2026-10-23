@@ -9,7 +9,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
 import { googleColor, EVENT_COLOR_OPTIONS } from '@/api/colors';
-import type { CalendarEvent } from '@/api/types';
+import type { CalendarEvent, Reminders } from '@/api/types';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import ColorSwatchPicker from '@/components/m3/ColorSwatchPicker.vue';
@@ -137,6 +137,7 @@ const swatches = computed(() => [
 /** The popup leads of the chosen calendar's default, shown while the event follows it. */
 const calDefaults = computed(() => calendars.value.find((c) => c.id === form.value.calendarId)?.defaultReminders
   ?? (original.value?.reminders?.useDefault && original.value.calendarId === form.value.calendarId ? original.value.reminders.minutes : []));
+const readOnlyDefaults = computed(() => calendars.value.find((c) => c.id === original.value?.calendarId)?.defaultReminders ?? []);
 const accent = computed(() => googleColor(form.value.colorId)?.hex ?? calColor.value);
 const duration = computed(() => {
   const f = form.value;
@@ -205,6 +206,23 @@ async function save() {
   }
 }
 
+/** A read-only event's reminders change at once (the dialog has no save button): the server asks Google, else keeps them itself. */
+async function saveReadOnlyReminders(reminders: Reminders) {
+  const ev = original.value;
+  if (!ev || saving.value) return;
+  error.value = '';
+  saving.value = true;
+  const shown = { useDefault: reminders.useDefault, minutes: reminders.useDefault ? readOnlyDefaults.value : reminders.minutes };
+  try {
+    const fresh = await items.optimisticItem(ev.id, { ...ev, reminders: shown }, () => api.updateEvent(ev.id, { reminders }));
+    original.value = (fresh as CalendarEvent | undefined) ?? { ...ev, reminders: shown };
+  } catch (e) {
+    fail(e, `“${ev.title}”`);
+  } finally {
+    saving.value = false;
+  }
+}
+
 /** Saves the birthday form: the whole yearly birthday changes (the server patches the series), then the views reload to show every year. */
 async function saveBirthday() {
   if (saving.value) return;
@@ -261,6 +279,11 @@ function remove() {
       <p v-if="original.description" class="lab" data-testid="event-readonly-description">{{ original.description }}</p>
       <p v-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
       <p v-else class="lab">{{ t('calendar.event.readOnly') }}</p>
+      <div v-if="!original.special" class="colors">
+        <span class="lab">{{ t('calendar.reminders.title') }}</span>
+        <ReminderEditor :model-value="original.reminders ?? { useDefault: true, minutes: [] }" prefix="event" allow-default :default-minutes="readOnlyDefaults" data-testid="event-reminders" @update:model-value="saveReadOnlyReminders" />
+      </div>
+      <p v-if="error" class="err" role="alert" data-testid="event-error">{{ error }}</p>
       <div class="actions">
         <span class="sp" />
         <Button variant="text" data-testid="event-cancel" @click="emit('close')">{{ t('calendar.actions.dismiss') }}</Button>
