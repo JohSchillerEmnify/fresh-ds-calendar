@@ -122,7 +122,7 @@ export async function golden(name: string, cells: Cell[], setup?: (pinia: Pinia)
       document.documentElement.dataset.theme = theme;
       // no count bump or neon pulse mid-shot
       document.documentElement.dataset.motion = 'off';
-      delete document.documentElement.dataset.calm;
+      for (const k of ['calm', 'glow', 'entries', 'corners'] as const) delete document.documentElement.dataset[k];
       await page.viewport(px, 900);
       const pinia = createPinia();
       setActivePinia(pinia);
