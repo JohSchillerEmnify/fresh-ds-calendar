@@ -13,6 +13,10 @@ describe('Labs views offered in the view switcher', () => {
   it('follows the person\'s choices over the defaults', () => {
     expect(ids(true, { strip: true, clock: false })).toEqual(['timeline', 'strip', 'zoom', 'horizontal']);
   });
+  it('offers the bedtime runway only once the person switches it on', () => {
+    expect(ids(true, {})).not.toContain('runway');
+    expect(ids(true, { runway: true })).toContain('runway');
+  });
   it('treats a view the person never chose and the registry does not know as on', () => {
     expect(isLabsViewOn('zoom-month', {})).toBe(true);
   });

@@ -67,6 +67,7 @@ export const routes: RouteRecordRaw[] = [
   ...CAL_VIEWS.map(viewRoute),
   labDated('clock', () => import('@/features/labs/clock/ClockView.vue')),
   { path: '/timeline', name: 'timeline', component: () => import('@/features/labs/timeline/TimelineView.vue'), meta: { lab: 'timeline' } },
+  { path: '/runway', name: 'runway', component: () => import('@/features/labs/runway/RunwayView.vue'), meta: { lab: 'runway', noSwipe: true } },
   labDated('strip', () => import('@/features/labs/strip/StripView.vue')),
   labDated('zoom', () => import('@/features/labs/zoom/ZoomMonthView.vue')),
   labDated('horizontal', () => import('@/features/labs/htime/HorizontalTimeView.vue'), true),

@@ -22,4 +22,12 @@ export default {
     lead: { label: 'Zeit vor dem ersten Termin', minutes: '{count} Min., yo', none: 'Keine, Digga' },
     reminder: { label: 'Vorher Bescheid sagen, fresh', minutes: '{count} Min., yo', off: 'Aus, bye' },
   },
+  runway: {
+    header: 'Noch {left} bis Fresh D. pennt · {free} chillen',
+    now: 'Jetzt {time}, yo',
+    bed: 'Bett {time}, yo',
+    off: 'Schlafenszeit ist aus, Digga – stell sie in den Einstellungen ein, sonst schläft hier keiner',
+    passed: 'Schlafenszeit war um {time}, ab ins Bett, sonst macht Snape Nachsitzen',
+    openSettings: 'Einstellungen auf, yo',
+  },
 } satisfies PartialMessages['bedtime'];

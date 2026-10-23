@@ -32,6 +32,7 @@ export default {
     strip: 'Streifen',
     zoom: 'Zoom-Monat',
     horizontal: 'Horizontal',
+    runway: 'Bis ins Bett',
   },
   horizontal: {
     timeIn: 'Zeit vergrößern',

@@ -32,6 +32,7 @@ export default {
     tasks: 'Aufgabn',
     zoom: 'Zoom-Monad',
     horizontal: 'Waagrechd',
+    runway: 'Bis ins Bedd',
   },
   horizontal: {
     timeIn: 'Zeid nei zoomma',

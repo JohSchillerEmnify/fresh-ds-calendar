@@ -1,5 +1,5 @@
 import { useRoute, useRouter } from 'vue-router';
-import { labPath } from '@/features/labs/labs';
+import { LABS_VIEWS, labPath } from '@/features/labs/labs';
 import { routePath, shiftPeriod, type ViewKind } from '@/lib/dates';
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
@@ -28,8 +28,9 @@ export function useNav() {
       cal.setFocus(clock.todayDate);
       return go(cal.view, clock.todayDate);
     },
-    switchView: (v: ViewKind | 'tasks' | 'clock' | 'timeline' | 'strip' | 'zoom' | 'horizontal') =>
-      v === 'tasks' ? router.push({ path: '/tasks', query: { ...route.query } }) : v === 'clock' || v === 'timeline' || v === 'strip' || v === 'zoom' || v === 'horizontal' ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v, cal.focusDate, false),
+    /** Switch to a calendar view, the Tasks view or a Labs view (any id of the Labs registry). */
+    switchView: (v: ViewKind | 'tasks' | string) =>
+      v === 'tasks' ? router.push({ path: '/tasks', query: { ...route.query } }) : LABS_VIEWS.some((l) => l.id === v) ? router.push({ path: labPath(v, cal.focusDate), query: { ...route.query } }) : go(v as ViewKind, cal.focusDate, false),
     /** Pick a date (month picker): focus it and jump the current view (the year view opens that month). */
     pickDay: (d: Date) => {
       cal.setFocus(d);
