@@ -121,6 +121,12 @@ Then('the approach bar shows {int} entries', async function (this: World, n: num
   await expect(items(this)).toHaveCount(n);
 });
 
+Then('the approach bar shows its entries in {int} rows', async function (this: World, rows: number) {
+  await expect(this.page.getByTestId('now-card').getByTestId('approach-now')).toBeVisible();
+  // rows = distinct vertical positions of the chips
+  await expect.poll(async () => new Set(await items(this).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)))).size).toBe(rows);
+});
+
 /** Width in px of an entry's block on the approach bar (NaN while it is not shown, so a poll keeps trying). */
 async function blockWidth(w: World, title: string): Promise<number> {
   return (await item(w, title).getByTestId('approach-block').boundingBox())?.width ?? NaN;

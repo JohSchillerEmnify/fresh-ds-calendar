@@ -42,6 +42,19 @@ R2.3 "A list I did not finish yesterday waits on today without a time": already 
 
 Acceptance: the four scenarios green on mobile and desktop; the other scenarios using the network step stay green.
 
+### R3 (group 3) Labs: approach rows, timeline overlaps, a Labs view by address
+
+R3.1 "Overlapping entries take at most two rows": `approachLayout` already caps at `MAX_ROWS = 2`; step added (distinct
+vertical positions of `approach-item`).
+R3.2 "Overlapping entries sit side by side on the timeline": step added (vertical overlap, no horizontal overlap). Red:
+the timeline packed with `stack = true`, so Review (09:30, 30 min after Dentist) was cascaded on top of Dentist. The
+timeline now packs with `stack = false` (overlaps always side by side). Assumption: the agreed scenario (and the
+existing code comment "overlaps side by side") is the owner's intent for the timeline; the calendar views keep their
+cascade (events-display.feature "stacked on top"), which this does not touch.
+R3.3 "A Labs view that is not offered still opens by its address": already implemented; tag removed only.
+
+Acceptance: the three scenarios and the rest of labs-timeline.feature green on mobile and desktop; screenshots looked at.
+
 ## Testing Plan
 
 Per group: unit/server test where server behaviour changes, then the targeted e2e scenarios red → green, then
