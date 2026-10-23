@@ -1,15 +1,17 @@
 /**
- * Reminders in the open app and in the Android app (feature reminders). Both follow the reminder
- * plan (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
+ * Reminders in the open app, in the Android app and by Web Push (feature reminders). All follow the reminder plan
+ * (`reminderPlan.ts`): one reminder per timed event, and per timed task list when the person switched those on, and per
  * reminder lead of the item. Driven by the shared clock tick (`clock.nowTick`), so no timers of its own.
- * In the app, a dismissible snackbar "<title> starts in <lead>" (the lead as the reminder names it) shows once per event and lead from its time until the start
- * (several due leads show the nearest one). Events of hidden calendars never remind. It sees the items of the loaded range
- * only, i.e. while a calendar view showing today is cached.
- * Inside the Android app the next reminders (the next week, as far as loaded) are also scheduled ahead with the native
- * `Reminders` plugin, so they arrive as notifications while the app is closed, as chosen in Settings → Notifications
- * (`prefs.notify`), plus the optional morning overview of the day. In a browser with Web Push switched on, the plan of the next
- * 7 days (`pushPlan`) is sent to the server whenever it changed (the server sends each push at its time). Stored ids no longer wanted are cancelled, once on start
- * for everything the plugin still holds.
+ * In the app, a dismissible snackbar "<title> starts in <minutes>" shows once per event and lead from its time until the
+ * start and counts down the minutes really left on every tick (several due leads show the nearest one). Events of hidden
+ * calendars never remind.
+ * The plan covers the next 8 days and waits until all of them are loaded (they are fetched otherwise). Inside the Android
+ * app the next reminders are scheduled ahead with the native `Reminders` plugin, so they arrive as notifications while the
+ * app is closed, as chosen in Settings → Notifications (`prefs.notify`), plus the optional morning overview of the day. In
+ * a browser with Web Push switched on, the plan of the next 7 days (`pushPlan`, with the bedtime reminders and morning
+ * overviews) is sent to the server whenever it changed (the server sends each push at its time). Native ids no longer
+ * wanted are cancelled (once on start for everything the plugin still holds); a reminder that rang is kept while its item
+ * is still there, shown and switched on, so its notification stays until the item ends.
  */
 import { effectScope, watch, type EffectScope } from 'vue';
 import { useCalendarsStore } from '@/stores/calendars';
@@ -150,7 +152,9 @@ export function startTransitionWarnings(): () => void {
           const old = shown.get(occurrence);
           if (old) ui.dismiss(old.id);
           // the minutes left, counted down on every tick while it is shown
-          const id = ui.notify(liveText(p.itemTitle, p.startAt, minuteStart), { duration: 0, testid: 'transition-warning' });
+          const text = liveText(p.itemTitle, p.startAt, minuteStart);
+          // screen readers hear it once, not every minute of the countdown
+          const id = ui.notify(text, { duration: 0, testid: 'transition-warning', announce: text });
           shown.set(occurrence, { id, startAt: p.startAt, itemTitle: p.itemTitle });
         }
       },
@@ -190,10 +194,14 @@ export function startTransitionWarnings(): () => void {
     if (!plugin) return;
     /** id -> what was scheduled: its signature, when it rings, and for an item reminder the item, its start and end. */
     const sent = new Map<string, { sig: string; at: number; itemId?: string; startAt?: number; end?: number }>();
-    /** Whether the item is still there with that start (not deleted, not moved). */
+    /**
+     * Whether a rung reminder's item still wants its notification: still there with that start (not deleted, not moved),
+     * its calendar shown, and its kind still switched on in Settings → Notifications.
+     */
     const stillAt = (itemId: string, startAt: number): boolean => {
       const it = items.get(itemId);
-      return !!it && itemStart(it, clock.timeZone) === startAt;
+      if (!it || cals.isHidden(it.calendarId) || !(it.kind === 'event' ? prefs.notify.events : prefs.notify.tasklists)) return false;
+      return itemStart(it, clock.timeZone) === startAt;
     };
     let cleaned = false;
     watch(

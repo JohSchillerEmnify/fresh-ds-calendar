@@ -137,7 +137,8 @@ export function startBedtimeReminder(): () => void {
   /** The snackbar on screen and its night: it counts down on every tick and goes away at bedtime. */
   let shown: { id: number; night: string } | null = null;
   const offSnackbar = addReminderSink((r) => {
-    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder' }), night: r.night };
+    // screen readers hear it once, not every minute of the countdown
+    shown = { id: ui.notify(text(r.inMin), { duration: 0, testid: 'bedtime-reminder', announce: text(r.inMin) }), night: r.night };
   });
 
   scope = effectScope(true);
@@ -166,6 +167,8 @@ export function startBedtimeReminder(): () => void {
     const plugin = remindersPlugin();
     if (!plugin) return;
     let sent = '';
+    /** When the reminder last scheduled rings (epoch ms; 0 = none): before then it is pending, after it it may be showing. */
+    let sentAt = 0;
     watch(
       () => [clock.nowTick, prefs.bedtime, prefs.notify.bedtime, windows.value, language.value] as const,
       () => {
@@ -173,11 +176,14 @@ export function startBedtimeReminder(): () => void {
         // Settings → Notifications can keep the reminder in the app only
         const next = prefs.notify.bedtime ? upcomingReminder(windows.value, nowAbs, prefs.bedtime.reminderMinutes) : null;
         if (!next) {
-          // only switching it off takes it away: a reminder that rang may be showing until wake-up, and a cancel would
-          // remove that notification
+          // a reminder that rang may be showing until wake-up, and a cancel would remove that notification: only switching
+          // it off takes it away, or a reminder still pending (not rung) that the settings no longer give
           const off = !prefs.notify.bedtime || !prefs.bedtime.enabled || prefs.bedtime.reminderMinutes <= 0;
-          if (off && sent !== 'none') void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
-          if (off) sent = 'none';
+          if (sent !== 'none' && (off || sentAt > clock.nowTick)) {
+            void plugin.cancel({ id: NATIVE_REMINDER_ID }).catch(() => undefined);
+            sent = 'none';
+            sentAt = 0;
+          }
           return;
         }
         // the bedtime itself, with the phone counting down to it: a fixed "in 30 minutes" would be stale when read later;
@@ -191,6 +197,7 @@ export function startBedtimeReminder(): () => void {
         const key = `${at}|${title}|${start}|${end}`;
         if (key === sent) return;
         sent = key;
+        sentAt = at;
         void plugin.schedule({ id: NATIVE_REMINDER_ID, at, title, body: '', kind: 'bedtime', start, end }).catch(() => undefined);
       },
       { immediate: true },

@@ -271,6 +271,68 @@ describe('transition warnings as Android notifications', () => {
     expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toEqual([dentist]);
   });
 
+  describe('a reminder that rang', () => {
+    const dentist = `${NATIVE_REMINDER_PREFIX}dentist@${D}T10:40-10`;
+    /** Boots with the plugin, lets the dentist reminder (10:30) ring while the app is hidden, and comes back at `back`. */
+    async function rang(back: string) {
+      const plugin = { schedule: vi.fn((_o: { id: string }) => Promise.resolve()), cancel: vi.fn((_o: { id: string }) => Promise.resolve()) };
+      (window as unknown as { Capacitor: unknown }).Capacitor = { Plugins: { Reminders: plugin } };
+      const { clock, items } = await boot('09:00', false);
+      const prefs = usePrefsStore();
+      prefs.notify = { ...prefs.notify, events: true, tasklists: true };
+      items.applyResponse(D, W, [ev('dentist', t(D, '10:40'), t(D, '11:30'), { title: 'Dentist', reminders: ten }), laundry], 's');
+      startTransitionWarnings();
+      const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+      clock.nowTick = at('10:33').getTime();
+      await nextTick();
+      hidden.mockRestore();
+      clock.nowTick = at(back).getTime();
+      await nextTick();
+      return { plugin, clock, items, prefs };
+    }
+
+    it('is cancelled when an edit moved its item', async () => {
+      const { plugin, items } = await rang('10:34');
+      expect(plugin.cancel).not.toHaveBeenCalled();
+      items.applyResponse(D, W, [ev('dentist', t(D, '10:50'), t(D, '11:30'), { title: 'Dentist', reminders: ten }), laundry], 's2');
+      await nextTick();
+      expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toEqual([dentist]);
+    });
+
+    it('of a task list is kept while the list is there', async () => {
+      const { plugin, clock } = await rang('10:34');
+      const list = `${NATIVE_REMINDER_PREFIX}laundry@${D}T18:00-30`;
+      expect(plugin.schedule.mock.calls.map(([o]) => o.id)).toContain(list);
+      clock.nowTick = at('17:45').getTime(); // rang at 17:30, the list starts at 18:00
+      await nextTick();
+      expect(plugin.cancel.mock.calls.map(([o]) => o.id)).not.toContain(list);
+    });
+
+    it('is forgotten at its end without a cancel (a later delete cancels nothing)', async () => {
+      const { plugin, clock, items } = await rang('10:34');
+      clock.nowTick = at('11:31').getTime();
+      await nextTick();
+      items.applyResponse(D, W, [laundry], 's3');
+      await nextTick();
+      expect(plugin.cancel).not.toHaveBeenCalled();
+    });
+
+    it('is cancelled when its kind is switched off', async () => {
+      const { plugin, prefs } = await rang('10:34');
+      prefs.notify = { ...prefs.notify, events: false };
+      await nextTick();
+      expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toEqual([dentist]);
+    });
+
+    it('is cancelled when its calendar is hidden', async () => {
+      const { plugin, items } = await rang('10:34');
+      const cals = useCalendarsStore();
+      cals.list = [{ id: items.get('dentist')!.calendarId, name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true }];
+      await nextTick();
+      expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toContain(dentist);
+    });
+  });
+
   it('keeps the schedule while planned days are evicted from the range cache, and fetches them again', async () => {
     const plugin = {
       schedule: vi.fn((_o: { id: string }) => Promise.resolve()),
