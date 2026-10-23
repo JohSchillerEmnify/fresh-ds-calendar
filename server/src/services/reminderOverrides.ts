@@ -1,6 +1,7 @@
 /**
- * The person's own reminders for events they can only read (feature reminders): Google refused to store them on the
- * event, so the app keeps them per person and applies them when it reads the event. One file per person,
+ * The person's own reminders for events they can only read, and the default reminders of calendars they can only read
+ * (feature reminders): Google refused to store them, so the app keeps them per person and applies them when it reads the
+ * event or the calendar list. One file per person,
  * `DATA_DIR/users/<sub>/reminder-overrides.json`, part of the Drive backup like every file under `users/<sub>/`.
  */
 import fs from 'node:fs';
@@ -19,6 +20,14 @@ interface Stored {
   localSince: Record<string, number>;
   /** Calendar id -> event id -> the person's reminders for that event. */
   events: Record<string, Record<string, Reminders>>;
+  /** Calendar id -> the person's popup default list kept by the app, and when Google last refused it (epoch ms). */
+  defaults: Record<string, KeptDefaults>;
+}
+
+/** A read-only calendar's popup defaults kept by the app; `since` makes Google be asked again after a day. */
+export interface KeptDefaults {
+  minutes: number[];
+  since: number;
 }
 
 const FILE = 'reminder-overrides.json';
@@ -48,7 +57,7 @@ export class ReminderOverrideStore {
     const hit = this.cache.get(sub);
     if (hit && hit.stamp === stamp) return hit.data;
     const raw = stamp === 'none' ? null : readJson<Partial<Stored>>(file);
-    const data: Stored = { paths: raw?.paths ?? {}, localSince: raw?.localSince ?? {}, events: raw?.events ?? {} };
+    const data: Stored = { paths: raw?.paths ?? {}, localSince: raw?.localSince ?? {}, events: raw?.events ?? {}, defaults: raw?.defaults ?? {} };
     this.cache.set(sub, { stamp, data });
     return data;
   }
@@ -88,6 +97,32 @@ export class ReminderOverrideStore {
       delete d.events[calendarId][eventId];
       if (Object.keys(d.events[calendarId]).length === 0) delete d.events[calendarId];
     }
+    this.write(sub, d);
+  }
+
+  /** The popup defaults the app keeps for a calendar, or `undefined` while Google holds them. */
+  defaultsOf(sub: string, calendarId: string): number[] | undefined {
+    return this.read(sub).defaults[calendarId]?.minutes;
+  }
+
+  /** True while a refusal of the calendar's defaults is younger than a day, so Google is not asked again yet. */
+  defaultsRefusedAt(sub: string, calendarId: string, now: number): boolean {
+    const kept = this.read(sub).defaults[calendarId];
+    return !!kept && now - kept.since < LOCAL_PATH_TTL_MS;
+  }
+
+  /** Keeps the calendar's popup defaults in the app, stamped `now` like the events' `local` path. */
+  setLocalDefaults(sub: string, calendarId: string, minutes: number[], now: number): void {
+    const d = structuredClone(this.read(sub));
+    d.defaults[calendarId] = { minutes: [...minutes], since: now };
+    this.write(sub, d);
+  }
+
+  /** Drops the kept defaults of a calendar: Google took them and is the source again. */
+  setGoogleDefaults(sub: string, calendarId: string): void {
+    if (!this.read(sub).defaults[calendarId]) return;
+    const d = structuredClone(this.read(sub));
+    delete d.defaults[calendarId];
     this.write(sub, d);
   }
 

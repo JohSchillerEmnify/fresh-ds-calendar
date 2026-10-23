@@ -39,7 +39,7 @@ export class MockGoogleProvider implements CalendarProvider {
   private rateLimitNext: number | null = null;
   private revoked = false;
   private calendarMissing = false;
-  /** Whether Google takes a `reminders`-only patch on a calendar the person can only read (refused by default, like events.patch needs write access). */
+  /** Whether Google takes a `reminders`-only patch or new default reminders on a calendar the person can only read (refused by default, like events.patch needs write access). */
   private readerReminders: 'refuse' | 'allow' = 'refuse';
   private calendars: ProviderCalendar[] = MOCK_CALENDARS.map((c) => ({ ...c }));
   private timer: NodeJS.Timeout | null = null;
@@ -87,7 +87,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.calendarMissing = missing;
   }
 
-  /** Chooses whether a `reminders`-only patch on a reader / freeBusyReader calendar is accepted or answered with 403. */
+  /** Chooses whether a `reminders`-only patch, or a change of the defaults, on a reader / freeBusyReader calendar is accepted or answered with 403. */
   setReaderReminders(allow: boolean): void {
     this.readerReminders = allow ? 'allow' : 'refuse';
   }
@@ -175,6 +175,7 @@ export class MockGoogleProvider implements CalendarProvider {
 
   async setCalendarDefaultReminders(calendarId: string, reminders: GoogleReminder[]): Promise<void> {
     this.check();
+    if (this.readerReminders === 'refuse' && this.isReader(calendarId)) throw new ProviderForbiddenError('Google 403: you need write access to this calendar');
     this.doSetDefaultReminders(calendarId, reminders);
   }
 
@@ -261,11 +262,16 @@ export class MockGoogleProvider implements CalendarProvider {
     if (!this.calendars.some((c) => c.id === id)) throw new NotFoundError(`Calendar ${id} not found`);
   }
 
+  /** True when the person can only read the calendar (reader / freeBusyReader). */
+  private isReader(calendarId: string): boolean {
+    const role = this.calendars.find((c) => c.id === calendarId)?.accessRole;
+    return role === 'reader' || role === 'freeBusyReader';
+  }
+
   /** Google answers 403 to a reminders-only patch on a calendar the person can only read (unless the test allows it). */
   private checkReaderPatch(calendarId: string, patch: GoogleEventPatch): void {
-    const role = this.calendars.find((c) => c.id === calendarId)?.accessRole;
     const keys = Object.entries(patch).filter(([, v]) => v !== undefined).map(([k]) => k);
-    if (this.readerReminders === 'refuse' && (role === 'reader' || role === 'freeBusyReader') && keys.length === 1 && keys[0] === 'reminders') {
+    if (this.readerReminders === 'refuse' && this.isReader(calendarId) && keys.length === 1 && keys[0] === 'reminders') {
       throw new ProviderForbiddenError('Google 403: you need write access to this calendar');
     }
   }
