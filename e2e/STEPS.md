@@ -2052,6 +2052,9 @@ I have the template {string} with the items {string}
 I have the template {string} with the items {string}, the estimate {int} minutes and the category {string}
 the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
 I save the task list as a template
+the footer of the expanded task list shows {string}
+the template dialog previews the items {string}
+the task list {string} in the Archive offers {string} and {string}
 the template name field shows {string}
 I enter the template name {string}
 I confirm the template
@@ -2059,7 +2062,10 @@ I turn on {string} in the task list form
 I open the template picker
 I choose the template {string}
 I choose {string} in the template picker
-the template picker lists {string}
+the template pill shows {string}
+the template menu has grown out of the template pill
+the template menu shows:
+the template menu ends with {string} below a divider
 the template picker says {string}
 I create a task list from the template {string} on {date}
 I open the templates in the settings
@@ -2090,17 +2096,31 @@ I have no templates
   `template-save-name` prefilled with the list's title. "the template name field shows N" = value of
   `template-save-name`; "I enter the template name N" replaces it; "I confirm the template" clicks
   `template-save-confirm` and, when no error shows, waits for the `POST /api/templates` response (201).
-- "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (create mode only)
-  set to `aria-checked="true"`.
-- "I open the template picker": clicks `tasklist-from-template` in the open `tasklist-dialog` (create mode); the
-  `template-picker` opens. "I choose the template T" opens the picker if needed and clicks its `template-picker-item`
-  with `data-name` T; the picker closes and the form is filled. "I choose Manage templates in the template picker"
-  clicks `template-picker-manage`. "the template picker lists "A (1), B (3)"" = each `template-picker-item`'s
-  `data-name` and `data-count` as `name (count)`, in DOM order (by name). "says" = text of `template-picker-empty`.
+  `tasklist-save-template` is a tonal pill. "the footer of the expanded task list shows "A, B"" = the visible buttons
+  in the footer of `tasklist-expanded` (`tasklist-add`, `tasklist-save-template`, `tasklist-edit`,
+  `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their text.
+  "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
+- "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
+  A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, owner 2026-10-25).
+- "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (create mode only; a
+  switch row right above Cancel and Save) set to `aria-checked="true"`.
+- "I open the template picker": clicks the pill `tasklist-from-template` next to the heading of the open
+  `tasklist-dialog` (create mode); the pill grows in place into the menu `template-picker`. "the template pill shows
+  T" = the pill's label without the `▾` (`From template` before a pick, the template's name after). "the template
+  menu has grown out of the template pill": once the menu is at rest its top-left corner is within 4 px of where the
+  pill's top-left corner was before the tap, and the pill itself is not shown separately. "I choose the template T"
+  opens the menu if needed and clicks its `template-picker-item` with `data-name` T; the menu shrinks back into the
+  pill and the form is filled. "I choose Manage templates in the template picker" clicks `template-picker-manage`.
+  "the template menu shows:" = two-column table, one row per `template-picker-item` in DOM order (by name): its
+  `template-picker-name` and `template-picker-details` texts. Details are `N item(s)`, then `~M min` when there is
+  an estimate, then the category name when there is one, joined by ` · `. "ends with M below a divider": the last
+  child of `template-picker` is `template-picker-manage` with text M, directly after a `template-picker-divider`.
+  "says" = text of `template-picker-empty` (inside the open menu, above the divider and "Manage templates").
 - "I create a task list from the template T on D": the day view of D, "I start creating a task list", "I choose the
   template T", "I save the task list" (waits for `POST /api/tasklists`).
 - "I open the templates in the settings": opens the settings (from the day view of the Background date if no page
-  is open yet), the settings page `Task lists`, then its row `settings-templates`; waits for `templates-page`.
+  is open yet), then the row `settings-templates` in the Task lists card (next to categories, carried-over,
+  finished-list and tap options), which opens the Templates sub page; waits for `templates-page`.
   "the settings page P is shown": the `settings-page` with `data-page` P is visible (`Templates` = `templates`).
 - "the templates page lists "A, B"" = `data-name` of every `template-row` in DOM order (by name); "says" = text of
   `templates-empty`.

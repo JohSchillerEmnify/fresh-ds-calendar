@@ -4,9 +4,15 @@ Feature: Task list templates
   template, also a finished one, and a new list can be saved as a template while it is created (owner, 2026-10-25).
   A new task list can then start from a template: the form is filled with the template's items and the rest (date,
   time, repeat, reminders) is set as for any new list (owner: "you can then set time and stuff").
+  UI (owner, design canvas 2026-10-25): "Save as template" is a tonal pill in the list's footer after "Add item" and
+  before Edit and Delete; it opens a small dialog with the name (prefilled with the title), the items and Cancel/Save.
+  The create form has a "From template ▾" pill next to its heading; a tap grows the pill in place into a menu of the
+  templates ("2 items · ~45 min · Home" under each name), a divider and "Manage templates"; after a pick the pill
+  shows the template's name. "Also save as template" is a switch row right above Cancel and Save.
+  The Archive keeps its one-off "Use as template" copy and gets "Save as template" next to it (owner).
   A template keeps a name, its items in their order (always unticked), the estimate and the category. It never keeps
   a date, a time, a repeat, reminders, tags, sharing or ticks: those belong to one list, not to the routine.
-  Templates are managed in Settings → Task lists → Templates (owner: "we need some way of managing those templates"):
+  Templates are managed in Settings → Task lists → Templates, a row in the Task lists card that opens a sub page (owner: "we need some way of managing those templates"):
   see them all, rename, change the items (add, remove, reorder, retitle), estimate and category, delete with undo.
   The template picker links there too. Templates belong to the person and follow them to every device; they are
   stored by the app server per person (like prefs and own themes), not in Google, so they never show as events.
@@ -26,16 +32,20 @@ Feature: Task list templates
         | Toothbrush | no   |
       When I open the day view for 2026-10-14
       And I expand the task list "Packing"
-      And I save the task list as a template
+      Then the footer of the expanded task list shows "Add item, Save as template, Edit, Delete"
+      When I save the task list as a template
       Then the template name field shows "Packing"
+      And the template dialog previews the items "Passport, Charger, Toothbrush"
       When I confirm the template
       Then the snackbar says "Saved as template"
       And my templates are "Packing"
       And the template "Packing" has the items "Passport, Charger, Toothbrush"
       And the task list "Packing" shows the done count "1/3"
 
-    Scenario: Save a finished task list from the Archive as a template
+    Scenario: Save a finished task list from the Archive as a template, next to its one-off copy
       Given the calendar contains a task list "Packing" finished on 2026-10-10 with the item "Passport"
+      When I open the Archive
+      Then the task list "Packing" in the Archive offers "Use as template" and "Save as template"
       When I choose "Save as template" for the task list "Packing" in the Archive
       And I confirm the template
       Then my templates are "Packing"
@@ -132,7 +142,8 @@ Feature: Task list templates
       When I open the week view for 2026-10-12
       And I start creating a task list
       And I choose the template "Packing"
-      Then the task list form shows:
+      Then the template pill shows "Packing"
+      And the task list form shows:
         | title | Packing                        |
         | items | Passport; Charger; Toothbrush  |
         | date  | 2026-10-12                     |
@@ -188,13 +199,18 @@ Feature: Task list templates
       Then I see the task list "Clean bathroom" on 2026-10-13
       And I see the task list "Clean bathroom" on 2026-10-20
 
-    Scenario: The template picker lists the templates by name with their item counts
-      Given I have the template "Weekly shop" with the items "Milk, Eggs, Bread"
+    Scenario: The template pill grows into a menu of the templates with their items, estimate and category
+      Given I have the template "Weekly shop" with the items "Milk, Eggs, Bread", the estimate 45 minutes and the category "Shopping"
       And I have the template "Packing" with the items "Passport"
       When I open the day view for 2026-10-14
       And I start creating a task list
-      And I open the template picker
-      Then the template picker lists "Packing (1), Weekly shop (3)"
+      Then the template pill shows "From template"
+      When I open the template picker
+      Then the template menu has grown out of the template pill
+      And the template menu shows:
+        | Packing     | 1 item                       |
+        | Weekly shop | 3 items · ~45 min · Shopping |
+      And the template menu ends with "Manage templates" below a divider
 
     Scenario: Without templates the picker says how to make one
       When I open the day view for 2026-10-14
