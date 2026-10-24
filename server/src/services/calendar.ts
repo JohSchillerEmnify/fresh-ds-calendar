@@ -725,9 +725,9 @@ export class CalendarService {
    * Carries one later exception of the old series over to `fresh`'s occurrence of the same rule date. `own` holds the new
    * series' exceptions by rule date (kept up to date here). A deleted one deletes the new series' occurrence only while that
    * is still plain: an exception there is a week carried over before (the old one is deleted after carrying) and stays. A
-   * live one gives the occurrence its own data (ticks, times, reminders) plus `change` and is then deleted; when the person
-   * deleted that week in the new series already, the old one is deleted too. An occurrence that cannot be found stops the
-   * split before the old series is ended (nothing is lost).
+   * live one gives the occurrence its own data (ticks, times, reminders) plus `change` and is then deleted; when that week
+   * was deleted in the new series already, 409 (the person decides which copy goes). An occurrence that cannot be found
+   * stops the split before the old series is ended (nothing is lost).
    */
   private async carry(e: GoogleEvent, fresh: GoogleEvent, change: (d: TaskListData) => TaskListData, own: Map<string, GoogleEvent>): Promise<void> {
     const day = this.ruleStart(e).date;
@@ -742,10 +742,10 @@ export class CalendarService {
       }
       return;
     }
-    // the person deleted that week in the new series (a split left half done): the old week goes too
+    // a split left half done showed the week twice and the new copy was deleted: which copy stays is the person's call
+    // (the old one keeps its ticks; nothing is deleted or restored here)
     if (had?.status === 'cancelled') {
-      await this.deleteOld(e);
-      return;
+      throw new ApiException('CONFLICT', 409, `This list shows twice on ${day}; delete the other copy, then try again`);
     }
     // an earlier pass may have carried (and moved) it already: its exception in the new series is the one to write
     const inst = had ?? await this.occurrenceOn(fresh, day);

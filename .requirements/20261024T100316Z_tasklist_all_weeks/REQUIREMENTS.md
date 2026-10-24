@@ -210,3 +210,6 @@ text, removing an item — asks "This week / All weeks", the way Google does for
   exception read shows none at that date and it carries the series' `updated`; otherwise kept — a lagging list may not
   show a week carried just before). A live old week whose counterpart the person deleted in the new series is deleted
   too (no 502), so a retry finishes.
+- Changed after review: that case now answers 409 CONFLICT ("This list shows twice on <date>; delete the other copy, then
+  try again") and keeps the old week with its ticks (deleting it could lose the week the person meant to keep; Google's
+  undelete via status=confirmed is not verified, so nothing is restored).

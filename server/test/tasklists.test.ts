@@ -725,7 +725,7 @@ describe('recurring task lists: a change for this and all following ones (scope=
     ]);
   });
 
-  it('a split left half done whose new week the person deleted finishes on retry: the old week goes too', async () => {
+  it('a split left half done whose new week the person deleted: the retry answers 409 and keeps the old week with its tick', async () => {
     const a = await create();
     await tick('2026-10-28', 0);
     const second = await week('2026-10-21');
@@ -738,8 +738,10 @@ describe('recurring task lists: a change for this and all following ones (scope=
     expect(carried).toBe(6); // 10-28 and 11-04 twice now: the old series runs on next to the new one
     const shown = (await all()).filter((l: any) => l.date === '2026-10-28' && l.seriesId !== a.seriesId)[0];
     expect((await t.req('DELETE', `/api/tasklists/${shown.id}`)).status).toBe(204);
-    expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
-    expect((await weeks()).map((w: any) => w[0])).toEqual(['2026-10-14', '2026-10-21', '2026-11-04']);
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatchObject({ code: 'CONFLICT', message: 'This list shows twice on 2026-10-28; delete the other copy, then try again' });
+    expect((await all()).filter((l: any) => l.date === '2026-10-28').map((l: any) => l.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(','))).toEqual(['Sink:1,Floor:0']);
   });
 
   it('an added item with an id from the client is not added twice when the request is repeated', async () => {
