@@ -10,6 +10,8 @@ Owner answers (2026-10-25, on a design canvas mockup): Q1 (a) app server per per
 estimate, category; Q3 (c) KEEP the Archive's one-off "Use as template" as it is and add "Save as template" next to it
 (`tasks-archive.feature:40` unchanged); Q4 (a) Settings › Task lists › Templates, a row in the Task lists card that
 opens a sub page, linked from the picker's "Manage templates". UI as decided on the canvas: see To Be.
+Owner addition (2026-10-25): the Archive's one-off "Use as template" is renamed "Copy" (de "Kopieren", coldmirror its
+own short word) with unchanged behaviour, so "template" only means the saved templates (`tasks-archive.feature`).
 
 Status: SPEC ONLY, scenarios updated to the answers; the owner looks once more before the build. Scenarios:
 `spec/features/task-lists/tasklist-templates.feature`, steps in `e2e/STEPS.md` "Task list templates".
@@ -36,7 +38,7 @@ Status: SPEC ONLY, scenarios updated to the answers; the owner looks once more b
 
 - A task list can be saved as a template from its footer: a tonal pill "Save as template" after "+ Add item" and before
   Edit/Delete, wherever the footer shows: list sheet, tray, Tasks view Open and Archive (so also finished lists). In
-  the Archive it sits next to the existing one-off "Use as template" copy, which stays. A small dialog shows the name
+  the Archive it sits next to the existing one-off copy, which stays and is renamed "Copy". A small dialog shows the name
   field (prefilled with the list's title), a preview of the items and Cancel/Save.
 - The new task list form has a switch row "Also save as template" right above Cancel/Save (create only): saving the
   list also saves it as a template named by its title.
@@ -103,7 +105,7 @@ Status: SPEC ONLY, scenarios updated to the answers; the owner looks once more b
 1. Server: `templateStore` (`users/<sub>/templates.json`, atomic JSON), `/api/templates` CRUD, backup registration,
    API.md, LikeC4 (`calendar.server.templateStore` store + `templatesApi`), ADR "templates live on the app server".
 2. Web: `templates` store (+ last-known cache), API client.
-3. Save as template: footer pill + name dialog with items preview; in the Archive next to "Use as template".
+3. Save as template: footer pill + name dialog with items preview; in the Archive next to "Copy".
 4. Task list form: "From template" picker, "Also save as template" switch.
 5. Settings → Task lists → Templates page, template dialog, delete with undo.
 6. i18n en/de (fun dialects fall back), e2e steps, verify, targeted e2e, visual.

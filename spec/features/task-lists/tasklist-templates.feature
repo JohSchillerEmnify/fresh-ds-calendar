@@ -9,7 +9,8 @@ Feature: Task list templates
   The create form has a "From template ▾" pill next to its heading; a tap grows the pill in place into a menu of the
   templates ("2 items · ~45 min · Home" under each name), a divider and "Manage templates"; after a pick the pill
   shows the template's name. "Also save as template" is a switch row right above Cancel and Save.
-  The Archive keeps its one-off "Use as template" copy and gets "Save as template" next to it (owner).
+  The Archive keeps its one-off copy, renamed "Copy" so "template" only means these templates, and gets "Save as
+  template" next to it (owner).
   A template keeps a name, its items in their order (always unticked), the estimate and the category. It never keeps
   a date, a time, a repeat, reminders, tags, sharing or ticks: those belong to one list, not to the routine.
   Templates are managed in Settings → Task lists → Templates, a row in the Task lists card that opens a sub page (owner: "we need some way of managing those templates"):
@@ -45,7 +46,7 @@ Feature: Task list templates
     Scenario: Save a finished task list from the Archive as a template, next to its one-off copy
       Given the calendar contains a task list "Packing" finished on 2026-10-10 with the item "Passport"
       When I open the Archive
-      Then the task list "Packing" in the Archive offers "Use as template" and "Save as template"
+      Then the task list "Packing" in the Archive offers "Copy" and "Save as template"
       When I choose "Save as template" for the task list "Packing" in the Archive
       And I confirm the template
       Then my templates are "Packing"

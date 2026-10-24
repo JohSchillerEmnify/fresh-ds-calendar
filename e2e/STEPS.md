@@ -2039,7 +2039,7 @@ the open task list {string} has no date and {int} open item(s)
   awaited by the expectation that follows).
 - "I untick the item I of the task list L in the Archive": unticks `tasklist-item-checkbox` of that item inside L's
   `tasks-archive-item` and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
-- "I choose Use as template for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
+- "I choose Copy for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
   waits for the `POST /api/tasklists` response. "I choose Save as template for the task list L" (`@templates`): clicks
   `tasklist-save-template` in L's `tasks-archive-item`, which opens the `template-save-dialog`.
 - "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
@@ -2101,7 +2101,7 @@ I have no templates
   `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their text.
   "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
 - "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
-  A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, owner 2026-10-25).
+  A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, renamed "Copy", owner 2026-10-25).
 - "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (create mode only; a
   switch row right above Cancel and Save) set to `aria-checked="true"`.
 - "I open the template picker": clicks the pill `tasklist-from-template` next to the heading of the open

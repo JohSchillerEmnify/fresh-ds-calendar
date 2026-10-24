@@ -3,7 +3,8 @@ Feature: The Archive keeps finished task lists
   The Tasks view has two tabs, Open and Archive. A task list is archived automatically once all its items are
   ticked; there is no archive button. The Archive shows finished lists, newest first (by the day they were finished),
   and its search matches a list's title and its items' titles. Unticking an item of an archived list opens it again;
-  "Use as template" copies a list without a date and with every item open. The setting "Finished list without a date"
+  "Copy" makes an open copy of a list without a date and with every item open (owner 2026-10-25: renamed from "Use as
+  template", so "template" only means the saved templates of feature tasklist-templates). The setting "Finished list without a date"
   decides whether a list that was finished without a date shows in the calendar on that day (default) or only in the
   Archive. Dated finished lists always stay in the calendar on their day: the Archive is only a view.
 
@@ -37,9 +38,9 @@ Feature: The Archive keeps finished task lists
     Then the Archive does not list "Taxes"
     And the Open tab lists "Taxes"
 
-  Scenario: Use as template creates an open undated copy
+  Scenario: Copy creates an open undated copy
     Given the calendar contains a task list "Packing" finished on 2026-10-10 with the item "Passport"
-    When I choose "Use as template" for the task list "Packing" in the Archive
+    When I choose "Copy" for the task list "Packing" in the Archive
     Then the Open tab lists "Packing"
     And the open task list "Packing" has no date and 1 open item
     And the Archive lists "Packing"
