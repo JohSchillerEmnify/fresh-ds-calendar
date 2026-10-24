@@ -33,9 +33,10 @@ busy month's entries are fully clipped but still rendered).
 
 ## Acceptance Criteria
 
-1. e2e "Entries completely hidden under the fade of a month cell are not in the page": the 13th entry of a crowded
-   desktop cell is not in the DOM; the cell's `data-more` > 0.
-2. Same scenario: every built entry starts above the box's bottom; all @visual month pictures and the component
+1. e2e "Entries completely hidden under the fade of a month cell are not in the page" (desktop) and "... of a phone
+   month cell ..." (mobile): the last entry of a crowded cell is not in the DOM; the cell's `data-more` > 0.
+2. Same scenarios: every built entry starts above the box's bottom and the first left-out entry would start at or
+   below it (guard checked: shrinking the room by 16 px makes both scenarios fail); all @visual month pictures and the component
    goldens pass without re-baselining.
 3. Same scenario: fade mask present, "shows no overflow count"; unit: `v-fade` sets `data-fade="true"` on a box with
    `data-more` whose content fits.
@@ -53,7 +54,8 @@ busy month's entries are fully clipped but still rendered).
 
 1. `seenCount(slots, slotH, room)` in `lib/monthSlots.ts` + tests.
 2. `v-fade`: `data-more` counts as overflow + test.
-3. `MonthView`: `room = cellH - num - pad - (2 | 4)` (Infinity when unmeasured), slice each day's entries to
+3. `MonthView`: `room = entriesRoom(cellH, phone)` in `features/tasklists/layout.ts` next to `maxLanes`
+   (`cellH - num - pad - (2 | 4)`, Infinity when unmeasured; unit test per tier), slice each day's entries to
    `seenCount`, `:data-more` on the box; first render from the last measured grid height.
 4. Spec scenario + two steps + STEPS.md (check-steps 0).
    PR boundary: all of the above is one small PR.
@@ -84,6 +86,13 @@ busy month's entries are fully clipped but still rendered).
   screen-reader-only "+N more" should be added is left to the owner.
 - The month spec stays in `events-display.feature` next to the crowded-day scenario (the month cell's display rules
   live there; there is no separate month feature file).
+- Keyboard: a left-out entry is no longer reachable with Tab in the month grid (it could be focused before, while
+  invisible); the day still opens from the cell's day-number button, and the day view lists it. If the window shrinks
+  while a chip is focused and that chip is left out by the re-render, focus falls back to the page body. Not handled
+  (rare: a resize with a focused month chip; keeping focus would need before/after-update hooks); noted for the owner.
+- Breakpoint: `isPhone` is `max-width: 767.98px`, the cell CSS switches at `min-width: 768px`. Only a fractional width
+  between them (browser zoom) mixes the tiers; the entries box is then 7 px taller than computed and the top 7 px of
+  the next entry would be left out. Accepted and commented at `entriesRoom`.
 - Architecture (LikeC4) and the system design are unchanged: no new component or flow, only a rule inside the month
   view's existing rendering.
 
@@ -104,6 +113,10 @@ unchanged.
 Pictures: a throwaway scenario screenshotted the busy month (phone 2026-09/10/11, desktop 2026-10/11, desktop 900x640)
 on the base and the final build: every month grid is pixel-identical; the only differing pixels are outside the grid
 (nav rail ripple, top bar sync line, a check-in toast) and differ between two runs of the same build too.
+
+Review round: `entriesRoom` moved to `layout.ts` with tests per tier, the fade test asserts no layout read for a box
+with `data-more`, the e2e step also proves nothing visible is left out, a phone copy of the scenario exercises the
+23 px phone box. Room - 16 px (temporary) made both scenarios fail; restored, @month 29 passed.
 
 Tests: unit (seenCount, fade with `data-more`) red then green; `pnpm --silent verify` OK; @month (mobile + desktop,
 28) passed; @visual (12) passed; goldens (19) passed; nothing re-baselined.
