@@ -1171,7 +1171,8 @@ they hide the calendar {string} in the filter bar
 - "shows its first entry": the `month-cell-entries` box is at least 16 px tall and its first entry starts inside it, above
   the faded band (a cell whose bars or measuring leave the entries no room looks empty).
 - "every entry in the month cell of D can be seen at least in part": the `month-cell-entries` box counts the entries it
-  left out (`data-more` > 0) and every entry still in it (`[data-title]` child) starts above the box's bottom edge.
+  left out (`data-more` > 0), every entry still in it (`[data-title]` child) starts above the box's bottom edge, and the
+  first left-out entry (2 px below the last built one) would start at or below that edge (0.5 px tolerance).
   "leaves out the entry T": no element with `data-title` T inside the month cell of D.
 - "stay unchanged for N seconds": a `MutationObserver` on `month-view` sees no childList change and no real change of a
   `data-*` attribute (`data-tier`, `data-fit`, `data-fade`) for N seconds: layout tiers settle instead of flipping.

@@ -15,7 +15,7 @@ import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
-import { allotHeights, CELL_METRICS, maxLanes } from '@/features/tasklists/layout';
+import { allotHeights, CELL_METRICS, entriesRoom, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { vFade } from '@/lib/fade';
 import { packWeek, seenCount } from '@/lib/monthSlots';
@@ -53,10 +53,8 @@ type Slotted = { key: string; gap: number } | { key: string; seg: Segment; h?: n
 const rows = computed(() => {
   const cellH = gridH.value / weeks.value.length;
   const cap = maxLanes(cellH, isPhone.value);
-  // decided by row maths, no layout read: the entries' box is the cell minus the day number, the cell's padding, its gap
-  // below the number and its bottom border (1 + 1 px on phones, 3 + 1 px wider); an entry starting at its bottom is hidden
-  const cm = isPhone.value ? CELL_METRICS.phone : CELL_METRICS.wide;
-  const room = cellH > 0 ? cellH - cm.num - cm.pad - (isPhone.value ? 2 : 4) : Infinity;
+  // decided by row maths, no layout read: an entry starting at or below the entries box's bottom is hidden
+  const room = entriesRoom(cellH, isPhone.value);
   return weeks.value.map((week) => {
     const dates = week.map(toIsoDate);
     const bars = barsOf(dates).filter((b) => b.lane < cap);

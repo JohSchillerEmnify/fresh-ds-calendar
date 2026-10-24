@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_METRICS, maxLanes } from '@/features/tasklists/layout';
+import { CELL_METRICS, entriesRoom, maxLanes } from '@/features/tasklists/layout';
 
 describe('maxLanes', () => {
   it('is uncapped while the grid is unmeasured', () => {
@@ -30,5 +30,20 @@ describe('maxLanes', () => {
 
   it('gives the phone day number a smaller header than the wide layout', () => {
     expect(CELL_METRICS.phone.num + CELL_METRICS.phone.pad).toBeLessThan(CELL_METRICS.wide.num + CELL_METRICS.wide.pad);
+  });
+});
+
+describe('entriesRoom', () => {
+  it('is unlimited while the grid is unmeasured', () => {
+    expect(entriesRoom(0, true)).toBe(Infinity);
+    expect(entriesRoom(Number.NaN, false)).toBe(Infinity);
+  });
+
+  it('is the cell minus number, padding, gap and border: 23 px on a phone', () => {
+    expect(entriesRoom(100, true)).toBe(77);
+  });
+
+  it('is the cell minus number, padding, gap and border: 40 px wider', () => {
+    expect(entriesRoom(135.75, false)).toBe(95.75);
   });
 });

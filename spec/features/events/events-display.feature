@@ -254,6 +254,25 @@ Feature: Displaying events in the calendar views
     When I click empty space in the month cell of 2026-10-14
     Then I see the event "E12" on 2026-10-14
 
+  @month @mobile
+  Scenario: Entries completely hidden under the fade of a phone month cell are not in the page
+    The same on a phone, where the cell and its entries are smaller.
+    Given the calendar contains these events on 2026-10-14:
+      | title | from  | to    |
+      | E01   | 10:00 | 10:30 |
+      | E02   | 10:30 | 11:00 |
+      | E03   | 11:00 | 11:30 |
+      | E04   | 11:30 | 12:00 |
+      | E05   | 12:00 | 12:30 |
+      | E06   | 12:30 | 13:00 |
+    When I open the month view for 2026-10
+    Then I see the event "Dentist" on 2026-10-14
+    And every entry in the month cell of 2026-10-14 can be seen at least in part
+    And the month cell of 2026-10-14 leaves out the entry "E06"
+    And the entries on 2026-10-14 fade out towards the bottom of the month cell
+    When I tap the day 2026-10-14 in the month view
+    Then I see the event "E06" on 2026-10-14
+
   @month @desktop
   Scenario: Task list cards in a narrow month grid do not flicker
     Given the browser window is 672 by 1180 pixels wide and high
