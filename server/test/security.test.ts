@@ -297,7 +297,8 @@ describe('M5 stateless OAuth state', () => {
     const [payload, sig] = good.split('.') as [string, string];
     const forgedPayload = Buffer.from('{"n":"x","app":true,"exp":99999999}').toString('base64url');
     expect(s.consume(`${forgedPayload}.${sig}`)).toBeNull();
-    expect(s.consume(`${payload}.${sig.slice(0, -2)}AA`)).toBeNull();
+    // flip the first character so the signature always differs (a fixed "AA" ending matched about 1 in 1000 runs)
+    expect(s.consume(`${payload}.${sig[0] === 'A' ? 'B' : 'A'}${sig.slice(1)}`)).toBeNull();
     expect(s.consume('nope')).toBeNull();
     expect(s.consume(`${payload}.${sig}.extra`)).toBeNull();
     expect(s.consume('')).toBeNull();
