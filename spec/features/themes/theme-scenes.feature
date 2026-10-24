@@ -11,7 +11,8 @@ Feature: Season themes keep my light or dark choice and bring their own scene
   they cost the phone nothing (owner, 2026-10-24: Halloween kept the processor busy 2.4-2.9 s of every 3 s). The still
   picture is the scene's resting look, the same one the Animations "Off" setting shows. Coming back to the app after
   it was hidden counts as opening it, and choosing a different scene plays it too. With reduced motion the scene is
-  still from the start.
+  still from the start. While the scene moves, its visitor passes once: a butterfly, at Halloween a bat or the little
+  ghost (owner, 2026-10-24); there are no later visits until the scene moves again.
 
   Background:
     Given the calendar is empty
@@ -90,7 +91,12 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     And 11 seconds pass
     Then the browser uses at most 400 ms of processor time in 3 seconds
 
-  @backlog
-  Scenario: Butterflies come only now and then
-    When I choose the theme "Spring"
-    Then the top bar scene has no butterfly yet
+  Scenario: A visitor passes once while the scene moves
+    Given the seasons and holidays follow the calendar
+    And the time is 2026-10-31 18:00 and the clock is running
+    When I open the week view for 2026-10-31
+    Then a visitor passes through the top bar scene
+    When 11 seconds pass
+    Then the top bar scene is still
+    When 10 minutes pass
+    Then the top bar scene is still

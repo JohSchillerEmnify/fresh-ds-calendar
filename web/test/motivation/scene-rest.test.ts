@@ -133,6 +133,33 @@ describe('seasonal scenes rest after ten seconds', () => {
     enableTimerCounting(false);
   });
 
+  it.each([
+    [0.2, 'bat'],
+    [0.7, 'ghost'],
+  ])('Halloween (roll %s): the %s passes once while the scene moves, then nothing comes any more', async (roll, who) => {
+    setActivePinia(createPinia());
+    vi.spyOn(Math, 'random').mockReturnValue(roll);
+    const shell = mount(Shell);
+    const w = mount(TopBarScene, { props: { scene: 'halloween' as SceneName }, attachTo: document.body });
+    await flushPromises();
+    const other = who === 'bat' ? 'ghost' : 'bat';
+    expect(w.findAll(`[data-part="${who}"]`)).toHaveLength(1);
+    expect(w.findAll(`[data-part="${other}"]`)).toHaveLength(0);
+    if (who === 'ghost') expect(w.get('[data-part="ghost"]').classes()).toContain('float');
+    await vi.advanceTimersByTimeAsync(SCENE_AWAKE_MS);
+    expect(w.findAll('[data-part="bat"], [data-part="ghost"]')).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(w.findAll('[data-part="bat"], [data-part="ghost"]')).toHaveLength(0);
+    // coming back: one visitor passes again
+    setHidden(true);
+    setHidden(false);
+    await nextTick();
+    expect(w.findAll('[data-part="bat"], [data-part="ghost"]')).toHaveLength(1);
+    w.unmount();
+    shell.unmount();
+    vi.restoreAllMocks();
+  });
+
   it('Mordor is not a seasonal scene: its visitor keeps its rhythm while the seasonal scenes rest', async () => {
     setActivePinia(createPinia());
     useClockStore().config.testMode = true;

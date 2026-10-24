@@ -1574,7 +1574,6 @@ I reload the app
 ```
 I open the theme menu
 I choose the theme {string}
-the top bar scene has no butterfly yet
 I chose the theme {string}
 I export the theme {string}
 the theme file {string} is downloaded
@@ -1705,6 +1704,7 @@ every option of the {string} setting shows a sample icon
 the top bar scene shows {string}, {string}, {string} and {string}
 the top bar scene is moving
 the top bar scene is still
+a visitor passes through the top bar scene
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
@@ -1721,9 +1721,11 @@ the support cat is gone within {int} ms
 
 - "the top bar scene is moving": at least one CSS animation (`document.getAnimations()`) whose target is inside
   `top-bar-scene` has `playState` `running`. "is still": none is running and there is no `butterfly`, `bat` or `ghost`
-  part; `html[data-scenes]` is `still`. Both poll up to 5 s.
-- Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
-  "butterfly" part is present for the check.
+  part; `html[data-scenes]` is `still`. Both poll up to 5 s. "a visitor passes through": a `butterfly`, `bat` or
+  `ghost` part is visible in the top bar scene (the fake clock holds the visit while the step looks).
+- A seasonal scene's visitor passes once at the start of each moving window (Mordor keeps its rhythm: first after
+  20-60 s, then every 3-5 min). The scene step sets `window.__butterflyNow = true` before loading so the "butterfly"
+  part is present for the check at once (at Halloween it makes the visitor the bat, not the ghost).
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,
   `sunflower`, `sun`, `butterfly`, `cat`, `jack-o-lantern`, `bat`, `moon`, `ghost`; the holiday scenes have `easter-egg`,
   `hare`, `first-flower`, `sea`, `beach-umbrella`, `advent-candle`, `xmas-tree`, `snow`, `firework`, `skyline`,

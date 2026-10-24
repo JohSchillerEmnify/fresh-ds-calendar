@@ -3,7 +3,8 @@
  * after it comes back from the background and after the scene changes, and only at the Full animation level. The rest
  * of the time they are a still picture that costs nothing: `useSceneRest` (in the shell) mirrors the state to
  * `html[data-scenes]` (`moving` | `still`), `styles.css` then removes every animation of the seasonal scenes (the
- * same picture as the Off level), and `useSceneVisits` sends no visitor and keeps no timer.
+ * same picture as the Off level), and `useSceneVisits` sends no visitor and keeps no timer. A visitor passes once at
+ * the start of each moving window.
  */
 import { computed, onScopeDispose, ref, watch } from 'vue';
 import { appTimeout, useListener, type Disposer } from '@/lib/timers';
@@ -17,6 +18,17 @@ const awake = ref(true);
 
 /** Whether the seasonal scenes rest as a still picture now (read-only). */
 export const sceneStill = computed(() => !awake.value || motionLevel.value !== 'full');
+
+/** Rolled at each wake: which visitor the Halloween scene sends in this moving window. */
+const roll = ref(0);
+
+/**
+ * The Halloween visitor of the current moving window: the bat or the little ghost, half the time each. The test hook
+ * (`forced`) always brings the bat.
+ */
+export function halloweenVisitor(forced: boolean): 'bat' | 'ghost' {
+  return forced || roll.value < 0.5 ? 'bat' : 'ghost';
+}
 
 /**
  * Runs the moving window in the shell: wakes now, when the app becomes visible again and when `scene` changes; rests
@@ -36,6 +48,7 @@ export function useSceneRest(scene: () => unknown): void {
   };
   const wake = () => {
     stop();
+    roll.value = Math.random();
     awake.value = true;
     timer = appTimeout(rest, SCENE_AWAKE_MS);
   };

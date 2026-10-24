@@ -328,6 +328,10 @@ Then('the top bar scene is still', async function (this: World) {
   await expect(this.page.getByTestId('top-bar-scene').locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]')).toHaveCount(0);
 });
 
+Then('a visitor passes through the top bar scene', async function (this: World) {
+  await expect(this.page.getByTestId('top-bar-scene').locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]').first()).toBeVisible();
+});
+
 Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
   await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c, d]);
 });

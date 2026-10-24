@@ -52,11 +52,23 @@ describe('themed top bar scenes', () => {
     w.unmount();
   });
 
-  it('a butterfly comes by only now and then: first after 20–60 s, ~10 s long, then again after 3–5 min', async () => {
+  it('a seasonal scene\'s butterfly passes once while it moves (~10 s) and does not come back', async () => {
+    vi.useFakeTimers();
+    const w = mountScene('fall');
+    const has = () => parts(w.element, 'butterfly');
+    expect(has()).toBe(1);
+    await vi.advanceTimersByTimeAsync(BUTTERFLY_VISIT_MS);
+    expect(has()).toBe(0);
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(has()).toBe(0);
+    w.unmount();
+  });
+
+  it('Mordor\'s butterfly comes by only now and then: first after 20–60 s, ~10 s long, then again after 3–5 min', async () => {
     vi.useFakeTimers();
     // random = 0.5: first visit after 40 s, the next 4 min after it left
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const w = mountScene('fall');
+    const w = mountScene('mordor');
     const has = () => parts(w.element, 'butterfly');
     expect(has()).toBe(0);
     await vi.advanceTimersByTimeAsync(39_999);
@@ -90,7 +102,7 @@ describe('themed top bar scenes', () => {
     enableTimerCounting();
     const before = window.__appTimers ?? 0;
     window.__butterflyNow = true;
-    const w = mountScene('spring');
+    const w = mountScene('mordor');
     expect(parts(w.element, 'butterfly')).toBe(0);
     expect(window.__appTimers).toBe(before + 1);
     w.unmount();
@@ -140,38 +152,12 @@ describe('themed top bar scenes', () => {
     w.unmount();
   });
 
-  it('the ghost floats past every 8–12 min for ~8 s; Reduced (a still scene) and Off have none', async () => {
-    vi.useFakeTimers();
-    // random = 0.5: the ghost comes after 10 min, the bat after 40 s and 4 min after that
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const w = mountScene('halloween');
-    const ghost = () => w.findAll('[data-part="ghost"]');
-    await vi.advanceTimersByTimeAsync(599_999);
-    expect(ghost()).toHaveLength(0);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(ghost()).toHaveLength(1);
-    expect(ghost()[0].classes()).toContain('float');
-    await vi.advanceTimersByTimeAsync(GHOST_RHYTHM.lengthMs);
-    expect(ghost()).toHaveLength(0);
-    await vi.advanceTimersByTimeAsync(600_000);
-    expect(ghost()).toHaveLength(1);
-    // a level change ends the visit; at Reduced the Halloween scene rests, so no ghost comes
-    setAnimationSetting('reduced');
-    await vi.advanceTimersByTimeAsync(0);
-    expect(ghost()).toHaveLength(0);
-    await vi.advanceTimersByTimeAsync(3_600_000);
-    expect(ghost()).toHaveLength(0);
-    setAnimationSetting('off');
-    await vi.advanceTimersByTimeAsync(3_600_000);
-    expect(ghost()).toHaveLength(0);
-    w.unmount();
-  });
-
-  it('Halloween leaves no timers after unmount (bat and ghost each wait on one)', () => {
+  it('Halloween leaves no timers after unmount (only the passing bat waits to leave)', () => {
     enableTimerCounting();
     const before = window.__appTimers ?? 0;
     const w = mountScene('halloween');
-    expect(window.__appTimers).toBe(before + 2);
+    expect(parts(w.element, 'bat')).toBe(1);
+    expect(window.__appTimers).toBe(before + 1);
     w.unmount();
     expect(window.__appTimers).toBe(before);
     enableTimerCounting(false);

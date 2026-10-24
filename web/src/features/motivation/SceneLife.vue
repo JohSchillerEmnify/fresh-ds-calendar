@@ -15,16 +15,17 @@ import SceneSun from './SceneSun.vue';
 import SpringMeadow from './SpringMeadow.vue';
 import SproutingTree from './SproutingTree.vue';
 import SunflowerField from './SunflowerField.vue';
-import { sceneStill } from './sceneRest';
+import { halloweenVisitor, sceneStill } from './sceneRest';
 import { useSceneVisits } from './useSceneVisits';
 
 /**
  * The living layer of a themed top bar scene (feature theme-scenes), drawn over the
  * scene's own backdrop: spring brings sprouting trees, lily of the valley and the first flowers in the grass, summer
- * a few sunflowers and a small sun, Halloween its night (moon, bare trees, jack-o'-lanterns, a ghost now and then);
+ * a few sunflowers and a small sun, Halloween its night (moon, bare trees, jack-o'-lanterns, now and then a ghost);
  * the holiday scenes bring eggs and a hare (Easter), sea and umbrella (Summer holidays), an Advent candle timeline ending in the tree
- * (Christmas), fireworks (New Year's Eve) and a sunrise (New Year). Every scene has one small cat and, now and then, a
- * visiting butterfly (a bat at Halloween; none at Christmas, New Year's Eve and New Year). Parts carry `data-part`.
+ * (Christmas), fireworks (New Year's Eve) and a sunrise (New Year). Every scene has one small cat and a visiting
+ * butterfly (at Halloween the bat or the ghost; none at Christmas, New Year's Eve and New Year): in the seasonal scenes
+ * it passes once while the scene moves, at Mordor on its rhythm. Parts carry `data-part`.
  * Sizes follow the bar height (container units), colours the theme tokens; motion follows `html[data-motion]`, and
  * the seasonal scenes rest as a still picture after their first ten seconds (`sceneRest.ts`; `data-life` marks the layer).
  */
@@ -47,12 +48,14 @@ const clock = useClockStore();
 const visit = useSceneVisits(
   BUTTERFLY_RHYTHM,
   (level) => {
-    const flight = NO_FLYER.includes(props.scene) ? null : butterflyFlight(level, Math.random());
+    // at Halloween the bat comes only when it is the bat's turn (otherwise the ghost passes, HalloweenNight)
+    const none = NO_FLYER.includes(props.scene) || (props.scene === 'halloween' && halloweenVisitor(forcedButterfly(clock.config.testMode)) !== 'bat');
+    const flight = none ? null : butterflyFlight(level, Math.random());
     return flight && { flight, restX: Math.round(15 + Math.random() * 65), tint: Math.random() < 0.5 ? ('a' as const) : ('b' as const) };
   },
   () => forcedButterfly(clock.config.testMode),
-  // Mordor is not a seasonal scene: it does not rest
-  () => props.scene !== 'mordor' && sceneStill.value,
+  // Mordor is not a seasonal scene: its butterfly keeps its rhythm; the seasonal ones pass once per moving window
+  props.scene === 'mordor' ? undefined : () => sceneStill.value,
 );
 /** At Halloween bats come instead of butterflies (same rhythm, same test hook). */
 const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
