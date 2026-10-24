@@ -151,3 +151,30 @@ text, removing an item — asks "This week / All weeks", the way Google does for
   may be on some weeks only. Repeating the same change is safe (rename / text / remove are idempotent; add creates a
   second item). No automatic retry is added beyond the existing 412 re-read.
 - A8: Daily and monthly lists ask with "day" / "month" wording (the owner named weekly; same mechanism).
+
+## Owner review 1 (2026-10-24) — supersedes the "All weeks" parts above
+
+- A1 rejected (owner: "google has all events, just this or all FUTURE (from this point on!) tbh past with task list does
+  not make a lot of sense"). Wording (owner): "This task list" / "This and all following task lists" for every rhythm
+  (A8 dropped); de "Diese Aufgabenliste" / "Diese und alle folgenden Aufgabenlisten". API: `?scope=following`.
+- Google research for "this and following": the Calendar API has no such operation and documents none; the recurring
+  events guide only warns not to do it by changing instances one by one
+  (https://developers.google.com/workspace/calendar/api/guides/recurringevents). Google Calendar's UI does it by splitting
+  the series (old series ends, a new one starts with the change) — third-party descriptions, not Google docs
+  (https://github.com/ncukondo/gcal-cli/issues/72, https://note.com/gws_riko/n/n96c5fa216410?hl=en). What Google does with
+  exceptions after a new `UNTIL` is undocumented, so the server never relies on it.
+- Chosen: the split, built only from documented calls (events.patch / insert / delete / list, RRULE `UNTIL` per
+  RFC 5545, `recurrence` is writable): (1) the shown occurrence gets the change (keeps its id: the client's view stays
+  valid); (2) a new series from the next live occurrence (found by a 62-day range read; DTSTART must be a real rule date,
+  monthly rules with gaps included) with private `series` = first series' id; (3) later exceptions (incl. cancelled,
+  `showDeleted`) carried to the new series' occurrence of the same rule date with their own data + change, old exception
+  deleted explicitly; (4) old series gets `UNTIL` = shown occurrence's start last (a failure midway leaves duplicates, never
+  a gap). From the first occurrence nothing is split (series + exceptions, as before). Alternatives rejected: freezing
+  every past plain week as an exception (Google warns against clutter); versioned data inside one master (Google
+  Calendar itself would then show the new title on past weeks).
+- Consequences handled: `seriesKey` (= `series` property, else `seriesId`) groups the parts on the door; deleting a series
+  deletes its later parts; a later write of the old master keeps its `UNTIL` (codec keeps a same-rhythm rule).
+- Review fixes (code-reviewer): form retry after a failed title request sends only the title with the new version; removing
+  an item still being added asks and passes the answer; a this-only rename never merges ahead of a following one; the
+  question is cancelled when the list view goes away. Deferred: the server re-saves lists that do not hold the item
+  (harmless, new etag only); a second question cancels an open one (not reachable through the modal).

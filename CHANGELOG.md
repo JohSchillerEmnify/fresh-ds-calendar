@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2026-10-24
-- Repeating task lists: renaming the list, adding an item, changing an item's text or removing an item now asks "This week" or "All weeks", as Google does for repeating appointments. "All weeks" reaches every week, also weeks you already ticked in, and their ticks stay. Ticking stays per week.
+- Repeating task lists: renaming the list, adding an item, changing an item's text or removing an item now asks "This task list" or "This and all following task lists", as Google does for repeating appointments. Earlier lists stay as they were; later ones you already ticked in keep their ticks. Ticking stays per list.
 - The month view is quicker with a busy month: changing and swiping months no longer re-measures every day and appointment, and a sync without changes no longer redraws the calendar.
 - On a bad or no connection the app now opens at once with what it showed last on this device (the days you looked at in the last four weeks, your task lists, settings and language), with a small "Last updated 08:12" note; fresh data replaces it as soon as the server answers. Changes still need a connection. Signing out removes it from the device.
 
