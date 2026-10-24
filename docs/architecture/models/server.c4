@@ -83,6 +83,12 @@ model {
     canvasStore = store 'Canvas areas' {
       description 'Each person\'s Canvas areas document on disk, not in Google'
     }
+    templatesApi = component 'Templates API' {
+      description 'Lists, saves, changes and deletes one person\'s task list templates'
+    }
+    templateStore = store 'Task list templates' {
+      description 'Each person\'s task list templates on disk (name, items, estimate, category), not in Google'
+    }
     webPush = component 'Web Push' {
       description 'Each browser\'s push subscription and its reminder plan of the next 7 days'
     }
@@ -112,6 +118,8 @@ model {
     backup -> themeFiles 'collects and restores, re-checking each theme like an import'
     canvasApi -> canvasStore 'reads and writes atomically'
     backup -> canvasStore 'collects and restores with the person\'s files'
+    templatesApi -> templateStore 'reads and writes atomically'
+    backup -> templateStore 'collects and restores with the person\'s files'
     calendarService -> reminderOverrides 'keeps and applies the reminders of events of read-only calendars (never asked at Google)'
     backup -> reminderOverrides 'collects and restores with the person\'s files'
     calendarService -> prefsStore 'reads what finishing an undated list does, on every completing write'
@@ -146,5 +154,7 @@ model {
   calendar.web.tasksView -> calendar.server.tasksApi 'fetches every open list and the finished ones'
   calendar.web.tasksCanvas -> calendar.server.tasksApi 'saves a note\'s place on its list'
   calendar.web.tasksCanvas -> calendar.server.canvasApi 'reads and replaces the areas document'
+  calendar.web.listForm -> calendar.server.templatesApi 'reads templates to start a list from, saves a list as one'
+  calendar.web.settings -> calendar.server.templatesApi 'lists, renames, changes and deletes templates'
   calendar.web.reminderPlan -> calendar.server.webPush 'sends the next 7 days\' plan, in a subscribed browser'
 }

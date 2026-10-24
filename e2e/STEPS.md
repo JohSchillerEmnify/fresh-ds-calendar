@@ -36,7 +36,8 @@ Define the custom types with `defineParameterType` in `e2e/steps/parameters.ts`.
     `description`, `location`, `calendar` (calendar display name, e.g. `Personal`, `Work`), `color` (`Calendar color`
     or a Google color name, e.g. `Tomato`).
   - Task list fields: `title`, `date`, `time` (empty = no time), `items` (`; `-separated, typed as one item per line),
-    `category` (category name or `No category`), `tags` (comma-separated text).
+    `category` (category name or `No category`), `tags` (comma-separated text), `estimate` (minutes, empty = none).
+  - Template fields (`@templates`): `name`, `items`, `estimate`, `category`, with the same value rules.
   - An empty cell clears the field. A cell wrapped in double quotes (`"   "`) is typed literally without the quotes.
   - `<N characters>` (e.g. `<201 characters>`) types N times the letter `x`.
   - Fields are filled in the table order; filling a field that is not visible (e.g. `start time` when `all day` is
@@ -2039,9 +2040,84 @@ the open task list {string} has no date and {int} open item(s)
 - "I untick the item I of the task list L in the Archive": unticks `tasklist-item-checkbox` of that item inside L's
   `tasks-archive-item` and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
 - "I choose Use as template for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
-  waits for the `POST /api/tasklists` response.
+  waits for the `POST /api/tasklists` response. "I choose Save as template for the task list L" (`@templates`): clicks
+  `tasklist-save-template` in L's `tasks-archive-item`, which opens the `template-save-dialog`.
 - "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
   `data-date` and N `tasklist-item` rows with `data-done="false"` (and no done ones).
+
+## Task list templates (`@templates`)
+
+```
+I have the template {string} with the items {string}
+I have the template {string} with the items {string}, the estimate {int} minutes and the category {string}
+the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
+I save the task list as a template
+the template name field shows {string}
+I enter the template name {string}
+I confirm the template
+I turn on {string} in the task list form
+I open the template picker
+I choose the template {string}
+I choose {string} in the template picker
+the template picker lists {string}
+the template picker says {string}
+I create a task list from the template {string} on {date}
+I open the templates in the settings
+the settings page {string} is shown
+the templates page lists {string}
+the templates page says {string}
+I open the template {string}
+I fill in the template form with:
+I save the template
+I cancel the template dialog
+I delete the template {string}
+the template form shows:
+the template form has no date, time, repeat or reminder fields
+the template dialog shows the error {string}
+my templates are {string}
+the template {string} has the items {string}
+I have no templates
+```
+
+- Store: templates are per person on the app server, `GET/POST /api/templates`, `PUT/DELETE /api/templates/:id`
+  (`users/<sub>/templates.json`). A template is `{ id, name, items: [{ title }], estimateMinutes, categoryId }`.
+- "I have the template T with the items "A, B"[, the estimate N minutes and the category C]": `POST /api/templates`
+  before the page opens (items split on `", "`, C resolved by name from `GET /api/settings`).
+- "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`
+  with `categoryId`, `time`, `estimateMinutes` and the items table (ticks included).
+- "I save the task list as a template": in the open list sheet (`tasklist-expanded`; "I expand the task list" opens
+  it) clicks `tasklist-save-template` in the footer next to Edit and Delete; `template-save-dialog` opens with
+  `template-save-name` prefilled with the list's title. "the template name field shows N" = value of
+  `template-save-name`; "I enter the template name N" replaces it; "I confirm the template" clicks
+  `template-save-confirm` and, when no error shows, waits for the `POST /api/templates` response (201).
+- "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (create mode only)
+  set to `aria-checked="true"`.
+- "I open the template picker": clicks `tasklist-from-template` in the open `tasklist-dialog` (create mode); the
+  `template-picker` opens. "I choose the template T" opens the picker if needed and clicks its `template-picker-item`
+  with `data-name` T; the picker closes and the form is filled. "I choose Manage templates in the template picker"
+  clicks `template-picker-manage`. "the template picker lists "A (1), B (3)"" = each `template-picker-item`'s
+  `data-name` and `data-count` as `name (count)`, in DOM order (by name). "says" = text of `template-picker-empty`.
+- "I create a task list from the template T on D": the day view of D, "I start creating a task list", "I choose the
+  template T", "I save the task list" (waits for `POST /api/tasklists`).
+- "I open the templates in the settings": opens the settings (from the day view of the Background date if no page
+  is open yet), the settings page `Task lists`, then its row `settings-templates`; waits for `templates-page`.
+  "the settings page P is shown": the `settings-page` with `data-page` P is visible (`Templates` = `templates`).
+- "the templates page lists "A, B"" = `data-name` of every `template-row` in DOM order (by name); "says" = text of
+  `templates-empty`.
+- "I open the template T": on the templates page clicks the `template-row` T; `template-dialog` opens.
+  "I fill in the template form with:" fills `template-name`, `template-items` (one per line, as the task list form;
+  reordering, adding, removing and retitling are all done by the lines), `template-estimate`, `template-category`.
+  "I save the template" clicks `template-save` and, when no error shows, waits for `PUT /api/templates/:id` (200);
+  "I cancel the template dialog" clicks `template-cancel`. "the template form shows:" compares the listed fields.
+  "has no date, time, repeat or reminder fields": the `template-dialog` holds no `tasklist-date`, `tasklist-time`,
+  `tasklist-repeat` or reminder editor.
+- "I delete the template T": clicks `template-delete` of the `template-row` T; the row goes at once and an undo
+  snackbar shows (as other deletes; "I undo the deletion" and "the undo time is over" are reused). The
+  `DELETE /api/templates/:id` is sent when the undo time is over.
+- "the template dialog shows the error E": text of `template-error` in the open `template-save-dialog` or
+  `template-dialog`.
+- "my templates are "A, B"" / "the template T has the items "A, B"" / "I have no templates": `GET /api/templates` as
+  the signed-in person: names sorted, joined `", "`; T's item titles in order, joined `", "`; an empty list.
 
 ## Tasks canvas (`@tasks-canvas`)
 
