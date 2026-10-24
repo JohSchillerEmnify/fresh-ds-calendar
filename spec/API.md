@@ -111,6 +111,7 @@ interface TaskList {
   estimateMinutes: number | null; // 5–720; a timed list lasts this long in Google (default 30 when null)
   recurrence: 'daily' | 'weekly' | 'monthly' | null;  // @optional feature; instances have their own ids and ticks
   seriesId?: string;      // on an occurrence of a repeating list: the id of its series (Google recurringEventId); absent otherwise
+  seriesKey?: string;     // on an occurrence: the same for every part of a list split by a "this and following" change
   categoryId: string | null;   // null = no category; unknown/deleted ids are returned as null
   tags: string[];              // max 10, each 1–30 chars, no commas, unique case-insensitively, order kept
   color: string;               // category color, else calendar color
@@ -432,18 +433,26 @@ its own `id`. The master's items never change by an item op. When the first occu
 nothing. Creating a repeating list answers with its first occurrence (the id range reads list, with `seriesId`), so a
 client never holds the series id from a create; the web app deletes a repeating list it created in this session as a
 whole series (`DELETE` of its `seriesId`), any other occurrence on its own. Deleting the series removes its
-split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). **All weeks** (owner, 2026-10-24, feature
-tasklist-repeating): `?scope=all` on `PATCH /api/tasklists/:id` (body `title` only), `POST /api/tasklists/:id/items`,
-`PATCH /api/tasklists/:id/items/:itemId` (body `title` only) and `DELETE /api/tasklists/:id/items/:itemId` changes every
-week of the series the id belongs to (occurrence or series id): the server patches the series (Google master; plain weeks
-follow it) and then every week already split off (non-cancelled Google exceptions, found by `events.list` without
-`singleEvents`), each by read-modify-write of its own data with the change applied by item id, so each week keeps its
-ticks (Google preserves an exception's own changes when the master changes, so a master write alone would not reach
-them). Past weeks are included. An added item gets one id, unticked, in every week; a text change / removal reaches the
-weeks that hold that item id; weeks without it stay as they are. The answer is the addressed list (same `id`) after the
-change. `scope=all` on a list that does not repeat → 400 `This list does not repeat` (field `scope`); with other fields
-than `title`, or `done` on an item → 400 (field `scope`); any other `scope` value than `this` / `all` → 400. Without
-`scope` (or `scope=this`) only the given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
+split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). **This and all following** (owner, 2026-10-24, feature
+tasklist-repeating; Google's "This and following events"): `?scope=following` on `PATCH /api/tasklists/:id` (body `title`
+only), `POST /api/tasklists/:id/items`, `PATCH /api/tasklists/:id/items/:itemId` (body `title` only) and
+`DELETE /api/tasklists/:id/items/:itemId` changes the occurrence `id` and every later one of its series; earlier ones never
+change. The Calendar API has no such operation; the server does what Google Calendar's own "This and following" does,
+splitting the series: (1) the given occurrence gets the change (an exception of the old series from then on); (2) a new
+series starts at the next live occurrence of the old one (its rule start found by a range read of the following 62 days),
+with the series' data plus the change and the private property `series` = the first series' id (kept through further
+splits); (3) every later exception of the old series (found by `events.list` without `singleEvents`, with `showDeleted`)
+is carried over to the new series' occurrence of the same rule date: its own data (ticks, own times, reminders) plus the
+change, a cancelled one cancels it; the old exception is then deleted; (4) the old series ends with `UNTIL` = the given
+occurrence's start. When the given occurrence is the series' first one (or the id is the series id) nothing is split:
+the series and all its exceptions get the change (each by read-modify-write, ticks kept). When no live occurrence follows
+within 62 days only the given one changes. An added item gets one id, unticked; a text change / removal reaches the
+lists that hold that item id. The answer is the given list (same `id`) after the change. `seriesKey` on an occurrence
+= the private `series` property, else its `seriesId`: the parts of a split list share it (the door board groups by it);
+deleting a series also deletes its later parts (same `series`, later start). `scope=following` on a list that does not
+repeat → 400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400
+(field `scope`); any other `scope` value than `this` / `following` → 400. Without `scope` (or `scope=this`) only the
+given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.

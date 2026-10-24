@@ -26,10 +26,10 @@ When('I rename the expanded task list to {string}', async function (this: World,
   await expect(input).toBeHidden();
 });
 
-Then('I am asked whether to change {string} or {string}', async function (this: World, one: string, all: string) {
+Then('I am asked whether to change {string} or {string}', async function (this: World, one: string, following: string) {
   await expect(choice(this)).toBeVisible();
   await expect(choice(this).getByTestId('repeat-scope-this')).toHaveText(exactText(one));
-  await expect(choice(this).getByTestId('repeat-scope-all')).toHaveText(exactText(all));
+  await expect(choice(this).getByTestId('repeat-scope-following')).toHaveText(exactText(following));
 });
 
 Then('{string} is chosen', async function (this: World, label: string) {
@@ -39,13 +39,13 @@ Then('{string} is chosen', async function (this: World, label: string) {
 
 When('I choose {string} for the change', async function (this: World, label: string) {
   await expect(choice(this)).toBeVisible();
-  const all = label === (await choice(this).getByTestId('repeat-scope-all').textContent())?.trim();
+  const following = label === (await choice(this).getByTestId('repeat-scope-following').textContent())?.trim();
   // the write this choice sends (an item delete waits for its undo time instead)
   const written = this.page.waitForResponse((r) => {
     const u = new URL(r.url());
-    return r.request().method() !== 'GET' && u.pathname.startsWith('/api/tasklists/') && (!all || u.searchParams.get('scope') === 'all');
+    return r.request().method() !== 'GET' && u.pathname.startsWith('/api/tasklists/') && (!following || u.searchParams.get('scope') === 'following');
   });
-  await choice(this).getByTestId(all ? 'repeat-scope-all' : 'repeat-scope-this').click();
+  await choice(this).getByTestId(following ? 'repeat-scope-following' : 'repeat-scope-this').click();
   await choice(this).getByTestId('repeat-scope-ok').click();
   await expect(choice(this)).toBeHidden();
   const undo = this.page.getByTestId('undo-snackbar');
@@ -57,7 +57,7 @@ When('I cancel the choice', async function (this: World) {
   await expect(choice(this)).toBeHidden();
 });
 
-Then('I am not asked which weeks to change', async function (this: World) {
+Then('I am not asked which task lists to change', async function (this: World) {
   await expect(choice(this)).toHaveCount(0);
 });
 

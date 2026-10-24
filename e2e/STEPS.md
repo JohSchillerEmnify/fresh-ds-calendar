@@ -400,11 +400,11 @@ I am asked whether to change {string} or {string}
 {string} is chosen
 I choose {string} for the change
 I cancel the choice
-I am not asked which weeks to change
+I am not asked which task lists to change
 the task list {string} has no estimate
 ```
 
-- The choice is `repeat-scope-dialog` (an `AdaptiveSheet`): radio options `repeat-scope-this` / `repeat-scope-all` (the
+- The choice is `repeat-scope-dialog` (an `AdaptiveSheet`): radio options `repeat-scope-this` / `repeat-scope-following` (the
   `label` elements, `data-checked="true"` on the chosen one), `repeat-scope-ok`, `repeat-scope-cancel`.
 - "X of L was ticked on D": the occurrence of L listed by `GET /api/items?from=D&to=D+1` gets `PATCH .../items/<X>`
   `{ done: true }` (that week is split off, as a tick in the app does).
@@ -413,9 +413,9 @@ the task list {string} has no estimate
 - "I am asked whether to change A or B": the choice is visible and its two options read A and B. "A is chosen": the
   checked option reads A.
 - "I choose A for the change": picks option A, presses OK and waits until the choice is gone and the write it sends has
-  answered (with "All weeks": the request with `?scope=all`); an item delete sends nothing before its undo time, so the
+  answered (with "This and all following task lists": the request with `?scope=following`); an item delete sends nothing before its undo time, so the
   step then only waits for the undo snackbar.
-- "I am not asked which weeks to change": no `repeat-scope-dialog` in the page.
+- "I am not asked which task lists to change": no `repeat-scope-dialog` in the page.
 - "has no estimate": the card of T is visible and has no `tasklist-card-estimate`.
 - "I add the item" and "I delete the item" (above) stop at the choice when one appears.
 
