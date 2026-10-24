@@ -81,6 +81,8 @@ export interface TaskList {
   recurrence: Recurrence | null;
   /** On an occurrence of a repeating list: the id of its series (Google `recurringEventId`); absent otherwise. */
   seriesId?: string;
+  /** On an occurrence: the same for every part of a list split by a "this and following" change (the first series' id). */
+  seriesKey?: string;
   categoryId: string | null;
   tags: string[];
   color: string;
@@ -234,6 +236,7 @@ export type ErrorCode =
   | 'GOOGLE_REAUTH'
   | 'CALENDAR_PERMISSION_MISSING'
   | 'PRECONDITION_FAILED'
+  | 'CONFLICT'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'
   | 'DRIVE_PERMISSION_REQUIRED'

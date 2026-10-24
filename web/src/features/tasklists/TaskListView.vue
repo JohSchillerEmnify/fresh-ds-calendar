@@ -32,6 +32,8 @@ import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
+import RepeatScopeDialog from './RepeatScopeDialog.vue';
+import { useRepeatScope } from './repeatScope';
 import { useTaskList } from './useTaskList';
 import { usePluginEnabled } from '@/plugins';
 import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
@@ -122,6 +124,10 @@ function maybeCat() {
 }
 
 // --- inline editing ---------------------------------------------------------------------------------------------
+/** A repeating list asks "This task list / This and all following task lists" before a rename, add or remove (feature tasklist-repeating); ticks never ask. */
+const scope = useRepeatScope();
+// the view goes away while asking: the question goes with it (cancelled)
+onBeforeUnmount(() => scope.answer(null));
 const editingItem = ref<string | null>(null);
 const draft = ref('');
 function startEdit(item: TaskItem) {
@@ -129,11 +135,13 @@ function startEdit(item: TaskItem) {
   draft.value = item.title;
   void nextTick(() => (root.value?.querySelector('[data-testid="tasklist-item-title-input"]') as HTMLInputElement | null)?.select());
 }
-function commitEdit(item: TaskItem) {
+async function commitEdit(item: TaskItem) {
   if (editingItem.value !== item.id) return;
   editingItem.value = null;
   const v = draft.value.trim();
-  if (v && v !== item.title) patchItem(props.id, item.id, { title: v.slice(0, 200) });
+  if (!v || v === item.title) return;
+  const s = await scope.ask(tl.value);
+  if (s) patchItem(props.id, item.id, { title: v.slice(0, 200) }, s);
 }
 function cancelEdit() { editingItem.value = null; }
 
@@ -148,12 +156,22 @@ function openAdd() {
 function closeAdd() {
   if (!newTitle.value.trim()) adding.value = false;
 }
-function add() {
+async function add() {
   const v = newTitle.value.trim();
   newTitle.value = '';
   if (!v) return;
-  addItem(props.id, v.slice(0, 200));
-  void nextTick(() => newInput.value?.scrollIntoView?.({ block: 'nearest' }));
+  const s = await scope.ask(tl.value);
+  if (!s) {
+    // cancelled: the typed text goes back into the add field
+    adding.value = true;
+    newTitle.value = v;
+    return;
+  }
+  addItem(props.id, v.slice(0, 200), s);
+  // the question took the focus (and closed the empty field): the field stays open for the next item
+  const asked = !adding.value;
+  adding.value = true;
+  void nextTick(() => { if (asked) newInput.value?.focus(); newInput.value?.scrollIntoView?.({ block: 'nearest' }); });
 }
 
 const renaming = ref(false);
@@ -169,8 +187,10 @@ async function commitRename() {
   renaming.value = false;
   const v = nameDraft.value.trim().slice(0, 200);
   if (!v || v === tl.value.title) return;
+  const s = await scope.ask(tl.value);
+  if (!s) return;
   try {
-    await items.updateTaskList(props.id, { title: v });
+    await items.updateTaskList(props.id, { title: v }, undefined, s);
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
     if (e instanceof ApiError && e.isConflict) void items.refreshVisible();
@@ -219,13 +239,16 @@ useItemDrag({
   onMove: move,
 });
 /** An item still being added (temporary id) has nothing to undo on the server yet: removed directly. */
-function removeEntry(item: TaskItem, index: number) {
-  if (item.id.startsWith('tmp-')) removeItem(props.id, item.id);
-  else pendingDeletes.deleteTaskItem(props.id, item, index);
+async function removeEntry(item: TaskItem, index: number) {
+  const s = await scope.ask(tl.value);
+  if (!s) return;
+  // an item still being added has nothing to undo on the server yet: removed directly, for the lists the answer names
+  if (item.id.startsWith('tmp-')) removeItem(props.id, item.id, {}, undefined, s);
+  else pendingDeletes.deleteTaskItem(props.id, item, index, s);
 }
 
-/** True while a field owns Escape (the host must not close then). */
-const busy = computed(() => renaming.value || !!editingItem.value || adding.value);
+/** True while a field or the scope question owns Escape (the host must not close then). */
+const busy = computed(() => renaming.value || !!editingItem.value || adding.value || scope.asking.value);
 defineExpose({ root, busy });
 </script>
 
@@ -297,6 +320,8 @@ defineExpose({ root, busy });
       </div>
     </Transition>
     <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :title="cat.title" :level="cat.level" @done="cat = null" /></Teleport>
+    <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
+    <Teleport to="body"><RepeatScopeDialog :open="scope.asking.value" @answer="scope.answer" /></Teleport>
   </section>
 </template>
 

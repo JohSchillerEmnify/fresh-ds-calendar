@@ -393,6 +393,34 @@ open": `tasklist-card-item` `data-done` true / false in the overlay; "has no che
 button inside it. "the focus is inside" / "the card has the focus": `document.activeElement` is within the overlay / is the
 collapsed card button.
 
+## Repeating task lists (`@repeating`)
+
+```
+{string} of {string} was ticked on {date}
+I rename the expanded task list to {string}
+I am asked whether to change {string} or {string}
+{string} is chosen
+I choose {string} for the change
+I cancel the choice
+I am not asked which task lists to change
+the task list {string} has no estimate
+```
+
+- The choice is `repeat-scope-dialog` (an `AdaptiveSheet`): radio options `repeat-scope-this` / `repeat-scope-following` (the
+  `label` elements, `data-checked="true"` on the chosen one), `repeat-scope-ok`, `repeat-scope-cancel`.
+- "X of L was ticked on D": the occurrence of L listed by `GET /api/items?from=D&to=D+1` gets `PATCH .../items/<X>`
+  `{ done: true }` (that week is split off, as a tick in the app does).
+- "I rename the expanded task list to T": taps `tasklist-expanded-title` in the list sheet, fills
+  `tasklist-expanded-title-input` with T and presses Enter.
+- "I am asked whether to change A or B": the choice is visible and its two options read A and B. "A is chosen": the
+  checked option reads A.
+- "I choose A for the change": picks option A, presses OK and waits until the choice is gone and the write it sends has
+  answered (with "This and all following task lists": the request with `?scope=following`); an item delete sends nothing before its undo time, so the
+  step then only waits for the undo snackbar.
+- "I am not asked which task lists to change": no `repeat-scope-dialog` in the page.
+- "has no estimate": the card of T is visible and has no `tasklist-card-estimate`.
+- "I add the item" and "I delete the item" (above) stop at the choice when one appears.
+
 ## Google (provider) side
 
 ```

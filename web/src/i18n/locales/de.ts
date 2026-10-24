@@ -64,6 +64,7 @@ export default {
     nameExists: 'Eine Kategorie mit diesem Namen gibt es schon',
   },
   tasklist: {
+    showsTwice: 'Diese Liste steht am {date} doppelt im Kalender. Lösche die andere Kopie und versuche es dann noch einmal.',
     titleOrItem: 'Gib einen Titel oder einen Eintrag ein',
     tooManyItems: 'Eine Aufgabenliste darf höchstens 200 Einträge haben',
     tagsUnique: 'Tags müssen eindeutig sein',

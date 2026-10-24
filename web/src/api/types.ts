@@ -16,6 +16,7 @@ export type ErrorCode =
   | 'GOOGLE_REAUTH'
   | 'CALENDAR_PERMISSION_MISSING'
   | 'PRECONDITION_FAILED'
+  | 'CONFLICT'
   | 'PROVIDER_ERROR'
   | 'PROVIDER_UNAVAILABLE'
   | 'DRIVE_PERMISSION_REQUIRED'
@@ -100,6 +101,9 @@ export interface TaskItem {
 
 export type Recurrence = 'daily' | 'weekly' | 'monthly';
 
+/** Which occurrences of a repeating task list a change is for (feature tasklist-repeating): the shown one, or it and all later ones. */
+export type ChangeScope = 'this' | 'following';
+
 export interface TaskList {
   kind: 'tasklist';
   id: string;
@@ -115,6 +119,8 @@ export interface TaskList {
   recurrence?: Recurrence | null;
   /** On an occurrence of a repeating list: the id of its series (Google `recurringEventId`); absent otherwise. */
   seriesId?: string;
+  /** On an occurrence: the same for every part of a list split by a "this and following" change. */
+  seriesKey?: string;
   categoryId: string | null;
   tags: string[];
   color: string;

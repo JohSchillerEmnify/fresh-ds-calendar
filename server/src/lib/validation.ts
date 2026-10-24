@@ -117,7 +117,7 @@ export const updateTaskListSchema = so({
   canvas: v.optional(canvasPlace),
   reminders: v.optional(reminders),
 });
-export const addItemSchema = so({ title: itemTitle, done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
+export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: itemTitle, done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
 /** `POST /api/tasklists/:id/share`: the person (their `sub`) to add. */
 export const shareSchema = so({ person: v.pipe(v.string('person is required'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long')) });

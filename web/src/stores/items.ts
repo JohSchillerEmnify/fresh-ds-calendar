@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { api, ApiError, type RequestOptions } from '@/api/client';
 import type {
-  CalendarEvent, CalendarItem, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
+  CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
 import { toIsoDate } from '@/lib/dates';
@@ -299,10 +299,14 @@ export const useItemsStore = defineStore('items', () => {
       return tl;
     } catch (e) { return report(e); }
   }
-  async function updateTaskList(id: string, patch: UpdateTaskListInput, etag?: string): Promise<TaskList> {
+  /** `scope` `following`: the title for this and all later occurrences of a repeating list (no If-Match: the server writes each afresh); the views read again. */
+  async function updateTaskList(id: string, patch: UpdateTaskListInput, etag?: string, scope?: ChangeScope): Promise<TaskList> {
     try {
-      const tl = await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
+      const tl = scope === 'following'
+        ? await api.updateTaskList(id, patch, {}, 'following')
+        : await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
       upsert(tl);
+      if (scope === 'following') refreshVisible().catch(() => undefined);
       return tl;
     } catch (e) { return report(e); }
   }
@@ -312,7 +316,8 @@ export const useItemsStore = defineStore('items', () => {
       if (series) {
         // a repeating list deleted (or its undo time over) right after it was created goes as a whole: no If-Match, the etag is its first week's
         await api.deleteTaskList(series, o);
-        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && it.seriesId === series) { deleted.add(it.id); remove(it.id); }
+        // every cached occurrence of the list, also of parts split off by a "this and following" change (same seriesKey)
+        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && (it.seriesKey ?? it.seriesId) === series) { deleted.add(it.id); remove(it.id); }
         createdSeries.delete(id);
       } else {
         await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });

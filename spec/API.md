@@ -40,6 +40,7 @@ type ErrorCode =
   | 'PAYLOAD_TOO_LARGE'     // 413 a body over 256 KB (themes 400 KB)
   | 'UNSUPPORTED_MEDIA_TYPE' // 415 a body that is not `application/json`
   | 'PRECONDITION_FAILED'   // 412 etag mismatch
+  | 'CONFLICT'              // 409 the data needs a person's decision first (a repeating list shown twice on a date)
   | 'PROVIDER_ERROR'        // 502 provider returned an unexpected error
   | 'PROVIDER_UNAVAILABLE'  // 503 provider unreachable / outage / auth failure
   | 'RATE_LIMITED'          // 503 Google's per-person rate limit is in force and nothing cached can answer (`Retry-After`); 429 `POST /api/diag/sync-error`
@@ -111,6 +112,7 @@ interface TaskList {
   estimateMinutes: number | null; // 5–720; a timed list lasts this long in Google (default 30 when null)
   recurrence: 'daily' | 'weekly' | 'monthly' | null;  // @optional feature; instances have their own ids and ticks
   seriesId?: string;      // on an occurrence of a repeating list: the id of its series (Google recurringEventId); absent otherwise
+  seriesKey?: string;     // on an occurrence: the same for every part of a list split by a "this and following" change
   categoryId: string | null;   // null = no category; unknown/deleted ids are returned as null
   tags: string[];              // max 10, each 1–30 chars, no commas, unique case-insensitively, order kept
   color: string;               // category color, else calendar color
@@ -395,7 +397,7 @@ with `400 VALIDATION_ERROR` ("Birthdays are read-only"). A birthday's colour is 
 | `GET` | `/api/tasklists/:id` | – | `200` `TaskList` |
 | `PATCH` | `/api/tasklists/:id` | `UpdateTaskListInput` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
-| `POST` | `/api/tasklists/:id/items` | `{ title: string; done?: boolean; index?: number }` | `201` `TaskList` |
+| `POST` | `/api/tasklists/:id/items` | `{ id?: string; title: string; done?: boolean; index?: number }` | `201` `TaskList` |
 | `PATCH` | `/api/tasklists/:id/items/:itemId` | `{ title?: string; done?: boolean }` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id/items/:itemId` | – | `200` `TaskList` |
 | `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[] }` | `200` `TaskList` |
@@ -432,7 +434,39 @@ its own `id`. The master's items never change by an item op. When the first occu
 nothing. Creating a repeating list answers with its first occurrence (the id range reads list, with `seriesId`), so a
 client never holds the series id from a create; the web app deletes a repeating list it created in this session as a
 whole series (`DELETE` of its `seriesId`), any other occurrence on its own. Deleting the series removes its
-split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). `index` inserts at a position (default: append). `itemIds` must be a
+split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). **This and all following** (owner, 2026-10-24, feature
+tasklist-repeating; Google's "This and following events"): `?scope=following` on `PATCH /api/tasklists/:id` (body `title`
+only), `POST /api/tasklists/:id/items`, `PATCH /api/tasklists/:id/items/:itemId` (body `title` only) and
+`DELETE /api/tasklists/:id/items/:itemId` changes the occurrence `id` and every later one of the list; earlier ones never
+change. A list is one or more Google series ("parts") sharing `seriesKey` (the first series' id; later parts carry it as
+the private property `series`). The Calendar API has no "this and following" operation; the server does what Google
+Calendar's own does, splitting the series, using only documented calls:
+(1) every part that starts after the given occurrence gets the change as a whole: the series and each live exception,
+each by read-modify-write (ticks kept); (2) in the part holding the occurrence — when it is that part's first one, the
+whole part changes the same way and nothing is split; otherwise (3) the occurrence gets the change (an exception of the old
+series from then on); (4) a new series starts at the earliest later occurrence of the part by rule date (the next live
+one within 62 days — 400 when the part has no end — or any later exception, also a moved or a deleted one), with the
+part's data plus the change, the part's RRULE and EXDATE lines (so it keeps the part's end; an RDATE stays with the old part) and `series`; a series an earlier,
+unfinished try made at that date is used again; (5) every later exception of the part (read without `singleEvents`, with
+`showDeleted` and without a property filter, since Google guarantees only `id`, `recurringEventId` and `originalStartTime`
+on a cancelled exception) is carried over to the new series' occurrence of the same rule date — its own data (ticks, own
+times, reminders) plus the change, a deleted one deletes the new series' occurrence only when this request made the new series and
+did not carry that date itself (a reused series never loses a week; a week deleted in the old series may then come back
+once); a live one whose week was already deleted
+in the new series (a half-done split showed it twice) answers 409 `CONFLICT` (key `tasklist.showsTwice`, `details: [{ field: 'date', issue: <date> }]`)
+`This list shows twice on <date>; delete the other copy, then try again` and changes nothing more — and the old exception is deleted; one that cannot be carried
+answers 502 before anything is ended; (6) last, when no later live exception is left in the part, its RRULE line gets
+`UNTIL` = the occurrence's start (date for all-day, UTC for timed; any UNTIL/COUNT replaced, other lines such as EXDATE
+kept), written with If-Match (re-read and retried up to 3 times, else 412). A failure midway can leave duplicates, never a
+lost list; repeating the request finishes it. A part whose rule has `COUNT` is not split → 400 (field `scope`). A part
+without an end and no later occurrence within 400 days → 502. A later write of a series keeps its rule when the rhythm
+is the same (its UNTIL stays). An added item gets one id, unticked; `POST .../items` may name it (`id`, 8-21 of `A-Za-z0-9_-`; the web app does for
+"following"), and a list that already holds that id stays as it is, so a repeated request adds it once; a text change / removal reaches the lists that hold
+that item id. The answer is the given list (same `id`) after the change. The door board groups by `seriesKey`; deleting
+a series also deletes its later parts (same `series`, later start). `scope=following` on a list that does not repeat →
+400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400 (field
+`scope`); any other `scope` value than `this` / `following` → 400. Without `scope` (or `scope=this`) only the
+given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.

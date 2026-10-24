@@ -10,7 +10,7 @@
  * - a poll never overwrites the list while operations are pending (items store `beginPending`).
  */
 import { api, ApiError, type RequestOptions } from '@/api/client';
-import type { TaskItem, TaskList } from '@/api/types';
+import type { ChangeScope, TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
@@ -27,6 +27,8 @@ interface Queue {
 interface Op {
   /** Same-key ops that are not in flight yet are merged. */
   key?: string;
+  /** The item a patch is for: a later patch of it never merges across another kind of patch of it (order stays). */
+  item?: string;
   patch?: { title?: string; done?: boolean };
   inflight: boolean;
   apply(tl: TaskList, r: Resolve): TaskList;
@@ -79,7 +81,8 @@ async function run(listId: string, q: Queue): Promise<void> {
             break;
           }
         }
-        useUiStore().notify(t('tasks.list.rollback'), { testid: 'tasklist-rollback' });
+        // a change the person must sort out first (409, e.g. a list shown twice) says what to do; anything else is rolled back
+        useUiStore().notify(e instanceof ApiError && e.status === 409 ? e.userMessage : t('tasks.list.rollback'), { testid: 'tasklist-rollback' });
       }
       q.ops.shift();
       if (q.ops.length) render(q);
@@ -101,7 +104,10 @@ function enqueue(listId: string, op: Op): void {
     queues.set(listId, q);
     items.beginPending(listId);
   }
-  const prev = op.key ? q.ops.find((o) => o.key === op.key && !o.inflight) : undefined;
+  const at = op.key ? q.ops.findIndex((o) => o.key === op.key && !o.inflight) : -1;
+  // a this-only rename must not jump over a "this and following" one of the same item queued after it
+  const crossed = at >= 0 && q.ops.slice(at + 1).some((o) => o.item !== undefined && o.item === op.item && o.key !== op.key);
+  const prev = at >= 0 && !crossed ? q.ops[at] : undefined;
   if (prev && prev.patch && op.patch) {
     prev.patch = { ...prev.patch, ...op.patch }; // `apply`/`call` of prev read prev.patch
   } else {
@@ -111,29 +117,51 @@ function enqueue(listId: string, op: Op): void {
   if (!q.running) void run(listId, q);
 }
 
+/** A change for the following occurrences of a repeating list landed: the other occurrences the views show are read again. */
+function followingDone(): void {
+  useItemsStore().refreshVisible().catch(() => undefined);
+}
+/** `scope` of a request: only `following` goes to the server (`this` is the plain request). */
+const sent = (scope?: ChangeScope) => (scope === 'following' ? 'following' : undefined);
+
 // --- public operations --------------------------------------------------------------------------------
-/** Set or merge a patch for one item (tick / rename). */
-export function patchItem(listId: string, itemId: string, patch: { title?: string; done?: boolean }): void {
+/**
+ * Set or merge a patch for one item (tick / rename). `scope` `following` renames the item in this and all later occurrences of a repeating list
+ * (feature tasklist-repeating); such a patch is never merged with a tick.
+ */
+export function patchItem(listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void {
+  const following = sent(scope);
   const op: Op = {
-    key: `patch:${itemId}`, patch: { ...patch }, inflight: false,
+    key: following ? undefined : `patch:${itemId}`, item: itemId, patch: { ...patch }, inflight: false,
     apply: () => { throw new Error('replaced below'); },
     call: async (q, r) => {
       const id = r(itemId);
       if (id.startsWith('tmp-')) return q.base; // the add failed, nothing to patch
-      return api.updateTaskItem(listId, id, op.patch!);
+      return api.updateTaskItem(listId, id, op.patch!, undefined, following);
     },
+    done: following ? followingDone : undefined,
   };
   op.apply = (tl, r) => mapItem(tl, r(itemId), (i) => ({ ...i, ...op.patch }));
   enqueue(listId, op);
 }
 
-export function addItem(listId: string, title: string): void {
+/** A short random item id in the server's pattern (8-21 of `A-Za-z0-9_-`); no `crypto.randomUUID` (insecure LAN origins). */
+const newItemId = (): string => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * Add an item at the end; `scope` `following` adds it to this and all later occurrences of a repeating list. Such an add
+ * names the item's id, so a repeated request does not add it twice in the lists that have it already.
+ */
+export function addItem(listId: string, title: string, scope?: ChangeScope): void {
   const tmp = `tmp-${++tmpSeq}`;
+  const following = sent(scope);
+  const id = following ? newItemId() : undefined;
   const op: Op = {
     inflight: false,
     apply: (tl) => recount({ ...tl, items: [...tl.items, { id: tmp, title, done: false }] }),
-    call: () => api.addTaskItem(listId, { title }),
+    call: () => api.addTaskItem(listId, id ? { id, title } : { title }, undefined, following),
     done: (fresh, q, before) => {
+      if (following) followingDone();
       const known = new Set(before.items.map((i) => i.id));
       const real = [...fresh.items].reverse().find((i) => !known.has(i.id));
       if (real) {
@@ -145,11 +173,20 @@ export function addItem(listId: string, title: string): void {
   enqueue(listId, op);
 }
 
-/** Remove an item. `o` is passed to the request; `done` is called once it finished (with the error if it failed). */
-export function removeItem(listId: string, itemId: string, o: RequestOptions = {}, done?: (err?: unknown) => void): void {
+/**
+ * Remove an item. `o` is passed to the request; `done` is called once it finished (with the error if it failed);
+ * `scope` `following` removes it from this and all later occurrences of a repeating list.
+ */
+export function removeItem(listId: string, itemId: string, o: RequestOptions = {}, done?: (err?: unknown) => void, scope?: ChangeScope): void {
+  const following = sent(scope);
   // A deferred delete may land after the list left the cache (no queue possible): send it directly.
   if (useItemsStore().get(listId)?.kind !== 'tasklist') {
-    api.deleteTaskItem(listId, itemId, o).then(() => done?.(), (e) => { useSyncStore().reportError(e); done?.(e); });
+    api.deleteTaskItem(listId, itemId, o, following).then(() => { if (following) followingDone(); done?.(); }, (e) => {
+      useSyncStore().reportError(e);
+      // nothing is shown of the list any more: a change the person must sort out first (409) is said anyway
+      if (e instanceof ApiError && e.status === 409) useUiStore().notify(e.userMessage, { testid: 'tasklist-rollback' });
+      done?.(e);
+    });
     return;
   }
   enqueue(listId, {
@@ -158,9 +195,9 @@ export function removeItem(listId: string, itemId: string, o: RequestOptions = {
     call: async (q, r) => {
       const id = r(itemId);
       if (id.startsWith('tmp-')) return q.base;
-      return api.deleteTaskItem(listId, id, o);
+      return api.deleteTaskItem(listId, id, o, following);
     },
-    done: () => done?.(),
+    done: () => { if (following) followingDone(); done?.(); },
     failed: (e) => done?.(e ?? new Error('delete failed')),
   });
 }

@@ -1,5 +1,7 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freeze, makeApp, type TestApp } from './helpers.js';
+import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
+import { PreconditionFailedError, ProviderError } from '../src/providers/CalendarProvider.js';
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -471,5 +473,342 @@ describe('summary', () => {
     expect((await t.json('GET', '/api/summary?from=2026-01-01&to=2027-12-01')).status).toBe(400);
     const big = await t.json('GET', '/api/summary?from=2026-01-01&to=2026-12-31');
     expect(big.status).toBe(200);
+  });
+});
+
+describe('recurring task lists: a change for this and all following ones (scope=following)', () => {
+  const create = (extra: object = {}) => mk({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }], ...extra });
+  const all = async () => (await t.json('GET', '/api/items?from=2026-10-12&to=2026-11-09')).body.items.filter((i: any) => i.kind === 'tasklist');
+  const weeks = async () => (await all()).map((i: any) => [i.date, i.title, i.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(',')]);
+  const week = async (date: string) => (await all()).find((i: any) => i.date === date);
+  const tick = async (date: string, n: number) => { const w = await week(date); await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[n].id}`, { done: true }); };
+  const remote = async () => (await t.json('GET', '/api/__test/remote/events')).body.items;
+
+  it('adds an item from the shown one on: later ones keep their ticks, earlier ones stay as they were', async () => {
+    const a = await create();
+    await tick('2026-10-14', 0);
+    await tick('2026-10-28', 1);
+    const second = await week('2026-10-21');
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror' });
+    expect(r.status).toBe(201);
+    expect(r.body.id).toBe(second.id);
+    expect(r.body.items.map((i: any) => i.title)).toEqual(['Sink', 'Floor', 'Mirror']);
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:1,Floor:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+      ['2026-10-28', 'Clean', 'Sink:0,Floor:1,Mirror:0'], ['2026-11-04', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+    ]);
+    // Google's split: the old series ends with the shown one, a new one starts at the next and names the first series
+    const masters = (await remote()).filter((e: any) => e.recurrence && e.status !== 'cancelled');
+    expect(masters).toHaveLength(2);
+    const old = masters.find((e: any) => e.id === a.seriesId);
+    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261021');
+    const fresh = masters.find((e: any) => e.id !== a.seriesId);
+    expect(fresh.start).toEqual({ date: '2026-10-28' });
+    expect(fresh.extendedProperties.private.series).toBe(a.seriesId);
+    // one key for every part of the list; one item id for the added item
+    const lists = await all();
+    expect(new Set(lists.map((l: any) => l.seriesKey))).toEqual(new Set([a.seriesId]));
+    expect(new Set(lists.filter((l: any) => l.items[2]).map((l: any) => l.items[2].id)).size).toBe(1);
+  });
+
+  it('renames the shown one and every later one, a later ticked one too (its ticks stay)', async () => {
+    await create();
+    await tick('2026-10-28', 1);
+    const second = await week('2026-10-21');
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ id: second.id, title: 'Bathroom' });
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'Bathroom', 'Sink:0,Floor:1'], ['2026-11-04', 'Bathroom', 'Sink:0,Floor:0'],
+    ]);
+  });
+
+  it('from the first one nothing is split: the series and every exception change, ticks stay', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const r = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=following`, { title: 'Basin' });
+    expect(r.status).toBe(200);
+    expect(r.body.items[0]).toMatchObject({ title: 'Basin', done: false });
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Basin:0,Floor:0'], ['2026-10-21', 'Clean', 'Basin:0,Floor:0'],
+      ['2026-10-28', 'Clean', 'Basin:1,Floor:0'], ['2026-11-04', 'Clean', 'Basin:0,Floor:0'],
+    ]);
+    expect((await remote()).filter((e: any) => e.recurrence && e.status !== 'cancelled')).toHaveLength(1);
+    // the plain weeks follow the series: no new exceptions
+    expect((await raw((await week('2026-10-21')).id))).toBeUndefined();
+  });
+
+  it('removes an item from the shown one on', async () => {
+    const a = await create();
+    await tick('2026-10-14', 1);
+    const third = await week('2026-10-28');
+    const r = await t.json('DELETE', `/api/tasklists/${third.id}/items/${a.items[1].id}?scope=following`);
+    expect(r.status).toBe(200);
+    expect(r.body.id).toBe(third.id);
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:1'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'Clean', 'Sink:0'], ['2026-11-04', 'Clean', 'Sink:0'],
+    ]);
+  });
+
+  it('a later one that was deleted stays deleted after the split', async () => {
+    await create();
+    expect((await t.req('DELETE', `/api/tasklists/${(await week('2026-11-04')).id}`)).status).toBe(204);
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'Bathroom' });
+    expect((await weeks()).map((w: any) => w.slice(0, 2))).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-10-28', 'Bathroom']]);
+  });
+
+  it('a timed weekly list splits the same way and keeps its time', async () => {
+    await create({ time: '09:00' });
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror' });
+    expect(r.body).toMatchObject({ id: second.id, time: '09:00', totalCount: 3 });
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+      ['2026-10-28', 'Clean', 'Sink:1,Floor:0,Mirror:0'], ['2026-11-04', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+    ]);
+    expect((await all()).every((l: any) => l.time === '09:00')).toBe(true);
+    const old = (await remote()).find((e: any) => e.recurrence && e.status !== 'cancelled' && !e.extendedProperties.private.series);
+    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261021T070000Z');
+  });
+
+  it('a second split names the first series too; deleting the first series removes every part', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-28')).id}?scope=following`, { title: 'C' });
+    expect((await weeks()).map((w: any) => w[1])).toEqual(['Clean', 'B', 'C', 'C']);
+    expect(new Set((await all()).map((l: any) => l.seriesKey))).toEqual(new Set([a.seriesId]));
+    expect((await t.req('DELETE', `/api/tasklists/${a.seriesId}`)).status).toBe(204);
+    expect(await weeks()).toEqual([]);
+  });
+
+  it('a later change of the old series does not bring its ended weeks back', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    await t.json('PATCH', `/api/tasklists/${a.seriesId}`, { tags: ['door'] });
+    expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'B'], ['2026-10-28', 'B'], ['2026-11-04', 'B']]);
+  });
+
+  it('an item only one list has is changed only there', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    const added = await t.json('POST', `/api/tasklists/${second.id}/items`, { title: 'Towels' });
+    const towels = added.body.items[2];
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}/items/${towels.id}?scope=following`, { title: 'Fresh towels' });
+    expect(r.status).toBe(200);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0,Fresh towels:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0']);
+  });
+
+  it('without scope (or scope=this) only the given one changes', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    await t.json('POST', `/api/tasklists/${second.id}/items?scope=this`, { title: 'Mirror' });
+    await t.json('PATCH', `/api/tasklists/${second.id}`, { title: 'Bathroom' });
+    expect((await weeks()).map((w: any) => w[1])).toEqual(['Clean', 'Bathroom', 'Clean', 'Clean']);
+  });
+
+  it('refuses scope=following on a list that does not repeat, with other fields than the title, with done, and an unknown scope', async () => {
+    const one = await mk();
+    const r1 = await t.json('POST', `/api/tasklists/${one.id}/items?scope=following`, { title: 'X' });
+    expect(r1.status).toBe(400);
+    expect(r1.body.error.message).toBe('This list does not repeat');
+    expect(r1.body.error.details[0].field).toBe('scope');
+    const a = await create();
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}?scope=following`, { title: 'B', date: '2026-10-15' })).status).toBe(400);
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=following`, { done: true })).status).toBe(400);
+    expect((await t.json('POST', `/api/tasklists/${a.id}/items?scope=all`, { title: 'X' })).status).toBe(400);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Vacuum:0,Laundry:1', 'Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0']);
+  });
+
+  it('a second change on the same list reaches the later part made by the first one', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror' });
+    expect(r.status).toBe(201);
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0,Mirror:0'],
+      ['2026-10-28', 'Bathroom', 'Sink:0,Floor:0,Mirror:0'], ['2026-11-04', 'Bathroom', 'Sink:0,Floor:0,Mirror:0'],
+    ]);
+  });
+
+  it('a change before an earlier split does not repeat the later weeks: the new part ends where the next one starts', async () => {
+    await create();
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-28')).id}?scope=following`, { title: 'B' });
+    await tick('2026-11-04', 0);
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'C' });
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'C', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'C', 'Sink:0,Floor:0'], ['2026-11-04', 'C', 'Sink:1,Floor:0'],
+    ]);
+    const far = (await t.json('GET', '/api/items?from=2027-01-04&to=2027-01-11')).body.items.filter((i: any) => i.kind === 'tasklist');
+    expect(far.map((l: any) => [l.date, l.title])).toEqual([['2027-01-06', 'C']]);
+  });
+
+  it('a later one that was moved far away is carried over with its tick, not lost', async () => {
+    await create();
+    await tick('2026-10-28', 0);
+    const third = await week('2026-10-28');
+    expect((await t.json('PATCH', `/api/tasklists/${third.id}`, { date: '2027-01-21' })).status).toBe(200);
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'Bathroom' });
+    const moved = (await t.json('GET', '/api/items?from=2027-01-18&to=2027-01-25')).body.items.filter((i: any) => i.kind === 'tasklist');
+    expect(moved.map((l: any) => [l.date, l.title, l.doneCount])).toEqual([['2027-01-20', 'Bathroom', 0], ['2027-01-21', 'Bathroom', 1]]);
+    expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-11-04', 'Bathroom']]);
+  });
+
+  it('a retry after a split that did not finish (old series not ended yet) reuses the new series', async () => {
+    const a = await create();
+    const second = await week('2026-10-21');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    // as if ending the old series had failed
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    expect(r.status).toBe(200);
+    expect((await remote()).filter((e: any) => e.recurrence && e.status !== 'cancelled')).toHaveLength(2);
+    expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-10-28', 'Bathroom'], ['2026-11-04', 'Bathroom']]);
+  });
+
+  it('a retry after an unfinished split keeps the ticks of a week it already carried over', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'Bathroom', 'Sink:1,Floor:0'], ['2026-11-04', 'Bathroom', 'Sink:0,Floor:0'],
+    ]);
+  });
+
+  it('a second pass inside one request (the old series changed meanwhile: 412) keeps the carried ticks', async () => {
+    await create();
+    await tick('2026-10-28', 0);
+    // the mock's write path (looked up on each call): the first write that ends a series answers 412 once
+    type Write = (cal: string, id: string, patch: { recurrence?: string[] }, o?: unknown) => unknown;
+    const proto = MockGoogleProvider.prototype as unknown as { doPatch: Write };
+    const orig = proto.doPatch;
+    let failed = false;
+    const spy = vi.spyOn(proto, 'doPatch').mockImplementation(function (this: unknown, cal, id, patch, o) {
+      if (!failed && patch.recurrence?.some((l) => l.includes('UNTIL='))) { failed = true; throw new PreconditionFailedError('Precondition Failed'); }
+      return orig.call(this, cal, id, patch, o);
+    });
+    try {
+      expect((await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    } finally { spy.mockRestore(); }
+    expect(failed).toBe(true);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:1,Floor:0', 'Sink:0,Floor:0']);
+  });
+
+  it('a carried week that a lagging list read does not show yet is not taken for a plain one and deleted', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    const fresh = (await remote()).find((e: any) => e.recurrence && e.id !== a.seriesId && e.status !== 'cancelled');
+    // Google's list lags: reads without singleEvents do not show the new series' exceptions yet
+    type Read = (p: { singleEvents?: boolean }) => { items: { recurringEventId?: string }[] };
+    const proto = MockGoogleProvider.prototype as unknown as { readEvents: Read };
+    const orig = proto.readEvents;
+    const spy = vi.spyOn(proto, 'readEvents').mockImplementation(function (this: unknown, p) {
+      const r = orig.call(this, p);
+      return p.singleEvents === false ? { ...r, items: r.items.filter((e) => e.recurringEventId !== fresh.id) } : r;
+    });
+    try {
+      expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    } finally { spy.mockRestore(); }
+    expect((await weeks()).map((w: any) => [w[0], w[2]])).toEqual([
+      ['2026-10-14', 'Sink:0,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0'], ['2026-10-28', 'Sink:1,Floor:0'], ['2026-11-04', 'Sink:0,Floor:0'],
+    ]);
+  });
+
+  it('a split left half done whose new week the person deleted: the retry answers 409 and keeps the old week with its tick', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    const oldWeek = (await remote()).find((e: any) => e.recurringEventId === a.seriesId && e.originalStartTime?.date === '2026-10-28');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    // as if ending the old series and deleting its carried week had failed, and the person then deleted the new week
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    await t.json('PATCH', `/api/__test/remote/events/${oldWeek.id}`, { status: 'confirmed' });
+    const carried = (await weeks()).length;
+    expect(carried).toBe(6); // 10-28 and 11-04 twice now: the old series runs on next to the new one
+    const shown = (await all()).filter((l: any) => l.date === '2026-10-28' && l.seriesId !== a.seriesId)[0];
+    expect((await t.req('DELETE', `/api/tasklists/${shown.id}`)).status).toBe(204);
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatchObject({ code: 'CONFLICT', key: 'tasklist.showsTwice', message: 'This list shows twice on 2026-10-28; delete the other copy, then try again' });
+    expect(r.body.error.details).toEqual([{ field: 'date', issue: '2026-10-28' }]);
+    expect((await all()).filter((l: any) => l.date === '2026-10-28').map((l: any) => l.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(','))).toEqual(['Sink:1,Floor:0']);
+  });
+
+  it('a retry reusing the new series never deletes a week of it: a week the person deleted in the old series shows once', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    // the split stops before the 10-28 week is copied (Google fails on the first write to the new series)
+    type Write = (cal: string, id: string, patch: { extendedProperties?: unknown }, o?: unknown) => unknown;
+    const proto = MockGoogleProvider.prototype as unknown as { doPatch: Write };
+    const orig = proto.doPatch;
+    let failed = false;
+    const spy = vi.spyOn(proto, 'doPatch').mockImplementation(function (this: unknown, cal, id, patch, o) {
+      if (!failed && !id.startsWith(a.seriesId) && patch.extendedProperties) { failed = true; throw new ProviderError('Google 500'); }
+      return orig.call(this, cal, id, patch, o);
+    });
+    try {
+      expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(502);
+    } finally { spy.mockRestore(); }
+    // 10-28 shows twice now (old ticked copy, new plain one): the person deletes the old copy
+    const old = (await all()).find((l: any) => l.date === '2026-10-28' && l.seriesId === a.seriesId);
+    expect((await t.req('DELETE', `/api/tasklists/${old.id}`)).status).toBe(204);
+    expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-10-28', 'Bathroom'], ['2026-11-04', 'Bathroom']]);
+  });
+
+  it('an added item with an id from the client is not added twice when the request is repeated', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    for (let i = 0; i < 2; i++) expect((await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { id: 'mirror01', title: 'Mirror' })).status).toBe(201);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0,Mirror:0', 'Sink:0,Floor:0,Mirror:0', 'Sink:0,Floor:0,Mirror:0']);
+    expect((await weeks()).length).toBe(4);
+  });
+
+  it('the new series gets only the RRULE and EXDATE lines (an RDATE before it would add a stray date)', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY', 'RDATE;VALUE=DATE:20261016', 'EXDATE;VALUE=DATE:20270106'] });
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    const fresh = (await remote()).find((e: any) => e.recurrence && e.id !== a.seriesId && e.status !== 'cancelled');
+    expect(fresh.recurrence).toEqual(['RRULE:FREQ=WEEKLY', 'EXDATE;VALUE=DATE:20270106']);
+  });
+
+  it('ending the old series keeps its other recurrence lines and rewrites only the RRULE', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['EXDATE;VALUE=DATE:20270106', 'RRULE:UNTIL=20271231;FREQ=WEEKLY;WKST=MO'] });
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    const old = (await remote()).find((e: any) => e.id === a.seriesId);
+    expect(old.recurrence).toEqual(['EXDATE;VALUE=DATE:20270106', 'RRULE:FREQ=WEEKLY;WKST=MO;UNTIL=20261021']);
+    const fresh = (await remote()).find((e: any) => e.recurrence && e.id !== a.seriesId && e.status !== 'cancelled');
+    expect(fresh.recurrence).toEqual(['EXDATE;VALUE=DATE:20270106', 'RRULE:UNTIL=20271231;FREQ=WEEKLY;WKST=MO']);
+    // a later plain write of the old series keeps its rule
+    await t.json('PATCH', `/api/tasklists/${a.seriesId}`, { tags: ['door'] });
+    expect((await remote()).find((e: any) => e.id === a.seriesId).recurrence).toEqual(['EXDATE;VALUE=DATE:20270106', 'RRULE:FREQ=WEEKLY;WKST=MO;UNTIL=20261021']);
+  });
+
+  it('a rule that ends after a number of times (COUNT) is not split: 400, nothing changes', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY;COUNT=10'] });
+    const r = await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    expect(r.status).toBe(400);
+    expect((await weeks()).map((w: any) => w[1])).toEqual(['Clean', 'Clean', 'Clean', 'Clean']);
+  });
+
+  it('an unknown item answers 404 and changes nothing', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    expect((await t.json('DELETE', `/api/tasklists/${second.id}/items/nope?scope=following`)).status).toBe(404);
+    expect((await remote()).filter((e: any) => e.recurrence)).toHaveLength(1);
   });
 });

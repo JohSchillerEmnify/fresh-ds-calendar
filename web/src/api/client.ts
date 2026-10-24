@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -60,8 +60,10 @@ export class ApiError extends Error {
   get userMessage(): string {
     if (this.isUnavailable) return t('errors.saveUnavailable');
     if (this.isConflict) return t('errors.conflict');
-    // unknown keys fall back to the server's English text
-    return this.key && hasKey(this.key) ? t(this.key) : this.message;
+    // unknown keys fall back to the server's English text; `details` name the message's values (e.g. `{date}`)
+    if (!this.key || !hasKey(this.key)) return this.message;
+    const named = Object.fromEntries(this.details.filter((d) => d.field && d.issue).map((d) => [d.field!, d.issue!]));
+    return t(this.key as Parameters<typeof t>[0], named);
   }
 }
 
@@ -296,20 +298,20 @@ export class ApiClient {
   getTaskList(id: string, o?: RequestOptions) {
     return this.request<TaskList>('GET', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  updateTaskList(id: string, patch: UpdateTaskListInput, o?: RequestOptions) {
-    return this.request<TaskList>('PATCH', `/api/tasklists/${enc(id)}`, patch, o);
+  updateTaskList(id: string, patch: UpdateTaskListInput, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}`, scope), patch, o);
   }
   deleteTaskList(id: string, o?: RequestOptions) {
     return this.request<void>('DELETE', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  addTaskItem(id: string, item: { title: string; done?: boolean; index?: number }, o?: RequestOptions) {
-    return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/items`, item, o);
+  addTaskItem(id: string, item: { id?: string; title: string; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('POST', scoped(`/api/tasklists/${enc(id)}/items`, scope), item, o);
   }
-  updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions) {
-    return this.request<TaskList>('PATCH', `/api/tasklists/${enc(id)}/items/${enc(itemId)}`, patch, o);
+  updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), patch, o);
   }
-  deleteTaskItem(id: string, itemId: string, o?: RequestOptions) {
-    return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/items/${enc(itemId)}`, undefined, o);
+  deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);
   }
   reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions) {
     return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/order`, { itemIds }, o);
@@ -396,6 +398,11 @@ export class ApiClient {
 
 function enc(s: string): string {
   return encodeURIComponent(s);
+}
+
+/** A change for this and all following occurrences of a repeating list carries `?scope=following` (API.md, feature tasklist-repeating). */
+function scoped(path: string, scope?: ChangeScope): string {
+  return scope === 'following' ? `${path}?scope=following` : path;
 }
 
 /** App-wide client instance. Tests construct their own `ApiClient` with a mocked `fetch`, or call `setApi`. */
