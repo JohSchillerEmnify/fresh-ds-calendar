@@ -49,6 +49,23 @@ Feature: Resource efficiency and no memory leaks
     Then the JavaScript downloaded for the first load is at most 200 KB compressed
     And the month view was rendered within 2000 ms of navigation start
 
+  @month
+  Scenario: A busy month renders and swipes smoothly
+    The owner has a lot of appointments (2026-10-24): 6 to 15 events a day, a task list every other day, all-day and
+    multi-day events and birthdays, about 500 entries in the six weeks of the grid. A phone processor is about 4 times
+    slower than this machine. Measured here before -> after the fix (quiet machine, 4 runs each): longest task 436-511 ->
+    380-416 ms, long tasks together 2064-2393 -> 1784-2069 ms; on a busy machine the fixed app reached 665 ms and 3106 ms.
+    The budgets guard against regressions (a month that freezes the phone for seconds), with room for a busy machine.
+    Given the calendar contains a busy month around 2026-10
+    When I open the month view for 2026-10
+    And the phone's processor is 4 times slower
+    And I start measuring long tasks
+    And I go to the next period
+    And I go to the previous period
+    And I swipe left on the calendar
+    Then no task blocked the page for more than 800 ms
+    And the long tasks took at most 3500 ms together
+
   Scenario: Returning to the calendar after a hidden period syncs once and resumes polling
     Given automatic sync runs every 2 seconds
     When I open the week view for 2026-10-12

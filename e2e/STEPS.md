@@ -532,6 +532,11 @@ at most {int} requests to {string} were counted
 at least {int} requests to {string} were counted
 the JavaScript downloaded for the first load is at most {int} KB compressed
 the month view was rendered within {int} ms of navigation start
+the calendar contains a busy month around {month}
+the phone's processor is {int} times slower
+I start measuring long tasks
+no task blocked the page for more than {int} ms
+the long tasks took at most {int} ms together
 I run a phone performance audit of the app {int} times
 the median performance score is at least {int}
 I request {string} on a fresh server
@@ -559,6 +564,14 @@ the server memory has grown by less than {int} MB since the recording
   no service worker yet) after `load` + 2 s idle; requires the server to send compressed responses.
 - "rendered within N ms": `performance.now()` when the first `month-cell` is visible (measured by a `MutationObserver`
   init script), relative to navigation start.
+- "busy month around YYYY-MM": through the public API (no plant bookkeeping), the same every run (seeded random) over the
+  42 days of the month grid (from the Monday on or before the 1st): 6 to 15 timed events a day (07:00-20:00, 15-90 min),
+  a task list with 2 to 6 items every other day, an all-day "Holiday" every fifth day, six multi-day all-day events
+  and six birthdays in the Birthdays calendar (about 500 entries).
+- "the phone's processor is N times slower": `Emulation.setCPUThrottlingRate` on a DevTools session kept attached for
+  the rest of the scenario.
+- "long tasks": a `PerformanceObserver` for `longtask` entries (main-thread tasks over 50 ms) started by "I start
+  measuring long tasks"; the checks wait 1.5 s for the page to settle, then judge the longest task or their sum.
 - "phone performance audit": Lighthouse (mobile preset, simulated throttling) against the base URL; score = performance
   category × 100, run N times one after the other; the scenario judges the median (feature resource-efficiency). Runs in the Playwright container on Chromium with `--remote-debugging-port`.
 - "I request "METHOD /path" on a fresh server": starts its own server process (`node --expose-gc server/dist/index.js`, the
