@@ -209,6 +209,23 @@ export interface UpdateTaskListInput {
   reminders?: Reminders;
 }
 
+/** A saved task list template (API.md "Templates"): what a new list starts from, never ticked or dated. */
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  items: { title: string }[];
+  estimateMinutes: number | null;
+  categoryId: string | null;
+}
+
+/** `POST /api/templates` and `PUT /api/templates/:id` body. */
+export interface TaskTemplateInput {
+  name: string;
+  items: { title: string }[];
+  estimateMinutes?: number | null;
+  categoryId?: string | null;
+}
+
 /** One labelled rectangle on the Canvas (API.md "Canvas"). */
 export interface CanvasArea {
   id: string;

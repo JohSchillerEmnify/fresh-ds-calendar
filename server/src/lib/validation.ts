@@ -52,6 +52,14 @@ export const canvasDocSchema = v.pipe(
   v.check((d) => new Set(d.areas.map((a) => a.id)).size === d.areas.length, 'Area ids must be unique'),
 );
 
+/** `POST /api/templates`, `PUT /api/templates/:id` (feature tasklist-templates): a name, item titles, estimate, category. */
+export const templateSchema = so({
+  name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(80, 'Name must be at most 80 characters')),
+  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(200, 'Item title must be at most 200 characters')) })), v.maxLength(200, 'At most 200 items')),
+  estimateMinutes: v.optional(estimate),
+  categoryId: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(64)))),
+});
+
 const REQUIRED: Record<string, string> = {
   title: TITLE_REQ, name: 'Name is required', start: 'Start is required', end: 'End is required', date: 'Date is required',
   allDay: 'allDay is required', color: HEX_MSG, now: 'now is required', down: 'down is required',

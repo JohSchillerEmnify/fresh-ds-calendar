@@ -4,6 +4,7 @@ import { PeopleStore } from './auth/peopleStore.js';
 import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CanvasStore } from './services/canvasStore.js';
+import { TemplateStore } from './services/templateStore.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
@@ -35,6 +36,7 @@ export interface Ctx {
   prefs: PrefsStore;
   themes: ThemeStore;
   canvas: CanvasStore;
+  templates: TemplateStore;
   /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
   /** Web Push reminders: subscriptions, plans and the send loop (feature reminders). */
@@ -77,6 +79,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const prefs = new PrefsStore(config.dataDir);
   const themes = new ThemeStore(config.dataDir);
   const canvas = new CanvasStore(config.dataDir);
+  const templates = new TemplateStore(config.dataDir);
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
   const auth = new AuthState(config, () => clock.real());
@@ -103,7 +106,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const mocks = new Map<string, MockGoogleProvider>();
   const calendars = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, prefs, themes, canvas, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, provider: prov, mock, settings, prefs, themes, canvas, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));

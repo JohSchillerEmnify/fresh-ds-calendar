@@ -639,6 +639,32 @@ A `PUT` with an unknown field, a bad value, a duplicate id or more than 50 areas
 nothing. Last write wins (no etag). The document is per person (the signed-in person; one shared document with sign-in
 off). `POST /api/__test/reset` forgets every person's document.
 
+### Templates (`/api/templates`)
+
+The person's task list **templates** (feature tasklist-templates), one JSON document per person in
+`DATA_DIR/users/<sub>/templates.json`; not in Google, backed up to Drive with the person's other files.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/templates` | – | `200` `{ templates: TaskTemplate[] }`, sorted by name |
+| `POST` | `/api/templates` | `TaskTemplateInput` | `201` `TaskTemplate` |
+| `PUT` | `/api/templates/:id` | `TaskTemplateInput` | `200` `TaskTemplate` (replaces it whole), `404` unknown id |
+| `DELETE` | `/api/templates/:id` | – | `204`, `404` unknown id |
+
+```ts
+interface TaskTemplate {
+  id: string;
+  name: string;                    // trimmed, 1-80 characters, unique per person ignoring case and accents
+  items: { title: string }[];      // trimmed titles in order, never a done state; empty titles are dropped
+  estimateMinutes: number | null;  // 5-720
+  categoryId: string | null;
+}
+interface TaskTemplateInput { name: string; items: { title: string }[]; estimateMinutes?: number | null; categoryId?: string | null }
+```
+At most 200 items (each up to 200 characters) and 100 templates per person. A taken name is `400 VALIDATION_ERROR`
+with `key: "templates.nameTaken"` (field `name`); one template too many has `key: "templates.tooMany"`. Last write
+wins. `POST /api/__test/reset` forgets every person's templates.
+
 ### Backups (`/api/backup`)
 
 All three need a session while sign-in is on. With sign-in off there is no Google account, so `GET` answers
