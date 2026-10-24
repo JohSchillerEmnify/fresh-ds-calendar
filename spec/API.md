@@ -432,7 +432,18 @@ its own `id`. The master's items never change by an item op. When the first occu
 nothing. Creating a repeating list answers with its first occurrence (the id range reads list, with `seriesId`), so a
 client never holds the series id from a create; the web app deletes a repeating list it created in this session as a
 whole series (`DELETE` of its `seriesId`), any other occurrence on its own. Deleting the series removes its
-split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). `index` inserts at a position (default: append). `itemIds` must be a
+split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). **All weeks** (owner, 2026-10-24, feature
+tasklist-repeating): `?scope=all` on `PATCH /api/tasklists/:id` (body `title` only), `POST /api/tasklists/:id/items`,
+`PATCH /api/tasklists/:id/items/:itemId` (body `title` only) and `DELETE /api/tasklists/:id/items/:itemId` changes every
+week of the series the id belongs to (occurrence or series id): the server patches the series (Google master; plain weeks
+follow it) and then every week already split off (non-cancelled Google exceptions, found by `events.list` without
+`singleEvents`), each by read-modify-write of its own data with the change applied by item id, so each week keeps its
+ticks (Google preserves an exception's own changes when the master changes, so a master write alone would not reach
+them). Past weeks are included. An added item gets one id, unticked, in every week; a text change / removal reaches the
+weeks that hold that item id; weeks without it stay as they are. The answer is the addressed list (same `id`) after the
+change. `scope=all` on a list that does not repeat → 400 `This list does not repeat` (field `scope`); with other fields
+than `title`, or `done` on an item → 400 (field `scope`); any other `scope` value than `this` / `all` → 400. Without
+`scope` (or `scope=this`) only the given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale
 `If-Match`), 502, 503.

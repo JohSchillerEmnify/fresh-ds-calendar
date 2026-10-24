@@ -575,7 +575,32 @@ export class CalendarService {
     }
   }
 
-  async updateTaskList(id: string, input: UpdateTaskListInput, ifMatch?: string): Promise<TaskList> {
+  /**
+   * A change for all weeks of a repeating list (owner, 2026-10-24, feature tasklist-repeating): the series (Google master,
+   * which the plain weeks follow) and then every week already split off (exception) get `change`, each by read-modify-write
+   * of its own data, so each week keeps its ticks. Google keeps an exception's own changes when the master changes, so the
+   * master write alone would not reach them. `check` runs on the addressed week first (unknown item → 404).
+   */
+  private async forAllWeeks(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
+    const cur = isSharedId(id) ? null : await this.locateKind(id, true);
+    const seriesId = cur?.recurringEventId ?? (cur?.recurrence?.length ? cur.id : null);
+    if (!cur || !seriesId) throw validation('This list does not repeat', 'scope');
+    check?.(decodeTaskList(cur, this.tz));
+    await this.modify(seriesId, change);
+    // without singleEvents Google lists each series once and its exceptions as events of their own
+    const r = await this.provider.listEvents({ calendarId: cur.calendarId, privateExtendedProperty: ['kind=tasklist'], singleEvents: false });
+    for (const e of r.items) {
+      if (e.recurringEventId === seriesId && e.status !== 'cancelled') await this.modify(e.id, change);
+    }
+    return this.getTaskList(id);
+  }
+
+  async updateTaskList(id: string, input: UpdateTaskListInput, ifMatch?: string, scope?: Scope): Promise<TaskList> {
+    if (scope === 'all') {
+      const { title, ...rest } = input;
+      if (title === undefined || Object.keys(rest).length) throw validation('Only the title changes for all weeks', 'scope');
+      return this.forAllWeeks(id, (d) => ({ ...d, title }));
+    }
     return this.modify(id, (d) => {
       const next = { ...d };
       if (input.title !== undefined) next.title = input.title;
@@ -606,7 +631,17 @@ export class CalendarService {
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
   }
 
-  async addItem(id: string, input: { title: string; done?: boolean; index?: number }): Promise<TaskList> {
+  async addItem(id: string, input: { title: string; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
+    if (scope === 'all') {
+      // one id in every week, unticked; a week that has it already (a repeated write) is left as it is
+      const item: TaskItem = { id: nanoid(), title: input.title, done: false };
+      return this.forAllWeeks(id, (d) => {
+        if (d.items.some((i) => i.id === item.id)) return d;
+        const items = [...d.items];
+        items.splice(input.index === undefined ? items.length : Math.min(input.index, items.length), 0, item);
+        return { ...d, items };
+      });
+    }
     return this.modify(id, (d) => {
       const items = [...d.items];
       const item: TaskItem = { id: nanoid(), title: input.title, done: !!input.done };
@@ -616,7 +651,13 @@ export class CalendarService {
     }, undefined, undefined, true);
   }
 
-  async patchItem(id: string, itemId: string, input: { title?: string; done?: boolean }): Promise<TaskList> {
+  async patchItem(id: string, itemId: string, input: { title?: string; done?: boolean }, scope?: Scope): Promise<TaskList> {
+    if (scope === 'all') {
+      // ticks stay per week: only the text changes for all weeks
+      const title = input.title;
+      if (title === undefined || input.done !== undefined) throw validation('Only the item text changes for all weeks', 'scope');
+      return this.forAllWeeks(id, (d) => ({ ...d, items: d.items.map((i) => (i.id === itemId ? { ...i, title } : i)) }), requireItem(itemId));
+    }
     let ticked = false;
     const list = await this.modify(id, (d) => {
       ticked = false;
@@ -632,7 +673,8 @@ export class CalendarService {
     return list;
   }
 
-  async deleteItem(id: string, itemId: string): Promise<TaskList> {
+  async deleteItem(id: string, itemId: string, scope?: Scope): Promise<TaskList> {
+    if (scope === 'all') return this.forAllWeeks(id, (d) => ({ ...d, items: d.items.filter((i) => i.id !== itemId) }), requireItem(itemId));
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
       return { ...d, items: d.items.filter((i) => i.id !== itemId) };
@@ -826,3 +868,11 @@ const onlyReminders = (input: UpdateEventInput): boolean => {
 };
 const etagEq = (a: string, b: string) => a.replace(/^W\//, '').replaceAll('"', '') === b.replace(/^W\//, '').replaceAll('"', '');
 export { ApiException };
+
+/** Which weeks of a repeating list a change is for: `all` = every week (feature tasklist-repeating); absent = the given id only. */
+export type Scope = 'all' | undefined;
+
+/** A check for {@link CalendarService} `forAllWeeks`: the addressed week must hold the item (else 404, as for one week). */
+const requireItem = (itemId: string) => (d: TaskListData): void => {
+  if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
+};

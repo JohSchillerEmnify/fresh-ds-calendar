@@ -19,6 +19,7 @@ import {
   isApproachWindow, isMinEventMinutes, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
+import type { Scope } from '../services/calendar.js';
 
 const HEALTH_TTL_MS = 10_000;
 
@@ -34,6 +35,14 @@ function dateParam(c: Context, name: string): string {
   const v = c.req.query(name);
   if (!v || !isLocalDate(v)) throw validation(`${name} must be a date (YYYY-MM-DD)`, name);
   return v;
+}
+
+/** `?scope=` of a task list change: `all` = every week of a repeating list (feature tasklist-repeating); absent or `this` = the given id. */
+function scopeOf(c: Context): Scope {
+  const v = c.req.query('scope');
+  if (v === undefined || v === 'this') return undefined;
+  if (v === 'all') return 'all';
+  throw validation('scope must be this or all', 'scope');
 }
 
 function checkRange(from: string, to: string, maxDays: number, field: string): { from: string; to: string } {
@@ -317,7 +326,7 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.post('/tasklists', async (c) => c.json(await cal(c).createTaskList(parse(createTaskListSchema, await body(c))), 201));
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
-  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'))));
+  r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c))));
   r.delete('/tasklists/:id', async (c) => {
     await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
     return c.body(null, 204);
@@ -332,10 +341,10 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.get('/categories/shares', (c) => c.json({ shares: ctx.shared.rulesOf(person(c)) }));
   r.put('/categories/:id/share', async (c) => c.json({ shares: await cal(c).shareCategory(c.req.param('id'), parse(categoryShareSchema, await body(c)).person) }));
-  r.post('/tasklists/:id/items', async (c) => c.json(await cal(c).addItem(c.req.param('id'), parse(addItemSchema, await body(c))), 201));
+  r.post('/tasklists/:id/items', async (c) => c.json(await cal(c).addItem(c.req.param('id'), parse(addItemSchema, await body(c)), scopeOf(c)), 201));
   r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
-  r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)))));
-  r.delete('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).deleteItem(c.req.param('id'), c.req.param('itemId'))));
+  r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)), scopeOf(c))));
+  r.delete('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).deleteItem(c.req.param('id'), c.req.param('itemId'), scopeOf(c))));
 
   // ---- settings / categories ----
   r.get('/settings', (c) => c.json(settings.get()));

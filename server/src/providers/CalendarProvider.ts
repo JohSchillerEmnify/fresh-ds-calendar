@@ -61,6 +61,11 @@ export interface ListEventsParams {
   /** `key=value` filters, all of which must match. */
   privateExtendedProperty?: string[];
   showDeleted?: boolean;
+  /**
+   * Google `singleEvents` (default true: repeating events come as their instances). `false` lists each series once (its
+   * master) and its exceptions as events of their own, unexpanded; how the exceptions of a series are found.
+   */
+  singleEvents?: boolean;
 }
 export interface ListEventsResult { items: GoogleEvent[]; nextSyncToken?: string }
 

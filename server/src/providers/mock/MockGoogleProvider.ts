@@ -171,7 +171,7 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 
   async listEvents(p: ListEventsParams): Promise<ListEventsResult> {
-    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${(p.privateExtendedProperty ?? []).join('&')}`;
+    const key = `events|${p.calendarId}|${p.timeMin ?? ''}|${p.timeMax ?? ''}|${p.showDeleted ? 1 : 0}|${p.singleEvents === false ? 0 : 1}|${(p.privateExtendedProperty ?? []).join('&')}`;
     return this.guard.cached(key, async () => this.readEvents(p));
   }
 
@@ -190,8 +190,8 @@ export class MockGoogleProvider implements CalendarProvider {
     for (const e of this.events.values()) {
       if (e.calendarId !== p.calendarId) continue;
       if (e.status === 'cancelled' && !p.showDeleted) continue;
-      // recurring masters are expanded only inside a bounded range
-      const cands = e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
+      // recurring masters are expanded only inside a bounded range (and not at all without `singleEvents`: Google lists the master)
+      const cands = p.singleEvents !== false && e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
       for (const c of cands) {
         const [s, en] = this.bounds(c);
         if (!(en > min && s < max)) continue;

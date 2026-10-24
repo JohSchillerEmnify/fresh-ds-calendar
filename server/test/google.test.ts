@@ -52,6 +52,13 @@ describe('GoogleProvider (mocked HTTP)', () => {
     expect(calls).toHaveLength(2);
   });
 
+  it('lists without singleEvents when asked (each series once, its exceptions on their own)', async () => {
+    const { provider, calls } = setup(() => ({ json: { items: [gev({ id: 'm1', recurrence: ['RRULE:FREQ=WEEKLY'] }), gev({ id: 'm1_20261019', recurringEventId: 'm1' })] } }));
+    const r = await provider.listEvents({ calendarId: 'primary', privateExtendedProperty: ['kind=tasklist'], singleEvents: false });
+    expect(calls[0]!.url.searchParams.get('singleEvents')).toBe('false');
+    expect(r.items.map((e) => [e.id, e.recurringEventId ?? null])).toEqual([['m1', null], ['m1_20261019', 'm1']]);
+  });
+
   it('maps eventType and birthdayProperties of a Google birthday event', async () => {
     // shape of an event of the contacts Birthdays calendar (Google Calendar API "event types" guide)
     const birthday = gev({
