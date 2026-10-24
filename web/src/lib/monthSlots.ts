@@ -51,3 +51,17 @@ export function packWeek(bars: SlotBar[], wanted: number[][]): DaySlots[] {
     return { slots, spans, taken: busy.size, used: Math.max(next, lastBar) };
   });
 }
+
+/**
+ * How many of a day's entries can be seen at least in part: the first entry whose first slot starts at or below
+ * ``room`` px lies completely under the cell's bottom, and so does every entry after it (slots only grow).
+ *
+ * @param slots First slot of each entry, in order (:func:`packWeek`).
+ * @param slotH Height of one slot in px.
+ * @param room Height in px the entries may reach down to; ``Infinity`` while the cell is unmeasured.
+ * @returns The number of leading entries to build; the rest are left out.
+ */
+export function seenCount(slots: number[], slotH: number, room: number): number {
+  const n = slots.findIndex((s) => s * slotH >= room);
+  return n < 0 ? slots.length : n;
+}

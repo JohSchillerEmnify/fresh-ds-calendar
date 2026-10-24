@@ -148,3 +148,21 @@ export function maxLanes(cellH: number, phone: boolean): number {
   const m = phone ? CELL_METRICS.phone : CELL_METRICS.wide;
   return Math.max(1, Math.floor((cellH - m.num - m.pad - 2 - m.chip) / m.lane));
 }
+
+/**
+ * Height of a month cell's entries box: the cell minus the day number, the cell's padding, its gap below the number and
+ * its bottom border (1 + 1 px on phones, 3 + 1 px wider). An entry starting at or below it is completely hidden.
+ * The wide tier always has the wider padding and gap: phones are `max-width: 767.98px` and the cell CSS switches at
+ * `min-width: 768px`, so only a fractional width between the two (browser zoom) mixes the tiers: the box is then 7 px
+ * taller than computed here (wide number, narrow padding and gap) and the top 7 px of a next entry would be left out.
+ * An unmeasured grid (`cellH` <= 0) has unlimited room.
+ *
+ * @param cellH Height of one week row in px.
+ * @param phone Whether the phone tier applies.
+ * @returns The box height in px, or ``Infinity`` while unmeasured.
+ */
+export function entriesRoom(cellH: number, phone: boolean): number {
+  if (!(cellH > 0)) return Infinity;
+  const m = phone ? CELL_METRICS.phone : CELL_METRICS.wide;
+  return cellH - m.num - m.pad - (phone ? 2 : 4);
+}

@@ -1,15 +1,24 @@
+<script lang="ts">
+/**
+ * The last measured grid height, shared by every month view (the swipe neighbour has the same size): a new view's first
+ * render already leaves out the hidden entries instead of building all of them; its own measuring on mount corrects
+ * this before the frame is painted.
+ */
+let lastGridH = 0;
+</script>
+
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { isSameMonth } from 'date-fns';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
 import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
-import { allotHeights, CELL_METRICS, maxLanes } from '@/features/tasklists/layout';
+import { allotHeights, CELL_METRICS, entriesRoom, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
 import { vFade } from '@/lib/fade';
-import { packWeek } from '@/lib/monthSlots';
+import { packWeek, seenCount } from '@/lib/monthSlots';
 import type { Segment } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
 import { providePreview } from '@/composables/usePreview';
@@ -30,30 +39,39 @@ const barsOf = useBars();
 const anchor = computed(() => props.anchor ?? cal.anchor);
 const weeks = computed(() => monthGrid(anchor.value));
 const gridEl = ref<HTMLElement | null>(null);
-const { height: gridH } = useElementSize(gridEl);
+const { height: gridH } = useElementSize(gridEl, { width: 0, height: lastGridH });
+watch(gridH, (h) => { if (h > 0) lastGridH = h; });
 /** Gap between two entries in a cell (px); one slot is a chip plus this gap. */
 const GAP = 2;
 /** One day's render list: an entry, or the empty space left for a bar's slot (`gap` px). */
 type Slotted = { key: string; gap: number } | { key: string; seg: Segment; h?: number };
-/** Bars per week row (as many lanes as leave one entry row in every cell, `maxLanes`; the rest is reachable through the day) and each day's nodes. */
+/**
+ * Bars per week row (as many lanes as leave one entry row in every cell, `maxLanes`; the rest is reachable through the day),
+ * each day's nodes, and per day how many entries were left out (`more`) because they would lie completely under the cell's
+ * bottom (owner, 2026-10-24: not built at all, the day lists them).
+ */
 const rows = computed(() => {
-  const cap = maxLanes(gridH.value / weeks.value.length, isPhone.value);
+  const cellH = gridH.value / weeks.value.length;
+  const cap = maxLanes(cellH, isPhone.value);
+  // decided by row maths, no layout read: an entry starting at or below the entries box's bottom is hidden
+  const room = entriesRoom(cellH, isPhone.value);
   return weeks.value.map((week) => {
     const dates = week.map(toIsoDate);
     const bars = barsOf(dates).filter((b) => b.lane < cap);
     const perDay = dates.map((d, col) => entries(d, bars.filter((b) => b.startCol <= col && col <= b.endCol).length));
     const packed = packWeek(bars, perDay.map((l) => l.map((e) => e.span)));
+    const seen = packed.map((p) => seenCount(p.slots, slotH(), room));
     const days = packed.map((p, col): Slotted[] => {
       const out: Slotted[] = [];
       let end = 0;
-      perDay[col].forEach(({ s, h }, n) => {
+      perDay[col].slice(0, seen[col]).forEach(({ s, h }, n) => {
         if (p.slots[n] > end) out.push({ key: `gap${n}`, gap: (p.slots[n] - end) * slotH() - GAP });
         out.push({ key: s.item.id + s.date, seg: s, h: h === undefined ? undefined : p.spans[n] * slotH() - GAP });
         end = p.slots[n] + p.spans[n];
       });
       return out;
     });
-    return { dates, lanes: laneCount(bars), bars, days };
+    return { dates, lanes: laneCount(bars), bars, days, more: seen.map((n, col) => perDay[col].length - n) };
   });
 });
 const slotH = () => (isPhone.value ? CELL_METRICS.phone : CELL_METRICS.wide).lane;
@@ -103,7 +121,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
           :class="{ outside: !isSameMonth(day, anchor), today: toIsoDate(day) === clock.today }" @click="onCellClick($event, day)"
         >
           <button class="num" type="button" data-testid="month-cell-day-number" :aria-label="t('calendar.month.openDay', { date: toIsoDate(day) })" @click.stop="nav.openDay(day)">{{ day.getDate() }}</button>
-          <div v-fade class="chips" data-testid="month-cell-entries" @click.capture="onChipsClick($event, day)">
+          <div v-fade class="chips" data-testid="month-cell-entries" :data-more="row.more[di] || undefined" @click.capture="onChipsClick($event, day)">
             <template v-for="nd in row.days[di]" :key="nd.key">
               <div v-if="'gap' in nd" class="slot-gap" :style="{ height: nd.gap + 'px' }" />
               <ItemView v-else :segment="nd.seg" :height="nd.h" :variant="nd.seg.allDay ? 'allday' : nd.seg.item.kind === 'tasklist' ? 'card' : 'chip'" />
@@ -139,7 +157,7 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 .chips :deep(.ev.chip), .chips :deep(.ev.allday) { height: var(--bar-h); min-height: 0; }
 .chips { flex: 1 1 0; display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: hidden; }
 .chips > :deep(*) { flex: none; }
-/* what does not fit fades out at the bottom (no "+N"); the cell still opens the day */
+/* what does not fit fades out at the bottom (no visible "+N"; entries completely below are not built); the cell still opens the day */
 .chips[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
 /* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */
 .phone .cell { cursor: pointer; padding: 1px 1px 0; gap: 1px; }
