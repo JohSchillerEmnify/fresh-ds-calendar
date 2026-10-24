@@ -14,6 +14,7 @@ import { ApiError } from '@/api/client';
 import { applyLanguage } from '@/i18n';
 import ExpandedTaskList from '@/features/tasklists/ExpandedTaskList.vue';
 import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
+import { removeItem } from '@/features/tasklists/ops';
 import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 vi.mock('@/motion/useCelebrate', () => ({ useCelebrate: () => ({ celebrate: vi.fn() }) }));
@@ -127,6 +128,18 @@ describe('the This task list / This and all following question', () => {
     await usePendingDeletesStore().flush();
     await flushPromises();
     await vi.waitFor(() => expect(snack()).toBe('This list shows twice on 2026-10-26. Delete the other copy, then try again.'));
+  });
+
+  it('a remove sent after the list left the view that answers 409 says so too', async () => {
+    await open(week(), { 'DELETE /api/tasklists/W_20261019/items/i1': showsTwice });
+    wrapper!.unmount();
+    wrapper = null;
+    // the deferred remove lands after the list left the cache: it is sent directly
+    useItemsStore().remove('W_20261019');
+    const done = vi.fn();
+    removeItem('W_20261019', 'i1', {}, done, 'following');
+    await vi.waitFor(() => expect(done).toHaveBeenCalled());
+    expect(useUiStore().snackbars.map((x) => x.text)).toContain('This list shows twice on 2026-10-26. Delete the other copy, then try again.');
   });
 
   it('adding for the following ones names the new item\'s id (a repeated request adds it once)', async () => {

@@ -181,7 +181,12 @@ export function removeItem(listId: string, itemId: string, o: RequestOptions = {
   const following = sent(scope);
   // A deferred delete may land after the list left the cache (no queue possible): send it directly.
   if (useItemsStore().get(listId)?.kind !== 'tasklist') {
-    api.deleteTaskItem(listId, itemId, o, following).then(() => { if (following) followingDone(); done?.(); }, (e) => { useSyncStore().reportError(e); done?.(e); });
+    api.deleteTaskItem(listId, itemId, o, following).then(() => { if (following) followingDone(); done?.(); }, (e) => {
+      useSyncStore().reportError(e);
+      // nothing is shown of the list any more: a change the person must sort out first (409) is said anyway
+      if (e instanceof ApiError && e.status === 409) useUiStore().notify(e.userMessage, { testid: 'tasklist-rollback' });
+      done?.(e);
+    });
     return;
   }
   enqueue(listId, {
