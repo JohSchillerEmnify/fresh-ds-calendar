@@ -18,6 +18,7 @@ function region(w: World, name: string): Locator {
     case 'all-day band': return w.byTestId('week-overview-row', '[data-row="0"]').locator('.alldays');
     case 'list form': return w.byTestId('tasklist-dialog');
     case 'day column': return w.byTestId('day-column');
+    case 'clock': return w.byTestId('clock-view').locator('svg.face');
     default: throw new Error(`unknown region "${name}"`);
   }
 }

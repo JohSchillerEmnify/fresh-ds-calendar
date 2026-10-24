@@ -4,7 +4,9 @@ Owner (2026-10-24), about the clock view ("16:23", below it "Next: Anspielprobe 
 can't see when it's happening, how long it is still. It always just says like in 1, in 2, in 4. Maybe you can write the
 time below it, like have it in 2 lines."
 
-Spec gate: scenarios written (spec/features/labs/labs-clock.feature), nothing built. Waiting for the owner's answer.
+Owner answer (2026-10-24): scenarios OK; A1 yes (no "Next:"), A2 yes (start time only), A3 yes (tomorrow's first
+entry). A4 rejected: timed task lists count in the middle like events, and the wedge stays consistent with the middle.
+Built straight through afterwards (owner away; further choices below as assumptions A8–A12).
 
 ## As Is
 
@@ -47,7 +49,8 @@ Names on the dial keep clear of both middle lines.
 4. The second line updates every minute (rounded down, as the Now card).
 5. When nothing timed is left today, the middle names tomorrow's first timed event with "Tomorrow HH:MM"; with
    nothing tomorrow either it says "Nothing else today" on one line. No wedge in both cases.
-6. All-day events never stand in the middle. Timed task lists do not either (unchanged).
+6. All-day events never stand in the middle. Timed task lists do, as running or next entries like events (owner);
+   the wedge shades to whatever the middle names (none for tomorrow's entry).
 7. English and German wording as above.
 8. No name on the dial overlaps either middle line.
 
@@ -92,7 +95,29 @@ Names on the dial keep clear of both middle lines.
   17 min", 29 characters, 33 in German) does not fit the phone's ~22 characters without cutting.
 - A3 Tomorrow's first timed event is named when nothing else comes today ("Tomorrow 09:00", no countdown, no wedge),
   although it is not on today's dial. Alternative: keep "Nothing else today".
-- A4 Only events count, as today: timed task lists never stand in the middle (unchanged, same as the wedge).
+- A4 REJECTED by the owner: timed task lists count, and the wedge follows the middle.
 - A5 Running event line 2 "until 10:00 · 30 min left" (end time first, like the next case's start time first).
 - A6 An event running past midnight shows "until 00:00" for its end on this day's dial (no special case).
 - A7 The day/week Now card keeps its one-line texts; only the clock (both variants) changes.
+- A8 A task list in the middle is named by its title only (no "1/2" count, unlike its arc label); an untitled list is
+  "Task list".
+- A9 Tomorrow is loaded by a background prefetch of [tomorrow, day after) while the clock shows today
+  (`items.prefetch`); the cached range is not re-polled, so a change to tomorrow made elsewhere shows after the next
+  load of that range (or a reload). Accepted for a Labs view.
+- A10 Line 1 (title) is on-surface, weight 600; line 2 on-surface-variant, weight 500, tabular digits; both at the
+  name font size, 1.3 em apart. Line 2 is never clipped, even in German ("bis 10:00 · noch 1 Std. 20 Min.").
+- A11 Coldmirror gets its own short texts ("bis {end} · noch {left}, yo", "Morgen {start}, yo"); Fränggisch falls
+  back to German.
+- A12 The day/week Now card (`nowCardModel`) is untouched; the clock has its own `clockFocus` / `clockMiddle`.
+
+## Implementation notes
+
+- `web/src/features/labs/clock/clock.ts`: `clockFocus(today, tomorrow, now)` (running ending first → next today →
+  tomorrow's first; timed events and timed task lists, first segments only), `clockMiddle(focus, now)`, and
+  `focusWedge` now built on `clockFocus` (optional `colorOf`, the view passes the category-aware `itemColor`).
+- `ClockView.vue`: `middle` replaces `nowLine`; `clock-now-line` (title, clipped) and `clock-now-when` (never
+  clipped); `middleBox` keeps names clear of both lines; tomorrow prefetched while today is shown.
+- i18n: `calendar.clock.nextAt` / `untilLeft` / `tomorrowAt` in en, de, de-x-coldmirror.
+- Tests: unit `web/test/calendar/clock.test.ts` (focus, wording, wedge with task lists); e2e labs-clock (+2 task-list
+  examples), STEPS.md updated; @visual: 3 new clock pictures (`clock-next-long`, `clock-running-dark`,
+  `clock-tomorrow-de`) with a new `clock` region.

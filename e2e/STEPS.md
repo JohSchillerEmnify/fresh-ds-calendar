@@ -2463,7 +2463,7 @@ Rules that need no reference picture, plus `toHaveScreenshot` regression picture
 written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
-`list form` (`tasklist-dialog`). The `now-marker` is masked.
+`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`). The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped

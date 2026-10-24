@@ -20,7 +20,8 @@ Feature: Labs: experimental views and the 24-hour clock
   and how long until, which is never cut: "19:40 · in 3 h 17 min" for the next event, "until 10:00 · 30 min left" for
   a running one (owner, 2026-10-24: "You can't see when it's happening, how long it is still. It always just says
   like in 1, in 2, in 4. Maybe you can write the time below it, like have it in 2 lines."). When nothing else comes
-  today, it names tomorrow's first event ("Tomorrow 09:00"); only timed events count, never all-day ones.
+  today, it names tomorrow's first entry ("Tomorrow 09:00"). Timed events and timed task lists count (owner,
+  2026-10-24), all-day events never; the wedge always shades to what the middle names.
 
   Background:
     Given the calendar is empty
@@ -207,6 +208,21 @@ Feature: Labs: experimental views and the 24-hour clock
       | 08:00 | Dentist | 09:00 · in 1 h            | 09:00 |
       | 08:37 | Dentist | 09:00 · in 23 min         | 09:00 |
       | 09:30 | Dentist | until 10:00 · 30 min left | 10:00 |
+
+  Scenario Outline: A timed task list stands in the middle like an event
+    Given the time is 2026-10-14 <time>
+    And the calendar contains a task list "Laundry" on 2026-10-14 at 18:00 for 90 minutes with items:
+      | item | done |
+      | Wash | yes  |
+      | Fold | no   |
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Laundry" over "<when>"
+    And the clock shades the time until <until>
+
+    Examples:
+      | time  | when                   | until |
+      | 17:00 | 18:00 · in 1 h         | 18:00 |
+      | 18:30 | until 19:30 · 1 h left | 19:30 |
 
   @mobile
   Scenario: A long title is cut short in the middle, its time never

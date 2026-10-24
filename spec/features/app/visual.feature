@@ -169,3 +169,32 @@ Feature: The calendar's states look right
     When I open the day view for 2026-10-12
     Then no title in the "day column" is covered by another entry
     And no text in the "day column" is clipped
+
+  # Owner, 2026-10-24: the clock's middle cut "Next: Anspielprobe in 3 h 17 min" to "in 3…". Title over time, two lines.
+  Scenario: The clock's middle names a long title over its time and countdown
+    Given the time is 2026-10-12 16:23
+    And the calendar contains an event "Dentist" on 2026-10-12 from 09:00 to 10:00
+    And the calendar contains an event "Anspielprobe mit dem ganzen Orchester im großen Saal" on 2026-10-12 from 19:40 to 22:00
+    When I open the clock view for 2026-10-12
+    Then no text in the "clock" is clipped
+    And the "clock" still looks like "clock-next-long"
+
+  Scenario: The clock's middle counts down a running entry in the dark theme
+    Given the device prefers a dark color scheme
+    And the time is 2026-10-12 18:30
+    And the calendar contains an event "Dentist" on 2026-10-12 from 09:00 to 10:00
+    And the calendar contains a task list "Laundry" on 2026-10-12 at 18:00 for 90 minutes with items:
+      | Wash |
+      | Fold |
+    When I open the clock view for 2026-10-12
+    Then no text in the "clock" is clipped
+    And the "clock" still looks like "clock-running-dark"
+
+  Scenario: The clock's middle names tomorrow's first entry in German
+    Given the browser language is "de-DE"
+    And the time is 2026-10-12 20:00
+    And the calendar contains an event "Dentist" on 2026-10-12 from 09:00 to 10:00
+    And the calendar contains an event "Probe" on 2026-10-13 from 09:00 to 11:00
+    When I open the clock view for 2026-10-12
+    Then no text in the "clock" is clipped
+    And the "clock" still looks like "clock-tomorrow-de"

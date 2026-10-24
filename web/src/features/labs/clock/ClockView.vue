@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
-import { formatDate, toIsoDate, minutesToTime } from '@/lib/dates';
+import { addDays, formatDate, toIsoDate, minutesToTime } from '@/lib/dates';
 import { displayTitle, neutralName, type Segment } from '@/lib/items';
 import { openItem } from '@/extensions/registry';
 import { openNew } from '@/extensions/create';
 import { applyMove } from '@/features/calendar/dnd';
 import { finishResize } from '@/features/calendar/resize';
-import { nowCardModel } from '@/features/calendar/timeline';
 import BedtimeDial from '@/features/bedtime/BedtimeDial.vue';
 import { useCalendarStore } from '@/stores/calendar';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
-import { clockSegments, clockText, focusWedge, MIN_ARC_MIN, SNAP_MIN, tappedTime } from './clock';
+import { clockFocus, clockMiddle, clockSegments, clockText, focusWedge, MIN_ARC_MIN, SNAP_MIN, tappedTime } from './clock';
 import {
   alongArcLabel, alongHits, angleOf, arcPath, CENTER, clip, gapTrimmed, labelSizing, minuteAt, placeLabelsNear, pointAt, radiusAt, ringLayout, sectorPath, VIEW,
 } from './geometry';
@@ -39,7 +38,9 @@ const cals = useCalendarsStore();
 const date = computed(() => toIsoDate(cal.anchor));
 const dateLabel = computed(() => formatDate(cal.anchor, 'weekdayDayMonthLong'));
 
-const segments = computed(() => (items.byDate.get(date.value) ?? []).filter((s) => !cals.isHidden(s.item.calendarId)));
+const visibleOn = (d: string) => (items.byDate.get(d) ?? []).filter((s) => !cals.isHidden(s.item.calendarId));
+const segments = computed(() => visibleOn(date.value));
+const tomorrow = computed(() => toIsoDate(addDays(cal.anchor, 1)));
 const cats = useTaskCategories();
 const split = computed(() => clockSegments(segments.value, prefs.minEventMinutes, props.variant === 'rings' ? nameRoom : undefined));
 
@@ -147,14 +148,15 @@ const handles = computed(() => {
 const middleRect = (halfW: number, y0: number, y1: number) => ({ x0: CENTER - halfW - 4, y0, x1: CENTER + halfW + 4, y1 });
 /** Where the dragged arc's times stand in the middle while it moves ("HH:MM–HH:MM", 22 units, ~0.6 em per character). */
 const DRAG_BOX = middleRect((11 * 0.6 * 22) / 2, CENTER + 18, CENTER + 46);
-/** What names keep clear of in the middle: the hub, and today the time and the line under it. */
+/** What names keep clear of in the middle: the hub, and today the time and the lines under it. */
 const middleBox = computed(() => {
-  const { font, maxChars } = sizing.value;
+  const { font } = sizing.value;
   const box = middleRect;
   const keep = [box(10, CENTER - 10, CENTER + 10)];
   if (!isToday.value) return keep;
-  const line = nowLine.value ? clip(nowLine.value.text, maxChars + 6) : '';
-  return [...keep, box((5 * 0.6 * 22) / 2, CENTER + 14, CENTER + 40), box((line.length * 0.56 * font) / 2, CENTER + 56 - font * 0.7, CENTER + 56 + font * 0.7)];
+  const m = middle.value;
+  const lines = [m ? m.first : '', m?.when ?? ''].map((text, i) => box((text.length * 0.56 * font) / 2, lineY(i) - font * 0.7, lineY(i) + font * 0.7));
+  return [...keep, box((5 * 0.6 * 22) / 2, CENTER + 14, CENTER + 40), ...lines];
 });
 /**
  * Classic: each arc's name on the plate beside its arc (`placeLabelsNear`), shorter arcs first, never over another name,
@@ -210,16 +212,23 @@ const isToday = computed(() => date.value === clock.today);
 const elapsed = computed(() => (date.value < clock.today ? 1440 : isToday.value ? clock.minutesNow : 0));
 const handTime = computed(() => minutesToTime(clock.minutesNow));
 const progress = computed(() => (elapsed.value > 0 ? arcPath(0, elapsed.value, 205) : ''));
-/** Today: what is running (and how long it has left) or what comes next, under the time; the Approaching card's text. */
-const nowLine = computed(() => {
+// Today the middle may name tomorrow's first entry, so tomorrow is loaded too (in the background, kept in the cache).
+watch([isToday, tomorrow], ([on, d]) => { if (on) items.prefetch(d, toIsoDate(addDays(cal.anchor, 2))); }, { immediate: true });
+/** Baseline of the middle's n-th line under the time (0: the title, 1: when and how long until). */
+const lineY = (n: number) => CENTER + 56 + n * sizing.value.font * 1.3;
+/**
+ * Today, under the time: the running or next entry's title (cut only when too long) over when and how long until, which
+ * is never cut; or one line when nothing comes (owner, 2026-10-24).
+ */
+const middle = computed(() => {
   if (!isToday.value) return null;
-  const m = nowCardModel(segments.value, clock.minutesNow);
-  return m.current ? { text: m.current.line, color: m.current.color } : { text: m.nextLine, color: null };
+  const m = clockMiddle(clockFocus(segments.value, visibleOn(tomorrow.value), clock.minutesNow), clock.minutesNow);
+  return 'line' in m ? { first: m.line, when: null } : { first: clip(m.title, sizing.value.maxChars + 6), when: m.when };
 });
-/** Today: the sector from the hand to the end of the running event or the start of the next one (time made visible). */
+/** Today: the sector from the hand to the end of the running entry or the start of the next one (time made visible). */
 const wedge = computed(() => {
   if (!isToday.value) return null;
-  const w = focusWedge(segments.value, clock.minutesNow);
+  const w = focusWedge(segments.value, clock.minutesNow, (s) => cats.itemColor(s.item));
   return w ? { ...w, d: sectorPath(w.from, w.to, R_OUTER - 6), end: minutesToTime(w.to % 1440) } : null;
 });
 /** While an arc is dragged, the middle shows where it would land. */
@@ -337,9 +346,13 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
         <template v-else-if="isToday">
           <text :x="CENTER" :y="CENTER + 34" text-anchor="middle" class="now" data-testid="clock-time">{{ handTime }}</text>
           <text
-            v-if="nowLine" :x="CENTER" :y="CENTER + 56" text-anchor="middle" dominant-baseline="central" class="now-line"
+            v-if="middle" :x="CENTER" :y="lineY(0)" text-anchor="middle" dominant-baseline="central" class="now-line"
             :style="{ fontSize: `${sizing.font}px` }" data-testid="clock-now-line"
-          >{{ clip(nowLine.text, sizing.maxChars + 6) }}</text>
+          >{{ middle.first }}</text>
+          <text
+            v-if="middle?.when" :x="CENTER" :y="lineY(1)" text-anchor="middle" dominant-baseline="central" class="now-when"
+            :style="{ fontSize: `${sizing.font}px` }" data-testid="clock-now-when"
+          >{{ middle.when }}</text>
         </template>
       </svg>
     </div>
@@ -413,13 +426,14 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
 .handle-hit { fill: transparent; }
 .handle-dot { fill: var(--md-sys-color-surface); stroke-width: 3; }
 .handle:focus-visible .handle-dot { fill: var(--md-sys-color-primary-container); }
-.now-line { font-family: var(--md-ref-typeface-plain, system-ui); font-weight: 600; fill: var(--md-sys-color-on-surface-variant); pointer-events: none; }
+.now-line { font-family: var(--md-ref-typeface-plain, system-ui); font-weight: 600; fill: var(--md-sys-color-on-surface); pointer-events: none; }
+.now-when { font-family: var(--md-ref-typeface-plain, system-ui); font-weight: 500; fill: var(--md-sys-color-on-surface-variant); pointer-events: none; font-variant-numeric: tabular-nums; }
 .now.drag { fill: var(--md-sys-color-primary); }
 .hand line { stroke: var(--md-sys-color-tertiary); stroke-width: 3; stroke-linecap: round; }
 .hand circle { fill: var(--md-sys-color-tertiary); }
 .hub { fill: var(--md-sys-color-tertiary); stroke: var(--md-sys-color-surface); stroke-width: 2; }
 .lbl line { stroke-width: 1; opacity: 0.7; }
-.now, .now-line { paint-order: stroke; stroke: var(--md-sys-color-surface-container-low); stroke-width: 4px; stroke-linejoin: round; }
+.now, .now-line, .now-when { paint-order: stroke; stroke: var(--md-sys-color-surface-container-low); stroke-width: 4px; stroke-linejoin: round; }
 .lbl text { cursor: pointer; font-family: var(--md-ref-typeface-plain, system-ui); font-weight: 600; fill: var(--md-sys-color-on-surface); paint-order: stroke; stroke: var(--md-sys-color-surface-container-low); stroke-width: 3px; }
 .now { font: 600 22px var(--md-ref-typeface-plain, system-ui); fill: var(--md-sys-color-on-surface); }
 </style>

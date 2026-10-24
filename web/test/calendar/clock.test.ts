@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarItem } from '@/api/types';
-import { clockSegments, clockText, focusWedge, tappedTime, turnedStart } from '@/features/labs/clock/clock';
+import { clockFocus, clockMiddle, clockSegments, clockText, focusWedge, tappedTime, turnedStart } from '@/features/labs/clock/clock';
 import {
   alongArcLabel, alongHits, CENTER, clip, fadingRows, gapTrimmed, labelSizing, minuteAt, placeLabelsNear, pointAt, radiusAt, ringLayout, sectorPath, VIEW, wrapDelta,
 } from '@/features/labs/clock/geometry';
@@ -125,15 +125,18 @@ describe('clock gestures', () => {
     expect(tappedTime(608)).toBe('10:15');
     expect(tappedTime(1435)).toBe('00:00');
   });
-  it('draws the focus wedge to the end of the running event, else to the next start, else none', () => {
+  it('draws the focus wedge to the end of the running entry, else to the next start, else none; timed task lists count', () => {
     const day = segsOf([
       ev('a', t(D, '09:00'), t(D, '10:00'), { title: 'A', color: '#111111' }),
       ev('b', t(D, '13:00'), t(D, '14:00'), { title: 'B', color: '#222222' }),
-      list('L', '11:00'),
+      list('L', '11:00', { color: '#333333' }),
     ], D);
     expect(focusWedge(day, 570)).toEqual({ from: 570, to: 600, color: '#111111', running: true });
-    expect(focusWedge(day, 630)).toEqual({ from: 630, to: 780, color: '#222222', running: false });
+    expect(focusWedge(day, 630)).toEqual({ from: 630, to: 660, color: '#333333', running: false });
+    expect(focusWedge(day, 670)).toEqual({ from: 670, to: 690, color: '#333333', running: true });
+    expect(focusWedge(day, 700)).toEqual({ from: 700, to: 780, color: '#222222', running: false });
     expect(focusWedge(day, 900)).toBeNull();
+    expect(focusWedge(day, 630, () => '#abcdef')!.color).toBe('#abcdef');
   });
   it('builds a closed sector path, none for an empty one', () => {
     expect(sectorPath(0, 360, 100)).toMatch(/^M 220 220 L 220\.00 120\.00 A 100 100 0 0 1 320\.00 220\.00 Z$/);
@@ -248,5 +251,48 @@ describe('clock names along the rings (rings variant)', () => {
     expect(alongArcLabel(540, 720, 150, 11, 'Design review with the whole team').text.length).toBeGreaterThan(long.text.length);
     expect(alongArcLabel(540, 545, 150, 11, 'Call').text).toBe('');
     expect(alongArcLabel(540, 720, 150, 11, 'Call').text).toBe('Call');
+  });
+});
+
+describe('clock middle (what runs or comes next, on two lines)', () => {
+  const T = '2026-10-15';
+  const today = segsOf([
+    ev('dentist', t(D, '09:00'), t(D, '10:00'), { title: 'Dentist' }),
+    ev('call', t(D, '09:30'), t(D, '09:45'), { title: 'Call' }),
+    ev('holiday', D, T, { title: 'Holiday', allDay: true }),
+    list('Laundry', '18:00', { estimateMinutes: 90 }),
+    list('Groceries', null),
+  ], D);
+  const tomorrow = segsOf([
+    ev('allday', T, '2026-10-16', { title: 'Trip', allDay: true }),
+    ev('late', t(T, '11:00'), t(T, '12:00'), { title: 'Late' }),
+    ev('standup', t(T, '09:00'), t(T, '09:15'), { title: 'Standup' }),
+  ], T);
+  const pick = (now: number, tm = tomorrow) => { const f = clockFocus(today, tm, now); return f && [f.kind, f.seg.item.title]; };
+
+  it('picks the running entry ending first, else the next timed entry today, else tomorrow\'s first, else none', () => {
+    expect(pick(415)).toEqual(['next', 'Dentist']);
+    expect(pick(560)).toEqual(['running', 'Dentist']);
+    expect(pick(575)).toEqual(['running', 'Call']);
+    expect(pick(600)).toEqual(['next', 'Laundry']);
+    expect(pick(1110)).toEqual(['running', 'Laundry']);
+    expect(pick(1200)).toEqual(['tomorrow', 'Standup']);
+    expect(pick(1200, [])).toBeNull();
+  });
+  it('words the next entry as start and time until, the running one as end and time left', () => {
+    expect(clockMiddle(clockFocus(today, tomorrow, 415), 415)).toEqual({ title: 'Dentist', when: '09:00 · in 2 h 5 min' });
+    expect(clockMiddle(clockFocus(today, tomorrow, 480), 480)).toEqual({ title: 'Dentist', when: '09:00 · in 1 h' });
+    expect(clockMiddle(clockFocus(today, tomorrow, 517), 517)).toEqual({ title: 'Dentist', when: '09:00 · in 23 min' });
+    expect(clockMiddle(clockFocus(today, tomorrow, 560), 560)).toEqual({ title: 'Dentist', when: 'until 10:00 · 40 min left' });
+    expect(clockMiddle(clockFocus(today, tomorrow, 1110), 1110)).toEqual({ title: 'Laundry', when: 'until 19:30 · 1 h left' });
+  });
+  it('names tomorrow\'s first entry by its time only, and says nothing else today with nothing at all', () => {
+    expect(clockMiddle(clockFocus(today, tomorrow, 1200), 1200)).toEqual({ title: 'Standup', when: 'Tomorrow 09:00' });
+    expect(clockMiddle(null, 1200)).toEqual({ line: 'Nothing else today' });
+  });
+  it('ends an entry that runs past midnight at 00:00 and names an untitled task list', () => {
+    const late = segsOf([ev('night', t(D, '23:00'), t(T, '01:00'), { title: 'Night' }), list('', '20:00')], D);
+    expect(clockMiddle(clockFocus(late, [], 1390), 1390)).toEqual({ title: 'Night', when: 'until 00:00 · 50 min left' });
+    expect(clockMiddle(clockFocus(late, [], 1190), 1190)).toEqual({ title: 'Task list', when: '20:00 · in 10 min' });
   });
 });

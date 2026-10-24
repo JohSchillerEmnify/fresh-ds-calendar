@@ -2,7 +2,10 @@
  * What the 24-hour clock shows of a day (which segments are arcs, which are listed in the middle, their texts) and the
  * pure rules of its gestures (turning an arc, snapping a tap to a time, the focus wedge).
  */
+import { minutesToTime } from '@/lib/dates';
 import { displayTitle, neutralName, type Segment } from '@/lib/items';
+import { formatDuration } from '@/features/calendar/timeline';
+import { t } from '@/i18n';
 import { assignLanes } from './geometry';
 
 /** Step every clock gesture snaps to, in minutes (the time grid's step). */
@@ -56,16 +59,49 @@ export function tappedTime(m: number): string {
   return `${String(Math.floor(snapped / 60)).padStart(2, '0')}:${String(snapped % 60).padStart(2, '0')}`;
 }
 
+/** Timed entries that can stand in the middle: timed events and timed task lists (owner, 2026-10-24), never all-day ones. */
+const timedEntries = (segs: Segment[]) => segs.filter((s) => !s.allDay && s.startTime !== null && s.first);
+
 /**
- * The focus wedge of today's dial (a Time Timer-like sector from the hand): to the end of the running event, else to the
- * start of the next timed event, else none. Only timed events count, like the Approaching card.
+ * What today's middle names: the running entry (the one ending first when several run), else the next one starting
+ * today, else the first one tomorrow (`tomorrow` = tomorrow's segments), else nothing.
  */
-export function focusWedge(segs: Segment[], nowMin: number): { from: number; to: number; color: string; running: boolean } | null {
-  const evs = segs.filter((s) => s.item.kind === 'event' && !s.allDay && s.startTime !== null);
-  const cur = evs.filter((s) => s.startMin <= nowMin && nowMin < s.endMin).sort((a, b) => a.endMin - b.endMin)[0];
-  if (cur) return { from: nowMin, to: cur.endMin, color: cur.item.color, running: true };
+export function clockFocus(
+  today: Segment[], tomorrow: Segment[], nowMin: number,
+): { kind: 'running' | 'next' | 'tomorrow'; seg: Segment } | null {
+  const evs = timedEntries(today);
+  const cur = evs.filter((s) => s.startMin <= nowMin && nowMin < s.endMin).sort((a, b) => a.endMin - b.endMin || a.startMin - b.startMin)[0];
+  if (cur) return { kind: 'running', seg: cur };
   const next = evs.filter((s) => s.startMin > nowMin).sort((a, b) => a.startMin - b.startMin)[0];
-  return next ? { from: nowMin, to: next.startMin, color: next.item.color, running: false } : null;
+  if (next) return { kind: 'next', seg: next };
+  const first = timedEntries(tomorrow).sort((a, b) => a.startMin - b.startMin)[0];
+  return first ? { kind: 'tomorrow', seg: first } : null;
+}
+
+/**
+ * The middle's text: the title over when and how long until ("09:00 · in 1 h", "until 10:00 · 30 min left", "Tomorrow
+ * 09:00"), or one line when nothing comes. The second line is never cut, so it carries no title.
+ */
+export function clockMiddle(focus: ReturnType<typeof clockFocus>, nowMin: number): { title: string; when: string } | { line: string } {
+  if (!focus) return { line: t('calendar.now.nothingElse') };
+  const { kind, seg } = focus;
+  const title = neutralName(seg.item);
+  if (kind === 'running') return { title, when: t('calendar.clock.untilLeft', { end: minutesToTime(seg.endMin % 1440), left: formatDuration(seg.endMin - nowMin) }) };
+  if (kind === 'next') return { title, when: t('calendar.clock.nextAt', { start: seg.startTime!, duration: formatDuration(seg.startMin - nowMin) }) };
+  return { title, when: t('calendar.clock.tomorrowAt', { start: seg.startTime! }) };
+}
+
+/**
+ * The focus wedge of today's dial (a Time Timer-like sector from the hand): to the end of the running entry, else to the
+ * start of the next one today, else none — always what the middle names (tomorrow's entry gets no wedge).
+ */
+export function focusWedge(
+  segs: Segment[], nowMin: number, colorOf: (s: Segment) => string = (s) => (s.item as { color: string }).color,
+): { from: number; to: number; color: string; running: boolean } | null {
+  const f = clockFocus(segs, [], nowMin);
+  if (!f) return null;
+  const running = f.kind === 'running';
+  return { from: nowMin, to: running ? f.seg.endMin : f.seg.startMin, color: colorOf(f.seg), running };
 }
 
 /** The text a clock entry is named with: the title, for task lists followed by "done/total". */

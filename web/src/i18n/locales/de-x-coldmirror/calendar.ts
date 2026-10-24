@@ -117,6 +117,9 @@ export default {
     arc: '{title}, {start} bis {end}, Digga',
     handleStart: 'Ziehen für neuen Start, yo',
     handleEnd: 'Ziehen für neues Ende, yo',
+    nextAt: '{start} · in {duration}',
+    untilLeft: 'bis {end} · noch {left}, yo',
+    tomorrowAt: 'Morgen {start}, yo',
   },
   event: {
     editTitle: 'Termin pimpen, yo',
