@@ -113,10 +113,13 @@ export function compareSegments(a: Segment, b: Segment): number {
   return ra - rb || ma - mb || (ta < tb ? -1 : ta > tb ? 1 : 0);
 }
 
-export function segmentsByDate(items: Iterable<CalendarItem>, today?: LocalDate): Map<LocalDate, Segment[]> {
+/** Segments of every item grouped by day, each day ordered (`compareSegments`); `split` cuts one item into its segments. */
+export function segmentsByDate(
+  items: Iterable<CalendarItem>, today?: LocalDate, split: (it: CalendarItem, today?: LocalDate) => Segment[] = itemSegments,
+): Map<LocalDate, Segment[]> {
   const map = new Map<LocalDate, Segment[]>();
   for (const it of items) {
-    for (const s of itemSegments(it, today)) {
+    for (const s of split(it, today)) {
       const l = map.get(s.date);
       if (l) l.push(s);
       else map.set(s.date, [s]);

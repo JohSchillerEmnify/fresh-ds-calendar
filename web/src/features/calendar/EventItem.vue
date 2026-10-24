@@ -40,7 +40,8 @@ const isToday = computed(() => props.segment.date === clock.today);
 const past = computed(() => isToday.value && !props.segment.allDay && props.segment.endMin <= clock.minutesNow);
 const current = computed(() => isToday.value && !props.segment.allDay && props.segment.startMin <= clock.minutesNow && clock.minutesNow < props.segment.endMin);
 const h = computed(() => props.height ?? 0);
-const { width } = useElementSize(root);
+// only a time grid block's look depends on its width: chips are not observed (a month holds hundreds, and each mount read forces a layout)
+const { width } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)));
 /** Narrow (<= 76 px) blocks use 11 px / 13 px type; the budget is derived from the real box, not fixed. */
 const narrow = computed(() => width.value > 0 && width.value <= 76);
 const budget = computed(() => blockBudget({

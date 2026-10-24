@@ -8,6 +8,7 @@ import { useNav } from '@/composables/useNav';
 import { isPhone } from '@/composables/useViewport';
 import { allotHeights, CELL_METRICS, maxLanes } from '@/features/tasklists/layout';
 import EventBar from '@/features/calendar/EventBar.vue';
+import { vFade } from '@/lib/fade';
 import { packWeek } from '@/lib/monthSlots';
 import type { Segment } from '@/lib/items';
 import { laneCount } from '@/lib/spans';
@@ -56,21 +57,6 @@ const rows = computed(() => {
   });
 });
 const slotH = () => (isPhone.value ? CELL_METRICS.phone : CELL_METRICS.wide).lane;
-/** Marks the entries container `data-fade` while its content is taller than the space the cell gives it (re-measured on every update and resize). */
-const fadeObservers = new WeakMap<HTMLElement, ResizeObserver>();
-const measureFade = (el: HTMLElement) => { el.dataset.fade = el.scrollHeight > el.clientHeight + 1 ? 'true' : 'false'; };
-const vFade = {
-  mounted(el: HTMLElement) {
-    if (typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(() => measureFade(el));
-      ro.observe(el);
-      fadeObservers.set(el, ro);
-    }
-    measureFade(el);
-  },
-  updated: measureFade,
-  unmounted(el: HTMLElement) { fadeObservers.get(el)?.disconnect(); },
-};
 /** Every entry of the day with the slots it wants; task lists share the pixels the cell has after the day's bars (by need), whatever does not fit is clipped and faded by the cell. */
 function entries(date: string, taken: number) {
   const all = segs(date);

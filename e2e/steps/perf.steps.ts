@@ -4,9 +4,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { expect, chromium } from '@playwright/test';
-import { Then, When } from './fixtures.js';
+import { expect, chromium, type CDPSession, type Page } from '@playwright/test';
+import { Given, Then, When } from './fixtures.js';
 import { detachedNodes, measureMemory } from './support/cdp.js';
+import { addDays, berlinIso } from './support/dates.js';
 import { isTaskList, readItems } from './support/google.js';
 import { expandTaskList } from './support/tasklist.js';
 import type { World } from './support/world.js';
@@ -143,6 +144,91 @@ Then('the month view was rendered within {int} ms of navigation start', async fu
   expect(at, 'month cell render time recorded').toBeDefined();
   this.testInfo.annotations.push({ type: 'month rendered', description: `${Math.round(at!)} ms` });
   expect(at!).toBeLessThanOrEqual(ms);
+});
+
+// --- busy month ------------------------------------------------------------------------------------------------
+
+const BUSY_TITLES = ['Standup', 'Dentist appointment', 'Lunch with Anna', 'Team retro', 'Gym', 'Call mum', 'Pick up kids', 'Doctor',
+  'Project sync with design team', 'Haircut', 'Yoga class', '1:1 Manager', 'Groceries run', 'Coffee', 'Piano lesson',
+  'Parents evening at school', 'Car service', 'Swimming', 'Book club', 'Dinner'];
+const BIRTHDAYS_ID = 'addressbook#contacts@group.v.calendar.google.com';
+
+/**
+ * About 500 entries over the six weeks of the month grid (STEPS.md "Performance"), the same every run (seeded random):
+ * 6-15 timed events a day, a task list every other day, an all-day event every fifth day, six multi-day events, six birthdays.
+ */
+Given('the calendar contains a busy month around {month}', async function (this: World, month: string) {
+  this.extendTimeout(60_000);
+  let seed = 42;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const pick = <T>(a: T[]) => a[Math.floor(rnd() * a.length)];
+  const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const first = `${month}-01`;
+  // the Monday on or before the 1st: the grid's first day
+  const start = addDays(first, -((new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7));
+  const calls: Array<[string, Record<string, unknown>]> = [];
+  for (let i = 0; i < 42; i++) {
+    const date = addDays(start, i);
+    for (let k = 6 + Math.floor(rnd() * 10); k > 0; k--) {
+      const from = (7 + Math.floor(rnd() * 13)) * 60 + pick([0, 15, 30, 45]);
+      const to = Math.min(23 * 60 + 59, from + pick([15, 30, 45, 60, 90]));
+      calls.push(['/api/events', { title: pick(BUSY_TITLES), allDay: false, start: berlinIso(date, hhmm(from)), end: berlinIso(date, hhmm(to)) }]);
+    }
+    if (i % 2 === 0) {
+      const items = Array.from({ length: 2 + Math.floor(rnd() * 5) }, (_, j) => ({ title: `Item ${j + 1}`, done: rnd() < 0.3 }));
+      calls.push(['/api/tasklists', { title: pick(['Groceries', 'Chores', 'Work todo', 'Packing']), date, time: null, items }]);
+    }
+    if (i % 5 === 0) calls.push(['/api/events', { title: 'Holiday', allDay: true, start: date, end: addDays(date, 1) }]);
+  }
+  for (const [offset, days] of [[4, 3], [8, 5], [16, 4], [21, 9], [29, 3], [31, 6]]) {
+    const from = addDays(start, offset);
+    calls.push(['/api/events', { title: `Trip ${from}`, allDay: true, start: from, end: addDays(from, days) }]);
+  }
+  await this.api.post('/api/__test/remote/calendars', { summary: 'Birthdays', id: BIRTHDAYS_ID, color: '#9fc6e7', readOnly: true });
+  for (const offset of [5, 11, 17, 23, 30, 37]) {
+    const date = addDays(start, offset);
+    calls.push(['/api/__test/remote/events', {
+      calendarId: BIRTHDAYS_ID, summary: 'Birthday Bob', start: { date }, end: { date: addDays(date, 1) }, eventType: 'birthday',
+      birthdayProperties: { type: 'birthday', contact: 'people/c1' }, recurrence: ['RRULE:FREQ=YEARLY'],
+    }]);
+  }
+  for (let i = 0; i < calls.length; i += 8) await Promise.all(calls.slice(i, i + 8).map(([path, body]) => this.api.post(path, body)));
+});
+
+// --- main thread under a slow processor -------------------------------------------------------------------------
+
+/** The DevTools session that holds the CPU slowdown: it lasts as long as the session stays attached. */
+const throttles = new WeakMap<Page, CDPSession>();
+
+When('the phone\'s processor is {int} times slower', async function (this: World, rate: number) {
+  const cdp = await this.page.context().newCDPSession(this.page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate });
+  throttles.set(this.page, cdp);
+});
+
+When('I start measuring long tasks', async function (this: World) {
+  await this.page.evaluate(() => {
+    const w = window as unknown as { __longTasks: number[] };
+    w.__longTasks = [];
+    new PerformanceObserver((list) => { for (const e of list.getEntries()) w.__longTasks.push(e.duration); }).observe({ type: 'longtask' });
+  });
+});
+
+/** The long tasks (> 50 ms) since "I start measuring long tasks", once the page has been quiet for a moment. */
+async function longTasks(world: World): Promise<number[]> {
+  await world.page.waitForTimeout(1_500);
+  const tasks = await world.page.evaluate(() => (window as unknown as { __longTasks?: number[] }).__longTasks);
+  if (!tasks) throw new Error('No "I start measuring long tasks" step before');
+  world.testInfo.annotations.push({ type: 'long tasks', description: `${tasks.length}: ${tasks.map(Math.round).join(', ')} ms` });
+  return tasks;
+}
+
+Then('no task blocked the page for more than {int} ms', async function (this: World, ms: number) {
+  expect(Math.max(0, ...(await longTasks(this))), 'longest task (ms)').toBeLessThanOrEqual(ms);
+});
+
+Then('the long tasks took at most {int} ms together', async function (this: World, ms: number) {
+  expect((await longTasks(this)).reduce((a, b) => a + b, 0), 'long tasks together (ms)').toBeLessThanOrEqual(ms);
 });
 
 // --- Lighthouse ------------------------------------------------------------------------------------------------
