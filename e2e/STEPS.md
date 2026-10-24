@@ -566,6 +566,7 @@ the phone's processor is {int} times slower
 I start measuring long tasks
 no task blocked the page for more than {int} ms
 the long tasks took at most {int} ms together
+the browser uses at most {int} ms of processor time in {int} seconds
 I run a phone performance audit of the app {int} times
 the median performance score is at least {int}
 I request {string} on a fresh server
@@ -597,6 +598,10 @@ the server memory has grown by less than {int} MB since the recording
   42 days of the month grid (from the Monday on or before the 1st): 6 to 15 timed events a day (07:00-20:00, 15-90 min),
   a task list with 2 to 6 items every other day, an all-day "Holiday" every fifth day, six multi-day all-day events
   and six birthdays in the Birthdays calendar (about 500 entries).
+- "the browser uses at most M ms of processor time in N seconds": waits 1 s, then sums the CPU time of the renderer and
+  GPU processes (`SystemInfo.getProcessInfo`, browser DevTools session) before and after N seconds of real time; the
+  difference is reported as an annotation. Not combined with "the phone's processor is N times slower": Chromium's
+  CPU throttling itself burns renderer CPU time.
 - "the phone's processor is N times slower": `Emulation.setCPUThrottlingRate` on a DevTools session kept attached for
   the rest of the scenario.
 - "long tasks": a `PerformanceObserver` for `longtask` entries (main-thread tasks over 50 ms) started by "I start
@@ -800,13 +805,14 @@ Google sets the color ID of the event {string} to {string}
 ```
 the time is {date} {time} and the clock is running
 {int} minutes pass
+{int} seconds pass
 ```
 
 - `the time is D T and the clock is running`: `POST /api/__test/clock { now, frozen: false }` **and** install a fake
   browser clock at the same instant before the page opens (Playwright `page.clock.install({ time })`), so app timers
   only advance when the test says so.
 - `N minutes pass`: `page.clock.runFor(N * 60_000)` and `POST /api/__test/clock { now: previous + N min, frozen: false }`
-  so server and browser stay in step.
+  so server and browser stay in step. `N seconds pass`: the same with N * 1 000 ms.
 
 ## Timeline and Now card
 
@@ -1697,6 +1703,8 @@ every option of the {string} setting shows a sample icon
 
 ```
 the top bar scene shows {string}, {string}, {string} and {string}
+the top bar scene is moving
+the top bar scene is still
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
@@ -1711,6 +1719,9 @@ the support cat sits beside the card with a paw on it
 the support cat is gone within {int} ms
 ```
 
+- "the top bar scene is moving": at least one CSS animation (`document.getAnimations()`) whose target is inside
+  `top-bar-scene` has `playState` `running`. "is still": none is running and there is no `butterfly`, `bat` or `ghost`
+  part; `html[data-scenes]` is `still`. Both poll up to 5 s.
 - Butterflies visit only now and then: the scene step sets `window.__butterflyNow = true` before loading so the
   "butterfly" part is present for the check.
 - Scene parts are elements in the top bar scene with `data-part` (e.g. `sprouting-tree`, `lily-of-the-valley`,

@@ -72,11 +72,14 @@ describe('themed top bar scenes', () => {
     w.unmount();
   });
 
-  it('Reduced: the butterfly only rests in place; Off: none, even with the test hook', async () => {
+  it('Reduced: a seasonal scene rests (no butterfly), Mordor\'s only rests in place; Off: none, even with the test hook', async () => {
     setAnimationSetting('reduced');
     const r = mountScene('winter', true);
-    expect(r.get('[data-part="butterfly"]').classes()).toContain('rest');
+    expect(parts(r.element, 'butterfly')).toBe(0);
     r.unmount();
+    const m = mountScene('mordor', true);
+    expect(m.get('[data-part="butterfly"]').classes()).toContain('rest');
+    m.unmount();
     setAnimationSetting('off');
     const o = mountScene('winter', true);
     expect(parts(o.element, 'butterfly')).toBe(0);
@@ -137,7 +140,7 @@ describe('themed top bar scenes', () => {
     w.unmount();
   });
 
-  it('the ghost floats past every 8–12 min for ~8 s; Reduced fades it in place; Off has none', async () => {
+  it('the ghost floats past every 8–12 min for ~8 s; Reduced (a still scene) and Off have none', async () => {
     vi.useFakeTimers();
     // random = 0.5: the ghost comes after 10 min, the bat after 40 s and 4 min after that
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -152,12 +155,12 @@ describe('themed top bar scenes', () => {
     expect(ghost()).toHaveLength(0);
     await vi.advanceTimersByTimeAsync(600_000);
     expect(ghost()).toHaveLength(1);
-    // a level change ends the visit and waits afresh; Reduced fades in place
+    // a level change ends the visit; at Reduced the Halloween scene rests, so no ghost comes
     setAnimationSetting('reduced');
     await vi.advanceTimersByTimeAsync(0);
     expect(ghost()).toHaveLength(0);
-    await vi.advanceTimersByTimeAsync(600_000);
-    expect(ghost()[0].classes()).toContain('fade');
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(ghost()).toHaveLength(0);
     setAnimationSetting('off');
     await vi.advanceTimersByTimeAsync(3_600_000);
     expect(ghost()).toHaveLength(0);

@@ -6,7 +6,7 @@ import type { BackdropScene } from './types';
  * (petals, sun motes, leaves, snow). Halloween is a dusk (light) or night (dark) sky with twinkling stars instead.
  * The holiday scenes use the same layer: Easter pastel petals, Summer holidays sea and rising bubbles, Christmas snow,
  * New Year's Eve a night sky with twinkling stars, New Year a sunrise with falling confetti. The drift and the
- * twinkle run only at the Full animation level.
+ * twinkle run only at the Full animation level and only while the scene moves (`sceneRest.ts`; `data-season` marks it).
  */
 defineProps<{ season: BackdropScene }>();
 const particles = Array.from({ length: 9 }, (_, i) => ({

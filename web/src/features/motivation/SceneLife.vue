@@ -15,6 +15,7 @@ import SceneSun from './SceneSun.vue';
 import SpringMeadow from './SpringMeadow.vue';
 import SproutingTree from './SproutingTree.vue';
 import SunflowerField from './SunflowerField.vue';
+import { sceneStill } from './sceneRest';
 import { useSceneVisits } from './useSceneVisits';
 
 /**
@@ -24,7 +25,8 @@ import { useSceneVisits } from './useSceneVisits';
  * the holiday scenes bring eggs and a hare (Easter), sea and umbrella (Summer holidays), an Advent candle timeline ending in the tree
  * (Christmas), fireworks (New Year's Eve) and a sunrise (New Year). Every scene has one small cat and, now and then, a
  * visiting butterfly (a bat at Halloween; none at Christmas, New Year's Eve and New Year). Parts carry `data-part`.
- * Sizes follow the bar height (container units), colours the theme tokens; motion follows `html[data-motion]`.
+ * Sizes follow the bar height (container units), colours the theme tokens; motion follows `html[data-motion]`, and
+ * the seasonal scenes rest as a still picture after their first ten seconds (`sceneRest.ts`; `data-life` marks the layer).
  */
 type LifeScene = 'spring' | 'summer' | 'fall' | 'winter' | 'mordor' | 'halloween' | 'easter' | 'summerholidays' | 'christmas' | 'newyearseve' | 'newyear';
 const props = defineProps<{ scene: LifeScene }>();
@@ -49,6 +51,8 @@ const visit = useSceneVisits(
     return flight && { flight, restX: Math.round(15 + Math.random() * 65), tint: Math.random() < 0.5 ? ('a' as const) : ('b' as const) };
   },
   () => forcedButterfly(clock.config.testMode),
+  // Mordor is not a seasonal scene: it does not rest
+  () => props.scene !== 'mordor' && sceneStill.value,
 );
 /** At Halloween bats come instead of butterflies (same rhythm, same test hook). */
 const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';

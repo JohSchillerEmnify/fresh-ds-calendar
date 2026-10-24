@@ -11,6 +11,7 @@ import BareTree from './BareTree.vue';
 import JackOLantern from './JackOLantern.vue';
 import SceneGhost from './SceneGhost.vue';
 import SceneMoon from './SceneMoon.vue';
+import { sceneStill } from './sceneRest';
 import { useSceneVisits } from './useSceneVisits';
 
 defineProps<{ catLeft: number }>();
@@ -22,7 +23,7 @@ const LANTERNS = [
 ] as const;
 
 /** The ghost currently floating by, or null between visits. */
-const ghost = useSceneVisits(GHOST_RHYTHM, (level) => ({ drift: level === 'full' ? ('float' as const) : ('fade' as const), x: Math.round(18 + Math.random() * 50) }));
+const ghost = useSceneVisits(GHOST_RHYTHM, (level) => ({ drift: level === 'full' ? ('float' as const) : ('fade' as const), x: Math.round(18 + Math.random() * 50) }), undefined, () => sceneStill.value);
 </script>
 
 <template>

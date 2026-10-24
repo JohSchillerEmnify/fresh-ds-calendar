@@ -1,7 +1,8 @@
 /**
  * Runs a scene visitor's rhythm (`butterflyVisits.ts`) inside a component: waits, starts a visit, ends it after the
  * rhythm's length and waits again. A change of animation level ends any visit and starts the wait afresh; at Off
- * nothing comes. All timers go through `appTimeout` and are cleared when the scope ends.
+ * nothing comes, and neither while the scene rests as a still picture (`still`, see `sceneRest.ts`): then no timer
+ * runs. All timers go through `appTimeout` and are cleared when the scope ends.
  */
 import { onScopeDispose, ref, watch, type Ref } from 'vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
@@ -10,9 +11,11 @@ import { visitWait, type VisitRhythm } from './butterflyVisits';
 
 /**
  * The current visit (whatever `start` made of it) or null between visits. `start` may return null to skip a visit;
- * `forced` asks for the next visit at once (the test hook).
+ * `forced` asks for the next visit at once (the test hook); `still` says the scene is at rest.
  */
-export function useSceneVisits<T>(rhythm: VisitRhythm, start: (level: MotionLevel) => T | null, forced: () => boolean = () => false): Ref<T | null> {
+export function useSceneVisits<T>(
+  rhythm: VisitRhythm, start: (level: MotionLevel) => T | null, forced: () => boolean = () => false, still: () => boolean = () => false,
+): Ref<T | null> {
   const visit = ref(null) as Ref<T | null>;
   const level = useAnimationLevel();
   let timer: Disposer | null = null;
@@ -24,7 +27,7 @@ export function useSceneVisits<T>(rhythm: VisitRhythm, start: (level: MotionLeve
 
   function schedule(first: boolean) {
     cancel();
-    if (level.value === 'off') return;
+    if (level.value === 'off' || still()) return;
     const wait = visitWait(rhythm, first, forced(), Math.random());
     if (wait === 0) begin();
     else timer = appTimeout(begin, wait);
@@ -40,7 +43,7 @@ export function useSceneVisits<T>(rhythm: VisitRhythm, start: (level: MotionLeve
     }, rhythm.lengthMs);
   }
 
-  watch(level, () => {
+  watch([level, still], () => {
     visit.value = null;
     schedule(true);
   }, { immediate: true });

@@ -306,6 +306,28 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   }
 });
 
+/** How many CSS animations inside the top bar scene are running (STEPS.md scene notes). */
+async function runningSceneAnimations(world: World): Promise<number> {
+  return world.page.evaluate(() => {
+    const scene = document.querySelector('[data-testid="top-bar-scene"]');
+    if (!scene) throw new Error('no top bar scene');
+    return document.getAnimations().filter((a) => {
+      const target = (a.effect as KeyframeEffect | null)?.target;
+      return a.playState === 'running' && !!target && scene.contains(target);
+    }).length;
+  });
+}
+
+Then('the top bar scene is moving', async function (this: World) {
+  await expect.poll(() => runningSceneAnimations(this), { message: 'running scene animations' }).toBeGreaterThan(0);
+});
+
+Then('the top bar scene is still', async function (this: World) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-scenes', 'still');
+  await expect.poll(() => runningSceneAnimations(this), { message: 'running scene animations' }).toBe(0);
+  await expect(this.page.getByTestId('top-bar-scene').locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]')).toHaveCount(0);
+});
+
 Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
   await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c, d]);
 });
