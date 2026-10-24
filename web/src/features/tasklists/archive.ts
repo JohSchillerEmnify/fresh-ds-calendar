@@ -29,7 +29,7 @@ export function matchesSearch(l: Pick<TaskList, 'title' | 'items'>, query: strin
   return l.title.toLowerCase().includes(q) || l.items.some((i) => i.title.toLowerCase().includes(q));
 }
 
-/** The copy "Use as template" creates: same title, category and tags, no date, every item open, no repeat or estimate. */
-export function templateOf(l: Pick<TaskList, 'title' | 'categoryId' | 'tags' | 'items'>, categoriesOn = true): CreateTaskListInput {
+/** The copy "Copy" creates: same title, category and tags, no date, every item open, no repeat or estimate. */
+export function copyOf(l: Pick<TaskList, 'title' | 'categoryId' | 'tags' | 'items'>, categoriesOn = true): CreateTaskListInput {
   return { title: l.title, date: null, categoryId: categoriesOn ? l.categoryId : null, tags: [...l.tags], items: l.items.map((i) => ({ title: i.title, done: false })) };
 }

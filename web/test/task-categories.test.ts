@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { templateOf } from '@/features/tasklists/archive';
+import { copyOf } from '@/features/tasklists/archive';
 import { effectiveFilter, effectiveGroupBy, effectiveSortBy, listCategoryId, listColor } from '@/features/tasklists/categories';
 
 describe('task categories switch: fall-backs while off', () => {
@@ -29,7 +29,7 @@ describe('task categories switch: fall-backs while off', () => {
   });
   it('a template copy has no category while off', () => {
     const l = { title: 'T', categoryId: 'work', tags: [], items: [] };
-    expect(templateOf(l, false).categoryId).toBeNull();
-    expect(templateOf(l).categoryId).toBe('work');
+    expect(copyOf(l, false).categoryId).toBeNull();
+    expect(copyOf(l).categoryId).toBe('work');
   });
 });

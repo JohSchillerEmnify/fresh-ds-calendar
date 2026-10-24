@@ -3,6 +3,7 @@ import { ApiError } from '@/api/client';
 import { t } from '@/i18n';
 import type { CalendarEvent, ChangeScope, TaskItem, TaskList } from '@/api/types';
 import { removeItem } from '@/features/tasklists/ops';
+import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
 import { useThemeStore } from './theme';
@@ -130,6 +131,16 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => theme.hide(id));
   }
 
+  /** A task list template (feature tasklist-templates): gone from the Templates page at once, deleted after the undo time. */
+  function deleteTemplate(id: string, name: string): void {
+    const templates = useTemplatesStore();
+    start({
+      title: name,
+      restore: () => templates.unhide(id),
+      send: (keepalive) => templates.remove(id, keepalive),
+    }, () => templates.hide(id));
+  }
+
   /** `index`: the item's position in the list, where an undo puts it back; `scope` `following`: this and all later occurrences of a repeating list. */
   function deleteTaskItem(listId: string, item: TaskItem, index: number, scope?: ChangeScope): void {
     const items = useItemsStore();
@@ -143,5 +154,5 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => items.hideTaskItem(listId, item.id));
   }
 
-  return { deleteEvent, deleteTaskList, deleteTaskItem, deleteTheme, undo, flush, flushList };
+  return { deleteEvent, deleteTaskList, deleteTaskItem, deleteTheme, deleteTemplate, undo, flush, flushList };
 });

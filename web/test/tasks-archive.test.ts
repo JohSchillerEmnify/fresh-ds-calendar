@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TaskList } from '@/api/types';
-import { isFinished, matchesSearch, sortArchive, templateOf } from '@/features/tasklists/archive';
+import { isFinished, matchesSearch, sortArchive, copyOf } from '@/features/tasklists/archive';
 
 const tl = (title: string, o: Partial<TaskList> = {}): TaskList => ({
   kind: 'tasklist', id: title, calendarId: 'c', title, date: null, time: null, items: [], doneCount: 0, totalCount: 0, estimateMinutes: null,
@@ -43,10 +43,10 @@ describe('matchesSearch', () => {
   });
 });
 
-describe('templateOf', () => {
+describe('copyOf', () => {
   it('copies title, category and tags with open items and no date', () => {
     const src = tl('Shop', { date: '2026-10-10', time: '10:00', categoryId: 'shopping', tags: ['a'], recurrence: 'weekly', estimateMinutes: 30,
       items: [{ id: '1', title: 'Milk', done: true }, { id: '2', title: 'Bread', done: true }] });
-    expect(templateOf(src)).toEqual({ title: 'Shop', date: null, categoryId: 'shopping', tags: ['a'], items: [{ title: 'Milk', done: false }, { title: 'Bread', done: false }] });
+    expect(copyOf(src)).toEqual({ title: 'Shop', date: null, categoryId: 'shopping', tags: ['a'], items: [{ title: 'Milk', done: false }, { title: 'Bread', done: false }] });
   });
 });

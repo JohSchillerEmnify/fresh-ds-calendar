@@ -19,10 +19,11 @@ import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import { isCollapsed, setAllCollapsed } from './collapse';
-import { matchesSearch, sortArchive, templateOf } from './archive';
+import { copyOf, matchesSearch, sortArchive } from './archive';
 import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
+import SaveTemplateDialog from './SaveTemplateDialog.vue';
 import TasksCanvas from './TasksCanvas.vue';
 import TasksToolbar from './TasksToolbar.vue';
 import { useTaskCategories } from './categories';
@@ -56,15 +57,17 @@ const archive = computed(() => sortArchive(tasks.archived.filter((l) => passes(l
 function chooseTab(next: TasksTab): void {
   tasks.setTab(next).catch((e) => sync.reportError(e));
 }
-/** "Use as template": an open, undated copy appears in Open; the archived original stays. */
-async function useAsTemplate(l: TaskList): Promise<void> {
+/** "Copy": an open, undated copy appears in Open; the archived original stays. */
+async function copy(l: TaskList): Promise<void> {
   try {
-    await items.createTaskList(templateOf(l, cats.on.value));
-    ui.notify(t('tasks.archive.templateCreated', { title: neutralName(l) }));
+    await items.createTaskList(copyOf(l, cats.on.value));
+    ui.notify(t('tasks.archive.copyCreated', { title: neutralName(l) }));
   } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.templateFailed'));
+    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.copyFailed'));
   }
 }
+/** "Save as template" next to "Copy" (feature tasklist-templates): the finished list being saved, or null. */
+const savingTemplateOf = ref<TaskList | null>(null);
 
 let stop: (() => void) | null = null;
 onMounted(() => {
@@ -94,9 +97,10 @@ onBeforeUnmount(() => stop?.());
             v-for="l in archive" :key="l.id" class="item tl-surface" data-testid="tasks-archive-item" :data-tasklist-id="l.id" :data-title="displayTitle(l)"
             :data-completed-on="l.completedOn ?? ''" :style="{ '--c': cats.color(l) }"
           >
-            <TaskListView :id="l.id" :list="l" title-opens-dialog class="view" />
+            <TaskListView :id="l.id" :list="l" title-opens-dialog no-template class="view" />
             <div class="quick">
-              <Button variant="tonal" data-testid="tasks-archive-duplicate" @click="useAsTemplate(l)">{{ t('tasks.archive.useAsTemplate') }}</Button>
+              <Button variant="tonal" data-testid="tasks-archive-duplicate" @click="copy(l)">{{ t('tasks.archive.copy') }}</Button>
+              <Button variant="tonal" data-testid="tasklist-save-template" @click="savingTemplateOf = l">{{ t('tasks.templates.save') }}</Button>
             </div>
           </li>
         </ul>
@@ -116,6 +120,7 @@ onBeforeUnmount(() => stop?.());
         </ul>
       </section>
     </div>
+    <Teleport to="body"><SaveTemplateDialog v-if="savingTemplateOf" :open="!!savingTemplateOf" :list="savingTemplateOf" @close="savingTemplateOf = null" /></Teleport>
   </section>
 </template>
 
