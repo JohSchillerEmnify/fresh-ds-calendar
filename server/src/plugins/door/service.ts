@@ -31,7 +31,7 @@ export function dueDoorLists(lists: TaskList[], today: string): TaskList[] {
   const due = lists.filter((l) => l.tags.includes(DOOR_TAG) && (l.date === null || l.date <= today));
   const latest = new Map<string, TaskList>();
   for (const l of due) {
-    const key = l.seriesId ?? (l.recurrence ? masterId(l.id) : l.id);
+    const key = l.seriesKey ?? l.seriesId ?? (l.recurrence ? masterId(l.id) : l.id);
     const seen = latest.get(key);
     if (!seen || (l.date ?? '') > (seen.date ?? '')) latest.set(key, l);
   }

@@ -156,7 +156,8 @@ export function encodeTaskListPatch(d: TaskListData, tz: string, colorId: string
   };
   // Only masters carry the rule; never rewrite it on an instance.
   if (!existing.recurringEventId) {
-    if (d.recurrence) patch.recurrence = [RRULE[d.recurrence]];
+    // a rule of the same rhythm stays as it is: a series ended by a split keeps its UNTIL
+    if (d.recurrence) { if (!existing.recurrence?.[0]?.startsWith(RRULE[d.recurrence])) patch.recurrence = [RRULE[d.recurrence]]; }
     else (patch as { recurrence?: string[] | null }).recurrence = null as unknown as string[];
   }
   return patch;

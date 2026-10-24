@@ -31,6 +31,15 @@ describe('door plugin: which lists are due', () => {
     expect(got.map((l) => l.id)).toEqual(['m_20261019']);
   });
 
+  it('counts a list split by "this and following" once: its parts share the seriesKey', () => {
+    const today = '2026-10-19';
+    const got = dueDoorLists([
+      list({ id: 'm_20261012', title: 'Bin day', date: '2026-10-12', recurrence: 'weekly', seriesId: 'm', seriesKey: 'm' }),
+      list({ id: 'n_20261019', title: 'Bins', date: today, recurrence: 'weekly', seriesId: 'n', seriesKey: 'm' }),
+    ], today);
+    expect(got.map((l) => l.id)).toEqual(['n_20261019']);
+  });
+
   it('counts a timed repeating list once too (Google ids _YYYYMMDDTHHMMSSZ)', () => {
     const today = '2026-10-19';
     const got = dueDoorLists([

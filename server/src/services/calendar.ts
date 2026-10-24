@@ -208,7 +208,7 @@ export class CalendarService {
     const done = d.items.filter((i) => i.done).length;
     return {
       kind: 'tasklist', id: ev.id, calendarId: ev.calendarId, title: d.title, date: d.date, time: d.time, items: d.items, doneCount: done,
-      totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, ...(ev.recurringEventId ? { seriesId: ev.recurringEventId } : {}),
+      totalCount: d.items.length, estimateMinutes: d.estimateMinutes, recurrence: d.recurrence, ...(ev.recurringEventId ? { seriesId: ev.recurringEventId, seriesKey: ev.extendedProperties?.private?.series ?? ev.recurringEventId } : {}),
       categoryId: cat ? cat.id : null,
       tags: d.tags, color: cat ? cat.color : calColor, calendarColor: calColor, completedOn: d.completedOn, canvas: d.canvas,
       reminders: this.remindersView(ev, this.defaultsSync(ev.calendarId)), etag: ev.etag, updated: ev.updated,
@@ -533,11 +533,7 @@ export class CalendarService {
    * item change addressed to the series lands here, so it becomes an exception of its own (feature adhd-support).
    */
   private async firstOccurrence(master: GoogleEvent): Promise<GoogleEvent> {
-    const day = decodeTaskList(master, this.tz).date!; // a repeating list always has a date
-    const timeMin = formatInZone(startOfLocalDay(day, this.tz), this.tz);
-    const timeMax = formatInZone(startOfLocalDay(addDays(day, 1), this.tz), this.tz);
-    const r = await this.provider.listEvents({ calendarId: master.calendarId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
-    const first = r.items.find((e) => e.recurringEventId === master.id && e.status !== 'cancelled');
+    const first = await this.occurrenceOn(master, decodeTaskList(master, this.tz).date!); // a repeating list always has a date
     // the first occurrence was deleted (or moved off its day): there is nothing of that week left to change
     if (!first) throw notFound('Task list not found');
     return first;
@@ -575,31 +571,114 @@ export class CalendarService {
     }
   }
 
+  /** The local date (and instant, when timed) of an occurrence by its series' rule (`originalStartTime`, else its start). */
+  private ruleStart(ev: GoogleEvent): { date: string; ms: number | null } {
+    const o = ev.originalStartTime ?? ev.start;
+    if (o.date) return { date: o.date, ms: null };
+    const ms = Date.parse(o.dateTime!);
+    return { date: localDateOf(ms, this.tz), ms };
+  }
+
+  /** The occurrence of `master` whose rule date is `day`, as a range read of that day lists it; null when there is none. */
+  private async occurrenceOn(master: GoogleEvent, day: string): Promise<GoogleEvent | null> {
+    const timeMin = formatInZone(startOfLocalDay(day, this.tz), this.tz);
+    const timeMax = formatInZone(startOfLocalDay(addDays(day, 1), this.tz), this.tz);
+    const r = await this.provider.listEvents({ calendarId: master.calendarId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
+    return r.items.find((e) => e.recurringEventId === master.id && e.status !== 'cancelled' && this.ruleStart(e).date === day) ?? null;
+  }
+
+  /** The exceptions of a series, cancelled ones too (without singleEvents Google lists each series once and its exceptions on their own). */
+  private async exceptionsOf(master: GoogleEvent): Promise<GoogleEvent[]> {
+    const r = await this.provider.listEvents({ calendarId: master.calendarId, privateExtendedProperty: ['kind=tasklist'], singleEvents: false, showDeleted: true });
+    return r.items.filter((e) => e.recurringEventId === master.id);
+  }
+
   /**
-   * A change for all weeks of a repeating list (owner, 2026-10-24, feature tasklist-repeating): the series (Google master,
-   * which the plain weeks follow) and then every week already split off (exception) get `change`, each by read-modify-write
-   * of its own data, so each week keeps its ticks. Google keeps an exception's own changes when the master changes, so the
-   * master write alone would not reach them. `check` runs on the addressed week first (unknown item → 404).
+   * A change for this and all following occurrences of a repeating list (owner, 2026-10-24, feature tasklist-repeating;
+   * Google's "This and following events"). Earlier occurrences never change. The Calendar API has no such operation:
+   * like Google Calendar itself, the series is split — the shown occurrence gets the change, a new series starts at the
+   * next one, the later exceptions are carried over with their own data (ticks) plus the change, and the old series ends
+   * with the shown one (`UNTIL`). From the first occurrence nothing is split: the series and its exceptions get the change
+   * (Google keeps an exception's own changes when the master changes, so each is written itself). `check` runs on the
+   * shown occurrence first (unknown item → 404) so a refused change writes nothing.
    */
-  private async forAllWeeks(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
+  private async forFollowing(id: string, change: (d: TaskListData) => TaskListData, check?: (d: TaskListData) => void): Promise<TaskList> {
     const cur = isSharedId(id) ? null : await this.locateKind(id, true);
     const seriesId = cur?.recurringEventId ?? (cur?.recurrence?.length ? cur.id : null);
     if (!cur || !seriesId) throw validation('This list does not repeat', 'scope');
     check?.(decodeTaskList(cur, this.tz));
-    await this.modify(seriesId, change);
-    // without singleEvents Google lists each series once and its exceptions as events of their own
-    const r = await this.provider.listEvents({ calendarId: cur.calendarId, privateExtendedProperty: ['kind=tasklist'], singleEvents: false });
-    for (const e of r.items) {
-      if (e.recurringEventId === seriesId && e.status !== 'cancelled') await this.modify(e.id, change);
+    const master = cur.id === seriesId ? cur : await this.locateKind(seriesId, true);
+    const shown = this.ruleStart(cur);
+    if (shown.date <= this.ruleStart(master).date) {
+      // the first occurrence: there is nothing earlier to keep
+      await this.modify(seriesId, change);
+      for (const e of await this.exceptionsOf(master)) if (e.status !== 'cancelled') await this.modify(e.id, change);
+      return this.getTaskList(id);
     }
+    // the shown occurrence: an exception of the old series from now on
+    await this.modify(cur.id, change);
+    const next = await this.nextOccurrence(master, shown.date);
+    // nothing follows within reach: there is no later occurrence to change
+    if (next) await this.splitAt(master, next, shown, change);
     return this.getTaskList(id);
   }
 
+  /** The first live occurrence of `master` after `day` (within 62 days, enough for a monthly rule with a gap); null when none. */
+  private async nextOccurrence(master: GoogleEvent, day: string): Promise<GoogleEvent | null> {
+    const timeMin = formatInZone(startOfLocalDay(addDays(day, 1), this.tz), this.tz);
+    const timeMax = formatInZone(startOfLocalDay(addDays(day, 63), this.tz), this.tz);
+    const r = await this.provider.listEvents({ calendarId: master.calendarId, timeMin, timeMax, privateExtendedProperty: ['kind=tasklist'] });
+    const later = r.items.filter((e) => e.recurringEventId === master.id && e.status !== 'cancelled' && this.ruleStart(e).date > day);
+    later.sort((x, y) => (this.ruleStart(x).date < this.ruleStart(y).date ? -1 : 1));
+    return later[0] ?? null;
+  }
+
+  /**
+   * Splits `master` before `next` (Google Calendar's "This and following"): a new series from `next` on with the series'
+   * data plus `change` and `series` = the first series' id; every later exception is carried over to the new series'
+   * occurrence of the same rule date (its own data plus `change`; a cancelled one cancels it) and then deleted; last, the
+   * old series ends with the shown occurrence (`UNTIL`), so a failure on the way leaves no week missing.
+   */
+  private async splitAt(master: GoogleEvent, next: GoogleEvent, shown: { date: string; ms: number | null }, change: (d: TaskListData) => TaskListData): Promise<void> {
+    const root = master.extendedProperties?.private?.series ?? master.id;
+    const start = this.ruleStart(next).date;
+    // read before anything moves: the later exceptions of the old series, deleted ones too
+    const later = (await this.exceptionsOf(master)).filter((e) => this.ruleStart(e).date >= start);
+    const d = change({ ...decodeTaskList(master, this.tz), date: start, completedOn: null });
+    this.checkTaskData(d, d.categoryId);
+    const g = encodeTaskList(d, this.tz, this.colorFor(d));
+    g.extendedProperties!.private!.series = root;
+    if (master.reminders) g.reminders = master.reminders;
+    const fresh = await this.provider.insertEvent(master.calendarId, g);
+    for (const e of later) {
+      const inst = await this.occurrenceOn(fresh, this.ruleStart(e).date);
+      if (!inst) continue;
+      if (e.status === 'cancelled') {
+        await this.provider.deleteEvent(fresh.calendarId, inst.id);
+        continue;
+      }
+      const own = decodeTaskList(e, this.tz);
+      const dd = change(own);
+      dd.completedOn = nextCompletedOn(own, dd, this.today());
+      const patch = encodeTaskListPatch(dd, this.tz, this.colorFor(dd), inst);
+      if (e.reminders) patch.reminders = e.reminders;
+      await this.provider.patchEvent(fresh.calendarId, inst.id, patch, { ifMatch: inst.etag });
+      try {
+        await this.provider.deleteEvent(e.calendarId, e.id);
+      } catch (err) {
+        if (!(err instanceof NotFoundError)) throw err;
+      }
+    }
+    const until = shown.ms === null ? shown.date.replaceAll('-', '') : new Date(shown.ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const rule = (master.recurrence![0] ?? '').replace(/;(UNTIL|COUNT)=[^;]*/g, '');
+    await this.provider.patchEvent(master.calendarId, master.id, { recurrence: [`${rule};UNTIL=${until}`] });
+  }
+
   async updateTaskList(id: string, input: UpdateTaskListInput, ifMatch?: string, scope?: Scope): Promise<TaskList> {
-    if (scope === 'all') {
+    if (scope === 'following') {
       const { title, ...rest } = input;
-      if (title === undefined || Object.keys(rest).length) throw validation('Only the title changes for all weeks', 'scope');
-      return this.forAllWeeks(id, (d) => ({ ...d, title }));
+      if (title === undefined || Object.keys(rest).length) throw validation('Only the title changes for the following lists', 'scope');
+      return this.forFollowing(id, (d) => ({ ...d, title }));
     }
     return this.modify(id, (d) => {
       const next = { ...d };
@@ -629,13 +708,22 @@ export class CalendarService {
     const cur = await this.locateKind(id, true);
     if (ifMatch && !etagEq(ifMatch, cur.etag)) throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
     await this.provider.deleteEvent(cur.calendarId, id, ifMatch ? { ifMatch } : undefined);
+    // a series split by "this and following" goes with its later parts (same `series`, later start)
+    if (cur.recurrence?.length && !cur.recurringEventId) {
+      const root = cur.extendedProperties?.private?.series ?? cur.id;
+      const r = await this.provider.listEvents({ calendarId: cur.calendarId, privateExtendedProperty: ['kind=tasklist', `series=${root}`], singleEvents: false });
+      const from = this.ruleStart(cur).date;
+      for (const e of r.items) {
+        if (e.recurrence?.length && !e.recurringEventId && e.status !== 'cancelled' && e.id !== cur.id && this.ruleStart(e).date > from) await this.provider.deleteEvent(e.calendarId, e.id);
+      }
+    }
   }
 
   async addItem(id: string, input: { title: string; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
-    if (scope === 'all') {
-      // one id in every week, unticked; a week that has it already (a repeated write) is left as it is
+    if (scope === 'following') {
+      // one id in every list, unticked; a list that has it already (a repeated write) is left as it is
       const item: TaskItem = { id: nanoid(), title: input.title, done: false };
-      return this.forAllWeeks(id, (d) => {
+      return this.forFollowing(id, (d) => {
         if (d.items.some((i) => i.id === item.id)) return d;
         const items = [...d.items];
         items.splice(input.index === undefined ? items.length : Math.min(input.index, items.length), 0, item);
@@ -652,11 +740,11 @@ export class CalendarService {
   }
 
   async patchItem(id: string, itemId: string, input: { title?: string; done?: boolean }, scope?: Scope): Promise<TaskList> {
-    if (scope === 'all') {
-      // ticks stay per week: only the text changes for all weeks
+    if (scope === 'following') {
+      // ticks stay with each list: only the text changes for the following ones
       const title = input.title;
-      if (title === undefined || input.done !== undefined) throw validation('Only the item text changes for all weeks', 'scope');
-      return this.forAllWeeks(id, (d) => ({ ...d, items: d.items.map((i) => (i.id === itemId ? { ...i, title } : i)) }), requireItem(itemId));
+      if (title === undefined || input.done !== undefined) throw validation('Only the item text changes for the following lists', 'scope');
+      return this.forFollowing(id, (d) => ({ ...d, items: d.items.map((i) => (i.id === itemId ? { ...i, title } : i)) }), requireItem(itemId));
     }
     let ticked = false;
     const list = await this.modify(id, (d) => {
@@ -674,7 +762,7 @@ export class CalendarService {
   }
 
   async deleteItem(id: string, itemId: string, scope?: Scope): Promise<TaskList> {
-    if (scope === 'all') return this.forAllWeeks(id, (d) => ({ ...d, items: d.items.filter((i) => i.id !== itemId) }), requireItem(itemId));
+    if (scope === 'following') return this.forFollowing(id, (d) => ({ ...d, items: d.items.filter((i) => i.id !== itemId) }), requireItem(itemId));
     return this.modify(id, (d) => {
       if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
       return { ...d, items: d.items.filter((i) => i.id !== itemId) };
@@ -869,10 +957,10 @@ const onlyReminders = (input: UpdateEventInput): boolean => {
 const etagEq = (a: string, b: string) => a.replace(/^W\//, '').replaceAll('"', '') === b.replace(/^W\//, '').replaceAll('"', '');
 export { ApiException };
 
-/** Which weeks of a repeating list a change is for: `all` = every week (feature tasklist-repeating); absent = the given id only. */
-export type Scope = 'all' | undefined;
+/** Which occurrences of a repeating list a change is for: `following` = this and all later ones (feature tasklist-repeating); absent = the given id only. */
+export type Scope = 'following' | undefined;
 
-/** A check for {@link CalendarService} `forAllWeeks`: the addressed week must hold the item (else 404, as for one week). */
+/** A check for {@link CalendarService} `forFollowing`: the shown occurrence must hold the item (else 404, as for one list). */
 const requireItem = (itemId: string) => (d: TaskListData): void => {
   if (!d.items.some((i) => i.id === itemId)) throw notFound('Item not found');
 };

@@ -313,6 +313,10 @@ export class MockGoogleProvider implements CalendarProvider {
   private expand(m: GoogleEvent, min: number, max: number, exceptions: Set<string>): GoogleEvent[] {
     const rule = /FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/.exec(m.recurrence![0] ?? '')?.[1];
     const lastOfFeb = /BYMONTH=2;BYMONTHDAY=-1/.test(m.recurrence![0] ?? '');
+    // RFC 5545 UNTIL (inclusive): a date for an all-day series, a UTC instant for a timed one (how a split ends a series)
+    const u = /UNTIL=(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z)?/.exec(m.recurrence![0] ?? '');
+    const untilDate = u && !u[4] ? `${u[1]}-${u[2]}-${u[3]}` : null;
+    const untilMs = u?.[4] ? Date.parse(`${u[1]}-${u[2]}-${u[3]}T${u[4]}:${u[5]}:${u[6]}Z`) : null;
     if (!rule) return [m];
     const base = this.masterDate(m);
     const baseTime = m.start.dateTime ? localTimeOf(Date.parse(m.start.dateTime), m.start.timeZone ?? this.tz) : null;
@@ -326,6 +330,7 @@ export class MockGoogleProvider implements CalendarProvider {
       const date = rule === 'DAILY' ? addDays(base, n) : rule === 'WEEKLY' ? addDays(base, 7 * n) : rule === 'MONTHLY' ? addMonthsClamp(base, n).date : this.yearly(base, n, lastOfFeb);
       if (!date) continue; // 29 February in a year without one: Google skips it
       if (startOfLocalDay(date, this.tz) >= max) break;
+      if (untilDate && date > untilDate) break;
       // Google instance: the master's fields with its own id, start and etag, `recurringEventId` and `originalStartTime`
       const inst: GoogleEvent = { ...clone(m), recurringEventId: m.id };
       delete inst.recurrence;
@@ -335,6 +340,7 @@ export class MockGoogleProvider implements CalendarProvider {
         inst.end = { date: addDays(date, spanDays) };
       } else {
         const s = zonedToUtc(date, baseTime!, this.tz);
+        if (untilMs !== null && s > untilMs) break;
         inst.id = `${m.id}_${new Date(s).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`;
         inst.start = { dateTime: formatInZone(s, this.tz), timeZone: m.start.timeZone ?? this.tz };
         inst.end = { dateTime: formatInZone(s + durationMs, this.tz), timeZone: m.end.timeZone ?? this.tz };

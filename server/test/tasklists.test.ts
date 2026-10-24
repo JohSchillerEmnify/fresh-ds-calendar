@@ -474,118 +474,156 @@ describe('summary', () => {
   });
 });
 
-describe('recurring task lists: a change for all weeks (scope=all)', () => {
-  const create = () => mk({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }] });
-  const weeks = async () => (await t.json('GET', '/api/items?from=2026-10-12&to=2026-11-02')).body.items
-    .filter((i: any) => i.kind === 'tasklist').map((i: any) => [i.date, i.title, i.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(',')]);
-  const week = async (date: string) => (await t.json('GET', `/api/items?from=${date}&to=2026-11-02`)).body.items[0];
-  /** The series with its first week (10-14) ticked: split off as an exception. */
-  const withTickedFirstWeek = async () => {
-    const a = await create();
-    await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
-    return a;
-  };
+describe('recurring task lists: a change for this and all following ones (scope=following)', () => {
+  const create = (extra: object = {}) => mk({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }, { title: 'Floor' }], ...extra });
+  const all = async () => (await t.json('GET', '/api/items?from=2026-10-12&to=2026-11-09')).body.items.filter((i: any) => i.kind === 'tasklist');
+  const weeks = async () => (await all()).map((i: any) => [i.date, i.title, i.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(',')]);
+  const week = async (date: string) => (await all()).find((i: any) => i.date === date);
+  const tick = async (date: string, n: number) => { const w = await week(date); await t.json('PATCH', `/api/tasklists/${w.id}/items/${w.items[n].id}`, { done: true }); };
+  const remote = async () => (await t.json('GET', '/api/__test/remote/events')).body.items;
 
-  it('adds an item to every week, unticked; a week split off before keeps its tick', async () => {
-    const a = await withTickedFirstWeek();
+  it('adds an item from the shown one on: later ones keep their ticks, earlier ones stay as they were', async () => {
+    const a = await create();
+    await tick('2026-10-14', 0);
+    await tick('2026-10-28', 1);
     const second = await week('2026-10-21');
-    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=all`, { title: 'Mirror' });
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror' });
     expect(r.status).toBe(201);
     expect(r.body.id).toBe(second.id);
     expect(r.body.items.map((i: any) => i.title)).toEqual(['Sink', 'Floor', 'Mirror']);
     expect(await weeks()).toEqual([
-      ['2026-10-14', 'Clean', 'Sink:1,Floor:0,Mirror:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0,Mirror:0'], ['2026-10-28', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+      ['2026-10-14', 'Clean', 'Sink:1,Floor:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+      ['2026-10-28', 'Clean', 'Sink:0,Floor:1,Mirror:0'], ['2026-11-04', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
     ]);
-    // one item id everywhere
-    const ids = new Set((await t.json('GET', '/api/items?from=2026-10-12&to=2026-11-02')).body.items.map((l: any) => l.items[2].id));
-    expect(ids.size).toBe(1);
-    // the plain weeks follow the series: no new exceptions (Google: do not change the instances one by one)
-    expect(await raw(second.id)).toBeUndefined();
-    expect(JSON.parse((await raw(a.seriesId)).extendedProperties.private.items).map((i: any) => i.t)).toEqual(['Sink', 'Floor', 'Mirror']);
+    // Google's split: the old series ends with the shown one, a new one starts at the next and names the first series
+    const masters = (await remote()).filter((e: any) => e.recurrence && e.status !== 'cancelled');
+    expect(masters).toHaveLength(2);
+    const old = masters.find((e: any) => e.id === a.seriesId);
+    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261021');
+    const fresh = masters.find((e: any) => e.id !== a.seriesId);
+    expect(fresh.start).toEqual({ date: '2026-10-28' });
+    expect(fresh.extendedProperties.private.series).toBe(a.seriesId);
+    // one key for every part of the list; one item id for the added item
+    const lists = await all();
+    expect(new Set(lists.map((l: any) => l.seriesKey))).toEqual(new Set([a.seriesId]));
+    expect(new Set(lists.filter((l: any) => l.items[2]).map((l: any) => l.items[2].id)).size).toBe(1);
   });
 
-  it('renames every week, the split-off one too (its ticks stay), and the series itself', async () => {
-    const a = await withTickedFirstWeek();
+  it('renames the shown one and every later one, a later ticked one too (its ticks stay)', async () => {
+    await create();
+    await tick('2026-10-28', 1);
     const second = await week('2026-10-21');
-    const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=all`, { title: 'Bathroom' });
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ id: second.id, title: 'Bathroom' });
     expect(await weeks()).toEqual([
-      ['2026-10-14', 'Bathroom', 'Sink:1,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0'], ['2026-10-28', 'Bathroom', 'Sink:0,Floor:0'],
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'Bathroom', 'Sink:0,Floor:1'], ['2026-11-04', 'Bathroom', 'Sink:0,Floor:0'],
     ]);
-    expect((await raw(a.seriesId)).summary).toBe('Bathroom');
   });
 
-  it('changes an item text in every week and keeps each week\'s tick', async () => {
-    const a = await withTickedFirstWeek();
-    const r = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=all`, { title: 'Basin' });
+  it('from the first one nothing is split: the series and every exception change, ticks stay', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const r = await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=following`, { title: 'Basin' });
     expect(r.status).toBe(200);
-    expect(r.body.items[0]).toMatchObject({ title: 'Basin', done: true });
+    expect(r.body.items[0]).toMatchObject({ title: 'Basin', done: false });
     expect(await weeks()).toEqual([
-      ['2026-10-14', 'Clean', 'Basin:1,Floor:0'], ['2026-10-21', 'Clean', 'Basin:0,Floor:0'], ['2026-10-28', 'Clean', 'Basin:0,Floor:0'],
+      ['2026-10-14', 'Clean', 'Basin:0,Floor:0'], ['2026-10-21', 'Clean', 'Basin:0,Floor:0'],
+      ['2026-10-28', 'Clean', 'Basin:1,Floor:0'], ['2026-11-04', 'Clean', 'Basin:0,Floor:0'],
     ]);
+    expect((await remote()).filter((e: any) => e.recurrence && e.status !== 'cancelled')).toHaveLength(1);
+    // the plain weeks follow the series: no new exceptions
+    expect((await raw((await week('2026-10-21')).id))).toBeUndefined();
   });
 
-  it('removes an item from every week', async () => {
-    const a = await withTickedFirstWeek();
+  it('removes an item from the shown one on', async () => {
+    const a = await create();
+    await tick('2026-10-14', 1);
     const third = await week('2026-10-28');
-    const r = await t.json('DELETE', `/api/tasklists/${third.id}/items/${a.items[1].id}?scope=all`);
+    const r = await t.json('DELETE', `/api/tasklists/${third.id}/items/${a.items[1].id}?scope=following`);
     expect(r.status).toBe(200);
     expect(r.body.id).toBe(third.id);
-    expect(await weeks()).toEqual([['2026-10-14', 'Clean', 'Sink:1'], ['2026-10-21', 'Clean', 'Sink:0'], ['2026-10-28', 'Clean', 'Sink:0']]);
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:1'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'Clean', 'Sink:0'], ['2026-11-04', 'Clean', 'Sink:0'],
+    ]);
   });
 
-  it('an item only one week has is changed only there; the series stays as it was', async () => {
+  it('a later one that was deleted stays deleted after the split', async () => {
+    await create();
+    expect((await t.req('DELETE', `/api/tasklists/${(await week('2026-11-04')).id}`)).status).toBe(204);
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'Bathroom' });
+    expect((await weeks()).map((w: any) => w.slice(0, 2))).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-10-28', 'Bathroom']]);
+  });
+
+  it('a timed weekly list splits the same way and keeps its time', async () => {
+    await create({ time: '09:00' });
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { title: 'Mirror' });
+    expect(r.body).toMatchObject({ id: second.id, time: '09:00', totalCount: 3 });
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+      ['2026-10-28', 'Clean', 'Sink:1,Floor:0,Mirror:0'], ['2026-11-04', 'Clean', 'Sink:0,Floor:0,Mirror:0'],
+    ]);
+    expect((await all()).every((l: any) => l.time === '09:00')).toBe(true);
+    const old = (await remote()).find((e: any) => e.recurrence && e.status !== 'cancelled' && !e.extendedProperties.private.series);
+    expect(old.recurrence[0]).toBe('RRULE:FREQ=WEEKLY;UNTIL=20261021T070000Z');
+  });
+
+  it('a second split names the first series too; deleting the first series removes every part', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-28')).id}?scope=following`, { title: 'C' });
+    expect((await weeks()).map((w: any) => w[1])).toEqual(['Clean', 'B', 'C', 'C']);
+    expect(new Set((await all()).map((l: any) => l.seriesKey))).toEqual(new Set([a.seriesId]));
+    expect((await t.req('DELETE', `/api/tasklists/${a.seriesId}`)).status).toBe(204);
+    expect(await weeks()).toEqual([]);
+  });
+
+  it('a later change of the old series does not bring its ended weeks back', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    await t.json('PATCH', `/api/tasklists/${a.seriesId}`, { tags: ['door'] });
+    expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'B'], ['2026-10-28', 'B'], ['2026-11-04', 'B']]);
+  });
+
+  it('an item only one list has is changed only there', async () => {
     await create();
     const second = await week('2026-10-21');
     const added = await t.json('POST', `/api/tasklists/${second.id}/items`, { title: 'Towels' });
     const towels = added.body.items[2];
-    const r = await t.json('PATCH', `/api/tasklists/${second.id}/items/${towels.id}?scope=all`, { title: 'Fresh towels' });
+    const r = await t.json('PATCH', `/api/tasklists/${second.id}/items/${towels.id}?scope=following`, { title: 'Fresh towels' });
     expect(r.status).toBe(200);
-    expect(await weeks()).toEqual([
-      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0,Fresh towels:0'], ['2026-10-28', 'Clean', 'Sink:0,Floor:0'],
-    ]);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0,Fresh towels:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0']);
   });
 
-  it('a timed weekly list changes for all weeks too', async () => {
-    const a = await mk({ title: 'Clean', date: '2026-10-14', time: '09:00', recurrence: 'weekly', items: [{ title: 'Sink' }] });
-    await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}`, { done: true });
-    const r = await t.json('POST', `/api/tasklists/${a.id}/items?scope=all`, { title: 'Mirror' });
-    expect(r.body).toMatchObject({ id: a.id, time: '09:00', doneCount: 1, totalCount: 2 });
-    expect(await weeks()).toEqual([
-      ['2026-10-14', 'Clean', 'Sink:1,Mirror:0'], ['2026-10-21', 'Clean', 'Sink:0,Mirror:0'], ['2026-10-28', 'Clean', 'Sink:0,Mirror:0'],
-    ]);
-  });
-
-  it('without scope (or scope=this) only the given week changes', async () => {
+  it('without scope (or scope=this) only the given one changes', async () => {
     await create();
     const second = await week('2026-10-21');
     await t.json('POST', `/api/tasklists/${second.id}/items?scope=this`, { title: 'Mirror' });
     await t.json('PATCH', `/api/tasklists/${second.id}`, { title: 'Bathroom' });
-    expect(await weeks()).toEqual([
-      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0,Mirror:0'], ['2026-10-28', 'Clean', 'Sink:0,Floor:0'],
-    ]);
+    expect((await weeks()).map((w: any) => w[1])).toEqual(['Clean', 'Bathroom', 'Clean', 'Clean']);
   });
 
-  it('refuses scope=all on a list that does not repeat, with other fields than the title, with done, and an unknown scope', async () => {
+  it('refuses scope=following on a list that does not repeat, with other fields than the title, with done, and an unknown scope', async () => {
     const one = await mk();
-    const r1 = await t.json('POST', `/api/tasklists/${one.id}/items?scope=all`, { title: 'X' });
+    const r1 = await t.json('POST', `/api/tasklists/${one.id}/items?scope=following`, { title: 'X' });
     expect(r1.status).toBe(400);
     expect(r1.body.error.message).toBe('This list does not repeat');
     expect(r1.body.error.details[0].field).toBe('scope');
     const a = await create();
-    expect((await t.json('PATCH', `/api/tasklists/${a.id}?scope=all`, { title: 'B', date: '2026-10-15' })).status).toBe(400);
-    expect((await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=all`, { done: true })).status).toBe(400);
-    expect((await t.json('POST', `/api/tasklists/${a.id}/items?scope=everything`, { title: 'X' })).status).toBe(400);
-    expect(await weeks()).toEqual([
-      ['2026-10-12', 'Chores', 'Vacuum:0,Laundry:1'],
-      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Clean', 'Sink:0,Floor:0'], ['2026-10-28', 'Clean', 'Sink:0,Floor:0'],
-    ]);
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}?scope=following`, { title: 'B', date: '2026-10-15' })).status).toBe(400);
+    expect((await t.json('PATCH', `/api/tasklists/${a.id}/items/${a.items[0].id}?scope=following`, { done: true })).status).toBe(400);
+    expect((await t.json('POST', `/api/tasklists/${a.id}/items?scope=all`, { title: 'X' })).status).toBe(400);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Vacuum:0,Laundry:1', 'Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:0,Floor:0']);
   });
 
   it('an unknown item answers 404 and changes nothing', async () => {
-    const a = await create();
-    expect((await t.json('DELETE', `/api/tasklists/${a.id}/items/nope?scope=all`)).status).toBe(404);
-    expect((await weeks()).length).toBe(3);
+    await create();
+    const second = await week('2026-10-21');
+    expect((await t.json('DELETE', `/api/tasklists/${second.id}/items/nope?scope=following`)).status).toBe(404);
+    expect((await remote()).filter((e: any) => e.recurrence)).toHaveLength(1);
   });
 });
