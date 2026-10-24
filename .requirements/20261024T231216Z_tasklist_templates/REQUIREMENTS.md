@@ -12,6 +12,8 @@ estimate, category; Q3 (c) KEEP the Archive's one-off "Use as template" as it is
 opens a sub page, linked from the picker's "Manage templates". UI as decided on the canvas: see To Be.
 Owner addition (2026-10-25): the Archive's one-off "Use as template" is renamed "Copy" (de "Kopieren", coldmirror its
 own short word) with unchanged behaviour, so "template" only means the saved templates (`tasks-archive.feature`).
+Owner addition (canvas comment): the Templates sub page has a "New template" button on top of the list (and in the
+empty state) that opens the same template sheet empty, titled "New template"; name required.
 
 Status: SPEC ONLY, scenarios updated to the answers; the owner looks once more before the build. Scenarios:
 `spec/features/task-lists/tasklist-templates.feature`, steps in `e2e/STEPS.md` "Task list templates".

@@ -14,7 +14,8 @@ Feature: Task list templates
   A template keeps a name, its items in their order (always unticked), the estimate and the category. It never keeps
   a date, a time, a repeat, reminders, tags, sharing or ticks: those belong to one list, not to the routine.
   Templates are managed in Settings → Task lists → Templates, a row in the Task lists card that opens a sub page (owner: "we need some way of managing those templates"):
-  see them all, rename, change the items (add, remove, reorder, retitle), estimate and category, delete with undo.
+  see them all, make a new one there ("New template" on top of the list and in the empty state, owner), rename,
+  change the items (add, remove, reorder, retitle), estimate and category, delete with undo.
   The template picker links there too. Templates belong to the person and follow them to every device; they are
   stored by the app server per person (like prefs and own themes), not in Google, so they never show as events.
   Changing or deleting a template never changes lists already made from it.
@@ -236,9 +237,39 @@ Feature: Task list templates
       When I open the templates in the settings
       Then the templates page lists "Packing, Weekly shop"
 
-    Scenario: Without templates the settings page says how to make one
+    Scenario: Without templates the settings page says how to make one and offers a new one
       When I open the templates in the settings
       Then the templates page says "No templates yet. Save a task list as a template to reuse it."
+      And the templates page offers "New template"
+
+    Scenario: Create a template in the settings
+      Given I have the template "Packing" with the items "Passport"
+      When I open the templates in the settings
+      Then the templates page offers "New template"
+      When I start a new template
+      Then the template sheet is titled "New template"
+      And the template form shows:
+        | name     |      |
+        | items    |      |
+        | estimate |      |
+      When I fill in the template form with:
+        | name     | Weekly shop       |
+        | items    | Milk; Eggs; Bread |
+        | estimate | 30                |
+        | category | Shopping          |
+      And I save the template
+      Then the templates page lists "Packing, Weekly shop"
+      And the template "Weekly shop" has the items "Milk, Eggs, Bread"
+
+    @validation
+    Scenario: A new template needs a name
+      When I open the templates in the settings
+      And I start a new template
+      And I fill in the template form with:
+        | items | Milk |
+      And I save the template
+      Then the template dialog shows the error "Give the template a name"
+      And I have no templates
 
     Scenario: Rename a template
       Given I have the template "Packing" with the items "Passport"

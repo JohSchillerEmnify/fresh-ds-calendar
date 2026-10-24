@@ -2072,6 +2072,9 @@ I open the templates in the settings
 the settings page {string} is shown
 the templates page lists {string}
 the templates page says {string}
+the templates page offers {string}
+I start a new template
+the template sheet is titled {string}
 I open the template {string}
 I fill in the template form with:
 I save the template
@@ -2124,6 +2127,10 @@ I have no templates
   "the settings page P is shown": the `settings-page` with `data-page` P is visible (`Templates` = `templates`).
 - "the templates page lists "A, B"" = `data-name` of every `template-row` in DOM order (by name); "says" = text of
   `templates-empty`.
+- "the templates page offers New template": `templates-new` (a button on top of the list, also in the empty state)
+  is visible with that text. "I start a new template" clicks it; the `template-dialog` opens empty. "the template sheet
+  is titled T" = text of `template-dialog-title` ("New template" / "Edit template"). Saving a new template waits for
+  `POST /api/templates` (201) instead of the `PUT`.
 - "I open the template T": on the templates page clicks the `template-row` T; `template-dialog` opens.
   "I fill in the template form with:" fills `template-name`, `template-items` (one per line, as the task list form;
   reordering, adding, removing and retitling are all done by the lines), `template-estimate`, `template-category`.
