@@ -52,7 +52,16 @@ export const useItemsStore = defineStore('items', () => {
   const all = computed<CalendarItem[]>(() => Object.values(byId.value));
   /** Segments per day over every cached item. Views read this (after filtering via `useDaySegments`). */
   const segmentsOf = (items: Iterable<CalendarItem>): Map<LocalDate, Segment[]> => segmentsByDate(items, useClockStore().today);
-  const byDate = computed(() => segmentsByDate(all.value, useClockStore().today));
+  /** An unchanged item (same object, same today) keeps its segments, so the views' entries for it keep their props and do not re-render. */
+  const segCache = new WeakMap<CalendarItem, { today: LocalDate | undefined; segs: Segment[] }>();
+  function cachedSegments(it: CalendarItem, today?: LocalDate): Segment[] {
+    const hit = segCache.get(it);
+    if (hit && hit.today === today) return hit.segs;
+    const segs = itemSegments(it, today);
+    segCache.set(it, { today, segs });
+    return segs;
+  }
+  const byDate = computed(() => segmentsByDate(all.value, useClockStore().today, cachedSegments));
   const get = (id: string) => byId.value[id];
   const isDeleted = (id: string) => deleted.has(id);
   /** The item without its deleted/hidden task list items (counts follow). */
@@ -86,7 +95,9 @@ export const useItemsStore = defineStore('items', () => {
     for (const it of items) {
       if (deleted.has(it.id)) continue; // stale response from before the delete
       if (pending.has(it.id)) continue; // keep optimistic state (also optimistic deletes)
-      next[it.id] = strip(it);
+      // an unchanged item keeps its object (and so its segments): a poll that changes nothing re-renders none of the entries
+      const fresh = strip(it), cur = next[it.id];
+      next[it.id] = cur && JSON.stringify(cur) === JSON.stringify(fresh) ? cur : fresh;
     }
     byId.value = next;
     ranges.value = { ...ranges.value, [key]: { from, to, ids: items.filter((i) => !deleted.has(i.id)).map((i) => i.id), syncedAt } };

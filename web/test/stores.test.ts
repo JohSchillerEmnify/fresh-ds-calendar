@@ -310,6 +310,23 @@ describe('items store', () => {
     expect(s.byDate.get('2026-10-15')).toHaveLength(1);
   });
 
+  it('a refresh that changes nothing keeps the cached items and their day segments (the views do not re-render them)', async () => {
+    const a = eventFixture('a', '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00');
+    let list: unknown[] = [a, eventFixture('b', '2026-10-15T09:00:00+02:00', '2026-10-15T10:00:00+02:00')];
+    mockFetch({ 'GET /api/items': () => resp(structuredClone(list)) });
+    const s = useItemsStore();
+    await s.setVisible('2026-10-12', '2026-10-19');
+    const before = { a: s.get('a'), b: s.get('b'), segA: s.byDate.get('2026-10-14')![0], segB: s.byDate.get('2026-10-15')![0] };
+    list = [a, { ...(list[1] as object), title: 'Changed' }];
+    await s.refreshVisible();
+    expect(s.get('a')).toBe(before.a);
+    expect(s.byDate.get('2026-10-14')![0]).toBe(before.segA);
+    expect(s.get('b')).not.toBe(before.b);
+    expect(s.get('b')!.title).toBe('Changed');
+    expect(s.byDate.get('2026-10-15')![0]).not.toBe(before.segB);
+    expect(s.byDate.get('2026-10-15')![0].item.title).toBe('Changed');
+  });
+
   it('keeps at most 6 ranges (LRU) and garbage-collects their items', async () => {
     mockFetch({ 'GET /api/items': ({ url }) => resp([eventFixture(url.searchParams.get('from')!, `${url.searchParams.get('from')}T09:00:00+02:00`, `${url.searchParams.get('from')}T10:00:00+02:00`)]) });
     const s = useItemsStore();
