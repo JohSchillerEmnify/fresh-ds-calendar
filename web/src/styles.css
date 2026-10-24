@@ -91,6 +91,13 @@ html[data-motion='off'] .m3-ripple, html[data-motion='reduced'] .m3-ripple { dis
 html[data-motion='off'] *, html[data-motion='off'] *::before, html[data-motion='off'] *::after {
   animation-duration: 0.001ms !important; animation-name: none !important; transition-duration: 0.001ms !important;
 }
+/* The season and holiday scenes at rest (feature theme-scenes, sceneRest.ts): the still picture is the Off look. */
+html[data-scenes='still'] :is([data-season], [data-life]:not([data-life='mordor'])),
+html[data-scenes='still'] :is([data-season], [data-life]:not([data-life='mordor'])) *,
+html[data-scenes='still'] :is([data-season], [data-life]:not([data-life='mordor'])) *::before,
+html[data-scenes='still'] :is([data-season], [data-life]:not([data-life='mordor'])) *::after {
+  animation: none !important;
+}
 @media (prefers-reduced-motion: reduce) {
   .m3-ripple { display: none; }
 }

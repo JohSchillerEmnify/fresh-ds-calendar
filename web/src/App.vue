@@ -26,7 +26,7 @@ import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry'
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
 import { usePrefsStore } from '@/stores/prefs';
-import { useMotivationStore } from '@/features/motivation';
+import { useMotivationStore, useSceneRest } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
 import { useCalendarStore } from '@/stores/calendar';
@@ -51,6 +51,8 @@ const motivation = useMotivationStore();
 const { position: navPosition, side: railSide } = useNavPosition();
 const labs = usePrefsStore();
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
+// the season and holiday scenes move for ten seconds after opening (and after coming back), then rest
+useSceneRest(() => settings.effectiveScene);
 // the person's language choice (also arriving from another device) switches the UI at once, without a reload
 watch(() => labs.language, (pref) => { void applyLanguage(pref); });
 watch(() => settings.settings.sounds, (v) => setSoundsEnabled(v), { immediate: true });

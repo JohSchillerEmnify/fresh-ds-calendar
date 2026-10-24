@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-24
+- The season and holiday scenes in the top bar now move for about ten seconds after you open the app (a butterfly, or at Halloween the bat or the little ghost, passes once) and then rest as a still picture, so they no longer keep the phone busy; with reduced motion they are still from the start. Mordor and the sunflower field move as before.
 - The month view is quicker with a busy month: changing and swiping months no longer re-measures every day and appointment, and a sync without changes no longer redraws the calendar.
 - On a bad or no connection the app now opens at once with what it showed last on this device (the days you looked at in the last four weeks, your task lists, settings and language), with a small "Last updated 08:12" note; fresh data replaces it as soon as the server answers. Changes still need a connection. Signing out removes it from the device.
 

@@ -306,6 +306,40 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   }
 });
 
+/** How many CSS animations inside the top bar scene are running (STEPS.md scene notes). */
+async function runningSceneAnimations(world: World, within = '[data-testid="top-bar-scene"]'): Promise<number> {
+  // the scene parts come in a lazy chunk: count only once the scene has drawn its parts, never on an empty bar
+  await expect(world.page.locator(within).first()).toBeAttached();
+  await expect(world.page.getByTestId('top-bar-scene').locator('[data-part]').first()).toBeAttached();
+  return world.page.evaluate((sel) => {
+    const scene = document.querySelector(sel);
+    if (!scene) throw new Error(`no ${sel}`);
+    return document.getAnimations().filter((a) => {
+      const target = (a.effect as KeyframeEffect | null)?.target;
+      return a.playState === 'running' && !!target && scene.contains(target);
+    }).length;
+  }, within);
+}
+
+Then('the top bar scene is moving', async function (this: World) {
+  await expect.poll(() => runningSceneAnimations(this), { message: 'running scene animations' }).toBeGreaterThan(0);
+});
+
+Then('the top bar scene is still', async function (this: World) {
+  await expect(this.page.locator('html')).toHaveAttribute('data-scenes', 'still');
+  await expect.poll(() => runningSceneAnimations(this), { message: 'running scene animations' }).toBe(0);
+  await expect(this.page.getByTestId('top-bar-scene').locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]')).toHaveCount(0);
+});
+
+Then('the scene\'s cat is moving', async function (this: World) {
+  const cat = '[data-testid="top-bar-scene"] [data-part="cat"]';
+  await expect.poll(() => runningSceneAnimations(this, cat), { message: 'running cat animations' }).toBeGreaterThan(0);
+});
+
+Then('a visitor passes through the top bar scene', async function (this: World) {
+  await expect(this.page.getByTestId('top-bar-scene').locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]').first()).toBeVisible();
+});
+
 Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {
   await expect(this.page.locator('[data-testid="theme-section"] > h2')).toHaveText([a, b, c, d]);
 });

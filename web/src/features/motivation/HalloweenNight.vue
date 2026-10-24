@@ -2,15 +2,17 @@
 /**
  * The Halloween part of the living scene layer (feature theme-scenes): a moon behind thin
  * clouds, a dark rolling hill, bare gnarled trees, jack-o'-lanterns with flickering candles, the pumpkin the cat sits
- * next to (`catLeft`, percent, is where `SceneLife` puts the cat) and, every 8–12 min for ~8 s, a small friendly
- * ghost floating past (the scene visitor scheduling of `useSceneVisits`; none at Off). Bats and the cat come from
- * `SceneLife`.
+ * next to (`catLeft`, percent, is where `SceneLife` puts the cat) and a small friendly ghost floating past for ~8 s
+ * when it is the ghost's turn to be the one visitor of a moving window (`halloweenVisitor`, `useSceneVisits`; the
+ * other half of the time the bat from `SceneLife` comes). The cat comes from `SceneLife`.
  */
-import { GHOST_RHYTHM } from './butterflyVisits';
+import { useClockStore } from '@/stores/clock';
+import { forcedButterfly, GHOST_RHYTHM } from './butterflyVisits';
 import BareTree from './BareTree.vue';
 import JackOLantern from './JackOLantern.vue';
 import SceneGhost from './SceneGhost.vue';
 import SceneMoon from './SceneMoon.vue';
+import { halloweenVisitor, sceneStill } from './sceneRest';
 import { useSceneVisits } from './useSceneVisits';
 
 defineProps<{ catLeft: number }>();
@@ -22,7 +24,12 @@ const LANTERNS = [
 ] as const;
 
 /** The ghost currently floating by, or null between visits. */
-const ghost = useSceneVisits(GHOST_RHYTHM, (level) => ({ drift: level === 'full' ? ('float' as const) : ('fade' as const), x: Math.round(18 + Math.random() * 50) }));
+const clock = useClockStore();
+const ghost = useSceneVisits(
+  GHOST_RHYTHM,
+  (level) => (halloweenVisitor(forcedButterfly(clock.config.testMode)) === 'ghost' ? { drift: level === 'full' ? ('float' as const) : ('fade' as const), x: Math.round(18 + Math.random() * 50) } : null),
+  { rests: () => sceneStill.value },
+);
 </script>
 
 <template>

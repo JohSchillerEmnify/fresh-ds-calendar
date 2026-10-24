@@ -77,7 +77,8 @@ describe('ThemeLivePreview', () => {
     expect(toggle.attributes('aria-expanded')).toBe('true');
     await toggle.trigger('click');
     expect(w.get('[data-testid=theme-live-preview]').attributes('data-collapsed')).toBe('true');
-    expect(w.find('.body').exists()).toBe(false);
+    // the preview's body (the passing bat in the top bar scene also has a `.body` path)
+    expect(w.find('.scaled > .body').exists()).toBe(false);
     expect(w.find('[data-testid=top-bar]').exists()).toBe(true);
     expect(localStorage.getItem(COLLAPSED_KEY)).toBe('1');
     // a new mount (another visit, same device) starts collapsed

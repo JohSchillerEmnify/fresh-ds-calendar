@@ -231,6 +231,26 @@ Then('the long tasks took at most {int} ms together', async function (this: Worl
   expect((await longTasks(this)).reduce((a, b) => a + b, 0), 'long tasks together (ms)').toBeLessThanOrEqual(ms);
 });
 
+/** Processor time (ms) the renderer and GPU processes use over `seconds` of real time (STEPS.md "@perf" notes). */
+Then('the browser uses at most {int} ms of processor time in {int} seconds', async function (this: World, ms: number, seconds: number) {
+  const browser = this.page.context().browser();
+  if (!browser) throw new Error('no browser');
+  const cdp = await browser.newBrowserCDPSession();
+  const cpuSeconds = async () => (await cdp.send('SystemInfo.getProcessInfo')).processInfo
+    .filter((p) => p.type === 'renderer' || p.type === 'GPU').reduce((sum, p) => sum + p.cpuTime, 0);
+  let used: number;
+  try {
+    await this.page.waitForTimeout(1_000);
+    const before = await cpuSeconds();
+    await this.page.waitForTimeout(seconds * 1_000);
+    used = Math.round((await cpuSeconds() - before) * 1_000);
+  } finally {
+    await cdp.detach();
+  }
+  this.testInfo.annotations.push({ type: 'processor time', description: `${used} ms in ${seconds} s` });
+  expect(used, `processor time in ${seconds} s (ms)`).toBeLessThanOrEqual(ms);
+});
+
 // --- Lighthouse ------------------------------------------------------------------------------------------------
 
 /** One Lighthouse run (mobile preset, simulated throttling) in a fresh browser; the performance score x 100. */

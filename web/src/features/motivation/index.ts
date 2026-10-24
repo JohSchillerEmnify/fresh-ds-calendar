@@ -10,4 +10,5 @@ export { default as LeadingWidgets } from './LeadingWidgets.vue';
 export { scenes } from './scenes';
 export { useMotivationStore, diffMotivation, checkInMessage } from './store';
 export { onceFlag } from './session';
+export { useSceneRest } from './sceneRest';
 export type * from './types';
