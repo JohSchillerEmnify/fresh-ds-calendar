@@ -216,7 +216,8 @@ function remove() {
         <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">{{ t('tasks.dialog.save') }}</Button>
       </div>
     </form>
-    <RepeatScopeDialog :recurrence="scope.asking.value" @answer="scope.answer" />
+    <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
+    <Teleport to="body"><RepeatScopeDialog :recurrence="scope.asking.value" @answer="scope.answer" /></Teleport>
   </AdaptiveSheet>
 </template>
 

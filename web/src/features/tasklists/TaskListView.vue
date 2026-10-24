@@ -316,7 +316,8 @@ defineExpose({ root, busy });
       </div>
     </Transition>
     <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :title="cat.title" :level="cat.level" @done="cat = null" /></Teleport>
-    <RepeatScopeDialog :recurrence="scope.asking.value" @answer="scope.answer" />
+    <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
+    <Teleport to="body"><RepeatScopeDialog :recurrence="scope.asking.value" @answer="scope.answer" /></Teleport>
   </section>
 </template>
 
