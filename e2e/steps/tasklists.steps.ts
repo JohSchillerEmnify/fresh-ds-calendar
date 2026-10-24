@@ -253,7 +253,8 @@ When('I add the item {string}', async function (this: World, title: string) {
   const input = this.expanded.getByTestId('tasklist-new-item');
   await input.fill(title);
   await input.press('Enter');
-  if (title.trim()) await expect(this.expandedItem(title.trim())).toHaveCount(1);
+  // a repeating list asks "This week / All weeks" first (feature tasklist-repeating): the item shows once that is answered
+  if (title.trim()) await expect(this.expandedItem(title.trim()).or(this.page.getByTestId('repeat-scope-dialog')).first()).toBeVisible();
 });
 
 async function editItemTitle(world: World, from: string, to: string, key: 'Enter' | 'Escape') {
@@ -276,7 +277,9 @@ When('I rename the item {string} to {string} but press Escape', async function (
 When('I delete the item {string}', async function (this: World, title: string) {
   const item = await itemById(this, title);
   await item.getByTestId('tasklist-item-delete').click();
-  await expect(item).toHaveCount(0);
+  // a repeating list asks "This week / All weeks" first (feature tasklist-repeating)
+  const asked = this.page.getByTestId('repeat-scope-dialog');
+  await expect.poll(async () => (await item.count()) === 0 || (await asked.isVisible())).toBe(true);
 });
 
 When('I drag the item {string} above the item {string}', async function (this: World, title: string, above: string) {
