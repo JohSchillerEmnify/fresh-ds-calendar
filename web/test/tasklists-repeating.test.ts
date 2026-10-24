@@ -97,6 +97,18 @@ describe('the This task list / This and all following question', () => {
     expect(asked()).not.toBeNull();
     await choose('this');
     expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items']);
+    expect(m.calls.find((c) => c.method === 'POST')!.body).toEqual({ title: 'Mirror' });
+  });
+
+  it('adding for the following ones names the new item\'s id (a repeated request adds it once)', async () => {
+    const m = await open(week(), { 'POST /api/tasklists/W_20261019/items': answer(week()) });
+    q(tid('tasklist-add'))!.click();
+    await nextTick();
+    await enter(tid('tasklist-new-item'), 'Mirror');
+    await choose('following');
+    const body = m.calls.find((c) => c.method === 'POST')!.body;
+    expect(body.title).toBe('Mirror');
+    expect(body.id).toMatch(/^[A-Za-z0-9_-]{8,21}$/);
   });
 
   it('cancel sends nothing and puts an added item\'s text back into the add field', async () => {

@@ -396,7 +396,7 @@ with `400 VALIDATION_ERROR` ("Birthdays are read-only"). A birthday's colour is 
 | `GET` | `/api/tasklists/:id` | – | `200` `TaskList` |
 | `PATCH` | `/api/tasklists/:id` | `UpdateTaskListInput` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id` | – | `204` |
-| `POST` | `/api/tasklists/:id/items` | `{ title: string; done?: boolean; index?: number }` | `201` `TaskList` |
+| `POST` | `/api/tasklists/:id/items` | `{ id?: string; title: string; done?: boolean; index?: number }` | `201` `TaskList` |
 | `PATCH` | `/api/tasklists/:id/items/:itemId` | `{ title?: string; done?: boolean }` | `200` `TaskList` |
 | `DELETE` | `/api/tasklists/:id/items/:itemId` | – | `200` `TaskList` |
 | `PUT` | `/api/tasklists/:id/items/order` | `{ itemIds: string[] }` | `200` `TaskList` |
@@ -445,17 +445,19 @@ each by read-modify-write (ticks kept); (2) in the part holding the occurrence �
 whole part changes the same way and nothing is split; otherwise (3) the occurrence gets the change (an exception of the old
 series from then on); (4) a new series starts at the earliest later occurrence of the part by rule date (the next live
 one within 62 days — 400 when the part has no end — or any later exception, also a moved or a deleted one), with the
-part's data plus the change, the part's recurrence lines (so it keeps the part's end) and `series`; a series an earlier,
+part's data plus the change, the part's RRULE and EXDATE lines (so it keeps the part's end; an RDATE stays with the old part) and `series`; a series an earlier,
 unfinished try made at that date is used again; (5) every later exception of the part (read without `singleEvents`, with
 `showDeleted` and without a property filter, since Google guarantees only `id`, `recurringEventId` and `originalStartTime`
 on a cancelled exception) is carried over to the new series' occurrence of the same rule date — its own data (ticks, own
-times, reminders) plus the change, a deleted one deletes it — and the old exception is deleted; one that cannot be carried
+times, reminders) plus the change, a deleted one deletes the new series' occurrence while that is still plain (an exception
+there is one carried before and stays) — and the old exception is deleted; one that cannot be carried
 answers 502 before anything is ended; (6) last, when no later live exception is left in the part, its RRULE line gets
 `UNTIL` = the occurrence's start (date for all-day, UTC for timed; any UNTIL/COUNT replaced, other lines such as EXDATE
 kept), written with If-Match (re-read and retried up to 3 times, else 412). A failure midway can leave duplicates, never a
 lost list; repeating the request finishes it. A part whose rule has `COUNT` is not split → 400 (field `scope`). A part
 without an end and no later occurrence within 400 days → 502. A later write of a series keeps its rule when the rhythm
-is the same (its UNTIL stays). An added item gets one id, unticked; a text change / removal reaches the lists that hold
+is the same (its UNTIL stays). An added item gets one id, unticked; `POST .../items` may name it (`id`, 8-21 of `A-Za-z0-9_-`; the web app does for
+"following"), and a list that already holds that id stays as it is, so a repeated request adds it once; a text change / removal reaches the lists that hold
 that item id. The answer is the given list (same `id`) after the change. The door board groups by `seriesKey`; deleting
 a series also deletes its later parts (same `series`, later start). `scope=following` on a list that does not repeat →
 400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400 (field

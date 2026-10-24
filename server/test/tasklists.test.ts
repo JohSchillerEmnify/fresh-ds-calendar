@@ -1,5 +1,7 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freeze, makeApp, type TestApp } from './helpers.js';
+import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
+import { PreconditionFailedError } from '../src/providers/CalendarProvider.js';
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -666,6 +668,54 @@ describe('recurring task lists: a change for this and all following ones (scope=
     expect(r.status).toBe(200);
     expect((await remote()).filter((e: any) => e.recurrence && e.status !== 'cancelled')).toHaveLength(2);
     expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-10-28', 'Bathroom'], ['2026-11-04', 'Bathroom']]);
+  });
+
+  it('a retry after an unfinished split keeps the ticks of a week it already carried over', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    expect(await weeks()).toEqual([
+      ['2026-10-14', 'Clean', 'Sink:0,Floor:0'], ['2026-10-21', 'Bathroom', 'Sink:0,Floor:0'],
+      ['2026-10-28', 'Bathroom', 'Sink:1,Floor:0'], ['2026-11-04', 'Bathroom', 'Sink:0,Floor:0'],
+    ]);
+  });
+
+  it('a second pass inside one request (the old series changed meanwhile: 412) keeps the carried ticks', async () => {
+    await create();
+    await tick('2026-10-28', 0);
+    // the mock's write path (looked up on each call): the first write that ends a series answers 412 once
+    type Write = (cal: string, id: string, patch: { recurrence?: string[] }, o?: unknown) => unknown;
+    const proto = MockGoogleProvider.prototype as unknown as { doPatch: Write };
+    const orig = proto.doPatch;
+    let failed = false;
+    const spy = vi.spyOn(proto, 'doPatch').mockImplementation(function (this: unknown, cal, id, patch, o) {
+      if (!failed && patch.recurrence?.some((l) => l.includes('UNTIL='))) { failed = true; throw new PreconditionFailedError('Precondition Failed'); }
+      return orig.call(this, cal, id, patch, o);
+    });
+    try {
+      expect((await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    } finally { spy.mockRestore(); }
+    expect(failed).toBe(true);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:1,Floor:0', 'Sink:0,Floor:0']);
+  });
+
+  it('an added item with an id from the client is not added twice when the request is repeated', async () => {
+    await create();
+    const second = await week('2026-10-21');
+    for (let i = 0; i < 2; i++) expect((await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { id: 'mirror01', title: 'Mirror' })).status).toBe(201);
+    expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0,Mirror:0', 'Sink:0,Floor:0,Mirror:0', 'Sink:0,Floor:0,Mirror:0']);
+    expect((await weeks()).length).toBe(4);
+  });
+
+  it('the new series gets only the RRULE and EXDATE lines (an RDATE before it would add a stray date)', async () => {
+    const a = await create();
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY', 'RDATE;VALUE=DATE:20261016', 'EXDATE;VALUE=DATE:20270106'] });
+    await t.json('PATCH', `/api/tasklists/${(await week('2026-10-21')).id}?scope=following`, { title: 'B' });
+    const fresh = (await remote()).find((e: any) => e.recurrence && e.id !== a.seriesId && e.status !== 'cancelled');
+    expect(fresh.recurrence).toEqual(['RRULE:FREQ=WEEKLY', 'EXDATE;VALUE=DATE:20270106']);
   });
 
   it('ending the old series keeps its other recurrence lines and rewrites only the RRULE', async () => {

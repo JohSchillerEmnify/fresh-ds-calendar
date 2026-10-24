@@ -194,3 +194,15 @@ text, removing an item — asks "This week / All weeks", the way Google does for
   occurrences out; the app never writes COUNT (only Google Calendar could). W7 mock COUNT/EXDATE/monthly skipping: no test
   relies on them (the COUNT case is refused before any expansion), so the mock was not extended.
 - Retried "add" creates a second item (the client sends no item id); within one request the item id is one for all parts.
+
+## Re-review (coordinator) — N1–N4
+
+- N1 a deleted later week only deletes the new series' occurrence while that is still plain; an exception there (a week
+  carried before, whose old copy is then cancelled) stays. Tests: retry after an unfinished split; 412 on ending the old
+  series inside one request (second pass).
+- N2 `POST .../items` takes an optional `id`; the web app names it for "following" adds, and a list that has it stays as
+  it is. A user typing the item again after a failure is a new item (new id) — not detectable.
+- N3 one unfiltered read of the tasks calendar per pass (parts + exceptions from it); the new series' exceptions are kept
+  in a map updated after each carry. `events.instances` was not used (it expands every plain occurrence of an open-ended
+  series).
+- N4 the new series gets only RRULE and EXDATE lines.

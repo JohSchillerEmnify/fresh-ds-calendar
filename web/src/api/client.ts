@@ -302,7 +302,7 @@ export class ApiClient {
   deleteTaskList(id: string, o?: RequestOptions) {
     return this.request<void>('DELETE', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  addTaskItem(id: string, item: { title: string; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
+  addTaskItem(id: string, item: { id?: string; title: string; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('POST', scoped(`/api/tasklists/${enc(id)}/items`, scope), item, o);
   }
   updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions, scope?: ChangeScope) {

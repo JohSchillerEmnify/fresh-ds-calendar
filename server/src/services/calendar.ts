@@ -588,27 +588,31 @@ export class CalendarService {
   }
 
   /**
-   * The exceptions of a series, cancelled ones too. Read without the property filter: Google only guarantees `id`,
+   * The series, exceptions and other events of a calendar in one read, cancelled exceptions too, for finding a series'
+   * exceptions. Read without the property filter: Google only guarantees `id`,
    * `recurringEventId` and `originalStartTime` on a cancelled exception (events resource, `status`), so a filter on our
    * private properties would miss the deleted weeks. Without singleEvents Google lists each series once and its
    * exceptions as events of their own.
    */
-  private async exceptionsOf(master: GoogleEvent): Promise<GoogleEvent[]> {
-    const r = await this.provider.listEvents({ calendarId: master.calendarId, singleEvents: false, showDeleted: true });
-    return r.items.filter((e) => e.recurringEventId === master.id);
+  private async seriesEvents(calendarId: string): Promise<GoogleEvent[]> {
+    return (await this.provider.listEvents({ calendarId, singleEvents: false, showDeleted: true })).items;
   }
 
-  /** Every live series ("part") of a repeating list: the first one (`root`) and those split from it (private `series`). */
-  private async partsOf(root: string, calendarId: string): Promise<GoogleEvent[]> {
-    const r = await this.provider.listEvents({ calendarId, privateExtendedProperty: ['kind=tasklist'], singleEvents: false });
-    return r.items.filter((e) => e.recurrence?.length && !e.recurringEventId && e.status !== 'cancelled'
+  /** The exceptions of `master` in one read of {@link CalendarService.seriesEvents}. */
+  private exceptionsIn(all: GoogleEvent[], master: GoogleEvent): GoogleEvent[] {
+    return all.filter((e) => e.recurringEventId === master.id);
+  }
+
+  /** Every live series ("part") of a repeating list in one read: the first one (`root`) and those split from it (private `series`). */
+  private partsIn(all: GoogleEvent[], root: string): GoogleEvent[] {
+    return all.filter((e) => e.recurrence?.length && !e.recurringEventId && e.status !== 'cancelled'
       && (e.id === root || e.extendedProperties?.private?.series === root));
   }
 
   /** `change` for a whole series: the series itself (which its plain occurrences follow) and each live exception (ticks kept). */
-  private async forWhole(master: GoogleEvent, change: (d: TaskListData) => TaskListData): Promise<void> {
+  private async forWhole(master: GoogleEvent, change: (d: TaskListData) => TaskListData, exceptions: GoogleEvent[]): Promise<void> {
     await this.modify(master.id, change);
-    for (const e of await this.exceptionsOf(master)) if (e.status !== 'cancelled') await this.modify(e.id, change);
+    for (const e of exceptions) if (e.status !== 'cancelled') await this.modify(e.id, change);
   }
 
   /** The bound a series' rule sets (RFC 5545 `UNTIL`, inclusive): the local date of its last possible occurrence; null = none. */
@@ -636,12 +640,13 @@ export class CalendarService {
     if (/[:;]COUNT=/.test(ruleLine(master))) throw validation('This list repeats a set number of times; change it in Google Calendar', 'scope');
     const root = master.extendedProperties?.private?.series ?? master.id;
     const shown = this.ruleStart(cur);
-    const parts = await this.partsOf(root, master.calendarId);
+    const all = await this.seriesEvents(master.calendarId);
+    const parts = this.partsIn(all, root);
     // every later part of the list gets the change as a whole
-    for (const part of parts) if (part.id !== master.id && this.ruleStart(part).date > shown.date) await this.forWhole(part, change);
+    for (const part of parts) if (part.id !== master.id && this.ruleStart(part).date > shown.date) await this.forWhole(part, change, this.exceptionsIn(all, part));
     if (shown.date <= this.ruleStart(master).date) {
       // the part's first occurrence: there is nothing earlier in it to keep
-      await this.forWhole(master, change);
+      await this.forWhole(master, change, this.exceptionsIn(all, master));
       return this.getTaskList(id);
     }
     // the shown occurrence: an exception of the old series from now on
@@ -675,7 +680,9 @@ export class CalendarService {
     const inPart = (e: GoogleEvent) => { const d = this.ruleStart(e).date; return d > shown.date && (bound === null || d <= bound); };
     let fresh: GoogleEvent | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
-      const later = (await this.exceptionsOf(master)).filter(inPart);
+      // one read per pass: the old series' later exceptions and what the new series has at each date
+      const all = await this.seriesEvents(master.calendarId);
+      const later = this.exceptionsIn(all, master).filter(inPart);
       if (!fresh) {
         const next = (await this.nextOccurrence(master, shown.date, 62)) ?? (bound === null ? await this.nextOccurrence(master, shown.date, 400) : null);
         const starts = [...(next ? [this.ruleStart(next).date] : []), ...later.map((e) => this.ruleStart(e).date)].sort();
@@ -686,10 +693,12 @@ export class CalendarService {
         }
         fresh = parts.find((p) => p.id !== master.id && this.ruleStart(p).date === starts[0]) ?? await this.newPart(master, starts[0]!, root, change);
       }
-      for (const e of later) await this.carry(e, fresh, change);
+      const target = fresh;
+      const own = new Map(this.exceptionsIn(all, target).map((x) => [this.ruleStart(x).date, x] as const));
+      for (const e of later) await this.carry(e, target, change, own);
       // anything that came in meanwhile is carried first; the old series ends only when nothing later is left in it
       const cur = await this.locateKind(master.id, true);
-      if ((await this.exceptionsOf(master)).some((e) => e.status !== 'cancelled' && inPart(e))) continue;
+      if (this.exceptionsIn(await this.seriesEvents(master.calendarId), master).some((e) => e.status !== 'cancelled' && inPart(e))) continue;
       try {
         await this.provider.patchEvent(cur.calendarId, cur.id, { recurrence: withUntil(cur.recurrence ?? [], untilValue(shown)) }, { ifMatch: cur.etag });
         return;
@@ -700,37 +709,46 @@ export class CalendarService {
     throw preconditionFailed('This task list was changed elsewhere. Reload it and try again.');
   }
 
-  /** A new series ("part") of the list from `start` on: the old series' data plus `change`, its recurrence lines, `series` = root. */
+  /** A new series ("part") of the list from `start` on: the old series' data plus `change`, its RRULE and EXDATE lines, `series` = root. */
   private async newPart(master: GoogleEvent, start: string, root: string, change: (d: TaskListData) => TaskListData): Promise<GoogleEvent> {
     const d = change({ ...decodeTaskList(master, this.tz), date: start, completedOn: null });
     this.checkTaskData(d, d.categoryId);
     const g = encodeTaskList(d, this.tz, this.colorFor(d));
-    g.recurrence = [...(master.recurrence ?? [])];
+    // the rule and its exclusions; an RDATE (an extra date) belongs to the old series only
+    g.recurrence = (master.recurrence ?? []).filter((l) => l.startsWith('RRULE:') || l.startsWith('EXDATE'));
     g.extendedProperties!.private!.series = root;
     if (master.reminders) g.reminders = master.reminders;
     return this.provider.insertEvent(master.calendarId, g);
   }
 
   /**
-   * Carries one later exception of the old series over to `fresh`'s occurrence of the same rule date: a deleted one deletes
-   * it, a live one gives it its own data (ticks, times, reminders) plus `change` and is then deleted. An occurrence that
-   * cannot be found stops the split before the old series is ended (nothing is lost).
+   * Carries one later exception of the old series over to `fresh`'s occurrence of the same rule date. `own` holds the new
+   * series' exceptions by rule date (kept up to date here). A deleted one deletes the new series' occurrence only while that
+   * is still plain: an exception there is a week carried over before (the old one is deleted after carrying) and stays. A
+   * live one gives the occurrence its own data (ticks, times, reminders) plus `change` and is then deleted. An occurrence
+   * that cannot be found stops the split before the old series is ended (nothing is lost).
    */
-  private async carry(e: GoogleEvent, fresh: GoogleEvent, change: (d: TaskListData) => TaskListData): Promise<void> {
+  private async carry(e: GoogleEvent, fresh: GoogleEvent, change: (d: TaskListData) => TaskListData, own: Map<string, GoogleEvent>): Promise<void> {
     const day = this.ruleStart(e).date;
-    // an earlier try may have carried (and moved) it already: look among the new series' exceptions first
-    const inst = (await this.exceptionsOf(fresh)).find((x) => this.ruleStart(x).date === day && x.status !== 'cancelled') ?? await this.occurrenceOn(fresh, day);
+    const had = own.get(day);
     if (e.status === 'cancelled') {
-      if (inst) await this.provider.deleteEvent(fresh.calendarId, inst.id);
+      if (had) return;
+      const plain = await this.occurrenceOn(fresh, day);
+      if (plain) {
+        await this.provider.deleteEvent(fresh.calendarId, plain.id);
+        own.set(day, { ...plain, status: 'cancelled' });
+      }
       return;
     }
+    // an earlier pass may have carried (and moved) it already: its exception in the new series is the one to write
+    const inst = had ? (had.status === 'cancelled' ? null : had) : await this.occurrenceOn(fresh, day);
     if (!inst) throw new ApiException('PROVIDER_ERROR', 502, 'A later task list could not be carried over; nothing was ended');
-    const own = decodeTaskList(e, this.tz);
-    const dd = change(own);
-    dd.completedOn = nextCompletedOn(own, dd, this.today());
+    const data = decodeTaskList(e, this.tz);
+    const dd = change(data);
+    dd.completedOn = nextCompletedOn(data, dd, this.today());
     const patch = encodeTaskListPatch(dd, this.tz, this.colorFor(dd), inst);
     if (e.reminders) patch.reminders = e.reminders;
-    await this.provider.patchEvent(fresh.calendarId, inst.id, patch, { ifMatch: inst.etag });
+    own.set(day, await this.provider.patchEvent(fresh.calendarId, inst.id, patch, { ifMatch: inst.etag }));
     try {
       await this.provider.deleteEvent(e.calendarId, e.id);
     } catch (err) {
@@ -783,10 +801,11 @@ export class CalendarService {
     }
   }
 
-  async addItem(id: string, input: { title: string; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
+  /** `input.id` (optional, from the client) makes a repeated add idempotent: a list that holds that id already stays as it is. */
+  async addItem(id: string, input: { id?: string; title: string; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
     if (scope === 'following') {
       // one id in every list, unticked; a list that has it already (a repeated write) is left as it is
-      const item: TaskItem = { id: nanoid(), title: input.title, done: false };
+      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: false };
       return this.forFollowing(id, (d) => {
         if (d.items.some((i) => i.id === item.id)) return d;
         const items = [...d.items];
@@ -795,8 +814,9 @@ export class CalendarService {
       });
     }
     return this.modify(id, (d) => {
+      if (input.id && d.items.some((i) => i.id === input.id)) return d;
       const items = [...d.items];
-      const item: TaskItem = { id: nanoid(), title: input.title, done: !!input.done };
+      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: !!input.done };
       const at = input.index === undefined ? items.length : Math.min(input.index, items.length);
       items.splice(at, 0, item);
       return { ...d, items };

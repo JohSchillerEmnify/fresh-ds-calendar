@@ -144,14 +144,21 @@ export function patchItem(listId: string, itemId: string, patch: { title?: strin
   enqueue(listId, op);
 }
 
-/** Add an item at the end; `scope` `following` adds it to this and all later occurrences of a repeating list. */
+/** A short random item id in the server's pattern (8-21 of `A-Za-z0-9_-`); no `crypto.randomUUID` (insecure LAN origins). */
+const newItemId = (): string => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * Add an item at the end; `scope` `following` adds it to this and all later occurrences of a repeating list. Such an add
+ * names the item's id, so a repeated request does not add it twice in the lists that have it already.
+ */
 export function addItem(listId: string, title: string, scope?: ChangeScope): void {
   const tmp = `tmp-${++tmpSeq}`;
   const following = sent(scope);
+  const id = following ? newItemId() : undefined;
   const op: Op = {
     inflight: false,
     apply: (tl) => recount({ ...tl, items: [...tl.items, { id: tmp, title, done: false }] }),
-    call: () => api.addTaskItem(listId, { title }, undefined, following),
+    call: () => api.addTaskItem(listId, id ? { id, title } : { title }, undefined, following),
     done: (fresh, q, before) => {
       if (following) followingDone();
       const known = new Set(before.items.map((i) => i.id));
