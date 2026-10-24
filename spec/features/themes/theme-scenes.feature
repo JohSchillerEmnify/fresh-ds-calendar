@@ -80,6 +80,18 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     When 11 seconds pass
     Then the top bar scene is still
 
+  Scenario Outline: The <scene> scene is not a season scene and keeps moving
+    Given the scene is "<scene>"
+    And the time is 2026-10-31 18:00 and the clock is running
+    When I open the week view for 2026-10-31
+    And 11 seconds pass
+    Then the top bar scene is moving
+
+    Examples:
+      | scene           |
+      | Mordor          |
+      | Sunflower field |
+
   @perf
   Scenario: A still scene leaves the processor free
     Measured 2026-10-24, week view on a phone, Halloween, 3 s idle after the ten seconds, processor time of the page and
@@ -89,7 +101,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     And the time is 2026-10-31 18:00 and the clock is running
     When I open the week view for 2026-10-31
     And 11 seconds pass
-    Then the browser uses at most 400 ms of processor time in 3 seconds
+    Then the browser uses at most 250 ms of processor time in 3 seconds
 
   Scenario: A visitor passes once while the scene moves
     Given the seasons and holidays follow the calendar

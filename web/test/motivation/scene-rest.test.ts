@@ -112,6 +112,41 @@ describe('seasonal scenes rest after ten seconds', () => {
     enableTimerCounting(false);
   });
 
+  it('at Reduced no timer runs, not even after a hidden/visible round trip', async () => {
+    enableTimerCounting();
+    setAnimationSetting('reduced');
+    const before = window.__appTimers ?? 0;
+    const w = mount(Shell);
+    expect(html()).toBe('still');
+    expect(window.__appTimers).toBe(before);
+    setHidden(true);
+    setHidden(false);
+    await nextTick();
+    expect(html()).toBe('still');
+    expect(window.__appTimers).toBe(before);
+    // back to Full: the scene plays its ten seconds
+    setAnimationSetting('full');
+    await nextTick();
+    expect(html()).toBe('moving');
+    expect(window.__appTimers).toBe(before + 1);
+    w.unmount();
+    expect(window.__appTimers).toBe(before);
+    enableTimerCounting(false);
+  });
+
+  it('starting hidden, or a scene change while hidden, does not wake the scene', async () => {
+    setHidden(true);
+    const w = mount(Shell);
+    expect(html()).toBe('still');
+    scene.value = 'spring';
+    await nextTick();
+    expect(html()).toBe('still');
+    setHidden(false);
+    await nextTick();
+    expect(html()).toBe('moving');
+    w.unmount();
+  });
+
   it('a still Halloween scene has no visitor and no visitor timers; the visit ends when the scene comes to rest', async () => {
     enableTimerCounting();
     setActivePinia(createPinia());

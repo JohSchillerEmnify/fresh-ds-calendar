@@ -308,6 +308,8 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
 
 /** How many CSS animations inside the top bar scene are running (STEPS.md scene notes). */
 async function runningSceneAnimations(world: World): Promise<number> {
+  // the scene parts come in a lazy chunk: count only once the scene has drawn its parts, never on an empty bar
+  await expect(world.page.getByTestId('top-bar-scene').locator('[data-part]').first()).toBeAttached();
   return world.page.evaluate(() => {
     const scene = document.querySelector('[data-testid="top-bar-scene"]');
     if (!scene) throw new Error('no top bar scene');

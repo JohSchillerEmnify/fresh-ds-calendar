@@ -13,7 +13,7 @@ import { motionLevel } from '@/motion/level';
 /** How long a seasonal scene moves after the app opens or comes back (ms). */
 export const SCENE_AWAKE_MS = 10_000;
 
-/** Within the moving window. True until a shell runs the clock, so a scene on its own (tests, Motion lab) moves as before. */
+/** Within the moving window. True until the shell runs the clock, so a scene mounted without it (unit tests) moves as before. */
 const awake = ref(true);
 
 /** Whether the seasonal scenes rest as a still picture now (read-only). */
@@ -31,8 +31,9 @@ export function halloweenVisitor(forced: boolean): 'bat' | 'ghost' {
 }
 
 /**
- * Runs the moving window in the shell: wakes now, when the app becomes visible again and when `scene` changes; rests
- * while the app is hidden. One timer at most, none once the scene is still.
+ * Runs the moving window in the shell: opens it now, when the app becomes visible again, when `scene` changes and when
+ * the animation level becomes Full; rests while the app is hidden and below Full. One timer at most, and only at Full
+ * while visible; none once the scene is still.
  *
  * @param scene - The effective top bar scene; a change plays the new scene's ten seconds.
  */
@@ -53,10 +54,14 @@ export function useSceneRest(scene: () => unknown): void {
     timer = appTimeout(rest, SCENE_AWAKE_MS);
   };
 
-  wake();
+  // a hidden app or a level below Full never starts the window (and so never a timer)
+  const open = () => (document.hidden || motionLevel.value !== 'full' ? rest() : wake());
+
+  open();
   // a phone app "opens" again when it comes back from the background
-  useListener(document, 'visibilitychange', () => (document.hidden ? rest() : wake()));
-  watch(scene, wake);
+  useListener(document, 'visibilitychange', open);
+  watch(scene, open);
+  watch(motionLevel, open);
   watch(sceneStill, (still) => (document.documentElement.dataset.scenes = still ? 'still' : 'moving'), { immediate: true });
   onScopeDispose(() => {
     stop();

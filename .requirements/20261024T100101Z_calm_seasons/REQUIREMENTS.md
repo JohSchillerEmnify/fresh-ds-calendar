@@ -56,7 +56,8 @@ Owner decision 2026-10-24. Branch `feat/calm-seasons` (from main 4d36111).
 3. R3 — At an effective motion level below Full the scene is still from the start.
 4. R4 — While the app is hidden the scene is still; returning plays the 10 s again (R1).
 5. R5 — The still picture is the Off picture; existing @visual pictures stay identical.
-6. R6 — With the Halloween scene still, the idle main thread at 4x CPU slowdown is busy far less than before.
+6. R6 — With the Halloween scene still, the browser (page + graphics process) uses far less processor time when idle
+   than before.
 
 ## Acceptance Criteria
 
@@ -65,8 +66,9 @@ Owner decision 2026-10-24. Branch `feat/calm-seasons` (from main 4d36111).
 - AC3 (R3): with `prefers-reduced-motion: reduce` the scene has no running animation right after opening.
 - AC4 (R4): after it was still, "the app is hidden" + "the app regains focus" → animations run again; 11 s later still.
 - AC5 (R5): `@visual` scenarios pass unchanged, no re-baselining.
-- AC6 (R6): busy time (CDP `Performance.getMetrics` `TaskDuration` delta) over 3 s idle, 4x slowdown, Halloween still:
-  well under the before value (before 2.4–2.9 s/3 s); guard budget in a @perf scenario.
+- AC6 (R6): CPU time of the renderer + GPU processes (`SystemInfo.getProcessInfo` delta, browser DevTools session) over
+  3 s idle after the ten seconds, no CPU slowdown (Chromium's throttling itself burns renderer CPU), Halloween:
+  before 1570–1740 ms in the e2e container; @perf budget 250 ms (after: 30–110 ms).
 
 ## Testing Plan
 
@@ -113,3 +115,15 @@ Running animations in the page after 12 s: 24 before, 0 after. Reduced motion: 4
 - LikeC4 model unchanged: a module inside the existing "Top bar scene" component, no new component or relation.
 - e2e: new steps `{int} seconds pass`, `the top bar scene is moving/still`, `the browser uses at most M ms of processor
   time in N seconds`. @visual pictures unchanged (none shows the top bar scene).
+
+## Follow-up (owner review + code review, 2026-10-24)
+
+- Owner: one visitor passes during each moving window (butterfly; Halloween the bat or the ghost, half the time each;
+  the test hook always brings the bat), then no later visits. Mordor keeps its rhythm. The @backlog scenario
+  "Butterflies come only now and then" is replaced by "A visitor passes once while the scene moves".
+- Review: the 10 s timer is armed only at Full and only while visible (`open()` = hidden or below Full → rest, else
+  wake), also on a scene change and on a level change to Full; the e2e scene checks wait for a drawn part first;
+  Mordor and the sunflower field are shown to keep moving after 11 s; perf budget 250 ms.
+- `theme-live-preview.test.ts` looked for `.body` anywhere; the bat now passing at mount has an SVG `path.body`, so the
+  check is scoped to the preview's own body (`.scaled > .body`). Found by falsifying: no Vue error was raised, and the
+  failure disappeared only when no visit rendered.

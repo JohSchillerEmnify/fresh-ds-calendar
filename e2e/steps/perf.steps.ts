@@ -238,11 +238,15 @@ Then('the browser uses at most {int} ms of processor time in {int} seconds', asy
   const cdp = await browser.newBrowserCDPSession();
   const cpuSeconds = async () => (await cdp.send('SystemInfo.getProcessInfo')).processInfo
     .filter((p) => p.type === 'renderer' || p.type === 'GPU').reduce((sum, p) => sum + p.cpuTime, 0);
-  await this.page.waitForTimeout(1_000);
-  const before = await cpuSeconds();
-  await this.page.waitForTimeout(seconds * 1_000);
-  const used = Math.round((await cpuSeconds() - before) * 1_000);
-  await cdp.detach();
+  let used: number;
+  try {
+    await this.page.waitForTimeout(1_000);
+    const before = await cpuSeconds();
+    await this.page.waitForTimeout(seconds * 1_000);
+    used = Math.round((await cpuSeconds() - before) * 1_000);
+  } finally {
+    await cdp.detach();
+  }
   this.testInfo.annotations.push({ type: 'processor time', description: `${used} ms in ${seconds} s` });
   expect(used, `processor time in ${seconds} s (ms)`).toBeLessThanOrEqual(ms);
 });
