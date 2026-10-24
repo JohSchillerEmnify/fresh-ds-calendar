@@ -9,6 +9,9 @@ import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
+import { useUiStore } from '@/stores/ui';
+import { ApiError } from '@/api/client';
+import { applyLanguage } from '@/i18n';
 import ExpandedTaskList from '@/features/tasklists/ExpandedTaskList.vue';
 import TaskListDialog from '@/features/tasklists/TaskListDialog.vue';
 import { config, freshPinia, mockFetch, settingsFixture } from './helpers';
@@ -98,6 +101,32 @@ describe('the This task list / This and all following question', () => {
     await choose('this');
     expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items']);
     expect(m.calls.find((c) => c.method === 'POST')!.body).toEqual({ title: 'Mirror' });
+  });
+
+  const showsTwice = () => ({ status: 409, body: { error: { code: 'CONFLICT', message: 'This list shows twice on 2026-10-26; delete the other copy, then try again', key: 'tasklist.showsTwice', details: [{ field: 'date', issue: '2026-10-26' }] } } });
+  const snack = () => useUiStore().snackbars.find((x) => x.testid === 'tasklist-rollback')?.text;
+
+  it('an add for the following ones that answers 409 says what to do (translated), not just "undone"', async () => {
+    await open(week(), { 'POST /api/tasklists/W_20261019/items': showsTwice });
+    q(tid('tasklist-add'))!.click();
+    await nextTick();
+    await enter(tid('tasklist-new-item'), 'Mirror');
+    await choose('following');
+    await vi.waitFor(() => expect(snack()).toBe('This list shows twice on 2026-10-26. Delete the other copy, then try again.'));
+    await applyLanguage('de');
+    expect(new ApiError(409, 'CONFLICT', 'x', [{ field: 'date', issue: '2026-10-26' }], 'tasklist.showsTwice').userMessage)
+      .toBe('Diese Liste steht am 2026-10-26 doppelt im Kalender. Lösche die andere Kopie und versuche es dann noch einmal.');
+    await applyLanguage('en');
+  });
+
+  it('a remove for the following ones that answers 409 after its undo time says so too', async () => {
+    await open(week(), { 'DELETE /api/tasklists/W_20261019/items/i1': showsTwice });
+    q(`${tid('tasklist-item')}[data-item-id="i1"] ${tid('tasklist-item-delete')}`)!.click();
+    await nextTick();
+    await choose('following');
+    await usePendingDeletesStore().flush();
+    await flushPromises();
+    await vi.waitFor(() => expect(snack()).toBe('This list shows twice on 2026-10-26. Delete the other copy, then try again.'));
   });
 
   it('adding for the following ones names the new item\'s id (a repeated request adds it once)', async () => {

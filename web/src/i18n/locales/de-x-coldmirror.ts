@@ -67,6 +67,7 @@ export default {
     nameExists: 'Hallo, ich bin Ron. Ähm, das hast du eben schon gesagt: Den Namen gibt es schon.',
   },
   tasklist: {
+    showsTwice: "Doppelt hält besser? Nö! Die Liste steht am {date} zweimal drin, Digga. Lösch die andere Kopie und probier's nochmal.",
     titleOrItem: 'Schinken! Gib einen Titel oder einen Eintrag ein, Digga',
     tooManyItems: 'Haltet mal eure Schnauzen, Kinder: Fresh Dumbledore möchte maximal 200 Einträge.',
     tagsUnique: 'Ähm, das hast du eben schon gesagt. Tags müssen unique sein.',

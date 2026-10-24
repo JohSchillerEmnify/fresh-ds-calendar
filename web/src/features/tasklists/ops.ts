@@ -81,7 +81,8 @@ async function run(listId: string, q: Queue): Promise<void> {
             break;
           }
         }
-        useUiStore().notify(t('tasks.list.rollback'), { testid: 'tasklist-rollback' });
+        // a change the person must sort out first (409, e.g. a list shown twice) says what to do; anything else is rolled back
+        useUiStore().notify(e instanceof ApiError && e.status === 409 ? e.userMessage : t('tasks.list.rollback'), { testid: 'tasklist-rollback' });
       }
       q.ops.shift();
       if (q.ops.length) render(q);

@@ -60,8 +60,10 @@ export class ApiError extends Error {
   get userMessage(): string {
     if (this.isUnavailable) return t('errors.saveUnavailable');
     if (this.isConflict) return t('errors.conflict');
-    // unknown keys fall back to the server's English text
-    return this.key && hasKey(this.key) ? t(this.key) : this.message;
+    // unknown keys fall back to the server's English text; `details` name the message's values (e.g. `{date}`)
+    if (!this.key || !hasKey(this.key)) return this.message;
+    const named = Object.fromEntries(this.details.filter((d) => d.field && d.issue).map((d) => [d.field!, d.issue!]));
+    return t(this.key as Parameters<typeof t>[0], named);
   }
 }
 

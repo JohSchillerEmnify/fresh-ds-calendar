@@ -213,3 +213,7 @@ text, removing an item — asks "This week / All weeks", the way Google does for
 - Changed after review: that case now answers 409 CONFLICT ("This list shows twice on <date>; delete the other copy, then
   try again") and keeps the old week with its ticks (deleting it could lose the week the person meant to keep; Google's
   undelete via status=confirmed is not verified, so nothing is restored).
+- Fourth review: simplest rule — only the request that made the new series may delete a plain week of it (for a week
+  deleted before in the old series), never a date it carried; a reused series never loses a week (a deleted week may come
+  back once). The timestamp check is gone. The 409 carries key `tasklist.showsTwice` with `{date}` from `details`; the
+  web shows it (en/de/Coldmirror) for every following change, item changes and removals included.

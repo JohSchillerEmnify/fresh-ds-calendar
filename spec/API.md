@@ -450,10 +450,11 @@ part's data plus the change, the part's RRULE and EXDATE lines (so it keeps the 
 unfinished try made at that date is used again; (5) every later exception of the part (read without `singleEvents`, with
 `showDeleted` and without a property filter, since Google guarantees only `id`, `recurringEventId` and `originalStartTime`
 on a cancelled exception) is carried over to the new series' occurrence of the same rule date — its own data (ticks, own
-times, reminders) plus the change, a deleted one deletes the new series' occurrence only when it is surely plain (no exception
-there in a fresh read, and the series' own `updated`; a week carried before stays); a live one whose week was already deleted
-in the new series (a half-done split showed it twice) answers 409 `This list shows twice on <date>; delete the other copy,
-then try again` and changes nothing more — and the old exception is deleted; one that cannot be carried
+times, reminders) plus the change, a deleted one deletes the new series' occurrence only when this request made the new series and
+did not carry that date itself (a reused series never loses a week; a week deleted in the old series may then come back
+once); a live one whose week was already deleted
+in the new series (a half-done split showed it twice) answers 409 `CONFLICT` (key `tasklist.showsTwice`, `details: [{ field: 'date', issue: <date> }]`)
+`This list shows twice on <date>; delete the other copy, then try again` and changes nothing more — and the old exception is deleted; one that cannot be carried
 answers 502 before anything is ended; (6) last, when no later live exception is left in the part, its RRULE line gets
 `UNTIL` = the occurrence's start (date for all-day, UTC for timed; any UNTIL/COUNT replaced, other lines such as EXDATE
 kept), written with If-Match (re-read and retried up to 3 times, else 412). A failure midway can leave duplicates, never a

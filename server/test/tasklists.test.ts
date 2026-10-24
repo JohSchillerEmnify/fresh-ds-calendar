@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freeze, makeApp, type TestApp } from './helpers.js';
 import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
-import { PreconditionFailedError } from '../src/providers/CalendarProvider.js';
+import { PreconditionFailedError, ProviderError } from '../src/providers/CalendarProvider.js';
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -740,8 +740,32 @@ describe('recurring task lists: a change for this and all following ones (scope=
     expect((await t.req('DELETE', `/api/tasklists/${shown.id}`)).status).toBe(204);
     const r = await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
     expect(r.status).toBe(409);
-    expect(r.body.error).toMatchObject({ code: 'CONFLICT', message: 'This list shows twice on 2026-10-28; delete the other copy, then try again' });
+    expect(r.body.error).toMatchObject({ code: 'CONFLICT', key: 'tasklist.showsTwice', message: 'This list shows twice on 2026-10-28; delete the other copy, then try again' });
+    expect(r.body.error.details).toEqual([{ field: 'date', issue: '2026-10-28' }]);
     expect((await all()).filter((l: any) => l.date === '2026-10-28').map((l: any) => l.items.map((x: any) => `${x.title}:${x.done ? 1 : 0}`).join(','))).toEqual(['Sink:1,Floor:0']);
+  });
+
+  it('a retry reusing the new series never deletes a week of it: a week the person deleted in the old series shows once', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    // the split stops before the 10-28 week is copied (Google fails on the first write to the new series)
+    type Write = (cal: string, id: string, patch: { extendedProperties?: unknown }, o?: unknown) => unknown;
+    const proto = MockGoogleProvider.prototype as unknown as { doPatch: Write };
+    const orig = proto.doPatch;
+    let failed = false;
+    const spy = vi.spyOn(proto, 'doPatch').mockImplementation(function (this: unknown, cal, id, patch, o) {
+      if (!failed && !id.startsWith(a.seriesId) && patch.extendedProperties) { failed = true; throw new ProviderError('Google 500'); }
+      return orig.call(this, cal, id, patch, o);
+    });
+    try {
+      expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(502);
+    } finally { spy.mockRestore(); }
+    // 10-28 shows twice now (old ticked copy, new plain one): the person deletes the old copy
+    const old = (await all()).find((l: any) => l.date === '2026-10-28' && l.seriesId === a.seriesId);
+    expect((await t.req('DELETE', `/api/tasklists/${old.id}`)).status).toBe(204);
+    expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    expect((await weeks()).map((w: any) => [w[0], w[1]])).toEqual([['2026-10-14', 'Clean'], ['2026-10-21', 'Bathroom'], ['2026-10-28', 'Bathroom'], ['2026-11-04', 'Bathroom']]);
   });
 
   it('an added item with an id from the client is not added twice when the request is repeated', async () => {

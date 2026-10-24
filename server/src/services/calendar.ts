@@ -679,6 +679,10 @@ export class CalendarService {
     const bound = this.untilOf(master);
     const inPart = (e: GoogleEvent) => { const d = this.ruleStart(e).date; return d > shown.date && (bound === null || d <= bound); };
     let fresh: GoogleEvent | null = null;
+    // only a new series made by this request may lose a plain week (one deleted before in the old series); a reused one never
+    let made = false;
+    // the dates this request carried over: never taken for a plain week, whatever a lagging list read says
+    const carried = new Set<string>();
     for (let attempt = 1; attempt <= 3; attempt++) {
       // one read per pass: the old series' later exceptions and what the new series has at each date
       const all = await this.seriesEvents(master.calendarId);
@@ -691,11 +695,15 @@ export class CalendarService {
           if (bound === null) throw new ApiException('PROVIDER_ERROR', 502, 'No later task list of this series was found to change');
           return;
         }
-        fresh = parts.find((p) => p.id !== master.id && this.ruleStart(p).date === starts[0]) ?? await this.newPart(master, starts[0]!, root, change);
+        fresh = parts.find((p) => p.id !== master.id && this.ruleStart(p).date === starts[0]) ?? null;
+        if (!fresh) {
+          fresh = await this.newPart(master, starts[0]!, root, change);
+          made = true;
+        }
       }
       const target = fresh;
       const own = new Map(this.exceptionsIn(all, target).map((x) => [this.ruleStart(x).date, x] as const));
-      for (const e of later) await this.carry(e, target, change, own);
+      for (const e of later) await this.carry(e, target, change, own, made, carried);
       // anything that came in meanwhile is carried first; the old series ends only when nothing later is left in it
       const cur = await this.locateKind(master.id, true);
       if (this.exceptionsIn(await this.seriesEvents(master.calendarId), master).some((e) => e.status !== 'cancelled' && inPart(e))) continue;
@@ -723,29 +731,33 @@ export class CalendarService {
 
   /**
    * Carries one later exception of the old series over to `fresh`'s occurrence of the same rule date. `own` holds the new
-   * series' exceptions by rule date (kept up to date here). A deleted one deletes the new series' occurrence only while that
-   * is still plain: an exception there is a week carried over before (the old one is deleted after carrying) and stays. A
+   * series' exceptions by rule date (kept up to date here). A deleted one deletes the new series' occurrence only when this
+   * request made the new series and has not carried that date itself; a reused series keeps every week. A
    * live one gives the occurrence its own data (ticks, times, reminders) plus `change` and is then deleted; when that week
    * was deleted in the new series already, 409 (the person decides which copy goes). An occurrence that cannot be found
    * stops the split before the old series is ended (nothing is lost).
    */
-  private async carry(e: GoogleEvent, fresh: GoogleEvent, change: (d: TaskListData) => TaskListData, own: Map<string, GoogleEvent>): Promise<void> {
+  private async carry(
+    e: GoogleEvent, fresh: GoogleEvent, change: (d: TaskListData) => TaskListData, own: Map<string, GoogleEvent>, made: boolean, carried: Set<string>,
+  ): Promise<void> {
     const day = this.ruleStart(e).date;
     const had = own.get(day);
     if (e.status === 'cancelled') {
-      if (had) return;
+      // a week deleted in the old series is deleted in the new one only by the request that made it, and never a date it
+      // carried itself; a reused series keeps every week (a deleted one may come back once, nothing is lost)
+      if (had || !made || carried.has(day)) return;
       const found = await this.occurrenceOn(fresh, day);
-      // delete only what is surely still plain: a list read may lag behind a week carried just before
-      if (found && await this.isPlain(fresh, found)) {
+      if (found) {
         await this.provider.deleteEvent(fresh.calendarId, found.id);
         own.set(day, { ...found, status: 'cancelled' });
+        carried.add(day);
       }
       return;
     }
     // a split left half done showed the week twice and the new copy was deleted: which copy stays is the person's call
     // (the old one keeps its ticks; nothing is deleted or restored here)
     if (had?.status === 'cancelled') {
-      throw new ApiException('CONFLICT', 409, `This list shows twice on ${day}; delete the other copy, then try again`);
+      throw new ApiException('CONFLICT', 409, `This list shows twice on ${day}; delete the other copy, then try again`, [{ field: 'date', issue: day }], 'tasklist.showsTwice');
     }
     // an earlier pass may have carried (and moved) it already: its exception in the new series is the one to write
     const inst = had ?? await this.occurrenceOn(fresh, day);
@@ -756,6 +768,7 @@ export class CalendarService {
     const patch = encodeTaskListPatch(dd, this.tz, this.colorFor(dd), inst);
     if (e.reminders) patch.reminders = e.reminders;
     own.set(day, await this.provider.patchEvent(fresh.calendarId, inst.id, patch, { ifMatch: inst.etag }));
+    carried.add(day);
     await this.deleteOld(e);
   }
 
@@ -766,17 +779,6 @@ export class CalendarService {
     } catch (err) {
       if (!(err instanceof NotFoundError)) throw err;
     }
-  }
-
-  /**
-   * An occurrence of `fresh` is plain (never written on its own) when a fresh read of the series' exceptions has none at
-   * its date and it still carries the series' own `updated`; anything else may be a week carried just before and is kept.
-   */
-  private async isPlain(fresh: GoogleEvent, occ: GoogleEvent): Promise<boolean> {
-    const day = this.ruleStart(occ).date;
-    if (this.exceptionsIn(await this.seriesEvents(fresh.calendarId), fresh).some((x) => this.ruleStart(x).date === day)) return false;
-    const series = await this.locateKind(fresh.id, true);
-    return occ.updated === series.updated;
   }
 
   async updateTaskList(id: string, input: UpdateTaskListInput, ifMatch?: string, scope?: Scope): Promise<TaskList> {
