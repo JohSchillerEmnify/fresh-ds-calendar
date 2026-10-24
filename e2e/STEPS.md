@@ -1313,6 +1313,10 @@ I drag the start handle of {string} to {time}
 I drag the end handle of {string} to {time}
 I tap the clock at {time}
 the middle of the clock says {string}
+the middle of the clock says {string} over {string}
+the first line in the middle of the clock is {string} cut short with {string}
+the second line in the middle of the clock is {string}
+the clock shades no time
 the clock shades the time until {time}
 the clock shows the all-day event {string}
 the approach bar is on
@@ -1445,7 +1449,7 @@ I note the height of {string} on the runway
   step. "named on the dial or next to it": each arc's title has a visible `clock-label` or a visible
   `clock-overflow` chip (`data-title`, text "HH:MM title"), and at least half of the arcs are named on the dial. "no
   two names overlap": no character box (SVG extent of each character, on screen) of one `clock-label` overlaps one
-  of another or of `clock-time` / `clock-now-line` (the middle), by more than 1 px. "I open the rings clock for D" opens `/clock-rings/D`
+  of another or of `clock-time` / `clock-now-line` / `clock-now-when` (the middle), by more than 1 px. "I open the rings clock for D" opens `/clock-rings/D`
   (`clock-view` with `data-variant="rings"`). "upside down": a `clock-label`'s first character lies right of its last
   one by more than the text's vertical run (its reading direction points into the left half-plane).
 - "the clock lists T next to the dial": a visible `clock-overflow` chip with exactly the text T ("HH:MM title"); "I tap
@@ -1453,8 +1457,11 @@ I note the height of {string} on the runway
   narrowest band (6 on the clock, 4 on the rings clock) have no arc and are only listed.
 - Labs labels to ids: a Labs view label is turned into its id by lower-casing it and joining its words with "-"
   ("Clock: rings" → `clock-rings`).
-- "the middle of the clock says": `clock-now-line` text; "shades the time until T": `clock-wedge` `data-to`;
-  all-day events: `clock-allday` (`data-title`).
+- "the middle of the clock says X": exactly one line, `clock-now-line` text X, and no `clock-now-when`. "says X over
+  Y": `clock-now-line` text X and `clock-now-when` text Y, the second below the first. "the first line ... is T cut
+  short with E": `clock-now-line` text ends with E, is shorter than T, and without E is the start of T; "the second
+  line ... is Y": `clock-now-when` text Y. "shades the time until T": `clock-wedge` `data-to`; "shades no time": no
+  `clock-wedge`. All-day events: `clock-allday` (`data-title`).
 - Approach bar: `approach-bar` inside the `now-card` (replacing its "Next:" line) with `approach-item` chips
   (`data-title`, `data-minutes` = minutes until start) and `approach-now`; "in this order" = exactly these chips, by
   distance from `approach-now`; "closer" compares the item's distance from `approach-now` before and after the clock
