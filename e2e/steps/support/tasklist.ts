@@ -29,11 +29,13 @@ export async function expandTaskList(world: World, title: string) {
   // growing in place is a Labs setting (off by default) and a time block that already shows its whole title and every
   // open item does not grow: then the first tap opens the sheet
   await sheet.or(grown).first().waitFor();
-  if (await sheet.isVisible()) return;
+  // the sheet slides in by spring: steps that measure rows (a long press, a held drag) need it at rest, as a finger would
+  if (await sheet.isVisible()) return sheet.scrollIntoViewIfNeeded();
   // the very bottom edge of the grown card: a tap on its title row folds it back up instead, and a titles-only card has little but that row
   const card = grown.getByTestId('tasklist-card-grown');
   await card.click({ position: { x: 6, y: (await card.boundingBox())!.height - 1 } });
   await expect(sheet).toBeVisible();
+  await sheet.scrollIntoViewIfNeeded();
 }
 
 /** Stable locator for an item: resolved once by title, then addressed by data-item-id (survives edit mode). */
