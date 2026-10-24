@@ -148,7 +148,7 @@ Then('every arc on the clock is named on the dial or next to it', async function
 
 /** Names overlap when any two of their characters' boxes do (per character, so names curved along rings count right). */
 Then('no two names on the clock overlap', async function (this: World) {
-  const names = await this.page.locator(`${tid('clock-label')}, ${tid('clock-now-line')}, ${tid('clock-time')}`).evaluateAll((els) => els.map((el) => {
+  const names = await this.page.locator(`${tid('clock-label')}, ${tid('clock-now-line')}, ${tid('clock-now-when')}, ${tid('clock-time')}`).evaluateAll((els) => els.map((el) => {
     const t = el as SVGTextContentElement, m = t.getScreenCTM()!;
     const chars = Array.from({ length: t.getNumberOfChars() }, (_, i) => {
       const e = t.getExtentOfChar(i);
@@ -336,7 +336,36 @@ When('I tap the clock at {time}', async function (this: World, time: string) {
 });
 
 Then('the middle of the clock says {string}', async function (this: World, text: string) {
+  // the middle may name tomorrow's first entry: judge it only once tomorrow is loaded
+  await expect(this.page.getByTestId('clock-view')).toHaveAttribute('data-tomorrow-loaded', 'true');
   await expect(this.page.getByTestId('clock-now-line')).toHaveText(text);
+  await expect(this.page.getByTestId('clock-now-when')).toHaveCount(0);
+});
+
+Then('the middle of the clock says {string} over {string}', async function (this: World, title: string, when: string) {
+  await expect(this.page.getByTestId('clock-view')).toHaveAttribute('data-tomorrow-loaded', 'true');
+  const first = this.page.getByTestId('clock-now-line'), second = this.page.getByTestId('clock-now-when');
+  await expect(first).toHaveText(title);
+  await expect(second).toHaveText(when);
+  const [a, b] = [await first.boundingBox(), await second.boundingBox()];
+  // the line boxes include the halo and leading, so only the second line's middle must lie below the first one's box
+  expect(b!.y + b!.height / 2, 'the second line stands below the first').toBeGreaterThan(a!.y + a!.height);
+});
+
+Then('the first line in the middle of the clock is {string} cut short with {string}', async function (this: World, full: string, mark: string) {
+  const text = (await this.page.getByTestId('clock-now-line').textContent()) ?? '';
+  expect(text.endsWith(mark), `"${text}" ends with ${mark}`).toBe(true);
+  expect(text.length).toBeLessThan(full.length);
+  expect(full.startsWith(text.slice(0, -mark.length)), `"${text}" is the start of "${full}"`).toBe(true);
+});
+
+Then('the second line in the middle of the clock is {string}', async function (this: World, when: string) {
+  await expect(this.page.getByTestId('clock-now-when')).toHaveText(when);
+});
+
+Then('the clock shades no time', async function (this: World) {
+  await expect(this.page.getByTestId('clock-now-line')).toBeVisible();
+  await expect(this.page.getByTestId('clock-wedge')).toHaveCount(0);
 });
 
 Then('the clock shades the time until {time}', async function (this: World, time: string) {

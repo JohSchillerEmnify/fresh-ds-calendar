@@ -117,6 +117,9 @@ export default {
     arc: '{title}, {start} bis {end}',
     handleStart: 'Ziehen, um den Beginn zu ändern',
     handleEnd: 'Ziehen, um das Ende zu ändern',
+    nextAt: '{start} · in {duration}',
+    untilLeft: 'bis {end} · noch {left}',
+    tomorrowAt: 'Morgen {start}',
   },
   event: {
     editTitle: 'Termin bearbeiten',

@@ -115,6 +115,9 @@ export default {
     arc: '{title}, {start} to {end}',
     handleStart: 'Drag to change the start',
     handleEnd: 'Drag to change the end',
+    nextAt: '{start} · in {duration}',
+    untilLeft: 'until {end} · {left} left',
+    tomorrowAt: 'Tomorrow {start}',
   },
   event: {
     editTitle: 'Edit event',

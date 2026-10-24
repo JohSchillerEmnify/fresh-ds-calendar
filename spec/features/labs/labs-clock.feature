@@ -16,6 +16,12 @@ Feature: Labs: experimental views and the 24-hour clock
   turns it round the dial (15-minute steps, its length kept), a long press released in place shows handles at both ends
   that change the start or the end, and a tap on the empty dial creates an entry at that time. Today the middle says
   what is running or comes next, and a shaded wedge from the hand shows the time until then (time made visible).
+  It says so on two lines under the time: the title (cut short with "…" only when it is too long), and below it when
+  and how long until, which is never cut: "19:40 · in 3 h 17 min" for the next event, "until 10:00 · 30 min left" for
+  a running one (owner, 2026-10-24: "You can't see when it's happening, how long it is still. It always just says
+  like in 1, in 2, in 4. Maybe you can write the time below it, like have it in 2 lines."). When nothing else comes
+  today, it names tomorrow's first entry ("Tomorrow 09:00"). Timed events and timed task lists count (owner,
+  2026-10-24), all-day events never; the wedge always shades to what the middle names.
 
   Background:
     Given the calendar is empty
@@ -190,16 +196,79 @@ Feature: Labs: experimental views and the 24-hour clock
       | start date | 2026-10-14 |
       | start time | 15:00      |
 
-  Scenario Outline: Today the middle says what is running or comes next and shades the time until then
+  Scenario Outline: Today the middle names what is running or comes next, when, and shades the time until then
     Given the time is 2026-10-14 <time>
     When I open the clock view for 2026-10-14
-    Then the middle of the clock says "<middle>"
+    Then the middle of the clock says "<title>" over "<when>"
     And the clock shades the time until <until>
 
     Examples:
-      | time  | middle                | until |
-      | 08:00 | Next: Dentist in 1 h  | 09:00 |
-      | 09:30 | Dentist · 30 min left | 10:00 |
+      | time  | title   | when                      | until |
+      | 06:55 | Dentist | 09:00 · in 2 h 5 min      | 09:00 |
+      | 08:00 | Dentist | 09:00 · in 1 h            | 09:00 |
+      | 08:37 | Dentist | 09:00 · in 23 min         | 09:00 |
+      | 09:30 | Dentist | until 10:00 · 30 min left | 10:00 |
+
+  Scenario Outline: A timed task list stands in the middle like an event
+    Given the time is 2026-10-14 <time>
+    And the calendar contains a task list "Laundry" on 2026-10-14 at 18:00 for 90 minutes with items:
+      | item | done |
+      | Wash | yes  |
+      | Fold | no   |
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Laundry" over "<when>"
+    And the clock shades the time until <until>
+
+    Examples:
+      | time  | when                   | until |
+      | 17:00 | 18:00 · in 1 h         | 18:00 |
+      | 18:30 | until 19:30 · 1 h left | 19:30 |
+
+  @mobile
+  Scenario: A long title is cut short in the middle, its time never
+    Given the time is 2026-10-14 16:23
+    And the calendar contains an event "Anspielprobe mit dem ganzen Orchester im großen Saal" on 2026-10-14 from 19:40 to 22:00
+    When I open the clock view for 2026-10-14
+    Then the first line in the middle of the clock is "Anspielprobe mit dem ganzen Orchester im großen Saal" cut short with "…"
+    And the second line in the middle of the clock is "19:40 · in 3 h 17 min"
+    And no two names on the clock overlap
+
+  Scenario: The time under the title counts down as time passes
+    Given the time is 2026-10-14 08:00 and the clock is running
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Dentist" over "09:00 · in 1 h"
+    When 59 minutes pass
+    Then the middle of the clock says "Dentist" over "09:00 · in 1 min"
+    When 31 minutes pass
+    Then the middle of the clock says "Dentist" over "until 10:00 · 30 min left"
+
+  Scenario: When nothing else comes today, the middle names tomorrow's first event
+    Given the time is 2026-10-14 20:00
+    And the calendar contains an all-day event "Holiday" on 2026-10-15
+    And the calendar contains an event "Standup" on 2026-10-15 from 09:00 to 09:15
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Standup" over "Tomorrow 09:00"
+    And the clock shades no time
+
+  Scenario: When nothing timed comes today or tomorrow, the middle says so on one line
+    Given the time is 2026-10-14 20:00
+    And the calendar contains an all-day event "Holiday" on 2026-10-15
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "Nothing else today"
+    And the clock shades no time
+
+  Scenario Outline: The middle speaks German
+    Given the browser language is "de-DE"
+    And the time is 2026-10-14 <time>
+    And the calendar contains an event "Standup" on 2026-10-15 from 09:00 to 09:15
+    When I open the clock view for 2026-10-14
+    Then the middle of the clock says "<title>" over "<when>"
+
+    Examples:
+      | time  | title   | when                     |
+      | 06:55 | Dentist | 09:00 · in 2 Std. 5 Min. |
+      | 09:30 | Dentist | bis 10:00 · noch 30 Min. |
+      | 20:00 | Standup | Morgen 09:00             |
 
   Scenario: All-day events are listed next to the dial
     Given the calendar contains an all-day event "Holiday" on 2026-10-14

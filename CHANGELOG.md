@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-24
+- Clock view: the middle now says what is running or comes next on two lines, the title over its start time and a full countdown ("19:40 · in 3 h 17 min", "until 19:30 · 1 h left"), so the time is never cut off; timed task lists count too, and when nothing else is on today it names tomorrow's first entry ("Tomorrow 09:00").
 - Busy month view: entries that are completely hidden under a day's fade are no longer built, so busy months open and swipe a bit faster; the month looks exactly the same, and opening the day still shows everything.
 - The season and holiday scenes in the top bar now move for about ten seconds after you open the app (a butterfly, or at Halloween the bat or the little ghost, passes once) and then rest as a still picture, so they no longer keep the phone busy; with reduced motion they are still from the start. Mordor and the sunflower field move as before.
 - Repeating task lists: renaming the list, adding an item, changing an item's text or removing an item now asks "This task list" or "This and all following task lists", as Google does for repeating appointments. Earlier lists stay as they were; later ones you already ticked in keep their ticks. Ticking stays per list.
