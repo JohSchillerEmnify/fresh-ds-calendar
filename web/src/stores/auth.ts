@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api, ApiError } from '@/api/client';
 import { dropPushSubscription } from '@/pwa/push';
+import { wipeLastKnown } from '@/lib/lastKnownDb';
 
 /** Where to go once signed in (set when the router sends a deep link to /signin). */
 export const RETURN_KEY = 'signin-return';
@@ -70,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Ends the session on the server, drops what this device keeps of the person and goes to the sign-in page with
+   * Ends the session on the server, drops what this device keeps of the person (its last known state too) and goes to the sign-in page with
    * `location.replace`, so "back" cannot show the previous person's calendar.
    *
    * @param end The server call, given this browser's push endpoint (so the server deletes that subscription too).
@@ -80,6 +81,8 @@ export const useAuthStore = defineStore('auth', () => {
     const endpoint = await dropPushSubscription();
     try { await end(endpoint); } catch { /* already signed out (401) or the server is down: leave anyway */ }
     clearPersonalStorage();
+    // the calendar this device kept for the person goes too (feature last-known-state)
+    await wipeLastKnown();
     window.location.replace('/signin');
   }
 

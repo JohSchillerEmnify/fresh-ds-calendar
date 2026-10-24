@@ -25,6 +25,8 @@ export const useClockStore = defineStore('clock', () => {
   const frozenAt = ref<number | null>(null);
   /** Reactive "now" in ms; refreshed by the minute ticker. */
   const nowTick = ref(Date.now());
+  /** The config came from the last known state (feature last-known-state): a failed load keeps it. */
+  let restoredConfig = false;
   const bag = new DisposerBag();
   let stopTimer: (() => void) | null = null;
 
@@ -41,12 +43,22 @@ export const useClockStore = defineStore('clock', () => {
       loaded.value = true;
     } catch {
       // offline: device clock, Europe/Berlin, Monday, 30 s polling
-      if (!loaded.value) {
+      if (!loaded.value && !restoredConfig) {
         config.value = { ...FALLBACK };
         frozenAt.value = null;
         offsetMs.value = 0;
       }
     }
+    nowTick.value = nowMs();
+  }
+
+  /** Takes the last known config until the server answers: its zone, and a frozen clock's time (test mode). */
+  function restore(c: AppConfig): void {
+    if (loaded.value) return;
+    config.value = { ...c };
+    frozenAt.value = c.clockFrozen ? Date.parse(c.now) : null;
+    offsetMs.value = 0;
+    restoredConfig = true;
     nowTick.value = nowMs();
   }
 
@@ -104,7 +116,7 @@ export const useClockStore = defineStore('clock', () => {
     bag.dispose();
   }
 
-  return { config, loaded, timeZone, pollIntervalMs, nowTick, today, todayDate, minutesNow, nowMs, load, startTicker, stopTicker };
+  return { config, loaded, timeZone, pollIntervalMs, nowTick, today, todayDate, minutesNow, nowMs, load, restore, startTicker, stopTicker };
 });
 
 /** Composable alias used across the app (API.md: "one useClock() composable"). */

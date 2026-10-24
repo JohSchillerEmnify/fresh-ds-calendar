@@ -31,6 +31,8 @@ export default {
     syncing: 'Syncing',
     synced: 'Synced',
     unreachable: "Can't reach Google Calendar. Showing the last known data.",
+    lastUpdated: 'Last updated {time}',
+    lastUpdatedOn: 'Last updated {date}, {time}',
   },
   reauth: {
     message: 'Google no longer accepts your access. Sign in with Google again to see your calendar.',

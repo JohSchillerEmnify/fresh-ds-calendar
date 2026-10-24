@@ -40,6 +40,11 @@ export const useSettingsStore = defineStore('settings', () => {
     loaded.value = true;
   }
 
+  /** Shows the last known settings until the server answers (feature last-known-state). */
+  function restore(saved: Settings): void {
+    if (!loaded.value) s.value = saved;
+  }
+
   function mergeLocal(p: SettingsPatch): void {
     s.value = { ...s.value, ...p };
   }
@@ -142,6 +147,6 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     settings: s, loaded, saveError, categories, categoryById, effectiveScene,
-    load, patch, addCategory, updateCategory, deleteCategory, moveCategory, installAppearance, stopAppearance,
+    load, restore, patch, addCategory, updateCategory, deleteCategory, moveCategory, installAppearance, stopAppearance,
   };
 });

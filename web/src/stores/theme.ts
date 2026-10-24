@@ -46,6 +46,11 @@ export const useThemeStore = defineStore('theme', () => {
     remember();
   }
 
+  /** Shows the last known imported themes until the server answers, so a chosen one resolves offline (feature last-known-state). */
+  function restore(saved: StoredTheme[]): void {
+    if (!custom.value.length) custom.value = saved;
+  }
+
   /** Optimistic: apply now, save in the background. */
   async function save(next: ThemePref): Promise<void> {
     pref.value = next;
@@ -94,5 +99,5 @@ export const useThemeStore = defineStore('theme', () => {
     unhide(id);
   }
 
-  return { pref, resolved, themes, saveError, load, choose, pick, pickMany, preview, setSeasonal, importTheme, hide, unhide, removeCustom };
+  return { pref, resolved, themes, saveError, load, restore, choose, pick, pickMany, preview, setSeasonal, importTheme, hide, unhide, removeCustom };
 });

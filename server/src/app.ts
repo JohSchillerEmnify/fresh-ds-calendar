@@ -60,6 +60,15 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
 
   app.use('/api/*', requestGuards(config));
 
+  // Test mode: "the server answers only after N seconds" (POST /api/__test/slow); the test hooks themselves stay quick.
+  if (config.testMode) {
+    app.use('/api/*', async (c, next) => {
+      const ms = ctx.overrides.slowMs;
+      if (ms && !c.req.path.startsWith('/api/__test/')) await new Promise((r) => setTimeout(r, ms));
+      await next();
+    });
+  }
+
   // Plugins (ADR 0004) answer machine clients with their own keys: mounted before the session middleware, gated per request.
   app.route('/api', pluginRoutes(ctx));
 

@@ -16,6 +16,11 @@ export const useCalendarsStore = defineStore('calendars', () => {
     if (saving === 0) list.value = r.calendars; // a poll must not undo a toggle that is still being saved
   }
 
+  /** Shows the last known calendar list until the server answers (feature last-known-state). */
+  function restore(saved: Calendar[]): void {
+    if (!list.value.length) list.value = saved;
+  }
+
   async function toggle(id: string): Promise<void> {
     const cur = list.value.find((c) => c.id === id);
     if (!cur) return;
@@ -47,5 +52,5 @@ export const useCalendarsStore = defineStore('calendars', () => {
     }
   }
 
-  return { list, hidden, isHidden, load, toggle, setDefaultReminders };
+  return { list, hidden, isHidden, load, restore, toggle, setDefaultReminders };
 });

@@ -184,6 +184,8 @@ export const testMotivationSchema = so({
   plant: v.optional(so({ growth: v.number(), lastWatered: v.nullable(localDate), todayPoints: v.optional(v.number()) })),
 });
 export const testApkSchema = so({ versionCode: v.pipe(v.number(), v.integer(), v.minValue(1)), versionName: v.string(), certSha256: v.optional(v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/))) });
+/** `POST /api/__test/slow`: every later non-test `/api` answer waits this long (feature last-known-state). */
+export const testSlowSchema = so({ ms: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(60_000)) });
 export const testVersionSchema = so({ version: v.pipe(v.string(), v.minLength(1)) });
 export const testReleaseNotesSchema = so({ notes: v.array(so({ date: v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/)), text: v.pipe(v.string(), v.minLength(1)) })) });
 export const testConfigSchema = so({ pollIntervalMs: v.optional(v.pipe(v.number(), v.minValue(0))) });

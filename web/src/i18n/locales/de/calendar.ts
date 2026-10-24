@@ -33,6 +33,8 @@ export default {
     syncing: 'Synchronisiert gerade',
     synced: 'Synchronisiert',
     unreachable: 'Google Kalender ist nicht erreichbar. Es werden die zuletzt bekannten Daten gezeigt.',
+    lastUpdated: 'Zuletzt aktualisiert {time}',
+    lastUpdatedOn: 'Zuletzt aktualisiert {date}, {time}',
   },
   reauth: {
     message: 'Google akzeptiert deinen Zugriff nicht mehr. Melde dich erneut mit Google an, um deinen Kalender zu sehen.',

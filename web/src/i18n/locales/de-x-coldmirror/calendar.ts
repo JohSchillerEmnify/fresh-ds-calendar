@@ -33,6 +33,8 @@ export default {
     syncing: 'Fresh D. synct gerade',
     synced: 'Alles gesynct, fresh',
     unreachable: 'Ey Mann, wo\'s mein Hörgerät? Google Kalender ist nicht erreichbar. Fresh D. zeigt die alten Daten, Digga.',
+    lastUpdated: 'Zuletzt frisch gemacht {time}, yo',
+    lastUpdatedOn: 'Zuletzt frisch gemacht {date}, {time}, yo',
   },
   reauth: {
     message: 'Google lässt dich nicht mehr rein, du Oberpflaume. Meld dich nochmal an, dann siehst du den Kalender wieder, yo.',

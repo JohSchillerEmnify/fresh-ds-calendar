@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-24
+- On a bad or no connection the app now opens at once with what it showed last on this device (the days you looked at in the last four weeks, your task lists, settings and language), with a small "Last updated 08:12" note; fresh data replaces it as soon as the server answers. Changes still need a connection. Signing out removes it from the device.
+
 ## 2026-10-23
 - Repeating task lists: ticking an item in one week no longer ticks it in the other weeks, also right after creating the list; undoing or deleting a list you just created removes all its weeks.
 - All-day events now ring too: at midnight of their day minus each reminder set for them, as in Google (e.g. 5 min → 23:55 the evening before); events over several days ring once, saying the day and "all day".

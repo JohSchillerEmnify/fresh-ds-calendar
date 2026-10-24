@@ -10,6 +10,7 @@ import InstallPrompts from '@/components/shell/InstallPrompts.vue';
 import ReauthBanner from '@/components/shell/ReauthBanner.vue';
 import SwipeCarousel from '@/components/shell/SwipeCarousel.vue';
 import SyncErrorBanner from '@/components/shell/SyncErrorBanner.vue';
+import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
 import DragCat from '@/features/motivation/DragCat.vue';
 import VersionLabel from '@/components/shell/VersionLabel.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
@@ -114,6 +115,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
     </template>
     <ReauthBanner />
     <SyncErrorBanner />
+    <LastUpdatedNote />
     <FilterBar v-if="filterShown" />
     <div class="body" :class="{ 'edge-pad': edgePad }">
       <NavigationRail v-if="hasShell && navPosition === 'rail'" :items="items" :model-value="activeView" :phone="isPhone" :side="railSide" @update:model-value="switchTo" />

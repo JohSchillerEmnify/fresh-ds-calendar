@@ -42,10 +42,17 @@ model {
     serviceWorker = component 'Service worker' {
       description 'Keeps the app shell for offline start; never answers API calls from its cache'
     }
+    lastKnown = store 'Last known state' {
+      description 'The last shown calendar, settings and prefs of the signed-in person in IndexedDB (±4 weeks); shown at once on start, replaced by fresh data, wiped on sign-out'
+    }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }
 
+    lastKnown -> items 'restores the last seen days before the first paint; saves each fresh answer'
+    lastKnown -> prefs 'restores and saves the prefs'
+    lastKnown -> sync 'shows the last update time until the first fresh answer'
+    signin -> lastKnown 'wipes it on sign-out and on the sign-in page'
     sync -> items 're-fetches on route change, timer, focus and network return'
     timegrid -> items 'shows'
 

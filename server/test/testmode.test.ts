@@ -210,3 +210,20 @@ describe('CORS and config', () => {
     } finally { p.cleanup(); }
   });
 });
+
+describe('slow server (feature last-known-state)', () => {
+  it('delays every /api answer but the test hooks until reset; validates', async () => {
+    expect((await t.json('POST', '/api/__test/slow', { ms: 300 })).body).toEqual({ ms: 300 });
+    let started = Date.now();
+    expect((await t.json('GET', '/api/settings')).status).toBe(200);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(290);
+    started = Date.now();
+    await t.json('GET', '/api/__test/pushes');
+    expect(Date.now() - started).toBeLessThan(250);
+    expect((await t.json('POST', '/api/__test/slow', { ms: -1 })).status).toBe(400);
+    await t.json('POST', '/api/__test/reset');
+    started = Date.now();
+    await t.json('GET', '/api/settings');
+    expect(Date.now() - started).toBeLessThan(250);
+  });
+});
