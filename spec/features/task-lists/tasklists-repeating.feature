@@ -5,8 +5,9 @@ Feature: Changing a repeating task list for this one or this and all following o
   following events" for a repeating event (owner, 2026-10-24; the same words for every repeat rhythm). "This task list"
   changes only the one shown (it becomes one of its own, as a tick does). "This and all following task lists" changes the
   one shown and every later one, also later ones that were already ticked in: each keeps its own ticks, an item added
-  arrives unticked. Earlier ones are never changed (owner: a past task list should stay as it was). Ticking never asks:
-  each one is ticked on its own (feature adhd-support).
+  arrives unticked. Earlier ones are never changed (owner: a past task list should stay as it was). In Google the list is
+  then split into parts, as Google Calendar does; a later change reaches every later part of the same list. Ticking never
+  asks: each one is ticked on its own (feature adhd-support).
 
   Background:
     Given the calendar is empty

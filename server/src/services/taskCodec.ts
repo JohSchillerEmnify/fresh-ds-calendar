@@ -145,6 +145,12 @@ export function encodeTaskList(d: TaskListData, tz: string, colorId: string | nu
   return ev;
 }
 
+/** The series' RRULE has this rhythm already (its UNTIL / COUNT, EXDATE lines and other parts then stay as they are). */
+function sameRhythm(lines: string[] | undefined, r: Recurrence): boolean {
+  const freq = RRULE[r].slice('RRULE:'.length);
+  return !!lines?.some((l) => l.startsWith('RRULE:') && l.slice(6).split(';').includes(freq));
+}
+
 /** Full-replacement patch for an existing task list event (null removes stale keys/fields). */
 export function encodeTaskListPatch(d: TaskListData, tz: string, colorId: string | null, existing: GoogleEvent): GoogleEventPatch {
   const patch: GoogleEventPatch = {
@@ -157,7 +163,7 @@ export function encodeTaskListPatch(d: TaskListData, tz: string, colorId: string
   // Only masters carry the rule; never rewrite it on an instance.
   if (!existing.recurringEventId) {
     // a rule of the same rhythm stays as it is: a series ended by a split keeps its UNTIL
-    if (d.recurrence) { if (!existing.recurrence?.[0]?.startsWith(RRULE[d.recurrence])) patch.recurrence = [RRULE[d.recurrence]]; }
+    if (d.recurrence) { if (!sameRhythm(existing.recurrence, d.recurrence)) patch.recurrence = [RRULE[d.recurrence]]; }
     else (patch as { recurrence?: string[] | null }).recurrence = null as unknown as string[];
   }
   return patch;
@@ -219,7 +225,7 @@ export function decodeTaskList(ev: GoogleEvent, tz: string): TaskListData {
   }
   const est = p.estimate !== undefined ? Number(p.estimate) : NaN;
   let recurrence: Recurrence | null = null;
-  const r = p.recurrence ?? /FREQ=(DAILY|WEEKLY|MONTHLY)/.exec(ev.recurrence?.[0] ?? '')?.[1]?.toLowerCase();
+  const r = p.recurrence ?? /FREQ=(DAILY|WEEKLY|MONTHLY)/.exec(ev.recurrence?.find((l) => l.startsWith('RRULE:')) ?? '')?.[1]?.toLowerCase();
   if (r === 'daily' || r === 'weekly' || r === 'monthly') recurrence = r;
   return {
     title: p.untitled === '1' ? '' : ev.summary ?? '',

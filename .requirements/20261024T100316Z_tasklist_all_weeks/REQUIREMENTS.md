@@ -178,3 +178,19 @@ text, removing an item — asks "This week / All weeks", the way Google does for
   an item still being added asks and passes the answer; a this-only rename never merges ahead of a following one; the
   question is cancelled when the list view goes away. Deferred: the server re-saves lists that do not hold the item
   (harmless, new etag only); a second question cancels an open one (not reachable through the modal).
+
+## Code review of the split (coordinator, 2026-10-24) — fixes
+
+- C1 a later change reaches every later part (parts = live series with `series`=root or id=root; each later part changes
+  as a whole). C2 the new series copies the part's recurrence lines, so it keeps the part's end (no second open-ended
+  series). C3 exceptions are read without the property filter (Google guarantees only id / recurringEventId /
+  originalStartTime on a cancelled exception — events resource, `status`); the mock now returns cancelled exceptions in
+  that shape. C4 the new series starts at the earliest later occurrence by rule date including every later exception
+  (moved or deleted); a live one that cannot be carried → 502 before UNTIL; the mock hides exceptions past UNTIL.
+- W1 a part already starting at the split date is reused. W2 UNTIL written with If-Match after re-reading the exceptions.
+  W3/W5 only the RRULE line is rewritten (UNTIL/COUNT anywhere); a same-rhythm write keeps the rule. W4 no later
+  occurrence: 400-day search for an open-ended part, else 502. W6 the web store's series delete matches `seriesKey`.
+- Not done: COUNT rules are refused (400) rather than converted — cutting a COUNT rule at a date needs counting the
+  occurrences out; the app never writes COUNT (only Google Calendar could). W7 mock COUNT/EXDATE/monthly skipping: no test
+  relies on them (the COUNT case is refused before any expansion), so the mock was not extended.
+- Retried "add" creates a second item (the client sends no item id); within one request the item id is one for all parts.

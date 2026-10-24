@@ -436,22 +436,30 @@ whole series (`DELETE` of its `seriesId`), any other occurrence on its own. Dele
 split-off occurrences too (Google). `PATCH` / `DELETE /api/tasklists/:id` keep addressing exactly the given id (series or occurrence). **This and all following** (owner, 2026-10-24, feature
 tasklist-repeating; Google's "This and following events"): `?scope=following` on `PATCH /api/tasklists/:id` (body `title`
 only), `POST /api/tasklists/:id/items`, `PATCH /api/tasklists/:id/items/:itemId` (body `title` only) and
-`DELETE /api/tasklists/:id/items/:itemId` changes the occurrence `id` and every later one of its series; earlier ones never
-change. The Calendar API has no such operation; the server does what Google Calendar's own "This and following" does,
-splitting the series: (1) the given occurrence gets the change (an exception of the old series from then on); (2) a new
-series starts at the next live occurrence of the old one (its rule start found by a range read of the following 62 days),
-with the series' data plus the change and the private property `series` = the first series' id (kept through further
-splits); (3) every later exception of the old series (found by `events.list` without `singleEvents`, with `showDeleted`)
-is carried over to the new series' occurrence of the same rule date: its own data (ticks, own times, reminders) plus the
-change, a cancelled one cancels it; the old exception is then deleted; (4) the old series ends with `UNTIL` = the given
-occurrence's start. When the given occurrence is the series' first one (or the id is the series id) nothing is split:
-the series and all its exceptions get the change (each by read-modify-write, ticks kept). When no live occurrence follows
-within 62 days only the given one changes. An added item gets one id, unticked; a text change / removal reaches the
-lists that hold that item id. The answer is the given list (same `id`) after the change. `seriesKey` on an occurrence
-= the private `series` property, else its `seriesId`: the parts of a split list share it (the door board groups by it);
-deleting a series also deletes its later parts (same `series`, later start). `scope=following` on a list that does not
-repeat → 400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400
-(field `scope`); any other `scope` value than `this` / `following` → 400. Without `scope` (or `scope=this`) only the
+`DELETE /api/tasklists/:id/items/:itemId` changes the occurrence `id` and every later one of the list; earlier ones never
+change. A list is one or more Google series ("parts") sharing `seriesKey` (the first series' id; later parts carry it as
+the private property `series`). The Calendar API has no "this and following" operation; the server does what Google
+Calendar's own does, splitting the series, using only documented calls:
+(1) every part that starts after the given occurrence gets the change as a whole: the series and each live exception,
+each by read-modify-write (ticks kept); (2) in the part holding the occurrence — when it is that part's first one, the
+whole part changes the same way and nothing is split; otherwise (3) the occurrence gets the change (an exception of the old
+series from then on); (4) a new series starts at the earliest later occurrence of the part by rule date (the next live
+one within 62 days — 400 when the part has no end — or any later exception, also a moved or a deleted one), with the
+part's data plus the change, the part's recurrence lines (so it keeps the part's end) and `series`; a series an earlier,
+unfinished try made at that date is used again; (5) every later exception of the part (read without `singleEvents`, with
+`showDeleted` and without a property filter, since Google guarantees only `id`, `recurringEventId` and `originalStartTime`
+on a cancelled exception) is carried over to the new series' occurrence of the same rule date — its own data (ticks, own
+times, reminders) plus the change, a deleted one deletes it — and the old exception is deleted; one that cannot be carried
+answers 502 before anything is ended; (6) last, when no later live exception is left in the part, its RRULE line gets
+`UNTIL` = the occurrence's start (date for all-day, UTC for timed; any UNTIL/COUNT replaced, other lines such as EXDATE
+kept), written with If-Match (re-read and retried up to 3 times, else 412). A failure midway can leave duplicates, never a
+lost list; repeating the request finishes it. A part whose rule has `COUNT` is not split → 400 (field `scope`). A part
+without an end and no later occurrence within 400 days → 502. A later write of a series keeps its rule when the rhythm
+is the same (its UNTIL stays). An added item gets one id, unticked; a text change / removal reaches the lists that hold
+that item id. The answer is the given list (same `id`) after the change. The door board groups by `seriesKey`; deleting
+a series also deletes its later parts (same `series`, later start). `scope=following` on a list that does not repeat →
+400 `This list does not repeat` (field `scope`); with other fields than `title`, or `done` on an item → 400 (field
+`scope`); any other `scope` value than `this` / `following` → 400. Without `scope` (or `scope=this`) only the
 given id changes, as above. `index` inserts at a position (default: append). `itemIds` must be a
 permutation of the current ids, else 400. A list with an empty title and no items left → 400 `Add a title or an item`. Blank item titles → 400 (the UI ignores blank input without calling the API).
 Errors: 400, 404 (unknown list or item, or id is a plain event), 412 (`PATCH`/`DELETE` of the list with stale

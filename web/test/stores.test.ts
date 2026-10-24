@@ -554,6 +554,17 @@ describe('deleted items', () => {
       expect(items.get('m_20261021')).toBeUndefined();
     });
 
+    it('deleted after a "this and following" split: the later part\'s weeks (same seriesKey) leave too', async () => {
+      freshPinia();
+      const items = useItemsStore();
+      const m = mockFetch({ 'POST /api/tasklists': () => week('m_20261014', '2026-10-14'), 'DELETE /api/tasklists/m': () => ({}) });
+      const created = await items.createTaskList({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly' } as never);
+      items.upsert({ ...(week('n_20261028', '2026-10-28') as object), seriesId: 'n', seriesKey: 'm' } as never);
+      await items.deleteTaskList(created.id, created.etag);
+      expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m']);
+      expect(items.get('n_20261028')).toBeUndefined();
+    });
+
     it('a week the app did not just create is deleted on its own', async () => {
       freshPinia();
       const items = useItemsStore();

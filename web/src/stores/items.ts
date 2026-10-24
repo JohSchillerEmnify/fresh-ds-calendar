@@ -316,7 +316,8 @@ export const useItemsStore = defineStore('items', () => {
       if (series) {
         // a repeating list deleted (or its undo time over) right after it was created goes as a whole: no If-Match, the etag is its first week's
         await api.deleteTaskList(series, o);
-        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && it.seriesId === series) { deleted.add(it.id); remove(it.id); }
+        // every cached occurrence of the list, also of parts split off by a "this and following" change (same seriesKey)
+        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && (it.seriesKey ?? it.seriesId) === series) { deleted.add(it.id); remove(it.id); }
         createdSeries.delete(id);
       } else {
         await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });

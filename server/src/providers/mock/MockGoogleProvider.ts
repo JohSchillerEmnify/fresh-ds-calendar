@@ -192,11 +192,15 @@ export class MockGoogleProvider implements CalendarProvider {
       if (e.status === 'cancelled' && !p.showDeleted) continue;
       // recurring masters are expanded only inside a bounded range (and not at all without `singleEvents`: Google lists the master)
       const cands = p.singleEvents !== false && e.recurrence && !e.recurringEventId && Number.isFinite(min) && Number.isFinite(max) ? this.expand(e, min, max, exceptions) : [e];
+      // an exception past its series' UNTIL is no longer an occurrence (Google only shows what the rule makes)
+      if (p.singleEvents !== false && e.recurringEventId && this.pastUntil(e)) continue;
       for (const c of cands) {
         const [s, en] = this.bounds(c);
         if (!(en > min && s < max)) continue;
-        if (filters.some(([k, v]) => c.extendedProperties?.private?.[k] !== v)) continue;
-        out.push(clone(c));
+        // Google: a cancelled exception only guarantees id, recurringEventId and originalStartTime (no properties)
+        const shown = c.status === 'cancelled' && c.recurringEventId ? cancelledShape(c) : c;
+        if (filters.some(([k, v]) => shown.extendedProperties?.private?.[k] !== v)) continue;
+        out.push(clone(shown));
       }
     }
     return { items: out, nextSyncToken: `sync-${this.seq}` };
@@ -310,13 +314,31 @@ export class MockGoogleProvider implements CalendarProvider {
     return e.start.date ?? localDateOf(Date.parse(e.start.dateTime!), e.start.timeZone ?? this.tz);
   }
 
+  /** The RRULE line of a series (other lines, e.g. EXDATE, may come first). */
+  private ruleLine(m: GoogleEvent): string {
+    return m.recurrence?.find((l) => l.startsWith('RRULE:')) ?? '';
+  }
+
+  /** RFC 5545 UNTIL (inclusive): a date for an all-day series, a UTC instant for a timed one (how a split ends a series). */
+  private until(m: GoogleEvent): { date: string | null; ms: number | null } {
+    const u = /UNTIL=(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z)?/.exec(this.ruleLine(m));
+    return { date: u && !u[4] ? `${u[1]}-${u[2]}-${u[3]}` : null, ms: u?.[4] ? Date.parse(`${u[1]}-${u[2]}-${u[3]}T${u[4]}:${u[5]}:${u[6]}Z`) : null };
+  }
+
+  /** An exception whose rule start lies after its series' UNTIL. */
+  private pastUntil(e: GoogleEvent): boolean {
+    const m = this.events.get(key(e.calendarId, e.recurringEventId!));
+    const o = e.originalStartTime;
+    if (!m || !o) return false;
+    const u = this.until(m);
+    if (o.date) return u.date !== null && o.date > u.date;
+    return u.ms !== null && Date.parse(o.dateTime!) > u.ms;
+  }
+
   private expand(m: GoogleEvent, min: number, max: number, exceptions: Set<string>): GoogleEvent[] {
-    const rule = /FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/.exec(m.recurrence![0] ?? '')?.[1];
-    const lastOfFeb = /BYMONTH=2;BYMONTHDAY=-1/.test(m.recurrence![0] ?? '');
-    // RFC 5545 UNTIL (inclusive): a date for an all-day series, a UTC instant for a timed one (how a split ends a series)
-    const u = /UNTIL=(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z)?/.exec(m.recurrence![0] ?? '');
-    const untilDate = u && !u[4] ? `${u[1]}-${u[2]}-${u[3]}` : null;
-    const untilMs = u?.[4] ? Date.parse(`${u[1]}-${u[2]}-${u[3]}T${u[4]}:${u[5]}:${u[6]}Z`) : null;
+    const rule = /FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/.exec(this.ruleLine(m))?.[1];
+    const lastOfFeb = /BYMONTH=2;BYMONTHDAY=-1/.test(this.ruleLine(m));
+    const { date: untilDate, ms: untilMs } = this.until(m);
     if (!rule) return [m];
     const base = this.masterDate(m);
     const baseTime = m.start.dateTime ? localTimeOf(Date.parse(m.start.dateTime), m.start.timeZone ?? this.tz) : null;
@@ -505,4 +527,12 @@ function applyPatch(cur: GoogleEvent, patch: GoogleEventPatch): void {
 /** A rate guard whose reads are never fresh (ttl 0), so it only answers from its cache while rate limited. */
 function newGuard(): RateGuard {
   return new RateGuard({ ttlMs: 0 });
+}
+
+/** What Google guarantees on a cancelled exception: id, recurringEventId and originalStartTime (the rest may be empty). */
+function cancelledShape(e: GoogleEvent): GoogleEvent {
+  return {
+    id: e.id, calendarId: e.calendarId, etag: e.etag, status: 'cancelled', recurringEventId: e.recurringEventId, originalStartTime: e.originalStartTime,
+    start: {}, end: {}, created: e.created, updated: e.updated,
+  };
 }
