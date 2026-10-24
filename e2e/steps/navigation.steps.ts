@@ -164,7 +164,22 @@ Then('the month cell of {date} shows no overflow count', async function (this: W
   expect(await cell.innerText()).not.toMatch(/\+\d|\bmore\b/);
 });
 
-When('the browser window is {int} by {int} pixels wide and high', async function (this: World, width: number, height: number) {
+Then('every entry in the month cell of {date} can be seen at least in part', async function (this: World, date: string) {
+  const box = this.byTestId('month-cell', attr('data-date', date)).getByTestId('month-cell-entries');
+  // the left-out entries are counted (`data-more`); every entry still built starts above the box's bottom edge
+  await expect.poll(() => box.evaluate((el) => {
+    const bottom = el.getBoundingClientRect().bottom;
+    const tops = [...el.querySelectorAll(':scope > [data-title]')].map((c) => c.getBoundingClientRect().top);
+    return Number(el.getAttribute('data-more')) > 0 && tops.length > 0 && tops.every((t) => t < bottom);
+  })).toBe(true);
+});
+
+Then('the month cell of {date} leaves out the entry {string}', async function (this: World, date: string, title: string) {
+  const cell = this.byTestId('month-cell', attr('data-date', date));
+  await expect(cell.locator(attr('data-title', title))).toHaveCount(0);
+});
+
+When('the browser window is {int} by {int} pixels wide and high',async function (this: World, width: number, height: number) {
   await this.page.setViewportSize({ width, height });
 });
 

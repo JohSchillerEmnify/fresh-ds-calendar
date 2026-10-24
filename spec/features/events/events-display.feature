@@ -228,6 +228,33 @@ Feature: Displaying events in the calendar views
     And I see the event "H" on 2026-10-14
 
   @month @desktop
+  Scenario: Entries completely hidden under the fade of a month cell are not in the page
+    Owner, 2026-10-24: an entry that cannot be seen at all in its month cell is not built, so a busy month renders
+    faster. Accepted: a screen reader no longer lists it in the month grid; the week and day views still show it.
+    Given the calendar contains these events on 2026-10-14:
+      | title | from  | to    |
+      | E01   | 10:00 | 10:30 |
+      | E02   | 10:30 | 11:00 |
+      | E03   | 11:00 | 11:30 |
+      | E04   | 11:30 | 12:00 |
+      | E05   | 12:00 | 12:30 |
+      | E06   | 12:30 | 13:00 |
+      | E07   | 13:00 | 13:30 |
+      | E08   | 13:30 | 14:00 |
+      | E09   | 14:00 | 14:30 |
+      | E10   | 14:30 | 15:00 |
+      | E11   | 15:00 | 15:30 |
+      | E12   | 15:30 | 16:00 |
+    When I open the month view for 2026-10
+    Then I see the event "Dentist" on 2026-10-14
+    And every entry in the month cell of 2026-10-14 can be seen at least in part
+    And the month cell of 2026-10-14 leaves out the entry "E12"
+    And the entries on 2026-10-14 fade out towards the bottom of the month cell
+    And the month cell of 2026-10-14 shows no overflow count
+    When I click empty space in the month cell of 2026-10-14
+    Then I see the event "E12" on 2026-10-14
+
+  @month @desktop
   Scenario: Task list cards in a narrow month grid do not flicker
     Given the browser window is 672 by 1180 pixels wide and high
     And the calendar contains a task list "Groceries" on 2026-10-14 with items:

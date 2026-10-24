@@ -45,6 +45,14 @@ describe('v-fade', () => {
     await Promise.resolve();
     expect(log).toEqual(['read', 'read', 'write', 'write']);
   });
+
+  it('fades a box that leaves entries out even when what it shows fits', async () => {
+    const el = box([], 40, 50);
+    el.dataset.more = '2';
+    hook('mounted', el);
+    await Promise.resolve();
+    expect(el.dataset.fade).toBe('true');
+  });
 });
 
 describe('event entry size', () => {

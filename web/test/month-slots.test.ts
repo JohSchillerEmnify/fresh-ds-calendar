@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { packWeek } from '@/lib/monthSlots';
+import { packWeek, seenCount } from '@/lib/monthSlots';
 
 const ones = (n: number) => Array.from({ length: n }, () => 1);
 
@@ -40,5 +40,21 @@ describe('packWeek', () => {
     const r = packWeek([], [[3, 1]]);
     expect(r[0].spans).toEqual([3, 1]);
     expect(r[0].slots).toEqual([0, 3]);
+  });
+});
+
+describe('seenCount', () => {
+  it('counts the entries that start above the bottom of the room', () => {
+    expect(seenCount([0, 1, 2, 3, 4], 20, 61)).toBe(4);
+    expect(seenCount([0, 1, 2, 3, 4], 20, 60)).toBe(3);
+  });
+
+  it('keeps an entry below a bar gap or a wide card by its first slot', () => {
+    expect(seenCount([0, 3, 4], 20, 70)).toBe(2);
+  });
+
+  it('keeps everything while the cell is unmeasured or roomy', () => {
+    expect(seenCount([0, 1, 2], 20, Infinity)).toBe(3);
+    expect(seenCount([], 20, 10)).toBe(0);
   });
 });

@@ -156,6 +156,8 @@ I click the day number of {date}
 I click empty space in the month cell of {date}
 the entries on {date} fade out towards the bottom of the month cell
 the month cell of {date} shows no overflow count
+every entry in the month cell of {date} can be seen at least in part
+the month cell of {date} leaves out the entry {string}
 the month cell of {date} shows its first entry
 the month cells stay unchanged for {int} seconds
 I click the week header of {date}
@@ -1168,6 +1170,9 @@ they hide the calendar {string} in the filter bar
   `tasklist-card-more` element.
 - "shows its first entry": the `month-cell-entries` box is at least 16 px tall and its first entry starts inside it, above
   the faded band (a cell whose bars or measuring leave the entries no room looks empty).
+- "every entry in the month cell of D can be seen at least in part": the `month-cell-entries` box counts the entries it
+  left out (`data-more` > 0) and every entry still in it (`[data-title]` child) starts above the box's bottom edge.
+  "leaves out the entry T": no element with `data-title` T inside the month cell of D.
 - "stay unchanged for N seconds": a `MutationObserver` on `month-view` sees no childList change and no real change of a
   `data-*` attribute (`data-tier`, `data-fit`, `data-fade`) for N seconds: layout tiers settle instead of flipping.
 - "the browser window is W by H pixels wide and high" resizes the viewport (use before opening a view).
