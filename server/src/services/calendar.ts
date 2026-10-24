@@ -725,23 +725,30 @@ export class CalendarService {
    * Carries one later exception of the old series over to `fresh`'s occurrence of the same rule date. `own` holds the new
    * series' exceptions by rule date (kept up to date here). A deleted one deletes the new series' occurrence only while that
    * is still plain: an exception there is a week carried over before (the old one is deleted after carrying) and stays. A
-   * live one gives the occurrence its own data (ticks, times, reminders) plus `change` and is then deleted. An occurrence
-   * that cannot be found stops the split before the old series is ended (nothing is lost).
+   * live one gives the occurrence its own data (ticks, times, reminders) plus `change` and is then deleted; when the person
+   * deleted that week in the new series already, the old one is deleted too. An occurrence that cannot be found stops the
+   * split before the old series is ended (nothing is lost).
    */
   private async carry(e: GoogleEvent, fresh: GoogleEvent, change: (d: TaskListData) => TaskListData, own: Map<string, GoogleEvent>): Promise<void> {
     const day = this.ruleStart(e).date;
     const had = own.get(day);
     if (e.status === 'cancelled') {
       if (had) return;
-      const plain = await this.occurrenceOn(fresh, day);
-      if (plain) {
-        await this.provider.deleteEvent(fresh.calendarId, plain.id);
-        own.set(day, { ...plain, status: 'cancelled' });
+      const found = await this.occurrenceOn(fresh, day);
+      // delete only what is surely still plain: a list read may lag behind a week carried just before
+      if (found && await this.isPlain(fresh, found)) {
+        await this.provider.deleteEvent(fresh.calendarId, found.id);
+        own.set(day, { ...found, status: 'cancelled' });
       }
       return;
     }
+    // the person deleted that week in the new series (a split left half done): the old week goes too
+    if (had?.status === 'cancelled') {
+      await this.deleteOld(e);
+      return;
+    }
     // an earlier pass may have carried (and moved) it already: its exception in the new series is the one to write
-    const inst = had ? (had.status === 'cancelled' ? null : had) : await this.occurrenceOn(fresh, day);
+    const inst = had ?? await this.occurrenceOn(fresh, day);
     if (!inst) throw new ApiException('PROVIDER_ERROR', 502, 'A later task list could not be carried over; nothing was ended');
     const data = decodeTaskList(e, this.tz);
     const dd = change(data);
@@ -749,11 +756,27 @@ export class CalendarService {
     const patch = encodeTaskListPatch(dd, this.tz, this.colorFor(dd), inst);
     if (e.reminders) patch.reminders = e.reminders;
     own.set(day, await this.provider.patchEvent(fresh.calendarId, inst.id, patch, { ifMatch: inst.etag }));
+    await this.deleteOld(e);
+  }
+
+  /** Deletes an old exception that was carried over (already gone counts as done). */
+  private async deleteOld(e: GoogleEvent): Promise<void> {
     try {
       await this.provider.deleteEvent(e.calendarId, e.id);
     } catch (err) {
       if (!(err instanceof NotFoundError)) throw err;
     }
+  }
+
+  /**
+   * An occurrence of `fresh` is plain (never written on its own) when a fresh read of the series' exceptions has none at
+   * its date and it still carries the series' own `updated`; anything else may be a week carried just before and is kept.
+   */
+  private async isPlain(fresh: GoogleEvent, occ: GoogleEvent): Promise<boolean> {
+    const day = this.ruleStart(occ).date;
+    if (this.exceptionsIn(await this.seriesEvents(fresh.calendarId), fresh).some((x) => this.ruleStart(x).date === day)) return false;
+    const series = await this.locateKind(fresh.id, true);
+    return occ.updated === series.updated;
   }
 
   async updateTaskList(id: string, input: UpdateTaskListInput, ifMatch?: string, scope?: Scope): Promise<TaskList> {

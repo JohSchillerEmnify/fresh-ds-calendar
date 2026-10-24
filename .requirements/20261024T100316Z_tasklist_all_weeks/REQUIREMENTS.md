@@ -206,3 +206,7 @@ text, removing an item — asks "This week / All weeks", the way Google does for
   in a map updated after each carry. `events.instances` was not used (it expands every plain occurrence of an open-ended
   series).
 - N4 the new series gets only RRULE and EXDATE lines.
+- Third review follow-ups: a deleted old week deletes the new series' occurrence only when it is surely plain (fresh
+  exception read shows none at that date and it carries the series' `updated`; otherwise kept — a lagging list may not
+  show a week carried just before). A live old week whose counterpart the person deleted in the new series is deleted
+  too (no 502), so a retry finishes.

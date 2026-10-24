@@ -702,6 +702,46 @@ describe('recurring task lists: a change for this and all following ones (scope=
     expect((await weeks()).map((w: any) => w[2])).toEqual(['Sink:0,Floor:0', 'Sink:0,Floor:0', 'Sink:1,Floor:0', 'Sink:0,Floor:0']);
   });
 
+  it('a carried week that a lagging list read does not show yet is not taken for a plain one and deleted', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    const fresh = (await remote()).find((e: any) => e.recurrence && e.id !== a.seriesId && e.status !== 'cancelled');
+    // Google's list lags: reads without singleEvents do not show the new series' exceptions yet
+    type Read = (p: { singleEvents?: boolean }) => { items: { recurringEventId?: string }[] };
+    const proto = MockGoogleProvider.prototype as unknown as { readEvents: Read };
+    const orig = proto.readEvents;
+    const spy = vi.spyOn(proto, 'readEvents').mockImplementation(function (this: unknown, p) {
+      const r = orig.call(this, p);
+      return p.singleEvents === false ? { ...r, items: r.items.filter((e) => e.recurringEventId !== fresh.id) } : r;
+    });
+    try {
+      expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    } finally { spy.mockRestore(); }
+    expect((await weeks()).map((w: any) => [w[0], w[2]])).toEqual([
+      ['2026-10-14', 'Sink:0,Floor:0'], ['2026-10-21', 'Sink:0,Floor:0'], ['2026-10-28', 'Sink:1,Floor:0'], ['2026-11-04', 'Sink:0,Floor:0'],
+    ]);
+  });
+
+  it('a split left half done whose new week the person deleted finishes on retry: the old week goes too', async () => {
+    const a = await create();
+    await tick('2026-10-28', 0);
+    const second = await week('2026-10-21');
+    const oldWeek = (await remote()).find((e: any) => e.recurringEventId === a.seriesId && e.originalStartTime?.date === '2026-10-28');
+    await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' });
+    // as if ending the old series and deleting its carried week had failed, and the person then deleted the new week
+    await t.json('PATCH', `/api/__test/remote/events/${a.seriesId}`, { recurrence: ['RRULE:FREQ=WEEKLY'] });
+    await t.json('PATCH', `/api/__test/remote/events/${oldWeek.id}`, { status: 'confirmed' });
+    const carried = (await weeks()).length;
+    expect(carried).toBe(6); // 10-28 and 11-04 twice now: the old series runs on next to the new one
+    const shown = (await all()).filter((l: any) => l.date === '2026-10-28' && l.seriesId !== a.seriesId)[0];
+    expect((await t.req('DELETE', `/api/tasklists/${shown.id}`)).status).toBe(204);
+    expect((await t.json('PATCH', `/api/tasklists/${second.id}?scope=following`, { title: 'Bathroom' })).status).toBe(200);
+    expect((await weeks()).map((w: any) => w[0])).toEqual(['2026-10-14', '2026-10-21', '2026-11-04']);
+  });
+
   it('an added item with an id from the client is not added twice when the request is repeated', async () => {
     await create();
     const second = await week('2026-10-21');
