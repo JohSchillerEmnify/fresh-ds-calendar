@@ -60,12 +60,8 @@ export default {
   },
   repeatScope: {
     title: 'Change repeating list',
-    thisDay: 'This day',
-    allDays: 'All days',
-    thisWeek: 'This week',
-    allWeeks: 'All weeks',
-    thisMonth: 'This month',
-    allMonths: 'All months',
+    this: 'This task list',
+    following: 'This and all following task lists',
     ok: 'OK',
   },
   list: {

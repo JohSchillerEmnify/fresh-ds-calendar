@@ -299,14 +299,14 @@ export const useItemsStore = defineStore('items', () => {
       return tl;
     } catch (e) { return report(e); }
   }
-  /** `scope` `all`: the title for every week of a repeating list (no If-Match: the server writes each week afresh); the views read again. */
+  /** `scope` `following`: the title for this and all later occurrences of a repeating list (no If-Match: the server writes each afresh); the views read again. */
   async function updateTaskList(id: string, patch: UpdateTaskListInput, etag?: string, scope?: ChangeScope): Promise<TaskList> {
     try {
-      const tl = scope === 'all'
-        ? await api.updateTaskList(id, patch, {}, 'all')
+      const tl = scope === 'following'
+        ? await api.updateTaskList(id, patch, {}, 'following')
         : await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
       upsert(tl);
-      if (scope === 'all') refreshVisible().catch(() => undefined);
+      if (scope === 'following') refreshVisible().catch(() => undefined);
       return tl;
     } catch (e) { return report(e); }
   }

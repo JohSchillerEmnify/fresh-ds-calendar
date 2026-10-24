@@ -398,9 +398,9 @@ function enc(s: string): string {
   return encodeURIComponent(s);
 }
 
-/** A task list change for every week of a repeating list carries `?scope=all` (API.md, feature tasklist-repeating). */
+/** A change for this and all following occurrences of a repeating list carries `?scope=following` (API.md, feature tasklist-repeating). */
 function scoped(path: string, scope?: ChangeScope): string {
-  return scope === 'all' ? `${path}?scope=all` : path;
+  return scope === 'following' ? `${path}?scope=following` : path;
 }
 
 /** App-wide client instance. Tests construct their own `ApiClient` with a mocked `fetch`, or call `setApi`. */

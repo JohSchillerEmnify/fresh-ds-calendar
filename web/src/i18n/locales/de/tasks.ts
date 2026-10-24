@@ -58,12 +58,8 @@ export default {
   },
   repeatScope: {
     title: 'Wiederkehrende Liste ändern',
-    thisDay: 'Dieser Tag',
-    allDays: 'Alle Tage',
-    thisWeek: 'Diese Woche',
-    allWeeks: 'Alle Wochen',
-    thisMonth: 'Dieser Monat',
-    allMonths: 'Alle Monate',
+    this: 'Diese Aufgabenliste',
+    following: 'Diese und alle folgenden Aufgabenlisten',
     ok: 'OK',
   },
   list: {

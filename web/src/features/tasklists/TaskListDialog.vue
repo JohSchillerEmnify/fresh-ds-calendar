@@ -46,7 +46,7 @@ let etag = '';
 let original = '';
 let originalTitle = '';
 let originalDoor = false;
-/** A changed title of a repeating list asks "This week / All weeks" on save (feature tasklist-repeating). */
+/** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
 const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time));
@@ -127,15 +127,21 @@ async function save() {
     // the reminders are only sent when they changed (a create: when the list has its own)
     ...(form.reminders && !(current?.kind === 'tasklist' && current.shared) && !sameReminders(form.reminders, originalReminders) ? { reminders: form.reminders } : {}),
   };
-  // a renamed repeating list: the title may go to every week, the rest of the form stays with this week
+  // a renamed repeating list: the title may go to the following lists too, the rest of the form stays with this one
   const s = editing.value && current?.kind === 'tasklist' && body.title !== originalTitle.trim() ? await scope.ask(current) : 'this';
   if (!s) { saving.value = false; return; }
   try {
-    if (editing.value && s === 'all') {
+    if (editing.value && s === 'following') {
       const { title, ...rest } = body;
       const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' }) || door.value !== originalDoor;
-      if (othersChanged) await items.updateTaskList(props.id!, rest, etag);
-      await items.updateTaskList(props.id!, { title }, undefined, 'all');
+      if (othersChanged) {
+        const saved = await items.updateTaskList(props.id!, rest, etag);
+        // saved: a retry after a failed title request sends only the title (with the new version)
+        etag = saved.etag;
+        original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
+        originalDoor = door.value;
+      }
+      await items.updateTaskList(props.id!, { title }, undefined, 'following');
     } else if (editing.value) await items.updateTaskList(props.id!, body, etag);
     else {
       await items.createTaskList({
@@ -217,7 +223,7 @@ function remove() {
       </div>
     </form>
     <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
-    <Teleport to="body"><RepeatScopeDialog :recurrence="scope.asking.value" @answer="scope.answer" /></Teleport>
+    <Teleport to="body"><RepeatScopeDialog :open="scope.asking.value" @answer="scope.answer" /></Teleport>
   </AdaptiveSheet>
 </template>
 

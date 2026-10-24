@@ -130,7 +130,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => theme.hide(id));
   }
 
-  /** `index`: the item's position in the list, where an undo puts it back; `scope` `all`: every week of a repeating list. */
+  /** `index`: the item's position in the list, where an undo puts it back; `scope` `following`: this and all later occurrences of a repeating list. */
   function deleteTaskItem(listId: string, item: TaskItem, index: number, scope?: ChangeScope): void {
     const items = useItemsStore();
     start({
