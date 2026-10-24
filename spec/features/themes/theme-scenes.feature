@@ -32,6 +32,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       | Light | Winter | light  |
 
   Scenario Outline: Each season and holiday scene has its own life and a cat
+    Given the time is 2026-10-12 08:00 and the clock is running
     When I set the seasons and holidays to "Off"
     And I choose the theme "<theme>"
     Then the top bar scene shows <parts>
@@ -80,17 +81,19 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     When 11 seconds pass
     Then the top bar scene is still
 
-  Scenario Outline: The <scene> scene is not a season scene and keeps moving
-    Given the scene is "<scene>"
+  Scenario: The Mordor scene is not a season scene and its cat keeps moving
+    Given the scene is "Mordor"
+    And the time is 2026-10-31 18:00 and the clock is running
+    When I open the week view for 2026-10-31
+    And 11 seconds pass
+    Then the scene's cat is moving
+
+  Scenario: The sunflower field is not a season scene and keeps moving
+    Given the scene is "Sunflower field"
     And the time is 2026-10-31 18:00 and the clock is running
     When I open the week view for 2026-10-31
     And 11 seconds pass
     Then the top bar scene is moving
-
-    Examples:
-      | scene           |
-      | Mordor          |
-      | Sunflower field |
 
   @perf
   Scenario: A still scene leaves the processor free

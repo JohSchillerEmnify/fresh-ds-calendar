@@ -10,13 +10,17 @@ import { appTimeout, type Disposer } from '@/lib/timers';
 import { useAnimationLevel, type MotionLevel } from '@/motion/level';
 import { visitWait, type VisitRhythm } from './butterflyVisits';
 
-/**
- * The current visit (whatever `start` made of it) or null between visits. `start` may return null to skip a visit;
- * `forced` asks for the next visit at once (the test hook); `rests` (seasonal scenes) says the scene is at rest and
- * switches from the rhythm to one visit per moving window.
- */
+/** Options of {@link useSceneVisits}. */
+export interface SceneVisitOptions {
+  /** Asks for the next visit at once (the test hook). */
+  forced?: () => boolean;
+  /** Seasonal scenes: whether the scene is at rest; switches from the rhythm to one visit per moving window. */
+  rests?: () => boolean;
+}
+
+/** The current visit (whatever `start` made of it) or null between visits. `start` may return null to skip a visit. */
 export function useSceneVisits<T>(
-  rhythm: VisitRhythm, start: (level: MotionLevel) => T | null, forced: () => boolean = () => false, rests?: () => boolean,
+  rhythm: VisitRhythm, start: (level: MotionLevel) => T | null, { forced = () => false, rests }: SceneVisitOptions = {},
 ): Ref<T | null> {
   const visit = ref(null) as Ref<T | null>;
   const level = useAnimationLevel();

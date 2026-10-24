@@ -53,9 +53,11 @@ const visit = useSceneVisits(
     const flight = none ? null : butterflyFlight(level, Math.random());
     return flight && { flight, restX: Math.round(15 + Math.random() * 65), tint: Math.random() < 0.5 ? ('a' as const) : ('b' as const) };
   },
-  () => forcedButterfly(clock.config.testMode),
-  // Mordor is not a seasonal scene: its butterfly keeps its rhythm; the seasonal ones pass once per moving window
-  props.scene === 'mordor' ? undefined : () => sceneStill.value,
+  {
+    forced: () => forcedButterfly(clock.config.testMode),
+    // Mordor is not a seasonal scene: its butterfly keeps its rhythm; the seasonal ones pass once per moving window
+    rests: props.scene === 'mordor' ? undefined : () => sceneStill.value,
+  },
 );
 /** At Halloween bats come instead of butterflies (same rhythm, same test hook). */
 const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';

@@ -54,14 +54,19 @@ describe('themed top bar scenes', () => {
 
   it('a seasonal scene\'s butterfly passes once while it moves (~10 s) and does not come back', async () => {
     vi.useFakeTimers();
+    enableTimerCounting();
+    const before = window.__appTimers ?? 0;
     const w = mountScene('fall');
     const has = () => parts(w.element, 'butterfly');
     expect(has()).toBe(1);
     await vi.advanceTimersByTimeAsync(BUTTERFLY_VISIT_MS);
     expect(has()).toBe(0);
+    // nothing is scheduled for later
+    expect(window.__appTimers).toBe(before);
     await vi.advanceTimersByTimeAsync(3_600_000);
     expect(has()).toBe(0);
     w.unmount();
+    enableTimerCounting(false);
   });
 
   it('Mordor\'s butterfly comes by only now and then: first after 20–60 s, ~10 s long, then again after 3–5 min', async () => {

@@ -174,6 +174,8 @@ describe('seasonal scenes rest after ten seconds', () => {
   ])('Halloween (roll %s): the %s passes once while the scene moves, then nothing comes any more', async (roll, who) => {
     setActivePinia(createPinia());
     vi.spyOn(Math, 'random').mockReturnValue(roll);
+    enableTimerCounting();
+    const before = window.__appTimers ?? 0;
     const shell = mount(Shell);
     const w = mount(TopBarScene, { props: { scene: 'halloween' as SceneName }, attachTo: document.body });
     await flushPromises();
@@ -183,6 +185,8 @@ describe('seasonal scenes rest after ten seconds', () => {
     if (who === 'ghost') expect(w.get('[data-part="ghost"]').classes()).toContain('float');
     await vi.advanceTimersByTimeAsync(SCENE_AWAKE_MS);
     expect(w.findAll('[data-part="bat"], [data-part="ghost"]')).toHaveLength(0);
+    // nothing is scheduled for later: no visitor and no rest-clock timer
+    expect(window.__appTimers).toBe(before);
     await vi.advanceTimersByTimeAsync(3_600_000);
     expect(w.findAll('[data-part="bat"], [data-part="ghost"]')).toHaveLength(0);
     // coming back: one visitor passes again
@@ -192,6 +196,7 @@ describe('seasonal scenes rest after ten seconds', () => {
     expect(w.findAll('[data-part="bat"], [data-part="ghost"]')).toHaveLength(1);
     w.unmount();
     shell.unmount();
+    enableTimerCounting(false);
     vi.restoreAllMocks();
   });
 

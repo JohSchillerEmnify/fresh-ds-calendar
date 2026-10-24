@@ -28,8 +28,7 @@ const clock = useClockStore();
 const ghost = useSceneVisits(
   GHOST_RHYTHM,
   (level) => (halloweenVisitor(forcedButterfly(clock.config.testMode)) === 'ghost' ? { drift: level === 'full' ? ('float' as const) : ('fade' as const), x: Math.round(18 + Math.random() * 50) } : null),
-  undefined,
-  () => sceneStill.value,
+  { rests: () => sceneStill.value },
 );
 </script>
 

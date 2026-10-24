@@ -1704,6 +1704,7 @@ every option of the {string} setting shows a sample icon
 the top bar scene shows {string}, {string}, {string} and {string}
 the top bar scene is moving
 the top bar scene is still
+the scene's cat is moving
 a visitor passes through the top bar scene
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
@@ -1722,7 +1723,8 @@ the support cat is gone within {int} ms
 - "the top bar scene is moving": at least one CSS animation (`document.getAnimations()`) whose target is inside
   `top-bar-scene` has `playState` `running`. "is still": none is running and there is no `butterfly`, `bat` or `ghost`
   part; `html[data-scenes]` is `still`. Both first wait until the scene has drawn a `data-part` (the lazy chunk has
-  rendered), then poll up to 5 s. "a visitor passes through": a `butterfly`, `bat` or
+  rendered), then poll up to 5 s. "the scene's cat is moving": the same as "is moving", counting only animations
+  inside the scene's `cat` part (the living layer, not the backdrop). "a visitor passes through": a `butterfly`, `bat` or
   `ghost` part is visible in the top bar scene (the fake clock holds the visit while the step looks).
 - A seasonal scene's visitor passes once at the start of each moving window (Mordor keeps its rhythm: first after
   20-60 s, then every 3-5 min). The scene step sets `window.__butterflyNow = true` before loading so the "butterfly"
