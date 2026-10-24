@@ -1457,6 +1457,8 @@ I note the height of {string} on the runway
   narrowest band (6 on the clock, 4 on the rings clock) have no arc and are only listed.
 - Labs labels to ids: a Labs view label is turned into its id by lower-casing it and joining its words with "-"
   ("Clock: rings" → `clock-rings`).
+- Both "the middle of the clock says" steps first wait for `clock-view` `data-tomorrow-loaded="true"` (today's clock
+  sets it once a cached range holds tomorrow, whose first entry the middle may name).
 - "the middle of the clock says X": exactly one line, `clock-now-line` text X, and no `clock-now-when`. "says X over
   Y": `clock-now-line` text X and `clock-now-when` text Y, the second below the first. "the first line ... is T cut
   short with E": `clock-now-line` text ends with E, is shorter than T, and without E is the start of T; "the second

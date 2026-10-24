@@ -336,11 +336,14 @@ When('I tap the clock at {time}', async function (this: World, time: string) {
 });
 
 Then('the middle of the clock says {string}', async function (this: World, text: string) {
+  // the middle may name tomorrow's first entry: judge it only once tomorrow is loaded
+  await expect(this.page.getByTestId('clock-view')).toHaveAttribute('data-tomorrow-loaded', 'true');
   await expect(this.page.getByTestId('clock-now-line')).toHaveText(text);
   await expect(this.page.getByTestId('clock-now-when')).toHaveCount(0);
 });
 
 Then('the middle of the clock says {string} over {string}', async function (this: World, title: string, when: string) {
+  await expect(this.page.getByTestId('clock-view')).toHaveAttribute('data-tomorrow-loaded', 'true');
   const first = this.page.getByTestId('clock-now-line'), second = this.page.getByTestId('clock-now-when');
   await expect(first).toHaveText(title);
   await expect(second).toHaveText(when);

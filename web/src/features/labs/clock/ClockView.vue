@@ -212,8 +212,12 @@ const isToday = computed(() => date.value === clock.today);
 const elapsed = computed(() => (date.value < clock.today ? 1440 : isToday.value ? clock.minutesNow : 0));
 const handTime = computed(() => minutesToTime(clock.minutesNow));
 const progress = computed(() => (elapsed.value > 0 ? arcPath(0, elapsed.value, 205) : ''));
-// Today the middle may name tomorrow's first entry, so tomorrow is loaded too (in the background, kept in the cache).
-watch([isToday, tomorrow], ([on, d]) => { if (on) items.prefetch(d, toIsoDate(addDays(cal.anchor, 2))); }, { immediate: true });
+/** Some cached range holds tomorrow (the middle may name tomorrow's first entry). */
+const tomorrowLoaded = computed(() => Object.values(items.ranges).some((r) => r.from <= tomorrow.value && tomorrow.value < r.to));
+// Today tomorrow is loaded too, in the background, and again whenever the cache has dropped it.
+watch([isToday, tomorrowLoaded, tomorrow], ([on, loaded, d]) => {
+  if (on && !loaded) items.prefetch(d, toIsoDate(addDays(cal.anchor, 2)));
+}, { immediate: true });
 /** Baseline of the middle's n-th line under the time (0: the title, 1: when and how long until). */
 const lineY = (n: number) => CENTER + 56 + n * sizing.value.font * 1.3;
 /**
@@ -222,7 +226,7 @@ const lineY = (n: number) => CENTER + 56 + n * sizing.value.font * 1.3;
  */
 const middle = computed(() => {
   if (!isToday.value) return null;
-  const m = clockMiddle(clockFocus(segments.value, visibleOn(tomorrow.value), clock.minutesNow), clock.minutesNow);
+  const m = clockMiddle(clockFocus(segments.value, visibleOn(tomorrow.value), clock.minutesNow), clock.nowTick, clock.timeZone);
   return 'line' in m ? { first: m.line, when: null } : { first: clip(m.title, sizing.value.maxChars + 6), when: m.when };
 });
 /** Today: the sector from the hand to the end of the running entry or the start of the next one (time made visible). */
@@ -261,7 +265,9 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
 </script>
 
 <template>
-  <section ref="root" class="clock" :class="[variant, { stacked: !wide }]" data-testid="clock-view" :data-date="date" :data-variant="variant">
+  <section ref="root" class="clock" :class="[variant, { stacked: !wide }]" data-testid="clock-view" :data-date="date" :data-variant="variant"
+    :data-tomorrow-loaded="isToday ? String(tomorrowLoaded) : undefined"
+  >
     <h2 class="date">{{ dateLabel }}</h2>
     <div ref="layout" class="layout">
     <ul v-if="allDay.length" ref="topChips" class="chips allday-chips" data-testid="clock-allday-list">

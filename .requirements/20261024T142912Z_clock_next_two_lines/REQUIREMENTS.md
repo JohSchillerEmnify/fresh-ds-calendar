@@ -73,9 +73,8 @@ Names on the dial keep clear of both middle lines.
 - Unit (vitest): a pure `clockMiddle(segsToday, segsTomorrow, nowMin)` returning `{ title, when } | { line }` — next,
   running, several running (the one ending first, as now), tomorrow, nothing, all-day ignored, minute rounding.
 - e2e (targeted, `--grep` the scenario names above, mobile and desktop) + the existing crowded-name scenarios.
-- Visual: there are no clock pictures yet (`e2e/snapshots/mobile` has none), so no @visual scenario is added; the
-  build still takes screenshots of the clock at phone size and looks at them (two lines, no overlap with the time or
-  names).
+- Visual: there were no clock pictures before; four @visual scenarios now guard the middle at phone size (long title,
+  running in dark, tomorrow in German, crowded German rings clock), each looked at before its baseline was kept.
 
 ## Implementation Plan
 
@@ -102,8 +101,9 @@ Names on the dial keep clear of both middle lines.
 - A8 A task list in the middle is named by its title only (no "1/2" count, unlike its arc label); an untitled list is
   "Task list".
 - A9 Tomorrow is loaded by a background prefetch of [tomorrow, day after) while the clock shows today
-  (`items.prefetch`); the cached range is not re-polled, so a change to tomorrow made elsewhere shows after the next
-  load of that range (or a reload). Accepted for a Labs view.
+  (`items.prefetch`), and requested again whenever no cached range holds tomorrow any more (evicted from the LRU), so
+  it never silently falls back to "Nothing else today". A cached range is still not re-polled, so a change to tomorrow
+  made elsewhere shows after the next load of that range (or a reload). Accepted for a Labs view.
 - A10 Line 1 (title) is on-surface, weight 600; line 2 on-surface-variant, weight 500, tabular digits; both at the
   name font size, 1.3 em apart. Line 2 is never clipped, even in German ("bis 10:00 · noch 1 Std. 20 Min.").
 - A11 Coldmirror gets its own short texts ("bis {end} · noch {left}, yo", "Morgen {start}, yo"); Fränggisch falls
@@ -121,3 +121,11 @@ Names on the dial keep clear of both middle lines.
 - Tests: unit `web/test/calendar/clock.test.ts` (focus, wording, wedge with task lists); e2e labs-clock (+2 task-list
   examples), STEPS.md updated; @visual: 3 new clock pictures (`clock-next-long`, `clock-running-dark`,
   `clock-tomorrow-de`) with a new `clock` region.
+- A13 (review) Today an entry that began before midnight counts as running ("Night shift" 22:00-06:00 at 03:00);
+  only tomorrow's list is limited to entries that begin tomorrow.
+- A14 (review) The countdown is real time between instants in the calendar zone (DST safe: on 25 Oct 2026 at 01:00 a
+  09:00 start is "in 9 h"), counted from the start of the current minute like the hand; the dial stays wall clock.
+- A15 (review) A crowded German rings clock with the longest second line ("bis 11:45 · noch 2 Std. 15 Min.") was
+  looked at (`clock-rings-crowded-de.png`): it stays inside the free middle and is readable (the hand may cross it, as
+  it crosses the time). So the German and Coldmirror wording stay as they are and the second line is never cut.
+- A16 (review) e2e: both middle steps wait for `data-tomorrow-loaded="true"` on `clock-view` before judging the text.

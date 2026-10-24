@@ -2,9 +2,10 @@
  * What the 24-hour clock shows of a day (which segments are arcs, which are listed in the middle, their texts) and the
  * pure rules of its gestures (turning an arc, snapping a tap to a time, the focus wedge).
  */
-import { minutesToTime } from '@/lib/dates';
+import { addDays, minutesToTime, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { displayTitle, neutralName, type Segment } from '@/lib/items';
 import { formatDuration } from '@/features/calendar/timeline';
+import { localToIso } from '@/features/calendar/zone';
 import { t } from '@/i18n';
 import { assignLanes } from './geometry';
 
@@ -59,8 +60,11 @@ export function tappedTime(m: number): string {
   return `${String(Math.floor(snapped / 60)).padStart(2, '0')}:${String(snapped % 60).padStart(2, '0')}`;
 }
 
-/** Timed entries that can stand in the middle: timed events and timed task lists (owner, 2026-10-24), never all-day ones. */
-const timedEntries = (segs: Segment[]) => segs.filter((s) => !s.allDay && s.startTime !== null && s.first);
+/**
+ * Timed entries that can stand in the middle: timed events and timed task lists (owner, 2026-10-24), never all-day ones.
+ * Today an entry that began the day before counts too (it is running).
+ */
+const timedEntries = (segs: Segment[]) => segs.filter((s) => !s.allDay && s.startTime !== null);
 
 /**
  * What today's middle names: the running entry (the one ending first when several run), else the next one starting
@@ -74,7 +78,8 @@ export function clockFocus(
   if (cur) return { kind: 'running', seg: cur };
   const next = evs.filter((s) => s.startMin > nowMin).sort((a, b) => a.startMin - b.startMin)[0];
   if (next) return { kind: 'next', seg: next };
-  const first = timedEntries(tomorrow).sort((a, b) => a.startMin - b.startMin)[0];
+  // tomorrow only what begins tomorrow: the rest of an entry from today is not tomorrow's first
+  const first = timedEntries(tomorrow).filter((s) => s.first).sort((a, b) => a.startMin - b.startMin)[0];
   return first ? { kind: 'tomorrow', seg: first } : null;
 }
 
@@ -82,13 +87,24 @@ export function clockFocus(
  * The middle's text: the title over when and how long until ("09:00 · in 1 h", "until 10:00 · 30 min left", "Tomorrow
  * 09:00"), or one line when nothing comes. The second line is never cut, so it carries no title.
  */
-export function clockMiddle(focus: ReturnType<typeof clockFocus>, nowMin: number): { title: string; when: string } | { line: string } {
+export function clockMiddle(
+  focus: ReturnType<typeof clockFocus>, nowMs: number, tz: string,
+): { title: string; when: string } | { line: string } {
   if (!focus) return { line: t('calendar.now.nothingElse') };
   const { kind, seg } = focus;
   const title = neutralName(seg.item);
-  if (kind === 'running') return { title, when: t('calendar.clock.untilLeft', { end: minutesToTime(seg.endMin % 1440), left: formatDuration(seg.endMin - nowMin) }) };
-  if (kind === 'next') return { title, when: t('calendar.clock.nextAt', { start: seg.startTime!, duration: formatDuration(seg.startMin - nowMin) }) };
+  // real minutes between two instants, so a clock change in between counts (wall-clock minutes would not)
+  // (from the start of the current minute, like the hand: seconds into it do not count)
+  const until = (time: string) => formatDuration((instantOf(seg.date, time, tz) - Math.floor(nowMs / 60000) * 60000) / 60000);
+  if (kind === 'running') return { title, when: t('calendar.clock.untilLeft', { end: minutesToTime(seg.endMin % 1440), left: until(seg.endTime!) }) };
+  if (kind === 'next') return { title, when: t('calendar.clock.nextAt', { start: seg.startTime!, duration: until(seg.startTime!) }) };
   return { title, when: t('calendar.clock.tomorrowAt', { start: seg.startTime! }) };
+}
+
+/** The instant (ms) of wall-clock `time` on `date` in `tz`; "24:00" is the next day's midnight. */
+function instantOf(date: string, time: string, tz: string): number {
+  if (time === '24:00') return Date.parse(localToIso(toIsoDate(addDays(parseIsoDate(date)!, 1)), '00:00', tz));
+  return Date.parse(localToIso(date, time, tz));
 }
 
 /**
@@ -96,7 +112,7 @@ export function clockMiddle(focus: ReturnType<typeof clockFocus>, nowMin: number
  * start of the next one today, else none — always what the middle names (tomorrow's entry gets no wedge).
  */
 export function focusWedge(
-  segs: Segment[], nowMin: number, colorOf: (s: Segment) => string = (s) => (s.item as { color: string }).color,
+  segs: Segment[], nowMin: number, colorOf: (s: Segment) => string,
 ): { from: number; to: number; color: string; running: boolean } | null {
   const f = clockFocus(segs, [], nowMin);
   if (!f) return null;

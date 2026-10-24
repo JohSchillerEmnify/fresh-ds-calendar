@@ -198,3 +198,20 @@ Feature: The calendar's states look right
     When I open the clock view for 2026-10-12
     Then no text in the "clock" is clipped
     And the "clock" still looks like "clock-tomorrow-de"
+
+  Scenario: The rings clock's middle on a crowded German day keeps its countdown readable
+    Given the browser language is "de-DE"
+    And the time is 2026-10-12 09:30
+    And the calendar contains these events on 2026-10-12:
+      | title                                                    | from  | to    |
+      | Quartalsplanung mit dem ganzen Leitungsteam              | 09:00 | 11:45 |
+      | Anruf                                                    | 09:40 | 10:15 |
+      | Abstimmung                                               | 09:45 | 10:30 |
+      | Mittagessen                                              | 12:00 | 13:00 |
+      | Physio                                                   | 13:00 | 13:45 |
+      | Paket abholen                                            | 14:00 | 14:10 |
+      | Probe                                                    | 19:30 | 22:00 |
+    When I open the rings clock for 2026-10-12
+    Then no text in the "clock" is clipped
+    And no two names on the clock overlap
+    And the "clock" still looks like "clock-rings-crowded-de"
