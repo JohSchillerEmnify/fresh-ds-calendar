@@ -56,6 +56,16 @@ export default {
     estimateHours: '~{hours} Std.',
     estimateHoursMin: '~{hours} Std. {min} Min.',
   },
+  repeatScope: {
+    title: 'Wiederkehrende Liste ändern',
+    thisDay: 'Dieser Tag',
+    allDays: 'Alle Tage',
+    thisWeek: 'Diese Woche',
+    allWeeks: 'Alle Wochen',
+    thisMonth: 'Dieser Monat',
+    allMonths: 'Alle Monate',
+    ok: 'OK',
+  },
   list: {
     fallbackLabel: 'Aufgabenliste',
     gone: 'Diese Aufgabenliste gibt es nicht mehr.',

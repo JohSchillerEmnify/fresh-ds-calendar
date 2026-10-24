@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, BackupStatus, Calendar, CanvasArea, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -296,20 +296,20 @@ export class ApiClient {
   getTaskList(id: string, o?: RequestOptions) {
     return this.request<TaskList>('GET', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  updateTaskList(id: string, patch: UpdateTaskListInput, o?: RequestOptions) {
-    return this.request<TaskList>('PATCH', `/api/tasklists/${enc(id)}`, patch, o);
+  updateTaskList(id: string, patch: UpdateTaskListInput, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}`, scope), patch, o);
   }
   deleteTaskList(id: string, o?: RequestOptions) {
     return this.request<void>('DELETE', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  addTaskItem(id: string, item: { title: string; done?: boolean; index?: number }, o?: RequestOptions) {
-    return this.request<TaskList>('POST', `/api/tasklists/${enc(id)}/items`, item, o);
+  addTaskItem(id: string, item: { title: string; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('POST', scoped(`/api/tasklists/${enc(id)}/items`, scope), item, o);
   }
-  updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions) {
-    return this.request<TaskList>('PATCH', `/api/tasklists/${enc(id)}/items/${enc(itemId)}`, patch, o);
+  updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), patch, o);
   }
-  deleteTaskItem(id: string, itemId: string, o?: RequestOptions) {
-    return this.request<TaskList>('DELETE', `/api/tasklists/${enc(id)}/items/${enc(itemId)}`, undefined, o);
+  deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
+    return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);
   }
   reorderTaskItems(id: string, itemIds: string[], o?: RequestOptions) {
     return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/order`, { itemIds }, o);
@@ -396,6 +396,11 @@ export class ApiClient {
 
 function enc(s: string): string {
   return encodeURIComponent(s);
+}
+
+/** A task list change for every week of a repeating list carries `?scope=all` (API.md, feature tasklist-repeating). */
+function scoped(path: string, scope?: ChangeScope): string {
+  return scope === 'all' ? `${path}?scope=all` : path;
 }
 
 /** App-wide client instance. Tests construct their own `ApiClient` with a mocked `fetch`, or call `setApi`. */

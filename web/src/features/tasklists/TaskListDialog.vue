@@ -22,6 +22,8 @@ import { newTaskListForm, parseItems, validateForm, type TaskListForm } from './
 import { useTaskListsStore } from './store';
 import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sharing';
 import { useTaskCategories } from './categories';
+import RepeatScopeDialog from './RepeatScopeDialog.vue';
+import { useRepeatScope } from './repeatScope';
 import { usePluginEnabled } from '@/plugins';
 import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
 import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
@@ -42,6 +44,10 @@ const editing = computed(() => props.mode === 'edit');
 const loading = ref(false);
 let etag = '';
 let original = '';
+let originalTitle = '';
+let originalDoor = false;
+/** A changed title of a repeating list asks "This week / All weeks" on save (feature tasklist-repeating). */
+const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
 const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time));
 const error = ref('');
@@ -71,6 +77,8 @@ function fill(src: TaskList) {
   });
   if (src.reminders?.useDefault) taskDefaults.value = src.reminders.minutes;
   door.value = hasDoor(src.tags);
+  originalDoor = door.value;
+  originalTitle = form.title;
   original = JSON.stringify(form);
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
 }
@@ -119,8 +127,16 @@ async function save() {
     // the reminders are only sent when they changed (a create: when the list has its own)
     ...(form.reminders && !(current?.kind === 'tasklist' && current.shared) && !sameReminders(form.reminders, originalReminders) ? { reminders: form.reminders } : {}),
   };
+  // a renamed repeating list: the title may go to every week, the rest of the form stays with this week
+  const s = editing.value && current?.kind === 'tasklist' && body.title !== originalTitle.trim() ? await scope.ask(current) : 'this';
+  if (!s) { saving.value = false; return; }
   try {
-    if (editing.value) await items.updateTaskList(props.id!, body, etag);
+    if (editing.value && s === 'all') {
+      const { title, ...rest } = body;
+      const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' }) || door.value !== originalDoor;
+      if (othersChanged) await items.updateTaskList(props.id!, rest, etag);
+      await items.updateTaskList(props.id!, { title }, undefined, 'all');
+    } else if (editing.value) await items.updateTaskList(props.id!, body, etag);
     else {
       await items.createTaskList({
         ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: form.repeat || null,
@@ -158,7 +174,7 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" @close="emit('close')">
+  <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" />
       <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
@@ -200,6 +216,7 @@ function remove() {
         <Button type="submit" :disabled="saving || loading" data-testid="tasklist-save">{{ t('tasks.dialog.save') }}</Button>
       </div>
     </form>
+    <RepeatScopeDialog :recurrence="scope.asking.value" @answer="scope.answer" />
   </AdaptiveSheet>
 </template>
 

@@ -100,6 +100,9 @@ export interface TaskItem {
 
 export type Recurrence = 'daily' | 'weekly' | 'monthly';
 
+/** Which weeks of a repeating task list a change is for (feature tasklist-repeating): the shown one, or every week. */
+export type ChangeScope = 'this' | 'all';
+
 export interface TaskList {
   kind: 'tasklist';
   id: string;

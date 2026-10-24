@@ -58,6 +58,16 @@ export default {
     estimateHours: '~{hours} h',
     estimateHoursMin: '~{hours} h {min} min',
   },
+  repeatScope: {
+    title: 'Change repeating list',
+    thisDay: 'This day',
+    allDays: 'All days',
+    thisWeek: 'This week',
+    allWeeks: 'All weeks',
+    thisMonth: 'This month',
+    allMonths: 'All months',
+    ok: 'OK',
+  },
   list: {
     fallbackLabel: 'Task list',
     gone: 'This task list no longer exists.',

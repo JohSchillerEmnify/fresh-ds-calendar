@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ApiError } from '@/api/client';
 import { t } from '@/i18n';
-import type { CalendarEvent, TaskItem, TaskList } from '@/api/types';
+import type { CalendarEvent, ChangeScope, TaskItem, TaskList } from '@/api/types';
 import { removeItem } from '@/features/tasklists/ops';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
@@ -130,15 +130,15 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
     }, () => theme.hide(id));
   }
 
-  /** `index`: the item's position in the list, where an undo puts it back. */
-  function deleteTaskItem(listId: string, item: TaskItem, index: number): void {
+  /** `index`: the item's position in the list, where an undo puts it back; `scope` `all`: every week of a repeating list. */
+  function deleteTaskItem(listId: string, item: TaskItem, index: number, scope?: ChangeScope): void {
     const items = useItemsStore();
     start({
       title: item.title,
       listId,
       restore: () => items.unhideTaskItem(listId, item, index),
       send: (keepalive) => new Promise<void>((resolve, reject) => {
-        removeItem(listId, item.id, { keepalive }, (err) => (err === undefined ? resolve() : reject(err)));
+        removeItem(listId, item.id, { keepalive }, (err) => (err === undefined ? resolve() : reject(err)), scope);
       }),
     }, () => items.hideTaskItem(listId, item.id));
   }

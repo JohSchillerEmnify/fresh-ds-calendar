@@ -10,7 +10,7 @@
  * - a poll never overwrites the list while operations are pending (items store `beginPending`).
  */
 import { api, ApiError, type RequestOptions } from '@/api/client';
-import type { TaskItem, TaskList } from '@/api/types';
+import type { ChangeScope, TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
@@ -111,29 +111,44 @@ function enqueue(listId: string, op: Op): void {
   if (!q.running) void run(listId, q);
 }
 
+/** A change for every week of a repeating list landed: the other weeks the views show are read again. */
+function allWeeksDone(): void {
+  useItemsStore().refreshVisible().catch(() => undefined);
+}
+/** `scope` of a request: only `all` goes to the server (`this` is the plain request). */
+const sent = (scope?: ChangeScope) => (scope === 'all' ? 'all' : undefined);
+
 // --- public operations --------------------------------------------------------------------------------
-/** Set or merge a patch for one item (tick / rename). */
-export function patchItem(listId: string, itemId: string, patch: { title?: string; done?: boolean }): void {
+/**
+ * Set or merge a patch for one item (tick / rename). `scope` `all` renames the item in every week of a repeating list
+ * (feature tasklist-repeating); such a patch is never merged with a tick.
+ */
+export function patchItem(listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void {
+  const all = sent(scope);
   const op: Op = {
-    key: `patch:${itemId}`, patch: { ...patch }, inflight: false,
+    key: all ? undefined : `patch:${itemId}`, patch: { ...patch }, inflight: false,
     apply: () => { throw new Error('replaced below'); },
     call: async (q, r) => {
       const id = r(itemId);
       if (id.startsWith('tmp-')) return q.base; // the add failed, nothing to patch
-      return api.updateTaskItem(listId, id, op.patch!);
+      return api.updateTaskItem(listId, id, op.patch!, undefined, all);
     },
+    done: all ? allWeeksDone : undefined,
   };
   op.apply = (tl, r) => mapItem(tl, r(itemId), (i) => ({ ...i, ...op.patch }));
   enqueue(listId, op);
 }
 
-export function addItem(listId: string, title: string): void {
+/** Add an item at the end; `scope` `all` adds it to every week of a repeating list. */
+export function addItem(listId: string, title: string, scope?: ChangeScope): void {
   const tmp = `tmp-${++tmpSeq}`;
+  const all = sent(scope);
   const op: Op = {
     inflight: false,
     apply: (tl) => recount({ ...tl, items: [...tl.items, { id: tmp, title, done: false }] }),
-    call: () => api.addTaskItem(listId, { title }),
+    call: () => api.addTaskItem(listId, { title }, undefined, all),
     done: (fresh, q, before) => {
+      if (all) allWeeksDone();
       const known = new Set(before.items.map((i) => i.id));
       const real = [...fresh.items].reverse().find((i) => !known.has(i.id));
       if (real) {
@@ -145,11 +160,15 @@ export function addItem(listId: string, title: string): void {
   enqueue(listId, op);
 }
 
-/** Remove an item. `o` is passed to the request; `done` is called once it finished (with the error if it failed). */
-export function removeItem(listId: string, itemId: string, o: RequestOptions = {}, done?: (err?: unknown) => void): void {
+/**
+ * Remove an item. `o` is passed to the request; `done` is called once it finished (with the error if it failed);
+ * `scope` `all` removes it from every week of a repeating list.
+ */
+export function removeItem(listId: string, itemId: string, o: RequestOptions = {}, done?: (err?: unknown) => void, scope?: ChangeScope): void {
+  const all = sent(scope);
   // A deferred delete may land after the list left the cache (no queue possible): send it directly.
   if (useItemsStore().get(listId)?.kind !== 'tasklist') {
-    api.deleteTaskItem(listId, itemId, o).then(() => done?.(), (e) => { useSyncStore().reportError(e); done?.(e); });
+    api.deleteTaskItem(listId, itemId, o, all).then(() => { if (all) allWeeksDone(); done?.(); }, (e) => { useSyncStore().reportError(e); done?.(e); });
     return;
   }
   enqueue(listId, {
@@ -158,9 +177,9 @@ export function removeItem(listId: string, itemId: string, o: RequestOptions = {
     call: async (q, r) => {
       const id = r(itemId);
       if (id.startsWith('tmp-')) return q.base;
-      return api.deleteTaskItem(listId, id, o);
+      return api.deleteTaskItem(listId, id, o, all);
     },
-    done: () => done?.(),
+    done: () => { if (all) allWeeksDone(); done?.(); },
     failed: (e) => done?.(e ?? new Error('delete failed')),
   });
 }

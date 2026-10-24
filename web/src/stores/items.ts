@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
 import { api, ApiError, type RequestOptions } from '@/api/client';
 import type {
-  CalendarEvent, CalendarItem, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
+  CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
   UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
 import { toIsoDate } from '@/lib/dates';
@@ -299,10 +299,14 @@ export const useItemsStore = defineStore('items', () => {
       return tl;
     } catch (e) { return report(e); }
   }
-  async function updateTaskList(id: string, patch: UpdateTaskListInput, etag?: string): Promise<TaskList> {
+  /** `scope` `all`: the title for every week of a repeating list (no If-Match: the server writes each week afresh); the views read again. */
+  async function updateTaskList(id: string, patch: UpdateTaskListInput, etag?: string, scope?: ChangeScope): Promise<TaskList> {
     try {
-      const tl = await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
+      const tl = scope === 'all'
+        ? await api.updateTaskList(id, patch, {}, 'all')
+        : await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
       upsert(tl);
+      if (scope === 'all') refreshVisible().catch(() => undefined);
       return tl;
     } catch (e) { return report(e); }
   }
