@@ -130,6 +130,11 @@ Then('the template menu has grown out of the template pill', async function (thi
   expect(Math.abs(menu.y - before!.y), 'top edge where the pill was').toBeLessThanOrEqual(4);
   expect(Math.abs(menu.x + menu.width - (before!.x + before!.width)), 'right edge where the pill was').toBeLessThanOrEqual(4);
   expect(menu.height).toBeGreaterThan(before!.height);
+  // the pill becomes the panel's top row (owner's canvas, variant 4D)
+  const head = await box(picker(this).getByTestId('template-picker-header'));
+  expect(Math.abs(head.y - before!.y), 'header pill top where the pill was').toBeLessThanOrEqual(4);
+  expect(Math.abs(head.x + head.width - (before!.x + before!.width)), 'header pill right edge where the pill was').toBeLessThanOrEqual(4);
+  expect(Math.abs(head.height - before!.height), 'header pill as tall as the pill').toBeLessThanOrEqual(2);
   await expect(pill(this)).toHaveCSS('visibility', 'hidden');
 });
 

@@ -242,6 +242,7 @@ I cancel the deletion
 I undo the deletion
 the undo time is over
 the snackbar says {string}
+a snackbar says {string}
 the snackbar is drawn in the {scheme} theme
 the event dialog is open
 the event dialog is closed
@@ -1610,8 +1611,9 @@ I reload the app
 
 - Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
-  until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = a visible
-  snackbar message (`snackbar-text`) with exactly that text (the undo snackbar or any other, e.g. "Saved as template").
+  until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
+  the visible `undo-snackbar` message (`snackbar-text`). "a snackbar says" = any visible snackbar message
+  (`snackbar-text`) with exactly that text (e.g. "Saved as template").
 
 ## Theme menu (`@themes`)
 
@@ -2113,7 +2115,9 @@ I have no templates
   T" = the pill's label without the `▾` (`From template` before a pick, the template's name after). "the template
   menu has grown out of the template pill": once the menu is at rest (no running animation) its top edge and its right
   edge are within 4 px of where the pill's were before the tap (the pill sits at the right end of the heading row, so
-  the menu opens from its top-right corner), it is taller than the pill, and the pill itself is hidden meanwhile. "I choose the template T"
+  the menu opens from its top-right corner), it is taller than the pill, its first row is the header pill
+  `template-picker-header` standing where the pill was (top and right edge within 4 px, the same height within 2 px,
+  owner's canvas variant 4D), and the pill itself is hidden meanwhile. "I choose the template T"
   opens the menu if needed and clicks its `template-picker-item` with `data-name` T; the menu shrinks back into the
   pill and the form is filled. "I choose Manage templates in the template picker" clicks `template-picker-manage`.
   "the template menu shows:" = two-column table, one row per `template-picker-item` in DOM order (by name): its

@@ -6,9 +6,9 @@ Feature: Task list templates
   time, repeat, reminders) is set as for any new list (owner: "you can then set time and stuff").
   UI (owner, design canvas 2026-10-25): "Save as template" is a tonal pill in the list's footer after "Add item" and
   before Edit and Delete; it opens a small dialog with the name (prefilled with the title), the items and Cancel/Save.
-  The create form has a "From template ▾" pill next to its heading; a tap grows the pill in place into a menu of the
-  templates ("2 items · ~45 min · Home" under each name), a divider and "Manage templates"; after a pick the pill
-  shows the template's name. "Also save as template" is a switch row right above Cancel and Save.
+  The create form has a "From template ▾" pill next to its heading; a tap grows the pill in place into a panel whose
+  top row is the pill itself ("From template ▴" where the pill was), then the templates ("2 items · ~45 min · Home"
+  under each name), a divider and "Manage templates"; after a pick the pill shows the template's name. "Also save as template" is a switch row right above Cancel and Save.
   The Archive keeps its one-off copy, renamed "Copy" so "template" only means these templates, and gets "Save as
   template" next to it (owner).
   A template keeps a name, its items in their order (always unticked), the estimate and the category. It never keeps
@@ -39,7 +39,7 @@ Feature: Task list templates
       Then the template name field shows "Packing"
       And the template dialog previews the items "Passport, Charger, Toothbrush"
       When I confirm the template
-      Then the snackbar says "Saved as template"
+      Then a snackbar says "Saved as template"
       And my templates are "Packing"
       And the template "Packing" has the items "Passport, Charger, Toothbrush"
       And the task list "Packing" shows the done count "1/3"
@@ -351,6 +351,8 @@ Feature: Task list templates
       When I open the templates in the settings
       And I delete the template "Packing"
       And I undo the deletion
+      And the undo time is over
+      And I reload the page
       Then the templates page lists "Packing"
       And the template "Packing" has the items "Passport"
 

@@ -289,6 +289,10 @@ When('the undo time is over', async function (this: World) {
 });
 
 Then('the snackbar says {string}', async function (this: World, text: string) {
+  await expect(undoSnackbar(this).getByTestId('snackbar-text')).toHaveText(text);
+});
+
+Then('a snackbar says {string}', async function (this: World, text: string) {
   await expect(this.page.getByTestId('snackbar-text').filter({ hasText: exactText(text) })).toBeVisible();
 });
 
