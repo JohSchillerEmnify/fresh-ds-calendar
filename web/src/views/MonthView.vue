@@ -159,6 +159,9 @@ function onChipsClick(e: MouseEvent, day: Date): void {
 .chips > :deep(*) { flex: none; }
 /* what does not fit fades out at the bottom (no visible "+N"; entries completely below are not built); the cell still opens the day */
 .chips[data-fade='true'] { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
+/* a lifted chip is drawn above the other days, not clipped by its own cell (owner, 2026-10-25: it vanished mid-drag) */
+.cell:has([data-dragging='true']) { overflow: visible; position: relative; z-index: 5; }
+.chips:has([data-dragging='true']) { overflow: visible; -webkit-mask-image: none; mask-image: none; }
 /* Phone: a tap on a chip opens the day (handled in onChipsClick); a long press picks the chip up to drag it to another day. */
 .phone .cell { cursor: pointer; padding: 1px 1px 0; gap: 1px; }
 .phone .num { width: 20px; height: 20px; font-size: 12px; line-height: 20px; }
