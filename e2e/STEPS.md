@@ -1610,8 +1610,8 @@ I reload the app
 
 - Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
-  until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
-  the visible `undo-snackbar` message (`snackbar-text`).
+  until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = a visible
+  snackbar message (`snackbar-text`) with exactly that text (the undo snackbar or any other, e.g. "Saved as template").
 
 ## Theme menu (`@themes`)
 
@@ -2101,7 +2101,8 @@ I have no templates
   `template-save-confirm` and, when no error shows, waits for the `POST /api/templates` response (201).
   `tasklist-save-template` is a tonal pill. "the footer of the expanded task list shows "A, B"" = the visible buttons
   in the footer of `tasklist-expanded` (`tasklist-add`, `tasklist-save-template`, `tasklist-edit`,
-  `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their text.
+  `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their label (`aria-label`,
+  else their text: a phone-wide footer shows Edit and Delete as icons only).
   "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
 - "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
   A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, renamed "Copy", owner 2026-10-25).
@@ -2110,8 +2111,9 @@ I have no templates
 - "I open the template picker": clicks the pill `tasklist-from-template` next to the heading of the open
   `tasklist-dialog` (create mode); the pill grows in place into the menu `template-picker`. "the template pill shows
   T" = the pill's label without the `▾` (`From template` before a pick, the template's name after). "the template
-  menu has grown out of the template pill": once the menu is at rest its top-left corner is within 4 px of where the
-  pill's top-left corner was before the tap, and the pill itself is not shown separately. "I choose the template T"
+  menu has grown out of the template pill": once the menu is at rest (no running animation) its top edge and its right
+  edge are within 4 px of where the pill's were before the tap (the pill sits at the right end of the heading row, so
+  the menu opens from its top-right corner), it is taller than the pill, and the pill itself is hidden meanwhile. "I choose the template T"
   opens the menu if needed and clicks its `template-picker-item` with `data-name` T; the menu shrinks back into the
   pill and the form is filled. "I choose Manage templates in the template picker" clicks `template-picker-manage`.
   "the template menu shows:" = two-column table, one row per `template-picker-item` in DOM order (by name): its
@@ -2124,7 +2126,7 @@ I have no templates
 - "I open the templates in the settings": opens the settings (from the day view of the Background date if no page
   is open yet), then the row `settings-templates` in the Task lists card (next to categories, carried-over,
   finished-list and tap options), which opens the Templates sub page; waits for `templates-page`.
-  "the settings page P is shown": the `settings-page` with `data-page` P is visible (`Templates` = `templates`).
+  "the settings page Templates is shown": `templates-page` is visible at `/settings/templates`.
 - "the templates page lists "A, B"" = `data-name` of every `template-row` in DOM order (by name); "says" = text of
   `templates-empty`.
 - "the templates page offers New template": `templates-new` (a button on top of the list, also in the empty state)
@@ -2596,7 +2598,8 @@ Rules that need no reference picture, plus `toHaveScreenshot` regression picture
 written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
-`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`). The `now-marker` is masked.
+`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
+(`template-save-dialog`), `templates page` (`templates-page`). The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped

@@ -3,7 +3,7 @@ import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { berlinIso } from './support/dates.js';
 import { expectJoined, pathname } from './support/ui.js';
-import { attr, type World } from './support/world.js';
+import { attr, exactText, type World } from './support/world.js';
 
 /** The date of the Background (`today is …`) that fixtures return the test clock to. */
 const BACKGROUND_TODAY = '2026-10-12';
@@ -70,11 +70,23 @@ When('I untick the item {string} of the task list {string} in the Archive', asyn
 });
 
 When('I choose {string} for the task list {string} in the Archive', async function (this: World, choice: string, title: string) {
-  expect(choice).toBe('Use as template');
+  expect(['Copy', 'Save as template']).toContain(choice);
   await openTab(this, 'archive');
+  // "Save as template" (feature tasklist-templates) only opens the name sheet; the next steps fill and confirm it
+  if (choice === 'Save as template') {
+    await archiveItem(this, title).getByTestId('tasklist-save-template').click();
+    await expect(this.page.getByTestId('template-save-dialog')).toBeVisible();
+    return;
+  }
   const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/tasklists' && r.request().method() === 'POST');
   await archiveItem(this, title).getByTestId('tasks-archive-duplicate').click();
   expect((await saved).status(), 'copy created').toBe(201);
+});
+
+Then('the task list {string} in the Archive offers {string} and {string}', async function (this: World, title: string, copy: string, save: string) {
+  await openTab(this, 'archive');
+  await expect(archiveItem(this, title).getByTestId('tasks-archive-duplicate')).toHaveText(exactText(copy));
+  await expect(archiveItem(this, title).getByTestId('tasklist-save-template')).toHaveText(exactText(save));
 });
 
 Then('the Archive lists {string}', async function (this: World, titles: string) {

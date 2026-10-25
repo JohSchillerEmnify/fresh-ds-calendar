@@ -198,8 +198,8 @@ Feature: Task list templates
       Given I have the template "Clean bathroom" with the items "Sink, Floor"
       When I create a task list from the template "Clean bathroom" on 2026-10-13
       And I create a task list from the template "Clean bathroom" on 2026-10-20
-      Then I see the task list "Clean bathroom" on 2026-10-13
-      And I see the task list "Clean bathroom" on 2026-10-20
+      Then the calendar shows the task list "Clean bathroom" on 2026-10-13
+      And the calendar shows the task list "Clean bathroom" on 2026-10-20
 
     Scenario: The template pill grows into a menu of the templates with their items, estimate and category
       Given I have the template "Weekly shop" with the items "Milk, Eggs, Bread", the estimate 45 minutes and the category "Shopping"
@@ -361,7 +361,7 @@ Feature: Task list templates
       And I delete the template "Packing"
       And the undo time is over
       Then I have no templates
-      And I see the task list "Packing" on 2026-10-14
+      And the calendar shows the task list "Packing" on 2026-10-14
 
   Rule: Templates follow the person
 

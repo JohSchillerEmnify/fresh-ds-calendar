@@ -215,3 +215,47 @@ Feature: The calendar's states look right
     Then no text in the "clock" is clipped
     And no two names on the clock overlap
     And the "clock" still looks like "clock-rings-crowded-de"
+
+  # Feature tasklist-templates (owner's design canvas, 2026-10-25)
+  Scenario: The list sheet's footer offers Save as template, which opens a small sheet with the name and the items
+    Given the expanding task-list cards experiment is off
+    And the calendar contains a task list "Packing" on 2026-10-12 with items:
+      | item       | done |
+      | Passport   | yes  |
+      | Charger    | no   |
+      | Toothbrush | no   |
+    When I open the day view for 2026-10-12
+    And I tap the task list "Packing"
+    Then the task list "Packing" opens as the list sheet
+    And no text in the "expanded task list" is clipped
+    And the "expanded task list" still looks like "template-footer"
+    When I save the task list as a template
+    Then no text in the "template save sheet" is clipped
+    And the "template save sheet" still looks like "template-save"
+
+  Scenario: The template pill grows into the template menu, and a pick fills the form
+    Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"
+    And I have the template "Packing" with the items "Passport, Charger, Toothbrush"
+    When I open the day view for 2026-10-12
+    And I start creating a task list
+    And I open the template picker
+    Then the template menu has grown out of the template pill
+    And no text in the "list form" is clipped
+    And the "list form" still looks like "template-menu"
+    When I choose the template "Clean bathroom"
+    Then no text in the "list form" is clipped
+    And the "list form" still looks like "template-form-filled"
+
+  Scenario: Settings › Templates lists the templates with their details
+    Given I have the template "Clean bathroom" with the items "Sink, Floor", the estimate 45 minutes and the category "Home"
+    And I have the template "Packing" with the items "Passport, Charger, Toothbrush"
+    When I open the templates in the settings
+    Then the templates page lists "Clean bathroom, Packing"
+    And no text in the "templates page" is clipped
+    And the "templates page" still looks like "templates-page"
+
+  Scenario: Settings › Templates without templates says how to make one
+    When I open the templates in the settings
+    Then the templates page offers "New template"
+    And no text in the "templates page" is clipped
+    And the "templates page" still looks like "templates-empty"

@@ -179,6 +179,14 @@ Given(
 );
 
 Given(
+  'the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:',
+  async function (this: World, title: string, category: string, date: string, time: string, minutes: number, table: DataTable) {
+    const categoryId = await this.api.categoryId(category);
+    await createTaskList(this, { title, date, time, estimateMinutes: minutes, items: itemsFrom(table), categoryId });
+  },
+);
+
+Given(
   'the calendar contains a task list {string} in the category {string} with the tags {string} on {date}',
   async function (this: World, title: string, category: string, tags: string, date: string) {
     const categoryId = await this.api.categoryId(category);
