@@ -271,6 +271,21 @@ describe('drag state machine', () => {
     expect(onDrop).not.toHaveBeenCalled();
     finishAll(); await flush();
   });
+  it('the click right after a drop never reaches an ancestor\'s capture listener (phone month opens the day on a chip click)', async () => {
+    const seen = vi.fn();
+    el.parentElement!.addEventListener('click', seen, true);
+    make();
+    down();
+    vi.advanceTimersByTime(400);
+    up(50, 50);
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(500);
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).toHaveBeenCalledTimes(1);
+    el.parentElement!.removeEventListener('click', seen, true);
+    await flush(); finishAll(); await flush();
+  });
   it('a press that may become a drag never starts a text selection', () => {
     const { c } = make();
     const sel = () => { const e = new Event('selectstart', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; };

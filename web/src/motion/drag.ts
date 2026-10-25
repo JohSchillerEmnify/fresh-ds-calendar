@@ -246,7 +246,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const onScroll = () => {
     if (state === 'dragging') update(cur.x, cur.y);
   };
+  /** Swallows the click on this card right after a drop, on window so no ancestor's capture listener sees it either. */
   const onClickCapture = (e: Event) => {
+    if (!(e.target instanceof Node) || !el.contains(e.target)) return;
+    window.removeEventListener('click', onClickCapture, true);
     e.stopPropagation();
     e.preventDefault();
   };
@@ -572,8 +575,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   }
 
   function suppressNextClick() {
-    el.addEventListener('click', onClickCapture, { capture: true, once: true });
-    setTimeout(() => el.removeEventListener('click', onClickCapture, true), 400);
+    window.addEventListener('click', onClickCapture, true);
+    setTimeout(() => window.removeEventListener('click', onClickCapture, true), 400);
   }
 
   async function drop() {
@@ -680,7 +683,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('touchmove', onElTouchMove);
       el.removeEventListener('dragstart', preventNative);
-      el.removeEventListener('click', onClickCapture, true);
+      window.removeEventListener('click', onClickCapture, true);
       cancelAnims();
       if (state !== 'idle') restoreStyle();
       reset();
