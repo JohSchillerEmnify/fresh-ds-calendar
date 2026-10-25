@@ -140,3 +140,31 @@ PR boundary: one PR (the pieces are not useful alone).
 - A6 Shared lists can be saved as templates too (the template is the saver's own).
 - A7 Items edited as lines in the template dialog, like the task list create form (covers add, remove, reorder,
   retitle); no drag handles in a first version.
+
+## Implementation notes (build, 2026-10-25)
+
+- Server: `server/src/services/templateStore.ts` (`users/<sub>/templates.json`, atomic JSON, unique names ignoring case
+  and accents, at most 100 templates), `/api/templates` in `server/src/api/routes.ts`, `templateSchema` in
+  `lib/validation.ts`; backed up with the person's folder (no extra registration needed: the backup walks
+  `users/<sub>/`; a backup test restores a template). Error keys `tasks.templates.nameTaken` / `tooMany` are
+  translated by the web app. API.md "Templates", ADR 0024.
+- Web: `features/tasklists/templates.ts` (pure rules, unit-tested), `templatesStore.ts`, `SaveTemplateDialog.vue`,
+  `TemplatePill.vue` (the growing pill menu: WAAPI clip-path from the pill's shape to the panel, anchored at the
+  pill's top-right corner; Full grows, Reduced fades, Off shows; Escape and a tap outside shrink it back),
+  `TemplateDialog.vue`, `views/TemplatesView.vue` (`/settings/templates`), the `settings-templates` row in the Task lists
+  card, `pendingDeletes.deleteTemplate` (undo). Archive: "Copy" (renamed key `tasks.archive.copy`, `copyOf`) and
+  "Save as template" in its quick row.
+- A17 (decided while building) The phone-wide list footer could not hold Add item + Save as template + Edit + Delete on
+  one row (the owner's "Add item sits next to Edit and Delete" scenario): below 440 px of footer width Edit and Delete
+  show their icons only (their words stay as `aria-label` and tooltip) and the footer buttons are a little tighter.
+  In German ("Eintrag hinzufügen", "Als Vorlage speichern") the footer still wraps to two rows on a phone.
+- A18 In the Archive the card's own footer has no "Save as template": it sits in the quick row next to "Copy", so a
+  finished card does not show the same button twice.
+- A19 The template sheet saved from a list is a sheet over the list's sheet (teleported like the repeat question), so
+  the list stays open behind it.
+- A20 The menu's entries only highlight under a real pointer (`hover: hover`): a finger leaves no highlighted entry.
+- A21 The pill menu is 300 px wide (less on a narrow phone) and opens over the title and date fields.
+- Visual: new baselines `template-footer`, `template-save`, `template-menu`, `template-form-filled`, `templates-page`,
+  `templates-empty`; `door-sheet` re-baselined for the new footer (its old picture also still showed the pre-drag
+  up/down arrows). The magenta line under "No date" in the create-form pictures is pre-existing (it is there with the
+  template pill and switch removed too), not part of this feature.
