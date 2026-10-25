@@ -23,9 +23,11 @@ describe('touch CSS', () => {
     expect(styles).toMatch(/^html \{ overscroll-behavior: none; \}/m);
   });
 
-  it('touch screens: no text selection or callout outside text fields, fields selectable again', () => {
+  it('touch screens: no text selection or callout on the calendar; dialogs, settings pages and fields keep them (owner, 2026-10-26)', () => {
     const coarse = styles.slice(styles.indexOf('@media (pointer: coarse)'));
-    expect(coarse).toMatch(/body, body :where\(\*:not\(input, textarea, select, \[contenteditable\], \[contenteditable\] \*\)\) \{\s*-webkit-user-select: none; user-select: none; -webkit-touch-callout: none;/);
+    const kept = "input, textarea, select, [contenteditable], [contenteditable] *, [role='dialog'], [role='dialog'] *, section.page, section.page *";
+    expect(coarse).toContain(`body, body :where(*:not(${kept})) {\n    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;`);
+    expect(coarse).toMatch(/:where\(\[role='dialog'\], section\.page\) \{\s*-webkit-user-select: text; user-select: text; -webkit-touch-callout: default;/);
     expect(coarse).toMatch(/:where\(input, textarea, select, \[contenteditable\]:not\(\[contenteditable='false'\]\)\) \{\s*-webkit-user-select: text; user-select: text;/);
   });
 
