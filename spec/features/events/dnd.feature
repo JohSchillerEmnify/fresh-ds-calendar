@@ -330,6 +330,16 @@ Feature: Drag and drop to reschedule
       Then I see the event "Dentist" on 2026-10-14
       And the event "Dentist" starts at the time the drop indicator showed
 
+    # owner, 2026-10-25: all-day entries turn the day or week the same way
+    Scenario: An all-day event held at the edge of the all-day row moves on to the next week
+      Given the calendar contains an all-day event "Trip" from 2026-10-14 to 2026-10-14
+      When I open the week view for 2026-10-12
+      And I hold the all-day event "Trip" at the right edge of the all-day row for 1000 ms
+      Then the URL path is "/week/2026-10-19"
+      When I drop the dragged item in the all-day row on 2026-10-21
+      Then I see the all-day event "Trip" on 2026-10-21
+      And Google contains an all-day event "Trip" from 2026-10-21 to 2026-10-21
+
     @mobile
     Scenario: On a phone a quick drop on the last day of the week still lands there
       Given I am using a phone

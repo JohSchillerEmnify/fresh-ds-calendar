@@ -447,6 +447,16 @@ Feature: Creating, editing and deleting events
         | start time | 09:00 |
         | end time   | 10:30 |
 
+    # owner, 2026-10-25: what was shown is what opens
+    @mobile
+    Scenario: On a phone a long press let go without moving opens the 15-minute block it showed
+      Given I am using a phone
+      When I open the day view for 2026-10-14
+      And I long-press the empty time grid on 2026-10-14 at 09:20 and let go
+      Then the event form shows:
+        | start time | 09:15 |
+        | end time   | 09:30 |
+
     @mobile
     Scenario: On a phone a plain swipe on the empty grid scrolls and draws nothing
       Given I am using a phone

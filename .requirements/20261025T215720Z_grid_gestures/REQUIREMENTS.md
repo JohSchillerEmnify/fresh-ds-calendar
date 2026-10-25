@@ -15,7 +15,12 @@ Owner decisions (2026-10-25, on design boards; background: `docs/HANDOFF-2026-10
   the estimate. The drawn block stays visible behind the dialog and disappears on Cancel. A plain tap still opens the
   dialog at the tapped hour with the default length.
 
-Status: SPEC ONLY. Scenarios written, owner to confirm before the build. The touch-drag fix for iOS/Android runs
+Owner answers (2026-10-25): all scenarios approved. Q1 extra column beyond the limit rather than a hidden title: yes.
+Q2 the Android widget's week grid (`WeekLayout.packColumns`, `WeekLayoutTest`) follows "Week view: events side by side"
+in this same change. Q3 a long press let go without moving opens the 15-min block: yes (scenario added). Q4 band label
+"19–25 Oct ›" and all-day items turn the day/week too: yes (scenario added).
+
+Status: B in build; A and C after `fix/touch-drag` is merged into main. The touch-drag fix for iOS/Android runs
 separately on `fix/touch-drag`; A and C build on top of it and must not touch that fix.
 
 ## As Is
@@ -91,8 +96,9 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
    formats, localised per language).
 2. The edge turn applies to every drag in the day/week time grid and all-day row, not only timed entries; month view
    and two-row overview unchanged. It does not apply while drawing (C) or resizing.
-3. Side-by-side limits apply on every screen size, the two-row week overview counts as the week view, Labs views and
-   the Android widget keep today's layout (widget: open question).
+3. Side-by-side limits apply on every screen size, the two-row week overview counts as the week view, Labs views keep
+   today's layout. The Android widget's week grid follows `weekSideBySide` (owner Q2), handed over in the widget
+   snapshot like `minEventMinutes`.
 4. Overflow beyond N obeys the existing "a title is never covered" rule (owner 2026-10-20): a near-same start gets an
    extra column rather than covering a title. Cascade depth stays capped at 3.
 5. Draw snapping rounds each end to the nearest quarter (like move/resize), minimum 15 min. A long press released

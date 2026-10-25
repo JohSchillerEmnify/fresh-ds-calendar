@@ -2754,6 +2754,8 @@ the edge band says {string}
 I see no edge band
 {string} is still being dragged
 I drop the dragged item on {date} at {time}
+I hold the all-day event {string} at the right edge of the all-day row for {int} ms
+I drop the dragged item in the all-day row on {date}
 ```
 
 - "I hold X at the right/left edge of the time grid for N ms": picks X up as in "I pick up" (mouse press; finger long
@@ -2766,6 +2768,9 @@ I drop the dragged item on {date} at {time}
   the view turned).
 - "I drop the dragged item on D at T": moves the pointer in 10 steps to the 15-minute slot of D at T in the grid shown
   (scrolling it into view as the auto-scroll does) and releases; waits for the save as after a drop.
+- "I hold the all-day event X at the right edge of the all-day row for N ms": the same as the time grid step, with X's
+  chip in the all-day row and the pointer 8 px inside the right side of that row. "I drop the dragged item in the all-day
+  row on D": moves to the `week-allday-cell` of D and releases; waits for the save.
 - The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
   event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
 
@@ -2801,6 +2806,7 @@ the drawn block is shown on {date} from {time} to {time}
 no drawn block is shown
 I swipe up on the empty time grid of {date}
 the time grid has scrolled
+I long-press the empty time grid on {date} at {time} and let go
 ```
 
 - "I draw a block on D from T1 to T2": scrolls T1 of D into view, presses on empty grid space of D's day column at T1
@@ -2811,6 +2817,8 @@ the time grid has scrolled
 - "the drawn block is shown on D from T1 to T2": the visible `draw-block` segment in D's day column has
   `data-start-time` T1 and `data-end-time` T2 (`24:00` = end of day) and its top/height match the grid within ±3 px.
   "no drawn block is shown": no `draw-block` is on the page.
+- "I long-press the empty time grid on D at T and let go": a finger held 500 ms on empty space of D's day column at T,
+  released without moving (phone).
 - "I swipe up on the empty time grid of D": a finger swipe (no hold: touch start, 10 moves 200 px up within 200 ms,
   touch end) on empty space of D's day column. "the time grid has scrolled": the time grid's scroll container's
   `scrollTop` differs from its value before the swipe.
