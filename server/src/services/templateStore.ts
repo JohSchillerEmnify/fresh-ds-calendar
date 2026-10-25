@@ -43,7 +43,7 @@ export class TemplateStore {
   /** Saves a new template (input already validated); refuses a taken name or one template too many. */
   add(sub: string, input: TaskTemplateInput): TaskTemplate {
     const all = this.read(sub);
-    if (all.length >= MAX_TEMPLATES) throw validation(`At most ${MAX_TEMPLATES} templates`, undefined, 'templates.tooMany');
+    if (all.length >= MAX_TEMPLATES) throw validation(`At most ${MAX_TEMPLATES} templates`, undefined, 'tasks.templates.tooMany');
     this.checkName(all, input.name, null);
     const t = this.shape(nanoid(12), input);
     this.write(sub, [...all, t]);
@@ -78,7 +78,7 @@ export class TemplateStore {
 
   private checkName(all: TaskTemplate[], name: string, self: string | null): void {
     if (all.some((x) => x.id !== self && sameName(x.name, name))) {
-      throw validation('A template with this name already exists', 'name', 'templates.nameTaken');
+      throw validation('A template with this name already exists', 'name', 'tasks.templates.nameTaken');
     }
   }
 

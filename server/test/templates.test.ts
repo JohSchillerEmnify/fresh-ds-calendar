@@ -36,7 +36,7 @@ describe('task list templates (/api/templates, feature tasklist-templates)', () 
     await t.json('POST', '/api/templates', tpl());
     const r = await t.json('POST', '/api/templates', tpl({ name: ' PACKING ' }));
     expect(r.status).toBe(400);
-    expect(r.body.error).toMatchObject({ code: 'VALIDATION_ERROR', key: 'templates.nameTaken' });
+    expect(r.body.error).toMatchObject({ code: 'VALIDATION_ERROR', key: 'tasks.templates.nameTaken' });
     expect(await list()).toHaveLength(1);
   });
 

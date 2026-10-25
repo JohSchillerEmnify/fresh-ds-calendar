@@ -662,7 +662,7 @@ interface TaskTemplate {
 interface TaskTemplateInput { name: string; items: { title: string }[]; estimateMinutes?: number | null; categoryId?: string | null }
 ```
 At most 200 items (each up to 200 characters) and 100 templates per person. A taken name is `400 VALIDATION_ERROR`
-with `key: "templates.nameTaken"` (field `name`); one template too many has `key: "templates.tooMany"`. Last write
+with `key: "tasks.templates.nameTaken"` (field `name`); one template too many has `key: "tasks.templates.tooMany"`. Last write
 wins. `POST /api/__test/reset` forgets every person's templates.
 
 ### Backups (`/api/backup`)
