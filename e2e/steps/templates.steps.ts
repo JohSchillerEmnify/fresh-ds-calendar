@@ -5,6 +5,7 @@ import { Given, Then, When } from './fixtures.js';
 import { field, fillField, readField, type FieldKind } from './support/forms.js';
 import { cellValue, formRows } from './support/tables.js';
 import { box, expectJoined, pathname } from './support/ui.js';
+import { Api } from './support/api.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 
 interface Template { id: string; name: string; items: { title: string }[] }
@@ -46,6 +47,13 @@ const splitList = (s: string) => s.split(', ').filter(Boolean).map((title) => ({
 
 Given('I have the template {string} with the items {string}', async function (this: World, name: string, items: string) {
   await this.api.post('/api/templates', { name, items: splitList(items) });
+});
+
+Given('{string} has the template {string} with the items {string}', async function (this: World, email: string, name: string, items: string) {
+  // the page's own session: the test API is not signed in when sign-in is on
+  const asPage = new Api(this.page.request);
+  expect((await asPage.get<{ email: string | null }>('/api/auth/me')).email).toBe(email);
+  await asPage.post('/api/templates', { name, items: splitList(items) });
 });
 
 Given(

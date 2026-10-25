@@ -1165,6 +1165,8 @@ the app is asked to sign in again
 
 - Google is the mock provider with one calendar per person (`TEST_MODE`); "signs in with Google" completes the OAuth
   round trip through the test double, no real Google. "they" is the person of the last sign-in step.
+  It opens the week view first; signed out, the app may leave it for `/signin` with a full page load before it has
+  loaded (after a sign-out on this page), which the step takes as the way to the sign-in page.
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
 - "is also signed in on another device": a second browser context of its own (not the page) signs the person in through the OAuth
@@ -2052,6 +2054,7 @@ the open task list {string} has no date and {int} open item(s)
 ```
 I have the template {string} with the items {string}
 I have the template {string} with the items {string}, the estimate {int} minutes and the category {string}
+{string} has the template {string} with the items {string}
 the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
 I save the task list as a template
 the footer of the expanded task list shows {string}
@@ -2092,6 +2095,8 @@ I have no templates
 
 - Store: templates are per person on the app server, `GET/POST /api/templates`, `PUT/DELETE /api/templates/:id`
   (`users/<sub>/templates.json`). A template is `{ id, name, items: [{ title }], estimateMinutes, categoryId }`.
+- "P has the template T with the items "A, B"" (`@signin`): the same `POST /api/templates`, sent with the page's own
+  session, which must be signed in as P (checked with `GET /api/auth/me`).
 - "I have the template T with the items "A, B"[, the estimate N minutes and the category C]": `POST /api/templates`
   before the page opens (items split on `", "`, C resolved by name from `GET /api/settings`).
 - "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`

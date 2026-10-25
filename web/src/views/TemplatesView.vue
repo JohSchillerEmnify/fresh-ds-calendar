@@ -35,7 +35,7 @@ const rows = computed(() => templates.list.map((tpl) => ({
   }),
 })));
 
-// offline the page says so in place of the list (the templates are not kept on the device)
+// the list shows at once from the device (last known state) and is read again here: another device may have changed it
 onMounted(() => { templates.load().catch(() => undefined); });
 
 function back() {
@@ -53,8 +53,7 @@ function back() {
     <div class="content">
       <section class="card">
         <div class="top"><Button variant="tonal" data-testid="templates-new" @click="editing = 'new'"><template #icon><IconAdd /></template>{{ t('tasks.templates.newTemplate') }}</Button></div>
-        <p v-if="!templates.loaded && templates.failed" class="sub empty" data-testid="templates-offline">{{ t('tasks.templates.offline') }}</p>
-        <p v-else-if="templates.loaded && !rows.length" class="sub empty" data-testid="templates-empty">{{ t('tasks.templates.empty') }}</p>
+        <p v-if="templates.loaded && !rows.length" class="sub empty" data-testid="templates-empty">{{ t('tasks.templates.empty') }}</p>
         <ul v-else class="list">
           <li v-for="r in rows" :key="r.tpl.id" class="row" data-testid="template-row" :data-name="r.tpl.name">
             <button type="button" class="main" :aria-label="t('tasks.templates.edit', { name: r.tpl.name })" data-testid="template-open" @click="editing = r.tpl">

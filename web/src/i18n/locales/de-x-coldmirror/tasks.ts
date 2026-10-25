@@ -27,7 +27,6 @@ export default {
     tooMany: 'Mehr Vorlagen gehen nicht, Digga. Erst eine wegzaubern.',
     nameTooLong: 'Höchstens 80 Zeichen für den Namen, yo',
     notFound: 'Die Vorlage ist weggezaubert, Digga.',
-    offline: 'Ohne Netz keine Vorlagen, yo.',
     titleRequired: 'Ohne Titel keine Vorlage, yo',
     alsoSave: 'Auch als Vorlage, fresh',
     fromTemplate: 'Aus Vorlage, yo',
