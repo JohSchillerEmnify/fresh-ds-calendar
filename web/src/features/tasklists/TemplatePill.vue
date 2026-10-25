@@ -120,7 +120,7 @@ defineExpose({ open });
       <IconDown class="caret" aria-hidden="true" />
     </button>
     <div
-      v-if="open" ref="panel" class="menu" tabindex="-1" :aria-label="t('tasks.templates.menu')" data-testid="template-picker"
+      v-if="open" ref="panel" class="menu" role="group" tabindex="-1" :aria-label="t('tasks.templates.menu')" data-testid="template-picker"
       @keydown.esc.stop.prevent="hide(true)" @focusout="focusOut"
     >
       <div class="head">

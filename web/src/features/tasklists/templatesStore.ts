@@ -29,8 +29,9 @@ export const useTemplatesStore = defineStore('templates', () => {
     const at = changes;
     try {
       const fresh = (await api.templates()).templates;
-      // a template added, changed or deleted while this was on its way would be lost: the reading is dropped
-      if (at !== changes) return;
+      // a template added, changed or deleted while this was on its way would be lost: the reading is dropped and
+      // done again, so the list always ends up read (also when that change failed)
+      if (at !== changes) return load();
       all.value = fresh;
       loaded.value = true;
       failed.value = false;
@@ -45,11 +46,19 @@ export const useTemplatesStore = defineStore('templates', () => {
     all.value = [...all.value.filter((x) => x.id !== t.id), t];
   };
 
-  /** A template with this name waiting for its undo time is deleted now: the name is free on the server first. */
+  /** Deletes on their way to the server, by template id. */
+  const deleting = new Map<string, Promise<void>>();
+
+  /**
+   * A template with this name waiting for its undo time is deleted now, and one whose delete is already on its way is
+   * waited for: the name is free on the server first.
+   */
   async function freeName(name: string, self?: string): Promise<void> {
     const n = name.trim();
-    const waiting = all.value.some((x) => x.id !== self && hidden.value.includes(x.id) && x.name.trim().localeCompare(n, undefined, { sensitivity: 'base' }) === 0);
-    if (waiting) await usePendingDeletesStore().flush();
+    const same = all.value.filter((x) => x.id !== self && hidden.value.includes(x.id) && x.name.trim().localeCompare(n, undefined, { sensitivity: 'base' }) === 0);
+    if (!same.length) return;
+    await usePendingDeletesStore().flush();
+    await Promise.all(same.map((x) => deleting.get(x.id)?.catch(() => undefined)));
   }
 
   /** Saves a new template; resolves with it once the server has it. */
@@ -76,7 +85,13 @@ export const useTemplatesStore = defineStore('templates', () => {
   /** Deletes on the server (after the undo time); the template is gone for good. */
   async function remove(id: string, keepalive = false): Promise<void> {
     changes++;
-    await api.deleteTemplate(id, { keepalive });
+    const sent = api.deleteTemplate(id, { keepalive });
+    deleting.set(id, sent);
+    try {
+      await sent;
+    } finally {
+      deleting.delete(id);
+    }
     changes++;
     all.value = all.value.filter((x) => x.id !== id);
     unhide(id);

@@ -32,3 +32,4 @@ must follow the person to every device and must never show up as events.
   adding them later is a cache entry, not a design change.
 - An unreadable `templates.json` is moved aside (`templates.json.corrupt-<ms>`) and the person starts empty, so a
   damaged file is never overwritten by the next save.
+- Malformed entries of a readable file are dropped on read and not kept: the next save writes the file without them.
