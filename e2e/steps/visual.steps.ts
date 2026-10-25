@@ -19,6 +19,8 @@ function region(w: World, name: string): Locator {
     case 'list form': return w.byTestId('tasklist-dialog');
     case 'day column': return w.byTestId('day-column');
     case 'clock': return w.byTestId('clock-view').locator('svg.face');
+    case 'template save sheet': return w.byTestId('template-save-dialog');
+    case 'templates page': return w.byTestId('templates-page');
     default: throw new Error(`unknown region "${name}"`);
   }
 }

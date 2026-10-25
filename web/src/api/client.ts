@@ -9,7 +9,7 @@
  */
 import type {
   AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
-  ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, UpdateEventInput,
+  ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
 import type { ThemeDoc, ThemePicture } from '@calendar/shared';
@@ -211,6 +211,19 @@ export class ApiClient {
   }
   putCanvas(areas: CanvasArea[], o?: RequestOptions) {
     return this.request<CanvasDoc>('PUT', '/api/canvas', { areas }, o);
+  }
+
+  templates(o?: RequestOptions) {
+    return this.request<{ templates: TaskTemplate[] }>('GET', '/api/templates', undefined, o);
+  }
+  createTemplate(input: TaskTemplateInput, o?: RequestOptions) {
+    return this.request<TaskTemplate>('POST', '/api/templates', input, o);
+  }
+  updateTemplate(id: string, input: TaskTemplateInput, o?: RequestOptions) {
+    return this.request<TaskTemplate>('PUT', `/api/templates/${enc(id)}`, input, o);
+  }
+  deleteTemplate(id: string, o?: RequestOptions) {
+    return this.request<void>('DELETE', `/api/templates/${enc(id)}`, undefined, o);
   }
 
   themePref(o?: RequestOptions) {

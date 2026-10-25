@@ -7,7 +7,7 @@ import { expectPositioned } from './support/grid.js';
 import { addDays, datesBetween, weekdayOffset, type Weekday } from './support/dates.js';
 import { cellValue, formRows } from './support/tables.js';
 import { box, expectBottomSheet, expectInViewport, expectJoined, optionLabels } from './support/ui.js';
-import { attr, tid, type World } from './support/world.js';
+import { attr, exactText, tid, type World } from './support/world.js';
 
 async function weekdayDate(world: World, name: Weekday): Promise<string> {
   return addDays(await world.weekStart(), weekdayOffset(name));
@@ -290,6 +290,10 @@ When('the undo time is over', async function (this: World) {
 
 Then('the snackbar says {string}', async function (this: World, text: string) {
   await expect(undoSnackbar(this).getByTestId('snackbar-text')).toHaveText(text);
+});
+
+Then('a snackbar says {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('snackbar-text').filter({ hasText: exactText(text) })).toBeVisible();
 });
 
 Then('the event dialog is open', async function (this: World) {

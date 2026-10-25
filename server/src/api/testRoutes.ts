@@ -36,6 +36,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.pushRecorder?.reset();
     ctx.mockDrive?.reset();
     ctx.canvas.reset();
+    ctx.templates.reset();
     ctx.people.reset();
     ctx.shared.reset();
     const settings = ctx.settings.reset();

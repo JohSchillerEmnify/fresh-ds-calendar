@@ -8,9 +8,9 @@ export default {
     search: 'Erledigte Lisdn durchsuchn',
     empty: 'Noch kane erledigten Aufgabnlisdn.',
     noMatch: 'Kane erledigte Aufgabnlisdn bassd.',
-    useAsTemplate: 'Als Vorlach nemma',
-    templateCreated: 'Offene Kopie von {title} gmachd',
-    templateFailed: 'Die Kopie konnd ned gmachd wern.',
+    copy: 'Kobiern',
+    copyCreated: 'Offene Kopie von {title} gmachd',
+    copyFailed: 'Die Kopie konnd ned gmachd wern.',
   },
   filter: {
     label: 'Filder',

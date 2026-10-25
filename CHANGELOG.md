@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-25
+- Task list templates: save any task list as a template (also a finished one, or while creating a list), then start a new list from it with "From template" in the create form and set its date and time. Templates keep the items (unticked), estimate and category, follow you to every device and are managed in Settings › Task lists › Templates. In the Archive, "Use as template" is now called "Copy". On a phone, Edit and Delete in a list's footer are shown as icons.
+
 ## 2026-10-24
 - Clock view: the middle now says what is running or comes next on two lines, the title over its start time and a full countdown ("19:40 · in 3 h 17 min", "until 19:30 · 1 h left"), so the time is never cut off; timed task lists count too, and when nothing else is on today it names tomorrow's first entry ("Tomorrow 09:00").
 - Busy month view: entries that are completely hidden under a day's fade are no longer built, so busy months open and swipe a bit faster; the month looks exactly the same, and opening the day still shows everything.

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 /** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`). */
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { api, ApiError } from '@/api/client';
-import type { Person, Reminders, TaskList } from '@/api/types';
+import type { Person, Reminders, TaskList, TaskTemplate } from '@/api/types';
 import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
+import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
@@ -24,6 +26,9 @@ import { isMemberOnly, leaveList, shareList, unshareList, withNames } from './sh
 import { useTaskCategories } from './categories';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import { useRepeatScope } from './repeatScope';
+import TemplatePill from './TemplatePill.vue';
+import { fillFromTemplate, templateFromForm, templateNameProblem } from './templates';
+import { useTemplatesStore } from './templatesStore';
 import { usePluginEnabled } from '@/plugins';
 import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
 import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
@@ -84,7 +89,12 @@ function fill(src: TaskList) {
 }
 onMounted(async () => {
   api.tasksCalendarReminders().then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
-  if (!editing.value) { original = JSON.stringify(form); return; }
+  if (!editing.value) {
+    original = JSON.stringify(form);
+    // the names already taken, for "Also save as template"
+    templates.load().catch(() => undefined);
+    return;
+  }
   api.people().then((r) => { people.value = r.people; }).catch(() => undefined);
   const cur = items.get(props.id!);
   if (cur?.kind === 'tasklist') return fill(cur);
@@ -110,9 +120,32 @@ function toggleNoDate() {
   else if (!form.date) form.date = clock.today;
 }
 
+// --- templates (feature tasklist-templates) ------------------------------------------------------------------------
+const router = useRouter();
+const templates = useTemplatesStore();
+/** The template the form was filled from: the pill shows its name. */
+const pickedTemplate = ref<string | null>(null);
+/** "Also save as template": saving the new list also keeps it as a template named by its title. */
+const alsoTemplate = ref(false);
+const pill = ref<InstanceType<typeof TemplatePill> | null>(null);
+function pickTemplate(tpl: TaskTemplate) {
+  Object.assign(form, fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id)));
+  pickedTemplate.value = tpl.name;
+}
+function manageTemplates() {
+  emit('close');
+  void router.push('/settings/templates');
+}
+/** The problem with "Also save as template", or '' (the list needs a title, and the name must be free). */
+function templateProblem(): string {
+  if (!alsoTemplate.value || editing.value) return '';
+  if (!form.title.trim()) return t('tasks.templates.titleRequired');
+  return templateNameProblem(templates.list, form.title);
+}
+
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
-  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form)) ?? '';
+  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form)) ?? templateProblem();
   conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
@@ -147,6 +180,10 @@ async function save() {
       await items.createTaskList({
         ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: form.repeat || null,
       });
+      // the list is saved; a template that fails now is only reported, the list stays
+      if (alsoTemplate.value) {
+        await templates.add(templateFromForm(form, cats.on.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
+      }
     }
     void lists.refresh().catch(() => undefined);
     emit('close');
@@ -180,10 +217,13 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value" @close="emit('close')">
+  <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" />
-      <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
+      <div class="headrow">
+        <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
+        <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
+      </div>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
       <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">{{ t('tasks.dialog.loadLatest') }}</Button></div>
       <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" enterkeyhint="next" />
@@ -214,6 +254,10 @@ function remove() {
       </div>
       <TextField v-if="!editing" v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
       <Select v-if="!editing && !form.noDate" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
+      <div v-if="!editing" class="tplrow">
+        <span class="tpllab">{{ t('tasks.templates.alsoSave') }}</span>
+        <Switch v-model="alsoTemplate" :label="t('tasks.templates.alsoSave')" data-testid="tasklist-save-as-template" />
+      </div>
       <div class="actions">
         <Button v-if="memberOnly" variant="text" class="danger" data-testid="tasklist-leave" :disabled="sharing" @click="leave">{{ t('sharing.leave') }}</Button>
         <Button v-else-if="editing" variant="text" class="danger" data-testid="tasklist-delete" @click="remove">{{ t('tasks.dialog.delete') }}</Button>
@@ -229,7 +273,10 @@ function remove() {
 
 <style scoped>
 .form { display: flex; flex-direction: column; gap: 12px; }
-.h { margin: 4px 0 0; font: var(--md-sys-typescale-title-large); }
+.headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.h { margin: 4px 0 0; font: var(--md-sys-typescale-title-large); min-width: 0; }
+.tplrow { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.tpllab { flex: 1; min-width: 0; font: var(--md-sys-typescale-body-large); }
 .err { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); font: var(--md-sys-typescale-body-medium); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .two > * { min-width: 0; }

@@ -36,7 +36,8 @@ Define the custom types with `defineParameterType` in `e2e/steps/parameters.ts`.
     `description`, `location`, `calendar` (calendar display name, e.g. `Personal`, `Work`), `color` (`Calendar color`
     or a Google color name, e.g. `Tomato`).
   - Task list fields: `title`, `date`, `time` (empty = no time), `items` (`; `-separated, typed as one item per line),
-    `category` (category name or `No category`), `tags` (comma-separated text).
+    `category` (category name or `No category`), `tags` (comma-separated text), `estimate` (minutes, empty = none).
+  - Template fields (`@templates`): `name`, `items`, `estimate`, `category`, with the same value rules.
   - An empty cell clears the field. A cell wrapped in double quotes (`"   "`) is typed literally without the quotes.
   - `<N characters>` (e.g. `<201 characters>`) types N times the letter `x`.
   - Fields are filled in the table order; filling a field that is not visible (e.g. `start time` when `all day` is
@@ -241,6 +242,7 @@ I cancel the deletion
 I undo the deletion
 the undo time is over
 the snackbar says {string}
+a snackbar says {string}
 the snackbar is drawn in the {scheme} theme
 the event dialog is open
 the event dialog is closed
@@ -1610,7 +1612,8 @@ I reload the app
 - Undo (`@undo`): deleting takes effect at once in the app without a confirmation; the `undo-snackbar` shows
   "Deleted: <title>" with action `undo-action`. "I undo the deletion" clicks `undo-action`. "the undo time is over" waits
   until `undo-snackbar` is gone (≤ 8 s) and the pending delete request has finished. "the snackbar says" = the text of
-  the visible `undo-snackbar` message (`snackbar-text`).
+  the visible `undo-snackbar` message (`snackbar-text`). "a snackbar says" = any visible snackbar message
+  (`snackbar-text`) with exactly that text (e.g. "Saved as template").
 
 ## Theme menu (`@themes`)
 
@@ -2038,10 +2041,116 @@ the open task list {string} has no date and {int} open item(s)
   awaited by the expectation that follows).
 - "I untick the item I of the task list L in the Archive": unticks `tasklist-item-checkbox` of that item inside L's
   `tasks-archive-item` and waits for the `PATCH /api/tasklists/:id/items/:itemId` response.
-- "I choose Use as template for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
-  waits for the `POST /api/tasklists` response.
+- "I choose Copy for the task list L": clicks `tasks-archive-duplicate` in L's `tasks-archive-item` and
+  waits for the `POST /api/tasklists` response. "I choose Save as template for the task list L" (`@templates`): clicks
+  `tasklist-save-template` in L's `tasks-archive-item`, which opens the `template-save-dialog`.
 - "the open task list L has no date and N open item(s)": opens the Open tab; the `tasks-item` L has an empty
   `data-date` and N `tasklist-item` rows with `data-done="false"` (and no done ones).
+
+## Task list templates (`@templates`)
+
+```
+I have the template {string} with the items {string}
+I have the template {string} with the items {string}, the estimate {int} minutes and the category {string}
+the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
+I save the task list as a template
+the footer of the expanded task list shows {string}
+the template dialog previews the items {string}
+the task list {string} in the Archive offers {string} and {string}
+the template name field shows {string}
+I enter the template name {string}
+I confirm the template
+I turn on {string} in the task list form
+I open the template picker
+I choose the template {string}
+I choose {string} in the template picker
+the template pill shows {string}
+the template menu has grown out of the template pill
+the template menu shows:
+the template menu ends with {string} below a divider
+the template picker says {string}
+I create a task list from the template {string} on {date}
+I open the templates in the settings
+the settings page {string} is shown
+the templates page lists {string}
+the templates page says {string}
+the templates page offers {string}
+I start a new template
+the template sheet is titled {string}
+I open the template {string}
+I fill in the template form with:
+I save the template
+I cancel the template dialog
+I delete the template {string}
+the template form shows:
+the template form has no date, time, repeat or reminder fields
+the template dialog shows the error {string}
+my templates are {string}
+the template {string} has the items {string}
+I have no templates
+```
+
+- Store: templates are per person on the app server, `GET/POST /api/templates`, `PUT/DELETE /api/templates/:id`
+  (`users/<sub>/templates.json`). A template is `{ id, name, items: [{ title }], estimateMinutes, categoryId }`.
+- "I have the template T with the items "A, B"[, the estimate N minutes and the category C]": `POST /api/templates`
+  before the page opens (items split on `", "`, C resolved by name from `GET /api/settings`).
+- "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`
+  with `categoryId`, `time`, `estimateMinutes` and the items table (ticks included).
+- "I save the task list as a template": in the open list sheet (`tasklist-expanded`; "I expand the task list" opens
+  it) clicks `tasklist-save-template` in the footer next to Edit and Delete; `template-save-dialog` opens with
+  `template-save-name` prefilled with the list's title. "the template name field shows N" = value of
+  `template-save-name`; "I enter the template name N" replaces it; "I confirm the template" clicks
+  `template-save-confirm` and, when no error shows, waits for the `POST /api/templates` response (201).
+  `tasklist-save-template` is a tonal pill. "the footer of the expanded task list shows "A, B"" = the visible buttons
+  in the footer of `tasklist-expanded` (`tasklist-add`, `tasklist-save-template`, `tasklist-edit`,
+  `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their label (`aria-label`,
+  else their text: a phone-wide footer shows Edit and Delete as icons only).
+  "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
+- "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
+  A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, renamed "Copy", owner 2026-10-25).
+- "I turn on S in the task list form": S = `Also save as template` → `tasklist-save-as-template` (create mode only; a
+  switch row right above Cancel and Save) set to `aria-checked="true"`.
+- "I open the template picker": clicks the pill `tasklist-from-template` next to the heading of the open
+  `tasklist-dialog` (create mode); the pill grows in place into the menu `template-picker`. "the template pill shows
+  T" = the pill's label without the `▾` (`From template` before a pick, the template's name after). "the template
+  menu has grown out of the template pill": once the menu is at rest (no running animation) its top edge and its right
+  edge are within 4 px of where the pill's were before the tap (the pill sits at the right end of the heading row, so
+  the menu opens from its top-right corner), it is taller than the pill, its first row is the header pill
+  `template-picker-header` standing where the pill was (top and right edge within 4 px, the same height within 2 px,
+  owner's canvas variant 4D), and the pill itself is hidden meanwhile. "I choose the template T"
+  opens the menu if needed and clicks its `template-picker-item` with `data-name` T; the menu shrinks back into the
+  pill and the form is filled. "I choose Manage templates in the template picker" clicks `template-picker-manage`.
+  "the template menu shows:" = two-column table, one row per `template-picker-item` in DOM order (by name): its
+  `template-picker-name` and `template-picker-details` texts. Details are `N item(s)`, then `~M min` when there is
+  an estimate, then the category name when there is one, joined by ` · `. "ends with M below a divider": the last
+  child of `template-picker` is `template-picker-manage` with text M, directly after a `template-picker-divider`.
+  "says" = text of `template-picker-empty` (inside the open menu, above the divider and "Manage templates").
+- "I create a task list from the template T on D": the day view of D, "I start creating a task list", "I choose the
+  template T", "I save the task list" (waits for `POST /api/tasklists`).
+- "I open the templates in the settings": opens the settings (from the day view of the Background date if no page
+  is open yet), then the row `settings-templates` in the Task lists card (next to categories, carried-over,
+  finished-list and tap options), which opens the Templates sub page; waits for `templates-page`.
+  "the settings page Templates is shown": `templates-page` is visible at `/settings/templates`.
+- "the templates page lists "A, B"" = `data-name` of every `template-row` in DOM order (by name); "says" = text of
+  `templates-empty`.
+- "the templates page offers New template": `templates-new` (a button on top of the list, also in the empty state)
+  is visible with that text. "I start a new template" clicks it; the `template-dialog` opens empty. "the template sheet
+  is titled T" = text of `template-dialog-title` ("New template" / "Edit template"). Saving a new template waits for
+  `POST /api/templates` (201) instead of the `PUT`.
+- "I open the template T": on the templates page clicks the `template-row` T; `template-dialog` opens.
+  "I fill in the template form with:" fills `template-name`, `template-items` (one per line, as the task list form;
+  reordering, adding, removing and retitling are all done by the lines), `template-estimate`, `template-category`.
+  "I save the template" clicks `template-save` and, when no error shows, waits for `PUT /api/templates/:id` (200);
+  "I cancel the template dialog" clicks `template-cancel`. "the template form shows:" compares the listed fields.
+  "has no date, time, repeat or reminder fields": the `template-dialog` holds no `tasklist-date`, `tasklist-time`,
+  `tasklist-repeat` or reminder editor.
+- "I delete the template T": clicks `template-delete` of the `template-row` T; the row goes at once and an undo
+  snackbar shows (as other deletes; "I undo the deletion" and "the undo time is over" are reused). The
+  `DELETE /api/templates/:id` is sent when the undo time is over.
+- "the template dialog shows the error E": text of `template-error` in the open `template-save-dialog` or
+  `template-dialog`.
+- "my templates are "A, B"" / "the template T has the items "A, B"" / "I have no templates": `GET /api/templates` as
+  the signed-in person: names sorted, joined `", "`; T's item titles in order, joined `", "`; an empty list.
 
 ## Tasks canvas (`@tasks-canvas`)
 
@@ -2493,7 +2602,8 @@ Rules that need no reference picture, plus `toHaveScreenshot` regression picture
 written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
-`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`). The `now-marker` is masked.
+`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
+(`template-save-dialog`), `templates page` (`templates-page`). The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped

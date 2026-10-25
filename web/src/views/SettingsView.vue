@@ -266,6 +266,10 @@ async function resetDemo() {
           </ul>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.carriedFrom.label') }}</span><span class="sub">{{ t('settings.tasklists.carriedFrom.hint') }}</span></div><Switch :model-value="labs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
+          <button type="button" class="row link" data-testid="settings-templates" @click="router.push('/settings/templates')">
+            <span class="grow"><span class="lab">{{ t('tasks.templates.page') }}</span><span class="sub">{{ t('tasks.templates.pageHint') }}</span></span>
+            <IconNext aria-hidden="true" />
+          </button>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.taskOpen.label') }}</span><SegmentedButton :model-value="labs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" /></div>
           <div v-if="labs.taskCategories" class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>

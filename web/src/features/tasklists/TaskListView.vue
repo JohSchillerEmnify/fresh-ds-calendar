@@ -33,6 +33,7 @@ import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
+import SaveTemplateDialog from './SaveTemplateDialog.vue';
 import { useRepeatScope } from './repeatScope';
 import { useTaskList } from './useTaskList';
 import { usePluginEnabled } from '@/plugins';
@@ -49,6 +50,8 @@ const props = defineProps<{
   titleOpensDialog?: boolean;
   /** A sticky note on the Canvas: head, celebration and the item rows only (no row buttons, add field or footer). */
   compact?: boolean;
+  /** No "Save as template" in the footer: the host shows it itself (the Archive, next to "Copy"). */
+  noTemplate?: boolean;
 }>();
 const emit = defineEmits<{
   close: [];
@@ -210,6 +213,8 @@ async function setDoor(on: boolean) {
 
 // --- list actions -----------------------------------------------------------------------------------------------
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
+/** "Save as template" (feature tasklist-templates): a small sheet over this one asks for the name. */
+const savingTemplate = ref(false);
 /** No confirmation: the list goes at once, the undo snackbar can bring it back (feature tasklist-editing). */
 function remove() {
   if (!tl.value) return;
@@ -248,7 +253,7 @@ async function removeEntry(item: TaskItem, index: number) {
 }
 
 /** True while a field or the scope question owns Escape (the host must not close then). */
-const busy = computed(() => renaming.value || !!editingItem.value || adding.value || scope.asking.value);
+const busy = computed(() => renaming.value || !!editingItem.value || adding.value || scope.asking.value || savingTemplate.value);
 defineExpose({ root, busy });
 </script>
 
@@ -311,17 +316,19 @@ defineExpose({ root, busy });
 
         <DoorSwitch v-if="closable && doorOn && tl" :model-value="hasDoor(tl.tags)" compact @update:model-value="setDoor" />
         <footer v-if="!compact" class="foot">
-          <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
+          <Button variant="text" class="squeeze" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
+          <Button v-if="!noTemplate" variant="tonal" class="tpl" data-testid="tasklist-save-template" @click="savingTemplate = true">{{ t('tasks.templates.save') }}</Button>
           <span class="grow" />
-          <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
-          <Button v-if="isMemberOnly(tl)" variant="text" class="danger" data-testid="tasklist-leave" @click="leave"><template #icon><IconDelete /></template>{{ t('sharing.leave') }}</Button>
-          <Button v-else variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
+          <Button variant="text" class="squeeze" :aria-label="t('tasks.list.edit')" :title="t('tasks.list.edit')" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template><span class="blab">{{ t('tasks.list.edit') }}</span></Button>
+          <Button v-if="isMemberOnly(tl)" variant="text" class="danger squeeze" :aria-label="t('sharing.leave')" :title="t('sharing.leave')" data-testid="tasklist-leave" @click="leave"><template #icon><IconDelete /></template><span class="blab">{{ t('sharing.leave') }}</span></Button>
+          <Button v-else variant="text" class="danger squeeze" :aria-label="t('tasks.list.delete')" :title="t('tasks.list.delete')" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template><span class="blab">{{ t('tasks.list.delete') }}</span></Button>
         </footer>
       </div>
     </Transition>
     <Teleport to="body"><SupportCat v-if="cat" :card="cat.card" :title="cat.title" :level="cat.level" @done="cat = null" /></Teleport>
     <!-- on the body: inside the anchored list popover a modal would be confined to (and cover) the list -->
     <Teleport to="body"><RepeatScopeDialog :open="scope.asking.value" @answer="scope.answer" /></Teleport>
+    <Teleport to="body"><SaveTemplateDialog v-if="savingTemplate" :open="savingTemplate" :list="tl" @close="savingTemplate = false" /></Teleport>
   </section>
 </template>
 
@@ -370,8 +377,18 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
 .add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }
-.foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; }
+.foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; container-type: inline-size; }
+/* a phone-wide footer keeps one row with "Save as template" in it: Edit and Delete show their icons only (the words
+   stay as their label and tooltip) */
+@container (max-width: 440px) {
+  .blab { display: none; }
+  .foot { gap: 0; }
+  .foot .squeeze { padding: 0 8px; }
+  .foot .tpl { padding: 0 10px; }
+}
 .grow { flex: 1; }
+/* the tonal pill sits between "Add item" and Edit/Delete; compact so the footer stays one row on a phone */
+.foot .tpl { padding: 0 14px; }
 .danger { color: var(--md-sys-color-error); }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes bump { 0% { transform: scale(0.7); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }

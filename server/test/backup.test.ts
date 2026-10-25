@@ -259,18 +259,20 @@ describe('backups over HTTP (TEST_MODE, MockDrive)', () => {
     } finally { t.cleanup(); }
   });
 
-  it('restores theme and canvas at sign-in on a server that lost the data', async () => {
+  it('restores theme, canvas and templates at sign-in on a server that lost the data', async () => {
     const t = await setup();
     try {
       const h = { cookie: await signIn(t, JO) };
       await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon' }, h);
       await t.json('PUT', '/api/canvas', { areas: [{ id: 'a1', name: 'Garden', color: '#1a73e8', x: 10, y: 20, w: 320, h: 240 }] }, h);
+      await t.json('POST', '/api/templates', { name: 'Packing', items: [{ title: 'Passport' }] }, h);
       await t.json('POST', '/api/backup', undefined, h);
       await t.json('POST', '/api/__test/backup/wipe', { owner: JO });
       expect((await t.json('GET', '/api/canvas', undefined, h)).status).toBe(401);
       const h2 = { cookie: await signIn(t, JO) };
       expect((await t.json('GET', '/api/canvas', undefined, h2)).body.areas.map((a: any) => a.name)).toEqual(['Garden']);
       expect((await t.json('GET', '/api/prefs/theme', undefined, h2)).body.preset).toBe('Neon');
+      expect((await t.json('GET', '/api/templates', undefined, h2)).body.templates.map((x: any) => x.name)).toEqual(['Packing']);
       // no new backup is needed for what was just restored
       expect((await t.json('GET', '/api/backup', undefined, h2)).body.state).toBe('ok');
     } finally { t.cleanup(); }
