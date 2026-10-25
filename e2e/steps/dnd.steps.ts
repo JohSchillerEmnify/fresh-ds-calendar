@@ -2,6 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { addDays } from './support/dates.js';
+import { iosFinger } from './support/iosTouch.js';
 import { box, touchDrag, type Box } from './support/ui.js';
 import type { View } from './parameters.js';
 import { attr, tid, type ProbeWindow, type World } from './support/world.js';
@@ -9,6 +10,40 @@ import { attr, tid, type ProbeWindow, type World } from './support/world.js';
 interface Point { x: number; y: number }
 const centre = (b: Box): Point => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
 const useTouch = (w: World) => !!w.testInfo.project.use.hasTouch;
+/** iPhone project: WebKit has no touch moves in Playwright, a model of iOS WebKit is the finger (support/iosTouch.ts). */
+const useIosModel = (w: World) => w.testInfo.project.use.browserName === 'webkit';
+
+/** Finger down at `from`, held `holdMs` (0: no long press); the returned function lets go. */
+async function fingerDown(w: World, from: Point, holdMs: number): Promise<{ move: (to: Point, steps: number, ms: number) => Promise<void>; up: () => Promise<void> }> {
+  if (useIosModel(w)) {
+    const f = iosFinger(w.page);
+    if (holdMs) await f.press(from, holdMs);
+    else await f.down(from);
+    let at = from;
+    return {
+      move: async (to, steps, ms) => { await f.moves(at, to, steps, ms); at = to; },
+      up: () => f.up(),
+    };
+  }
+  const cdp = await w.context.newCDPSession(w.page);
+  const point = (p: Point) => [{ x: Math.round(p.x), y: Math.round(p.y), id: 1 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from) });
+  if (holdMs) await w.page.waitForTimeout(holdMs);
+  let at = from;
+  return {
+    move: async (to, steps, ms) => {
+      for (let i = 1; i <= steps; i++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point({ x: at.x + ((to.x - at.x) * i) / steps, y: at.y + ((to.y - at.y) * i) / steps }) });
+        await w.page.waitForTimeout(ms / steps);
+      }
+      at = to;
+    },
+    up: async () => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {});
+      await cdp.detach().catch(() => {});
+    },
+  };
+}
 
 async function hourHeight(w: World): Promise<number> {
   const grid = w.page.getByTestId('time-grid').first();
@@ -69,6 +104,12 @@ async function targetPoint(w: World, card: Locator, from: Point, date: string, t
 
 /** Press, move in 10 steps, release. Touch uses a 500 ms long press first. */
 async function dragBetween(w: World, from: Point, to: Point) {
+  if (useIosModel(w)) {
+    const f = await fingerDown(w, from, 500);
+    await f.move(to, 10, 300);
+    await f.up();
+    return;
+  }
   if (useTouch(w)) {
     await touchDrag(w.page, from, to, { steps: 10, durationMs: 300, holdMs: 500 });
     return;
@@ -158,7 +199,14 @@ async function pickUp(w: World, title: string) {
   await chip.scrollIntoViewIfNeeded();
   const from = await grabPoint(w, chip);
   w.heldAt = from;
-  if (useTouch(w)) {
+  if (useIosModel(w)) {
+    const f = await fingerDown(w, from, 500);
+    w.held = async () => {
+      await f.up();
+      w.held = undefined;
+      w.heldAt = undefined;
+    };
+  } else if (useTouch(w)) {
     // Touch stays down: keep the CDP session until "I release the event without moving it".
     const cdp = await w.context.newCDPSession(w.page);
     const touch = [{ x: Math.round(from.x), y: Math.round(from.y), id: 1 }];
@@ -268,4 +316,55 @@ Then('a haptic tick was requested', async function (this: World) {
       return calls.some((c) => (Array.isArray(c) ? c : [c]).every((n) => n > 0 && n <= 30));
     }, { message: 'navigator.vibrate called with a duration <= 30 ms' })
     .toBe(true);
+});
+
+/** STEPS.md "I hold the event X over D": long press, move onto D's month cell, finger kept down. */
+When('I hold the event {string} over {date}', async function (this: World, title: string, date: string) {
+  if (!useTouch(this)) throw new Error('needs a finger (phone project)');
+  const chip = this.eventChip(title);
+  const from = await grabPoint(this, chip);
+  const to = centre(await box(this.byTestId('month-cell', attr('data-date', date))));
+  const f = await fingerDown(this, from, 500);
+  await f.move(to, 10, 300);
+  this.heldAt = to;
+  this.held = async () => {
+    await f.up();
+    this.held = undefined;
+    this.heldAt = undefined;
+  };
+});
+
+Then('the dragged event is drawn under the finger', async function (this: World) {
+  const at = this.heldAt;
+  if (!this.held || !at) throw new Error('nothing is held');
+  const lifted = this.page.locator(`${tid('event-chip')}[data-dragging="true"]`);
+  await expect(lifted).toHaveCount(1);
+  await expect.poll(() => lifted.evaluate((el, p) => {
+    const top = document.elementFromPoint(p.x, p.y);
+    return !!top && (top === el || el.contains(top));
+  }, at), { message: 'the topmost element at the finger is the lifted event' }).toBe(true);
+});
+
+/** Scroll position of the time grid's scroll container, noted by "I swipe up quickly ..." */
+const gridScrollTop = (w: World) => w.page.getByTestId('time-grid').first().evaluate((el) => {
+  for (let e: Element | null = el; e; e = e.parentElement) {
+    if (e.scrollHeight > e.clientHeight + 1 && getComputedStyle(e).overflowY !== 'visible') return e.scrollTop;
+  }
+  return 0;
+});
+let scrollBefore = 0;
+
+When('I swipe up quickly starting on the event {string}', async function (this: World, title: string) {
+  if (!useTouch(this)) throw new Error('needs a finger (phone project)');
+  const chip = this.eventChip(title);
+  await chip.scrollIntoViewIfNeeded();
+  scrollBefore = await gridScrollTop(this);
+  const from = await grabPoint(this, chip);
+  const f = await fingerDown(this, from, 0);
+  await f.move({ x: from.x, y: from.y - 240 }, 8, 150);
+  await f.up();
+});
+
+Then('the time grid has scrolled down', async function (this: World) {
+  await expect.poll(async () => (await gridScrollTop(this)) - scrollBefore, { message: 'scrolled by at least 40 px' }).toBeGreaterThanOrEqual(40);
 });

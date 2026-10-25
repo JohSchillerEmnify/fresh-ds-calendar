@@ -1037,12 +1037,33 @@ I drag the top handle of {string} up by {int} minutes
 the event {string} shows resize handles
 the event {string} shows no resize handles
 I tap the event {string} right beside the bottom handle of {string}
+I hold the event {string} over {date}
+the dragged event is drawn under the finger
+I swipe up quickly starting on the event {string}
+the time grid has scrolled down
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
   the `time-slot` of the date/hour plus the minute offset (quarter-hour precision), or the `month-cell` /
   `week-allday-cell` of the date.
 - Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
+- iPhone project (`iphone`, WebKit with the iPhone 13 profile; runs only scenarios tagged `@iphone`): Playwright has no
+  touch moves for WebKit, so the finger is a model of iOS WebKit (`e2e/steps/support/iosTouch.ts`) that dispatches
+  `pointerdown`/`touchstart`, `pointermove`/`touchmove`, `pointerup`/`touchend` (pointer events first) at the element
+  under the finger, with these WebKit rules (UIProcess sources, WebKit bugs 184250/185656):
+  - touch moves are cancelable only when a non-passive `touchmove` listener was on the touched element's path (element,
+    ancestors, document, window) at `touchstart`; listeners on window/document/body without `passive` count as passive.
+  - the native pan may be stopped only by the first `touchmove` of the touch: when that one is not default-prevented,
+    the pan starts at the first move more than 10 px from the start; it then sends `pointercancel` when the move has a
+    vertical part (the calendar area is `touch-action: pan-y`), no more pointer events follow, later touch moves are not
+    cancelable, and the nearest ancestor whose computed `overflow-y` is `auto`/`scroll` scrolls with the finger.
+  - a real finger is never still: the long press (500 ms) has two moves of 1 and 2 px in it.
+- "I hold the event X over D": long press X and move the finger to the centre of D's `month-cell` in 10 steps, finger
+  kept down (released by the scenario's cleanup). "the dragged event is drawn under the finger": X is lifted and the
+  topmost element at the finger (`elementFromPoint`, which honours clipping) is X's chip or inside it.
+- "I swipe up quickly starting on the event X": finger down 5 minutes below X's top, 240 px up in 8 moves over 150 ms
+  (no long press), up. The time grid's scroll position is noted first; "the time grid has scrolled down" = the
+  `time-grid`'s scroll container `scrollTop` grew by at least 40 px.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
 - "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
   without moving; "release without moving" = mouse up / touch end.
