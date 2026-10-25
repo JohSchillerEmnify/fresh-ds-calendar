@@ -168,3 +168,21 @@ PR boundary: one PR (the pieces are not useful alone).
   `templates-empty`; `door-sheet` re-baselined for the new footer (its old picture also still showed the pre-drag
   up/down arrows). The magenta line under "No date" in the create-form pictures is pre-existing (it is there with the
   template pill and switch removed too), not part of this feature.
+
+## Review round (2026-10-25)
+
+- W1 A template reading that started before a local add/change/delete is dropped when it arrives (counter in
+  `templatesStore`), so it never wipes the new template. Unit test.
+- W2/DESIGN The grown panel's top row is the pill itself ("From template ▴" where the pill was, owner's canvas 4D);
+  the panel is only as wide as its entries (max 300 px). Plain popover of buttons (no menu roles); Escape, a tap
+  outside, the header pill and Tab leaving the panel close it; the focus goes back to the pill after the render.
+- S6 The grow is transform (scale out of the pill's top-right corner, the header scaled back) and opacity only.
+- W4 An unreadable `templates.json` is moved aside and logged; malformed entries are left out. Unit test.
+- W5 Names longer than 80 characters are refused in the app too (the save sheet cuts a longer title to 80); the
+  too-long and not-found errors have translated texts.
+- S1 Templates are not in the last-known cache (ADR 0023) for now: offline, the picker and the Templates page say
+  "Templates need a connection"; the empty state shows only once the templates were read.
+- S2 Saving a template whose name belongs to one waiting for its undo time sends that delete first.
+- S4 "the snackbar says" stays the undo snackbar's; "a snackbar says" checks any snackbar ("Saved as template").
+- S7 Another person's template id is 404 on PUT and DELETE (server test).
+- Open with the owner: the icon-only Edit/Delete in a phone-wide footer (A17).

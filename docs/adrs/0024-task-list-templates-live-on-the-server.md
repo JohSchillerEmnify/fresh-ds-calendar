@@ -27,3 +27,8 @@ must follow the person to every device and must never show up as events.
 
 - Two devices changing the same template at the same moment: the last write wins.
 - At most 100 templates of at most 200 items each per person.
+- The templates are not in the last-known cache on the device (ADR 0023) for now: offline the template picker and the
+  Templates page say "Templates need a connection" instead of an empty list. Kept out to keep the first version small;
+  adding them later is a cache entry, not a design change.
+- An unreadable `templates.json` is moved aside (`templates.json.corrupt-<ms>`) and the person starts empty, so a
+  damaged file is never overwritten by the next save.
