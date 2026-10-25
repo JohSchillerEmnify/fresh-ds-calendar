@@ -17,7 +17,7 @@ const useIosModel = (w: World) => w.testInfo.project.use.browserName === 'webkit
 async function fingerDown(w: World, from: Point, holdMs: number): Promise<{ move: (to: Point, steps: number, ms: number) => Promise<void>; up: () => Promise<void> }> {
   if (useIosModel(w)) {
     const f = iosFinger(w.page);
-    if (holdMs) await f.press(from, holdMs);
+    if (holdMs) await f.press(from, holdMs, !w.stillFinger);
     else await f.down(from);
     let at = from;
     return {
@@ -369,13 +369,12 @@ const gridScrollTop = (w: World) => w.page.getByTestId('time-grid').first().eval
   }
   return 0;
 });
-let scrollBefore = 0;
 
 When('I swipe up quickly starting on the event {string}', async function (this: World, title: string) {
   if (!useTouch(this)) throw new Error('needs a finger (phone project)');
   const chip = this.eventChip(title);
   await chip.scrollIntoViewIfNeeded();
-  scrollBefore = await gridScrollTop(this);
+  this.gridScrollBefore = await gridScrollTop(this);
   const from = await grabPoint(this, chip);
   const f = await fingerDown(this, from, 0);
   await f.move({ x: from.x, y: from.y - 240 }, 8, 150);
@@ -383,5 +382,25 @@ When('I swipe up quickly starting on the event {string}', async function (this: 
 });
 
 Then('the time grid has scrolled down', async function (this: World) {
-  await expect.poll(async () => (await gridScrollTop(this)) - scrollBefore, { message: 'scrolled by at least 40 px' }).toBeGreaterThanOrEqual(40);
+  await expect.poll(async () => (await gridScrollTop(this)) - (this.gridScrollBefore ?? 0), { message: 'scrolled by at least 40 px' }).toBeGreaterThanOrEqual(40);
+});
+
+When('I drag the event {string} to {date} with a finger held perfectly still', async function (this: World, title: string, date: string) {
+  if (!useTouch(this)) throw new Error('needs a finger (phone project)');
+  // the browser takes a touch over for scrolling with a pointercancel: note any during the drag
+  await this.page.evaluate(() => {
+    const w = window as unknown as { __pointerCancels: number };
+    w.__pointerCancels = 0;
+    window.addEventListener('pointercancel', () => { w.__pointerCancels++; }, true);
+  });
+  this.stillFinger = true;
+  try {
+    await drag(this, eventHandle(this, title), (c, f) => targetPoint(this, c, f, date));
+  } finally {
+    this.stillFinger = false;
+  }
+});
+
+Then('the browser did not take the touch over for scrolling', async function (this: World) {
+  expect(await this.page.evaluate(() => (window as unknown as { __pointerCancels?: number }).__pointerCancels), 'pointercancel events during the drag').toBe(0);
 });

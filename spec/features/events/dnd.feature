@@ -131,6 +131,15 @@ Feature: Drag and drop to reschedule
     Then I see the event "Dentist" on 2026-10-21
     And Google contains an event "Dentist" on 2026-10-21 from 09:00 to 10:00
 
+  # a finger held still lets the drag itself keep the page from scrolling (the card's own touch listener on iPhone)
+  @mobile @iphone
+  Scenario: On a phone a drag with a still finger keeps the page from scrolling in the month view
+    Given I am using a phone
+    When I open the month view for 2026-10
+    And I drag the event "Dentist" to 2026-10-21 with a finger held perfectly still
+    Then I see the event "Dentist" on 2026-10-21
+    And the browser did not take the touch over for scrolling
+
   @mobile @iphone
   Scenario: On a phone the event dragged in the month view stays visible under the finger
     Given I am using a phone

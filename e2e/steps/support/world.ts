@@ -99,6 +99,10 @@ export class World {
   held?: () => Promise<void>;
   /** Where "I pick up ..." pressed (page coordinates). */
   heldAt?: { x: number; y: number };
+  /** Scroll position of the time grid noted by "I swipe up quickly starting on the event ...". */
+  gridScrollBefore?: number;
+  /** The next finger drag holds perfectly still during the long press (iPhone model: no small moves). */
+  stillFinger?: boolean;
   /** The person of the last sign-in step ("they" in the sign-in scenarios). */
   person?: string;
   /** The week the last "without signing in" step opened. */

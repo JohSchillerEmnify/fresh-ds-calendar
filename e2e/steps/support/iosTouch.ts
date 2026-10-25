@@ -3,7 +3,7 @@
  * small model of iOS WebKit's touch handling (STEPS.md "Drag and drop", iPhone project) and the steps drive it.
  *
  *   installIosTouchModel   init script: tracks non-passive `touchmove` listeners, defines `window.__iosFinger`
- *   iosFinger(page)        down / move / up from the test side, plus `drag` (long press, moves, release)
+ *   iosFinger(page)        down / move / up from the test side, plus `press` (long press) and `moves` (interpolated)
  */
 import type { Page } from '@playwright/test';
 
@@ -123,11 +123,15 @@ export function iosFinger(page: Page) {
     down: (p: Point) => call('down', p),
     move: (p: Point) => call('move', p),
     up: () => call('up'),
-    /** A long press of `holdMs` with the small moves of a real finger in it (1 px, then 2 px). */
-    async press(p: Point, holdMs: number) {
+    /** A long press of `holdMs`; `jitter` (default): with the small moves of a real finger in it (1 px, then 2 px). */
+    async press(p: Point, holdMs: number, jitter = true) {
       await call('down', p);
-      const jitter = [{ x: p.x + 1, y: p.y }, { x: p.x + 1, y: p.y + 2 }];
-      for (const j of jitter) {
+      if (!jitter) {
+        await page.waitForTimeout(holdMs);
+        return;
+      }
+      const moves = [{ x: p.x + 1, y: p.y }, { x: p.x + 1, y: p.y + 2 }];
+      for (const j of moves) {
         await page.waitForTimeout(holdMs / 4);
         await call('move', j);
       }

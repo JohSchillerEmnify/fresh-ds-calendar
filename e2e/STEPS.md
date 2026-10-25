@@ -524,18 +524,24 @@ the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
 the page does not bounce when pulled
-nothing on the screen can be selected by a long press
+nothing on the calendar screen can be selected by a long press
 the text fields of the open form can be selected
+the text in the open dialog can be selected by a long press
+the text on the page can be selected by a long press
 ```
 
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
 - "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
   page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it
   is ignored there). A real pull cannot be made in the test browsers.
-- "nothing on the screen can be selected by a long press": at every point of a 24 px grid over the viewport the topmost
+- "nothing on the calendar screen can be selected by a long press" (no dialog open): at every point of a 24 px grid over the viewport the topmost
   element (`elementFromPoint`) that is not a text field (`input`, `textarea`, `select`, `[contenteditable]`) has a
   computed `-webkit-user-select` (or `user-select`) of `none`; the failure lists the offending elements. (iOS starts its
   text selection only where the touched point is selectable; a long press itself cannot be made in the test browsers.)
+- "the text in the open dialog / on the page can be selected by a long press": at every point of a 16 px grid over the
+  open dialog (last `role=dialog`) or `section.page`, the topmost element that holds text of its own and is not a
+  button (`button`, `[role=button]`) has a computed `-webkit-user-select` (or `user-select`) other than `none`; at least
+  one such element is found.
 - "the text fields of the open form can be selected": every visible `input`/`textarea` in the open dialog has a computed
   `-webkit-user-select` (or `user-select`) other than `none` (iOS refuses to edit such fields).
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
@@ -1053,6 +1059,8 @@ I hold the event {string} over {date}
 the dragged event is drawn visibly in the day under the finger
 I swipe up quickly starting on the event {string}
 the time grid has scrolled down
+I drag the event {string} to {date} with a finger held perfectly still
+the browser did not take the touch over for scrolling
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
@@ -1070,6 +1078,12 @@ the time grid has scrolled down
     vertical part (the calendar area is `touch-action: pan-y`), no more pointer events follow, later touch moves are not
     cancelable, and the nearest ancestor whose computed `overflow-y` is `auto`/`scroll` scrolls with the finger.
   - a real finger is never still: the long press (500 ms) has two moves of 1 and 2 px in it.
+  Because of these small moves the model always starts its pan once the lifted card moves, so the ordinary drags test
+  the drag's way through `pointercancel`; only "with a finger held perfectly still" (no small moves) tests that the
+  card's own touch listener lets the drag stop the pan.
+- "I drag the event X to D with a finger held perfectly still": as "I drag the event X to D", but the iPhone model's long
+  press has no small moves (CDP touch has none anyway). Every `pointercancel` from then on is counted; "the browser did
+  not take the touch over for scrolling" = none was sent.
 - "I hold the event X over D": long press X and move the finger to the centre of D's `month-cell` in 10 steps, finger
   kept down (released by the scenario's cleanup). "the dragged event is drawn visibly in the day under the finger": the lifted
   chip's centre lies in the `month-cell` under the finger (it snaps to the cell's top), and the topmost element there
