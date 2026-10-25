@@ -3,7 +3,10 @@ Feature: Displaying events in the calendar views
   Times are local times in Europe/Berlin. Timed events are placed in the time grid of the
   week and day views; all-day events are placed in the all-day area. Multi-day events are
   drawn as solid bars across the days they cover (cut at the week edge); timed events under
-  24 hours that cross midnight are shown as one block per day.
+  24 hours that cross midnight are shown as one block per day in the week and day views, and
+  on their start day only in the month view, like Google Calendar (owner, 2026-10-25). So an
+  event from a Sunday 22:00 to Monday 02:00 on the last day of a month is not shown in the
+  next month's view at all; Google Calendar behaves the same way.
 
   Background:
     Given the calendar is empty
@@ -151,6 +154,13 @@ Feature: Displaying events in the calendar views
     Then I see the event "Night shift" on each day from 2026-10-14 to 2026-10-15
     And the event "Night shift" is positioned on 2026-10-14 from 22:00 to 24:00
     And the event "Night shift" is positioned on 2026-10-15 from 00:00 to 02:00
+
+  @month
+  Scenario: A timed event crossing midnight is shown on its start day only in the month view
+    Given the calendar contains an event "Night shift" from 2026-10-14 22:00 to 2026-10-15 02:00
+    When I open the month view for 2026-10
+    Then I see the event "Night shift" on 2026-10-14
+    And I do not see the event "Night shift" on 2026-10-15
 
   @week @overlap
   Scenario: Events starting at nearly the same time are shown side by side in the week view

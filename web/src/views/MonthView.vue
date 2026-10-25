@@ -77,7 +77,9 @@ const rows = computed(() => {
 const slotH = () => (isPhone.value ? CELL_METRICS.phone : CELL_METRICS.wide).lane;
 /** Every entry of the day with the slots it wants; task lists share the pixels the cell has after the day's bars (by need), whatever does not fit is clipped and faded by the cell. */
 function entries(date: string, taken: number) {
-  const all = segs(date);
+  // a timed event under 24 h crossing midnight is shown on its start day only, like Google (owner, 2026-10-25);
+  // `more` / seenCount count this list, so the left-out next-day piece is not counted as hidden either
+  const all = segs(date).filter((s) => s.first);
   const cellH = gridH.value / weeks.value.length;
   let heights: number[] = [];
   if (cellH > 0 && all.length) {
