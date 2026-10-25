@@ -61,3 +61,16 @@ One PR (single bug fix).
 - Android month failure could not be reproduced in Chromium emulation (drop works there); its visible symptom there is
   the chip vanishing mid-drag (3). Fix 1 also makes the month touch region blocking on Chrome.
 - Android day view "to the next day sideways" is new behaviour, not built (see report).
+
+## Additions (coordinator, after the owner's iPhone observations)
+5. Touch screens: no system text selection or callout on a long press anywhere outside text fields
+   (`@media (pointer: coarse)` in styles.css; mouse screens keep selection); a pending/lifted drag prevents `selectstart`.
+   Why not everywhere: desktop users copy text from the dialogs. AC: "A long press on the calendar never selects text"
+   (24 px grid over the screen, month/week/day) and "The fields of the event form can still be selected" on both phones.
+6. `html { overscroll-behavior: none }` (WebKit reads it from the root element only). AC: "The page itself does not
+   bounce when pulled" + touch-css.test.ts.
+7. Hover colours only for a real pointer (`@media (hover: hover)`) outside the labs. AC: touch-css.test.ts.
+8. The click right after a drop is swallowed on window capture, before the phone month's `.chips` capture handler.
+   AC: drag.test.ts.
+Not changed (reported): read-only theme-import textareas use 12 px (iOS zooms on focus); no visualViewport handling for
+the keyboard in sheets; EventBar's `dragged` flag is never set (dead, the controller swallows the click).
