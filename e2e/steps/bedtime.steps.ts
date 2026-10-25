@@ -10,6 +10,13 @@ Given('bedtime mode is on with fixed times {time} and {time}', async function (t
 });
 
 Given(
+  'bedtime mode is on with fixed times {time} and {time}, and {time} and {time} on weekends',
+  async function (this: World, bedtime: string, wake: string, weekendBedtime: string, weekendWake: string) {
+    await this.api.patch('/api/prefs', { bedtime: { enabled: true, mode: 'fixed', bedtime, wake, weekendDifferent: true, weekendBedtime, weekendWake } });
+  },
+);
+
+Given(
   'bedtime mode is on based on my first appointment with {int} hours of sleep and {int} minutes of lead time',
   async function (this: World, hours: number, minutes: number) {
     await this.api.patch('/api/prefs', { bedtime: { enabled: true, mode: 'dynamic', sleepMinutes: hours * 60, leadMinutes: minutes } });
@@ -20,6 +27,13 @@ Then('the night bands of {date} are {string}', async function (this: World, date
   // pieces of that day in document order, as "start-end"
   await expect.poll(async () => (await bands(this).and(this.page.locator(`[data-date="${date}"]`)).evaluateAll(
     (els) => els.map((e) => `${e.getAttribute('data-start')}-${e.getAttribute('data-end')}`),
+  )).join(', ')).toBe(expected);
+});
+
+Then('the bedtime moons of {date} are {string}', async function (this: World, date: string, expected: string) {
+  // moons drawn on that day in document order, as their time within the day
+  await expect.poll(async () => (await this.page.getByTestId('bedtime-moon').and(this.page.locator(`[data-date="${date}"]`)).evaluateAll(
+    (els) => els.map((e) => e.getAttribute('data-at')),
   )).join(', ')).toBe(expected);
 });
 
