@@ -2742,6 +2742,63 @@ opening the event {string} shows the time {string}
 - "opening the event {string} shows the time {string}": opens the event (its dialog) and checks that its start and end
   time fields hold the two times of `HH:MM–HH:MM`: the real times, whatever length the block is drawn.
 
+## Places for an event's location (`@location`; `@id:event-location`)
+
+The place search and the map pictures come through the app's server. In TEST_MODE the server never asks the outside
+world: `POST /api/__test/places` (`{ places: { name, address, lat, lon }[] }`, cleared by reset) gives it the places it
+knows, and map pictures are plain generated tiles.
+
+```
+the place search knows:
+I type {string} in the event field {string}
+I see the place suggestions:
+I see no place suggestions
+the suggestions credit OpenStreetMap
+I pick the place suggestion {string}
+I press Arrow down in the event field {string}
+the event dialog shows a map with a pin on {string}
+the event dialog shows no map
+the event dialog shows a map placeholder for {string}
+the map credits OpenStreetMap
+the event dialog shows no error
+the calendar contains an event {string} on {date} from {time} to {time} at the place {string}
+the calendar {string} contains an event {string} on {date} from {time} to {time} at the place {string}
+I have seen the map of the event {string}
+I tap the map
+the OpenStreetMap page of the place {string} opens in a new tab
+the phone is asked to show the place {string} in a maps app
+I ask to find the location on the map
+```
+
+- "the place search knows:" (table `name`, `address`, `latitude`, `longitude`): `POST /api/__test/places`. The fake
+  answers the places whose name or address contains every typed word (case-insensitive), in table order, at most 5.
+- "I type T in the event field F": focuses the field, clears it and types T key by key (as a person does, so the
+  suggestions' pause applies), then waits 1 s or until `place-suggestions` shows, whichever is first.
+- "I see the place suggestions:" (table `name`, `address`): the `place-suggestion` rows of `place-suggestions`, in
+  order, each with `place-suggestion-name` and `place-suggestion-address`. "no place suggestions": `place-suggestions`
+  is not visible (checked after the pause plus 1 s). "the suggestions credit OpenStreetMap": `place-suggestions-credit`
+  is visible and contains `© OpenStreetMap`.
+- "I pick the place suggestion N": taps the `place-suggestion` whose name is N. "I press Arrow down in the event field
+  F": the `ArrowDown` key in that field (the first suggestion becomes `aria-selected`).
+- "the event dialog shows a map with a pin on N": `event-map` is visible, its `data-lat`/`data-lon` equal the place N
+  of the known places (4 decimals), `event-map-pin` is visible inside it and every map picture has loaded
+  (`data-loaded="true"`). "no map": neither `event-map` nor `event-map-placeholder` exists. "a map placeholder for N":
+  `event-map-placeholder` is visible, holds the pin and the text N, and no map picture is shown.
+- "the map credits OpenStreetMap": `event-map-credit` is visible on the map (inside its box, not covered) and contains
+  `© OpenStreetMap`.
+- "the event dialog shows no error": `event-error` does not exist.
+- "… at the place N": creates the event through the public API with the location `<name>, <address>` of the known place
+  N and its position (`place: { lat, lon }`); "the calendar C contains …" inserts it into C as another Google client
+  would, with the same private extended properties the app writes.
+- "I have seen the map of the event T": opens the event, waits for "a map with a pin", then closes the dialog; the map
+  pictures are then in the device's cache.
+- "I tap the map": taps `event-map` (or the placeholder). "the OpenStreetMap page of the place N opens in a new tab":
+  a new page opens whose URL is the OpenStreetMap page marking N's position.
+- "the phone is asked to show the place N in a maps app": native, proven by the app's own tests (a `geo:` intent with
+  N's position and name); `@backlog` for Playwright.
+- "I ask to find the location on the map": taps `event-location-find` next to the location field; the suggestions for
+  the field's text show.
+
 ## Android app and widgets (native, `@android-app`, `@phone-widget`)
 
 ```
