@@ -262,8 +262,8 @@ Feature: Drag and drop to reschedule
     While an event or a task list is dragged in the day or week view (touch or mouse), the strips at the left and right
     side of the day columns are edge zones: the outer 24 px. In an edge zone a band appears along that side naming where a
     turn leads: the day ("‹ Tue 13", "Thu 15 ›") in the day view, the week ("‹ 5–11 Oct", "19–25 Oct ›") in the week
-    view. The day view turns after 0.6 s in the zone; the week view, so that Sunday and Monday are not stolen, only after
-    1 s (owner, 2026-10-25). Staying in the zone turns again after each such wait. Leaving the zone before then hides the
+    view. After 1.5 s in the zone the view turns to that day or week and the drag goes on there; staying in the zone turns
+    it again every 1.5 s (owner, 2026-10-25: long enough that Sunday and Monday are not stolen). Leaving the zone before then hides the
     band and nothing turns. A drop always lands on the slot under the pointer of the day or week shown, so a drop on the
     rest of the outermost column, after however long a hold, stays there.
 
@@ -273,7 +273,7 @@ Feature: Drag and drop to reschedule
       And I hold the event "Dentist" at the <side> edge of the time grid for 300 ms
       Then the edge band says "<band>"
       And the URL path is "/day/2026-10-14"
-      When I keep holding the dragged item for 700 ms
+      When I keep holding the dragged item for 1300 ms
       Then the URL path is "/day/<date>"
       And "Dentist" is still being dragged
       When I drop the dragged item on <date> at 11:00
@@ -291,7 +291,7 @@ Feature: Drag and drop to reschedule
       And I hold the event "Dentist" at the <side> edge of the time grid for 300 ms
       Then the edge band says "<band>"
       And the URL path is "/week/2026-10-12"
-      When I keep holding the dragged item for 1000 ms
+      When I keep holding the dragged item for 1300 ms
       Then the URL path is "/week/<week>"
       And "Dentist" is still being dragged
       When I drop the dragged item on <date> at 09:00
@@ -306,7 +306,7 @@ Feature: Drag and drop to reschedule
     @backlog
     Scenario: Staying at the edge keeps turning the days
       When I open the day view for 2026-10-14
-      And I hold the event "Dentist" at the right edge of the time grid for 1500 ms
+      And I hold the event "Dentist" at the right edge of the time grid for 3500 ms
       Then the URL path is "/day/2026-10-16"
       And the edge band says "Sat 17 ›"
       When I drop the dragged item on 2026-10-16 at 09:00
@@ -318,7 +318,7 @@ Feature: Drag and drop to reschedule
         | item     | done |
         | Passport | no   |
       When I open the day view for 2026-10-15
-      And I hold the task list "Packing" at the right edge of the time grid for 1000 ms
+      And I hold the task list "Packing" at the right edge of the time grid for 2000 ms
       Then the URL path is "/day/2026-10-16"
       When I drop the dragged item on 2026-10-16 at 08:15
       Then the task list "Packing" is positioned at 08:15
@@ -330,7 +330,7 @@ Feature: Drag and drop to reschedule
       And I hold the event "Dentist" at the right edge of the time grid for 300 ms
       And I move the dragged event to the middle of the time grid
       Then I see no edge band
-      When I keep holding the dragged item for 1000 ms
+      When I keep holding the dragged item for 2000 ms
       Then the URL path is "/day/2026-10-14"
       When I drop the dragged event
       Then I see the event "Dentist" on 2026-10-14
@@ -340,7 +340,7 @@ Feature: Drag and drop to reschedule
     @backlog
     Scenario: Dropping in the middle of Sunday after a long hold stays on Sunday
       When I open the week view for 2026-10-12
-      And I hold the event "Dentist" over 2026-10-18 at 09:00 for 1500 ms
+      And I hold the event "Dentist" over 2026-10-18 at 09:00 for 2000 ms
       Then I see no edge band
       And the URL path is "/week/2026-10-12"
       When I drop the dragged event
@@ -351,7 +351,7 @@ Feature: Drag and drop to reschedule
     Scenario: An all-day event held at the edge of the all-day row moves on to the next week
       Given the calendar contains an all-day event "Trip" from 2026-10-14 to 2026-10-14
       When I open the week view for 2026-10-12
-      And I hold the all-day event "Trip" at the right edge of the all-day row for 1500 ms
+      And I hold the all-day event "Trip" at the right edge of the all-day row for 2000 ms
       Then the URL path is "/week/2026-10-19"
       When I drop the dragged item in the all-day row on 2026-10-21
       Then I see the all-day event "Trip" on 2026-10-21
