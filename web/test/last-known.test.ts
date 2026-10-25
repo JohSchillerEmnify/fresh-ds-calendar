@@ -190,6 +190,29 @@ describe('last known state store', () => {
     expect(templates.list.map((x) => x.name)).toEqual(['Packing']);
   });
 
+  it('a template deleted just before the page goes away is written out of the snapshot at once', async () => {
+    server(() => []);
+    await session();
+    usePendingDeletesStore().deleteTemplate('w', 'Weekly shop');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(snapshot()!.templates!.map((x) => x.name), 'still waiting for the debounce').toEqual(['Packing', 'Weekly shop']);
+    window.dispatchEvent(new Event('pagehide'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing']);
+  });
+
+  it('undoing a template deletion saves the template back into the snapshot', async () => {
+    server(() => []);
+    await session();
+    const pending = usePendingDeletesStore();
+    pending.deleteTemplate('w', 'Weekly shop');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing']);
+    pending.undo();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing', 'Weekly shop']);
+  });
+
   it('a snapshot from before templates were kept still restores, and the templates stay unread', async () => {
     server(() => []);
     localStorage.setItem(PERSON_KEY, '-');

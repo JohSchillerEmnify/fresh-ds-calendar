@@ -7,7 +7,7 @@ import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { parseIsoDate, toIsoDate } from '@/lib/dates';
 import { itemSegments } from '@/lib/items';
 import { lastKnownDb, lastKnownPerson, setLastKnownPerson, wipeLastKnown } from '@/lib/lastKnownDb';
-import { appTimeout, type Disposer } from '@/lib/timers';
+import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useAuthStore } from './auth';
 import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
@@ -145,7 +145,8 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
       calendars: useCalendarsStore().list,
       themes: useThemeStore().themes,
       ranges: saved,
-      // the shown list: a template waiting for its undo time is left out, so a delete sent on leaving never comes back
+      // the shown list: a template waiting for its undo time is left out (its delete is sent on leaving, and a save
+      // still waiting is written then too, see flushSave); an undo shows it again and saves it back
       templates: templates.loaded ? templates.list : base?.templates,
     };
     try {
@@ -162,6 +163,14 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
     pending?.();
     mark('saving');
     pending = appTimeout(() => { void save(); }, SAVE_DEBOUNCE_MS);
+  }
+
+  /** Writes a save still waiting for its debounce now: the page is going away (a template deleted just before stays gone). */
+  function flushSave(): void {
+    if (!pending) return;
+    pending();
+    pending = null;
+    void save();
   }
 
   /** Starts following the stores: a fresh answer ends the restored state, every change after one is saved (debounced). */
@@ -201,6 +210,8 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
         // the person is known only now: a fresh answer that came first is saved now
         scheduleSave();
       }, { immediate: true }),
+      listen(window, 'pagehide', flushSave),
+      listen(document, 'visibilitychange', () => { if (document.hidden) flushSave(); }),
       watch(() => [items.byId, items.ranges, useSettingsStore().settings, usePrefsStore().current(), useCalendarsStore().list, useThemeStore().themes, useTemplatesStore().list], scheduleSave),
     );
     return stop;

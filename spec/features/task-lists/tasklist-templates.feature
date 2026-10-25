@@ -429,4 +429,5 @@ Feature: Task list templates
         | name | Packing for Rome |
       And I save the template
       Then I see the sync error banner
+      And the templates page lists "Packing"
       And my templates are "Packing"
