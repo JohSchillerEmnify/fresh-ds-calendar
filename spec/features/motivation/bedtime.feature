@@ -89,7 +89,9 @@ Feature: Bedtime mode
     Given the time is 2026-10-16 12:00
     And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
     When I open the week view for 2026-10-12
-    Then the night bands of 2026-10-17 are "00:00-09:00"
+    Then the night bands of 2026-10-16 are "00:00-07:00"
+    And the bedtime moons of 2026-10-16 are "24:00"
+    And the night bands of 2026-10-17 are "00:00-09:00"
     And the night bands of 2026-10-18 are "00:00-09:00, 23:00-24:00"
 
   Scenario: A bedtime at midnight shows its moon at the end of the evening before

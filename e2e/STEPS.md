@@ -2499,13 +2499,15 @@ Rules that need no reference picture, plus `toHaveScreenshot` regression picture
 written on the first run; re-baseline only for an intended change, after looking at the picture). Regions: `week overview`
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
-`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`). The `now-marker` is masked.
+`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
+it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped
 the head row and the items of the expanded task list do not overlap
 the pill of the expanded task list covers the card {string} it grew from
 the {string} still looks like {string}
+I scroll the time grid to the end of the day
 the pill of the expanded task list shows the count {string}
 the band's lists are one-line pills
 I tap the band's section switch

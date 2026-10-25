@@ -43,6 +43,7 @@ const px = (min: number) => (min / 60) * props.hourHeight;
 .mark :deep(svg) { width: 12px; height: 12px; }
 .moon { top: 3px; }
 .sun { bottom: 3px; }
-/* a bedtime at midnight: no band, only the moon just above the end of the day */
+/* a bedtime at midnight: no band, only the edge line and the moon just above the end of the day, inside the column */
+.midnight { border-top: 0; border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-on-surface) 55%, transparent); transform: translateY(-1px); }
 .midnight .moon { top: auto; bottom: 3px; }
 </style>
