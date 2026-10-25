@@ -41,6 +41,8 @@
 ## Acceptance Criteria
 1. AC1/AC2/AC3: the new `@iphone` scenarios (day, week, month) pass in the `iphone` project (WebKit, iPhone 13) whose
    touch model follows the WebKit rules above; they also pass on the `mobile` project (Chromium, real CDP touch).
+   The model's finger jitters, so those drags go through pointercancel (req 2); the still-finger month scenario checks
+   req 1 (no pointercancel at all; red when the card's own listener is removed).
 2. AC4: "the dragged event is drawn under the finger" in the month view on both phone projects.
 3. Existing dnd/resize/swipe/month scenarios stay green on mobile and desktop; `@visual` unchanged.
 
@@ -63,10 +65,13 @@ One PR (single bug fix).
 - Android day view "to the next day sideways" is new behaviour, not built (see report).
 
 ## Additions (coordinator, after the owner's iPhone observations)
-5. Touch screens: no system text selection or callout on a long press anywhere outside text fields
-   (`@media (pointer: coarse)` in styles.css; mouse screens keep selection); a pending/lifted drag prevents `selectstart`.
-   Why not everywhere: desktop users copy text from the dialogs. AC: "A long press on the calendar never selects text"
-   (24 px grid over the screen, month/week/day) and "The fields of the event form can still be selected" on both phones.
+5. Touch screens: no system text selection or callout on a long press on the calendar views (time grid, month, year,
+   tray, task-list cards and items, the cards) (`@media (pointer: coarse)` in styles.css); dialogs/sheets
+   (`role=dialog`), the settings pages (`section.page`) and text fields keep selection and link callouts (owner,
+   2026-10-26: "allow in dialogs", to copy text from event details). Mouse screens keep selection everywhere. A pending
+   or lifted drag prevents `selectstart`. AC: "A long press on the calendar views never selects text" (24 px grid,
+   month/week/day), "Text in an event's dialog can still be selected", "Text on the settings page can still be
+   selected", "The fields of the event form can still be selected" on both phones; touch-css.test.ts.
 6. `html { overscroll-behavior: none }` (WebKit reads it from the root element only). AC: "The page itself does not
    bounce when pulled" + touch-css.test.ts.
 7. Hover colours only for a real pointer (`@media (hover: hover)`) outside the labs. AC: touch-css.test.ts.
@@ -74,3 +79,10 @@ One PR (single bug fix).
    AC: drag.test.ts.
 Not changed (reported): read-only theme-import textareas use 12 px (iOS zooms on focus); no visualViewport handling for
 the keyboard in sheets; EventBar's `dragged` flag is never set (dead, the controller swallows the click).
+
+## Review round (2026-10-26)
+- After `pointercancel` only a press that sent touch events is carried by them (card's passive touchstart notes the
+  finger; a pen without touch events springs back); only that finger steers; back-to-back drops re-arm the click swallow.
+- Month: the source cell is unclipped while its chip is lifted, so its other entries show unfaded for that time.
+  Unclipping only the chip is not simple: any clip or mask on an ancestor clips it, and escaping needs `position: fixed`
+  (breaks under the carousel's transform and the controller's layout-box offsets) or moving it out of the cell.
