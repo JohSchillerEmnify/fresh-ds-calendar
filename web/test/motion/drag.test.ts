@@ -271,6 +271,17 @@ describe('drag state machine', () => {
     expect(onDrop).not.toHaveBeenCalled();
     finishAll(); await flush();
   });
+  it('a press that may become a drag never starts a text selection', () => {
+    const { c } = make();
+    const sel = () => { const e = new Event('selectstart', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; };
+    expect(sel()).toBe(false);
+    down();
+    expect(sel()).toBe(true);
+    vi.advanceTimersByTime(400);
+    expect(sel()).toBe(true);
+    c.destroy();
+    expect(sel()).toBe(false);
+  });
   it('touch: a pointercancel before the long press gives way to the scroll', () => {
     const { c } = make();
     down();

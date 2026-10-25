@@ -54,6 +54,21 @@ html, body, #app { height: 100%; margin: 0; }
 html, body { max-width: 100%; overflow-x: clip; }
 /* the page itself never rubber-bands (iOS left a gap at the bottom); WebKit reads this from <html> only, not <body> */
 html { overscroll-behavior: none; }
+/*
+ * Touch screens: a long press never starts the system text selection or callout, only in text fields (owner,
+ * 2026-10-25: on an iPhone a long press selected text instead of picking the entry up; iOS starts its selection
+ * wherever the pressed point is selectable). Set on every element, not only inherited, and with :where() so any
+ * component rule still wins. Mouse screens keep normal text selection.
+ */
+@media (pointer: coarse) {
+  body, body :where(*:not(input, textarea, select, [contenteditable], [contenteditable] *)) {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  /* WebKit inherits user-select: fields say text again (iOS refuses to edit a user-select: none field) */
+  :where(input, textarea, select, [contenteditable]:not([contenteditable='false'])) {
+    -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
+  }
+}
 body {
   font: var(--md-sys-typescale-body-medium);
   background: var(--md-sys-color-surface);

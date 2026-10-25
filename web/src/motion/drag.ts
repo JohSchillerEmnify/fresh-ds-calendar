@@ -239,6 +239,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const onCtx = (e: Event) => {
     if (state !== 'idle') e.preventDefault();
   };
+  // a press that may become a drag never starts a text selection (iOS long press)
+  const onSelectStart = (e: Event) => {
+    if (state !== 'idle') e.preventDefault();
+  };
   const onScroll = () => {
     if (state === 'dragging') update(cur.x, cur.y);
   };
@@ -255,6 +259,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     window.addEventListener('pointercancel', onWinCancel, true);
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('contextmenu', onCtx, true);
+    window.addEventListener('selectstart', onSelectStart, true);
     window.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
     window.addEventListener('touchend', onTouchEnd, true);
     window.addEventListener('touchcancel', onTouchCancel, true);
@@ -267,6 +272,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     window.removeEventListener('pointercancel', onWinCancel, true);
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('contextmenu', onCtx, true);
+    window.removeEventListener('selectstart', onSelectStart, true);
     window.removeEventListener('touchmove', onTouchMove, true);
     window.removeEventListener('touchend', onTouchEnd, true);
     window.removeEventListener('touchcancel', onTouchCancel, true);
