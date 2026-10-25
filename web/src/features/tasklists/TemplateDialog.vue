@@ -15,7 +15,7 @@ import Select from '@/components/m3/Select.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
-import { nameTaken } from './templates';
+import { templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 import { parseItems } from './validate';
 
@@ -42,8 +42,8 @@ const title = computed(() => (tpl ? t('tasks.templates.editTemplate') : t('tasks
 
 /** The first problem as a sentence, or '' when the template can be saved. */
 function problem(): string {
-  if (!form.name.trim()) return t('tasks.templates.nameRequired');
-  if (nameTaken(templates.list, form.name, tpl?.id)) return t('tasks.templates.nameTaken');
+  const named = templateNameProblem(templates.list, form.name, tpl?.id);
+  if (named) return named;
   if (form.estimate.trim()) {
     const n = Number(form.estimate);
     if (!Number.isInteger(n) || n < 5 || n > 720) return t('tasks.validation.estimateRange');

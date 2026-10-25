@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TaskList, TaskTemplate } from '@/api/types';
 import { newTaskListForm } from '@/features/tasklists/validate';
-import { fillFromTemplate, nameTaken, templateDetails, templateFromForm, templateFromList } from '@/features/tasklists/templates';
+import { fillFromTemplate, nameTaken, templateDetails, templateFromForm, templateFromList, templateNameProblem } from '@/features/tasklists/templates';
 
 const list = (over: Partial<TaskList> = {}): TaskList => ({
   kind: 'tasklist', id: 'l1', calendarId: 'c', title: 'Clean bathroom', date: '2026-10-14', time: '18:00',
@@ -56,5 +56,16 @@ describe('nameTaken', () => {
     expect(nameTaken(all, 'cafe')).toBe(true);
     expect(nameTaken(all, 'Packing', 't1')).toBe(false);
     expect(nameTaken(all, 'City trip')).toBe(false);
+  });
+});
+
+describe('templateNameProblem', () => {
+  it('asks for a name, refuses more than 80 characters and a taken name, and accepts a free one', () => {
+    const all = [tpl()];
+    expect(templateNameProblem(all, '  ')).toBe('Give the template a name');
+    expect(templateNameProblem(all, 'x'.repeat(81))).toBe('The template name can be at most 80 characters');
+    expect(templateNameProblem(all, 'x'.repeat(80))).toBe('');
+    expect(templateNameProblem(all, 'packing')).toBe('A template with this name already exists');
+    expect(templateNameProblem(all, 'Packing', 't1')).toBe('');
   });
 });

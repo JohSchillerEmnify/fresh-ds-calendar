@@ -14,7 +14,7 @@ import Button from '@/components/m3/Button.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useUiStore } from '@/stores/ui';
 import { useTaskCategories } from './categories';
-import { nameTaken, templateFromList } from './templates';
+import { NAME_MAX, templateFromList, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
 const props = defineProps<{ open: boolean; list: TaskList | null }>();
@@ -29,7 +29,8 @@ const saving = ref(false);
 // every opening starts from the list's title; the names already taken are read again (another device may have added one)
 watch(() => props.open, (o) => {
   if (!o) return;
-  name.value = props.list?.title ?? '';
+  // the field holds at most 80 characters: a longer title is cut to fit
+  name.value = (props.list?.title ?? '').trim().slice(0, NAME_MAX);
   error.value = '';
   saving.value = false;
   templates.load().catch(() => undefined);
@@ -37,7 +38,7 @@ watch(() => props.open, (o) => {
 
 async function save(): Promise<void> {
   if (!props.list || saving.value) return;
-  error.value = !name.value.trim() ? t('tasks.templates.nameRequired') : nameTaken(templates.list, name.value) ? t('tasks.templates.nameTaken') : '';
+  error.value = templateNameProblem(templates.list, name.value);
   if (error.value) return;
   saving.value = true;
   try {

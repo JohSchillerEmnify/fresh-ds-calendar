@@ -27,7 +27,7 @@ import { useTaskCategories } from './categories';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import { useRepeatScope } from './repeatScope';
 import TemplatePill from './TemplatePill.vue';
-import { fillFromTemplate, nameTaken, templateFromForm } from './templates';
+import { fillFromTemplate, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 import { usePluginEnabled } from '@/plugins';
 import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
@@ -140,7 +140,7 @@ function manageTemplates() {
 function templateProblem(): string {
   if (!alsoTemplate.value || editing.value) return '';
   if (!form.title.trim()) return t('tasks.templates.titleRequired');
-  return nameTaken(templates.list, form.title) ? t('tasks.templates.nameTaken') : '';
+  return templateNameProblem(templates.list, form.title);
 }
 
 async function save() {

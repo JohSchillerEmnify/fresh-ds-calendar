@@ -4,7 +4,11 @@
  * access, so they are unit-tested with fixed data.
  */
 import type { TaskList, TaskTemplate, TaskTemplateInput } from '@/api/types';
+import { t } from '@/i18n';
 import { parseItems, type TaskListForm } from './validate';
+
+/** The longest template name (the server's limit). */
+export const NAME_MAX = 80;
 
 /**
  * What a list keeps as a template: its item titles in order (never a tick), estimate and category; never a date,
@@ -58,4 +62,11 @@ export function templateDetails(
 export function nameTaken(all: Pick<TaskTemplate, 'id' | 'name'>[], name: string, self?: string): boolean {
   const n = name.trim();
   return all.some((x) => x.id !== self && x.name.trim().localeCompare(n, undefined, { sensitivity: 'base' }) === 0);
+}
+
+/** The first problem with a template name as a sentence, or '' when it can be saved (required, at most 80, free). */
+export function templateNameProblem(all: Pick<TaskTemplate, 'id' | 'name'>[], name: string, self?: string): string {
+  if (!name.trim()) return t('tasks.templates.nameRequired');
+  if (name.trim().length > NAME_MAX) return t('tasks.templates.nameTooLong');
+  return nameTaken(all, name, self) ? t('tasks.templates.nameTaken') : '';
 }

@@ -7,6 +7,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { api } from '@/api/client';
 import type { TaskTemplate, TaskTemplateInput } from '@/api/types';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 
 const byName = (a: TaskTemplate, b: TaskTemplate): number => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
@@ -18,16 +19,43 @@ export const useTemplatesStore = defineStore('templates', () => {
   /** The templates shown: sorted by name, without the ones being deleted. */
   const list = computed(() => all.value.filter((x) => !hidden.value.includes(x.id)).sort(byName));
 
+  /** The last reading failed (offline, server away) and nothing was read since: the picker says so. */
+  const failed = ref(false);
+  /** Counts changes made here: a reading that started before the latest one is out of date when it arrives. */
+  let changes = 0;
+
   /** Reads the templates from the server (every time: another device may have changed them). */
   async function load(): Promise<void> {
-    all.value = (await api.templates()).templates;
-    loaded.value = true;
+    const at = changes;
+    try {
+      const fresh = (await api.templates()).templates;
+      // a template added, changed or deleted while this was on its way would be lost: the reading is dropped
+      if (at !== changes) return;
+      all.value = fresh;
+      loaded.value = true;
+      failed.value = false;
+    } catch (e) {
+      failed.value = !loaded.value;
+      throw e;
+    }
   }
 
-  const put = (t: TaskTemplate): void => { all.value = [...all.value.filter((x) => x.id !== t.id), t]; };
+  const put = (t: TaskTemplate): void => {
+    changes++;
+    all.value = [...all.value.filter((x) => x.id !== t.id), t];
+  };
+
+  /** A template with this name waiting for its undo time is deleted now: the name is free on the server first. */
+  async function freeName(name: string, self?: string): Promise<void> {
+    const n = name.trim();
+    const waiting = all.value.some((x) => x.id !== self && hidden.value.includes(x.id) && x.name.trim().localeCompare(n, undefined, { sensitivity: 'base' }) === 0);
+    if (waiting) await usePendingDeletesStore().flush();
+  }
 
   /** Saves a new template; resolves with it once the server has it. */
   async function add(input: TaskTemplateInput): Promise<TaskTemplate> {
+    await freeName(input.name);
+    changes++;
     const saved = await api.createTemplate(input);
     put(saved);
     return saved;
@@ -35,6 +63,8 @@ export const useTemplatesStore = defineStore('templates', () => {
 
   /** Replaces a template whole (name, items, estimate, category). */
   async function update(id: string, input: TaskTemplateInput): Promise<TaskTemplate> {
+    await freeName(input.name, id);
+    changes++;
     const saved = await api.updateTemplate(id, input);
     put(saved);
     return saved;
@@ -45,10 +75,12 @@ export const useTemplatesStore = defineStore('templates', () => {
 
   /** Deletes on the server (after the undo time); the template is gone for good. */
   async function remove(id: string, keepalive = false): Promise<void> {
+    changes++;
     await api.deleteTemplate(id, { keepalive });
+    changes++;
     all.value = all.value.filter((x) => x.id !== id);
     unhide(id);
   }
 
-  return { list, loaded, load, add, update, hide, unhide, remove };
+  return { list, loaded, failed, load, add, update, hide, unhide, remove };
 });
