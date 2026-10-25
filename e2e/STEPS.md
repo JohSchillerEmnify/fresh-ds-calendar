@@ -2755,12 +2755,13 @@ I see no edge band
 {string} is still being dragged
 I drop the dragged item on {date} at {time}
 I hold the all-day event {string} at the right edge of the all-day row for {int} ms
+I hold the event {string} over {date} at {time} for {int} ms
 I drop the dragged item in the all-day row on {date}
 ```
 
 - "I hold X at the right/left edge of the time grid for N ms": picks X up as in "I pick up" (mouse press; finger long
-  press), moves in 10 steps sideways at the same height to 8 px inside the right/left side of the day columns area
-  (`time-grid` minus the hour labels), i.e. inside the 24 px edge zone, and keeps the pointer there for N ms. The pointer
+  press), moves in 10 steps sideways at the same height to 6 px inside the right/left side of the day columns area
+  (`time-grid` minus the hour labels), i.e. inside the edge zone (24 px day view, 12 px week view), and keeps the pointer there for N ms. The pointer
   stays down; the world's cleanup releases it. "I keep holding the dragged item for N ms" waits N ms more without moving.
 - "the edge band says T": the visible `drag-edge-band` (`data-side` `left|right`) has the text T. "I see no edge band":
   no `drag-edge-band` is visible.
@@ -2768,8 +2769,10 @@ I drop the dragged item in the all-day row on {date}
   the view turned).
 - "I drop the dragged item on D at T": moves the pointer in 10 steps to the 15-minute slot of D at T in the grid shown
   (scrolling it into view as the auto-scroll does) and releases; waits for the save as after a drop.
+- "I hold the event X over D at T for N ms": picks X up and moves in 10 steps to the horizontal middle of D's day column
+  at the height of T, then keeps the pointer there for N ms (still down).
 - "I hold the all-day event X at the right edge of the all-day row for N ms": the same as the time grid step, with X's
-  chip in the all-day row and the pointer 8 px inside the right side of that row. "I drop the dragged item in the all-day
+  chip in the all-day row and the pointer 6 px inside the right side of that row. "I drop the dragged item in the all-day
   row on D": moves to the `week-allday-cell` of D and releases; waits for the save.
 - The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
   event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
@@ -2790,7 +2793,7 @@ the entries {string} each take one of {int} equal columns
   `weekSideBySide` (2 or 3; default 2) through the API.
 - "I choose up to N ... in the day/week view": on the settings screen picks the option `settings-day-side-by-side-N` /
   `settings-week-side-by-side-N` of that segmented button (labels "Up to N") and waits for the `PATCH /api/prefs`
-  response (status 200). "the settings show up to N ...": that option is the selected one (`aria-checked="true"`).
+  response (status 200). "the settings show up to N ...": that option is the selected one (`aria-pressed="true"`).
 - "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
   (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of
   their boxes intersect, and each one's width is the day column's width / N within 4 px.

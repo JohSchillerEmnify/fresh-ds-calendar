@@ -45,13 +45,13 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
 
 ### A · Turning the day or week while dragging
 
-- While an event or task list is dragged in the day or week view, the outer 24 px at the left and right side of the day
-  columns area are edge zones. Entering one shows a band (`drag-edge-band`) along that side: day view "‹ Tue 13" /
+- While an event or task list is dragged in the day or week view, strips at the left and right side of the day columns
+  area are edge zones: 24 px in the day view, 12 px in the week view (owner 2026-10-25: Sunday must stay a drop target). Entering one shows a band (`drag-edge-band`) along that side: day view "‹ Tue 13" /
   "Thu 15 ›" (short weekday + day of month), week view "‹ 5–11 Oct" / "19–25 Oct ›" (the target week's range).
-- After 600 ms in the zone the view navigates to the previous/next day or week; the drag continues on the new grid.
-  Staying in the zone turns again every 600 ms. Leaving the zone earlier hides the band and cancels the turn.
+- After 600 ms (day view) or 1 s (week view) in the zone the view navigates to the previous/next day or week; the drag
+  continues on the new grid. Staying in the zone turns again after each such wait. Leaving the zone earlier hides the band and cancels the turn.
 - A drop always lands on the 15-min slot under the pointer in the grid shown (a quick drop on the outermost column
-  is unaffected because the turn needs the 600 ms rest).
+  is unaffected because the turn needs the rest in the zone; in the week view the zone covers only 12 px of it).
 
 ### B · Events side by side
 
@@ -83,7 +83,7 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
 
 | # | Requirement | Acceptance (scenarios) |
 |---|---|---|
-| R1 | Edge band + turn after 600 ms, day and week, events and timed task lists, touch and mouse | `dnd.feature` Rule "Holding a dragged entry at the side edge …": day/week outlines, keeps turning, task list, leaving the edge, quick drop on Sunday (phone). Mobile project = touch, desktop project = mouse. |
+| R1 | Edge band + turn after 600 ms (day, 24 px) or 1 s (week, 12 px), day and week, events and timed task lists, touch and mouse | `dnd.feature` Rule "Holding a dragged entry at the side edge …": day/week outlines, keeps turning, task list, leaving the edge, quick drop on Sunday (phone), long hold in the middle of Sunday. Mobile project = touch, desktop project = mouse. |
 | R2 | Two side-by-side settings with defaults 4 / 2 | `settings.feature` "Default settings on first run"; `events-display.feature` "Choosing up to …" ×2 |
 | R3 | Column packing up to N, overflow cascades on the last column, freed columns refilled, title rule | `events-display.feature` Rule "Overlapping entries sit side by side …" (6 layout scenarios); the two old cascade scenarios were replaced. |
 | R4 | Draw to create with snapping, upwards, overnight, preview, cancel, save | `events-crud.feature` Rule "Drawing on the empty time grid …" (9 scenarios) |
@@ -92,7 +92,7 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
 
 ## Assumptions (agent, to confirm)
 
-1. Edge zone 24 px inside the day columns area; turn delay 600 ms, repeating while held; band texts as above (en-GB
+1. Edge zone 24 px / 600 ms in the day view, 12 px / 1 s in the week view (owner), repeating while held; band texts as above (en-GB
    formats, localised per language).
 2. The edge turn applies to every drag in the day/week time grid and all-day row, not only timed entries; month view
    and two-row overview unchanged. It does not apply while drawing (C) or resizing.
