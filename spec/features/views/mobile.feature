@@ -167,3 +167,22 @@ Feature: Mobile-first layout
   Scenario: The page itself does not bounce when pulled
     When I open the month view for 2026-10
     Then the page does not bounce when pulled
+
+  # owner, 2026-10-25: on an iPhone a long press selected text instead of picking the entry up
+  @iphone
+  Scenario Outline: A long press on the calendar never selects text (<view> view)
+    Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When I open the <view> view for <period>
+    Then nothing on the screen can be selected by a long press
+
+    Examples:
+      | view  | period     |
+      | month | 2026-10    |
+      | week  | 2026-10-12 |
+      | day   | 2026-10-14 |
+
+  @iphone
+  Scenario: The fields of the event form can still be selected and edited
+    When I open the day view for 2026-10-14
+    And I click the time slot 15:00 on 2026-10-14
+    Then the text fields of the open form can be selected

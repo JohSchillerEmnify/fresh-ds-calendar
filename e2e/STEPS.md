@@ -524,12 +524,20 @@ the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
 the page does not bounce when pulled
+nothing on the screen can be selected by a long press
+the text fields of the open form can be selected
 ```
 
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
 - "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
   page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it
   is ignored there). A real pull cannot be made in the test browsers.
+- "nothing on the screen can be selected by a long press": at every point of a 24 px grid over the viewport the topmost
+  element (`elementFromPoint`) that is not a text field (`input`, `textarea`, `select`, `[contenteditable]`) has a
+  computed `-webkit-user-select` (or `user-select`) of `none`; the failure lists the offending elements. (iOS starts its
+  text selection only where the touched point is selectable; a long press itself cannot be made in the test browsers.)
+- "the text fields of the open form can be selected": every visible `input`/`textarea` in the open dialog has a computed
+  `-webkit-user-select` (or `user-select`) other than `none` (iOS refuses to edit such fields).
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.

@@ -16,6 +16,35 @@ Then('the page does not bounce when pulled', async function (this: World) {
   expect(await this.page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY)).toBe('none');
 });
 
+Then('nothing on the screen can be selected by a long press', async function (this: World) {
+  await this.settled();
+  const offenders = await this.page.evaluate(() => {
+    const field = (e: Element) => !!e.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+    const sel = (e: Element) => { const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string }; return cs.webkitUserSelect || cs.userSelect; };
+    const seen = new Set<string>();
+    for (let y = 2; y < innerHeight; y += 24) {
+      for (let x = 2; x < innerWidth; x += 24) {
+        const e = document.elementFromPoint(x, y);
+        if (!e || field(e) || sel(e) === 'none') continue;
+        seen.add(`${e.tagName.toLowerCase()}${(e as HTMLElement).dataset.testid ? `[${(e as HTMLElement).dataset.testid}]` : ''}.${String(e.className).split(' ')[0]} (${sel(e)})`);
+      }
+    }
+    return [...seen];
+  });
+  expect(offenders, 'elements a long press could select text in').toEqual([]);
+});
+
+Then('the text fields of the open form can be selected', async function (this: World) {
+  const dialog = this.page.getByRole('dialog').last();
+  await expect(dialog).toBeVisible();
+  const fields = await dialog.locator('input:visible, textarea:visible').evaluateAll((els) => els.map((e) => {
+    const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string };
+    return `${(e as HTMLInputElement).type || e.tagName}:${cs.webkitUserSelect || cs.userSelect}`;
+  }));
+  expect(fields.length, 'the form has text fields').toBeGreaterThan(0);
+  expect(fields.filter((f) => f.endsWith(':none')), 'fields that cannot be selected').toEqual([]);
+});
+
 async function expectAtBottom(world: World, loc: Locator) {
   const vh = viewport(world.page).height;
   const b = await box(loc);
