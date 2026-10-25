@@ -231,6 +231,18 @@ final class WeekLayout {
         cluster.clear();
     }
 
+    /**
+     * One title row in whole minutes at an hour height, rounded up so a cascade never starts inside a title (the web compares
+     * the fractional value).
+     *
+     * @param titleRowDp the title row height in dp
+     * @param hourHeightDp the hour height in dp
+     * @return the title row in minutes, rounded up
+     */
+    static int titleRowMinutes(float titleRowDp, float hourHeightDp) {
+        return (int) Math.ceil(titleRowDp / hourHeightDp * 60);
+    }
+
     /** The real end of an item; a zero-length one still occupies one minute so two of them never paint on top of each other. */
     private static int realEnd(WeekData.Item i) {
         return Math.max(i.endMin, i.startMin + 1);

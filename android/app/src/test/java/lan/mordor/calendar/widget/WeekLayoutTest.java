@@ -75,6 +75,24 @@ public class WeekLayoutTest {
     }
 
     @Test
+    public void entriesWithEqualStartAndEndKeepTheirInputOrder() {
+        // mirrors the web: same start and end keep the day's usual order (the order they come in)
+        List<WeekLayout.Placed> xy = WeekLayout.packColumns(List.of(ev("x", 540, 600), ev("y", 540, 600)), 11, 0, 2, 0);
+        assertEquals(0, find(xy, "x").col);
+        assertEquals(1, find(xy, "y").col);
+        List<WeekLayout.Placed> yx = WeekLayout.packColumns(List.of(ev("y", 540, 600), ev("x", 540, 600)), 11, 0, 2, 0);
+        assertEquals(0, find(yx, "y").col);
+        assertEquals(1, find(yx, "x").col);
+    }
+
+    @Test
+    public void theTitleRowInMinutesIsRoundedUpSoATitleIsNeverCut() {
+        // 11 dp at 30 dp per hour is 22.0 min; at 31 dp per hour 21.29 min must count as 22, not 21
+        assertEquals(22, WeekLayout.titleRowMinutes(11, 30));
+        assertEquals(22, WeekLayout.titleRowMinutes(11, 31));
+    }
+
+    @Test
     public void touchingItemsDoNotOverlap() {
         List<WeekLayout.Placed> l = pack(ev("a", 600, 660), ev("b", 660, 720));
         assertEquals(1, find(l, "a").cols);
