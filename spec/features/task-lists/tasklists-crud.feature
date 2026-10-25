@@ -243,6 +243,33 @@ Feature: Creating, editing and deleting task lists
     And I save the task list
     Then the task list "Errands" is positioned at 15:00
 
+  # owner, 2026-10-25: a drawn block can become a task list; the drawn length is its estimate (feature event-editing)
+  Scenario: A block drawn on the empty grid can become a task list lasting the drawn length
+    When I open the day view for 2026-10-14
+    And I draw a block on 2026-10-14 from 09:00 to 10:30
+    And I switch the new dialog to "Task list"
+    Then the task list form shows:
+      | date     | 2026-10-14 |
+      | time     | 09:00      |
+      | estimate | 90         |
+    And the drawn block is shown on 2026-10-14 from 09:00 to 10:30
+    When I fill in the task list form with:
+      | title | Errands |
+      | items | Post    |
+    And I save the task list
+    Then no drawn block is shown
+    And the task list "Errands" is positioned at 09:00
+    And the Google event for the task list "Errands" is a timed event on 2026-10-14 from 09:00 to 10:30
+
+  Scenario: A drawn block longer than 12 hours becomes a task list estimated at 12 hours
+    When I open the week view for 2026-10-12
+    And I draw a block from 2026-10-14 08:00 to 2026-10-15 01:00
+    And I switch the new dialog to "Task list"
+    Then the task list form shows:
+      | date     | 2026-10-14 |
+      | time     | 08:00      |
+      | estimate | 720        |
+
   Scenario: A short task list is drawn as short as it takes
     Given the calendar contains a task list "Quick call prep" on 2026-10-14 at 09:00 for 15 minutes with items:
       | item  | done |

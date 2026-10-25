@@ -255,3 +255,85 @@ Feature: Drag and drop to reschedule
     And I open the month view for 2026-10
     When I drag the bar "Holiday" by its day 2026-10-14 to 2026-10-21
     Then I see the event "Holiday" as a bar from 2026-10-20 to 2026-10-22
+
+  # owner, 2026-10-25 (design boards): moving to another day while dragging, like Google Calendar
+  Rule: Holding a dragged entry at the side edge of the day or week view flips to the next or previous day or week
+
+    While an event or a task list is dragged in the day or week view (touch or mouse), the outer 24 px at the left and
+    right side of the day columns are edge zones. In an edge zone a band appears along that side naming where a flip
+    leads: the day ("‹ Tue 13", "Thu 15 ›") in the day view, the week ("‹ 5–11 Oct", "19–25 Oct ›") in the week view.
+    After 0.6 s in the zone the view turns to that day or week and the drag goes on there; staying in the zone turns it
+    again every 0.6 s. Leaving the zone before then hides the band and nothing turns. A drop always lands on the slot
+    under the pointer of the day or week shown, so a quick drop on the outermost column still works.
+
+    Scenario Outline: Holding a dragged event at the <side> edge of the day view moves on to the <which> day
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" at the <side> edge of the time grid for 300 ms
+      Then the edge band says "<band>"
+      And the URL path is "/day/2026-10-14"
+      When I keep holding the dragged item for 700 ms
+      Then the URL path is "/day/<date>"
+      And "Dentist" is still being dragged
+      When I drop the dragged item on <date> at 11:00
+      Then the event "Dentist" is positioned from 11:00 to 12:00
+      And Google contains an event "Dentist" on <date> from 11:00 to 12:00
+
+      Examples:
+        | side  | which    | band     | date       |
+        | right | next     | Thu 15 › | 2026-10-15 |
+        | left  | previous | ‹ Tue 13 | 2026-10-13 |
+
+    Scenario Outline: Holding a dragged event at the <side> edge of the week view moves on to the <which> week
+      When I open the week view for 2026-10-12
+      And I hold the event "Dentist" at the <side> edge of the time grid for 300 ms
+      Then the edge band says "<band>"
+      And the URL path is "/week/2026-10-12"
+      When I keep holding the dragged item for 700 ms
+      Then the URL path is "/week/<week>"
+      And "Dentist" is still being dragged
+      When I drop the dragged item on <date> at 09:00
+      Then the event "Dentist" is positioned on <date> from 09:00 to 10:00
+      And Google contains an event "Dentist" on <date> from 09:00 to 10:00
+
+      Examples:
+        | side  | which    | band        | week       | date       |
+        | right | next     | 19–25 Oct › | 2026-10-19 | 2026-10-21 |
+        | left  | previous | ‹ 5–11 Oct  | 2026-10-05 | 2026-10-07 |
+
+    Scenario: Staying at the edge keeps turning the days
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" at the right edge of the time grid for 1500 ms
+      Then the URL path is "/day/2026-10-16"
+      And the edge band says "Sat 17 ›"
+      When I drop the dragged item on 2026-10-16 at 09:00
+      Then Google contains an event "Dentist" on 2026-10-16 from 09:00 to 10:00
+
+    Scenario: A timed task list can be carried to the next day the same way
+      Given the calendar contains a task list "Packing" on 2026-10-15 at 18:00 with items:
+        | item     | done |
+        | Passport | no   |
+      When I open the day view for 2026-10-15
+      And I hold the task list "Packing" at the right edge of the time grid for 1000 ms
+      Then the URL path is "/day/2026-10-16"
+      When I drop the dragged item on 2026-10-16 at 08:15
+      Then the task list "Packing" is positioned at 08:15
+      And the Google event for the task list "Packing" is a timed event on 2026-10-16 from 08:15 to 08:45
+
+    Scenario: Leaving the edge before the view turns keeps the day
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" at the right edge of the time grid for 300 ms
+      And I move the dragged event to the middle of the time grid
+      Then I see no edge band
+      When I keep holding the dragged item for 1000 ms
+      Then the URL path is "/day/2026-10-14"
+      When I drop the dragged event
+      Then I see the event "Dentist" on 2026-10-14
+      And the event "Dentist" starts at the time the drop indicator showed
+
+    @mobile
+    Scenario: On a phone a quick drop on the last day of the week still lands there
+      Given I am using a phone
+      When I open the week view for 2026-10-12
+      And I drag the event "Dentist" to 2026-10-18 at 14:00
+      Then the URL path is "/week/2026-10-12"
+      And Google contains an event "Dentist" on 2026-10-18 from 14:00 to 15:00

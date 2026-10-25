@@ -169,20 +169,6 @@ Feature: Displaying events in the calendar views
     Then the events "Dentist" and "Standup" do not overlap
     And the events "Dentist" and "Standup" are side by side
 
-  @week @overlap
-  Scenario: An overlapping event starting 15 minutes or more later is stacked on top
-    Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
-    When I open the week view for 2026-10-12
-    Then the event "Standup" is stacked on the event "Dentist"
-
-  @day @overlap
-  Scenario: Three mutually overlapping events are cascaded in the day view
-    Given the calendar contains an event "Standup" on 2026-10-14 from 09:30 to 10:30
-    And the calendar contains an event "Call" on 2026-10-14 from 09:45 to 11:00
-    When I open the day view for 2026-10-14
-    Then the event "Standup" is stacked on the event "Dentist"
-    And the event "Call" is stacked on the event "Standup"
-
   @day @overlap
   Scenario: A short task list does not cover the entry right after it
     Given the calendar contains a task list "Call mum" on 2026-10-14 at 20:00 for 15 minutes with items:
@@ -322,3 +308,86 @@ Feature: Displaying events in the calendar views
       Given Google has an event "Yoga" repeating every week from 2026-10-06 from 18:00 to 19:00
       When I move the "Yoga" of 2026-10-13 to 2026-10-14
       Then I see the event "Yoga" on each of 2026-10-06, 2026-10-14, 2026-10-20 and 2026-10-27
+
+  # owner, 2026-10-25 (design boards): overlapping events sit next to each other instead of cascading, up to a set number
+  Rule: Overlapping entries sit side by side up to the number of columns set for the view
+
+    Settings › Calendar has "Day view: events side by side" (Up to 2, 3 or 4; default Up to 4) and "Week view: events
+    side by side" (Up to 2 or 3; default Up to 2), for the day and week time grids on every screen size (the two-row week
+    overview counts as the week view; the Labs views keep their own layout). Entries that overlap in time are placed
+    one by one, earliest start first (same start: the longer first; same start and end: in the day's usual order). Each
+    takes the leftmost column that is free at its start; when none is free and fewer columns than the limit are in use, it
+    opens a new column on the right. An overlap group shares the width in as many equal columns as it uses, and a block
+    still widens into free columns to its right. When all columns are busy, the entry is laid over the last column,
+    shifted a little to the right per level (up to 3 levels) and drawn on top, as cascades are today; that column then
+    stays busy until everything over it has ended. A title is never covered: an entry that would be laid over a block
+    starting less than 15 minutes (or one title row) before it gets one more column instead, beyond the limit.
+
+    @day @overlap
+    Scenario: Four overlapping events share the day view in four columns by default
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Review" on 2026-10-14 from 09:30 to 11:00
+      When I open the day view for 2026-10-14
+      Then the entries "Dentist, Standup, Call, Review" each take one of 4 equal columns
+
+    @day @overlap
+    Scenario: With up to 3 in the day view a fourth overlapping event is laid over the last column
+      Given the day view shows up to 3 events side by side
+      And the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Review" on 2026-10-14 from 09:30 to 11:00
+      When I open the day view for 2026-10-14
+      Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
+      And the event "Review" is stacked on the event "Dentist"
+
+    @week @overlap
+    Scenario: The week view shows up to 2 side by side by default and lays further ones over the last column
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00
+      And the calendar contains an event "Review" on 2026-10-14 from 10:00 to 11:30
+      When I open the week view for 2026-10-12
+      Then the entries "Standup, Dentist" each take one of 2 equal columns
+      And the event "Call" is stacked on the event "Dentist"
+      And the event "Review" is stacked on the event "Call"
+
+    @week @overlap
+    Scenario: A later event takes the column an earlier one has left
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:15 to 10:30
+      And the calendar contains an event "Gym" on 2026-10-14 from 10:00 to 11:00
+      When I open the week view for 2026-10-12
+      Then the entries "Dentist, Standup" each take one of 2 equal columns
+      And the entries "Gym, Standup" each take one of 2 equal columns
+
+    @week @overlap
+    Scenario: With up to 3 in the week view three overlapping events sit side by side
+      Given the week view shows up to 3 events side by side
+      And the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00
+      When I open the week view for 2026-10-12
+      Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
+
+    @day @overlap
+    Scenario: Entries starting at nearly the same time get one more column rather than hide a title
+      Given the day view shows up to 2 events side by side
+      And the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:00
+      And the calendar contains an event "Call" on 2026-10-14 from 09:05 to 10:00
+      When I open the day view for 2026-10-14
+      Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
+
+    Scenario: Choosing up to 2 for the day view in the settings changes it right away
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00
+      And I am on the settings screen
+      When I choose up to 2 events side by side in the day view
+      And I open the day view for 2026-10-14
+      Then the entries "Standup, Dentist" each take one of 2 equal columns
+      And the event "Call" is stacked on the event "Dentist"
+
+    Scenario: Choosing up to 3 for the week view in the settings changes it right away
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00
+      And I am on the settings screen
+      When I choose up to 3 events side by side in the week view
+      And I open the week view for 2026-10-12
+      Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
