@@ -156,6 +156,10 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let listening = false;
   /** A lifted touch drag whose pointer the browser cancelled (it started a native pan): it follows the touch events. */
   let touchFollow = false;
+  /** The finger of this press, from the card's touchstart; null when the press sent no touch events (mouse, a pen on Windows). */
+  let touchId: number | null = null;
+  /** Timer that disarms the click swallow after a drop. */
+  let clickTimer: ReturnType<typeof setTimeout> | null = null;
   /** Scroll container whose native scrolling is off while a touch drag is lifted, and its inline overflow-y before. */
   let locked: HTMLElement | null = null;
   let lockedOverflow = '';
@@ -209,7 +213,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     // a sheet's own swipe-to-dismiss underneath never sees the moves of a drag
     e.stopPropagation();
     if (e.cancelable) e.preventDefault();
-    const t = touchFollow ? e.touches?.[0] : undefined;
+    const t = touchFollow ? finger(e.touches) : undefined;
     if (t) {
       cur = { x: t.clientX, y: t.clientY };
       vt.add(cur.x, cur.y, e.timeStamp || performance.now());
@@ -223,15 +227,22 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const onElTouchMove = (e: TouchEvent) => {
     if (state === 'dragging' && e.cancelable) e.preventDefault();
   };
+  /** Notes the finger of this press (passive): only a press that sends touch events can be carried by them. */
+  const onElTouchStart = (e: TouchEvent) => {
+    if (state === 'pending' && touchId === null) touchId = e.changedTouches?.[0]?.identifier ?? null;
+  };
+  /** This press's finger in a touch list (a second finger never steers the drag). */
+  const finger = (list: TouchList | undefined) => (list ? [...list].find((t) => t.identifier === touchId) : undefined);
   const onTouchEnd = (e: TouchEvent) => {
-    if (!touchFollow || state !== 'dragging' || e.touches?.length) return;
-    const t = e.changedTouches?.[0];
-    if (t) cur = { x: t.clientX, y: t.clientY };
+    if (!touchFollow || state !== 'dragging') return;
+    const t = finger(e.changedTouches);
+    if (!t) return;
+    cur = { x: t.clientX, y: t.clientY };
     update(cur.x, cur.y);
     drop();
   };
-  const onTouchCancel = () => {
-    if (touchFollow && state === 'dragging') cancel();
+  const onTouchCancel = (e: TouchEvent) => {
+    if (touchFollow && state === 'dragging' && finger(e.changedTouches)) cancel();
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && (state === 'dragging' || state === 'pending')) cancel();
@@ -317,6 +328,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     sc?.removeEventListener('scroll', onScroll);
     sc = null;
     touchFollow = false;
+    touchId = null;
     if (locked) {
       locked.style.overflowY = lockedOverflow;
       locked = null;
@@ -334,6 +346,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     const rect = el.getBoundingClientRect();
     isTouch = e.pointerType !== 'mouse';
     pointerId = e.pointerId;
+    touchId = null;
     start = { x: e.clientX, y: e.clientY };
     cur = { ...start };
     ctx = { originRect: rect, grab: { x: e.clientX - rect.left, y: e.clientY - rect.top } };
@@ -444,7 +457,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       setState('idle');
     } else if (state === 'dragging') {
       // a touch drag outlives the pointer the browser cancelled for its pan: the touch events carry it to the drop
-      if (isTouch) touchFollow = true;
+      // (only when this press sent touch events: a pen on Windows/ChromeOS sends none and would stay lifted)
+      if (touchId !== null) touchFollow = true;
       else cancel();
     }
   }
@@ -576,7 +590,12 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   function suppressNextClick() {
     window.addEventListener('click', onClickCapture, true);
-    setTimeout(() => window.removeEventListener('click', onClickCapture, true), 400);
+    // a new drop re-arms the full 400 ms: an earlier drop's timer must not disarm it
+    if (clickTimer) clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => {
+      clickTimer = null;
+      window.removeEventListener('click', onClickCapture, true);
+    }, 400);
   }
 
   async function drop() {
@@ -669,6 +688,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   el.addEventListener('pointerdown', onDown);
   el.addEventListener('touchmove', onElTouchMove, { passive: false });
+  el.addEventListener('touchstart', onElTouchStart, { passive: true });
   el.addEventListener('dragstart', preventNative);
   function preventNative(e: Event) {
     e.preventDefault();
@@ -682,6 +702,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     destroy() {
       el.removeEventListener('pointerdown', onDown);
       el.removeEventListener('touchmove', onElTouchMove);
+      el.removeEventListener('touchstart', onElTouchStart);
+      if (clickTimer) clearTimeout(clickTimer);
+      clickTimer = null;
       el.removeEventListener('dragstart', preventNative);
       window.removeEventListener('click', onClickCapture, true);
       cancelAnims();
