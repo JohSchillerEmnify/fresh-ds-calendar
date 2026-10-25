@@ -2,7 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { addDays } from 'date-fns';
 import type { StoredTheme } from '@/api/client';
-import type { AppConfig, Calendar, CalendarItem, LocalDate, Prefs, Settings } from '@/api/types';
+import type { AppConfig, Calendar, CalendarItem, LocalDate, Prefs, Settings, TaskTemplate } from '@/api/types';
+import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { parseIsoDate, toIsoDate } from '@/lib/dates';
 import { itemSegments } from '@/lib/items';
 import { lastKnownDb, lastKnownPerson, setLastKnownPerson, wipeLastKnown } from '@/lib/lastKnownDb';
@@ -35,6 +36,8 @@ export interface LastKnownSnapshot {
   calendars: Calendar[];
   themes: StoredTheme[];
   ranges: SavedRange[];
+  /** The task list templates; absent in snapshots written before they were kept. */
+  templates?: TaskTemplate[];
 }
 
 const touches = (it: CalendarItem, from: LocalDate, to: LocalDate) => itemSegments(it).some((s) => s.date >= from && s.date < to);
@@ -103,6 +106,7 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
     usePrefsStore().restore(snap.prefs);
     useCalendarsStore().restore(snap.calendars);
     useThemeStore().restore(snap.themes);
+    if (snap.templates) useTemplatesStore().restore(snap.templates);
     saved = pruneRanges(snap.ranges, clock.today);
     useItemsStore().restore(saved.flatMap((r) => r.items));
     base = snap;
@@ -133,6 +137,7 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
     }
     saved = pruneRanges(saved, clock.today);
     const settings = useSettingsStore();
+    const templates = useTemplatesStore();
     const snap: LastKnownSnapshot = {
       v: 1, person: who, savedAt: savedAt.value, config,
       settings: settings.loaded ? settings.settings : base?.settings ?? null,
@@ -140,6 +145,8 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
       calendars: useCalendarsStore().list,
       themes: useThemeStore().themes,
       ranges: saved,
+      // the shown list: a template waiting for its undo time is left out, so a delete sent on leaving never comes back
+      templates: templates.loaded ? templates.list : base?.templates,
     };
     try {
       // plain data only: reactive proxies cannot be cloned into IndexedDB
@@ -194,7 +201,7 @@ export const useLastKnownStore = defineStore('lastKnown', () => {
         // the person is known only now: a fresh answer that came first is saved now
         scheduleSave();
       }, { immediate: true }),
-      watch(() => [items.byId, items.ranges, useSettingsStore().settings, usePrefsStore().current(), useCalendarsStore().list, useThemeStore().themes], scheduleSave),
+      watch(() => [items.byId, items.ranges, useSettingsStore().settings, usePrefsStore().current(), useCalendarsStore().list, useThemeStore().themes, useTemplatesStore().list], scheduleSave),
     );
     return stop;
   }

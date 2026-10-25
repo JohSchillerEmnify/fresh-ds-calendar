@@ -24,7 +24,6 @@ export default {
     tooMany: 'Mehr Vorlagen gehen nicht. Lösche zuerst eine.',
     nameTooLong: 'Der Name der Vorlage darf höchstens 80 Zeichen lang sein',
     notFound: 'Diese Vorlage gibt es nicht mehr.',
-    offline: 'Vorlagen brauchen eine Verbindung.',
     titleRequired: 'Gib der Liste einen Titel, um sie als Vorlage zu speichern',
     alsoSave: 'Auch als Vorlage speichern',
     fromTemplate: 'Aus Vorlage',

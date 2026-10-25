@@ -1,7 +1,8 @@
 /**
  * The person's task list templates (feature tasklist-templates), kept by the app server (`/api/templates`) so they
- * follow the person to every device. Loaded when something needs them (the template picker, the Templates page, a
- * save); deletes go through the undo snackbar (`pendingDeletes.deleteTemplate`), which hides the template meanwhile.
+ * follow the person to every device, and on the device with the last known state (ADR 0023): restored at start, read
+ * again on every sync and when something needs them (the template picker, the Templates page, a save); deletes go
+ * through the undo snackbar (`pendingDeletes.deleteTemplate`), which hides the template meanwhile.
  */
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
@@ -19,26 +20,24 @@ export const useTemplatesStore = defineStore('templates', () => {
   /** The templates shown: sorted by name, without the ones being deleted. */
   const list = computed(() => all.value.filter((x) => !hidden.value.includes(x.id)).sort(byName));
 
-  /** The last reading failed (offline, server away) and nothing was read since: the picker says so. */
-  const failed = ref(false);
   /** Counts changes made here: a reading that started before the latest one is out of date when it arrives. */
   let changes = 0;
 
   /** Reads the templates from the server (every time: another device may have changed them). */
   async function load(): Promise<void> {
     const at = changes;
-    try {
-      const fresh = (await api.templates()).templates;
-      // a template added, changed or deleted while this was on its way would be lost: the reading is dropped and
-      // done again, so the list always ends up read (also when that change failed)
-      if (at !== changes) return load();
-      all.value = fresh;
-      loaded.value = true;
-      failed.value = false;
-    } catch (e) {
-      failed.value = !loaded.value;
-      throw e;
-    }
+    const fresh = (await api.templates()).templates;
+    // a template added, changed or deleted while this was on its way would be lost: the reading is dropped and
+    // done again, so the list always ends up read (also when that change failed)
+    if (at !== changes) return load();
+    all.value = fresh;
+    loaded.value = true;
+  }
+
+  /** Shows the templates this device kept (last known state) until the server answers. */
+  function restore(saved: TaskTemplate[]): void {
+    all.value = saved;
+    loaded.value = true;
   }
 
   const put = (t: TaskTemplate): void => {
@@ -97,5 +96,5 @@ export const useTemplatesStore = defineStore('templates', () => {
     unhide(id);
   }
 
-  return { list, loaded, failed, load, add, update, hide, unhide, remove };
+  return { list, loaded, load, restore, add, update, hide, unhide, remove };
 });

@@ -1,9 +1,11 @@
-/** The templates store (feature tasklist-templates): late loads, offline state, a pending delete of the same name. */
+/** The templates store (feature tasklist-templates): late loads, restored templates, the sync refresh, a pending delete of the same name. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api, ApiError } from '@/api/client';
 import type { TaskTemplate } from '@/api/types';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
+import { registerTaskListFeature } from '@/features/tasklists';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
+import { useSyncStore } from '@/stores/sync';
 import { freshPinia } from './helpers';
 
 const tpl = (id: string, name: string): TaskTemplate => ({ id, name, items: [{ title: 'x' }], estimateMinutes: null, categoryId: null });
@@ -43,16 +45,21 @@ describe('templates store', () => {
     expect(s.loaded).toBe(true);
   });
 
-  it('says it is offline when the templates could not be read, and not once they were', async () => {
+  it('keeps the templates it has when a reading fails', async () => {
     const s = useTemplatesStore();
+    s.restore([tpl('a', 'Packing')]);
+    expect(s.loaded).toBe(true);
     vi.spyOn(api, 'templates').mockRejectedValueOnce(new ApiError(0, 'NETWORK', 'offline'));
     await expect(s.load()).rejects.toBeInstanceOf(ApiError);
-    expect(s.loaded).toBe(false);
-    expect(s.failed).toBe(true);
-    vi.spyOn(api, 'templates').mockResolvedValueOnce({ templates: [] });
-    await s.load();
-    expect(s.failed).toBe(false);
-    expect(s.loaded).toBe(true);
+    expect(s.list.map((x) => x.name)).toEqual(['Packing']);
+  });
+
+  it('is read again on every sync', async () => {
+    const read = vi.spyOn(api, 'templates').mockResolvedValue({ templates: [tpl('a', 'Packing')] });
+    registerTaskListFeature();
+    await useSyncStore().syncNow().catch(() => undefined);
+    expect(read).toHaveBeenCalled();
+    expect(useTemplatesStore().list.map((x) => x.name)).toEqual(['Packing']);
   });
 
   it('sends a pending delete of a template first when one with the same name is saved', async () => {

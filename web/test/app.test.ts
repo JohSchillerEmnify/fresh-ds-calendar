@@ -24,6 +24,7 @@ async function mountAt(path: string, extra: Parameters<typeof mockFetch>[0] = {}
     'GET /api/items': () => ({ items, from: 'a', to: 'b', syncedAt: 's' }),
     'GET /api/summary': () => ({ days: { '2026-10-14': { events: 1, tasklists: 0, openTasklists: 0, density: 1 }, '2026-10-16': { events: 4, tasklists: 0, openTasklists: 0, density: 3 } } }),
     'GET /api/tasklists/open': () => ({ items: [] }),
+    'GET /api/templates': () => ({ templates: [] }),
     'GET /api/motivation': () => ({ streak: { current: 2, best: 7, lastCheckIn: null, checkedInToday: false }, plant: {} }),
     ...extra,
   });

@@ -180,8 +180,9 @@ PR boundary: one PR (the pieces are not useful alone).
 - W4 An unreadable `templates.json` is moved aside and logged; malformed entries are left out. Unit test.
 - W5 Names longer than 80 characters are refused in the app too (the save sheet cuts a longer title to 80); the
   too-long and not-found errors have translated texts.
-- S1 Templates are not in the last-known cache (ADR 0023) for now: offline, the picker and the Templates page say
-  "Templates need a connection"; the empty state shows only once the templates were read.
+- S1 (reversed by the owner, 2026-10-25, see `20261025T061452Z_templates_on_device`) ~~Templates are not in the
+  last-known cache (ADR 0023) for now: offline, the picker and the Templates page say "Templates need a connection"~~.
+  They are now kept on the device with the last known state.
 - S2 Saving a template whose name belongs to one waiting for its undo time sends that delete first.
 - S4 "the snackbar says" stays the undo snackbar's; "a snackbar says" checks any snackbar ("Saved as template").
 - S7 Another person's template id is 404 on PUT and DELETE (server test).

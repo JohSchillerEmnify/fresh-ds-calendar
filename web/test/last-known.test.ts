@@ -2,6 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CalendarItem } from '@/api/types';
 import { memoryKv, PERSON_KEY, setLastKnownDb, wipeLastKnown } from '@/lib/lastKnownDb';
+import { useTemplatesStore } from '@/features/tasklists/templatesStore';
+import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAuthStore } from '@/stores/auth';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
@@ -17,6 +19,7 @@ import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './
 const ev = (id: string, date: string, from = '10:00', to = '11:00') =>
   eventFixture(id, `${date}T${from}:00+02:00`, `${date}T${to}:00+02:00`) as unknown as CalendarItem;
 const range = (from: string, to: string, items: CalendarItem[]): SavedRange => ({ from, to, items });
+const tpl = (id: string, name: string) => ({ id, name, items: [{ title: 'x' }], estimateMinutes: null, categoryId: null });
 const titles = (rs: SavedRange[]) => rs.flatMap((r) => r.items.map((i) => i.id)).sort();
 
 describe('mergeRange', () => {
@@ -85,6 +88,7 @@ describe('last known state store', () => {
       'GET /api/settings': net(() => settingsFixture({ themeMode: 'dark' })),
       'GET /api/prefs': net(() => ({ language: 'de' })),
       'GET /api/calendars': net(() => ({ calendars: [{ id: 'primary', name: 'Me', color: '#039be5', primary: true, hidden: false }] })),
+      'GET /api/templates': net(() => ({ templates: [tpl('p', 'Packing'), tpl('w', 'Weekly shop')] })),
     });
   }
 
@@ -93,7 +97,7 @@ describe('last known state store', () => {
     const lk = useLastKnownStore();
     const shown = await lk.restore('/week/2026-10-12');
     lk.install();
-    const loads = Promise.allSettled([useClockStore().load(), useSettingsStore().load(), useAuthStore().check(), usePrefsStore().load(), useCalendarsStore().load()]);
+    const loads = Promise.allSettled([useClockStore().load(), useSettingsStore().load(), useAuthStore().check(), usePrefsStore().load(), useCalendarsStore().load(), useTemplatesStore().load()]);
     if (!shown) await loads;
     const [from, to] = opts.visit ?? ['2026-10-12', '2026-10-19'];
     const sync = useSyncStore();
@@ -169,6 +173,29 @@ describe('last known state store', () => {
     await items.fetchRange('2026-10-19', '2026-10-26');
     await vi.advanceTimersByTimeAsync(1000);
     expect(snapshot()!.ranges.map((r) => r.from)).toEqual(['2026-10-12']);
+  });
+
+  it('keeps the templates, without one waiting for its undo time, and shows them offline at the next start', async () => {
+    server(() => []);
+    await session();
+    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing', 'Weekly shop']);
+    usePendingDeletesStore().deleteTemplate('w', 'Weekly shop');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(snapshot()!.templates!.map((x) => x.name)).toEqual(['Packing']);
+    offline = true;
+    freshPinia();
+    await session();
+    const templates = useTemplatesStore();
+    expect(templates.loaded).toBe(true);
+    expect(templates.list.map((x) => x.name)).toEqual(['Packing']);
+  });
+
+  it('a snapshot from before templates were kept still restores, and the templates stay unread', async () => {
+    server(() => []);
+    localStorage.setItem(PERSON_KEY, '-');
+    await kv.setOnly('-', { v: 1, person: '-', savedAt: 1, config: config(), settings: null, prefs: {}, calendars: [], themes: [], ranges: [] });
+    expect(await useLastKnownStore().restore('/week/2026-10-12')).toBe(true);
+    expect(useTemplatesStore().loaded).toBe(false);
   });
 
   it('restores only the snapshot of the person last signed in on this device', async () => {
