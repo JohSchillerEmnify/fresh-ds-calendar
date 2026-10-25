@@ -15,7 +15,8 @@ const R_PLATE = 178;
 const R_LINE = 122;
 const R_ICON = 134;
 const ICON = 14;
-const windows = useBedtimeWindows(() => ({ from: props.date, to: nextIsoDate(props.date) }));
+// up to the day after tomorrow: a night that starts at the next midnight still puts its moon on this day (24:00)
+const windows = useBedtimeWindows(() => ({ from: props.date, to: nextIsoDate(nextIsoDate(props.date)) }));
 
 /** SVG path of the pie slice between two minutes of the day on the plate. */
 function sector(from: number, to: number): string {
@@ -34,13 +35,13 @@ const pieces = computed(() => windows.value.flatMap((w) => {
   <g class="bedtime-dial" pointer-events="none">
     <template v-for="p in pieces" :key="p.w.from">
       <path
-        :d="p.d" class="sector" data-testid="bedtime-band" :data-date="date" :data-start="pieceTime(p.startMin)" :data-end="pieceTime(p.endMin)"
+        v-if="p.endMin > p.startMin" :d="p.d" class="sector" data-testid="bedtime-band" :data-date="date" :data-start="pieceTime(p.startMin)" :data-end="pieceTime(p.endMin)"
         :data-from="p.w.from" :data-to="p.w.to" :data-mode="p.w.mode"
       />
       <template v-if="p.startsHere">
         <line :x1="p.startEdge.a.x" :y1="p.startEdge.a.y" :x2="p.startEdge.b.x" :y2="p.startEdge.b.y" class="edge" />
         <circle :cx="p.startEdge.icon.x" :cy="p.startEdge.icon.y" r="10" class="chip" />
-        <IconBedtime :x="p.startEdge.icon.x - ICON / 2" :y="p.startEdge.icon.y - ICON / 2" :width="ICON" :height="ICON" class="glyph" data-testid="bedtime-moon" />
+        <IconBedtime :x="p.startEdge.icon.x - ICON / 2" :y="p.startEdge.icon.y - ICON / 2" :width="ICON" :height="ICON" class="glyph" data-testid="bedtime-moon" :data-date="date" :data-at="pieceTime(p.startMin)" />
       </template>
       <template v-if="p.endsHere">
         <line :x1="p.endEdge.a.x" :y1="p.endEdge.a.y" :x2="p.endEdge.b.x" :y2="p.endEdge.b.y" class="edge" />

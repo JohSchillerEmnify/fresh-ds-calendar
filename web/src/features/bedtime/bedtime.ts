@@ -139,7 +139,8 @@ export function bedtimeWindows(range: { from: string; to: string }, prefs: Bedti
 }
 
 /**
- * The part of a night on one day.
+ * The part of a night on one day. A bedtime at exactly midnight belongs to the evening before: that day gets an empty
+ * piece at 24:00 that only carries the moon, and the next day's piece starts without one.
  *
  * @param w The night.
  * @param date The day (ISO).
@@ -147,10 +148,11 @@ export function bedtimeWindows(range: { from: string; to: string }, prefs: Bedti
  */
 export function clipToDay(w: BedtimeWindow, date: string): DayPiece | null {
   const ds = dayNum(date) * DAY;
+  if (w.start === ds + DAY) return { startMin: DAY, endMin: DAY, startsHere: true, endsHere: false };
   const s = Math.max(w.start, ds);
   const e = Math.min(w.end, ds + DAY);
   if (e <= s) return null;
-  return { startMin: s - ds, endMin: e - ds, startsHere: w.start >= ds, endsHere: w.end <= ds + DAY };
+  return { startMin: s - ds, endMin: e - ds, startsHere: w.start > ds, endsHere: w.end <= ds + DAY };
 }
 
 /** `HH:MM` of a minute of the day, `24:00` for the end of the day. */

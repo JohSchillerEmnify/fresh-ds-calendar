@@ -259,3 +259,32 @@ Feature: The calendar's states look right
     Then the templates page offers "New template"
     And no text in the "templates page" is clipped
     And the "templates page" still looks like "templates-empty"
+
+  # Owner, 2026-10-25: "There are two bedtimes on that clock." A bedtime at midnight belongs to the evening before.
+  Scenario: The clock on a Saturday shows the midnight bedtime at the top of the dial
+    Given the device prefers a dark color scheme
+    And the time is 2026-10-24 20:00
+    And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
+    When I open the clock view for 2026-10-24
+    Then the "clock" still looks like "clock-bedtime-saturday-dark"
+
+  Scenario: The clock after a midnight bedtime shows only tonight's moon
+    Given the device prefers a dark color scheme
+    And the time is 2026-10-25 01:12
+    And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
+    When I open the clock view for 2026-10-25
+    Then the "clock" still looks like "clock-bedtime-sunday-dark"
+
+  Scenario: The clock on a Friday shows the midnight bedtime at the top of the dial
+    Given the device prefers a dark color scheme
+    And the time is 2026-10-23 20:00
+    And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
+    When I open the clock view for 2026-10-23
+    Then the "clock" still looks like "clock-bedtime-friday-dark"
+
+  Scenario: The Saturday column shows the midnight bedtime at its bottom edge
+    Given the time is 2026-10-24 12:00
+    And bedtime mode is on with fixed times 23:00 and 07:00, and 00:00 and 09:00 on weekends
+    When I open the day view for 2026-10-24
+    And I scroll the time grid to the end of the day
+    Then the "time grid" still looks like "day-bedtime-saturday-end"

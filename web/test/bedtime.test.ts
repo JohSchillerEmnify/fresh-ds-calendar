@@ -110,6 +110,16 @@ describe('clipToDay and tonight', () => {
     expect(clipToDay(after, '2026-10-13')).toBeNull();
   });
 
+  it('a night that starts at midnight belongs to the evening before: its moon is at 24:00 of the day before', () => {
+    const weekend = on({ weekendDifferent: true, weekendBedtime: '00:00', weekendWake: '09:00' });
+    // the night ending Sunday 2026-10-25 starts at 00:00 on Sunday
+    const [sat] = bedtimeWindows({ from: '2026-10-24', to: '2026-10-26' }, weekend, none).filter((w) => w.wakeDate === '2026-10-25');
+    expect(sat.from).toBe('2026-10-25 00:00');
+    expect(clipToDay(sat, '2026-10-24')).toEqual({ startMin: 1440, endMin: 1440, startsHere: true, endsHere: false });
+    expect(clipToDay(sat, '2026-10-25')).toEqual({ startMin: 0, endMin: 540, startsHere: false, endsHere: true });
+    expect(clipToDay(sat, '2026-10-23')).toBeNull();
+  });
+
   it('tonight is the first night that has not ended', () => {
     const win = bedtimeWindows({ from: '2026-10-14', to: '2026-10-16' }, on(), none);
     expect(tonight(win, win[1].start - 30)?.from).toBe('2026-10-14 23:00');

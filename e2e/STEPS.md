@@ -1849,6 +1849,7 @@ bedtime mode is on based on my first appointment with {int} hours of sleep and {
 the night bands of {date} are {string}
 the night band runs from {date} {time} to {date} {time}
 no night band is shown
+the bedtime moons of {date} are {string}
 the approach bar shows a night band
 I see the bedtime reminder {string}
 I do not see a bedtime reminder
@@ -1864,6 +1865,11 @@ I do not see a bedtime reminder
   "the night band runs from A to B" looks for a piece with that `data-from` and `data-to`. "no night band is shown":
   no `bedtime-band` and no `bedtime-track-band` exists. Day and week show `bedtime-band` pieces in the day columns,
   the Timeline in its day sections, the Strip in its columns and the Clock as arcs.
+- Moons: every bedtime moon in a day column or on the Clock has `data-testid="bedtime-moon"` with `data-date` (the day it
+  is drawn on) and `data-at` (`HH:MM` within that day; `24:00` for a bedtime at midnight, which is drawn at the end of
+  the evening before, not at 00:00 of the next day). "the bedtime moons of D are S" joins `data-at` of the moons with
+  `data-date` D (document order) with `", "`. The weekend setup step also sends `weekendDifferent: true`,
+  `weekendBedtime` and `weekendWake`.
 - Approach bar: "shows a night band" = a `bedtime-track-band` inside `approach-bar`.
 - Reminder: a snackbar with `data-testid="bedtime-reminder"`; "I see" compares its text exactly.
 
@@ -2609,12 +2615,15 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
 (`template-save-dialog`), `templates page` (`templates-page`). The `now-marker` is masked.
+`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
+it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped
 the head row and the items of the expanded task list do not overlap
 the pill of the expanded task list covers the card {string} it grew from
 the {string} still looks like {string}
+I scroll the time grid to the end of the day
 the pill of the expanded task list shows the count {string}
 the band's lists are one-line pills
 I tap the band's section switch
