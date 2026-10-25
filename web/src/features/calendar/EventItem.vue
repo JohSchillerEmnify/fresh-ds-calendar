@@ -44,6 +44,12 @@ const h = computed(() => props.height ?? 0);
 const { width } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)));
 /** Narrow (<= 76 px) blocks use 11 px / 13 px type; the budget is derived from the real box, not fixed. */
 const narrow = computed(() => width.value > 0 && width.value <= 76);
+// The block's own size cannot drive a container query on itself, so its tight padding follows its border box (owner D3,
+// 2026-10-25). A border box of at most 84 px leaves a content box of at most 76 px with the tight padding: the same blocks the
+// 11 px type applies to, and the border box does not change with the padding, so the class cannot flip back and forth.
+const { width: boxWidth } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)), undefined, { box: 'border-box' });
+/** Whether the block uses the tight padding of narrow blocks. */
+const tight = computed(() => boxWidth.value > 0 && boxWidth.value <= 84);
 const budget = computed(() => blockBudget({
   title: ev.value.title, height: h.value, width: width.value || 120, padV: 4, lineH: narrow.value ? 13 : 16, timeH: 14,
   charW: narrow.value ? 5.6 : 6.9, padH: narrow.value ? 6 : 12,
@@ -66,7 +72,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 
 <template>
   <button
-    ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing }]"
+    ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing, tight }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-current="current || undefined"
     :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
@@ -121,8 +127,8 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 .block .desc { font-size: 11px; line-height: 14px; opacity: 0.8; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--dlines); line-clamp: var(--dlines); overflow: hidden; overflow-wrap: break-word; flex: none; }
 .block.nofirst { border-top-left-radius: 0; border-top-right-radius: 0; }
 .block.nolast { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.block.tight { padding: 1px 2px 1px 3px; }
 @container (max-width: 76px) {
-  .block { padding: 1px 2px 1px 3px; }
   .block .title { font-size: 11px; line-height: 13px; letter-spacing: -0.2px; }
   .block .dur { display: none; }
 }

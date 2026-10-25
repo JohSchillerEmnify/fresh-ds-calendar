@@ -394,6 +394,23 @@ Feature: Displaying events in the calendar views
       Then the entries "Standup, Dentist" each take one of 2 equal columns
       And the event "Call" is stacked on the event "Dentist"
 
+    # owner, 2026-10-25 (D3): a narrow block uses its tight padding, so a stacked block in a phone week column stays inside it
+    @mobile @overlap
+    Scenario: On a phone a block laid over a narrow week column stays inside its day column
+      Given I am using a phone
+      And the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00
+      And the calendar contains an event "Review" on 2026-10-14 from 10:00 to 11:30
+      When I open the week view for 2026-10-12
+      Then the event "Review" is stacked on the event "Call"
+      And the event "Review" has the narrow block padding
+      And the event "Review" stays inside its day column
+
+    @desktop @overlap
+    Scenario: A wide block keeps its normal padding
+      When I open the day view for 2026-10-14
+      Then the event "Dentist" has the normal block padding
+
     Scenario: Choosing up to 2 for the day view in the settings changes it right away
       Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
       And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00

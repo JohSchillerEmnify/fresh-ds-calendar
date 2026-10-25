@@ -54,3 +54,37 @@ Then('the entries {string} each take one of {int} equal columns', async function
     return problems.join('; ');
   }).toBe('');
 });
+
+/** The computed horizontal padding and border-box width of an event's block. */
+async function padding(w: World, title: string) {
+  const chip = w.eventChip(title);
+  await expect(chip).toBeVisible();
+  return chip.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { left: s.paddingLeft, right: s.paddingRight, width: el.getBoundingClientRect().width };
+  });
+}
+
+Then('the event {string} has the narrow block padding', async function (this: World, title: string) {
+  await expect.poll(async () => {
+    const p = await padding(this, title);
+    return p.width <= 84 ? `${p.left} ${p.right}` : `wide: ${p.width}`;
+  }).toBe('3px 2px');
+});
+
+Then('the event {string} has the normal block padding', async function (this: World, title: string) {
+  await expect.poll(async () => {
+    const p = await padding(this, title);
+    return p.width > 84 ? `${p.left} ${p.right}` : `narrow: ${p.width}`;
+  }).toBe('6px 5px');
+});
+
+Then('the event {string} stays inside its day column', async function (this: World, title: string) {
+  const chip = this.eventChip(title);
+  const date = (await chip.getAttribute('data-date'))!;
+  await expect.poll(async () => {
+    const [c, col] = [(await chip.boundingBox())!, (await this.dayColumn(date).boundingBox())!];
+    const over = c.x + c.width - (col.x + col.width), under = col.x - c.x;
+    return over <= 0.5 && under <= 0.5 ? 'inside' : `${over.toFixed(2)} px past the right edge, ${under.toFixed(2)} px past the left`;
+  }).toBe('inside');
+});

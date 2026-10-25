@@ -149,3 +149,12 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
   block in minutes), as on the web; the extra title column is capped at limit + 1 in web and widget; "is stacked on"
   also checks the shared column; scenarios for the cap and for the two-row overview using the week limit; unit test that
   equal start and end keep the day's order.
+- Narrow-block padding (owner D3, 2026-10-25): `EventItem.vue`'s `@container (max-width: 76px) { .block { padding } }` never
+  applied (a container cannot query itself), so a 14 px padding+border floor pushed narrow stacked chips past their day
+  column. The tight padding (3 px left, 2 px right, 1 px top/bottom) now follows the block's border box (<= 84 px, i.e. a
+  content box <= 76 px with that padding) via a `tight` class; the 11 px type rules stay in the container query and apply to
+  exactly the same blocks as before. Scenarios: "On a phone a block laid over a narrow week column stays inside its day
+  column", "A wide block keeps its normal padding". Baselines `two-row-week` and `two-row-grown-tight` (mobile) updated:
+  old vs new build differ only in the Mon column's block text (3 px left, 1 px up); their other differences from the
+  2026-10-19 baselines (Groceries title top-aligned, Standup drawn at its real 7 px in fit mode) were already there on
+  the old build, within the picture tolerance.
