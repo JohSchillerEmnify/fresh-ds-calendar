@@ -3,8 +3,20 @@ import path from 'node:path';
 import type { TaskTemplate, TaskTemplateInput } from '../api/types.js';
 import { listUserSubs, userDir } from '../auth/people.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
-import { notFound, validation } from '../lib/errors.js';
+import { ApiException, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
+
+/** The template is not one of the person's (unknown, deleted, or another person's). */
+export const templateNotFound = (): ApiException => new ApiException('NOT_FOUND', 404, 'Template not found', undefined, 'tasks.templates.notFound');
+
+/** Whether a stored entry has the shape of a template (a hand-edited or damaged file may hold anything). */
+function isTemplate(x: unknown): x is TaskTemplate {
+  const t = x as Partial<TaskTemplate> | null;
+  return typeof t === 'object' && t !== null && typeof t.id === 'string' && typeof t.name === 'string'
+    && Array.isArray(t.items) && t.items.every((i) => typeof i === 'object' && i !== null && typeof i.title === 'string')
+    && (t.estimateMinutes === null || typeof t.estimateMinutes === 'number')
+    && (t.categoryId === null || typeof t.categoryId === 'string');
+}
 
 /** How many templates one person may keep. */
 export const MAX_TEMPLATES = 100;
@@ -20,15 +32,24 @@ const sameName = (a: string, b: string): boolean => a.trim().localeCompare(b.tri
  * person's Drive with the rest of their folder (ADR 0010).
  */
 export class TemplateStore {
-  constructor(private readonly dataDir: string) {}
+  constructor(private readonly dataDir: string, private readonly log: (m: string) => void = (m) => console.warn(m)) {}
 
   private file(sub: string): string {
     return path.join(userDir(this.dataDir, sub), 'templates.json');
   }
 
   private read(sub: string): TaskTemplate[] {
-    const d = readJson<Partial<TemplateDoc>>(this.file(sub));
-    return Array.isArray(d?.templates) ? d.templates : [];
+    const file = this.file(sub);
+    if (!fs.existsSync(file)) return [];
+    const d = readJson<Partial<TemplateDoc>>(file);
+    // an unreadable file is kept aside (never overwritten by the next save) and the person starts empty
+    if (!d || typeof d !== 'object' || !Array.isArray(d.templates)) {
+      const aside = `${file}.corrupt-${Date.now()}`;
+      fs.renameSync(file, aside);
+      this.log(`templates: unreadable ${path.basename(file)} moved aside to ${path.basename(aside)}`);
+      return [];
+    }
+    return d.templates.filter(isTemplate);
   }
 
   private write(sub: string, templates: TaskTemplate[]): void {
@@ -54,7 +75,7 @@ export class TemplateStore {
   replace(sub: string, id: string, input: TaskTemplateInput): TaskTemplate {
     const all = this.read(sub);
     const i = all.findIndex((x) => x.id === id);
-    if (i < 0) throw notFound('Template not found');
+    if (i < 0) throw templateNotFound();
     this.checkName(all, input.name, id);
     const t = this.shape(id, input);
     all[i] = t;

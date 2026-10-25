@@ -5,6 +5,7 @@ import { VERSION } from '../context.js';
 import { readApkInfo } from '../routes/download.js';
 import { enabledPlugins } from '../plugins/registry.js';
 import { ApiException, preconditionFailed, validation, notFound } from '../lib/errors.js';
+import { templateNotFound } from '../services/templateStore.js';
 import { isLocalDate, formatInZone, dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
@@ -13,7 +14,7 @@ import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, canvasDocSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createBirthdaySchema, createEventSchema, createTaskListSchema, orderSchema,
-  categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, templateSchema, themePatchSchema, updateEventSchema, updateTaskListSchema,
+  categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, parseTemplate, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
   isApproachWindow, isMinEventMinutes, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
@@ -274,10 +275,10 @@ export function apiRoutes(ctx: Ctx): Hono {
 
   // ---- task list templates (feature tasklist-templates) ----
   r.get('/templates', (c) => c.json({ templates: ctx.templates.list(person(c)) }));
-  r.post('/templates', async (c) => c.json(ctx.templates.add(person(c), parse(templateSchema, await body(c))), 201));
-  r.put('/templates/:id', async (c) => c.json(ctx.templates.replace(person(c), c.req.param('id'), parse(templateSchema, await body(c)))));
+  r.post('/templates', async (c) => c.json(ctx.templates.add(person(c), parseTemplate(await body(c))), 201));
+  r.put('/templates/:id', async (c) => c.json(ctx.templates.replace(person(c), c.req.param('id'), parseTemplate(await body(c)))));
   r.delete('/templates/:id', (c) => {
-    if (!ctx.templates.remove(person(c), c.req.param('id'))) throw notFound('Template not found');
+    if (!ctx.templates.remove(person(c), c.req.param('id'))) throw templateNotFound();
     return c.body(null, 204);
   });
 

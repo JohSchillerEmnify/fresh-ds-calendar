@@ -60,6 +60,13 @@ export const templateSchema = so({
   categoryId: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(64)))),
 });
 
+/** {@link templateSchema} with a translatable error for a too long name (the app limits the field, an old one may not). */
+export function parseTemplate(data: unknown): v.InferOutput<typeof templateSchema> {
+  const name = (data as { name?: unknown } | null)?.name;
+  if (typeof name === 'string' && name.trim().length > 80) throw new ApiException('VALIDATION_ERROR', 400, 'Name must be at most 80 characters', [{ field: 'name', issue: 'Name must be at most 80 characters' }], 'tasks.templates.nameTooLong');
+  return parse(templateSchema, data);
+}
+
 const REQUIRED: Record<string, string> = {
   title: TITLE_REQ, name: 'Name is required', start: 'Start is required', end: 'End is required', date: 'Date is required',
   allDay: 'allDay is required', color: HEX_MSG, now: 'now is required', down: 'down is required',

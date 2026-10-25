@@ -662,8 +662,11 @@ interface TaskTemplate {
 interface TaskTemplateInput { name: string; items: { title: string }[]; estimateMinutes?: number | null; categoryId?: string | null }
 ```
 At most 200 items (each up to 200 characters) and 100 templates per person. A taken name is `400 VALIDATION_ERROR`
-with `key: "tasks.templates.nameTaken"` (field `name`); one template too many has `key: "tasks.templates.tooMany"`. Last write
-wins. `POST /api/__test/reset` forgets every person's templates.
+with `key: "tasks.templates.nameTaken"` (field `name`), a name over 80 characters `key: "tasks.templates.nameTooLong"`, one
+template too many `key: "tasks.templates.tooMany"`. An id that is not one of the signed-in person's templates (also
+another person's) is `404 NOT_FOUND` with `key: "tasks.templates.notFound"`. Last write wins. An unreadable
+`templates.json` is renamed to `templates.json.corrupt-<ms>` (logged) and the person starts empty; malformed entries of
+a readable file are left out. `POST /api/__test/reset` forgets every person's templates.
 
 ### Backups (`/api/backup`)
 
