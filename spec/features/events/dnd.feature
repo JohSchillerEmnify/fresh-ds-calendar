@@ -259,11 +259,10 @@ Feature: Drag and drop to reschedule
   # owner, 2026-10-25 (design boards): moving to another day while dragging, like Google Calendar
   Rule: Holding a dragged entry at the side edge of the day or week view flips to the next or previous day or week
 
-    While an event or a task list is dragged in the day or week view (touch or mouse), strips at the left and right side
-    of the day columns are edge zones. In an edge zone a band appears along that side naming where a turn leads: the
-    day ("‹ Tue 13", "Thu 15 ›") in the day view, the week ("‹ 5–11 Oct", "19–25 Oct ›") in the week view. In the day
-    view the zone is the outer 24 px and the view turns after 0.6 s in it; in the week view, so that Sunday and Monday
-    are not stolen, the zone is only the outer 12 px (about a quarter of a day column on a phone) and the view turns after
+    While an event or a task list is dragged in the day or week view (touch or mouse), the strips at the left and right
+    side of the day columns are edge zones: the outer 24 px. In an edge zone a band appears along that side naming where a
+    turn leads: the day ("‹ Tue 13", "Thu 15 ›") in the day view, the week ("‹ 5–11 Oct", "19–25 Oct ›") in the week
+    view. The day view turns after 0.6 s in the zone; the week view, so that Sunday and Monday are not stolen, only after
     1 s (owner, 2026-10-25). Staying in the zone turns again after each such wait. Leaving the zone before then hides the
     band and nothing turns. A drop always lands on the slot under the pointer of the day or week shown, so a drop on the
     rest of the outermost column, after however long a hold, stays there.

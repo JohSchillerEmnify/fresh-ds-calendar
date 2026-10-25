@@ -2761,7 +2761,7 @@ I drop the dragged item in the all-day row on {date}
 
 - "I hold X at the right/left edge of the time grid for N ms": picks X up as in "I pick up" (mouse press; finger long
   press), moves in 10 steps sideways at the same height to 6 px inside the right/left side of the day columns area
-  (`time-grid` minus the hour labels), i.e. inside the edge zone (24 px day view, 12 px week view), and keeps the pointer there for N ms. The pointer
+  (`time-grid` minus the hour labels), i.e. inside the 24 px edge zone, and keeps the pointer there for N ms. The pointer
   stays down; the world's cleanup releases it. "I keep holding the dragged item for N ms" waits N ms more without moving.
 - "the edge band says T": the visible `drag-edge-band` (`data-side` `left|right`) has the text T. "I see no edge band":
   no `drag-edge-band` is visible.
