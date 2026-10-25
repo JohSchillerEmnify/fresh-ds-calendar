@@ -1,7 +1,7 @@
 # 0025 — Everything lives on the device first and is synced with the server
 
-- Status: proposed (owner, 2026-10-25: "Everything is always stored on the device … only then afterwards will we have
-  things on the server")
+- Status: accepted (owner, 2026-10-25: "Everything is always stored on the device … only then afterwards will we have
+  things on the server"; open questions 1–3 answered the same day)
 - Supersedes: the "writes still need the connection" consequence of 0023; the "no device copy" part of 0024
 - Views shaped: `web`, `openingWithLastKnownState`, sync
 
@@ -24,12 +24,15 @@ the browser on one device and the app on a phone.
 - **Sync back.** On open, on regaining focus or the connection, and on the existing polling interval, the device asks
   the server for what changed since its last sync and takes in new and changed things it does not have (another
   device, Google Calendar itself).
-- **Conflicts.** Each change carries the version it was based on (etag). [OPEN: rule when the server's version moved
-  on meanwhile — see Open questions.]
+- **Conflicts.** Each change carries the version it was based on (etag). When the server's version moved on meanwhile,
+  the last change wins (owner), as in Google Calendar itself.
 - **Identity.** Things created offline get a device id at once; the server's id replaces it when the outbox entry is
   confirmed, everywhere it is referenced.
+- **How much.** Events a year back and a year forward, all task lists, settings, prefs, categories, calendars, themes
+  and templates (owner); days further out load from the server when opened.
 - **Per person.** As in 0023: one store per signed-in person; signing out or signing in as someone else wipes it
-  (after asking when the outbox still holds unsent changes).
+  (after asking when the outbox still holds unsent changes). A session that expired keeps the outbox and sends it
+  after the same person signs in again (owner).
 - The service worker keeps never answering `/api` from a cache (pwa.feature); all of this lives in the page.
 
 ## Alternatives
@@ -53,10 +56,6 @@ the browser on one device and the app on a phone.
 - A large change in how every feature loads and saves: built in slices (reads for all kinds first, then the outbox per
   kind), each with its scenarios, behind the existing tests.
 
-## Open questions (owner)
+## Still open
 
-1. Conflicts when the same thing was changed on two devices before they synced: last change wins, or keep both and ask?
-2. How much is kept on the device: everything, or a window (e.g. a year back and forward) plus all task lists and
-   settings?
-3. Changes made offline while signed out by expiry: keep them and send after the next sign-in (same person only)?
-4. The "not synced yet" mark: where and how it looks (canvas mockup).
+- The look of the "not synced yet" mark: on the design canvas first.
