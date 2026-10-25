@@ -316,12 +316,12 @@ defineExpose({ root, busy });
 
         <DoorSwitch v-if="closable && doorOn && tl" :model-value="hasDoor(tl.tags)" compact @update:model-value="setDoor" />
         <footer v-if="!compact" class="foot">
-          <Button variant="text" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
+          <Button variant="text" class="squeeze" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
           <Button v-if="!noTemplate" variant="tonal" class="tpl" data-testid="tasklist-save-template" @click="savingTemplate = true">{{ t('tasks.templates.save') }}</Button>
           <span class="grow" />
-          <Button variant="text" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template>{{ t('tasks.list.edit') }}</Button>
-          <Button v-if="isMemberOnly(tl)" variant="text" class="danger" data-testid="tasklist-leave" @click="leave"><template #icon><IconDelete /></template>{{ t('sharing.leave') }}</Button>
-          <Button v-else variant="text" class="danger" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template>{{ t('tasks.list.delete') }}</Button>
+          <Button variant="text" class="squeeze" :aria-label="t('tasks.list.edit')" :title="t('tasks.list.edit')" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template><span class="blab">{{ t('tasks.list.edit') }}</span></Button>
+          <Button v-if="isMemberOnly(tl)" variant="text" class="danger squeeze" :aria-label="t('sharing.leave')" :title="t('sharing.leave')" data-testid="tasklist-leave" @click="leave"><template #icon><IconDelete /></template><span class="blab">{{ t('sharing.leave') }}</span></Button>
+          <Button v-else variant="text" class="danger squeeze" :aria-label="t('tasks.list.delete')" :title="t('tasks.list.delete')" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template><span class="blab">{{ t('tasks.list.delete') }}</span></Button>
         </footer>
       </div>
     </Transition>
@@ -377,7 +377,15 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .empty { color: var(--md-sys-color-on-surface-variant); margin: 8px 4px; }
 .add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }
-.foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; }
+.foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; container-type: inline-size; }
+/* a phone-wide footer keeps one row with "Save as template" in it: Edit and Delete show their icons only (the words
+   stay as their label and tooltip) */
+@container (max-width: 440px) {
+  .blab { display: none; }
+  .foot { gap: 0; }
+  .foot .squeeze { padding: 0 8px; }
+  .foot .tpl { padding: 0 10px; }
+}
 .grow { flex: 1; }
 /* the tonal pill sits between "Add item" and Edit/Delete; compact so the footer stays one row on a phone */
 .foot .tpl { padding: 0 14px; }

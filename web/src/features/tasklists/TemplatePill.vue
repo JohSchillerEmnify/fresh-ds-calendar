@@ -53,7 +53,8 @@ async function show(): Promise<void> {
   templates.load().catch(() => ui.notify(t('tasks.templates.loadFailed')));
   await nextTick();
   grow();
-  (panel.value?.querySelector('button') as HTMLButtonElement | null)?.focus({ preventScroll: true });
+  // the menu takes the focus (Escape closes it) without marking an entry as chosen
+  panel.value?.focus({ preventScroll: true });
 }
 /** Grows the menu out of the pill (Full), fades it in (Reduced) or shows it (Off). */
 function grow(): void {
@@ -106,7 +107,7 @@ defineExpose({ open });
       <IconDown class="caret" aria-hidden="true" />
     </button>
     <div
-      v-if="open" ref="panel" class="menu" role="menu" :aria-label="t('tasks.templates.menu')" data-testid="template-picker"
+      v-if="open" ref="panel" class="menu" role="menu" tabindex="-1" :aria-label="t('tasks.templates.menu')" data-testid="template-picker"
       @keydown.esc.stop.prevent="hide(true)"
     >
       <div class="content">
@@ -141,9 +142,12 @@ defineExpose({ open });
   border-radius: 16px; background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.18), 0 8px 24px rgb(0 0 0 / 0.12);
 }
+.menu:focus { outline: 0; }
 .content { display: flex; flex-direction: column; padding: 6px 0; }
 .item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 48px; padding: 8px 16px; text-align: left; }
-.item:hover, .item:focus-visible { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); outline: 0; }
+.item:focus-visible { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); outline: 0; }
+/* a finger leaves no hover behind on a phone: only a real pointer highlights the entry under it */
+@media (hover: hover) { .item:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); } }
 .name { font: var(--md-sys-typescale-body-large); overflow-wrap: anywhere; }
 .details { font: var(--md-sys-typescale-body-small); color: var(--md-sys-color-on-surface-variant); }
 .empty { margin: 8px 16px; font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }

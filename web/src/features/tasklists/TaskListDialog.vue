@@ -273,7 +273,7 @@ function remove() {
 
 <style scoped>
 .form { display: flex; flex-direction: column; gap: 12px; }
-.headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+.headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .h { margin: 4px 0 0; font: var(--md-sys-typescale-title-large); min-width: 0; }
 .tplrow { display: flex; align-items: center; gap: 12px; min-height: 44px; }
 .tpllab { flex: 1; min-width: 0; font: var(--md-sys-typescale-body-large); }
