@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-25
+- Month view: an appointment that runs past midnight but is shorter than a day (e.g. 22:00 to 02:00) is now shown on its start day only, as in Google Calendar; the week and day views still show its part on each day.
 - Bedtime: a bedtime at exactly midnight (e.g. weekend times 00:00) now shows its moon at the end of the evening before, so a day never shows two moons; Friday and Saturday get their midnight moon back.
 - Task list templates: save any task list as a template (also a finished one, or while creating a list), then start a new list from it with "From template" in the create form and set its date and time. Templates keep the items (unticked), estimate and category, follow you to every device, are kept on the device so they also work without a connection (changing them still needs one), and are managed in Settings › Task lists › Templates. In the Archive, "Use as template" is now called "Copy". On a phone, Edit and Delete in a list's footer are shown as icons.
 
