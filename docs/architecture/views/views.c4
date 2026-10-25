@@ -105,13 +105,28 @@ views {
     title 'Opening the app on a bad connection'
 
     owner -> calendar.web.appShell 'opens the app'
-    calendar.web.appShell -> calendar.web.lastKnown 'reads the last known state of the person last signed in'
-    calendar.web.lastKnown -> calendar.web.items 'restores the last seen days, outside the loaded ranges'
-    calendar.web.lastKnown -> calendar.web.settingsStore 'restores settings, prefs and calendars'
+    calendar.web.appShell -> calendar.web.lastKnown 'opens the device store of the person last signed in'
+    calendar.web.lastKnown -> calendar.web.items 'feeds the events (±1 year) and every task list'
+    calendar.web.lastKnown -> calendar.web.settingsStore 'feeds settings, prefs, calendars and themes'
     calendar.web.appShell -> owner 'shows the calendar at once with "Last updated 08:12"'
-    calendar.web.items -> calendar.server.itemsApi 'fetches the range in the background'
-    calendar.server.itemsApi -> calendar.web.items 'answers (or not: the banner shows, the last state stays)'
-    calendar.web.items -> calendar.web.lastKnown 'saves the fresh answer for next time'
+    calendar.web.sync -> calendar.server.changesApi 'asks for the changes since the cursor, in the background'
+    calendar.server.changesApi -> calendar.web.sync 'answers (or not: the banner shows, the device data stays)'
+    calendar.web.sync -> calendar.web.lastKnown 'takes the changes in and keeps the new cursor'
+  }
+
+  dynamic view syncingTheDeviceStore {
+    title 'A change made elsewhere reaches the device store'
+
+    calendar.web.sync -> calendar.server.changesApi 'asks for the changes since the cursor (focus, reconnect, poll)'
+    calendar.server.changesApi -> calendar.server.calendarService 'events and task lists changed since each sync token'
+    calendar.server.calendarService -> calendar.server.googleProvider 'events.list with the sync token, all pages'
+    calendar.server.googleProvider -> google 'lists the changes, deleted ones included'
+    google -> calendar.server.googleProvider 'answers 410 Gone when the token expired'
+    calendar.server.calendarService -> calendar.server.googleProvider 'lists that calendar again in full, for a new token'
+    calendar.server.changesApi -> calendar.server.prefsStore 'reads the prefs when their version moved'
+    calendar.server.changesApi -> calendar.web.sync 'changed and removed things per kind, a new cursor; a full kind marked as replacing'
+    calendar.web.sync -> calendar.web.lastKnown 'applies them, drops what left the ±1 year window'
+    calendar.web.lastKnown -> calendar.web.items 'the views show the change'
   }
 
   dynamic view firstTaskList {

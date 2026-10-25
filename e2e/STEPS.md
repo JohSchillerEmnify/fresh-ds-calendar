@@ -477,19 +477,26 @@ once the slow-down is over I see the event {string} on {date}
 
 ```
 I have seen the {view} view for {date}
+the app has synced this device
 I open the app again
 the server answers only after {int} seconds
 the server has answered
+the language is changed elsewhere to {string}
 I am told the calendar was last updated at {string}
 I am not told when the calendar was last updated
 this device keeps a last known calendar
 this device keeps no last known calendar
 ```
 
-- "I have seen the V view for D": opens that view (a month view opens D's month), waits until it has settled, the
-  service worker controls the page (so the app shell also opens offline) and the app has saved its last known state
-  (`<html data-last-known="saved">`, set after the debounced IndexedDB write, and the stored snapshot holds a range
-  containing D).
+- "I have seen the V view for D": opens that view (a month view opens D's month), waits until it has settled, then
+  does what "the app has synced this device" does.
+- "the app has synced this device" (ADR 0025): waits until the service worker controls the page (so the app shell also
+  opens offline) and the device store has taken in a complete sync of every kind of data for the signed-in person
+  (`<html data-device-store="synced">`, set after the IndexedDB write of a sync in which every kind succeeded; the
+  attribute carries `data-device-synced-at`, which a later sync changes, so "I wait for the automatic sync" also waits
+  for a newer value).
+- "the language is changed elsewhere to L": `PATCH /api/prefs { language: L }` as the person using the app (as another
+  device would), without touching the page; L is a language code (`de`, `en`).
 - "I open the app again": reloads the page (the last opened view) and waits until a calendar view shows, not for the
   app to settle (its data may not come).
 - "the server answers only after N seconds": `POST /api/__test/slow { ms: N*1000 }` (API.md); every later `/api` answer
@@ -498,8 +505,9 @@ this device keeps no last known calendar
   answer of this page) and is not `syncing`.
 - "last updated at T": `last-updated-note` is visible and its text ends with T (`Last updated 08:12`); "not told": it
   is absent.
-- "keeps a last known calendar": the IndexedDB database `calendar-last-known` holds a snapshot (store `snapshots`);
-  "keeps no ...": it holds none (or does not exist) and localStorage has no `cal.lastKnownPerson`.
+- "keeps a last known calendar": the device store (IndexedDB) holds data of a person; "keeps no ...": it holds none
+  (or does not exist), localStorage has no `cal.lastKnownPerson` and no cached theme of a person (`cal.theme`).
+- Device store window (ADR 0025): events from today - 1 year to today + 1 year; every task list regardless of date.
 
 ## Mobile
 

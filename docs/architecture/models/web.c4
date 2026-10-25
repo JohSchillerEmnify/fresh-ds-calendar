@@ -42,17 +42,23 @@ model {
     serviceWorker = component 'Service worker' {
       description 'Keeps the app shell for offline start; never answers API calls from its cache'
     }
-    lastKnown = store 'Last known state' {
-      description 'The last shown calendar, settings and prefs of the signed-in person in IndexedDB (±4 weeks); shown at once on start, replaced by fresh data, wiped on sign-out'
+    lastKnown = store 'Device store' {
+      description 'Every kind of the signed-in person\'s data in IndexedDB (ADR 0025): events ±1 year, all task lists, settings, prefs, calendars, themes, templates, Canvas areas, reminder defaults, people, streak and plant, enabled plugins, plus the sync cursor; the app always reads from it; wiped on sign-out or another person'
     }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }
 
-    lastKnown -> items 'restores the last seen days before the first paint; saves each fresh answer'
-    lastKnown -> prefs 'restores and saves the prefs'
-    lastKnown -> sync 'shows the last update time until the first fresh answer'
-    signin -> lastKnown 'wipes it on sign-out and on the sign-in page'
+    lastKnown -> items 'feeds the events and task lists of every view, before the first paint'
+    lastKnown -> prefs 'feeds the prefs'
+    lastKnown -> settingsStore 'feeds settings, categories and calendars'
+    lastKnown -> taskTray 'feeds the open lists, computed on the device'
+    lastKnown -> tasksView 'feeds every open and finished list, computed on the device'
+    lastKnown -> themeState 'feeds the chosen theme and the own themes'
+    lastKnown -> sync 'shows the last update time while nothing fresh came since opening or the last sync failed'
+    sync -> lastKnown 'takes in the changes since its cursor on open, focus, reconnect and the poll timer'
+    items -> lastKnown 'loads days outside the window from the server when opened, without keeping them'
+    signin -> lastKnown 'wipes it on sign-out, on the sign-in page and when another person signs in'
     sync -> items 're-fetches on route change, timer, focus and network return'
     timegrid -> items 'shows'
 

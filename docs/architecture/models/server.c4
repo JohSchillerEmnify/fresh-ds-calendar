@@ -89,11 +89,21 @@ model {
     templateStore = store 'Task list templates' {
       description 'Each person\'s task list templates on disk (name, items, estimate, category), not in Google'
     }
+    changesApi = component 'Changes API' {
+      description 'Answers what changed for one person since the device\'s opaque cursor, per kind: events through Google sync tokens (a full window on the first call or after 410 Gone), shared lists through their change stamps, per-person files through their versions'
+    }
     webPush = component 'Web Push' {
       description 'Each browser\'s push subscription and its reminder plan of the next 7 days'
     }
 
     prefsApi -> prefsStore 'reads and writes'
+    changesApi -> calendarService 'asks for the events changed since each calendar\'s sync token, limited to ±1 year, and every task list'
+    calendarService -> googleProvider 'lists changes with a sync token per calendar; on 410 Gone lists the calendar again in full'
+    changesApi -> sharedLists 'reads the shared lists changed since the cursor'
+    changesApi -> prefsStore 'reads prefs and the theme choice when their version moved'
+    changesApi -> themeFiles 'reads the own themes when their version moved'
+    changesApi -> templateStore 'reads the templates when their version moved'
+    changesApi -> canvasStore 'reads the Canvas areas when their version moved'
     itemsApi -> calendarService 'reads the range'
     calendarService -> tasksCalendar 'keeps task lists in'
     calendarService -> taskCodec 'encodes and decodes task lists with'
@@ -136,7 +146,8 @@ model {
   calendar.web.sync -> calendar.server.diag 'sends one beacon when the error banner appears'
 
   calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
-  calendar.web.items -> calendar.server.itemsApi 'fetches the visible range'
+  calendar.web.items -> calendar.server.itemsApi 'fetches a range outside the device window when it is opened'
+  calendar.web.sync -> calendar.server.changesApi 'asks for the changes since the device\'s cursor'
   calendar.web.items -> calendar.server.tasksApi 'saves item changes, applied optimistically'
   calendar.web.listForm -> calendar.server.tasksApi 'saves the list, Show on door as the door tag'
   calendar.web.listSheet -> calendar.server.tasksApi 'flips the door tag'
