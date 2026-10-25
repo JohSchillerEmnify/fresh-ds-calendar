@@ -48,6 +48,8 @@ export interface WidgetSnapshot {
   tasklists: WidgetTaskList[];
   /** The minimum event length in minutes (0 = none): the widget lays shorter timed entries out as this long. */
   minEventMinutes: number;
+  /** How many overlapping events the week view places side by side (2 or 3): the widget's week grid follows it. */
+  weekSideBySide: number;
 }
 
 export interface SnapshotInput {
@@ -61,6 +63,8 @@ export interface SnapshotInput {
   hiddenCalendars?: ReadonlySet<string>;
   /** The person's minimum event length in minutes (default 0 = none). */
   minEventMinutes?: number;
+  /** The person's "Week view: events side by side" setting (default 2). */
+  weekSideBySide?: number;
   /** The "Task categories" switch (default on); off, a task list takes its calendar's colour, as in the app. */
   categoriesOn?: boolean;
 }
@@ -93,5 +97,5 @@ export function buildWidgetSnapshot(input: SnapshotInput): WidgetSnapshot {
     .filter((it): it is TaskList => it.kind === 'tasklist' && it.date === input.today)
     .map((l) => ({ title: l.title, done: l.doneCount, total: l.totalCount, color: listColor(l, input.categoriesOn ?? true) }));
 
-  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0 };
+  return { v: 1, generatedAt: input.now.toISOString(), language: input.language, dark: input.dark, theme: input.theme, weekStart: days[0].date, days, tasklists, minEventMinutes: input.minEventMinutes ?? 0, weekSideBySide: input.weekSideBySide ?? 2 };
 }

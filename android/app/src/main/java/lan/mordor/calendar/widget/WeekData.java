@@ -105,6 +105,8 @@ final class WeekData {
     final long timeMillis;
     /** The owner's minimum event length in minutes (0 = none): shorter timed items are laid out as this long. */
     int minEventMinutes;
+    /** The owner's "Week view: events side by side" limit (2 or 3): overlapping items side by side before they cascade. */
+    int weekSideBySide = 2;
 
     private WeekData(LocalDate weekStart, long timeMillis) {
         this.weekStart = weekStart;
@@ -124,6 +126,7 @@ final class WeekData {
         if (s.optInt("v") != 1) return null;
         WeekData w = new WeekData(LocalDate.parse(s.getString("weekStart")), timeMillis);
         w.minEventMinutes = s.optInt("minEventMinutes", 0);
+        w.weekSideBySide = s.optInt("weekSideBySide", 2);
         JSONArray days = s.getJSONArray("days");
         for (int i = 0; i < 7 && i < days.length(); i++) {
             JSONArray events = days.getJSONObject(i).getJSONArray("events");

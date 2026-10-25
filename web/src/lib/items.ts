@@ -171,13 +171,16 @@ export interface PlacedSegment {
  * starts at least that far in (and at least OVERLAP_STACK_MIN_START_GAP_MIN), else they share columns.
  * `minLength` is the owner's minimum event length in minutes (0 = off): a shorter block is laid out as that long everywhere
  * here, drawn so and overlapping what starts within it (feature min-event-length); its real times stay untouched.
+ * `limit` (> 0, with `stack`) is the owner's "events side by side" setting of the day or week grid: entries go side by
+ * side up to that many columns before they cascade ({@link packSideBySide}); 0 keeps the start-group cascade above (Labs).
  */
-export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true, titleMinutes = 0, minLength = 0): PlacedSegment[] {
+export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) => number) = 0, stack = true, titleMinutes = 0, minLength = 0, limit = 0): PlacedSegment[] {
   const minOf = (s: Segment) => (typeof minMinutes === 'function' ? minMinutes(s) : minMinutes);
   // The end everything below uses: the real end, at least one minute (two zero-length items never paint on top of each
   // other) and at least the minimum event length.
   const layoutEnd = (s: Segment) => Math.max(s.endMin, s.startMin + 1, s.startMin + minLength);
   const timed = segs.filter((s) => !s.allDay && s.startTime !== null).sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
+  if (stack && limit > 0) return packSideBySide(timed, limit, layoutEnd, (s) => Math.max(OVERLAP_STACK_MIN_START_GAP_MIN, titleMinutes, layoutEnd(s) - s.startMin < minOf(s) ? minOf(s) : 0));
   const out: PlacedSegment[] = [];
   interface Group { start: number; end: number; level: number; items: PlacedSegment[]; colEnds: number[]; stackGap: number }
   let groups: Group[] = [];
@@ -219,6 +222,66 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
     g.colEnds[col] = end;
     g.end = Math.max(g.end, end);
     g.items.push({ seg: s, col, cols: 1, span: 1, level: g.level, top: s.startMin, height: end - s.startMin });
+    clusterEnd = Math.max(clusterEnd, end);
+  }
+  flush();
+  return out;
+}
+
+/**
+ * Side-by-side packing with a column limit (feature event-display, owner 2026-10-25: "Day/Week view: events side by side").
+ * Entries come sorted by start (same start: the longer first). Each takes the leftmost column free at its start, or opens
+ * a new one while fewer than `limit` are used. When all are busy it is laid over the last column, one cascade level above
+ * the topmost block there (capped at {@link MAX_STACK_DEPTH}), and that column stays busy until everything over it ends.
+ * A title is never covered (owner, 2026-10-20): when the topmost block of the last column starts less than its
+ * `gapOf` before the entry, the entry opens one more column instead, beyond the limit.
+ *
+ * @param timed The timed segments of one day, sorted by start, then the longer first.
+ * @param limit The most columns placed side by side before entries cascade.
+ * @param layoutEnd The end (minutes) a segment is laid out to.
+ * @param gapOf The least start distance (minutes) a later block needs to cascade over this one and leave its title visible.
+ * @returns The placed segments, in placement order.
+ */
+function packSideBySide(timed: Segment[], limit: number, layoutEnd: (s: Segment) => number, gapOf: (s: Segment) => number): PlacedSegment[] {
+  const out: PlacedSegment[] = [];
+  interface Column { busyUntil: number; top: PlacedSegment }
+  let cols: Column[] = [];
+  let cluster: PlacedSegment[] = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    // the whole overlap cluster shares the width in as many columns as it used; base blocks widen into free columns
+    for (const p of cluster) {
+      p.cols = cols.length;
+      if (p.level > 0) continue;
+      const end = p.top + p.height;
+      let span = 1;
+      for (let c = p.col + 1; c < p.cols && !cluster.some((q) => q.col === c && q.top < end && p.top < q.top + q.height); c++) span++;
+      p.span = span;
+    }
+    out.push(...cluster);
+    cluster = [];
+    cols = [];
+    clusterEnd = -1;
+  };
+  for (const s of timed) {
+    if (cluster.length && s.startMin >= clusterEnd) flush();
+    const end = layoutEnd(s);
+    const p: PlacedSegment = { seg: s, col: 0, cols: 1, span: 1, level: 0, top: s.startMin, height: end - s.startMin };
+    const free = cols.findIndex((c) => c.busyUntil <= s.startMin);
+    const last = cols[cols.length - 1];
+    if (free >= 0) {
+      p.col = free;
+      cols[free] = { busyUntil: end, top: p };
+    } else if (cols.length < limit || s.startMin - last.top.top < gapOf(last.top.seg)) {
+      // a new column: still under the limit, or a cascade here would hide the title below
+      p.col = cols.length;
+      cols.push({ busyUntil: end, top: p });
+    } else {
+      p.col = cols.length - 1;
+      p.level = Math.min(last.top.level + 1, MAX_STACK_DEPTH);
+      cols[p.col] = { busyUntil: Math.max(last.busyUntil, end), top: p };
+    }
+    cluster.push(p);
     clusterEnd = Math.max(clusterEnd, end);
   }
   flush();

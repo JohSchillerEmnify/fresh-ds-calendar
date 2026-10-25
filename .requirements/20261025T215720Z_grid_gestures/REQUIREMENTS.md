@@ -129,3 +129,18 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
    `fix/touch-drag` merged first.
 3. C: draw gesture on empty grid (reusing `useDraggable` long press/slop/auto-scroll and `createSlotGrid`), new dialog
    takes an end / estimate, `draw-block` preview → e2e draw scenarios. **PR boundary 2** (A + C, gestures).
+
+## Implementation notes
+
+### B (built 2026-10-25)
+
+- `packSideBySide` in `web/src/lib/items.ts`, reached through `packColumns(..., limit)` only with `stack` and `limit > 0`;
+  without a limit (Labs views, `stack=false`) the old start-group cascade runs unchanged. The title rule uses the same
+  gap as the cascade today: max(15 min, one title row, a short block's title-row minutes).
+- `TimeGrid.vue` passes `daySideBySide` (day) or `weekSideBySide` (week and the two-row overview).
+- Prefs `daySideBySide` / `weekSideBySide` (server validation in `routes.ts`, defaults in `prefsStore.ts`), Settings ›
+  Calendar segmented buttons `settings-day-side-by-side-N` / `settings-week-side-by-side-N`, strings in all four locales.
+- Widget: `WeekLayout.packColumns(items, minMinutes, minLength, limit)` ports the rule; the limit comes with the widget's
+  prefs fetch (`weekSideBySide`), else the app snapshot, else 2 (`WidgetRenderer.pickData`, `WeekData.fromSnapshot`).
+- The pre-existing failure of min-event-length "Back-to-back short events … Example #6" (zoom month) also fails on main
+  a7e9c5f, unrelated to this change.

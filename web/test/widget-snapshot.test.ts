@@ -86,6 +86,12 @@ describe('buildWidgetSnapshot', () => {
     expect(at()).toBe('#0b8043');
   });
 
+  it('carries the week view\'s side-by-side limit (2 when not given), so the widget packs overlaps like the app', () => {
+    expect(build([]).weekSideBySide).toBe(2);
+    const s = buildWidgetSnapshot({ items: [], today: '2026-10-14', theme, dark: true, language: 'de', now: new Date('2026-10-14T08:30:00Z'), weekSideBySide: 3 });
+    expect(s.weekSideBySide).toBe(3);
+  });
+
   it('marks birthdays and anniversaries in the title, so the widget needs no format change', () => {
     const s = build([
       { ...ev('b', 'Anna', '2026-10-14', '2026-10-15', true), special: 'birthday' },

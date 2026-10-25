@@ -44,6 +44,8 @@ const fitHH = computed(() => {
 const hh = computed(() => (props.fit ? fitHH.value : hourHeight.value));
 provideHourHeight(hh);
 
+/** The owner's "events side by side" limit of this grid (the two-row overview is a week view). */
+const sideBySide = computed(() => (props.mode === 'day' ? prefs.daySideBySide : prefs.weekSideBySide));
 const cols = computed(() => props.dates.map((d) => {
   const date = toIsoDate(d);
   const all = segs(date);
@@ -51,7 +53,7 @@ const cols = computed(() => props.dates.map((d) => {
     date, d,
     today: date === clock.today,
     top: all.filter((s) => s.allDay || s.startTime === null),
-    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60, true, (TITLE_ROW_PX / hh.value) * 60, prefs.minEventMinutes),
+    placed: packColumns(all, ((props.fit ? FIT_MIN_BLOCK_PX : MIN_BLOCK_PX) / hh.value) * 60, true, (TITLE_ROW_PX / hh.value) * 60, prefs.minEventMinutes, sideBySide.value),
   };
 }));
 const indent = computed(() => (isPhone.value ? 6 : STACK_INDENT_PX));

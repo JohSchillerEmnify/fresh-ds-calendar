@@ -120,6 +120,7 @@ final class WidgetRenderer {
                 WeekData w = WeekData.fromItems(fetched.getJSONArray("items"), today, monday, store.fetchedAtMillis(), fetched.optBoolean("taskCategories", true));
                 // the fetch reads the prefs too; when that part failed, the app's snapshot still knows the minimum
                 w.minEventMinutes = fetched.has("minEventMinutes") ? fetched.getInt("minEventMinutes") : snapshot != null ? snapshot.optInt("minEventMinutes", 0) : 0;
+                w.weekSideBySide = fetched.has("weekSideBySide") ? fetched.getInt("weekSideBySide") : snapshot != null ? snapshot.optInt("weekSideBySide", 2) : 2;
                 return w;
             }
         } catch (Exception ignored) {

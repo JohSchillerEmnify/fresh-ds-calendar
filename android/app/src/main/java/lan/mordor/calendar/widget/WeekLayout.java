@@ -82,9 +82,22 @@ final class WeekLayout {
      * @param minLength the minimum event length in minutes, 0 for none
      */
     static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes, int minLength) {
+        return packColumns(items, minMinutes, minLength, 0);
+    }
+
+    /**
+     * Like {@link #packColumns(List, int, int)}, with the owner's "Week view: events side by side" limit (a port of
+     * {@code packSideBySide} in {@code web/src/lib/items.ts}, owner 2026-10-25): entries take the leftmost free column, up to
+     * {@code limit} columns; further ones are laid over the last column one cascade level up (capped at
+     * {@link #MAX_STACK_DEPTH}), unless that would hide a title, in which case they open one more column.
+     *
+     * @param limit the most columns side by side before entries cascade; 0 keeps the start-group cascade
+     */
+    static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes, int minLength, int limit) {
         List<WeekData.Item> timed = new ArrayList<>();
         for (WeekData.Item i : items) if (i.timed()) timed.add(i);
         timed.sort(Comparator.comparingInt((WeekData.Item i) -> i.startMin).thenComparingInt(i -> -i.endMin));
+        if (limit > 0) return packSideBySide(timed, minMinutes, minLength, limit);
         List<Placed> out = new ArrayList<>();
         List<Group> groups = new ArrayList<>();
         int clusterEnd = -1;
@@ -124,6 +137,86 @@ final class WeekLayout {
         }
         flush(groups, out);
         return out;
+    }
+
+    /**
+     * Side-by-side packing of sorted timed items with a column limit (see {@link #packColumns(List, int, int, int)}).
+     *
+     * @param timed the day's timed items, sorted by start, then the longer first
+     * @param minMinutes the title-row duration of a block, in minutes
+     * @param minLength the minimum event length in minutes, 0 for none
+     * @param limit the most columns side by side before entries cascade
+     * @return the placed items in placement order
+     */
+    private static List<Placed> packSideBySide(List<WeekData.Item> timed, int minMinutes, int minLength, int limit) {
+        List<Placed> out = new ArrayList<>(), cluster = new ArrayList<>();
+        // per column: when it is free again and the topmost block in or over it
+        List<Integer> busyUntil = new ArrayList<>();
+        List<Placed> tops = new ArrayList<>();
+        int clusterEnd = -1;
+        for (WeekData.Item s : timed) {
+            if (!cluster.isEmpty() && s.startMin >= clusterEnd) {
+                flushSideBySide(cluster, tops.size(), out);
+                busyUntil.clear();
+                tops.clear();
+            }
+            int end = Math.max(realEnd(s), s.startMin + minLength);
+            int free = -1;
+            for (int c = 0; c < busyUntil.size(); c++) {
+                if (busyUntil.get(c) <= s.startMin) {
+                    free = c;
+                    break;
+                }
+            }
+            Placed p;
+            int last = tops.size() - 1;
+            if (free >= 0) {
+                p = new Placed(s, free, 0, s.startMin, end - s.startMin);
+                busyUntil.set(free, end);
+                tops.set(free, p);
+            } else if (tops.size() < limit || s.startMin - tops.get(last).top < gapOf(tops.get(last), minMinutes)) {
+                // a new column: still under the limit, or a cascade here would hide the title below
+                p = new Placed(s, tops.size(), 0, s.startMin, end - s.startMin);
+                busyUntil.add(end);
+                tops.add(p);
+            } else {
+                p = new Placed(s, last, Math.min(tops.get(last).level + 1, MAX_STACK_DEPTH), s.startMin, end - s.startMin);
+                busyUntil.set(last, Math.max(busyUntil.get(last), end));
+                tops.set(last, p);
+            }
+            cluster.add(p);
+            clusterEnd = Math.max(clusterEnd, end);
+        }
+        flushSideBySide(cluster, tops.size(), out);
+        return out;
+    }
+
+    /** The least start distance a later block needs to cascade over {@code p} and leave its title visible. */
+    private static int gapOf(Placed p, int minMinutes) {
+        return p.height < minMinutes ? Math.max(STACK_MIN_START_GAP_MIN, minMinutes) : STACK_MIN_START_GAP_MIN;
+    }
+
+    /** Gives a finished cluster its column count, lets base blocks widen into free columns, and moves it to {@code out}. */
+    private static void flushSideBySide(List<Placed> cluster, int cols, List<Placed> out) {
+        for (Placed p : cluster) {
+            p.cols = cols;
+            if (p.level > 0) continue;
+            int span = 1;
+            for (int c = p.col + 1; c < cols; c++) {
+                boolean blocked = false;
+                for (Placed q : cluster) {
+                    if (q.col == c && q.top < p.top + p.height && p.top < q.top + q.height) {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (blocked) break;
+                span++;
+            }
+            p.span = span;
+        }
+        out.addAll(cluster);
+        cluster.clear();
     }
 
     /** The real end of an item; a zero-length one still occupies one minute so two of them never paint on top of each other. */

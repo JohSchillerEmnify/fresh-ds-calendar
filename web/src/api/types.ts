@@ -250,10 +250,18 @@ export interface Prefs {
   weekTwoRowTop: 3 | 4;
   /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off. */
   minEventMinutes: MinEventMinutes;
+  /** Overlapping events side by side in the day view before they cascade (default 4). */
+  daySideBySide: DaySideBySide;
+  /** Overlapping events side by side in the week view (and the phone widget's week) before they cascade (default 2). */
+  weekSideBySide: WeekSideBySide;
 }
 
 /** The minimum event length choices, in minutes (0 = off). */
 export type MinEventMinutes = 0 | 15 | 30;
+/** The "Day view: events side by side" choices. */
+export type DaySideBySide = 2 | 3 | 4;
+/** The "Week view: events side by side" choices. */
+export type WeekSideBySide = 2 | 3;
 
 /** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */
 export type BedtimeMode = 'fixed' | 'dynamic';

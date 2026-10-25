@@ -55,7 +55,7 @@ final class WeekFetcher {
             JSONObject res = new JSONObject(read(c.getInputStream()));
             JSONObject week = new JSONObject().put("weekStart", monday.toString()).put("items", res.getJSONArray("items"));
             JSONObject prefs = prefs(base, cookie);
-            if (prefs != null) week.put("minEventMinutes", prefs.optInt("minEventMinutes", 0)).put("taskCategories", prefs.optBoolean("taskCategories", true));
+            if (prefs != null) week.put("minEventMinutes", prefs.optInt("minEventMinutes", 0)).put("weekSideBySide", prefs.optInt("weekSideBySide", 2)).put("taskCategories", prefs.optBoolean("taskCategories", true));
             store.saveFetched(week.toString(), System.currentTimeMillis());
             return Status.OK;
         } catch (Exception e) {

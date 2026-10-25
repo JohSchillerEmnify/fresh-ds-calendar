@@ -12,7 +12,7 @@ import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardA
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import { NAV_POSITIONS } from '@/lib/navPosition';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, MinEventMinutes, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -130,6 +130,12 @@ const undatedDoneOptions = computed(() => [
 const minEventOptions = computed(() => ([0, 15, 30] as const).map((n) => ({
   value: String(n), label: n ? t('settings.calendar.minEventLength.minutes', { n }) : t('settings.calendar.minEventLength.off'), testid: `settings-min-event-length-${n}`,
 })));
+/** "Up to N" options of the day or week "events side by side" setting (values are strings for the segmented control). */
+const sideBySideOptions = (view: 'day' | 'week', ns: readonly number[]) => computed(() => ns.map((n) => ({
+  value: String(n), label: t('settings.calendar.sideBySide.upTo', { n }), testid: `settings-${view}-side-by-side-${n}`,
+})));
+const daySideOptions = sideBySideOptions('day', [2, 3, 4]);
+const weekSideOptions = sideBySideOptions('week', [2, 3]);
 const weekSplitOptions = [
   { value: '4', label: '4 / 3', testid: 'settings-week-two-row-split-4' },
   { value: '3', label: '3 / 4', testid: 'settings-week-two-row-split-3' },
@@ -239,6 +245,8 @@ async function resetDemo() {
           <div class="row"><Select class="fw" :model-value="s.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
           <div class="row"><Select class="fw" :model-value="s.defaultEventColorId ?? ''" :options="colorOptions" :label="t('settings.calendar.defaultEventColor')" data-testid="settings-default-event-color" @update:model-value="save({ defaultEventColorId: $event || null })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.minEventLength.label') }}</span><span class="sub">{{ t('settings.calendar.minEventLength.hint') }}</span><SegmentedButton :model-value="String(labs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.day') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.daySideBySide)" :options="daySideOptions" :label="t('settings.calendar.sideBySide.day')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.week') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.weekSideBySide)" :options="weekSideOptions" :label="t('settings.calendar.sideBySide.week')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachingCard.label') }}</span><span class="sub">{{ t('settings.calendar.approachingCard.hint') }}</span></div><Switch :model-value="labs.approachingCard" :label="t('settings.calendar.approachingCard.label')" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachBar.label') }}</span><span class="sub">{{ t('settings.calendar.approachBar.hint') }}</span></div><Switch :model-value="labs.approachBar" :label="t('settings.calendar.approachBar.label')" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" /></div>
           <div class="row">

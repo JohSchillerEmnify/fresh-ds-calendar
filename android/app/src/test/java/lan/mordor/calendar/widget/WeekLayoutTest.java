@@ -32,6 +32,34 @@ public class WeekLayoutTest {
     }
 
     @Test
+    public void theWeekSettingPlacesOverlapsSideBySideUpToItsLimit() {
+        // owner, 2026-10-25: the widget's week follows "Week view: events side by side" like the app (web packSideBySide)
+        List<WeekData.Item> day = List.of(ev("dentist", 540, 600), ev("standup", 540, 630), ev("call", 570, 660), ev("review", 600, 690));
+        List<WeekLayout.Placed> two = WeekLayout.packColumns(day, 25, 0, 2);
+        assertEquals(0, find(two, "standup").col);
+        assertEquals(1, find(two, "dentist").col);
+        assertEquals(1, find(two, "call").col);
+        assertEquals(1, find(two, "call").level);
+        assertEquals(2, find(two, "review").level);
+        for (WeekLayout.Placed p : two) assertEquals(2, p.cols);
+        List<WeekLayout.Placed> three = WeekLayout.packColumns(day, 25, 0, 3);
+        assertEquals(2, find(three, "call").col);
+        assertEquals(0, find(three, "call").level);
+        assertEquals(1, find(three, "review").col);
+        assertEquals(0, find(three, "review").level);
+        // a cascade that would hide a title opens one more column instead, beyond the limit
+        List<WeekLayout.Placed> close = WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 540, 600), ev("c", 545, 600)), 25, 0, 2);
+        for (WeekLayout.Placed p : close) {
+            assertEquals(3, p.cols);
+            assertEquals(0, p.level);
+        }
+        // a later entry takes the column an earlier one has left
+        List<WeekLayout.Placed> freed = WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 555, 630), ev("g", 600, 660)), 25, 0, 2);
+        assertEquals(0, find(freed, "g").col);
+        assertEquals(0, find(freed, "g").level);
+    }
+
+    @Test
     public void touchingItemsDoNotOverlap() {
         List<WeekLayout.Placed> l = pack(ev("a", 600, 660), ev("b", 660, 720));
         assertEquals(1, find(l, "a").cols);
