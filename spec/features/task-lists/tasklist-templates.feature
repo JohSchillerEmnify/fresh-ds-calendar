@@ -18,6 +18,9 @@ Feature: Task list templates
   change the items (add, remove, reorder, retitle), estimate and category, delete with undo.
   The template picker links there too. Templates belong to the person and follow them to every device; they are
   stored by the app server per person (like prefs and own themes), not in Google, so they never show as events.
+  Like the rest of the person's data they are also kept on the device (feature last-known-state; owner, 2026-10-25:
+  "Everything should be stored on device and only synced from the server"): they show at once from the device and
+  are refreshed from the server; without a connection they can be used but not changed.
   Changing or deleting a template never changes lists already made from it.
 
   Background:
@@ -384,3 +387,46 @@ Feature: Task list templates
       When I open the week view for 2026-10-12
       Then I do not see the task list "Packing"
       And Google contains no event "Packing"
+
+  Rule: Templates are kept on this device
+
+    @offline @last-known-state
+    Scenario: Without a connection the template picker lists the templates and fills the form
+      Given I have the template "Weekly shop" with the items "Milk, Eggs", the estimate 45 minutes and the category "Shopping"
+      And I have seen the day view for 2026-10-14
+      And the network connection is lost
+      When I open the app again
+      And I start creating a task list
+      And I open the template picker
+      Then the template menu shows:
+        | Weekly shop | 2 items · ~45 min · Shopping |
+      When I choose the template "Weekly shop"
+      Then the task list form shows:
+        | title    | Weekly shop |
+        | items    | Milk; Eggs  |
+        | estimate | 45          |
+        | category | Shopping    |
+
+    @offline @last-known-state
+    Scenario: Without a connection the settings list the templates
+      Given I have the template "Weekly shop" with the items "Milk"
+      And I have the template "Packing" with the items "Passport"
+      And I have seen the day view for 2026-10-12
+      And the network connection is lost
+      When I open the app again
+      And I open the templates in the settings
+      Then the templates page lists "Packing, Weekly shop"
+
+    @offline @last-known-state
+    Scenario: Without a connection a template cannot be changed
+      Given I have the template "Packing" with the items "Passport"
+      And I have seen the day view for 2026-10-12
+      And the network connection is lost
+      When I open the app again
+      And I open the templates in the settings
+      And I open the template "Packing"
+      And I fill in the template form with:
+        | name | Packing for Rome |
+      And I save the template
+      Then I see the sync error banner
+      And my templates are "Packing"

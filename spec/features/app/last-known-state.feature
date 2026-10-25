@@ -2,8 +2,8 @@
 Feature: The app opens with the last known state
   The app keeps what it last showed on this device and shows it at once; fresh data replaces it as soon as the server
   answers (owner, 2026-10-23: "the app sometimes takes quite long to load things if internet is bad"). Kept are the
-  calendar days seen within about four weeks of today (older ones are dropped), the task lists on them, the settings
-  and the preferences, separately for each signed-in person. While the shown calendar is not fresh, a small note says
+  calendar days seen within about four weeks of today (older ones are dropped), the task lists on them, the settings,
+  the preferences and the task list templates, separately for each signed-in person. While the shown calendar is not fresh, a small note says
   when it was last updated. Without a connection nothing can be changed: saving still fails with the sync banner.
   Signing out removes what the device kept.
 
@@ -69,3 +69,17 @@ Feature: The app opens with the last known state
     When they sign out in the settings
     Then they see the sign-in page
     And this device keeps no last known calendar
+
+  @signin @templates
+  Scenario: Someone else signing in on this device does not get my templates
+    Given "jo@example.com" and "anna@example.com" may use the calendar
+    And "jo@example.com" is signed in
+    And I have the template "Packing" with the items "Passport"
+    And I have seen the week view for 2026-10-12
+    When they sign out in the settings
+    And "anna@example.com" signs in with Google
+    And I have seen the week view for 2026-10-12
+    And the network connection is lost
+    And I open the app again
+    And I open the templates in the settings
+    Then the templates page says "No templates yet. Save a task list as a template to reuse it."
