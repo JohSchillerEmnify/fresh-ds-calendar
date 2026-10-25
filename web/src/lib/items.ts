@@ -233,8 +233,9 @@ export function packColumns(segs: Segment[], minMinutes: number | ((s: Segment) 
  * Entries come sorted by start (same start: the longer first). Each takes the leftmost column free at its start, or opens
  * a new one while fewer than `limit` are used. When all are busy it is laid over the last column, one cascade level above
  * the topmost block there (capped at {@link MAX_STACK_DEPTH}), and that column stays busy until everything over it ends.
- * A title is never covered (owner, 2026-10-20): when the topmost block of the last column starts less than its
- * `gapOf` before the entry, the entry opens one more column instead, beyond the limit.
+ * Titles stay readable (owner, 2026-10-20): when the topmost block of the last column starts less than its `gapOf` before
+ * the entry, the entry opens one more column instead, beyond the limit, but at most one (owner, 2026-10-25): with
+ * `limit + 1` columns in use, further near-simultaneous entries are laid over the last column even if a title is covered.
  *
  * @param timed The timed segments of one day, sorted by start, then the longer first.
  * @param limit The most columns placed side by side before entries cascade.
@@ -272,8 +273,8 @@ function packSideBySide(timed: Segment[], limit: number, layoutEnd: (s: Segment)
     if (free >= 0) {
       p.col = free;
       cols[free] = { busyUntil: end, top: p };
-    } else if (cols.length < limit || s.startMin - last.top.top < gapOf(last.top.seg)) {
-      // a new column: still under the limit, or a cascade here would hide the title below
+    } else if (cols.length < limit || (cols.length === limit && s.startMin - last.top.top < gapOf(last.top.seg))) {
+      // a new column: still under the limit, or (once, owner 2026-10-25) a cascade here would hide the title below
       p.col = cols.length;
       cols.push({ busyUntil: end, top: p });
     } else {

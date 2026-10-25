@@ -89,15 +89,26 @@ final class WeekLayout {
      * Like {@link #packColumns(List, int, int)}, with the owner's "Week view: events side by side" limit (a port of
      * {@code packSideBySide} in {@code web/src/lib/items.ts}, owner 2026-10-25): entries take the leftmost free column, up to
      * {@code limit} columns; further ones are laid over the last column one cascade level up (capped at
-     * {@link #MAX_STACK_DEPTH}), unless that would hide a title, in which case they open one more column.
+     * {@link #MAX_STACK_DEPTH}), unless that would hide a title, in which case they open one more column, but only one
+     * ({@code limit + 1} columns at most, owner 2026-10-25).
      *
      * @param limit the most columns side by side before entries cascade; 0 keeps the start-group cascade
      */
     static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes, int minLength, int limit) {
+        return packColumns(items, minMinutes, minLength, limit, 0);
+    }
+
+    /**
+     * Like {@link #packColumns(List, int, int, int)}, with one title row of a block in minutes (web: {@code titleMinutes}): a
+     * block is cascaded over only by one starting at least that far in, so its title stays readable (owner, 2026-10-20).
+     *
+     * @param titleMinutes one title row of a block, in minutes at the current hour height
+     */
+    static List<Placed> packColumns(List<WeekData.Item> items, int minMinutes, int minLength, int limit, int titleMinutes) {
         List<WeekData.Item> timed = new ArrayList<>();
         for (WeekData.Item i : items) if (i.timed()) timed.add(i);
         timed.sort(Comparator.comparingInt((WeekData.Item i) -> i.startMin).thenComparingInt(i -> -i.endMin));
-        if (limit > 0) return packSideBySide(timed, minMinutes, minLength, limit);
+        if (limit > 0) return packSideBySide(timed, minMinutes, minLength, limit, titleMinutes);
         List<Placed> out = new ArrayList<>();
         List<Group> groups = new ArrayList<>();
         int clusterEnd = -1;
@@ -146,9 +157,10 @@ final class WeekLayout {
      * @param minMinutes the title-row duration of a block, in minutes
      * @param minLength the minimum event length in minutes, 0 for none
      * @param limit the most columns side by side before entries cascade
+     * @param titleMinutes one title row of a block, in minutes
      * @return the placed items in placement order
      */
-    private static List<Placed> packSideBySide(List<WeekData.Item> timed, int minMinutes, int minLength, int limit) {
+    private static List<Placed> packSideBySide(List<WeekData.Item> timed, int minMinutes, int minLength, int limit, int titleMinutes) {
         List<Placed> out = new ArrayList<>(), cluster = new ArrayList<>();
         // per column: when it is free again and the topmost block in or over it
         List<Integer> busyUntil = new ArrayList<>();
@@ -174,8 +186,8 @@ final class WeekLayout {
                 p = new Placed(s, free, 0, s.startMin, end - s.startMin);
                 busyUntil.set(free, end);
                 tops.set(free, p);
-            } else if (tops.size() < limit || s.startMin - tops.get(last).top < gapOf(tops.get(last), minMinutes)) {
-                // a new column: still under the limit, or a cascade here would hide the title below
+            } else if (tops.size() < limit || (tops.size() == limit && s.startMin - tops.get(last).top < gapOf(tops.get(last), minMinutes, titleMinutes))) {
+                // a new column: still under the limit, or (once, owner 2026-10-25) a cascade here would hide the title below
                 p = new Placed(s, tops.size(), 0, s.startMin, end - s.startMin);
                 busyUntil.add(end);
                 tops.add(p);
@@ -192,8 +204,8 @@ final class WeekLayout {
     }
 
     /** The least start distance a later block needs to cascade over {@code p} and leave its title visible. */
-    private static int gapOf(Placed p, int minMinutes) {
-        return p.height < minMinutes ? Math.max(STACK_MIN_START_GAP_MIN, minMinutes) : STACK_MIN_START_GAP_MIN;
+    private static int gapOf(Placed p, int minMinutes, int titleMinutes) {
+        return Math.max(Math.max(STACK_MIN_START_GAP_MIN, titleMinutes), p.height < minMinutes ? minMinutes : 0);
     }
 
     /** Gives a finished cluster its column count, lets base blocks widen into free columns, and moves it to {@code out}. */

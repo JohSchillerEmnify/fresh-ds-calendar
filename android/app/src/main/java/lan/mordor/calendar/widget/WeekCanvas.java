@@ -24,6 +24,8 @@ final class WeekCanvas {
     static final float PAD = 4, HEADER = 20, GUTTER = 22, DAYHEAD = 16, FOOTER = 10;
     /** Height of a band chip or bar and the smallest block in the grid (dp). */
     private static final float CHIP = 13, MIN_BLOCK = 11;
+    /** One title row of a block (dp): the smallest block is exactly one title line, so it is the same height. */
+    private static final float TITLE_ROW = MIN_BLOCK;
     /** Share of the free height the all-day band may take. */
     private static final float BAND_SHARE = 0.4f;
     private static final float INDENT = 2.5f;
@@ -143,7 +145,7 @@ final class WeekCanvas {
         if (data != null) {
             for (int i = 0; i < n; i++) {
                 boolean isToday = days.get(i).date.equals(today);
-                List<WeekLayout.Placed> placed = WeekLayout.packColumns(days.get(i).items, Math.round(MIN_BLOCK / hh * 60), data.minEventMinutes, data.weekSideBySide);
+                List<WeekLayout.Placed> placed = WeekLayout.packColumns(days.get(i).items, Math.round(MIN_BLOCK / hh * 60), data.minEventMinutes, data.weekSideBySide, Math.round(TITLE_ROW / hh * 60));
                 placed.sort((a, b) -> Integer.compare(a.level, b.level));
                 for (WeekLayout.Placed p : placed) {
                     float cx = x0 + i * colW, bw = colW / p.cols;

@@ -67,7 +67,8 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
   it is laid over the last column, one cascade level above the topmost block there (max 3 levels; deeper ones stay at
   level 3), and that column stays busy until everything over it has ended. Exception (title rule): if the topmost block
   of the last column starts less than `max(15 min, one title row)` before the entry, the entry gets one more column
-  instead (beyond N), so no title is ever covered. The overlap cluster shares the width in as many equal columns as it
+  instead (beyond N), but at most one (owner 2026-10-25): with N + 1 columns in use, further entries are laid over the
+  last column even if a title is covered. The overlap cluster shares the width in as many equal columns as it
   uses; a block still widens into free columns to its right.
 - `stack = false` (Labs horizontal view) unchanged; the Labs views keep today's layout (no limit passed).
 
@@ -103,8 +104,8 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
 3. Side-by-side limits apply on every screen size, the two-row week overview counts as the week view, Labs views keep
    today's layout. The Android widget's week grid follows `weekSideBySide` (owner Q2), handed over in the widget
    snapshot like `minEventMinutes`.
-4. Overflow beyond N obeys the existing "a title is never covered" rule (owner 2026-10-20): a near-same start gets an
-   extra column rather than covering a title. Cascade depth stays capped at 3.
+4. Overflow beyond N keeps titles readable with one extra column at most (owner 2026-10-20 / 2026-10-25): a near-same
+   start gets column N + 1; beyond that it is laid over the last column. Cascade depth stays capped at 3.
 5. Draw snapping rounds each end to the nearest quarter (like move/resize), minimum 15 min. A long press released
    without moving opens the dialog with that 15-min block (what was shown).
 6. Drawing across days reaches at most the neighbouring day column. Drawing starts only on empty grid; the block may
@@ -144,3 +145,7 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
   prefs fetch (`weekSideBySide`), else the app snapshot, else 2 (`WidgetRenderer.pickData`, `WeekData.fromSnapshot`).
 - The pre-existing failure of min-event-length "Back-to-back short events … Example #6" (zoom month) also fails on main
   a7e9c5f, unrelated to this change.
+- Review fixes: the widget's cascade gap includes one title row (`WeekCanvas` passes `TITLE_ROW` = the 11 dp minimum
+  block in minutes), as on the web; the extra title column is capped at limit + 1 in web and widget; "is stacked on"
+  also checks the shared column; scenarios for the cap and for the two-row overview using the week limit; unit test that
+  equal start and end keep the day's order.

@@ -219,6 +219,17 @@ describe('side by side up to a limit (owner, 2026-10-25)', () => {
     expect(Object.values(p).map((x) => [x.cols, x.level])).toEqual([[3, 0], [3, 0], [3, 0]]);
     expect(new Set(Object.values(p).map((x) => x.col)).size).toBe(3);
   });
+  it('the extra column for a title is one at most; further close starts are laid over the last column', () => {
+    const p = pack([at('a', '09:00', '10:00'), at('b', '09:05', '10:30'), at('c', '09:05', '10:00'), at('d', '09:10', '10:00')], 2);
+    expect([p.a, p.b, p.c].map((x) => [x.col, x.cols, x.level])).toEqual([[0, 3, 0], [1, 3, 0], [2, 3, 0]]);
+    expect([p.d.col, p.d.cols, p.d.level]).toEqual([2, 3, 1]);
+  });
+  it('entries with the same start and end keep the order they come in (the day\'s usual order)', () => {
+    const x = at('x', '09:00', '10:00'), y = at('y', '09:00', '10:00');
+    const cols = (items: ReturnType<typeof ev>[]) => packColumns(segsOf(items, D), 0, true, 0, 0, 2).map((p) => [p.seg.item.id, p.col]);
+    expect(cols([x, y])).toEqual([['x', 0], ['y', 1]]);
+    expect(cols([y, x])).toEqual([['y', 0], ['x', 1]]);
+  });
   it('cascade depth is capped at 3', () => {
     const many = ['09:00', '09:00', '09:30', '10:00', '10:30', '11:00'].map((s, i) => at('m' + i, s, '12:00'));
     const p = pack(many, 2);

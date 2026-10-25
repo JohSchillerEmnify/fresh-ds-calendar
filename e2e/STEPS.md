@@ -219,7 +219,7 @@ the items on {date} are shown in the order {string}
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span
   and different left edges. "stacked on": the first chip starts lower and further right than the second, boxes overlap
-  vertically (cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
+  vertically, and the first's left edge lies inside the second's width (same column; cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
 - "the items on D are shown in the order": DOM order of `data-title` of event chips and task list cards inside the
   month cell of D.
 
@@ -2797,7 +2797,9 @@ the entries {string} each take one of {int} equal columns
 - "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
   (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of
   their boxes intersect, and each one's width is the day column's width / N within 4 px.
-- The existing "the event X is stacked on the event Y" checks a block laid over the last column (cascade).
+- "the event X is stacked on the event Y" (feature event-display) also checks that both blocks share a column: X's left
+  edge lies inside Y's width (a cascade lies over the column, indented from the left; on a narrow phone column a block's
+  minimum width may reach past the column on the right).
 
 ## Drawing on the time grid (`@crud`, owner 2026-10-25)
 

@@ -320,8 +320,9 @@ Feature: Displaying events in the calendar views
     opens a new column on the right. An overlap group shares the width in as many equal columns as it uses, and a block
     still widens into free columns to its right. When all columns are busy, the entry is laid over the last column,
     shifted a little to the right per level (up to 3 levels) and drawn on top, as cascades are today; that column then
-    stays busy until everything over it has ended. A title is never covered: an entry that would be laid over a block
-    starting less than 15 minutes (or one title row) before it gets one more column instead, beyond the limit.
+    stays busy until everything over it has ended. To keep titles readable, an entry that would be laid over a block
+    starting less than 15 minutes (or one title row) before it gets one more column instead, beyond the limit, but only
+    one: with the limit + 1 columns in use, further entries are laid over the last column even if a title is covered.
 
     @day @overlap
     Scenario: Four overlapping events share the day view in four columns by default
@@ -374,6 +375,24 @@ Feature: Displaying events in the calendar views
       And the calendar contains an event "Call" on 2026-10-14 from 09:05 to 10:00
       When I open the day view for 2026-10-14
       Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
+
+    # owner, 2026-10-25: the extra column for a title is one at most
+    @week @overlap
+    Scenario: Only one extra column is added for titles; a further close start is laid over the last column
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:05 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:05 to 10:00
+      And the calendar contains an event "Review" on 2026-10-14 from 09:10 to 10:00
+      When I open the week view for 2026-10-12
+      Then the entries "Dentist, Standup, Call" each take one of 3 equal columns
+      And the event "Review" is stacked on the event "Call"
+
+    @week @overlap @two-row
+    Scenario: The two-row week overview follows the week view's limit
+      Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
+      And the calendar contains an event "Call" on 2026-10-14 from 09:30 to 11:00
+      When I look at 2026-10-14 in the two-row week overview
+      Then the entries "Standup, Dentist" each take one of 2 equal columns
+      And the event "Call" is stacked on the event "Dentist"
 
     Scenario: Choosing up to 2 for the day view in the settings changes it right away
       Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
