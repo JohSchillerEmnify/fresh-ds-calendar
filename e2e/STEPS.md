@@ -523,9 +523,13 @@ one hour of the time grid is still about twice as tall as at the start
 the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
+the page does not bounce when pulled
 ```
 
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
+- "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
+  page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it
+  is ignored there). A real pull cannot be made in the test browsers.
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
@@ -1038,7 +1042,7 @@ the event {string} shows resize handles
 the event {string} shows no resize handles
 I tap the event {string} right beside the bottom handle of {string}
 I hold the event {string} over {date}
-the dragged event is drawn under the finger
+the dragged event is drawn visibly in the day under the finger
 I swipe up quickly starting on the event {string}
 the time grid has scrolled down
 ```
@@ -1059,8 +1063,9 @@ the time grid has scrolled down
     cancelable, and the nearest ancestor whose computed `overflow-y` is `auto`/`scroll` scrolls with the finger.
   - a real finger is never still: the long press (500 ms) has two moves of 1 and 2 px in it.
 - "I hold the event X over D": long press X and move the finger to the centre of D's `month-cell` in 10 steps, finger
-  kept down (released by the scenario's cleanup). "the dragged event is drawn under the finger": X is lifted and the
-  topmost element at the finger (`elementFromPoint`, which honours clipping) is X's chip or inside it.
+  kept down (released by the scenario's cleanup). "the dragged event is drawn visibly in the day under the finger": the lifted
+  chip's centre lies in the `month-cell` under the finger (it snaps to the cell's top), and the topmost element there
+  (`elementFromPoint`, which honours clipping) is the chip or inside it.
 - "I swipe up quickly starting on the event X": finger down 5 minutes below X's top, 240 px up in 8 moves over 150 ms
   (no long press), up. The time grid's scroll position is noted first; "the time grid has scrolled down" = the
   `time-grid`'s scroll container `scrollTop` grew by at least 40 px.

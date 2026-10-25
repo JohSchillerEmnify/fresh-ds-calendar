@@ -12,6 +12,10 @@ Then('the page has no horizontal scroll', async function (this: World) {
     .toBeLessThanOrEqual(0);
 });
 
+Then('the page does not bounce when pulled', async function (this: World) {
+  expect(await this.page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY)).toBe('none');
+});
+
 async function expectAtBottom(world: World, loc: Locator) {
   const vh = viewport(world.page).height;
   const b = await box(loc);

@@ -136,7 +136,7 @@ Feature: Drag and drop to reschedule
     Given I am using a phone
     When I open the month view for 2026-10
     And I hold the event "Dentist" over 2026-10-21
-    Then the dragged event is drawn under the finger
+    Then the dragged event is drawn visibly in the day under the finger
 
   @mobile @iphone
   Scenario: On a phone a quick swipe that starts on an event still scrolls the day

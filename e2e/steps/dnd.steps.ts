@@ -56,14 +56,23 @@ async function hourHeight(w: World): Promise<number> {
  * "assumptions"): the drop time is then the same whether the app positions by pointer or by card top, because
  * snapping to 15 minutes absorbs the offset. Elsewhere (month, all-day area) the centre is used.
  */
-async function grabPoint(w: World, card: Locator): Promise<Point> {
+async function grabPoint(w: World, card: Locator): Promise<Point & { shift?: number }> {
   const b = await box(card);
   // A multi-day bar moves by (drop day - grabbed day): grab it in the middle of its first day, not at the day boundary.
   if (await isBar(card)) return { x: b.x + b.width / (2 * (await barDays(card))), y: b.y + b.height / 2 };
   const inGrid = (await card.locator('xpath=ancestor::*[@data-testid="week-day-column" or @data-testid="day-column"]').count()) > 0;
   if (!inGrid) return centre(b);
   const offset = Math.min(b.height / 2, (await hourHeight(w)) / 12);
-  return { x: b.x + b.width / 2, y: b.y + offset };
+  // a card whose top is hidden above the grid's visible part (short screen) is grabbed in its visible part
+  const visibleTop = await card.evaluate((el) => {
+    for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
+      if (n.scrollHeight > n.clientHeight && getComputedStyle(n).overflowY !== 'visible') return n.getBoundingClientRect().top;
+    }
+    return 0;
+  });
+  const y = b.y + offset < visibleTop + 2 ? Math.min(b.y + b.height - 2, visibleTop + offset) : b.y + offset;
+  // shift: how much lower than the usual point the card was grabbed (a drop target has to move down by as much)
+  return { x: b.x + b.width / 2, y, shift: y - (b.y + offset) };
 }
 
 const isBar = async (card: Locator) => (await card.getAttribute('data-testid')) === 'event-bar';
@@ -134,21 +143,25 @@ async function drag(
   const guess = centre(await box(card));
   const toFirst = await target(card, guess);
   const cardBox = await box(card);
-  const vh = w.page.viewportSize()?.height ?? 800;
-  if (cardBox.y < 0 || cardBox.y + cardBox.height > vh) {
-    const mid = (cardBox.y + cardBox.height / 2 + toFirst.y) / 2;
-    await card.evaluate((el, midY) => {
-      for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
-        if (n.scrollHeight > n.clientHeight && getComputedStyle(n).overflowY !== 'visible') {
-          const r = n.getBoundingClientRect();
-          n.scrollTop += midY - (r.top + r.height / 2);
-          return;
-        }
+  const mid = (cardBox.y + cardBox.height / 2 + toFirst.y) / 2;
+  // scroll when the card is outside the viewport or outside its scroll container's visible part (a banner above the
+  // grid on a short screen hides cards that are still inside the viewport)
+  await card.evaluate((el, midY) => {
+    const b = el.getBoundingClientRect();
+    for (let n: HTMLElement | null = el.parentElement; n; n = n.parentElement) {
+      if (n.scrollHeight > n.clientHeight && getComputedStyle(n).overflowY !== 'visible') {
+        const r = n.getBoundingClientRect();
+        if (b.top >= Math.max(0, r.top) && b.bottom <= Math.min(innerHeight, r.bottom)) return;
+        n.scrollTop += midY - (r.top + r.height / 2);
+        return;
       }
-    }, mid);
-  }
-  const from = await grabPoint(w, card);
-  const to = await target(card, from);
+    }
+  }, mid);
+  // the target lookup may scroll its slot into view: settle that scroll before taking the grab point
+  await target(card, centre(await box(card)));
+  const { shift = 0, ...from } = await grabPoint(w, card);
+  const t = await target(card, { x: from.x, y: from.y - shift });
+  const to = { x: t.x, y: t.y + shift };
   const saved = expectPersist ? w.page.waitForResponse((r) => isPersist(r.url(), r.request().method())) : null;
   await dragBetween(w, from, to);
   await saved;
@@ -334,15 +347,19 @@ When('I hold the event {string} over {date}', async function (this: World, title
   };
 });
 
-Then('the dragged event is drawn under the finger', async function (this: World) {
+Then('the dragged event is drawn visibly in the day under the finger', async function (this: World) {
   const at = this.heldAt;
   if (!this.held || !at) throw new Error('nothing is held');
   const lifted = this.page.locator(`${tid('event-chip')}[data-dragging="true"]`);
   await expect(lifted).toHaveCount(1);
   await expect.poll(() => lifted.evaluate((el, p) => {
-    const top = document.elementFromPoint(p.x, p.y);
-    return !!top && (top === el || el.contains(top));
-  }, at), { message: 'the topmost element at the finger is the lifted event' }).toBe(true);
+    const r = el.getBoundingClientRect();
+    const c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    const cellAt = (q: { x: number; y: number }) => document.elementsFromPoint(q.x, q.y).find((e) => (e as HTMLElement).dataset.testid === 'month-cell');
+    const top = document.elementFromPoint(c.x, c.y);
+    if (!cellAt(p) || cellAt(c) !== cellAt(p)) return 'the chip is not in the day under the finger';
+    return top === el || (!!top && el.contains(top)) ? 'ok' : `covered or clipped: ${top?.className}`;
+  }, at), { message: 'the lifted chip is drawn on top in the day under the finger' }).toBe('ok');
 });
 
 /** Scroll position of the time grid's scroll container, noted by "I swipe up quickly ..." */

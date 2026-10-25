@@ -161,3 +161,9 @@ Feature: Mobile-first layout
     And I open the week view for 2026-10-12
     When I start swiping left on the calendar by a quarter of the width
     Then no neighbouring period is shown beside the current one
+
+  # owner, 2026-10-25: on an iPhone the whole page bounced when pulled up and left a gap at the bottom
+  @iphone
+  Scenario: The page itself does not bounce when pulled
+    When I open the month view for 2026-10
+    Then the page does not bounce when pulled
