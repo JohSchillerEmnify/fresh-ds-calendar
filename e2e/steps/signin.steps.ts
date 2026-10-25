@@ -12,7 +12,11 @@ import { tid, type World } from './support/world.js';
 export async function signIn(world: World, email: string, date = '2026-10-12', driveScope = true) {
   world.person = email;
   await world.api.chooseGoogleAccount(email, driveScope);
-  await world.page.goto(`/week/${date}`);
+  // signed out, the app may leave the deep link for /signin with a full page load before it has loaded: that is the
+  // way there, not a failure
+  await world.page.goto(`/week/${date}`).catch((e: Error) => {
+    if (!/interrupted by another navigation to "[^"]*\/signin"|net::ERR_ABORTED/.test(e.message)) throw e;
+  });
   await world.page.getByTestId('signin-google').click();
   // leaves /signin through the round trip and lands on the calendar (or back on /signin?error=private)
   await world.page.waitForURL((u) => u.pathname !== '/signin' || u.searchParams.has('error'));

@@ -74,7 +74,7 @@ Feature: The app opens with the last known state
   Scenario: Someone else signing in on this device does not get my templates
     Given "jo@example.com" and "anna@example.com" may use the calendar
     And "jo@example.com" is signed in
-    And I have the template "Packing" with the items "Passport"
+    And "jo@example.com" has the template "Packing" with the items "Passport"
     And I have seen the week view for 2026-10-12
     When they sign out in the settings
     And "anna@example.com" signs in with Google

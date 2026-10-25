@@ -61,3 +61,12 @@ last-known-state features.
 - A2 Never-read-and-offline shows no line at all (the sync banner covers it) rather than a misleading empty state.
 - A3 Offline save error text stays the app's generic one ("Could not save: Google Calendar is unavailable"), which
   names Google although templates live on the app server — pre-existing wording, reported to the owner, not changed.
+
+## Implementation notes
+
+- The sync's first run comes only after the poll interval (`sync.start` schedules); the start-up loads live in
+  `App.vue`. So the templates are also read there next to the calendars (failures go to the sync banner), else the
+  first saved snapshot has none (e2e showed the offline picker empty; fixed and verified).
+- e2e: `"P" has the template ...` posts with the page's own session (the test API is not signed in under `@signin`).
+  `signIn` now accepts the app's own full-page jump to `/signin` while `goto` loads a deep link after a sign-out
+  (reproduced 2/6 runs with and without this change, so pre-existing in the helper; 16/16 after).

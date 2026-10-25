@@ -26,6 +26,7 @@ import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry'
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
 import { usePrefsStore } from '@/stores/prefs';
+import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { useMotivationStore, useSceneRest } from '@/features/motivation';
 import { isGestureClaimed, setSoundsEnabled, useAnimationLevel } from '@/motion';
 import { initInstall } from '@/pwa/install';
@@ -89,6 +90,8 @@ onMounted(() => {
   if (!route.meta.public) {
     sync.start();
     void calendars.load().catch((e) => sync.reportError(e));
+    // per-person data kept on the device: read at start so the first saved last known state has them
+    void useTemplatesStore().load().catch((e) => sync.reportError(e));
     void labs.load();
   }
 });
