@@ -151,6 +151,9 @@ I go to the next period
 I go to the previous period
 I go to today
 the top bar shows no arrows
+the top bar shows the arrows
+a screen reader finds the buttons {string} and {string} in the top bar, off screen
+a keyboard user activates {string} in the top bar
 I switch to the {view} view
 I go back in the browser
 I reload the page
@@ -180,7 +183,10 @@ no day is highlighted as today
 - "I go to the next / previous period" moves as a person does: with the ‹ › arrows (`nav-next` / `nav-prev`) where the
   top bar has them (desktop with a mouse), with a swipe left / right on `calendar-swipe-area` on touch screens, which
   have none (owner, 2026-10-26); either way it waits for the URL to change. "the top bar shows no arrows": `top-bar`
-  has no `nav-prev` and no `nav-next`.
+  has no visible `nav-prev` / `nav-next` (on touch they stay in the DOM as sr-only buttons, at most 1 px, for screen
+  readers and keyboards; owner, 2026-10-26). "the top bar shows the arrows": both are visible with a real size (a
+  narrow window with a mouse). "a screen reader finds the buttons X and Y ... off screen": each is found by role button
+  and accessible name, takes focus, and is at most 1 px. "a keyboard user activates X": focus, then Enter.
 
 ## Events: display
 

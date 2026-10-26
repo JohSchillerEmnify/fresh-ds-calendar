@@ -3,8 +3,9 @@ Feature: Navigation and view switching
   The calendar has a month, a week (Monday to Sunday) and a day view.
   Every view has a deep-linkable URL: /month/YYYY-MM, /week/YYYY-MM-DD (Monday), /day/YYYY-MM-DD.
   "Today" always comes from the app clock, which tests fix with "Given today is ...".
-  Desktop with a mouse moves through the periods with the ‹ › arrows in the top bar; phones and touch tablets have no
-  arrows and move by swiping the calendar (owner, 2026-10-26); Today is everywhere.
+  Desktop with a mouse moves through the periods with the ‹ › arrows in the top bar, also in a narrow window; phones and
+  touch tablets show no arrows and move by swiping the calendar, but screen readers and keyboards still find
+  "Previous period" and "Next period" there (owner, 2026-10-26); Today is everywhere.
 
   Background:
     Given the calendar is empty
@@ -103,7 +104,7 @@ Feature: Navigation and view switching
       | day   | 2026-10-12 | /day/2026-10-13  | /day/2026-10-11  |
       | day   | 2026-12-31 | /day/2027-01-01  | /day/2026-12-30  |
 
-  # owner, 2026-10-26: phones and touch tablets have no ‹ › arrows; Today stays, a swipe moves through the periods
+  # owner, 2026-10-26: phones and touch tablets show no ‹ › arrows; Today stays, a swipe moves through the periods
   @mobile
   Scenario Outline: On a touch screen a swipe goes to the next or previous period and no arrows are shown
     When I open the <view> view for <start>
@@ -119,6 +120,21 @@ Feature: Navigation and view switching
       | month | 2026-10    | /month/2026-11   | /month/2026-09   |
       | week  | 2026-10-12 | /week/2026-10-19 | /week/2026-10-05 |
       | day   | 2026-12-31 | /day/2027-01-01  | /day/2026-12-30  |
+
+  # owner, 2026-10-26: the arrows are only out of sight on touch; assistive technology and keyboards keep them
+  @mobile
+  Scenario: On a touch screen a screen reader can still go to the next or previous period
+    When I open the month view for 2026-10
+    Then a screen reader finds the buttons "Previous period" and "Next period" in the top bar, off screen
+    When a keyboard user activates "Next period" in the top bar
+    Then the URL path is "/month/2026-11"
+
+  # owner, 2026-10-26: the arrows follow the pointer, not the width
+  @desktop
+  Scenario: A narrow window with a mouse shows the arrows
+    Given the browser window is 600 by 800 pixels wide and high
+    When I open the month view for 2026-10
+    Then the top bar shows the arrows
 
   Scenario Outline: The today button returns to the period containing today
     When I open the <view> view for <other>

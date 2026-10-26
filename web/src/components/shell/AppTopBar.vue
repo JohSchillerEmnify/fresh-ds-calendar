@@ -9,7 +9,7 @@ import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
 import { useNav } from '@/composables/useNav';
 import { inPeriod } from '@/lib/dates';
-import { isPhone, isTouchLayout } from '@/composables/useViewport';
+import { isPhone, isSwipeScreen } from '@/composables/useViewport';
 import { topBarWidgets } from '@/extensions/registry';
 import { useCalendarStore } from '@/stores/calendar';
 import { usePrefsStore } from '@/stores/prefs';
@@ -57,10 +57,10 @@ function toggleFilters() {
         <span class="t">{{ oneRow ? cal.shortTitle : cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>
       <div v-if="!route.meta.tasks && !dateless" class="nav">
-        <!-- touch screens move by swiping the calendar: no arrows there (owner, 2026-10-26) -->
-        <IconButton v-if="!isTouchLayout" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
+        <!-- touch screens move by swiping the calendar: the arrows stay for screen readers and keyboards, out of sight (owner, 2026-10-26) -->
+        <IconButton :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
         <Button variant="tonal" class="today" :class="{ off: !todayShown }" data-testid="nav-today" :data-today-shown="todayShown" :aria-label="oneRow ? t('calendar.topBar.today') : undefined" :title="oneRow ? t('calendar.topBar.today') : undefined" @click="nav.today()"><span class="pill"><IconToday v-if="oneRow" /><template v-else>{{ t('calendar.topBar.today') }}</template></span></Button>
-        <IconButton v-if="!isTouchLayout" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
+        <IconButton :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
         <slot name="leading-widgets">
@@ -93,6 +93,8 @@ function toggleFilters() {
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .chev.up { transform: rotate(180deg); }
 .nav { grid-area: nav; display: flex; align-items: center; gap: 2px; }
+/* the m3 button's size rule and the ripple's position: relative outrank the global .sr-only: restate them so the arrows take no room */
+.nav .sr-only { position: absolute; width: 1px; height: 1px; }
 .today { padding: 0 16px; }
 /* Today is not on screen: outlined on a solid surface fill, so a scene never shows through (on phones the pill carries the look) */
 .today.off { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }

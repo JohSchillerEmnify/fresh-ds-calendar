@@ -77,8 +77,32 @@ Then("the period title's chevron is shown", async function (this: World) {
 
 Then('the top bar shows no arrows', async function (this: World) {
   await expect(today(this)).toBeVisible();
-  await expect(bar(this).getByTestId('nav-prev')).toHaveCount(0);
-  await expect(bar(this).getByTestId('nav-next')).toHaveCount(0);
+  for (const id of ['nav-prev', 'nav-next']) {
+    const b = await bar(this).getByTestId(id).boundingBox();
+    expect(!b || (b.width <= 1 && b.height <= 1), `${id} takes no room`).toBe(true);
+  }
+});
+
+Then('the top bar shows the arrows', async function (this: World) {
+  for (const id of ['nav-prev', 'nav-next']) await expect(bar(this).getByTestId(id)).toBeVisible();
+  expect((await bar(this).getByTestId('nav-prev').boundingBox())!.width).toBeGreaterThan(24);
+});
+
+Then('a screen reader finds the buttons {string} and {string} in the top bar, off screen', async function (this: World, prev: string, next: string) {
+  for (const name of [prev, next]) {
+    const b = bar(this).getByRole('button', { name, exact: true });
+    await expect(b).toHaveCount(1);
+    await b.focus();
+    await expect(b).toBeFocused();
+    const box = await b.boundingBox();
+    expect(box!.width <= 1 && box!.height <= 1, `${name} is not visible on screen`).toBe(true);
+    expect(await b.evaluate((el) => getComputedStyle(el).position), `${name} takes no layout space`).toBe('absolute');
+  }
+});
+
+When('a keyboard user activates {string} in the top bar', async function (this: World, name: string) {
+  await bar(this).getByRole('button', { name, exact: true }).focus();
+  await this.page.keyboard.press('Enter');
 });
 
 Then('the Today button is an icon with the label {string}', async function (this: World, label: string) {
@@ -101,7 +125,8 @@ async function buttonMisses(w: World, width: number, height: number, which: 'all
   if (which === 'plant') expect(n, 'the plant button').toBeGreaterThan(0);
   for (let i = 0; i < n; i++) {
     const b = buttons.nth(i);
-    if (!(await b.isVisible())) continue;
+    // the sr-only period arrows of a touch screen are not on screen
+    if (!(await b.isVisible()) || (await b.evaluate((el) => el.classList.contains('sr-only')))) continue;
     const id = (await b.getAttribute('data-testid')) ?? `button ${i + 1}`;
     if (which === 'not-plant' && id === 'plant-button') continue;
     const miss = await hitAreaMisses(b, width, height);

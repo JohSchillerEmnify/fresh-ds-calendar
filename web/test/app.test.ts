@@ -8,7 +8,7 @@ import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import { useMotivationStore } from '@/features/motivation/store';
-import { isTouchLayout } from '@/composables/useViewport';
+import { isSwipeScreen, isTouchLayout } from '@/composables/useViewport';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:00+02:00`, `${d}T${Number(h) + 1}:00:00+02:00`);
@@ -45,7 +45,7 @@ const tid = (id: string) => `[data-testid="${id}"]`;
 const wait = async (fn: () => void) => { await vi.waitFor(fn, { timeout: 5000 }); await flushPromises(); };
 
 // a mouse by default (jsdom has no matchMedia): the arrows are a desktop control; touch screens swipe (owner, 2026-10-26)
-beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); isTouchLayout.value = false; });
+beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); isTouchLayout.value = false; isSwipeScreen.value = false; });
 afterEach(() => { wrapper?.unmount(); wrapper = null; });
 
 describe('routing', () => {
@@ -219,17 +219,17 @@ describe('shell navigation', () => {
 });
 
 describe('top bar: arrows only with a mouse', () => {
-  it('a touch screen has no ‹ › arrows; Today stays', async () => {
-    isTouchLayout.value = true;
+  it('a touch screen keeps the ‹ › buttons for screen readers, visually hidden; Today stays', async () => {
+    isSwipeScreen.value = true;
     const { w } = await mountAt('/week/2026-10-12');
     expect(w.find(tid('nav-today')).exists()).toBe(true);
-    expect(w.find(tid('nav-prev')).exists()).toBe(false);
-    expect(w.find(tid('nav-next')).exists()).toBe(false);
+    expect(w.find(tid('nav-prev')).classes()).toContain('sr-only');
+    expect(w.find(tid('nav-next')).classes()).toContain('sr-only');
   });
   it('a mouse keeps the arrows', async () => {
     const { w } = await mountAt('/week/2026-10-12');
-    expect(w.find(tid('nav-prev')).exists()).toBe(true);
-    expect(w.find(tid('nav-next')).exists()).toBe(true);
+    expect(w.find(tid('nav-prev')).classes()).not.toContain('sr-only');
+    expect(w.find(tid('nav-next')).classes()).not.toContain('sr-only');
   });
 });
 
