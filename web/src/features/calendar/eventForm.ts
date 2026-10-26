@@ -2,6 +2,7 @@
 import { parseIsoDate, toIsoDate, addDays } from '@/lib/dates';
 import type { CalendarEvent, CreateBirthdayInput, CreateEventInput, Reminders, UpdateEventInput } from '@/api/types';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
+import { placeFromEvent, placeLocation, type PlacePick } from './place';
 import { t } from '@/i18n';
 
 export interface EventForm {
@@ -13,7 +14,10 @@ export interface EventForm {
   endDate: string;
   endTime: string;
   description: string;
+  /** The text in the location field: a picked place's name, or what was typed. */
   location: string;
+  /** The place picked from the suggestions (feature event-location); null for typed text. */
+  place: PlacePick | null;
   calendarId: string;
   /** Google colorId '1'..'11'; '' = calendar color. */
   colorId: string;
@@ -41,7 +45,7 @@ export function newForm(date: string, time: string | null, calendarId: string, c
   const end = fromWallMinutes(wallMinutes(date, t) + 60);
   return {
     title: '', allDay: false, startDate: date, startTime: t, endDate: end.date, endTime: end.time,
-    description: '', location: '', calendarId, colorId: colorId ?? '', reminders: { useDefault: true, minutes: [] },
+    description: '', location: '', place: null, calendarId, colorId: colorId ?? '', reminders: { useDefault: true, minutes: [] },
   };
 }
 
@@ -49,19 +53,25 @@ export function newForm(date: string, time: string | null, calendarId: string, c
 export const ownReminders = (ev: CalendarEvent): Reminders => (!ev.reminders || ev.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...ev.reminders.minutes] });
 
 export function formFromEvent(ev: CalendarEvent): EventForm {
+  // a picked place shows its name in the field and its address on the line under it (owner, Q9)
+  const place = placeFromEvent(ev);
+  const where = { location: place ? place.name : ev.location, place };
   if (ev.allDay) {
     const last = parseIsoDate(ev.end);
     const endIncl = last ? toIsoDate(addDays(last, -1)) : ev.end;
     return {
       title: ev.title, allDay: true, startDate: ev.start, startTime: '09:00', endDate: endIncl < ev.start ? ev.start : endIncl, endTime: '10:00',
-      description: ev.description, location: ev.location, calendarId: ev.calendarId, colorId: ev.colorId ?? '', reminders: ownReminders(ev),
+      description: ev.description, ...where, calendarId: ev.calendarId, colorId: ev.colorId ?? '', reminders: ownReminders(ev),
     };
   }
   return {
     title: ev.title, allDay: false, startDate: ev.start.slice(0, 10), startTime: ev.start.slice(11, 16), endDate: ev.end.slice(0, 10), endTime: ev.end.slice(11, 16),
-    description: ev.description, location: ev.location, calendarId: ev.calendarId, colorId: ev.colorId ?? '', reminders: ownReminders(ev),
+    description: ev.description, ...where, calendarId: ev.calendarId, colorId: ev.colorId ?? '', reminders: ownReminders(ev),
   };
 }
+
+/** The location text Google gets: `"<name>, <address>"` for a picked place (owner, Q5), else the typed text. */
+const locationText = (f: EventForm): string => (f.place ? placeLocation(f.place) : f.location);
 
 const validDate = (s: string) => parseIsoDate(s) !== null;
 
@@ -99,7 +109,7 @@ export function validate(f: EventForm): { field: string; message: string } | nul
   const span = (e - s) / 1440 + (f.allDay ? 1 : 0);
   if (span > 366) return { field: 'end', message: msg.tooLong() };
   if (f.description.length > 8000) return { field: 'description', message: msg.descLong() };
-  if (f.location.length > 500) return { field: 'location', message: msg.locLong() };
+  if (locationText(f).length > 500) return { field: 'location', message: msg.locLong() };
   return null;
 }
 
@@ -107,7 +117,8 @@ export function validate(f: EventForm): { field: string; message: string } | nul
 export function toInput(f: EventForm, tz: string): CreateEventInput {
   const base = {
     calendarId: f.calendarId || undefined,
-    title: f.title.trim(), description: f.description, location: f.location, colorId: f.colorId || null,
+    title: f.title.trim(), description: f.description, location: locationText(f), colorId: f.colorId || null,
+    place: f.place ? { name: f.place.name, lat: f.place.lat, lon: f.place.lon } : null,
     reminders: { useDefault: f.reminders.useDefault, minutes: f.reminders.useDefault ? [] : [...f.reminders.minutes] },
   };
   if (f.allDay) {
@@ -127,6 +138,8 @@ export function diffInput(next: CreateEventInput, ev: CalendarEvent): Partial<Cr
   if (next.title !== ev.title) out.title = next.title;
   if ((next.description ?? '') !== ev.description) out.description = next.description;
   if ((next.location ?? '') !== ev.location) out.location = next.location;
+  const [a, b] = [next.place ?? null, ev.place ?? null];
+  if (a?.name !== b?.name || a?.lat !== b?.lat || a?.lon !== b?.lon) out.place = a;
   if ((next.colorId ?? null) !== ev.colorId) out.colorId = next.colorId ?? null;
   if (next.calendarId && next.calendarId !== ev.calendarId) out.calendarId = next.calendarId;
   if (next.reminders && !sameReminders(next.reminders, ownReminders(ev))) out.reminders = next.reminders;

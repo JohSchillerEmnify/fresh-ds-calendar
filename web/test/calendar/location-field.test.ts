@@ -47,7 +47,7 @@ async function mountField() {
   return { w, text, place, input: w.get(tid('event-location')) };
 }
 
-async function type(input: ReturnType<typeof mountField> extends Promise<infer R> ? R['input'] : never, v: string, wait = 300) {
+async function type(input: Awaited<ReturnType<typeof mountField>>['input'], v: string, wait = 300) {
   await input.setValue(v);
   await vi.advanceTimersByTimeAsync(wait);
   await flushPromises();

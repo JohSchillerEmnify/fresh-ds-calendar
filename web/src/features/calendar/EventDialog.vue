@@ -26,6 +26,9 @@ import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import { calendars, loadCalendars } from './calendars';
+import EventMap from './EventMap.vue';
+import LocationField from './LocationField.vue';
+import { placeFromEvent } from './place';
 import { createContext } from '@/extensions/create';
 import { birthdayPatch, diffInput, formFromEvent, newForm, toBirthdayInput, toInput, validate, validateBirthday, withStart, type EventForm } from './eventForm';
 import { formatDuration } from './timeline';
@@ -82,6 +85,10 @@ const error = ref(props.error ?? '');
 const saving = ref(false);
 const sheet = ref<HTMLElement | null>(null);
 const dirty = computed(() => JSON.stringify(form.value) !== initial.value);
+/** An opened event with a location shows it (and its map) right under the title, so the map needs no scrolling (owner, R6a). */
+const locationUp = ref(false);
+/** The read-only event's place, with its address read back from the location. */
+const readOnlyPlace = computed(() => (original.value ? placeFromEvent(original.value) : null));
 
 async function loadExisting() {
   if (!props.id) return;
@@ -99,6 +106,7 @@ async function loadExisting() {
   }
   if (ev && ev.kind === 'event') {
     original.value = ev;
+    locationUp.value = !!ev.location;
     if (!props.draft) {
       form.value = formFromEvent(ev);
       initial.value = JSON.stringify(form.value);
@@ -154,7 +162,7 @@ watch(() => form.value.title, () => { if (error.value === t('calendar.event.vali
 function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEvent {
   const b = original.value;
   return {
-    kind: 'event', id, calendarId: input.calendarId ?? 'primary', title: input.title, description: input.description ?? '', location: input.location ?? '',
+    kind: 'event', id, calendarId: input.calendarId ?? 'primary', title: input.title, description: input.description ?? '', location: input.location ?? '', ...(input.place ? { place: input.place } : {}),
     allDay: input.allDay, start: input.start, end: input.end, colorId: input.colorId ?? null,
     color: googleColor(input.colorId)?.hex ?? calColor.value, etag: b?.etag ?? '', updated: b?.updated ?? '',
     reminders: input.reminders ? { useDefault: input.reminders.useDefault, minutes: input.reminders.useDefault ? calDefaults.value : input.reminders.minutes } : b?.reminders,
@@ -275,7 +283,12 @@ function remove() {
         <h2 class="t" data-testid="event-readonly-title">{{ specialMarker(original) }} {{ original.title }}</h2>
       </header>
       <p class="lab" data-testid="event-readonly-date">{{ original.special ? `${t(`calendar.item.${original.special}`)} · ${original.start}` : whenText }}</p>
-      <p v-if="original.location" class="lab" data-testid="event-readonly-location">{{ original.location }}</p>
+      <template v-if="original.location">
+        <p class="lab" data-testid="event-readonly-location">
+          <span class="on">{{ readOnlyPlace?.name ?? original.location }}</span><template v-if="readOnlyPlace?.address"><br><span data-testid="event-location-address">{{ readOnlyPlace.address }}</span></template>
+        </p>
+        <EventMap v-if="readOnlyPlace" :place="readOnlyPlace" :tile-url="clock.config.mapTileUrl" />
+      </template>
       <p v-if="original.description" class="lab" data-testid="event-readonly-description">{{ original.description }}</p>
       <p v-if="readOnlyReason" class="lab" data-testid="event-readonly-reason">{{ readOnlyReason }}</p>
       <p v-else class="lab">{{ t('calendar.event.readOnly') }}</p>
@@ -320,6 +333,10 @@ function remove() {
       </header>
       <p v-if="loadError" class="err" role="alert" data-testid="event-error">{{ loadError }}</p>
       <TextField v-model="form.title" class="rise" style="--i: 1" :label="t('calendar.event.fields.title')" data-testid="event-title" data-field="title" autocomplete="off" enterkeyhint="next" />
+      <template v-if="locationUp">
+        <LocationField v-model="form.location" v-model:place="form.place" class="rise" style="--i: 2" :label="t('calendar.event.fields.location')" />
+        <EventMap v-if="form.place" class="rise" style="--i: 2" :place="form.place" :tile-url="clock.config.mapTileUrl" />
+      </template>
       <label class="check rise" style="--i: 2">
         <input v-model="form.allDay" type="checkbox" data-testid="event-all-day" data-field="allDay">
         <span>{{ t('calendar.event.fields.allDay') }}</span>
@@ -341,7 +358,10 @@ function remove() {
         <span class="lab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor v-model="form.reminders" prefix="event" allow-default :default-minutes="calDefaults" data-testid="event-reminders" />
       </div>
-      <TextField v-model="form.location" class="rise" style="--i: 7" :label="t('calendar.event.fields.location')" data-testid="event-location" data-field="location" autocomplete="off" enterkeyhint="next" />
+      <template v-if="!locationUp">
+        <LocationField v-model="form.location" v-model:place="form.place" class="rise" style="--i: 7" :label="t('calendar.event.fields.location')" />
+        <EventMap v-if="form.place" class="rise" style="--i: 7" :place="form.place" :tile-url="clock.config.mapTileUrl" />
+      </template>
       <TextField v-model="form.description" class="rise" style="--i: 8" :label="t('calendar.event.fields.description')" data-testid="event-description" data-field="description" multiline :rows="3" />
       <p v-if="error" class="err" role="alert" data-testid="event-error">{{ error }}</p>
       <div class="actions">
@@ -366,6 +386,7 @@ function remove() {
 .pair > :only-child { grid-column: 1 / -1; }
 .colors { display: flex; flex-direction: column; gap: 2px; }
 .lab { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); padding-left: 4px; }
+.lab .on { color: var(--md-sys-color-on-surface); }
 .err { margin: 0; color: var(--md-sys-color-error); font: var(--md-sys-typescale-body-medium); }
 .actions { display: flex; align-items: center; gap: 8px; position: sticky; bottom: -16px; margin: 4px -16px -16px; padding: 8px 16px 12px; background: var(--md-sys-color-surface-container-low); }
 .sp { flex: 1; }
