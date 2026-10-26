@@ -14,6 +14,7 @@ import { bindGridZoom, gridYUnder, hourHeight, previewShift, provideHourHeight, 
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
 import { carriedGrid } from '@/features/calendar/dnd';
+import { bindGridDraw } from '@/features/calendar/draw';
 import { resizePreview } from '@/features/calendar/resize';
 import { inPreview } from '@/composables/usePreview';
 import { gridLayers } from '@/extensions/registry';
@@ -123,6 +124,7 @@ function commitZoom(next: number) {
   nextTick(() => { el.scrollTop = Math.max(0, want); });
 }
 let unbindZoom = () => {};
+let unbindDraw = () => {};
 let ro: ResizeObserver | null = null;
 onMounted(() => {
   nextTick(initialScroll);
@@ -133,8 +135,10 @@ onMounted(() => {
     return;
   }
   if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hh.value, preview: previewZoom, commit: commitZoom });
+  // draw a block on the empty grid to create (feature event-editing); not in a swipe preview
+  if (gridEl.value && !preview) unbindDraw = bindGridDraw(gridEl.value, { scroller: () => scroller.value, disabled: () => !!props.fit });
 });
-onBeforeUnmount(() => { unbindZoom(); ro?.disconnect(); });
+onBeforeUnmount(() => { unbindZoom(); unbindDraw(); ro?.disconnect(); });
 watch(() => props.mode, () => nextTick(initialScroll));
 watch(() => toIsoDate(props.dates[0]), () => nextTick(initialScroll));
 watch(hh, () => { if (props.fit) nextTick(initialScroll); });

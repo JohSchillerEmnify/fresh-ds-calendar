@@ -161,3 +161,24 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
   (both for solid, tinted and outline). Baselines `two-row-week` and `two-row-grown-tight` (mobile) were updated in
   d7f900f for the shifted text of the Mon column's blocks (83 px); their older drift from the 2026-10-19 pictures
   (Groceries title top-aligned, Standup drawn at its real 7 px in fit mode) was already there on the old build.
+### A (built 2026-10-26, branch feat/edge-turn-draw)
+
+- `features/calendar/edgeTurn.ts` (zone 24 px, hold 600 / 1000 ms, labels), the zone watch and the turn in `dnd.ts`
+  (the router injected in setup; the drag's grid remembered), `EdgeBand.vue` (fixed strip + pill, design A1-A3).
+- The card unmounts when the view turns: `motion/drag.ts` `carry()` draws the drag on a fixed ghost copy (no ids), the
+  card's own touch listeners keep a touch drag going after it is removed (iOS sends a touch's events to where it began),
+  a destroy waits for the drop, `useDraggable` keeps answering for the carried drag, `refresh()` re-runs the hit test.
+- Touch events now always steer a lifted touch drag (not only after a pointercancel): the iPhone model stops pointer
+  moves on a sideways pan without cancelling them.
+- Not in the two-row overview (all seven days are on screen). Hold times in the day-view scenarios leave room for slow
+  test steps; the iPhone scenario waits for the turn instead of timing it.
+
+### C (built 2026-10-26)
+
+- `features/calendar/draw.ts`: pure `drawRange` / `splitByDay`, the gesture `bindGridDraw` on the time grid (mouse:
+  press + 4 px; touch: 350 ms long press with a haptic tick, a move first is a scroll; a non-passive grid `touchmove`
+  listener from mount, touch events steer, the scroll area locked and auto-scrolled at its edges while drawing, the
+  slot's click swallowed after a drawing), `drawPreview` and the grid layer `DrawBlock.vue` (design C1-C3, label
+  "New · 11:00 – 12:30"). The block stays until the dialog it opened closes (switching Event / Task list keeps it).
+- `openNew(date, time, minutes)`; the event form lasts `minutes`, the task list form gets them as its estimate (max 720);
+  `NewKindSwitch` carries `minutes` across the switch.

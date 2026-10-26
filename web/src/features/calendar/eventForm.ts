@@ -35,10 +35,11 @@ const msg = {
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/** New event: start at `time` (default 09:00) on `date`, one hour long. */
-export function newForm(date: string, time: string | null, calendarId: string, colorId: string | null): EventForm {
+/** New event: start at `time` (default 09:00) on `date`, `minutes` long (default one hour; a drawn block gives its own). */
+export function newForm(date: string, time: string | null, calendarId: string, colorId: string | null, minutes = 60): EventForm {
   const t = time ?? '09:00';
-  const end = fromWallMinutes(wallMinutes(date, t) + 60);
+  // a block drawn on the grid gives the length (feature event-editing); else an hour
+  const end = fromWallMinutes(wallMinutes(date, t) + minutes);
   return {
     title: '', allDay: false, startDate: date, startTime: t, endDate: end.date, endTime: end.time,
     description: '', location: '', calendarId, colorId: colorId ?? '', reminders: { useDefault: true, minutes: [] },

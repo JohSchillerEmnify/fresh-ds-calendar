@@ -37,12 +37,13 @@ export function openNewUndated(): void {
 }
 
 /**
- * Opens the one "new" dialog (FAB, empty slot) as the remembered kind, prefilled with the slot's date/time.
- * `time` is passed only when a slot gave one: the event form fills its own default, the task list form stays untimed.
+ * Opens the one "new" dialog (FAB, empty slot, a block drawn on the grid) as the remembered kind, prefilled with the slot's
+ * date/time. `time` is passed only when a slot gave one: the event form fills its own default, the task list form stays
+ * untimed. `minutes`: the drawn block's length (the event's length, the task list's estimate).
  */
-export function openNew(date?: string, time?: string | null): void {
+export function openNew(date?: string, time?: string | null, minutes?: number): void {
   const ui = useUiStore();
   const kind = lastNewKind();
-  if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', date: createContext(date).date, ...(time !== undefined ? { time } : {}) });
+  if (dialogs[kind]) ui.openDialog(kind, { mode: 'create', date: createContext(date).date, ...(time !== undefined ? { time } : {}), ...(minutes ? { minutes } : {}) });
   else ui.notify(t('calendar.create.editorUnavailable'));
 }

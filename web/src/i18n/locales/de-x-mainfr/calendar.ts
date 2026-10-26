@@ -157,6 +157,7 @@ export default {
     },
   },
   drag: {
+    newBlock: 'Neu · {from} – {to}',
     moveFailed: '„{title}“ konnd ned verschobn wern. {reason}',
     resizeFailed: 'D Länge von „{title}“ konnd ned gändert wern. {reason}',
   },

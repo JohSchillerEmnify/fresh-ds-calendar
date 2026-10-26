@@ -540,3 +540,103 @@ When('I hold the event {string} at the right edge of the time grid until the vie
   const e = await columnsEdges(this);
   await this.heldMove!({ x: (e.left + e.right) / 2, y: this.heldAt!.y }, 1, 0);
 });
+
+// ---------------------------------------------------------------- drawing a block on the empty time grid (C)
+
+/** Page point of a time on a day's column of the visible time grid (exact, so off-quarter times test the snapping). */
+async function gridPoint(w: World, date: string, time: string): Promise<Point> {
+  const col = await box(w.dayColumn(date));
+  const grid = await box(w.page.locator('.tg:not(.fit) [data-testid="time-grid"]').first());
+  const [h, m] = time.split(':').map(Number);
+  return { x: col.x + col.width / 2, y: grid.y + ((h * 60 + m) / 60) * (await hourHeight(w)) };
+}
+
+const toMin = (time: string) => { const [h, m] = time.split(':').map(Number); return h * 60 + m; };
+
+/** Scrolls the grid so minute `min` of the day sits at `at` (0 top .. 1 bottom) of its scroll area, instantly. */
+async function scrollTo(w: World, min: number, at = 0.5) {
+  const hh = await hourHeight(w);
+  await w.page.locator('.tg:not(.fit) [data-scroll-area]').first().evaluate((sc, [y, f]) => { sc.scrollTop = Math.max(0, y - sc.clientHeight * f); }, [(min / 60) * hh, at] as const);
+  await w.page.waitForTimeout(80);
+}
+const centreTime = (w: World, time: string) => scrollTo(w, toMin(time));
+
+/**
+ * Presses on the empty grid at D1 T1 (a finger: long press), moves to D2 T2 in 10 steps; `release`: lets go there.
+ * Both ends are brought on screen together when they fit; otherwise (overnight) the grid is scrolled while the press is
+ * held, the end landing in the upper or lower quarter so the pointer really travels.
+ */
+async function draw(w: World, d1: string, t1: string, d2: string, t2: string, release: boolean) {
+  const sc = await box(w.page.locator('.tg:not(.fit) [data-scroll-area]').first());
+  const span = Math.abs(toMin(t2) - toMin(t1)) / 60 * (await hourHeight(w));
+  const together = d1 === d2 && span < sc.height - 120;
+  await scrollTo(w, together ? (toMin(t1) + toMin(t2)) / 2 : toMin(t1));
+  const from = await gridPoint(w, d1, t1);
+  const later = d2 > d1 || (d2 === d1 && toMin(t2) > toMin(t1));
+  const end = async () => {
+    if (!together) await scrollTo(w, toMin(t2), later ? 0.75 : 0.25);
+    return gridPoint(w, d2, t2);
+  };
+  if (useTouch(w)) {
+    const f = await fingerDown(w, from, 500);
+    await f.move(await end(), 10, 300);
+    w.held = async () => { await f.up(); w.held = undefined; };
+  } else {
+    const { mouse } = w.page;
+    await mouse.move(from.x, from.y);
+    await mouse.down();
+    const to = await end();
+    await mouse.move(to.x, to.y, { steps: 10 });
+    w.held = async () => { await mouse.up(); w.held = undefined; };
+  }
+  if (release) await w.held!();
+}
+
+When('I draw a block on {date} from {time} to {time}', async function (this: World, date: string, t1: string, t2: string) {
+  await draw(this, date, t1, date, t2, true);
+});
+
+When('I draw a block from {date} {time} to {date} {time}', async function (this: World, d1: string, t1: string, d2: string, t2: string) {
+  await draw(this, d1, t1, d2, t2, true);
+});
+
+When('I hold a drawn block on {date} from {time} to {time}', async function (this: World, date: string, t1: string, t2: string) {
+  await draw(this, date, t1, date, t2, false);
+});
+
+When('I long-press the empty time grid on {date} at {time} and let go', async function (this: World, date: string, time: string) {
+  if (!useTouch(this)) throw new Error('needs a finger (phone project)');
+  await centreTime(this, time);
+  const f = await fingerDown(this, await gridPoint(this, date, time), 500);
+  await f.up();
+});
+
+Then('the drawn block is shown on {date} from {time} to {time}', async function (this: World, date: string, from: string, to: string) {
+  const block = this.dayColumn(date).getByTestId('draw-block');
+  await expect(block).toHaveAttribute('data-start-time', from);
+  await expect(block).toHaveAttribute('data-end-time', to);
+  const hh = await hourHeight(this);
+  const grid = await box(this.page.locator('.tg:not(.fit) [data-testid="time-grid"]').first());
+  const mins = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const b = await box(block);
+  expect(Math.abs(b.y - (grid.y + (mins(from) / 60) * hh)), 'top on the grid').toBeLessThanOrEqual(3);
+  expect(Math.abs(b.height - ((mins(to) - mins(from)) / 60) * hh), 'height on the grid').toBeLessThanOrEqual(3);
+});
+
+Then('no drawn block is shown', async function (this: World) {
+  await expect(this.page.getByTestId('draw-block')).toHaveCount(0);
+});
+
+When('I swipe up on the empty time grid of {date}', async function (this: World, date: string) {
+  if (!useTouch(this)) throw new Error('needs a finger (phone project)');
+  await centreTime(this, '12:00');
+  this.gridScrollBefore = await gridScrollTop(this);
+  const from = await gridPoint(this, date, '12:00');
+  const f = await fingerDown(this, from, 0);
+  await f.move({ x: from.x, y: from.y - 200 }, 10, 200);
+  await f.up();
+});
+
+Then('the time grid has scrolled', async function (this: World) {
+  await expect.poll(async () => Math.abs((await gridScrollTop(this)) - (this.gridScrollBefore ?? 0)), { message: 'scrolled' }).toBeGreaterThan(20);
+});

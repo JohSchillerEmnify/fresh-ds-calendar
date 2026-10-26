@@ -33,7 +33,7 @@ import { specialMarker } from '@/lib/items';
 import { fromWallMinutes, wallMinutes } from './zone';
 import { t, type MessageKey } from '@/i18n';
 
-const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; draft?: EventForm; error?: string }>();
+const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; minutes?: number; draft?: EventForm; error?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const settings = useSettingsStore();
@@ -71,7 +71,7 @@ const label = computed(() => {
 
 function blank(): EventForm {
   const ctx = createContext(props.date, props.time);
-  return newForm(ctx.date, ctx.time, 'primary', settings.settings.defaultEventColorId);
+  return newForm(ctx.date, ctx.time, 'primary', settings.settings.defaultEventColorId, props.minutes);
 }
 const form = ref<EventForm>(props.draft ? { ...props.draft } : blank());
 const initial = ref<string>(JSON.stringify(form.value));
@@ -312,7 +312,7 @@ function remove() {
       </div>
     </form>
     <form v-else ref="sheet" class="f" novalidate :style="{ '--accent': accent }" @submit.prevent="save" @keydown.enter="enterNext">
-      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" />
+      <NewKindSwitch v-if="!isEdit" kind="event" :date="form.startDate" :time="switchTime" :minutes="props.minutes" />
       <header class="hd rise" style="--i: 0">
         <span class="dot" aria-hidden="true" />
         <h2 class="t">{{ isEdit ? t('calendar.event.editTitle') : t('calendar.event.newTitle') }}</h2>
