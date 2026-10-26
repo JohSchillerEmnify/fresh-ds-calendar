@@ -17,7 +17,7 @@ import {
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, parseTemplate, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isMinEventMinutes, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isMinEventMinutes, isDaySideBySide, isWeekSideBySide, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 import type { Scope } from '../services/calendar.js';
@@ -182,6 +182,14 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b.minEventMinutes !== undefined) {
       if (!isMinEventMinutes(b.minEventMinutes)) throw validation('minEventMinutes must be 0, 15 or 30', 'minEventMinutes');
       patch.minEventMinutes = b.minEventMinutes;
+    }
+    if (b.daySideBySide !== undefined) {
+      if (!isDaySideBySide(b.daySideBySide)) throw validation('daySideBySide must be 2, 3 or 4', 'daySideBySide');
+      patch.daySideBySide = b.daySideBySide;
+    }
+    if (b.weekSideBySide !== undefined) {
+      if (!isWeekSideBySide(b.weekSideBySide)) throw validation('weekSideBySide must be 2 or 3', 'weekSideBySide');
+      patch.weekSideBySide = b.weekSideBySide;
     }
     if (b.weekTwoRowTop !== undefined) {
       if (b.weekTwoRowTop !== 3 && b.weekTwoRowTop !== 4) throw validation('weekTwoRowTop must be 3 or 4', 'weekTwoRowTop');

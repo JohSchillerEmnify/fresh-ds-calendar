@@ -126,6 +126,7 @@ export default {
       calendarColor: 'Farbe des Kalenders',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden so lang gezeichnet und angeordnet, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
+      sideBySide: { day: 'Tagesansicht: Termine nebeneinander', week: 'Wochenansicht: Termine nebeneinander', hint: 'Überlappende Termine teilen sich die Breite in bis zu so vielen Spalten; weitere liegen versetzt auf der letzten', upTo: 'Bis zu {n}' },
       approachBar: { label: 'Leiste „Gleich“', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte' },
       approachWindow: {
         label: 'Die Leiste reicht voraus',

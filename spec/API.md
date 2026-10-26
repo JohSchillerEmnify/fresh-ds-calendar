@@ -209,6 +209,11 @@ for an unknown value; it returns the full preferences.
 (off). A shorter timed entry is laid out as this long in every time view and the phone widget; the entry's real times
 are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMinutes`).
 
+**Events side by side** (`prefs.daySideBySide` `2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `2 | 3`, default `2`;
+per person, feature event-display, owner 2026-10-25): how many overlapping entries the day / week time grid places in
+columns next to each other before laying further ones over the last column. Any other value answers 400
+`VALIDATION_ERROR` (field `daySideBySide` / `weekSideBySide`).
+
 **Bedtime** (`prefs.bedtime`, per person, feature bedtime): an object
 `{ enabled: boolean; mode: 'fixed' | 'dynamic'; bedtime: 'HH:MM'; wake: 'HH:MM'; weekendDifferent: boolean;
 weekendBedtime: 'HH:MM'; weekendWake: 'HH:MM'; sleepMinutes: 1..960; leadMinutes: 0..480; reminderMinutes: 0..240 }`,

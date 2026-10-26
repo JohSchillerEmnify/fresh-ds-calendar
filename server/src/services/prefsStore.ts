@@ -73,6 +73,18 @@ export type MinEventMinutes = 0 | 15 | 30;
 export function isMinEventMinutes(v: unknown): v is MinEventMinutes {
   return v === 0 || v === 15 || v === 30;
 }
+/** How many overlapping events the day view places side by side (feature event-display). */
+export type DaySideBySide = 2 | 3 | 4;
+/** How many overlapping events the week view places side by side (feature event-display). */
+export type WeekSideBySide = 2 | 3;
+/** Whether `v` is one of the {@link DaySideBySide} choices. */
+export function isDaySideBySide(v: unknown): v is DaySideBySide {
+  return v === 2 || v === 3 || v === 4;
+}
+/** Whether `v` is one of the {@link WeekSideBySide} choices. */
+export function isWeekSideBySide(v: unknown): v is WeekSideBySide {
+  return v === 2 || v === 3;
+}
 
 /** Whether `v` is an allowed approach window length (a whole number of hours, 1–24). */
 export function isApproachWindow(v: unknown): v is ApproachWindowHours {
@@ -237,6 +249,10 @@ export interface Prefs {
   weekTwoRowTop: 3 | 4;
   /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off (feature min-event-length). */
   minEventMinutes: MinEventMinutes;
+  /** Overlapping events side by side in the day view before they cascade (default 4). */
+  daySideBySide: DaySideBySide;
+  /** Overlapping events side by side in the week view and the phone widget's week before they cascade (default 2). */
+  weekSideBySide: WeekSideBySide;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -293,6 +309,8 @@ export class PrefsStore {
       labsGrowCards: p?.labsGrowCards === true,
       weekTwoRowTop: p?.weekTwoRowTop === 3 ? 3 : 4,
       minEventMinutes: isMinEventMinutes(p?.minEventMinutes) ? p.minEventMinutes : 0,
+      daySideBySide: isDaySideBySide(p?.daySideBySide) ? p.daySideBySide : 4,
+      weekSideBySide: isWeekSideBySide(p?.weekSideBySide) ? p.weekSideBySide : 2,
     };
   }
 
@@ -376,8 +394,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide };
   }
 
   /**

@@ -219,7 +219,7 @@ the items on {date} are shown in the order {string}
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span
   and different left edges. "stacked on": the first chip starts lower and further right than the second, boxes overlap
-  vertically (cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
+  vertically, and the first's left edge lies inside the second's width (same column; cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
 - "the items on D are shown in the order": DOM order of `data-title` of event chips and task list cards inside the
   month cell of D.
 
@@ -427,6 +427,7 @@ the task list {string} has no estimate
 
 ```
 Google contains an event {string} on {date} from {time} to {time}
+Google contains an event {string} from {date} {time} to {date} {time}
 Google contains an all-day event {string} from {date} to {date}
 Google contains no event {string}
 the Google event {string} has:
@@ -2741,6 +2742,103 @@ opening the event {string} shows the time {string}
   its own block.
 - "opening the event {string} shows the time {string}": opens the event (its dialog) and checks that its start and end
   time fields hold the two times of `HH:MM–HH:MM`: the real times, whatever length the block is drawn.
+
+## Turning the day or week while dragging (`@dnd`, owner 2026-10-25)
+
+```
+I hold the event {string} at the right edge of the time grid for {int} ms
+I hold the event {string} at the left edge of the time grid for {int} ms
+I hold the task list {string} at the right edge of the time grid for {int} ms
+I keep holding the dragged item for {int} ms
+the edge band says {string}
+I see no edge band
+{string} is still being dragged
+I drop the dragged item on {date} at {time}
+I hold the all-day event {string} at the right edge of the all-day row for {int} ms
+I hold the event {string} over {date} at {time} for {int} ms
+I drop the dragged item in the all-day row on {date}
+```
+
+- "I hold X at the right/left edge of the time grid for N ms": picks X up as in "I pick up" (mouse press; finger long
+  press), moves in 10 steps sideways at the same height to 6 px inside the right/left side of the day columns area
+  (`time-grid` minus the hour labels), i.e. inside the 24 px edge zone, and keeps the pointer there for N ms. The pointer
+  stays down; the world's cleanup releases it. "I keep holding the dragged item for N ms" waits N ms more without moving.
+- "the edge band says T": the visible `drag-edge-band` (`data-side` `left|right`) has the text T. "I see no edge band":
+  no `drag-edge-band` is visible.
+- "X is still being dragged": a card with `data-title` X and `data-dragging="true"` is visible (the drag goes on after
+  the view turned).
+- "I drop the dragged item on D at T": moves the pointer in 10 steps to the 15-minute slot of D at T in the grid shown
+  (scrolling it into view as the auto-scroll does) and releases; waits for the save as after a drop.
+- "I hold the event X over D at T for N ms": picks X up and moves in 10 steps to the horizontal middle of D's day column
+  at the height of T, then keeps the pointer there for N ms (still down).
+- "I hold the all-day event X at the right edge of the all-day row for N ms": the same as the time grid step, with X's
+  chip in the all-day row and the pointer 6 px inside the right side of that row. "I drop the dragged item in the all-day
+  row on D": moves to the `week-allday-cell` of D and releases; waits for the save.
+- The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
+  event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
+
+## Events side by side (`@overlap`; settings `settings-day-side-by-side`, `settings-week-side-by-side`, prefs `daySideBySide`, `weekSideBySide`)
+
+```
+the day view shows up to {int} events side by side
+the week view shows up to {int} events side by side
+I choose up to {int} events side by side in the day view
+I choose up to {int} events side by side in the week view
+the settings show up to {int} events side by side in the day view
+the settings show up to {int} events side by side in the week view
+the entries {string} each take one of {int} equal columns
+the entries are drawn {string}
+the event {string} has a {int} px entry border
+the event {string} has the narrow block padding
+the event {string} has the normal block padding
+the event {string} stays inside its day column
+```
+
+- "the day/week view shows up to N events side by side": patches the pref `daySideBySide` (2, 3 or 4; default 4) or
+  `weekSideBySide` (2 or 3; default 2) through the API.
+- "I choose up to N ... in the day/week view": on the settings screen picks the option `settings-day-side-by-side-N` /
+  `settings-week-side-by-side-N` of that segmented button (labels "Up to N") and waits for the `PATCH /api/prefs`
+  response (status 200). "the settings show up to N ...": that option is the selected one (`aria-pressed="true"`).
+- "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
+  (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of
+  their boxes intersect, and each one's width is the day column's width / N within 4 px.
+- "the entries are drawn S" (`solid`, `tinted` or `outline`): `PATCH /api/prefs/theme { overrides: { entries: S } }`.
+- "has a N px entry border": the computed left plus right border width of X's block is N px (the style was applied).
+- "has the narrow block padding": X's time grid block (`event-chip`) is at most 84 px wide (border box), its computed
+  padding is 3 px left, 2 px right, its title (`event-chip-title`) is 11 px and no duration (`.dur`) is visible. "has the normal block padding": wider than
+  84 px, padding 6 px left, 5 px right, title 13 px. "stays inside its day column": X's chip box ends at or before its day column's right edge (0.5 px
+  tolerance) and starts at or after its left edge.
+- "the event X is stacked on the event Y" (feature event-display) also checks that both blocks share a column: X's left
+  edge lies inside Y's width (a cascade lies over the column, indented from the left; on a narrow phone column a block's
+  minimum width may reach past the column on the right).
+
+## Drawing on the time grid (`@crud`, owner 2026-10-25)
+
+```
+I draw a block on {date} from {time} to {time}
+I draw a block from {date} {time} to {date} {time}
+I hold a drawn block on {date} from {time} to {time}
+the drawn block is shown on {date} from {time} to {time}
+no drawn block is shown
+I swipe up on the empty time grid of {date}
+the time grid has scrolled
+I long-press the empty time grid on {date} at {time} and let go
+```
+
+- "I draw a block on D from T1 to T2": scrolls T1 of D into view, presses on empty grid space of D's day column at T1
+  (mouse press; on the phone a finger held 500 ms), moves in 10 steps to T2 (auto-scrolling as needed) and releases.
+  The times are exact grid positions, so T1 later than T2 draws upwards and off-quarter times test the snapping.
+  "I draw a block from D1 T1 to D2 T2" is the same across day columns (week view). "I hold a drawn block ..." does the
+  same without releasing; the world's cleanup releases it.
+- "the drawn block is shown on D from T1 to T2": the visible `draw-block` segment in D's day column has
+  `data-start-time` T1 and `data-end-time` T2 (`24:00` = end of day) and its top/height match the grid within ±3 px.
+  "no drawn block is shown": no `draw-block` is on the page.
+- "I long-press the empty time grid on D at T and let go": a finger held 500 ms on empty space of D's day column at T,
+  released without moving (phone).
+- "I swipe up on the empty time grid of D": a finger swipe (no hold: touch start, 10 moves 200 px up within 200 ms,
+  touch end) on empty space of D's day column. "the time grid has scrolled": the time grid's scroll container's
+  `scrollTop` differs from its value before the swipe.
+- "Google contains an event X from D1 T1 to D2 T2": like the one-day step, for a timed event ending on another day.
 
 ## Android app and widgets (native, `@android-app`, `@phone-widget`)
 

@@ -24,6 +24,8 @@ Feature: Settings
     And the seed color "Blue" is selected
     And the default view "Month" is selected
     And the default event color "Calendar color" is selected
+    And the settings show up to 4 events side by side in the day view
+    And the settings show up to 2 events side by side in the week view
     And the categories are "Shopping, To-do, Work, Home"
 
   Scenario Outline: The theme mode overrides the system color scheme

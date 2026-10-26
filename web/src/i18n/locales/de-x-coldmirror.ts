@@ -129,6 +129,7 @@ export default {
       calendarColor: 'Farbe vom Kalender, yo',
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kurze Termine werden mindestens so lang gezeichnet. Lesbar bleiben, Digga.', off: 'Aus', minutes: '{n} Min.' },
+      sideBySide: { day: 'Tagesansicht: Termine nebeneinander, yo', week: 'Wochenansicht: Termine nebeneinander, yo', hint: 'So viele Termine passen nebeneinander. Der Rest stapelt sich, Digga.', upTo: 'Bis zu {n}' },
       approachBar: { label: 'Leiste „Gleich“, yo', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte, Digga' },
       approachWindow: {
         label: 'Die Leiste reicht voraus, yo',

@@ -63,7 +63,7 @@ async function push(): Promise<void> {
   if (!calendars.list.length) await calendars.load();
   const snapshot = buildWidgetSnapshot({
     items: cached.items, today, theme: readTheme(), dark: document.documentElement.getAttribute('data-theme') === 'dark',
-    language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes,
+    language: language.value, now: new Date(), hiddenCalendars: useCalendarsStore().hidden, minEventMinutes: usePrefsStore().minEventMinutes, weekSideBySide: usePrefsStore().weekSideBySide,
     categoriesOn: usePrefsStore().taskCategories,
   });
   const content = JSON.stringify({ ...snapshot, generatedAt: '' });

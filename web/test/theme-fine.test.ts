@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyAttrs } from '@/theme';
+import { entryBorderPx, entryStyle } from '@/theme/entryStyle';
 import {
   DENSITY_SCALE, fineVars, glowVars, GLOW_STEPS, radiusVars, RADIUS_STEPS, sanitizeFine, stepOf,
 } from '@/theme/fine';
@@ -101,6 +102,25 @@ describe('applying', () => {
     expect(root.style.getPropertyValue('--r-chip')).toBe('');
     expect(root.dataset.check).toBe('tick');
     expect(localStorage.getItem('cal.themeFine')).toBe('');
+  });
+});
+
+describe('entry style', () => {
+  beforeEach(() => { localStorage.clear(); });
+
+  it('follows every apply on the page, so a block knows its border without a resize (live preview)', () => {
+    const root = document.documentElement;
+    for (const entries of ['outline', 'tinted', 'solid'] as const) {
+      applyAttrs(resolveTheme({ preset: 'Default', overrides: { entries }, seasonal: 'off' }, TODAY), root);
+      expect(entryStyle.value).toBe(entries);
+    }
+    // an apply to another element (a sample) leaves the page's style alone
+    applyAttrs(resolveTheme({ preset: 'Default', overrides: { entries: 'outline' }, seasonal: 'off' }, TODAY), document.createElement('div'));
+    expect(entryStyle.value).toBe('solid');
+  });
+
+  it('gives the left plus right border of each entry style (theme.css)', () => {
+    expect([entryBorderPx('solid'), entryBorderPx('tinted'), entryBorderPx('outline')]).toEqual([0, 3, 4]);
   });
 });
 
