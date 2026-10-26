@@ -2,12 +2,14 @@
  * The service worker (vite-plugin-pwa `injectManifest`). It does what the generated worker did: precaches the build, serves
  * `/index.html` for client routes (not for `/api/`, the APK and the privacy page), never caches `/api/`, claims open pages
  * at once, and waits for the `SKIP_WAITING` message of "Reload" before it takes over (registerType 'prompt'). On top it
- * shows Web Push reminders (`push`) and focuses or opens the app when one is tapped (`notificationclick`).
+ * shows Web Push reminders (`push`) and focuses or opens the app when one is tapped (`notificationclick`), and keeps the
+ * map pictures an event's map has shown for offline use (`pwa/tileCache.ts`, feature event-location).
  */
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkOnly } from 'workbox-strategies';
 import { notificationLook } from './pwa/notificationLook';
+import { isTileRequest, serveTile, TILE_CACHE } from './pwa/tileCache';
 
 /** The parts of the worker scope this file uses (the project compiles with the DOM lib, not the WebWorker one). */
 interface WorkerScope {
@@ -27,6 +29,8 @@ const sw = self as unknown as WorkerScope;
 precacheAndRoute((self as unknown as WorkerScope).__WB_MANIFEST);
 cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/app\.apk$/, /^\/app\.json$/, /^\/privacy\.html$/] }));
+// map pictures (the tile server, or the TEST_MODE stand-in under /api): network first, the shown ones kept for offline
+registerRoute(({ request, url }) => isTileRequest(request.destination, url), async ({ request }) => serveTile(request, await caches.open(TILE_CACHE), (r) => fetch(r), Date.now()));
 // /api is never cached
 registerRoute(({ url }) => /^\/api\//.test(url.pathname), new NetworkOnly());
 
