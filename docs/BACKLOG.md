@@ -69,11 +69,6 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Features
 
-- **Livelier place suggestions** (owner, 2026-10-26: go, after the header work; spec first). Today every keystroke
-  clears the list and it returns after a 300 ms pause plus Photon's answer (`LocationField.vue`). Keep the shown
-  suggestions while typing and swap them when the new answer arrives, pause about 150 ms, remember answers while the
-  event is open (deleting a letter shows the earlier list without asking again), keep the 3-character minimum. Photon
-  only asks for fair use ("extensive usage will be throttled", no numbers); requests come from each device.
 - **In-app: should a session expiring mid-use return to the open page?** (2026-10-23, owner to confirm). The 401
   listener remembers the open page before it leaves for sign-in (unit-tested in `web/test/stores.test.ts`), but no
   scenario specifies it.
