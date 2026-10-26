@@ -55,14 +55,19 @@ Then('the entries {string} each take one of {int} equal columns', async function
   }).toBe('');
 });
 
-/** The border-box width, horizontal padding and title size of an event's time grid block. */
+/** The border-box width, horizontal padding, border, title size and duration visibility of an event's time grid block. */
 async function blockBox(w: World, title: string) {
   const chip = w.eventChip(title);
   await expect(chip).toBeVisible();
   return chip.evaluate((el) => {
     const s = getComputedStyle(el);
     const t = el.querySelector('[data-testid="event-chip-title"]');
-    return { left: s.paddingLeft, right: s.paddingRight, width: el.getBoundingClientRect().width, font: t ? getComputedStyle(t).fontSize : '' };
+    const dur = el.querySelector('.dur');
+    return {
+      left: s.paddingLeft, right: s.paddingRight, width: el.getBoundingClientRect().width, font: t ? getComputedStyle(t).fontSize : '',
+      border: (parseFloat(s.borderLeftWidth) || 0) + (parseFloat(s.borderRightWidth) || 0),
+      durShown: !!dur && getComputedStyle(dur).display !== 'none',
+    };
   });
 }
 
@@ -70,10 +75,14 @@ Given('the entries are drawn {string}', async function (this: World, entries: st
   await this.api.patch('/api/prefs/theme', { overrides: { entries } });
 });
 
+Then('the event {string} has a {int} px entry border', async function (this: World, title: string, px: number) {
+  await expect.poll(async () => (await blockBox(this, title)).border).toBe(px);
+});
+
 Then('the event {string} has the narrow block padding', async function (this: World, title: string) {
   await expect.poll(async () => {
     const b = await blockBox(this, title);
-    return b.width <= 84 ? `${b.left} ${b.right} ${b.font}` : `wide: ${b.width}`;
+    return b.width <= 84 ? `${b.left} ${b.right} ${b.font}${b.durShown ? ' with duration' : ''}` : `wide: ${b.width}`;
   }).toBe('3px 2px 11px');
 });
 

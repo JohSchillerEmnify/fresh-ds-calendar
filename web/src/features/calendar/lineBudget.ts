@@ -16,8 +16,9 @@ export function wrapLines(title: string, cpl: number): number {
 }
 
 /**
- * `height`/`width`: block box in px; `padV`: vertical padding; `lineH`: title line height; `timeH`: time row height;
- * `charW`: average glyph width. Title lines = what the text needs, capped by the height; the time row appears only when
+ * `height`: block box height in px; `width`: the content width the title wraps in (px, padding and border already taken
+ * off); `padH`: a safety margin (px) taken off that width, as glyph widths are only estimated; `padV`: vertical padding;
+ * `lineH`: title line height; `timeH`: time row height; `charW`: average glyph width. Title lines = what the text needs, capped by the height; the time row appears only when
  * the whole wrapped title plus one row still fits.
  */
 export function blockBudget(i: { title: string; height: number; width: number; padV: number; lineH: number; timeH: number; charW: number; padH: number }): LineBudget {

@@ -14,6 +14,7 @@ import { inPreview } from '@/composables/usePreview';
 import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
+import { entryBorderPx, entryStyle } from '@/theme/entryStyle';
 import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
 import ResizeHandles from './ResizeHandles.vue';
@@ -46,12 +47,8 @@ const h = computed(() => props.height ?? 0);
 const { width: boxWidth } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)), undefined, { box: 'border-box' });
 /** Narrow blocks (border box <= 84 px) use the tight padding and 11 px / 13 px type. */
 const narrow = computed(() => boxWidth.value > 0 && boxWidth.value <= 84);
-/** Left plus right border of the entry style (0 solid, 3 tinted, 4 outline), read again whenever the block's width changes. */
-const border = computed(() => {
-  if (!boxWidth.value || !root.value) return 0;
-  const st = getComputedStyle(root.value);
-  return (parseFloat(st.borderLeftWidth) || 0) + (parseFloat(st.borderRightWidth) || 0);
-});
+/** Left plus right border of the page's entry style (0 solid, 3 tinted, 4 outline), reactive so a live style change counts. */
+const border = computed(() => entryBorderPx(entryStyle.value));
 /** The content width the title wraps in: the border box less the padding (2 + 3 px narrow, 5 + 6 px otherwise) and border. */
 const width = computed(() => (boxWidth.value ? Math.max(0, boxWidth.value - (narrow.value ? 5 : 11) - border.value) : 0));
 const budget = computed(() => blockBudget({

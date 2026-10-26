@@ -5,6 +5,7 @@
  */
 import type { ThemeFont } from '@calendar/shared';
 import { fineVars } from './fine';
+import { entryStyle } from './entryStyle';
 import { iconSet } from './iconSet';
 import type { ResolvedTheme } from './presets';
 
@@ -66,6 +67,8 @@ export function applyAttrs(t: ResolvedTheme, root: HTMLElement = document.docume
   root.setAttribute('data-theme-name', t.name);
   root.setAttribute('data-glow', t.attrs.glow);
   root.setAttribute('data-entries', t.attrs.entries);
+  // the page's blocks read the style's border from this, not from a style read that only reruns on a resize
+  if (root === root.ownerDocument.documentElement) entryStyle.value = t.attrs.entries;
   root.setAttribute('data-corners', t.attrs.corners);
   root.setAttribute('data-scene', t.attrs.scene);
   // checkbox choices are attributes (the glyph is picked by CSS), the numbers are inline custom properties
