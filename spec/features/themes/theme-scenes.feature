@@ -115,3 +115,11 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Then the top bar scene is still
     When 10 minutes pass
     Then the top bar scene is still
+
+  Scenario: The visitor flies across the top bar scene
+    The visitor flies through the picture, not in a corner (owner, 2026-10-26: on a phone it only fluttered in the top
+    left corner, barely visible; the build had dropped its flight).
+    Given the seasons and holidays follow the calendar
+    And the time is 2026-10-31 18:00 and the clock is running
+    When I open the week view for 2026-10-31
+    Then the visitor flies across the top bar scene

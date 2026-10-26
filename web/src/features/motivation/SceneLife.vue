@@ -99,8 +99,9 @@ const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
 .at-sky { position: absolute; right: 13%; top: -10%; height: min(62cqh, 40px); width: auto; }
 @container (max-width: 520px) { .extra { display: none; } }
 
-/* the visiting butterfly (~10 s): Full flutters through (sometimes resting on a flower), Reduced only rests in place */
-.flutter { position: absolute; left: 0; top: 0; width: 18px; animation: 10s ease-in-out both; }
+/* the visiting butterfly (~10 s): Full flutters through (sometimes resting on a flower), Reduced only rests in place.
+   Longhands, not `animation: 10s …`: the build's minifier turns a shorthand without a name into `animation: none`. */
+.flutter { position: absolute; left: 0; top: 0; width: 18px; animation-duration: 10s; animation-timing-function: ease-in-out; animation-fill-mode: both; }
 .flutter.b { --bw-wing: color-mix(in oklab, #ffc83d 70%, var(--md-sys-color-tertiary, #b5486f)); --bw-lower: color-mix(in oklab, #ff9a3d 60%, var(--md-sys-color-primary, #6750a4)); }
 .flutter.fly { animation-name: life-fly; }
 .flutter.fly-rest { animation-name: life-fly-rest; }
