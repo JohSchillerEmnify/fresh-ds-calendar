@@ -68,8 +68,8 @@ Tracked here so it survives across sessions. Newest first within each section. M
   canvas mockups). (a) Schedule: a calendar shows only on chosen days/times, e.g. the work calendar only Monday to
   Friday. (b) Temporarily off: hide a calendar for a few days, and it comes back by itself afterwards. Both from a long
   press on the calendar's chip (owner: at least the temporary one must be a long press); the schedule may also live in
-  Settings. Open: what "off" hides (views, widget, reminders, daily summary?), how a hidden calendar is shown as
-  hidden/scheduled, and whether the setting syncs across devices (device-first, ADR 0025).
+  Settings. "Off" means exactly what switching a calendar off by hand does today (same hiding, same look, same sync);
+  this feature only switches it automatically (owner: "the behavior is already there, just currently manual").
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
