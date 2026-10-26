@@ -7,6 +7,13 @@ import { defineBddConfig } from 'playwright-bdd';
  */
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
 const specDir = process.env.E2E_SPEC_DIR ?? '../spec';
+/**
+ * Every host but the app under test fails to resolve in Chromium, so a scenario can never reach a real outside service
+ * (e.g. the place search or the OpenStreetMap map pictures, feature event-location; in TEST_MODE the app is pointed at
+ * the server's own stand-ins). Done in the browser rather than with `context.route`, which would turn off the HTTP cache
+ * for every scenario.
+ */
+const onlyAppHost = { args: [`--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE ${new URL(baseURL).hostname}`] };
 
 const testDir = defineBddConfig({
   features: `${specDir}/features/**/*.feature`,
@@ -54,6 +61,7 @@ export default defineConfig({
         isMobile: true,
         hasTouch: true,
         userAgent: devices['Pixel 7'].userAgent,
+        launchOptions: onlyAppHost,
       },
     },
     {
@@ -67,6 +75,7 @@ export default defineConfig({
         isMobile: true,
         hasTouch: true,
         userAgent: devices['iPad (gen 7)'].userAgent,
+        launchOptions: onlyAppHost,
       },
     },
     {
@@ -85,6 +94,7 @@ export default defineConfig({
         deviceScaleFactor: 1,
         isMobile: false,
         hasTouch: false,
+        launchOptions: onlyAppHost,
       },
     },
   ],
