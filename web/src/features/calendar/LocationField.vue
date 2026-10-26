@@ -130,20 +130,22 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
   <div class="loc">
     <TextField
       :model-value="modelValue" :label="label" data-testid="event-location" data-field="location" autocomplete="off" enterkeyhint="next"
-      role="combobox" aria-autocomplete="list" :aria-expanded="open" :aria-controls="listId" :aria-activedescendant="active >= 0 ? optionId(active) : undefined"
+      role="combobox" aria-autocomplete="list" :aria-expanded="open" :aria-controls="open ? listId : undefined" :aria-activedescendant="active >= 0 ? optionId(active) : undefined"
       @update:model-value="onInput" @keydown="onKeydown" @blur="onBlur" @focus="onFocus"
     />
     <p v-if="place?.address" class="addr" data-testid="event-location-address">{{ place.address }}</p>
-    <div v-if="open" :id="listId" ref="list" class="list" role="listbox" :aria-label="t('calendar.event.place.suggestions')" data-testid="place-suggestions" @mousedown.prevent>
-      <div
-        v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" class="opt" :class="{ on: i === active }" role="option" :aria-selected="i === active"
-        data-testid="place-suggestion" @click="pick(h, true)"
-      >
-        <IconLocationOn class="pin" aria-hidden="true" />
-        <span class="txt">
-          <span class="name" data-testid="place-suggestion-name">{{ h.name }}</span>
-          <span v-if="h.address" class="sub" data-testid="place-suggestion-address">{{ h.address }}</span>
-        </span>
+    <div v-if="open" ref="list" class="list" data-testid="place-suggestions" @mousedown.prevent>
+      <div :id="listId" role="listbox" :aria-label="t('calendar.event.place.suggestions')">
+        <div
+          v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" class="opt" :class="{ on: i === active }" role="option" :aria-selected="i === active"
+          data-testid="place-suggestion" @click="pick(h, true)"
+        >
+          <IconLocationOn class="pin" aria-hidden="true" />
+          <span class="txt">
+            <span class="name" data-testid="place-suggestion-name">{{ h.name }}</span>
+            <span v-if="h.address" class="sub" data-testid="place-suggestion-address">{{ h.address }}</span>
+          </span>
+        </div>
       </div>
       <p class="credit" data-testid="place-suggestions-credit">{{ t('calendar.event.place.credit') }}</p>
     </div>

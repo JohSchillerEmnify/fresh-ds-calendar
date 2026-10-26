@@ -66,6 +66,7 @@ describe('location field', () => {
     const { w, input } = await mountField();
     await type(input, 'Za', 1000);
     expect(calls).toHaveLength(0);
+    expect(input.attributes('aria-controls')).toBeUndefined();
     expect(w.find(tid('place-suggestions')).exists()).toBe(false);
   });
 
@@ -81,6 +82,9 @@ describe('location field', () => {
     const rows = w.findAll(tid('place-suggestion'));
     expect(rows.map((r) => [r.get(tid('place-suggestion-name')).text(), r.get(tid('place-suggestion-address')).text()])).toEqual([[weber.name, weber.address], [mitte.name, mitte.address]]);
     expect(w.get(tid('place-suggestions-credit')).text()).toBe('© OpenStreetMap');
+    // the credit is no option: it sits outside the listbox the field controls
+    expect(w.get(tid('place-suggestions-credit')).element.closest('[role="listbox"]')).toBeNull();
+    expect(input.attributes('aria-controls')).toBe(w.get('[role="listbox"]').attributes('id'));
     expect(input.attributes('aria-expanded')).toBe('true');
     // the list is brought into view above the dialog's actions
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
