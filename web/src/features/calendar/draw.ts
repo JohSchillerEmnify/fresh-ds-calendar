@@ -31,8 +31,9 @@ const EDGE_PX = 56;
 const EDGE_DWELL_MS = 400;
 
 /**
- * The block a press and the pointer's place give: each end snapped to the nearest quarter hour, the earlier one first,
- * at least 15 minutes; a long press that never moved gives the quarter hour under the finger.
+ * The block a press and the pointer's place give: the press's quarter hour (floored, the one a long press shows) and the
+ * pointer's nearest quarter hour, the earlier one first, at least 15 minutes; a long press that never moved gives the
+ * quarter hour under the finger.
  *
  * @param press Minutes where the press was.
  * @param at Minutes where the pointer is now.
@@ -44,7 +45,8 @@ export function drawRange(press: number, at: number, still: boolean): DrawRange 
     const start = Math.floor(press / STEP) * STEP;
     return { start, end: start + STEP };
   }
-  const a = Math.round(press / STEP) * STEP, b = Math.round(at / STEP) * STEP;
+  // the press keeps the quarter a long press showed (floored); the pointer's end snaps to the nearest quarter
+  const a = Math.floor(press / STEP) * STEP, b = Math.round(at / STEP) * STEP;
   const start = Math.min(a, b);
   return { start, end: Math.max(a, b, start + STEP) };
 }
@@ -77,15 +79,13 @@ export function drawnPiece(date: string): { start: number; end: number } | null 
 export interface GridDrawOptions {
   /** The grid's scroll container (locked and auto-scrolled while drawing). */
   scroller: () => HTMLElement | null;
-  /** True when drawing is off (the two-row overview, a swipe preview). */
-  disabled: () => boolean;
 }
 
 /**
  * Binds drawing to a time grid element (`[data-testid=time-grid]` with its day columns). Returns the disposer.
  *
  * @param grid The time grid element.
- * @param o Scroll container and the switch.
+ * @param o The scroll container.
  * @returns A function that removes every listener.
  */
 export function bindGridDraw(grid: HTMLElement, o: GridDrawOptions): () => void {
@@ -131,7 +131,9 @@ export function bindGridDraw(grid: HTMLElement, o: GridDrawOptions): () => void 
   }
 
   const onSelect = (e: Event) => { if (state !== 'idle') e.preventDefault(); };
+  /** Swallows the click on the grid right after a drawing (the slot would open the dialog at its hour); others pass. */
   const onClickCapture = (e: Event) => {
+    if (!(e.target instanceof Node) || !grid.contains(e.target)) return;
     window.removeEventListener('click', onClickCapture, true);
     e.stopPropagation();
     e.preventDefault();
@@ -166,7 +168,9 @@ export function bindGridDraw(grid: HTMLElement, o: GridDrawOptions): () => void 
   }
 
   function onDown(e: PointerEvent) {
-    if (state !== 'idle' || o.disabled() || !e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    // a second finger (a pinch to zoom) ends a press that may draw
+    if (!e.isPrimary) { if (state === 'pending') reset(); return; }
+    if (state !== 'idle' || (e.pointerType === 'mouse' && e.button !== 0)) return;
     const t = e.target as Element | null;
     // empty grid only: an entry or its handles start their own gestures
     if (!t?.closest('[data-testid="time-slot"]')) return;
@@ -249,7 +253,11 @@ export function bindGridDraw(grid: HTMLElement, o: GridDrawOptions): () => void 
     if (state === 'drawing') abort();
   }
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape' && state !== 'idle') abort();
+    if (e.key !== 'Escape' || state === 'idle') return;
+    // the Escape ends the drawing only (no dialog or view behind hears it)
+    e.stopPropagation();
+    e.preventDefault();
+    abort();
   }
   function onScroll() {
     if (state === 'drawing') show();
@@ -275,8 +283,12 @@ export function bindGridDraw(grid: HTMLElement, o: GridDrawOptions): () => void 
     if (clickTimer) clearTimeout(clickTimer);
     clickTimer = setTimeout(() => { clickTimer = null; window.removeEventListener('click', onClickCapture, true); }, 400);
     const day = Math.floor(p.range.start / DAY);
+    const ui = useUiStore();
+    const before = ui.dialog;
     openNew(p.dates[day], minutesToTime(p.range.start - day * DAY), p.range.end - p.range.start);
-    keepUntilDialogCloses();
+    // no dialog opened (its editor is unavailable): nothing to keep the block for
+    if (ui.dialog === before) drawPreview.value = null;
+    else keepUntilDialogCloses();
   }
 
   /** Auto-scroll while the pointer rests near the top or bottom of the scroll container. */
@@ -300,11 +312,17 @@ export function bindGridDraw(grid: HTMLElement, o: GridDrawOptions): () => void 
 
   // iOS: a non-passive touchmove listener on the grid from the start, so a drawing can stop the scroll once it begins
   const onGridTouchMove = (e: TouchEvent) => { if (state === 'drawing' && e.cancelable) e.preventDefault(); };
-  const onGridTouchStart = (e: TouchEvent) => { if (state === 'pending' && touchId === null) touchId = e.changedTouches?.[0]?.identifier ?? null; };
+  const onGridTouchStart = (e: TouchEvent) => {
+    // a second finger while the press is pending is a pinch (zoom), never a drawing
+    if (state === 'pending' && (e.touches?.length ?? 1) > 1) { reset(); return; }
+    if (state === 'pending' && touchId === null) touchId = e.changedTouches?.[0]?.identifier ?? null;
+  };
   grid.addEventListener('pointerdown', onDown);
   grid.addEventListener('touchstart', onGridTouchStart, { passive: true });
   grid.addEventListener('touchmove', onGridTouchMove, { passive: false });
   return () => {
+    // a grid that goes mid-drawing takes its block (one kept behind an open dialog stays)
+    if (state === 'drawing') drawPreview.value = null;
     reset();
     if (clickTimer) clearTimeout(clickTimer);
     window.removeEventListener('click', onClickCapture, true);

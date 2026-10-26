@@ -136,7 +136,8 @@ onMounted(() => {
   }
   if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hh.value, preview: previewZoom, commit: commitZoom });
   // draw a block on the empty grid to create (feature event-editing); not in a swipe preview
-  if (gridEl.value && !preview) unbindDraw = bindGridDraw(gridEl.value, { scroller: () => scroller.value, disabled: () => !!props.fit });
+  // (the two-row overview returned above: it has no drawing)
+  if (gridEl.value && !preview) unbindDraw = bindGridDraw(gridEl.value, { scroller: () => scroller.value });
 });
 onBeforeUnmount(() => { unbindZoom(); unbindDraw(); ro?.disconnect(); });
 watch(() => props.mode, () => nextTick(initialScroll));

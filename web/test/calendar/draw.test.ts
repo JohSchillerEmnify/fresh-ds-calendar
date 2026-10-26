@@ -68,7 +68,7 @@ describe('the draw gesture on a time grid', () => {
       grid.appendChild(col);
     });
     document.body.appendChild(grid);
-    dispose = bindGridDraw(grid, { scroller: () => null, disabled: () => false });
+    dispose = bindGridDraw(grid, { scroller: () => null });
   });
   afterEach(() => { dispose(); grid.remove(); drawPreview.value = null; vi.useRealTimers(); vi.unstubAllGlobals(); });
   const slot = () => grid.querySelector<HTMLElement>('[data-testid="time-slot"]')!;
@@ -115,12 +115,81 @@ describe('the draw gesture on a time grid', () => {
     up(at(600), 'touch');
     expect(opened).toEqual([]);
   });
-  it('touch: the grid has its own non-passive touchmove listener, which stops the scroll only while drawing', () => {
-    const tm = () => { const e = new Event('touchmove', { bubbles: true, cancelable: true }); Object.defineProperty(e, 'touches', { value: [] }); slot().dispatchEvent(e); return e.defaultPrevented; };
+  it('touch: the grid has its own non-passive touchmove listener from the start, which stops the scroll only while drawing', () => {
+    dispose();
+    const add = vi.spyOn(grid, 'addEventListener');
+    dispose = bindGridDraw(grid, { scroller: () => null });
+    const call = add.mock.calls.find((c) => c[0] === 'touchmove')!;
+    expect(call[2]).toEqual({ passive: false });
+    const handler = call[1] as (e: Event) => void;
+    const tm = () => { const e = new Event('touchmove', { cancelable: true }); handler(e); return e.defaultPrevented; };
     down(at(540), 'touch');
     expect(tm()).toBe(false);
     vi.advanceTimersByTime(400);
     expect(tm()).toBe(true);
     up(at(540), 'touch');
+    add.mockRestore();
+  });
+  it('touch: a second finger during the long press (a pinch to zoom) never starts a drawing', () => {
+    down(at(540), 'touch');
+    const ts = new Event('touchstart', { bubbles: true });
+    Object.defineProperty(ts, 'touches', { value: [{ identifier: 1 }, { identifier: 2 }] });
+    Object.defineProperty(ts, 'changedTouches', { value: [{ identifier: 2 }] });
+    slot().dispatchEvent(ts);
+    vi.advanceTimersByTime(400);
+    expect(drawPreview.value).toBeNull();
+    // a non-primary pointer (the second finger) ends a pending press as well
+    down(at(540), 'touch');
+    slot().dispatchEvent(Object.assign(pe('pointerdown', { ...at(600), pointerType: 'touch' }), { isPrimary: false, pointerId: 2 }));
+    vi.advanceTimersByTime(400);
+    expect(drawPreview.value).toBeNull();
+  });
+  it('Escape during a drawing ends it without a block and goes no further', () => {
+    down(at(540));
+    move(at(600));
+    const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    const seen = vi.fn();
+    document.body.addEventListener('keydown', seen);
+    document.body.dispatchEvent(esc);
+    expect(drawPreview.value).toBeNull();
+    expect(seen).not.toHaveBeenCalled();
+    document.body.removeEventListener('keydown', seen);
+  });
+  it('a grid that goes away mid-drawing takes its block with it', () => {
+    down(at(540));
+    move(at(600));
+    expect(drawPreview.value).not.toBeNull();
+    dispose();
+    expect(drawPreview.value).toBeNull();
+    dispose = () => {};
+  });
+  it('after a drawing only a click on the grid is swallowed, and only right after it', () => {
+    down(at(540));
+    move(at(630));
+    up(at(630));
+    const outside = new MouseEvent('click', { bubbles: true, cancelable: true });
+    document.body.dispatchEvent(outside);
+    expect(outside.defaultPrevented).toBe(false);
+    vi.advanceTimersByTime(450);
+    const late = new MouseEvent('click', { bubbles: true, cancelable: true });
+    slot().dispatchEvent(late);
+    expect(late.defaultPrevented).toBe(false);
+  });
+  it('a drawing moved from a long press starts at the quarter it showed (no jump)', () => {
+    down(at(560), 'touch');
+    vi.advanceTimersByTime(400);
+    move(at(600), 'touch');
+    expect(drawPreview.value?.range.start).toBe(555);
+    up(at(600), 'touch');
+  });
+  it('when no dialog can open, the drawn block does not stay', async () => {
+    const { dialogs } = await import('@/extensions/registry');
+    const saved = dialogs.event;
+    delete (dialogs as Record<string, unknown>).event;
+    down(at(540));
+    move(at(630));
+    up(at(630));
+    expect(drawPreview.value).toBeNull();
+    (dialogs as Record<string, unknown>).event = saved;
   });
 });
