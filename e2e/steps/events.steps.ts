@@ -79,21 +79,6 @@ Then('every all-day entry in the band is no taller than an all-day entry', async
   expect(heights.filter((h) => h > max + 0.5), `all-day entry heights (max ${max} px): ${heights.join(', ')}`).toEqual([]);
 });
 
-Then("the band's section switch is easy to tap and covers no entry or day header", async function (this: World) {
-  const sw = await box(this.byTestId('tasks-section-toggle').locator('visible=true').first());
-  expect(sw.height, 'switch height in px').toBeGreaterThanOrEqual(44);
-  const others = this.page.locator(`${tid('week-header')}, ${tid('day-header')}`).locator('visible=true').or(bandChips(this));
-  const boxes = await others.evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, id: `${e.getAttribute('data-testid')} ${e.getAttribute('data-date')}` }; }));
-  expect(boxes.length, 'headers and entries found').toBeGreaterThan(0);
-  const hit = boxes.filter((b) => sw.x < b.x + b.width - 0.5 && b.x < sw.x + sw.width - 0.5 && sw.y < b.y + b.height - 0.5 && b.y < sw.y + sw.height - 0.5);
-  expect(hit.map((b) => b.id), 'elements under the switch').toEqual([]);
-  // the whole tap area lies inside the band, and the band does not scroll on its account
-  const band = this.page.locator('.alldays').locator('visible=true').first();
-  const [bandBox, overflow] = [await box(band), await band.evaluate((e) => e.scrollHeight - e.clientHeight)];
-  expect(sw.y + sw.height, 'switch bottom vs band bottom').toBeLessThanOrEqual(bandBox.y + bandBox.height + 0.5);
-  expect(overflow, 'band scroll overflow in px').toBeLessThanOrEqual(0.5);
-});
-
 Then('the bar {string} shows no continuation arrows', async function (this: World, title: string) {
   await expect(firstBar(this, title)).toBeVisible();
   const bars = this.eventBars(title);

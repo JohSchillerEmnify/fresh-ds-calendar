@@ -198,7 +198,6 @@ the all-day event {string} on {date} is at the height of the bar {string}
 the bar {string} has the height of the chip {string}
 the bar {string} shows no continuation arrows
 every all-day entry in the band is no taller than an all-day entry
-the band's section switch is easy to tap and covers no entry or day header
 I see the all-day event {string} on {date}
 I do not see the event {string}
 I do not see the event {string} on {date}
@@ -218,9 +217,7 @@ the items on {date} are shown in the order {string}
 - "the all-day event A on D is at the height of the bar B": A's chip top equals B's `event-bar` top within 3 px; when B is not on the page (day view clipped away), the top of the all-day area of D.
 - "every all-day entry in the band is no taller than an all-day entry": there is at least one visible `event-chip` in the
   `week-allday-cell` / `day-allday-area` cells, and each is at most 22 px tall at a viewport at least 768 px wide, 18 px
-  below (the all-day entry's own height), with 0.5 px slack. "the band's section switch is easy to tap and covers no
-  entry or day header": the first visible `tasks-section-toggle` is at least 44 px tall, and its box does not overlap any
-  visible `week-header` / `day-header` or any visible `event-chip` in the band, and it ends inside the band, which does not scroll.
+  below (the all-day entry's own height), with 0.5 px slack.
 - "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
   `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
 - Month slots (feature event-display): "the first entry of the month cell of D" is the
@@ -3006,6 +3003,7 @@ the week view shows {int} day headers
 the all-day row is shown
 the all-day row is not shown
 the tasks section switch is shown
+the tasks section switch is not shown
 I pick up the task list {string}
 no character of the top bar scene is under a control
 the top bar scene's parts are drawn at their full size
@@ -3058,9 +3056,11 @@ the top bar's widgets are in reverse order
 - "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
   N day headers": N visible `week-header` elements.
 - "the all-day row is shown": the all-day row of the first time grid (`day-allday-area`, or the `week-allday-cell`s)
-  is visible and at least 30 px tall. "is not shown": the all-day band (`.alldays` of the first time grid) is absent or
+  is visible and at least 18 px tall
+  (one entry's height on a phone; the row is as tall as its entries). "is not shown": the all-day band (`.alldays` of the first time grid) is absent or
   0 px tall.
-- "the tasks section switch is shown": `tasks-section-toggle` is visible.
+- "the tasks section switch is shown": `tasks-section-toggle` is visible; "is not shown": no visible `tasks-section-toggle`
+  in the first time grid (it shows only when task lists are in the all-day row).
 - "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
   long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
 - "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,

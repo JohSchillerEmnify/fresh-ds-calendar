@@ -224,14 +224,14 @@ Feature: A smaller header: two rows or one row
       Then the week view shows 7 day headers
 
   Rule: The all-day row is there only when it has something to show
+    Its switch (titles / expanded task lists) shows only when task lists are in the row: with nothing to switch there
+    is no switch (owner, 2026-10-26).
 
-    @backlog
     Scenario: A day without all-day entries or task lists has no all-day row
       Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
       When I open the day view for 2026-10-12
       Then the all-day row is not shown
 
-    @backlog
     Scenario: A task list without a time brings the all-day row back with its switch
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | Milk |
@@ -240,14 +240,13 @@ Feature: A smaller header: two rows or one row
       And the task list "Groceries" is shown in the all-day area on 2026-10-12
       And the tasks section switch is shown
 
-    @backlog
     Scenario: An all-day event brings the all-day row back
       Given the calendar contains an all-day event "Trip" on 2026-10-12
       When I open the day view for 2026-10-12
       Then the all-day row is shown
       And I see the all-day event "Trip" on 2026-10-12
+      And the tasks section switch is not shown
 
-    @backlog
     Scenario Outline: In the week view one day with something keeps the all-day row for the whole week
       Given the calendar contains <entry>
       When I open the week view for 2026-10-12
@@ -258,7 +257,6 @@ Feature: A smaller header: two rows or one row
         | an all-day event "Trip" on 2026-10-17                     | shown     |
         | an event "Dentist" on 2026-10-14 from 10:40 to 11:30      | not shown |
 
-    @backlog
     Scenario: While something is dragged the all-day row appears, so a task list can still lose its time there
       Given the calendar contains a task list "Packing" on 2026-10-12 at 18:00 with items:
         | Socks |
@@ -269,7 +267,14 @@ Feature: A smaller header: two rows or one row
       When I drop the dragged item in the all-day row on 2026-10-12
       Then the task list "Packing" is shown in the all-day area on 2026-10-12
 
-    @backlog
+    # a timed event cannot become all-day by a drop, so its drag brings no row (it would hide the drop time it aims by)
+    @desktop
+    Scenario: Dragging a timed event does not bring the all-day row
+      Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
+      When I open the day view for 2026-10-12
+      And I pick up the event "Dentist" and move it down by 1 hours
+      Then the all-day row is not shown
+
     Scenario: The all-day row goes again when a drag ends without a drop there
       Given the calendar contains a task list "Packing" on 2026-10-12 at 18:00 with items:
         | Socks |

@@ -13,7 +13,7 @@ import { useNav } from '@/composables/useNav';
 import { bindGridZoom, gridYUnder, hourHeight, previewShift, provideHourHeight, setHourHeight } from '@/composables/useHourHeight';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
-import { carriedGrid } from '@/features/calendar/dnd';
+import { alldayDropGrid, carriedGrid } from '@/features/calendar/dnd';
 import { bindGridDraw } from '@/features/calendar/draw';
 import { resizePreview } from '@/features/calendar/resize';
 import { inPreview } from '@/composables/usePreview';
@@ -79,6 +79,12 @@ const band = computed(() => {
   // a bar takes its slot only on the days it covers, each day's own entries fill that day's free slots from the top
   return { days: days.map((d, i) => ({ ...d, slots: packed[i].slots })), rows: Math.max(0, ...packed.map((p) => p.used)) };
 });
+/**
+ * The all-day row shows only when it has something in it (any day of the week); its switch only when task lists are in
+ * it (feature header-layout, owner 2026-10-26). The two-row overview (`fit`) keeps its band as built.
+ */
+const rowShown = computed(() => !!props.fit || bars.value.length > 0 || cols.value.some((c) => c.top.length > 0));
+const switchShown = computed(() => !!props.fit || taskTotal.value > 0);
 const px = (min: number) => (min / 60) * hh.value;
 
 const scroller = ref<HTMLElement | null>(null);
@@ -159,7 +165,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 </script>
 
 <template>
-  <div ref="rootEl" class="tg" :class="[mode, { phone: isPhone, fit: !!fit, carrying: !!rootEl && carriedGrid === rootEl }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
+  <div ref="rootEl" class="tg" :class="[mode, { phone: isPhone, fit: !!fit, carrying: !!rootEl && carriedGrid === rootEl, 'allday-drop': !!rootEl && alldayDropGrid === rootEl }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
     <div class="heads">
       <div class="gutter" />
       <button
@@ -171,8 +177,8 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
     </div>
     <!-- fit: the band is capped (34%) and scrolls, so each row keeps its content height instead of being squeezed to share the cap;
          its lists are one-line pills (allday in title form) that grow in place on a tap -->
-    <div class="alldays" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(${fit ? 'max-content' : 'var(--bar-h)'}, auto))` : undefined }">
-      <div class="gutter"><button class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
+    <div class="alldays" :class="{ empty: !rowShown, 'no-switch': !switchShown }" :style="{ gridTemplateRows: band.rows ? `repeat(${band.rows}, minmax(${fit ? 'max-content' : 'var(--bar-h)'}, auto))` : undefined }">
+      <div class="gutter"><button v-if="switchShown" class="sec" type="button" data-testid="tasks-section-toggle" :data-mode="smode" :aria-label="t('calendar.grid.tasksSection', { mode: sectionLabel(smode) })" @click="cycleSection(mode, isPhone)"><span class="n">{{ taskTotal + bars.length || "" }}</span><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg></button></div>
       <EventBar v-for="b in bars" :key="b.item.id" class="abar" :bar="b" :dates="dateStrs" :style="{ gridColumn: `${b.startCol + 2} / ${b.endCol + 3}`, gridRow: b.lane + 1 }" />
       <div v-for="(c, ci) in cols" :key="c.date" class="adcol" :style="{ gridColumn: ci + 2, gridRow: `1 / ${Math.max(band.rows, 1) + 1}` }" :data-testid="ids.all" :data-date="c.date">
         <ItemView v-for="(s, si) in band.days[ci].segs" :key="s.item.id + s.date" :segment="s" :variant="s.allDay || s.item.kind === 'tasklist' ? 'allday' : 'chip'" :style="{ gridRow: band.days[ci].slots[si] + 1 }" />
@@ -223,6 +229,14 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .alldays { border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .tg:has([data-dragging='true']) .adcol, .tg.carrying .adcol { min-height: 30px; }
 .alldays { --bar-h: 20px; row-gap: 2px; }
+/* no task lists: no switch, so no 45 px minimum (the row is as tall as its entries) */
+.alldays.no-switch { min-height: 0; }
+/* nothing all-day: the row is gone (0 px) but stays in the page as the drop target; while something that may land there
+   (a task list, not a timed event) is dragged its cells
+   appear over the top of the grid (the grid does not move under the finger), so a task list can still lose its time */
+.alldays.empty { height: 0; overflow: visible; border-bottom: 0; visibility: hidden; position: relative; z-index: 6; }
+.tg.allday-drop .alldays.empty { visibility: visible; grid-template-rows: 30px; }
+.alldays.empty .adcol { background: var(--md-sys-color-surface-container); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
 .alldays .abar { z-index: 2; }
 /* size-contained: the switch's 44 px never feeds the row heights (it overhangs a short gutter inside the band's min height) */
 .alldays .gutter { grid-row: 1 / -1; grid-column: 1; contain: size; }

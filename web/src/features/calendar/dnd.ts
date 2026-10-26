@@ -37,6 +37,8 @@ export const dragPreview = shallowRef<{ date: string; minutes: number; durationM
 export const edgeBand = shallowRef<{ side: 'left' | 'right'; label: string; left: number; right: number; top: number; bottom: number; y: number } | null>(null);
 /** The time grid (`.tg`) a drag that turned the view is carried over: it keeps the all-day row open for the drop. */
 export const carriedGrid = shallowRef<Element | null>(null);
+/** The grid whose dragged entry may be dropped into the all-day row (a task list, or an entry that is not a timed block): its empty row shows as a drop target. */
+export const alldayDropGrid = shallowRef<Element | null>(null);
 
 export interface MoveTarget {
   date: string;
@@ -216,6 +218,7 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
       if (s === 'dragging') {
         useUiStore().resizing = null;
         dragGrid = el.value?.closest('.tg') ?? null;
+        alldayDropGrid.value = !slotsMode() || segment().item.kind === 'tasklist' ? dragGrid : null;
       }
       if (s !== 'dragging') clearEdge();
       if (s === 'idle' || s === 'returning') {
@@ -223,6 +226,7 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
         marked = setDropAttr(marked, null);
         dragGrid = null;
         carriedGrid.value = null;
+        alldayDropGrid.value = null;
       }
     },
     onDrop: async (t) => {

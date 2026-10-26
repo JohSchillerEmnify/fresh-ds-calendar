@@ -439,6 +439,14 @@ async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Poin
   await w.page.waitForTimeout(ms);
 }
 
+/** Presses and holds a task list's card in the grid until it is lifted, then moves 10 px so the drag starts; the pointer stays down. */
+When('I pick up the task list {string}', async function (this: World, title: string) {
+  const card = this.page.locator(`.tg:not(.fit) ${attr('data-title', title)}`).locator('visible=true').first();
+  await expect(card).toBeVisible();
+  await holdAt(this, card, async (from) => ({ x: from.x, y: from.y + 10 }), 0);
+  await expect(this.page.locator('[data-dragging="true"]').first()).toBeAttached();
+});
+
 /** The visible (not fit) time grid's day columns: left edge of the first, right edge of the last. */
 async function columnsEdges(w: World): Promise<{ left: number; right: number }> {
   const cols = w.page.locator('.tg:not(.fit) [data-testid="week-day-column"], .tg:not(.fit) [data-testid="day-column"]').locator('visible=true');
