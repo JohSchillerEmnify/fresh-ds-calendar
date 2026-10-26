@@ -5,15 +5,19 @@ Feature: Plant companion
   30 points per day. Growth never goes down. Stages: Seed (0), Sprout (20), Small plant (60),
   Leafy (140), Flowering (280). Without activity it rests: 0–1 days since last watering = happy,
   2 = thirsty, 3 = dry, 4 or more = droopy. It never dies and perks up as soon as it is watered.
-  Settings "Motivation": streak flame on/off (default on) and Plant on/off (default on). The plant is the
-  widget in the top bar and is independent of the scene behind it (the sunflower field is a scene).
+  Settings "Focus & motivation" has one "Streak" choice: Off, Flame or Plant (owner, 2026-10-26; it replaced the two
+  switches "Streak flame" and "Plant"). It is a personal setting, Off by default, and Off for everyone after the
+  change, whatever the two switches were before. It only decides what the top bar shows: the check-ins and the plant's
+  points are counted whatever is chosen. The plant is the widget in the top bar and is independent of the scene behind
+  it (the sunflower field is a scene).
 
   Background:
     Given the calendar is empty
     And today is 2026-10-12
 
   Scenario: Daily actions water the plant and it grows to the next stage
-    Given the calendar contains a task list "Chores" on 2026-10-12 with items:
+    Given the streak is set to "Plant"
+    And the calendar contains a task list "Chores" on 2026-10-12 with items:
       | item  | done |
       | Dust  | no   |
       | Sweep | no   |
@@ -90,14 +94,16 @@ Feature: Plant companion
       | 2026-01-01 | droopy  | 25       |
 
   Scenario: A resting plant perks up when the app is opened
-    Given the plant has 70 growth points and was last watered on 2026-10-01
+    Given the streak is set to "Plant"
+    And the plant has 70 growth points and was last watered on 2026-10-01
     When I open the app
     Then a "perk-up" effect appears and is removed within 1500 ms
     And the plant looks "happy"
     And the plant is at the stage "Small plant"
 
   Scenario Outline: The plant card shows the plant larger with a friendly line
-    Given the plant has <growth> growth points and was last watered on 2026-10-12
+    Given the streak is set to "Plant"
+    And the plant has <growth> growth points and was last watered on 2026-10-12
     When I open the app
     And I open the plant card
     Then the plant card shows the stage "<stage>"
@@ -112,39 +118,56 @@ Feature: Plant companion
       | 280    | Flowering   |
 
   Scenario: No guilt wording anywhere
-    Given the plant has 70 growth points and was last watered on 2026-09-01
+    Given the streak is set to "Plant"
+    And the plant has 70 growth points and was last watered on 2026-09-01
     When I request "GET /api/motivation"
     Then the response JSON field "plant.message" equals "Your plant is resting. Anything you do will perk it up."
     When I open the app
     And I open the plant card
     Then the page does not contain the words "dead, died, dying, lost, failed, neglected"
 
-  Scenario Outline: The streak flame setting decides whether the flame is shown
-    When I open the path "/settings"
-    And I turn the streak flame "<setting>"
+  # owner, 2026-10-26: one choice replaces the two switches
+  @backlog
+  Scenario Outline: The streak choice decides what the top bar shows
+    When I open the settings
+    And I choose "<streak>" for the streak
     And I open the app
     Then I <flame> the streak flame
+    And I <plant> the plant
 
     Examples:
-      | setting | flame      |
-      | on      | see        |
-      | off     | do not see |
+      | streak | flame      | plant      |
+      | Off    | do not see | do not see |
+      | Flame  | see        | do not see |
+      | Plant  | do not see | see        |
 
-  Scenario Outline: The plant setting decides whether the plant is shown
-    When I open the path "/settings"
-    And I turn the plant "<setting>"
+  @backlog
+  Scenario: Nobody sees a streak until they choose one
+    When I open the app
+    Then I do not see the streak flame
+    And I do not see the plant
+    When I open the settings
+    Then the streak choice "Off" is selected
+
+  @backlog
+  Scenario: The streak choice follows the person to another device
+    When I open the settings
+    And I choose "Flame" for the streak
+    And I switch to another device
     And I open the app
-    Then I <plant> the plant
+    Then I see the streak flame
+    And I do not see the plant
 
-    Examples:
-      | setting | plant      |
-      | on      | see        |
-      | off     | do not see |
+  @backlog
+  Scenario: The plant keeps growing while it is not shown
+    When I open the app
+    Then I do not see the plant
+    When I request "GET /api/motivation"
+    Then the response JSON field "plant.growth" equals "10"
 
-  Scenario: The plant and the sunflowers are on by default
+  Scenario: The sunflowers grow with points by default
     When I request "GET /api/settings"
-    Then the response JSON field "plant" equals "true"
-    And the response JSON field "sunflowers" equals "grow"
+    Then the response JSON field "sunflowers" equals "grow"
 
   Scenario: The plant is synced across devices
     When I open the app

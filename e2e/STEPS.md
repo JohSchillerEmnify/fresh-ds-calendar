@@ -86,7 +86,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-no-date` (`aria-pressed`), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
-| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak-flame`, `settings-plant`, `settings-sunflowers` | settings additions |
+| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak`, `settings-sunflowers` | settings additions |
 | `tasks-view` (`data-group-by`, `data-sort-by`), `tasks-group-by`, `tasks-sort-by`, `tasks-sort-dir` (`data-dir`), `tasks-collapse-all`, `tasks-group` (`data-group`), `tasks-group-title`, `tasks-item` (`data-tasklist-id`, `data-title`, `data-date`) | Tasks view |
 | `tasks-tab-canvas`, `tasks-canvas`, `canvas-viewport` (`data-zoom`, `data-pan-x`, `data-pan-y`), `canvas-note` (`data-tasklist-id`, `data-x`, `data-y`, `data-placed`, `data-area`, `data-dimmed`; `canvas-note-grip`, `canvas-note-date`), `canvas-unsorted`, `canvas-area` (`data-area-id`, `data-name`, `data-color`, `data-x/y/w/h`, `data-selected`; `canvas-area-header`, `canvas-area-handle` `data-corner`), `canvas-area-add`, `canvas-area-editor` (`canvas-area-name-input`, `canvas-area-color`, `canvas-area-delete`, `canvas-area-editor-close`) | Canvas |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
@@ -1143,8 +1143,9 @@ the plant card shows {string}
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```
-I turn the streak flame {string}
-I turn the plant {string}
+the streak is set to {string}
+I choose {string} for the streak
+the streak choice {string} is selected
 I choose {string} for the sunflowers
 the scene is {string}
 the sunflowers are set to {string}
@@ -1160,8 +1161,12 @@ the sunflowers are not swaying
 the sunflowers look {string}
 ```
 
-- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state; `I turn the plant
-  "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
+- Streak choice (person pref `streak`: `Off` = `off`, the default; `Flame` = `flame`; `Plant` = `plant`). `the streak is
+  set to X` (Given) sends `PATCH /api/prefs { streak }` through the API before the page is opened. `I choose X for the
+  streak` picks the option labelled X in `settings-streak` (a segmented button in Focus & motivation; the settings are
+  open) and waits for the `PATCH /api/prefs` response (200); `the streak choice X is selected` = that option has
+  `aria-pressed="true"`. The steps `I see / do not see the streak flame` and `I see / do not see the plant` check
+  `streak-flame` and `plant-button` in the top bar. `I choose X for the sunflowers` picks the option with that
   label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
   `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
@@ -2974,6 +2979,8 @@ the period title's font size is {int} pixels
 the Today button is an icon with the label {string}
 the Today button shows the word {string}
 the top bar's buttons are at least {int} by {int} pixels
+the top bar's buttons other than the plant are at least {int} by {int} pixels
+the plant's tap area is at least {int} by {int} pixels
 the downloaded theme file has no header layout
 the Today button shows that today is on screen
 the Today button does not show that today is on screen
@@ -2991,6 +2998,10 @@ I see the Approaching card
 I switch off the time left in the Approaching card in the settings
 the event {string} shows {string} after its time
 the event {string} shows no time left
+I see the sync icon
+I do not see the sync icon
+the sync icon shows a problem
+the {string} switch in the settings is off
 ```
 
 - Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
@@ -3006,14 +3017,17 @@ the event {string} shows no time left
 - "the Today button is an icon with the label L": `nav-today` has `aria-label` L, contains an `svg` and no visible text.
   "the Today button shows the word W": `nav-today`'s visible text is W.
 - "the top bar's buttons are at least W by H pixels": for every visible `button` inside `top-bar` (title, arrows, Today,
-  filter, settings, sync, streak flame, plant), `document.elementFromPoint` at the four points 1 px inside a W x H box
-  centred on the button returns the button or a descendant: the hit area is at least W x H even where the drawn
-  control is smaller.
+  filter, settings, plant, install), `document.elementFromPoint` at the four points 1 px inside a W x H box centred on
+  the button returns the button or a descendant: the hit area is at least W x H even where the drawn control is
+  smaller. The streak flame (`streak-flame`) and the sync icon (`sync-status`) are not buttons and are not checked.
+  "... other than the plant ...": the same, leaving out `plant-button`. "the plant's tap area is at least W by H
+  pixels": the same check for `plant-button` alone (W wide, H tall).
 - "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
   `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
-- "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and its look differs from
-  the "not shown" look (its computed background is the secondary container; not shown: transparent with an outline).
-  "does not show": `data-today-shown="false"`. "Today is on screen" means today is in the period the title names (the
+- "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the
+  built-in tonal look: its computed background is the secondary container colour, no outline). "does not show":
+  `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
+  colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
   month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or
   `day-column` visible) before the check.
 - "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
@@ -3036,6 +3050,13 @@ the event {string} shows no time left
   `settings-approach-time-left` off (pref `approachTimeLeft`), waiting for the `PATCH /api/prefs` response.
 - "the event X shows T after its time": X's `event-chip-time` text ends with `· T` (a middle dot, then T).
   "shows no time left": X's `event-chip-time` is visible and has no "left" part. The time left updates with the app clock.
+- Sync icon (`sync-status`, pref `syncIndicator`, default off). The element always stays in the page with its
+  `data-state` and `data-last-sync` (the sync waits above read it); what changes is whether it is drawn. "I see the sync
+  icon": `sync-status` is visible. "I do not see the sync icon": `sync-status` is not visible (hidden, and it takes no
+  room in the top bar). "the sync icon shows a problem": `sync-status` is visible with `data-state="error"`. The switch
+  is `settings-sync-indicator` (label "Sync indicator", Settings › Calendar) and is turned on with the generic
+  `I turn on {string} in the settings` step; "the X switch in the settings is off" = the switch labelled X on the open
+  settings page has `aria-checked="false"`.
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
   `scene-<scene>-<layout>-<scheme>`.
 

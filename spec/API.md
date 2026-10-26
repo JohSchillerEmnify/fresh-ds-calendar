@@ -146,8 +146,6 @@ interface Settings {
   ignoreSystemMotion: boolean;                  // default false; true lets animationLevel apply although the device asks for less motion
   sounds: boolean;                    // default false
   calmMode: boolean;                  // default false
-  streakFlame: boolean;               // default true: show the streak flame
-  plant: boolean;                     // default true: show the plant widget in the top bar (independent of the scene)
   sunflowers: 'grow' | 'full';        // default 'grow': how many flowers the Sunflower field scene shows
   categories: Category[];            // display order
   updated: DateTime;
@@ -170,7 +168,7 @@ feature theme-menu). The server only stores the values, and the user can change 
 (Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
 (`GET/PATCH /api/prefs/theme`, feature theme-menu; `seasonal` is `off`, `header` or `all`, see there). `PATCH /api/settings` rejects a `scene` field and
 `GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
-depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
+depends on any plant setting; the plant widget and the flame are widgets that show per the person pref `streak`.
 **Garden style is gone** (owner 2026-10-13): `Settings.garden` was removed, `PATCH /api/settings` rejects a `garden`
 field (400 `VALIDATION_ERROR`), and `plant` (switch) and `sunflowers` (grow / full) replaced it.
 *Migration of stored settings* (once, when the server loads a `settings.json` that has `garden` and no `plant`):
@@ -197,6 +195,19 @@ The person pref `headerLayout` (`'two-rows' | 'one-row'`, default `'two-rows'`; 
 top bar layout (feature header-layout). It is a person pref, not part of the theme: `PATCH /api/prefs/theme`, theme
 files and theme import/export never carry it. `approachTimeLeft` (boolean, default `true`) shows the running entry's
 "· N min left" line in the Approaching card; off (or `approachingCard` off) the running entry shows it instead.
+The person pref `streak` (`'off' | 'flame' | 'plant'`, default `'off'`; anything else is a 400) is what the top bar
+shows of the check-in streak and the plant (Settings › Focus & motivation, feature plant-companion; owner,
+2026-10-26). It is not part of the theme. The person pref `syncIndicator` (boolean, default `false`; a non-boolean is a
+400): off, the top bar's sync icon shows only while syncing fails; on, it shows all the time (feature header-layout).
+**Flame and plant switches retired** (owner 2026-10-26): `Settings.streakFlame` and `Settings.plant` (shared, default
+`true`) were replaced by the person pref `streak`. `GET /api/settings` no longer returns them and `PATCH
+/api/settings` rejects either field (400 `VALIDATION_ERROR`, like `garden`).
+*Migration* (once, when the server loads a `settings.json` that still has `streakFlame` or `plant`): both keys are
+dropped from the stored settings and are not carried into anyone's prefs, so every person, existing or new, reads
+`streak = 'off'` (the owner chose Off for everyone, whatever the switches were). No marker is needed: a person's
+`streak` is only ever written by that person's own choice, and an absent value means `'off'`. Restoring an older
+server backup that has the keys drops them again on load. Clients ignore the two fields in a cached copy of the
+settings (last known state).
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 
@@ -773,7 +784,7 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   ≥ 4 → droopy (25, the floor). No `lastWatered` → happy. Growth never decreases; the plant never dies.
 - Messages (exact): happy "Your plant is happy", thirsty "Your plant is a little thirsty", dry "Your plant could use
   some water", droopy "Your plant is resting. Anything you do will perk it up."
-- Streak and plant points are recorded regardless of `streakFlame` / `plant` (these settings only change what is shown).
+- Streak and plant points are recorded regardless of the person pref `streak` (it only changes what is shown).
 - **Sunflower field** (the scene of that name) uses the same points and mood: `plant.flowers = min(30,
   floor(growth / 40))`. Flowers never decrease. With `Settings.sunflowers = 'grow'` the field shows `plant.flowers`;
   with `'full'` it shows a fixed 30 and never grows (no `bloom`). The UI shows at most 15 on viewports < 600 px wide

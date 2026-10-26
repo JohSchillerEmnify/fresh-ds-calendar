@@ -2,15 +2,21 @@
 Feature: A smaller header: two rows or one row
   The top bar took 96 px on a phone and the day view showed the date twice (owner, 2026-10-26). The person chooses
   one of two header layouts in Settings › Calendar ("Header layout"): "Two rows" (the default) keeps the full date
-  ("Monday, 12 October 2026") in an 18 px title row and puts ‹ Today › with the streak flame, plant and sync icon in a
-  compact second row, 84 px in all; "One row" puts the short date ("Mon, 12 Oct"), ‹, a Today icon and › into one
-  52 px row with the streak flame, plant, sync, filter and settings at its right. Only the day view's title is
-  shortened; the week, month and year titles stay as they are. The visuals may be smaller, but every control keeps a
-  hit area of at least 44 by 44 px. The choice is a personal setting like the view switcher position: kept per
-  person (so it follows them to every device), not part of the theme, so choosing a theme, preset or scene keeps it
-  and a theme file never carries it. It applies to phones (narrower than 768 px); desktop and tablets keep their one
-  row with the full date as built (open point, see REQUIREMENTS). Left-handed mode mirrors the one row as it mirrors
-  the two rows: settings and the other icons at the left, the date, then ‹ Today › at the right.
+  ("Monday, 12 October 2026") in an 18 px title row and puts ‹ Today › with the streak and the sync icon in a compact
+  second row, 84 px in all; "One row" puts the short date ("Mon, 12 Oct"), ‹, a Today icon and › into one 52 px row
+  with the streak, sync, filter and settings at its right. Only the day view's title is shortened; the week, month and
+  year titles stay as they are. The visuals may be smaller, but every button keeps a hit area of at least 44 by 44 px;
+  the one exception is the plant in one row, whose tap area is 44 px tall and 32 px wide so the row stays one row. The
+  streak flame and the sync icon are not buttons and need no tap area. The choice is a personal setting like the view
+  switcher position: kept per person (so it follows them to every device), not part of the theme, so choosing a theme,
+  preset or scene keeps it and a theme file never carries it. It applies to phones (narrower than 768 px); desktop and
+  tablets keep their one row with the full date. Left-handed mode mirrors the one row as it mirrors the two rows:
+  settings and the other icons at the left, the date, then ‹ Today › at the right.
+  The Today button is the today mark (it replaces the today circle of the old "Mon 12" day header): filled while today
+  is in the shown period, outlined on a solid background (the scene never shows through) when it is not; the same in
+  both layouts and on desktop. The day view has no day header at any width, so on desktop its grid starts 36 px higher.
+  The sync icon shows only while syncing fails, unless the person turns on "Sync indicator" in Settings › Calendar
+  (off by default); then it shows all the time as before.
   Every scene is re-arranged for each layout, light and dark: every part keeps its as-built size (the 96 px scene box
   sits on the bar's bottom edge, sky parts move down, taller props are cut only at the bar's bottom edge), and no
   character (cat, hare, ghost) is ever under or behind a control; where a character cannot fit at a width it is left
@@ -64,9 +70,8 @@ Feature: A smaller header: two rows or one row
       When I open the day view for 2026-10-13
       Then the period title is "Di., 13. Okt."
 
-    # Depends on open point Q1 (REQUIREMENTS): at 390 px one row has no room for eight 44 px wide hit areas.
     @mobile @backlog
-    Scenario Outline: Every control in the header keeps a 44 px hit area
+    Scenario Outline: Every button in the header keeps a 44 px hit area
       Given the header layout is set to "<layout>"
       When I open the week view for 2026-10-12
       Then the navigation, view switcher and create buttons are at least 44 by 44 pixels
@@ -88,6 +93,31 @@ Feature: A smaller header: two rows or one row
       When I switch to another device
       And I open the day view for 2026-10-12
       Then the top bar is in one row
+
+    # owner, 2026-10-26: with a streak on the row stays one row; only the plant is a button, its tap area 32 px wide
+    @mobile @backlog
+    Scenario: With the plant on, the one row keeps its date and gives the plant a narrower tap area
+      Given the streak is set to "Plant"
+      And the header layout is set to "One row"
+      When I open the day view for 2026-10-12
+      Then the top bar is in one row
+      And the top bar is at most 52 pixels tall
+      And I see the plant
+      And the period title is "Mon, 12 Oct"
+      And the period title is not cut short
+      And the plant's tap area is at least 32 by 44 pixels
+      And the top bar's buttons other than the plant are at least 44 by 44 pixels
+
+    @mobile @backlog
+    Scenario: With the flame on, the one row keeps its date
+      Given the streak is set to "Flame"
+      And the header layout is set to "One row"
+      When I open the day view for 2026-10-12
+      Then the top bar is in one row
+      And I see the streak flame
+      And the period title is "Mon, 12 Oct"
+      And the period title is not cut short
+      And the top bar's buttons are at least 44 by 44 pixels
 
     @mobile @backlog
     Scenario: Choosing a theme keeps the header layout
@@ -114,7 +144,6 @@ Feature: A smaller header: two rows or one row
       And the "settings button" is on the "left" side of the screen
       And the "Today button" is on the "right" side of the screen
 
-    # Open point (REQUIREMENTS Q4): the recommendation is that the choice is for phones only.
     @desktop @backlog
     Scenario: Desktop keeps its one row with the full date whatever the phone layout is
       Given the header layout is set to "One row"
@@ -130,6 +159,28 @@ Feature: A smaller header: two rows or one row
       When I open the day view for 2026-10-14
       Then the day view shows no day header
       And the period title is "Wednesday, 14 October 2026"
+
+    # owner, 2026-10-26: desktop drops the day header too; its top bar keeps one row with the full date
+    @desktop @backlog
+    Scenario: On desktop the day view has no day header either
+      When I open the day view for 2026-10-14
+      Then the day view shows no day header
+      And the top bar is in one row
+      And the period title is "Wednesday, 14 October 2026"
+
+    # owner, 2026-10-26: the Today button is the today mark, the same in both layouts
+    @mobile @backlog
+    Scenario Outline: The Today button marks today in both layouts
+      Given the header layout is set to "<layout>"
+      When I open the day view for <day>
+      Then the Today button <marks> that today is on screen
+
+      Examples:
+        | layout   | day        | marks         |
+        | Two rows | 2026-10-12 | shows         |
+        | Two rows | 2026-10-13 | does not show |
+        | One row  | 2026-10-12 | shows         |
+        | One row  | 2026-10-13 | does not show |
 
     @backlog
     Scenario: The week view keeps its day headers
@@ -190,6 +241,32 @@ Feature: A smaller header: two rows or one row
       And I pick up the task list "Packing"
       And I drop the dragged item on 2026-10-12 at 19:00
       Then the all-day row is not shown
+
+  Rule: The sync icon shows only when syncing fails, unless the person turns it on
+
+    @backlog
+    Scenario: By default the sync icon stays out of the way while all is well
+      When I open the week view for 2026-10-12
+      Then I do not see the sync icon
+
+    @backlog
+    Scenario: A sync problem always shows its icon
+      When I open the week view for 2026-10-12
+      And Google becomes unavailable
+      And the app regains focus
+      Then I see the sync error banner
+      And the sync icon shows a problem
+      When Google becomes available again
+      And I retry the sync
+      Then I do not see the sync icon
+
+    @backlog
+    Scenario: With the sync indicator on the sync icon shows all the time
+      When I open the settings
+      Then the "Sync indicator" switch in the settings is off
+      When I turn on "Sync indicator" in the settings
+      And I open the week view for 2026-10-12
+      Then I see the sync icon
 
   Rule: Every scene looks right in both layouts
 

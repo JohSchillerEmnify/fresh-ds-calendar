@@ -2,7 +2,7 @@
 Feature: Sunflower field
   The Sunflower field is a scene (a choice of the top app bar background in the theme menu): a small landscape
   (sky, soft rolling hills, a few drifting clouds, a bee now and then) with a row of sunflowers in front. It shows
-  whenever it is the chosen scene, whatever the plant setting. The Motivation setting "Sunflowers" decides how many
+  whenever it is the chosen scene, whatever the streak choice. The Motivation setting "Sunflowers" decides how many
   flowers: "Grow with points" (default) grows one flower per 40 growth points (same points as the plant), at most
   30; "Full field" shows a fixed full field without growing. Phones (under 600 px) show at most 15, wider screens up
   to 30. Flowers sway gently (paused when animations are Reduced or Off, or the app is hidden), share the plant's
@@ -21,12 +21,17 @@ Feature: Sunflower field
     And the sunflower field shows 5 flowers
     And the sunflower field is labelled "Sunflower field: 5 flowers"
 
-  Scenario: The field shows whatever the plant setting is
-    When I open the path "/settings"
-    And I turn the plant "off"
-    And I open the app
+  @backlog
+  Scenario Outline: The field shows whatever the streak choice is
+    Given the streak is set to "<streak>"
+    When I open the app
     Then I see the sunflower field
-    And I do not see the plant
+
+    Examples:
+      | streak |
+      | Off    |
+      | Flame  |
+      | Plant  |
 
   Scenario: Without the scene there is no field
     Given the scene is "None"
