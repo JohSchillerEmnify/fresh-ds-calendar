@@ -24,6 +24,12 @@ function drawnBox(el: Element): Box | null {
   return { l: Math.min(...rects.map((r) => r.left)), r: Math.max(...rects.map((r) => r.right)), t: Math.min(...rects.map((r) => r.top)), b: Math.max(...rects.map((r) => r.bottom)) };
 }
 
+/** The nearest positioned ancestor (an svg has no `offsetParent`): the box a part's `left` is measured from. */
+function containingBlock(el: Element): Element | null {
+  for (let a = el.parentElement; a; a = a.parentElement) if (getComputedStyle(a).position !== 'static') return a;
+  return null;
+}
+
 /**
  * Marks every element under `root` matching `selector` whose box intersects a control of the top bar `root` sits in
  * with `data-hidden` (the host's CSS hides it, keeping its box, so it is measured again on the next check).
@@ -34,8 +40,10 @@ function drawnBox(el: Element): Box | null {
  * @param root - The scene element holding the parts; outside a top bar nothing is hidden.
  * @param selector - The parts to keep clear (CSS selector, matched inside `root`).
  * @param active - Whether the parts are checked now.
+ * @param movable - Parts (CSS selector, a subset of `selector`) that are first moved, at full size, to the nearest free
+ *   horizontal spot (their CSS reads `--clear-x`) and left out only when no spot is free: the scene's characters.
  */
-export function useClearOfControls(root: Ref<HTMLElement | null>, selector: string, active: () => boolean = () => true): () => void {
+export function useClearOfControls(root: Ref<HTMLElement | null>, selector: string, active: () => boolean = () => true, movable = ''): () => void {
   let frame = 0;
   let disposed = false;
   let resize: ResizeObserver | null = null;
@@ -49,7 +57,9 @@ export function useClearOfControls(root: Ref<HTMLElement | null>, selector: stri
     const bar = el.closest('[data-testid="top-bar"]');
     const on = !!bar && active();
     const controls = on ? [...bar.querySelectorAll(CONTROLS)].map(drawnBox).filter((b): b is Box => !!b) : [];
-    for (const p of parts) {
+    // a part reaching above the bar would be cut: it is left out as well
+    const top = bar?.getBoundingClientRect().top ?? 0;
+    const judge = (p: HTMLElement | SVGElement) => {
       // a drawing is judged by its shapes (a tree's crown, not the drawing's square), like the controls
       const shapes = p.tagName.toLowerCase() === 'svg' ? [...p.querySelectorAll('path, circle, rect, ellipse')] : [p];
       const hits = (r: Box) => controls.some((c) => Math.min(r.r, c.r) - Math.max(r.l, c.l) > 0 && Math.min(r.b, c.b) - Math.max(r.t, c.t) > 0);
@@ -64,9 +74,32 @@ export function useClearOfControls(root: Ref<HTMLElement | null>, selector: stri
           boxes.push({ l: x - 0.4, r: x + 0.4, t: y - 0.4, b: y + 0.4 });
         }
       }
-      // a part reaching above the bar would be cut: it is left out as well
-      const top = bar?.getBoundingClientRect().top ?? 0;
-      const under = on && boxes.some((r) => hits(r) || r.t < top - 0.5);
+      return on && boxes.some((r) => hits(r) || r.t < top - 0.5);
+    };
+    /** The nearest left edge (px, in the part's offset parent) where the part clears every control, as clear as the gap allows (8, 4, then 1 px). */
+    const freeX = (p: HTMLElement | SVGElement): number | null => {
+      const c = p.getBoundingClientRect(), bounds = bar!.getBoundingClientRect(), parent = containingBlock(p)?.getBoundingClientRect();
+      if (!parent) return null;
+      for (const gap of [8, 4, 1]) {
+        const block = controls.filter((k) => k.b > c.top && k.t < Math.min(c.bottom, bounds.bottom)).map((k) => [k.l - gap, k.r + gap]).sort((a, b) => a[0] - b[0]);
+        const free: number[][] = [];
+        let x = bounds.left;
+        for (const [a, b] of block) { if (a > x) free.push([x, a]); x = Math.max(x, b); }
+        if (bounds.right > x) free.push([x, bounds.right]);
+        const spots = free.filter(([a, b]) => b - a >= c.width).map(([a, b]) => Math.min(Math.max(c.left, a), b - c.width)).sort((u, v) => Math.abs(u - c.left) - Math.abs(v - c.left));
+        if (spots.length) return spots[0] - parent.left;
+      }
+      return null;
+    };
+    for (const p of parts) {
+      const move = !!movable && p.matches(movable);
+      // measured where its own CSS puts it, before any move
+      if (move) p.style.removeProperty('--clear-x');
+      let under = judge(p);
+      if (under && move) {
+        const x = freeX(p);
+        if (x !== null) { p.style.setProperty('--clear-x', `${x}px`); under = judge(p); }
+      }
       p.toggleAttribute('data-hidden', under);
     }
   };

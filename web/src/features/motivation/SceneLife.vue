@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { useClockStore } from '@/stores/clock';
 import { BUTTERFLY_RHYTHM, butterflyFlight, forcedButterfly } from './butterflyVisits';
@@ -8,6 +8,7 @@ import BeachScene from './BeachScene.vue';
 import ChristmasNight from './ChristmasNight.vue';
 import EasterScene from './EasterScene.vue';
 import FallWinterScene from './FallWinterScene.vue';
+import { useClearOfControls } from './clearOfControls';
 import { anchor, BAR, CAT_SIZE, CAT_X, layoutFor } from './fallWinter';
 import ButterflyWings from './ButterflyWings.vue';
 import HalloweenNight from './HalloweenNight.vue';
@@ -73,11 +74,18 @@ const { width, height } = useElementSize(root);
 const layout = computed(() => (height.value, layoutFor(width.value, root.value?.closest('[data-testid="top-bar"]')?.getAttribute('data-layout') ?? undefined)));
 /** Where the cat sits: at its Fall / Winter spot, elsewhere at its percentage. */
 const catStyle = computed(() => {
-  if (props.scene !== 'fall' && props.scene !== 'winter') return { left: `${CAT[props.scene].left}%` };
+  // `--clear-x` is where the guard moved the cat to when its own spot is under a control
+  if (props.scene !== 'fall' && props.scene !== 'winter') return { left: `var(--clear-x, ${CAT[props.scene].left}%)` };
   // a fixed height (not the bar's), so the kite's string meets the paw in a taller bar too (a status bar above it)
   const bar = BAR[layout.value], { h, bottom } = CAT_SIZE[layout.value];
   return { ...anchor(CAT_X[props.scene][layout.value], h, bar.w), height: `${h}px`, bottom: `${bottom}px` };
 });
+
+/** Fall and Winter have their own spots for every part (`FallWinterScene`); the other scenes' characters are kept clear here. */
+const ownSpots = () => props.scene === 'fall' || props.scene === 'winter';
+const check = useClearOfControls(root, '[data-part=cat], [data-part=hare]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
+// another layout moves the controls: measure again once the layer is drawn for it
+watch(layout, check, { flush: 'post' });
 </script>
 
 <template>
@@ -110,6 +118,8 @@ const catStyle = computed(() => {
 <style scoped>
 .life { position: absolute; inset: 0; overflow: hidden; pointer-events: none; container-type: size; }
 .at { position: absolute; bottom: 0; width: auto; }
+/* a character that cannot sit clear of the controls is left out, never shrunk (clearOfControls.ts) */
+.life :deep([data-hidden]) { visibility: hidden; }
 .tall { height: min(78cqh, 58px); }
 .mid { height: min(62cqh, 46px); }
 .short { height: min(52cqh, 38px); }
