@@ -147,6 +147,12 @@ export default {
       location: 'Ort',
       description: 'Beschreibung',
     },
+    place: {
+      suggestions: 'Orte',
+      credit: '© OpenStreetMap',
+      map: 'Karte von {name}',
+      offline: 'Die Karte erscheint, wenn du online bist',
+    },
     validation: {
       titleRequired: 'Der Titel fehlt',
       titleLong: 'Der Titel darf höchstens 200 Zeichen lang sein',
