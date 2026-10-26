@@ -3,7 +3,7 @@
  * The event's location field with place suggestions (feature event-location).
  *
  * Typing at least three characters asks the place search (Photon, straight from the device) after a short pause and
- * shows up to five places under the field, credited to OpenStreetMap. Picking one puts its name in the field and its
+ * shows up to five places under the field (kept while typing until the next answer, and remembered per query), credited to OpenStreetMap. Picking one puts its name in the field and its
  * address on a small line under it; changing the text afterwards drops the place again. Without a connection, or when
  * the search fails, it is the plain text field it always was: no list and no message. Keyboard: arrows highlight, Enter
  * picks the highlighted place (or moves on to the description), Escape closes the list without closing the dialog.
@@ -21,7 +21,7 @@ const emit = defineEmits<{ 'update:modelValue': [v: string]; 'update:place': [p:
 /** Typed characters before anything is asked (owner, Q4). */
 const MIN_CHARS = 3;
 /** The pause after the last key before asking (owner, Q4: "a short pause"). */
-const PAUSE_MS = 300;
+const PAUSE_MS = 150;
 
 const clock = useClockStore();
 const listId = useId();
@@ -38,23 +38,30 @@ watch(open, async (o) => {
 let timer: ReturnType<typeof setTimeout> | undefined;
 let inflight: AbortController | null = null;
 let blurTimer: ReturnType<typeof setTimeout> | undefined;
+/** Answers by query and language while the field lives, so a deleted letter shows its list at once. */
+const answers = new Map<string, PlacePick[]>();
 
-/** Closes the list and forgets any search that is waiting or running. */
-function close(): void {
+/** Forgets any search that is waiting or running; the shown list stays. */
+function cancel(): void {
   clearTimeout(timer);
   inflight?.abort();
   inflight = null;
+}
+
+/** Closes the list and forgets any search that is waiting or running. */
+function close(): void {
+  cancel();
   hits.value = [];
   active.value = -1;
 }
 
 /** Asks the place search for `q`; only the newest request may fill the list. */
-async function search(q: string): Promise<void> {
+async function search(q: string, key: string): Promise<void> {
   const ctl = new AbortController();
   inflight = ctl;
   try {
     const found = await searchPlaces(clock.config.placeSearchUrl, q, photonLang(language.value), ctl.signal);
-    if (inflight === ctl) { hits.value = found; active.value = -1; }
+    if (inflight === ctl) { answers.set(key, found); hits.value = found; active.value = -1; }
   } catch {
     // offline, slow or refused: the field simply stays a text field (R13)
     if (inflight === ctl) hits.value = [];
@@ -67,10 +74,15 @@ function onInput(v: string): void {
   emit('update:modelValue', v);
   // typing over a picked place makes it plain text again (R5)
   if (props.place && v !== props.place.name) emit('update:place', null);
-  close();
+  // the shown list stays until the new answer arrives; it goes only when nothing can be asked
   const q = v.trim();
-  if (q.length < MIN_CHARS || !clock.config.placeSearchUrl || navigator.onLine === false) return;
-  timer = setTimeout(() => { void search(q); }, PAUSE_MS);
+  if (q.length < MIN_CHARS || !clock.config.placeSearchUrl || navigator.onLine === false) { close(); return; }
+  active.value = -1;
+  cancel();
+  const key = `${photonLang(language.value)}\n${q}`;
+  const known = answers.get(key);
+  if (known) { hits.value = known; active.value = -1; return; }
+  timer = setTimeout(() => { void search(q, key); }, PAUSE_MS);
 }
 
 /**
