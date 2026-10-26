@@ -51,7 +51,18 @@ When('I remove the date of the task list {string} in the Tasks view', async func
   await item(this, title).getByTestId('tasklist-expanded-title').click();
   const dialog = this.page.getByTestId('tasklist-dialog');
   await expect(dialog).toBeVisible();
-  await dialog.getByTestId('tasklist-no-date').click();
+  await dialog.getByTestId('tasklist-date-clear').click();
+  const saved = this.page.waitForResponse(isTasklistWrite('PATCH'));
+  await dialog.getByTestId('tasklist-save').click();
+  expect((await saved).status(), 'task list saved').toBe(200);
+});
+
+When('I give the task list {string} the date {date} in the Tasks view', async function (this: World, title: string, date: string) {
+  await openTasksView(this);
+  await item(this, title).getByTestId('tasklist-expanded-title').click();
+  const dialog = this.page.getByTestId('tasklist-dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByTestId('tasklist-date').fill(date);
   const saved = this.page.waitForResponse(isTasklistWrite('PATCH'));
   await dialog.getByTestId('tasklist-save').click();
   expect((await saved).status(), 'task list saved').toBe(200);

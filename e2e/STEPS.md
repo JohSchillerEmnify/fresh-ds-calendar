@@ -83,7 +83,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
 | `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
-| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-no-date` (`aria-pressed`), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
 | `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak`, `settings-sunflowers` | settings additions |
@@ -2034,6 +2034,7 @@ the calendar contains an undated task list {string} with items:
 I open the Tasks view
 I create the task list {string} in the Tasks view
 I remove the date of the task list {string} in the Tasks view
+I give the task list {string} the date {date} in the Tasks view
 I group the Tasks view by {string}
 I sort the Tasks view by {string}
 I sort the Tasks view by {string} in reversed order
@@ -2073,7 +2074,9 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
   without a date), type T into `tasklist-title`, `tasklist-save`.
 - "I remove the date of the task list L": taps `tasklist-expanded-title` of L's `tasks-item` (opens the task list
-  dialog), clicks `tasklist-no-date`, `tasklist-save`.
+  dialog), clicks `tasklist-date-clear`, `tasklist-save`.
+- "I give the task list L the date D": opens L's dialog the same way, fills `tasklist-date` with D (the field is
+  never disabled, also on an undated list), `tasklist-save`, waits for the `PATCH` (200).
 - "I group … by G" clicks the `tasks-group-by` option with that label (`Time`, `Category`, `None`); "I sort … by S"
   picks the label in the `tasks-sort-by` select (`Date`, `Name`, `Category`, `Last changed`, `Progress`). Both wait for
   the `PATCH /api/prefs` response. "... in reversed order" also sets the `tasks-sort-dir` toggle to reversed

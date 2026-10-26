@@ -123,7 +123,7 @@ export default {
     title: 'Titel, yo',
     date: 'Datum, fresh',
     time: 'Uhrzeit (kann, muss nicht)',
-    noDate: 'Ohne Datum, yo',
+    clearDate: 'Datum weg, yo',
     estimate: 'Schätzung in Minuten (kann, muss nicht)',
     category: 'Kategorie, fresh',
     items: 'Einträge (einer pro Zeile), Digga',

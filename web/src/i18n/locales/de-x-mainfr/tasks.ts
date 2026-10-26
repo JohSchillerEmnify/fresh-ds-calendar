@@ -88,7 +88,7 @@ export default {
     title: 'Titel',
     date: 'Datum',
     time: 'Uhrzeit (kann, muss ned)',
-    noDate: 'Ohne Datum',
+    clearDate: 'Datum weg mache',
     estimate: 'Schätzung in Minuten (kann, muss ned)',
     category: 'Kategorie',
     items: 'Einträge (aner pro Zeile)',
