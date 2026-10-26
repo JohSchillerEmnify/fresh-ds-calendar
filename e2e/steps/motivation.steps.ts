@@ -1,13 +1,21 @@
 /** Streak, plant and sunflower field steps (STEPS.md "Streak and plant"). */
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
-import { chooseSelect, setSwitch } from './support/settings.js';
+import { chooseSelect } from './support/settings.js';
+import { chooseOption, selectedLabel } from './support/ui.js';
 import { exactText, type World } from './support/world.js';
 
 const SCENES: Record<string, 'sunflowers' | 'mordor' | 'none'> = {
   'Sunflower field': 'sunflowers',
   Mordor: 'mordor',
   None: 'none',
+};
+/** The streak choice by its settings label (person pref `streak`). */
+const STREAKS: Record<string, 'off' | 'flame' | 'plant'> = { Off: 'off', Flame: 'flame', Plant: 'plant' };
+const streakValue = (label: string) => {
+  const v = STREAKS[label];
+  if (!v) throw new Error(`Unknown streak choice "${label}"`);
+  return v;
 };
 const SUNFLOWER_MODES: Record<string, 'grow' | 'full'> = {
   'Grow with points': 'grow',
@@ -32,6 +40,24 @@ Given('the scene is {string}', async function (this: World, label: string) {
   const scene = SCENES[label];
   if (!scene) throw new Error(`Unknown scene "${label}"`);
   await this.api.patch('/api/prefs/theme', { overrides: { scene } });
+});
+
+Given('the streak is set to {string}', async function (this: World, label: string) {
+  await this.api.patch('/api/prefs', { streak: streakValue(label) });
+});
+
+When('I choose {string} for the streak', async function (this: World, label: string) {
+  streakValue(label);
+  const control = this.page.getByTestId('settings-streak');
+  await expect(control).toBeVisible();
+  if ((await selectedLabel(control)) === label) return;
+  const saved = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/prefs' && r.request().method() === 'PATCH');
+  await chooseOption(control, label);
+  expect((await saved).status(), 'streak choice saved').toBe(200);
+});
+
+Then('the streak choice {string} is selected', async function (this: World, label: string) {
+  await expect(this.page.getByTestId('settings-streak').getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 Given('the sunflowers are set to {string}', async function (this: World, label: string) {
@@ -64,6 +90,8 @@ Then('the best streak in settings is {int}', async function (this: World, best: 
 async function expectShown(world: World, loc: Locator, shown: boolean) {
   if (shown) return expect(loc.first()).toBeVisible();
   await world.settled();
+  // the motivation and the streak choice have arrived, so an absent widget is not just still loading
+  await expect(world.page.getByTestId('leading-widgets')).toHaveAttribute('data-ready', 'true');
   await expect(loc).toHaveCount(0);
 }
 
@@ -104,11 +132,6 @@ Then('the plant card shows {string}', async function (this: World, line: string)
   await expect(this.page.getByTestId('plant-card-line')).toHaveText(exactText(line));
 });
 
-When('I turn the streak flame {string}', async function (this: World, state: string) {
-  if (state !== 'on' && state !== 'off') throw new Error(`Expected "on" or "off", got "${state}"`);
-  await setSwitch(this, this.page.getByTestId('settings-streak-flame'), state === 'on');
-});
-
 Then('the sunflowers setting is active', async function (this: World) {
   const buttons = this.page.getByTestId('settings-sunflowers').locator('button');
   await expect(buttons.first()).toBeEnabled();
@@ -124,11 +147,6 @@ Then('the sunflowers setting is inactive', async function (this: World) {
 
 Then('the sunflowers hint says {string}', async function (this: World, text: string) {
   await expect(this.page.getByTestId('settings-sunflowers-hint')).toHaveText(exactText(text));
-});
-
-When('I turn the plant {string}', async function (this: World, state: string) {
-  if (state !== 'on' && state !== 'off') throw new Error(`Expected "on" or "off", got "${state}"`);
-  await setSwitch(this, this.page.getByTestId('settings-plant'), state === 'on');
 });
 
 When('I choose {string} for the sunflowers', async function (this: World, label: string) {

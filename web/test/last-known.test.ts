@@ -14,6 +14,8 @@ import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
 import { mount } from '@vue/test-utils';
 import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
+import LeadingWidgets from '@/features/motivation/LeadingWidgets.vue';
+import { useMotivationStore } from '@/features/motivation/store';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, date: string, from = '10:00', to = '11:00') =>
@@ -219,6 +221,27 @@ describe('last known state store', () => {
     await kv.setOnly('-', { v: 1, person: '-', savedAt: 1, config: config(), settings: null, prefs: {}, calendars: [], themes: [], ranges: [] });
     expect(await useLastKnownStore().restore('/week/2026-10-12')).toBe(true);
     expect(useTemplatesStore().loaded).toBe(false);
+  });
+
+  // R16: the retired shared flame and plant switches may still sit in a cached settings copy; they show nothing
+  it('a cached settings copy with the retired flame and plant switches shows no streak while restored', async () => {
+    server(() => []);
+    offline = true;
+    localStorage.setItem(PERSON_KEY, '-');
+    const settings = { ...settingsFixture(), streakFlame: true, plant: true } as never;
+    await kv.setOnly('-', { v: 1, person: '-', savedAt: 1, config: config(), settings, prefs: {}, calendars: [], themes: [], ranges: [] });
+    const { shown } = await session();
+    expect(shown).toBe(true);
+    expect(useSettingsStore().settings).toMatchObject({ streakFlame: true, plant: true });
+    expect(usePrefsStore().streak).toBe('off');
+    const m = { streak: { current: 3, best: 3, lastCheckIn: '2026-10-12', checkedInToday: true }, plant: { growth: 30, stage: 'Sprout', stageIndex: 1, nextStageAt: 60, todayPoints: 0, lastWatered: '2026-10-12', flowers: 0, vitality: 100, mood: 'happy', message: '' } };
+    vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(String(u).endsWith('/checkin') ? { current: 3, best: 3, checkedInToday: true, newToday: false, motivation: m } : m))));
+    const w = mount(LeadingWidgets, { props: { streak: usePrefsStore().streak, today: () => '2026-10-12' } });
+    await vi.waitFor(() => expect(useMotivationStore().motivation).not.toBeNull());
+    expect(w.find('[data-testid="streak-flame"]').exists()).toBe(false);
+    expect(w.find('[data-testid="plant-button"]').exists()).toBe(false);
+    w.unmount();
+    vi.unstubAllGlobals();
   });
 
   it('restores only the snapshot of the person last signed in on this device', async () => {

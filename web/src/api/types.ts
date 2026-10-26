@@ -263,8 +263,14 @@ export interface Prefs {
   daySideBySide: DaySideBySide;
   /** Overlapping events side by side in the week view (and the phone widget's week) before they cascade (default 2). */
   weekSideBySide: WeekSideBySide;
+  /** What the top bar shows of the check-in streak: nothing (the default), the flame or the plant (feature plant-companion). */
+  streak: StreakChoice;
+  /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
+  syncIndicator: boolean;
 }
 
+/** The "Streak" choice in Settings › Focus & motivation. */
+export type StreakChoice = 'off' | 'flame' | 'plant';
 /** The minimum event length choices, in minutes (0 = off). */
 export type MinEventMinutes = 0 | 15 | 30;
 /** The "Day view: events side by side" choices. */
@@ -309,8 +315,6 @@ export interface Settings {
   sounds: boolean;
   calmMode: boolean;
   ignoreSystemMotion: boolean;
-  streakFlame: boolean;
-  plant: boolean;
   sunflowers: SunflowersMode;
   categories: Category[];
   updated: DateTime;

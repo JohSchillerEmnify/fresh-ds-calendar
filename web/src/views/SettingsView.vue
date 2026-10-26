@@ -12,7 +12,7 @@ import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardA
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import { NAV_POSITIONS } from '@/lib/navPosition';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -163,6 +163,7 @@ const withCurrent = (offered: number[], current: number) => (offered.includes(cu
 const sleepOptions = computed(() => withCurrent([6, 7, 8, 9, 10].map((h) => h * 60), bt.value.sleepMinutes).map((m) => ({ value: String(m), label: t('bedtime.settings.sleep.hours', { count: m / 60 }, m / 60) })));
 const leadOptions = computed(() => withCurrent([0, 15, 30, 45, 60, 90, 120], bt.value.leadMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.lead.none') : t('bedtime.settings.lead.minutes', { count: m }) })));
 const reminderOptions = computed(() => withCurrent([0, 5, 10, 15, 30, 45, 60], bt.value.reminderMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.reminder.off') : t('bedtime.settings.reminder.minutes', { count: m }) })));
+const streakOptions = computed(() => (['off', 'flame', 'plant'] as const).map((v) => ({ value: v, label: t(`settings.motivation.streak.${v}`) })));
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
 // --- categories ---------------------------------------------------------------------------
@@ -253,6 +254,7 @@ async function resetDemo() {
             <Select class="grow" :model-value="approachChoice" :options="approachWindows" :label="t('settings.calendar.approachWindow.label')" data-testid="settings-approach-window" @update:model-value="pickApproachWindow" />
             <TextField v-if="approachChoice === 'custom'" v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" :label="t('settings.calendar.approachWindow.customLabel')" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
           </div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.syncIndicator.label') }}</span><span class="sub">{{ t('settings.calendar.syncIndicator.hint') }}</span></div><Switch :model-value="labs.syncIndicator" :label="t('settings.calendar.syncIndicator.label')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.tasksCalendar.label') }}</span><span class="sub">{{ t('settings.calendar.tasksCalendar.hint') }}</span></div><Switch :model-value="labs.tasksCalendarVisible" :label="t('settings.calendar.tasksCalendar.label')" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.leftHanded.label') }}</span><span class="sub">{{ t('settings.leftHanded.hint') }}</span></div><Switch :model-value="labs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><SegmentedButton :model-value="labs.navPhone" :options="navOptions('phone')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.phone')}`" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPosition })" /></div>
@@ -285,8 +287,7 @@ async function resetDemo() {
         <section id="s-motivation" class="card" data-testid="settings-section" data-section="motivation" aria-labelledby="h-focus">
           <h2 id="h-focus">{{ title('motivation') }}</h2>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.motivation.calmMode.label') }}</span><span class="sub">{{ t('settings.motivation.calmMode.hint') }}</span></div><Switch :model-value="s.calmMode" :label="t('settings.motivation.calmMode.label')" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
-          <div class="row"><span class="lab grow">{{ t('settings.motivation.streakFlame') }}</span><Switch :model-value="s.streakFlame" :label="t('settings.motivation.streakFlame')" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
-          <div class="row"><span class="lab grow">{{ t('settings.plant') }}</span><Switch :model-value="s.plant" :label="t('settings.plant')" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.motivation.streak.label') }}</span><SegmentedButton :model-value="labs.streak" :options="streakOptions" :label="t('settings.motivation.streak.label')" data-testid="settings-streak" @update:model-value="savePrefs({ streak: $event as StreakChoice })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.sunflowers.label') }}</span><span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">{{ t('settings.sunflowers.hint') }}</span><SegmentedButton :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
           <div v-if="currentStreak !== null" class="row"><span class="lab grow">{{ t('settings.motivation.currentStreak') }}</span><StreakFlame :count="currentStreak" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.motivation.bestStreak') }}</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>

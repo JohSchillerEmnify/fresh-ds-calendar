@@ -15,9 +15,11 @@ describe('settings', () => {
     const { body: s } = await t.json('GET', '/api/settings');
     expect(s).toMatchObject({
       themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
-      streakFlame: true, plant: true, sunflowers: 'grow', version: 1,
+      sunflowers: 'grow', version: 1,
     });
     expect(s).not.toHaveProperty('scene');
+    expect(s).not.toHaveProperty('streakFlame');
+    expect(s).not.toHaveProperty('plant');
     expect(s).not.toHaveProperty('garden');
     expect(s.categories.map((c: any) => [c.id, c.name, c.color, c.icon, c.googleColorId])).toEqual([
       ['shopping', 'Shopping', '#0b8043', '🛒', '10'], ['todo', 'To-do', '#3f51b5', '✅', '9'],
@@ -26,13 +28,13 @@ describe('settings', () => {
   });
 
   it('PATCH merges, lowercases the seed color, bumps version', async () => {
-    const r = await t.json('PATCH', '/api/settings', { themeMode: 'dark', seedColor: '#C43E00', plant: false, sunflowers: 'full' });
+    const r = await t.json('PATCH', '/api/settings', { themeMode: 'dark', seedColor: '#C43E00', sunflowers: 'full' });
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ themeMode: 'dark', seedColor: '#c43e00', plant: false, sunflowers: 'full', version: 2 });
+    expect(r.body).toMatchObject({ themeMode: 'dark', seedColor: '#c43e00', sunflowers: 'full', version: 2 });
   });
 
   it('validates values', async () => {
-    const bad = [{ seedColor: 'red' }, { themeMode: 'x' }, { scene: 'mordor' }, { transitionWarningMinutes: 7 }, { defaultEventColorId: '12' }, { garden: 'plant' }, { plant: 'yes' }, { sunflowers: 'many' }, { nope: 1 }, { categories: [] }];
+    const bad = [{ seedColor: 'red' }, { themeMode: 'x' }, { scene: 'mordor' }, { transitionWarningMinutes: 7 }, { defaultEventColorId: '12' }, { garden: 'plant' }, { plant: true }, { streakFlame: false }, { plant: 'yes' }, { sunflowers: 'many' }, { nope: 1 }, { categories: [] }];
     for (const b of bad) expect((await t.json('PATCH', '/api/settings', b)).status, JSON.stringify(b)).toBe(400);
     expect((await t.json('PATCH', '/api/settings', { seedColor: 'red' })).body.error.message).toBe('Enter a color like #1a73e8');
     expect((await t.json('PATCH', '/api/settings', { defaultEventColorId: '5' })).body.defaultEventColorId).toBe('5');
@@ -54,6 +56,23 @@ describe('settings', () => {
     expect(fs.readdirSync(t.dir).filter((f) => f.endsWith('.tmp'))).toEqual([]);
     const again = buildApp({ ...loadConfig({ DATA_DIR: t.dir, TEST_MODE: 'false' }), webDist: null });
     expect((await (await again.request('/api/settings')).json()).seedColor).toBe('#6750a4');
+    again.close();
+  });
+
+  // the flame and plant switches were replaced by the person pref `streak` (API.md "Flame and plant switches retired")
+  it('drops the retired flame and plant switches on load, on the next save and after a restore, and nobody gets a streak', async () => {
+    const file = path.join(t.dir, 'settings.json');
+    const stored = JSON.parse(fs.readFileSync(file, 'utf8'));
+    fs.writeFileSync(file, JSON.stringify({ ...stored, streakFlame: true, plant: true }));
+    const again = buildApp({ ...loadConfig({ DATA_DIR: t.dir, TEST_MODE: 'false' }), webDist: null });
+    const served = await (await again.request('/api/settings')).json();
+    expect(served).not.toHaveProperty('streakFlame');
+    expect(served).not.toHaveProperty('plant');
+    expect((await (await again.request('/api/prefs')).json()).streak).toBe('off');
+    await again.request('/api/settings', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sounds: true }) });
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    expect(saved).not.toHaveProperty('streakFlame');
+    expect(saved).not.toHaveProperty('plant');
     again.close();
   });
 
@@ -101,9 +120,9 @@ describe('categories', () => {
 
   it('reset restores default settings and categories', async () => {
     await t.json('DELETE', '/api/categories/home');
-    await t.json('PATCH', '/api/settings', { plant: false });
+    await t.json('PATCH', '/api/settings', { sunflowers: 'full' });
     const r = await t.json('POST', '/api/__test/reset');
     expect(r.body.settings.categories).toHaveLength(4);
-    expect(r.body.settings.plant).toBe(true);
+    expect(r.body.settings.sunflowers).toBe('grow');
   });
 });

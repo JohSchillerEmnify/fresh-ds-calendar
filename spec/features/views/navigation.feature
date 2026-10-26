@@ -109,7 +109,12 @@ Feature: Navigation and view switching
       | view  | other      | today            |
       | month | 2027-03    | /month/2026-10   |
       | week  | 2026-11-23 | /week/2026-10-12 |
-      | day   | 2026-12-24 | /day/2026-10-12  |
+
+  # The day view has no day header any more (feature header-layout): its today highlight is the Today button's.
+  Scenario: The today button returns to today's day view
+    When I open the day view for 2026-12-24
+    And I go to today
+    Then the URL path is "/day/2026-10-12"
 
   Scenario Outline: The current day is highlighted in every view
     When I open the <view> view for <period>
@@ -120,7 +125,6 @@ Feature: Navigation and view switching
       | view  | period     |
       | month | 2026-10    |
       | week  | 2026-10-12 |
-      | day   | 2026-10-12 |
 
   Scenario Outline: No day is highlighted when today is not visible
     When I open the <view> view for <period>
@@ -130,7 +134,36 @@ Feature: Navigation and view switching
       | view  | period     |
       | month | 2026-12    |
       | week  | 2026-10-19 |
+
+  # owner, 2026-10-26: the date is shown once, so the day view's "Mon 12" header goes; the Today button takes over its
+  # today highlight in every view: filled while today is shown, outlined on a solid background when it is not.
+  @backlog
+  Scenario Outline: The Today button shows when today is on screen
+    When I open the <view> view for <period>
+    Then the Today button shows that today is on screen
+
+    Examples:
+      | view  | period     |
+      | month | 2026-10    |
+      | week  | 2026-10-12 |
+      | day   | 2026-10-12 |
+
+  @backlog
+  Scenario Outline: The Today button does not show it when today is not on screen
+    When I open the <view> view for <period>
+    Then the Today button does not show that today is on screen
+
+    Examples:
+      | view  | period     |
+      | month | 2026-12    |
+      | week  | 2026-10-19 |
       | day   | 2026-10-13 |
+
+  @backlog
+  Scenario: Going to today in the day view lights up the Today button
+    When I open the day view for 2026-12-24
+    And I go to today
+    Then the Today button shows that today is on screen
 
   Scenario Outline: Switching views keeps today when it is visible, otherwise the focused date
     When I open the month view for <month>

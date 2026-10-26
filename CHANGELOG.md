@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-26
+- Streak: Settings › Focus & motivation now has one "Streak" choice, Off, Flame or Plant, instead of the two switches "Streak flame" and "Plant". It is your own setting and follows you to every device. It starts as Off for everyone, so the top bar is quieter; pick Flame or Plant to bring one back. Your check-ins and your plant keep counting whatever you choose, and the "Checked in, day N" message always shows.
+- The sync icon in the top bar now shows only while syncing fails. To see it all the time, turn on "Sync indicator" in Settings › Calendar.
+
 ## 2026-10-25
 - Month view: an appointment that runs past midnight but is shorter than a day (e.g. 22:00 to 02:00) is now shown on its start day only, as in Google Calendar; the week and day views still show its part on each day.
 - Bedtime: a bedtime at exactly midnight (e.g. weekend times 00:00) now shows its moon at the end of the evening before, so a day never shows two moons; Friday and Saturday get their midnight moon back.

@@ -86,7 +86,7 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-no-date` (`aria-pressed`), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
-| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak-flame`, `settings-plant`, `settings-sunflowers` | settings additions |
+| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak`, `settings-sunflowers` | settings additions |
 | `tasks-view` (`data-group-by`, `data-sort-by`), `tasks-group-by`, `tasks-sort-by`, `tasks-sort-dir` (`data-dir`), `tasks-collapse-all`, `tasks-group` (`data-group`), `tasks-group-title`, `tasks-item` (`data-tasklist-id`, `data-title`, `data-date`) | Tasks view |
 | `tasks-tab-canvas`, `tasks-canvas`, `canvas-viewport` (`data-zoom`, `data-pan-x`, `data-pan-y`), `canvas-note` (`data-tasklist-id`, `data-x`, `data-y`, `data-placed`, `data-area`, `data-dimmed`; `canvas-note-grip`, `canvas-note-date`), `canvas-unsorted`, `canvas-area` (`data-area-id`, `data-name`, `data-color`, `data-x/y/w/h`, `data-selected`; `canvas-area-header`, `canvas-area-handle` `data-corner`), `canvas-area-add`, `canvas-area-editor` (`canvas-area-name-input`, `canvas-area-color`, `canvas-area-delete`, `canvas-area-editor-close`) | Canvas |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
@@ -1150,8 +1150,9 @@ the plant card shows {string}
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```
-I turn the streak flame {string}
-I turn the plant {string}
+the streak is set to {string}
+I choose {string} for the streak
+the streak choice {string} is selected
 I choose {string} for the sunflowers
 the scene is {string}
 the sunflowers are set to {string}
@@ -1167,11 +1168,17 @@ the sunflowers are not swaying
 the sunflowers look {string}
 ```
 
-- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state; `I turn the plant
-  "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
+- Streak choice (person pref `streak`: `Off` = `off`, the default; `Flame` = `flame`; `Plant` = `plant`). `the streak is
+  set to X` (Given) sends `PATCH /api/prefs { streak }` through the API before the page is opened. `I choose X for the
+  streak` picks the option labelled X in `settings-streak` (a segmented button in Focus & motivation; the settings are
+  open) and waits for the `PATCH /api/prefs` response (200); `the streak choice X is selected` = that option has
+  `aria-pressed="true"`. The steps `I see / do not see the streak flame` and `I see / do not see the plant` check
+  `streak-flame` and `plant-button` in the top bar. `I choose X for the sunflowers` picks the option with that
   label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
-  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`.
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
+  season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
+  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off first so the chosen scene stays).
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -2792,7 +2799,7 @@ I drop the dragged item in the all-day row on {date}
   at the height of T, then keeps the pointer there for N ms (still down).
 - "I hold the all-day event X at the right edge of the all-day row for N ms": the same as the time grid step, with X's
   chip in the all-day row and the pointer 6 px inside the right side of that row. "I drop the dragged item in the all-day
-  row on D": moves to the `week-allday-cell` of D and releases; waits for the save.
+  row on D": moves to the `week-allday-cell` of D (in the day view its `day-allday-area`) and releases; waits for the save.
 - The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
   event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
 
@@ -2964,4 +2971,121 @@ the clock widget says {string}
   morningTime: T } }`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
+
+## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
+
+```
+the header layout is set to {string}
+I choose {string} as the header layout
+the header layout {string} is selected
+the top bar is in one row
+the top bar is in two rows
+the top bar is at most {int} pixels tall
+the period title is not cut short
+the period title's font size is {int} pixels
+the period title's chevron is shown
+the period title's chevron is not shown
+the Today button is an icon with the label {string}
+the Today button shows the word {string}
+the top bar's buttons are at least {int} by {int} pixels
+the top bar's buttons other than the plant are at least {int} by {int} pixels
+the plant's tap area is at least {int} by {int} pixels
+the downloaded theme file has no header layout
+the Today button shows that today is on screen
+the Today button does not show that today is on screen
+the day view shows no day header
+the week view shows {int} day headers
+the all-day row is shown
+the all-day row is not shown
+the tasks section switch is shown
+I pick up the task list {string}
+no character of the top bar scene is under a control
+the top bar scene's parts are drawn at their full size
+the top bar scene does not show the {string}
+the Approaching card is off
+I see the Approaching card
+I switch off the time left in the Approaching card in the settings
+the event {string} shows {string} after its time
+the event {string} shows no time left
+I see the sync icon
+I do not see the sync icon
+the sync icon shows a problem
+the {string} switch in the settings is off
+the sync indicator is on
+I note where the top bar's controls are
+I turn on left-handed mode
+every control of the top bar is at the mirror image of where it was, within {int} pixel
+the period title's text is aligned to the outer edge
+the top bar's widgets are in reverse order
+```
+
+- Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
+  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened.
+  "I choose L as the header layout" picks the option labelled L in `settings-header-layout` (a segmented button) and
+  waits for the `PATCH /api/prefs` response (200); "the header layout L is selected" = that option has
+  `aria-pressed="true"`.
+- "the top bar is in one row": the visible `period-title`, `nav-prev`, `nav-today`, `nav-next` and `settings-button` have
+  vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
+- "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
+- "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
+  title's font size is N pixels": the computed `font-size` of `period-title .t` is N px. "the period title's chevron is
+  shown / not shown": the `svg` (the ⌄ expand icon) inside `period-title` is visible / not visible (hidden, taking no
+  room); the title stays a button that opens the date picker either way.
+- "the Today button is an icon with the label L": `nav-today` has `aria-label` L, contains an `svg` and no visible text.
+  "the Today button shows the word W": `nav-today`'s visible text is W.
+- "the top bar's buttons are at least W by H pixels": for every visible `button` inside `top-bar` (title, arrows, Today,
+  filter, settings, plant, install), `document.elementFromPoint` at the four points 1 px inside a W x H box centred on
+  the button returns the button or a descendant: the hit area is at least W x H even where the drawn control is
+  smaller. The streak flame (`streak-flame`) and the sync icon (`sync-status`) are not buttons and are not checked.
+  "... other than the plant ...": the same, leaving out `plant-button`. "the plant's tap area is at least W by H
+  pixels": the same check for `plant-button` alone (W wide, H tall).
+- "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
+  `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
+- "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the
+  built-in tonal look: its computed background is the secondary container colour, no outline). "does not show":
+  `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
+  colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
+  month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or
+  `day-column` visible) before the check.
+- "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
+  N day headers": N visible `week-header` elements.
+- "the all-day row is shown": the all-day row of the first time grid (`day-allday-area`, or the `week-allday-cell`s)
+  is visible and at least 30 px tall. "is not shown": the all-day band (`.alldays` of the first time grid) is absent or
+  0 px tall.
+- "the tasks section switch is shown": `tasks-section-toggle` is visible.
+- "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
+  long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
+- "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,
+  `.tbs .ghost`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
+  arrow, Today, flame, plant, sync, filter and settings icons: for an `svg` the box of its drawn `path`).
+- "the top bar scene's parts are drawn at their full size": every scene layer container (`.tbs .life`, `.tbs .mo`,
+  `.tbs .sl`) is 96 px tall (the as-built scene box), whatever the bar's height; the bar clips it at its bottom edge.
+- "the top bar scene does not show the X": no visible element for part X (`hare` = `.tbs .hare`) in the scene.
+- "the Approaching card is off"
+  (Given): `PATCH /api/prefs { approachingCard: false }`. "I see the Approaching card": `now-card` is visible.
+- "I switch off the time left in the Approaching card in the settings": opens the settings and turns
+  `settings-approach-time-left` off (pref `approachTimeLeft`), waiting for the `PATCH /api/prefs` response.
+- "the event X shows T after its time": X's `event-chip-time` text ends with `· T` (a middle dot, then T).
+  "shows no time left": X's `event-chip-time` is visible and has no "left" part. The time left updates with the app clock.
+- Sync icon (`sync-status`, pref `syncIndicator`, default off). The element always stays in the page with its
+  `data-state` and `data-last-sync` (the sync waits above read it); what changes is whether it is drawn. "I see the sync
+  icon": `sync-status` is visible. "I do not see the sync icon": `sync-status` is not visible (hidden, and it takes no
+  room in the top bar). "the sync icon shows a problem": `sync-status` is visible with `data-state="error"`. The switch
+  is `settings-sync-indicator` (label "Sync indicator", Settings › Calendar) and is turned on with the generic
+  `I turn on {string} in the settings` step; "the X switch in the settings is off" = the switch labelled X on the open
+  settings page has `aria-checked="false"`.
+- Left-handed mirror (owner, 2026-10-26). "the sync indicator is on" (Given): `PATCH /api/prefs { syncIndicator: true }`.
+  "I note where the top bar's controls are": records, for each visible control of `top-bar`, its box relative to the
+  `top-bar` box: `period-title`, its text (`period-title .t`) and chevron `svg`, `nav-prev`, `nav-today`, `nav-next`,
+  `streak-flame`, `plant-button`, `sync-status`, `filter-button`, `settings-button`, and the top bar's width W. "I turn
+  on left-handed mode": `PATCH /api/prefs { leftHanded: true }`, then reloads the same page and waits for the
+  calendar. "every control of the top bar is at the mirror image of where it was, within N pixel": for each noted
+  control, its left-handed box (relative to `top-bar`) has the same top, width and height and a left of W − (old left +
+  old width), each within N px; `nav-prev` and `nav-next` swap (the mirror of the ‹ box is where › now is, and the
+  reverse), so ‹ Today › keeps its order. "the period title's text is aligned to the outer edge": the right edge of
+  `period-title .t` is at the right edge of `period-title`'s content box (within 1 px), with no free room to its right.
+  "the top bar's widgets are in reverse order": the visible widgets (`streak-flame` / `plant-button`, `sync-status`)
+  are ordered right to left as they were left to right.
+- The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
+  `scene-<scene>-<layout>-<scheme>`.
 

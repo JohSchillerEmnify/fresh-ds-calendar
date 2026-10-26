@@ -159,8 +159,6 @@ export interface Settings {
   sounds: boolean;
   calmMode: boolean;
   ignoreSystemMotion: boolean;
-  streakFlame: boolean;
-  plant: boolean;
   sunflowers: SunflowersMode;
   categories: Category[];
   updated: DateTime;

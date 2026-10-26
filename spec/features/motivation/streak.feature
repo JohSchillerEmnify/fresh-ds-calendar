@@ -4,9 +4,13 @@ Feature: Daily check-in streak
   stored on the server so it syncs across devices. A small flame and the number of consecutive days are
   shown in the top app bar. A new day's check-in plays a short flicker and shows "Checked in, day N".
   Missing a day resets the count quietly; there is no shaming message, only a friendly "Welcome back".
+  The flame shows when the person chose "Flame" as their streak (Settings › Focus & motivation; Off by default,
+  feature plant-companion). The check-in counts, and its message ("Checked in, day N", "Welcome back!") shows,
+  whatever is chosen, Off included (owner, 2026-10-26).
 
   Background:
     Given the calendar is empty
+    And the streak is set to "Flame"
 
   Scenario: A new consecutive day increases the streak with a short flicker
     Given I checked in on 2026-10-09, 2026-10-10 and 2026-10-11
@@ -71,3 +75,18 @@ Feature: Daily check-in streak
     And the response JSON field "current" equals "1"
     And the response JSON field "checkedInToday" equals "true"
     And the response JSON field "newToday" equals "false"
+
+  Scenario Outline: The check-in counts and its message shows whatever the streak choice is
+    Given the streak is set to "<streak>"
+    And I checked in on 2026-10-09, 2026-10-10 and 2026-10-11
+    And today is 2026-10-12
+    When I open the app
+    Then I do not see the streak flame
+    And I see the streak message "Checked in, day 4"
+    When I request "GET /api/motivation"
+    Then the response JSON field "streak.current" equals "4"
+
+    Examples:
+      | streak |
+      | Off    |
+      | Plant  |

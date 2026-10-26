@@ -314,20 +314,44 @@ describe('scenes', () => {
 });
 
 describe('LeadingWidgets', () => {
-  it('renders flame + plant per settings and opens the card', async () => {
+  const stubMotivation = () => {
     const m = mot({ growth: 140, current: 4 });
     const f = vi.fn(async (_u: string, init?: RequestInit) => ({ ok: true, json: async () => (init?.method === 'POST' ? { current: 4, best: 5, checkedInToday: true, newToday: true, motivation: m } : m) })) as unknown as typeof fetch;
     vi.stubGlobal('fetch', f);
-    const w = mount(LeadingWidgets, { props: { today: () => '2026-10-12' }, attachTo: document.body, global: { stubs: { teleport: true } } });
+  };
+  const shown = (w: ReturnType<typeof mount>) => ({ flame: w.find('[data-testid="streak-flame"]').exists(), plant: w.find('[data-testid="plant-button"]').exists() });
+
+  it('shows the widget of the streak choice: off neither, flame the flame, plant the plant with its card', async () => {
+    stubMotivation();
+    const w = mount(LeadingWidgets, { props: { streak: 'flame', today: () => '2026-10-12' }, attachTo: document.body, global: { stubs: { teleport: true } } });
     await flushPromises();
     expect(w.find('[data-testid="streak-flame"]').text()).toBe('4');
-    expect(document.querySelector('[data-testid="streak-message"]')!.textContent).toBe('Checked in, day 4');
+    expect(shown(w)).toEqual({ flame: true, plant: false });
+    await w.setProps({ streak: 'plant' });
+    expect(shown(w)).toEqual({ flame: false, plant: true });
     expect(w.find('[data-testid="plant-button"]').attributes('data-stage')).toBe('Leafy');
     await w.find('[data-testid="plant-button"]').trigger('click');
     expect(w.find('[data-testid="plant-card-stage"]').text()).toBe('Leafy');
-    await w.setProps({ streakFlame: false, showPlant: false });
-    expect(w.find('[data-testid="streak-flame"]').exists()).toBe(false);
-    expect(w.find('[data-testid="plant-button"]').exists()).toBe(false);
+    await w.setProps({ streak: 'off' });
+    expect(shown(w)).toEqual({ flame: false, plant: false });
+    w.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  it('shows nothing by default (Off)', async () => {
+    stubMotivation();
+    const w = mount(LeadingWidgets, { props: { today: () => '2026-10-12' }, attachTo: document.body, global: { stubs: { teleport: true } } });
+    await flushPromises();
+    expect(shown(w)).toEqual({ flame: false, plant: false });
+    w.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['off', 'flame', 'plant'] as const)('shows the check-in message with the streak choice %s', async (streak) => {
+    stubMotivation();
+    const w = mount(LeadingWidgets, { props: { streak, today: () => '2026-10-12' }, attachTo: document.body, global: { stubs: { teleport: true } } });
+    await flushPromises();
+    expect(document.querySelector('[data-testid="streak-message"]')!.textContent).toBe('Checked in, day 4');
     w.unmount();
     vi.unstubAllGlobals();
   });

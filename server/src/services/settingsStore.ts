@@ -24,8 +24,6 @@ export function defaultSettings(now: string): Settings {
     sounds: false,
     calmMode: false,
     ignoreSystemMotion: false,
-    streakFlame: true,
-    plant: true,
     sunflowers: 'grow',
     categories: DEFAULT_CATEGORIES.map(withGoogleColor),
     updated: now,
@@ -49,15 +47,14 @@ export class SettingsStore {
 
   /** Reads the file again (start, and after a backup restore replaced it). */
   reload(): void {
-    const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string; transitionWarningMinutes?: unknown }>(this.file) : null;
-    // `transitionWarningMinutes` was replaced by the reminder lists (feature reminders)
-    const { scene, garden, transitionWarningMinutes: _retired, ...loaded } = raw ?? {};
+    const raw = this.file ? readJson<Partial<Settings> & { scene?: string; garden?: string; transitionWarningMinutes?: unknown; streakFlame?: unknown; plant?: unknown }>(this.file) : null;
+    // `transitionWarningMinutes` was replaced by the reminder lists (feature reminders); the shared `streakFlame` and
+    // `plant` switches by the person pref `streak`, Off for everyone, so they are dropped, not carried over (API.md)
+    const { scene, garden, transitionWarningMinutes: _retired, streakFlame: _flame, plant: _plant, ...loaded } = raw ?? {};
     this.legacyScene = typeof scene === 'string' ? scene : undefined;
     this.legacyGardenStyle = typeof garden === 'string' ? garden : undefined;
     const defaults = defaultSettings(this.stamp());
     this.s = raw ? { ...defaults, ...loaded } : defaults;
-    // only the old single plant kept the plant widget; `sunflowers` and `off` hid it (API.md "Scenes")
-    if (this.legacyGardenStyle !== undefined && loaded.plant === undefined) this.s.plant = this.legacyGardenStyle === 'plant';
     if (!raw) this.save(false);
   }
 

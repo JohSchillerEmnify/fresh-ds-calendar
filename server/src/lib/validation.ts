@@ -159,8 +159,6 @@ export const settingsPatchSchema = so({
   sounds: v.optional(v.boolean()),
   calmMode: v.optional(v.boolean()),
   ignoreSystemMotion: v.optional(v.boolean()),
-  streakFlame: v.optional(v.boolean()),
-  plant: v.optional(v.boolean()),
   sunflowers: v.optional(v.picklist(['grow', 'full'], 'Invalid sunflowers setting')),
 });
 /** A whole number in a range (the theme sliders). */

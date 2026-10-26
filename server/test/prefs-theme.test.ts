@@ -114,7 +114,7 @@ describe('one scene choice (migration of the retired top bar scene)', () => {
     const s = new SettingsStore(d, { real: () => new Date() } as never, 'UTC');
     expect(s.get()).not.toHaveProperty('scene');
     expect(s.legacyTopBarScene()).toBe('mordor');
-    s.update((x) => { x.plant = true; });
+    s.update((x) => { x.sounds = true; });
     expect(JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8')).scene).toBe('mordor');
   });
 });
@@ -128,21 +128,35 @@ describe('scene and plant (migration of the retired garden style)', () => {
   };
   afterAll(() => dirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
 
-  it.each([['plant', true], ['sunflowers', false], ['off', false]])('stored garden %s becomes plant=%s and is not served', (garden, plant) => {
+  it.each(['plant', 'sunflowers', 'off'])('stored garden %s is kept on disk for the scene migration but not served', (garden) => {
     const { d, s } = settingsWith({ garden });
-    expect(s.get()).toMatchObject({ plant, sunflowers: 'grow' });
+    expect(s.get()).toMatchObject({ sunflowers: 'grow' });
     expect(s.get()).not.toHaveProperty('garden');
     expect(s.legacyGarden()).toBe(garden);
-    // the old key stays on disk after a save, and a stored plant switch wins over it from then on
-    s.update((x) => { x.plant = !plant; });
-    expect(JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8'))).toMatchObject({ garden, plant: !plant });
-    expect(new SettingsStore(d, { real: () => new Date() } as never, 'UTC').get().plant).toBe(!plant);
+    s.update((x) => { x.sounds = true; });
+    expect(JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8'))).toMatchObject({ garden });
   });
 
   it('settings without a stored garden keep the defaults', () => {
     const { s } = settingsWith({});
-    expect(s.get()).toMatchObject({ plant: true, sunflowers: 'grow' });
+    expect(s.get()).toMatchObject({ sunflowers: 'grow' });
     expect(s.legacyGarden()).toBeUndefined();
+  });
+
+  // owner, 2026-10-26: the switches became the person pref `streak`, Off for everyone, so nothing is carried over
+  it('drops the retired flame and plant switches on load and after a restored backup, and writes the file without them', () => {
+    const { d, s } = settingsWith({ streakFlame: false, plant: true, garden: 'plant' });
+    expect(s.get()).not.toHaveProperty('streakFlame');
+    expect(s.get()).not.toHaveProperty('plant');
+    s.update((x) => { x.sounds = true; });
+    const onDisk = () => JSON.parse(fs.readFileSync(path.join(d, 'settings.json'), 'utf8'));
+    expect(onDisk()).not.toHaveProperty('streakFlame');
+    expect(onDisk()).not.toHaveProperty('plant');
+    // a restored older backup puts them back on disk; the reload drops them again
+    fs.writeFileSync(path.join(d, 'settings.json'), JSON.stringify({ ...onDisk(), streakFlame: true, plant: true }));
+    s.reload();
+    expect(s.get()).not.toHaveProperty('streakFlame');
+    expect(s.get()).not.toHaveProperty('plant');
   });
 
   it.each([
