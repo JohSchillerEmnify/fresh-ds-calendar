@@ -68,6 +68,13 @@ export interface Reminders {
   minutes: number[];
 }
 
+/** A place picked from the place search (feature event-location): its name and position (WGS 84 degrees). */
+export interface Place {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface CalendarEvent {
   kind: 'event';
   id: string;
@@ -75,6 +82,8 @@ export interface CalendarEvent {
   title: string;
   description: string;
   location: string;
+  /** The place picked for the location; absent for typed text (the location then shows no map). */
+  place?: Place;
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;
@@ -333,6 +342,10 @@ export interface AppConfig {
   apk: { versionCode: number; versionName: string; certSha256?: string } | null;
   /** Names of the optional plugins this deployment turned on (ADR 0004), e.g. `door`. */
   plugins: string[];
+  /** The place search (Photon) the device asks directly for location suggestions (feature event-location). */
+  placeSearchUrl: string;
+  /** The map picture template with `{z}`, `{x}`, `{y}` (OpenStreetMap tiles). */
+  mapTileUrl: string;
 }
 
 /** One plain-English line of CHANGELOG.md (`GET /api/release-notes`). */
@@ -358,6 +371,8 @@ export interface CreateEventInput {
   title: string;
   description?: string;
   location?: string;
+  /** The picked place; null drops it, absent keeps it (update). */
+  place?: Place | null;
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;

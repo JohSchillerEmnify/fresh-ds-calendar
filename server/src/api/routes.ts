@@ -80,6 +80,9 @@ export function configResponse(ctx: Ctx) {
     version: ctx.overrides.version ?? VERSION,
     apk: ctx.overrides.apk !== undefined ? ctx.overrides.apk : readApkInfo(ctx.config.dataDir),
     plugins: enabledPlugins(ctx),
+    // TEST_MODE: the server's own stand-ins (testRoutes.ts), so a test never reaches the real hosts
+    placeSearchUrl: ctx.config.testMode ? '/api/__test/photon' : ctx.config.places.searchUrl,
+    mapTileUrl: ctx.config.testMode ? '/api/__test/tiles/{z}/{x}/{y}.png' : ctx.config.places.tileUrl,
   };
 }
 

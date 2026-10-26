@@ -80,6 +80,7 @@ interface CalendarEvent {
   title: string;           // 1–200 chars after trim
   description: string;     // '' if none, max 8000
   location: string;        // '' if none, max 500
+  place?: Place;           // the place picked for the location (feature event-location); absent for typed text, and once `location` is neither `place.name` nor starts with `"<place.name>, "` (changed elsewhere)
   allDay: boolean;
   start: DateTime | LocalDate;  // LocalDate iff allDay
   end: DateTime | LocalDate;    // exclusive; LocalDate iff allDay
@@ -243,6 +244,8 @@ outage is simulated).
   testMode: boolean;
   publicUrl: string | null; // PUBLIC_URL env
   version: string;
+  placeSearchUrl: string;   // Photon search endpoint the device asks directly (feature event-location): PLACE_SEARCH_URL env (https only), default 'https://photon.komoot.io/api'; TEST_MODE '/api/__test/photon'
+  mapTileUrl: string;       // map picture template with {z}/{x}/{y}: MAP_TILE_URL env (https only), default 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'; TEST_MODE '/api/__test/tiles/{z}/{x}/{y}.png'
 }
 ```
 
@@ -343,11 +346,14 @@ that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in
 | `DELETE` | `/api/events/:id` | – | `204` |
 
 ```ts
+interface Place { name: string; lat: number; lon: number }  // name 1–200 chars after trim; lat -90..90, lon -180..180 (WGS 84)
+
 interface CreateEventInput {
   calendarId?: string;     // default: primary calendar
   title: string;
   description?: string;
-  location?: string;
+  location?: string;       // with a picked place: "<name>, <address>"
+  place?: Place | null;    // stored in Google's private extended properties placeName/placeLat/placeLon only while `location` is the name or starts with "<name>, " (else dropped); PATCH: null drops it, absent keeps it (a new location must still match)
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;   // must be > start (all-day: exclusive date > start date)
@@ -831,6 +837,9 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |
+| `POST` | `/api/__test/places` | `{ places: { name, address, lat, lon }[] }` | The places the stand-in place search knows (feature event-location), in order; cleared by reset. `200 { places }` |
+| `GET` | `/api/__test/photon?q&lang&limit` | – | Photon's GeoJSON answer (`FeatureCollection` of `Point` features with `name`, `street`, `housenumber`, `postcode`, `city`): the known places whose name or address contains every word of `q` (case-insensitive), in order, at most `min(limit, 5)`. `200` |
+| `GET` | `/api/__test/tiles/:z/:x/:y.png` | – | A generated plain 256×256 map picture with OSM-like cache headers. `200 image/png` |
 | `POST` | `/api/__test/release-notes` | `{ notes: { date, text }[] }` | `GET /api/release-notes` answers this list (as given, at most 50) until the next reset. `200 { notes }` |
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |

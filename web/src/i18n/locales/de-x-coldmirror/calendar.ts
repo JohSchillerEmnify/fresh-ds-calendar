@@ -147,6 +147,12 @@ export default {
       location: 'Ort, Digga',
       description: 'Beschreibung, yo',
     },
+    place: {
+      suggestions: 'Orte, Digga',
+      credit: '© OpenStreetMap',
+      map: 'Karte von {name}, yo',
+      offline: 'Die Karte kommt, wenn du online bist, Digga',
+    },
     validation: {
       titleRequired: 'Ohne Titel geht gar nix, du Oberpflaume',
       titleLong: 'Der Titel darf höchstens 200 Zeichen lang sein. Fresh D. liest nicht so viel.',

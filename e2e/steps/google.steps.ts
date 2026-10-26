@@ -160,6 +160,11 @@ When('Google renames the event {string} to {string}', async function (this: Worl
   await this.api.remotePatch(ev.id, { summary: to });
 });
 
+// feature event-location: only the text changes, the place's private properties stay (as Google Calendar does it)
+When('Google changes the location of the event {string} to {string}', async function (this: World, title: string, location: string) {
+  await this.api.remotePatch((await findOne(this, title)).id, { location });
+});
+
 When(
   'Google moves the event {string} to {date} from {time} to {time}',
   async function (this: World, title: string, date: string, from: string, to: string) {

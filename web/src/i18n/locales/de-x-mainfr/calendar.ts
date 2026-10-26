@@ -132,6 +132,12 @@ export default {
       location: 'Ord',
       description: 'Beschreibung',
     },
+    place: {
+      suggestions: 'Ordde',
+      credit: '© OpenStreetMap',
+      map: 'Kardn vo {name}',
+      offline: 'Die Kardn kummd, wennst online bist',
+    },
     validation: {
       titleRequired: 'Ohne Didl gehd des ned',
       titleLong: 'Der Didl derf höchsdns 200 Zeichn lang sei',

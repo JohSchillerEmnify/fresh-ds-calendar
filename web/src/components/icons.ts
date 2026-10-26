@@ -16,6 +16,9 @@ import ArrowBackS from '~icons/material-symbols/arrow-back-sharp';
 import BedtimeO from '~icons/material-symbols/bedtime';
 import BedtimeR from '~icons/material-symbols/bedtime-rounded';
 import BedtimeS from '~icons/material-symbols/bedtime-sharp';
+import LocationOnO from '~icons/material-symbols/location-on';
+import LocationOnR from '~icons/material-symbols/location-on-rounded';
+import LocationOnS from '~icons/material-symbols/location-on-sharp';
 import SunnyO from '~icons/material-symbols/sunny';
 import SunnyR from '~icons/material-symbols/sunny-rounded';
 import SunnyS from '~icons/material-symbols/sunny-sharp';
@@ -163,3 +166,5 @@ export const IconSyncProblem = appIcon('IconSyncProblem', { outlined: SyncProble
 export const IconTodayOutline = appIcon('IconTodayOutline', { outlined: TodayOutlineO, rounded: TodayOutlineR, sharp: TodayOutlineS });
 export const IconBedtime = appIcon('IconBedtime', { outlined: BedtimeO, rounded: BedtimeR, sharp: BedtimeS });
 export const IconSunny = appIcon('IconSunny', { outlined: SunnyO, rounded: SunnyR, sharp: SunnyS });
+/** A map pin (filled in every set: it marks a place on the small map and in the place suggestions). */
+export const IconLocationOn = appIcon('IconLocationOn', { outlined: LocationOnO, rounded: LocationOnR, sharp: LocationOnS });

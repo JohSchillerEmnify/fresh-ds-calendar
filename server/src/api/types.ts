@@ -27,6 +27,13 @@ export interface Reminders {
   minutes: number[];
 }
 
+/** A place picked from the place search: its name and position (WGS 84 degrees). */
+export interface Place {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface CalendarEvent {
   kind: 'event';
   id: string;
@@ -34,6 +41,8 @@ export interface CalendarEvent {
   title: string;
   description: string;
   location: string;
+  /** The place picked for the location (feature event-location); absent for typed text or once `location` is neither its name nor starts with `"<name>, "`. */
+  place?: Place;
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;
@@ -165,6 +174,8 @@ export interface CreateEventInput {
   title: string;
   description?: string;
   location?: string;
+  /** The picked place; null drops it, absent keeps it (update). */
+  place?: Place | null;
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;

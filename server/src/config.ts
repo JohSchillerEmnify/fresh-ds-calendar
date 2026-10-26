@@ -25,6 +25,11 @@ export interface AppConfig {
   /** Google addresses that may sign in (auth is on with PROVIDER=google). */
   allowedEmails: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  /**
+   * Where the device asks for places and map pictures, straight from the device (feature event-location): the Photon
+   * search endpoint and the tile URL template with `{z}`, `{x}`, `{y}`. `PLACE_SEARCH_URL` / `MAP_TILE_URL` override them.
+   */
+  places: { searchUrl: string; tileUrl: string };
   /** Door plugin (ADR 0003/0004): the board's bearer key and the person whose calendar it sees; no token = no door. */
   door: { token: string | null; person: string | null };
   google: {
@@ -34,6 +39,41 @@ export interface AppConfig {
     calendarIds: string[];
     redirectUri: string | null;
   };
+}
+
+/** The public Photon instance (OpenStreetMap data, no key; owner, board item g6). */
+export const DEFAULT_PLACE_SEARCH_URL = 'https://photon.komoot.io/api';
+/** The OpenStreetMap Foundation's standard tile server (tile usage policy: credit, Referer, no prefetching). */
+export const DEFAULT_MAP_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+/**
+ * A plain https address: a host of letters, digits, dots and dashes, an optional port, and a path (with query) without
+ * spaces, quotes or `;`. No user name or password. Only the origin ends up in the CSP, so nothing may break out of a
+ * directive there; commas stay allowed in the path and query (e.g. `?layers=a,b`).
+ */
+const SAFE_HTTPS = /^https:\/\/[a-z0-9.-]+(:\d{1,5})?([/?][^\s;'"]*)?$/i;
+
+/** Whether the URL parser accepts the address (placeholders removed), so its origin can be taken (port range, IPv4). */
+function parses(v: string): boolean {
+  try {
+    new URL(v.replace(/[{}]/g, ''));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * An https URL from the environment, else the default (a typo must not point the device at an unknown or plain-http
+ * host, nor inject into the CSP).
+ *
+ * @param v The environment value.
+ * @param fallback The default address.
+ * @param ok An extra check of the value (e.g. the tile placeholders).
+ * @returns The value when it is a safe https address the URL parser accepts and that passes `ok`, else `fallback`.
+ */
+function httpsUrl(v: string | undefined, fallback: string, ok: (u: string) => boolean = () => true): string {
+  return v && SAFE_HTTPS.test(v) && parses(v) && ok(v) ? v : fallback;
 }
 
 const bool = (v: string | undefined, d: boolean) => (v === undefined || v === '' ? d : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase()));
@@ -59,6 +99,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: [...new Set([...(publicUrl ? [publicUrl] : []), ...list(env.ALLOWED_ORIGINS)])],
     allowedEmails: parseEmails(env.ALLOWED_EMAILS),
     logLevel: (['debug', 'info', 'warn', 'error'] as const).find((l) => l === env.LOG_LEVEL) ?? 'info',
+    places: {
+      searchUrl: httpsUrl(env.PLACE_SEARCH_URL, DEFAULT_PLACE_SEARCH_URL),
+      tileUrl: httpsUrl(env.MAP_TILE_URL, DEFAULT_MAP_TILE_URL, (u) => ['{z}', '{x}', '{y}'].every((k) => u.includes(k))),
+    },
     door: { token: env.DOOR_API_TOKEN || null, person: parseEmails(env.DOOR_PERSON)[0] ?? null },
     google: {
       clientId: env.GOOGLE_CLIENT_ID || null,

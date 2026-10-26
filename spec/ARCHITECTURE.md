@@ -37,3 +37,25 @@ Every section of the former prose was ported to the novibe layout and removed he
   `app/android-app`, `app/phone-widget` features.
 
 The architecture now lives in docs/architecture (LikeC4) and docs/adrs; behaviour in spec/features.
+
+## Places for an event's location (direct third-party calls)
+
+Feature `events/event-location`, requirements `.requirements/20261025T225937Z_event_location_places/`.
+
+- **First direct third-party calls from the device.** The web app asks the place search (Photon,
+  `https://photon.komoot.io/api`) with a CORS `fetch` and loads the map pictures (OpenStreetMap tiles,
+  `https://tile.openstreetmap.org/{z}/{x}/{y}.png`) as `<img crossorigin>` straight from the device, not through the
+  server (owner, 2026-10-26). `/api/config` hands out both addresses (`placeSearchUrl`, `mapTileUrl`; env
+  `PLACE_SEARCH_URL` / `MAP_TILE_URL`, plain https hosts only); in TEST_MODE they point at the server's own stand-ins,
+  and the e2e Chromium resolves no other host. A search sends only the typed text, the app language and the limit.
+- **Storage.** The picked place lives with the event in Google's private extended properties (`placeName`, `placeLat`,
+  `placeLon`) next to `location = "<name>, <address>"`; it counts only while the location is the name or starts with
+  `"<name>, "`. It is part of `CalendarEvent`, so the device's last known state keeps it (device-first).
+- **Service worker tile cache** (`web/src/pwa/tileCache.ts`). Map pictures go network first; the ones a map has shown
+  are kept (best effort, at most 200, never no-store or error answers, never prefetched) and answer offline for up to
+  7 days, the tile server's `stale-if-error`. A picture it cannot get leaves a placeholder with the pin and the name.
+- **CSP.** `img-src` adds the tile host and `connect-src` adds Photon **and the tile host**: the service worker fetches
+  the pictures it keeps, and a worker's `fetch` falls under its own policy's `connect-src` (the server sends the CSP on
+  `sw.js` too). Built from the configured addresses in `server/src/lib/securityHeaders.ts`; the Caddyfile copy holds the
+  defaults and `server/test/security-headers.test.ts` keeps both equal. `Referrer-Policy: strict-origin-when-cross-origin`
+  (never stricter: the OSM tile policy wants the page origin as Referer).

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
-import { contentSecurityPolicy, inlineScriptHashes, PERMISSIONS_POLICY } from '../src/lib/securityHeaders.js';
+import { contentSecurityPolicy, inlineScriptHashes, PERMISSIONS_POLICY, REFERRER_POLICY } from '../src/lib/securityHeaders.js';
 import { loadConfig } from '../src/config.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -29,6 +29,26 @@ describe('security headers', () => {
     expect(caddy).toContain(`Content-Security-Policy "${csp}"`);
     expect(caddy).toContain(`Permissions-Policy "${PERMISSIONS_POLICY}"`);
     expect(caddy).toContain('X-Frame-Options DENY');
+    expect(caddy).toContain(`Referrer-Policy ${REFERRER_POLICY}`);
+  });
+
+  // feature event-location: the device asks Photon and the OSM tile server itself; nothing else outside is allowed
+  it('allows exactly the place search and the map picture hosts besides the app itself', () => {
+    const csp = contentSecurityPolicy([]);
+    expect(csp).toContain("connect-src 'self' https://photon.komoot.io https://tile.openstreetmap.org;");
+    expect(csp).toContain("img-src 'self' data: blob: https://tile.openstreetmap.org;");
+    expect(csp.match(/https:\/\/[^ ;]+/g)?.sort()).toEqual(['https://photon.komoot.io', 'https://tile.openstreetmap.org', 'https://tile.openstreetmap.org']);
+  });
+
+  it('builds the hosts from the configured addresses', () => {
+    const csp = contentSecurityPolicy([], { searchUrl: 'https://geo.example.org/photon/api', tileUrl: 'https://maps.example.org:8443/{z}/{x}/{y}.png' });
+    expect(csp).toContain("connect-src 'self' https://geo.example.org https://maps.example.org:8443;");
+    expect(csp).toContain("img-src 'self' data: blob: https://maps.example.org:8443;");
+  });
+
+  // OSM's tile policy wants the page's Referer: never a stricter policy than the browsers' default
+  it('sends the default Referrer-Policy itself', () => {
+    expect(REFERRER_POLICY).toBe('strict-origin-when-cross-origin');
   });
 
   // Vite must not rewrite the inline script: the hash of the built page is the one the browser checks. Only meaningful
@@ -47,6 +67,7 @@ describe('security headers', () => {
       expect(res.headers.get('content-security-policy'), url).toBe(want);
       expect(res.headers.get('x-frame-options'), url).toBe('DENY');
       expect(res.headers.get('permissions-policy'), url).toBe(PERMISSIONS_POLICY);
+      expect(res.headers.get('referrer-policy'), url).toBe(REFERRER_POLICY);
     }
     app.close();
     fs.rmSync(dir, { recursive: true, force: true });
