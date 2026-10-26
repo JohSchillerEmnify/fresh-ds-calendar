@@ -106,13 +106,15 @@ Feature: Displaying events in the calendar views
       | week | 2026-10-12 |
       | day  | 2026-10-16 |
 
+  # owner, 2026-10-26 (header-layout, Q7): the band's switch shows only when task lists are in it, so all-day events
+  # alone have none and cannot be stretched by it
   @week @day @iphone @allday-height
-  Scenario Outline: All-day entries stay thin, and the band's section switch stays easy to tap
+  Scenario Outline: All-day entries stay thin, and all-day events alone bring no section switch
     Given the calendar contains an all-day event "Holiday" on 2026-10-16
     And the calendar contains an all-day event "Market" on <second>
     When I open the <view> view for <period>
     Then every all-day entry in the band is no taller than an all-day entry
-    And the band's section switch is easy to tap and covers no entry or day header
+    And the tasks section switch is not shown
 
     Examples:
       | view | period     | second     |

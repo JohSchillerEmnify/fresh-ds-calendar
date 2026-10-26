@@ -55,7 +55,7 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   button (see "Today" below; `data-today-shown="true"` whenever today is on screen, in every view). Week view keeps
   its weekday headers.
 - All-day row: only when it has something to show (an all-day event, a multi-day bar or a task list without a time on
-  that day; week view: on any of the 7 days), then exactly as today with its switch. Otherwise it is gone (0 px). While
+  that day; week view: on any of the 7 days), then as today, its switch only when task lists are in it (Q7). Otherwise it is gone (0 px). While
   something is dragged it appears over the top of the grid (an overlay: the grid does not move under the finger, so the
   drop cells stay valid) so a task list can still be dropped there; after the drag it goes again.
 - Approaching card: gone (0 px) when nothing is running and nothing timed is still ahead today (a night band on the
@@ -168,7 +168,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 6. R6 Left-handed one row: settings and the other icons left, the date right (Q5; refined by R21 and R22).
 7. R7 Phones only (< 768 px); desktop and tablets keep their one row and full date (owner, 2026-10-26; Q4).
 8. R8 Day view: no day header at any width; the Today button shows when today is on screen (all views; R18).
-9. R9 All-day row only when something is in it (week: any day), as today with its switch; shown during a drag; gone after.
+9. R9 All-day row only when something is in it (week: any day); its switch only when task lists are in it (Q7, owner
+   2026-10-26); shown during a drag (over the grid); gone after. Day and week views; the Labs two-row overview keeps
+   its band as built.
 10. R10 Approaching card gone when nothing is on or ahead today (a night band on the track keeps it, Q8); not during a gesture.
 11. R11 "Time left" switch (pref `approachTimeLeft`, default on) under the Approaching card.
 12. R12 The running entry shows "· N min left" after its time when the card does not show it; never both.
@@ -364,7 +366,8 @@ baselines to look at). About 3.5–4 days in all.
   filter + settings it needs ≈ 400 px, so it still truncates at 390 px by about 10–20 px. Recommendation: accept the ellipsis for
   the few longest dates, or tighten the title's padding and chevron (8 + 20 px) so it fits; the scenarios use dates
   that fit.
-- Q7 The all-day row's switch: today it shows whenever the row shows. The canvas note proposed showing it only when
+- Q7 *Answered (owner, 2026-10-26): the switch shows only when task lists are in the row ("if there is nothing TO
+  switch, then we don't need it").* The all-day row's switch: today it shows whenever the row shows. The canvas note proposed showing it only when
   task lists are in the row. Recommendation: keep as today (decision 5 says "as today").
 - Q8 A night band (bedtime mode) on the track counts as "something ahead" and keeps the card (only with the track
   on: the bands are computed only then). Recommendation: yes; then add a scenario (bedtime on, nothing ahead, track on
