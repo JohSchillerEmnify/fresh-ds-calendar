@@ -106,6 +106,21 @@ Feature: Displaying events in the calendar views
       | week | 2026-10-12 |
       | day  | 2026-10-16 |
 
+  @week @day @iphone @allday-height
+  Scenario Outline: All-day entries stay thin, and the band's section switch stays easy to tap
+    Given the calendar contains an all-day event "Holiday" on 2026-10-16
+    And the calendar contains an all-day event "Market" on <second>
+    When I open the <view> view for <period>
+    Then every all-day entry in the band is no taller than an all-day entry
+    And the band's section switch is easy to tap and covers no entry or day header
+
+    Examples:
+      | view | period     | second     |
+      | week | 2026-10-12 | 2026-10-14 |
+      | week | 2026-10-12 | 2026-10-16 |
+      | day  | 2026-10-16 | 2026-10-14 |
+      | day  | 2026-10-16 | 2026-10-16 |
+
   @month @month-lanes
   Scenario: A day's entries fill the free slot above a bar
     Given the calendar contains an all-day event "Trip" from 2026-10-13 to 2026-10-16

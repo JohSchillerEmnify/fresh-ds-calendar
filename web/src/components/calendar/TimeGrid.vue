@@ -215,7 +215,8 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .phone .dn { width: 28px; height: 28px; font-size: 14px; }
 .head.today .dn { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .head.today .dow { color: var(--md-sys-color-primary); }
-.alldays { max-height: 25dvh; overflow-y: auto; overscroll-behavior: contain; }
+/* at least the switch's 44 px tap height plus the 1 px bottom border, but the rows stay packed at the top at entry height */
+.alldays { max-height: 25dvh; min-height: 45px; align-content: start; overflow-y: auto; overscroll-behavior: contain; }
 .sec { position: sticky; top: 0; width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; font: var(--md-sys-typescale-label-small); color: var(--md-sys-color-on-surface-variant); }
 .sec svg { width: 12px; height: 12px; transition: transform 160ms; }
 .sec[data-mode='full'] svg { transform: rotate(180deg); }
@@ -223,8 +224,11 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .tg:has([data-dragging='true']) .adcol, .tg.carrying .adcol { min-height: 30px; }
 .alldays { --bar-h: 20px; row-gap: 2px; }
 .alldays .abar { z-index: 2; }
-.alldays .gutter { grid-row: 1 / -1; grid-column: 1; }
+/* size-contained: the switch's 44 px never feeds the row heights (it overhangs a short gutter inside the band's min height) */
+.alldays .gutter { grid-row: 1 / -1; grid-column: 1; contain: size; }
 .adcol { display: grid; grid-template-rows: subgrid; row-gap: 2px; align-content: start; min-width: 0; padding: 0 1px 4px; min-height: 6px; }
+/* an entry keeps its own height (18 px on phones) instead of stretching to the row's 20 px bar height */
+.adcol > * { align-self: start; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .grid { position: relative; display: grid; grid-template-columns: var(--gw) repeat(var(--n), minmax(0, 1fr)); height: calc(24 * var(--hh)); }
 .hours { display: flex; flex-direction: column; }
