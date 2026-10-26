@@ -39,6 +39,21 @@ describe('place search and map addresses', () => {
   });
 });
 
+describe('unsafe place addresses', () => {
+  // the origins go into the CSP: nothing that could break out of a directive or carry credentials
+  it.each([
+    ['PLACE_SEARCH_URL', 'https://photon.example.org;script-src *'],
+    ['PLACE_SEARCH_URL', 'https://user:secret@photon.example.org/api'],
+    ['PLACE_SEARCH_URL', 'https://phot%20on.example.org/api'],
+    ['MAP_TILE_URL', 'https://{s}.tiles.example.org/{z}/{x}/{y}.png'],
+    ['MAP_TILE_URL', 'https://tiles.example.org;/{z}/{x}/{y}.png'],
+    ['MAP_TILE_URL', 'https://tiles_x.example.org/{z}/{x}/{y}.png'],
+  ])('falls back to the default for %s=%s', async (name, value) => {
+    const c = await liveConfig({ [name]: value });
+    expect(name === 'PLACE_SEARCH_URL' ? c.placeSearchUrl : c.mapTileUrl).toBe(name === 'PLACE_SEARCH_URL' ? 'https://photon.komoot.io/api' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+  });
+});
+
 describe('TEST_MODE place search and tiles', () => {
   let t: TestApp;
   beforeAll(() => { t = makeApp(); });

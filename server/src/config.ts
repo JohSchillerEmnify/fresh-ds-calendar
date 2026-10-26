@@ -46,14 +46,23 @@ export const DEFAULT_PLACE_SEARCH_URL = 'https://photon.komoot.io/api';
 /** The OpenStreetMap Foundation's standard tile server (tile usage policy: credit, Referer, no prefetching). */
 export const DEFAULT_MAP_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-/** An https URL from the environment, else the default (a typo must not point the device at an unknown or plain-http host). */
+/**
+ * A plain https address: a host of letters, digits, dots and dashes, an optional port, and a path without spaces, quotes,
+ * `;` or `,`. No user name or password. The origin ends up in the CSP, so nothing may break out of a directive.
+ */
+const SAFE_HTTPS = /^https:\/\/[a-z0-9.-]+(:\d{1,5})?(\/[^\s;,'"]*)?$/i;
+
+/**
+ * An https URL from the environment, else the default (a typo must not point the device at an unknown or plain-http
+ * host, nor inject into the CSP).
+ *
+ * @param v The environment value.
+ * @param fallback The default address.
+ * @param ok An extra check of the value (e.g. the tile placeholders).
+ * @returns The value when it is a safe https address that passes `ok`, else `fallback`.
+ */
 function httpsUrl(v: string | undefined, fallback: string, ok: (u: string) => boolean = () => true): string {
-  if (!v) return fallback;
-  try {
-    return new URL(v).protocol === 'https:' && ok(v) ? v : fallback;
-  } catch {
-    return fallback;
-  }
+  return v && SAFE_HTTPS.test(v) && ok(v) ? v : fallback;
 }
 
 const bool = (v: string | undefined, d: boolean) => (v === undefined || v === '' ? d : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase()));
