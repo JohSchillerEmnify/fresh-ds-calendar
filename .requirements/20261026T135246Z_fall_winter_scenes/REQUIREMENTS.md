@@ -105,7 +105,67 @@ steps 1, 3, 4 (H0 only) as PR 1 and step 2 as a sequential PR 2 after the header
 - D2 The props do not move (no sway); only the particles move during the 10 s.
 - D3 Part names for tests: `autumn-tree`, `leaf-pile`, `snowy-tree`, `snowman`, `snow-drift`.
 
-## Still to place
+## Round 3 (owner approved the mockups 2026-10-26; supersedes the sizes, R3 and "Still to place" above)
+
+Source of truth: `fw-dark.png`, `fw-light.png` (phone H0 / H1 / H2), `fw-wide-dark.png`, `fw-wide-light.png` (desktop
+1280 px, tablet 820 px), `fw-left.png` (left-handed), `xm-still.png` (Christmas flakes at rest); art, sizes and spots in
+`~/.local/share/calendar-tools/mockups/fwart.cjs` and `fw.cjs` (round 3; `*-r1` are old).
+
+- D4 Ground cover runs the full bar width and may pass behind controls: Fall a leaf-strewn ground (`leaf-litter`, 6 px),
+  Winter a snow drift (`snow-drift`, 12 px) with a pale blue-grey fill in light mode.
+- D5 Props as in fwart.cjs: autumn and snowy trees 43-64 px tall (per spot), snowman 34 x 42, leaf piles 39 x 13,
+  sledge 34 x 13 (`sledge`). The Fall cat holds a kite (`kite`, 16 x 20 plus a tail) on a string to its paw; the kite
+  sways 7 degrees while the scene moves.
+- D6 Props spread over all the free areas; never under the title, the buttons or the Today pill.
+- D7 No butterfly in Fall or Winter. Fall gets a flock of three birds (`bird-flock`), Winter a robin (`robin`, on the
+  sledge), once per moving window like the other visitors.
+- D8 After the 10 s the nine particles glide in 1 s to resting spots spread over the whole bar. Christmas flakes do the
+  same (xm-still spots). Christmas candles and tree stay as built.
+- D9 Left-handed (phone, touch tablet): the Fall and Winter scene layer is flipped (`scaleX(-1)`). The mirrored
+  left-handed bar comes with header PR 1; its clearance check passes once PR 1 is in.
+- D10 Desktop and tablet as on the wide sheets; the tablet cat moves out from under the Today pill.
+- D11 One row (H1, header PR 1): the autumn tree and the snowman stand in the one-row gap (the cat moves to the bottom
+  edge, head showing); the snowy tree is left out. This replaces R3: In One row the snowy tree is left out, the autumn
+  tree, the snowman, the leaf pile, the sledge and the ground stay.
+
+R3 (new) In One row only the snowy tree is left out (D11).
+R7 The ground (leaf litter, snow drift) runs the full width of the bar (D4).
+R8 The Fall cat holds a kite on a string; the kite sways only while the scene moves (D5).
+R9 The Fall and Winter visitors are a bird flock and a robin; no butterfly (D7).
+R10 In left-handed mode on a touch screen the Fall and Winter scene layer is drawn mirrored (D9).
+
+AC7 (R7) "The Fall and Winter ground runs the full width of the bar". AC8 (R8) part `kite` in "props stay" and "sit clear
+of the controls". AC9 (R9) "While the Fall or Winter scene moves its own visitor passes, not a butterfly". AC10 (R10)
+"In left-handed mode the Fall and Winter scenes are drawn mirrored". R2 is checked on the default bar of each device
+("The Fall and Winter props sit clear of the controls at full size", mobile + desktop); per header layout in PR B.
+
+## Assumptions (owner away 2026-10-26; closest to the mockups)
+
+- A1 Placement on other widths: the mockups are drawn at 390 (phone), 820 (tablet) and 1280 (desktop) px. A prop or
+  resting particle keeps the mockup's distance to the nearer bar edge (left half: from the left, right half: from the
+  right), because the controls are anchored that way (title and arrows left, widgets and buttons right). The table
+  is chosen by the bar's width: phone below 768 px, tablet below 1100 px, desktop above.
+- A2 A guard measures the controls' drawn boxes and hides any prop (not the ground) or resting particle that would
+  still land under one (a narrow phone, a long title, today's left-handed bar before PR 1). Left out, never shrunk,
+  as the Easter hare is.
+- A3 The Fall and Winter cat moves to its mockup spot per layout (H0 Fall 240 px; tablet 512 px; others as built).
+- A4 The flock flies across the bar during the visit (~10 s, like the butterfly); the robin hops onto the sledge,
+  stays and leaves (~10 s). At Reduced the visitors come as still as the butterfly does (none, the scene rests).
+- A5 The glide animates the particles from where they are when the window ends (position and opacity) to their spots
+  with the Web Animations API (1 s, ease-out); Off and Reduced have no glide (still from the start).
+- A6 Particles rest at the mockup's size (Fall 5/7/9 px leaves, Winter and Christmas flakes at 0.75), with a thin
+  blue-grey rim on white flakes in light mode so they show on the pale bar.
+- A7 Today's bar (H0) is built in PR A with the H0 spots; PR B adds the H1 / H2 spots once header PR 1 is on main.
+
+## Build order (round 3)
+
+- PR A (now, today's bar: phone H0, desktop, tablet): the art, the full-width ground, the props and the kite; the still
+  picture and the 1 s glide; the visitors; the Christmas flakes at rest; the left-handed flip. Scenarios without a
+  header-layout step lose `@backlog` as they pass.
+- PR B (after header PR 1 is on main): the one-row / two-row spots per fw-dark.png and the scenarios with "the header
+  layout is set to".
+
+## Still to place (round 2; resolved by round 3)
 
 - The Christmas still spots per layout and the desktop / tablet prop spots are not in the approved mockups; they are
   hand-placed and shown to the owner before the build of those parts.
