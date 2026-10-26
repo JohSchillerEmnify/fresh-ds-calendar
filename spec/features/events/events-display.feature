@@ -440,6 +440,7 @@ Feature: Displaying events in the calendar views
       And the calendar contains an event "Workshop" on 2026-10-12 from 13:00 to 16:00
       When I open the week view for 2026-10-12
       Then the event "Workshop" has the narrow block padding
+      And the event "Workshop" shows the time "13:00–16:00"
 
     Scenario: Choosing up to 2 for the day view in the settings changes it right away
       Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30

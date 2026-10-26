@@ -72,9 +72,13 @@ Settings page: best streak = `store.motivation.streak.best`.
   `contextmenu` are prevented from press to release. While dragging, window-capture listeners stop `pointermove/up`
   propagation, so swipe navigation (bubble phase) never sees them; the swipe handler should also bail when
   `isGestureClaimed()`. Data attr `data-dragging="true|false"` on the card. Escape springs back. `pointercancel`
-  springs back, except for a press that sent touch events (the browser started its own pan, iOS): that drag follows the
-  same finger's touch events to `touchend` (drop) or `touchcancel` (spring back). The click on the card right after a
-  drop is swallowed on window capture for 400 ms.
+  springs back, except for a press that sent touch events: a lifted touch drag is always steered by the same finger's
+  touch events too, so it goes on when the browser cancels the pointer for its own pan or just stops sending pointer
+  moves (iOS on a sideways move), to `touchend` (drop) or `touchcancel` (spring back). The click on the card right after
+  a drop is swallowed on window capture for 400 ms. `carry()` lets a lifted card leave the page (the calendar turns to
+  another day or week under the drag): a fixed copy (`data-drag-ghost`) draws it, the card's own touch listeners keep a
+  touch drag going once it is removed, a destroy waits for the drop, and `useDraggable` keeps answering for it;
+  `refresh()` re-runs the hit test under a still pointer.
 
 ## features/motivation API (`@/features/motivation`)
 

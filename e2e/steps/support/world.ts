@@ -99,6 +99,8 @@ export class World {
   held?: () => Promise<void>;
   /** Where "I pick up ..." pressed (page coordinates). */
   heldAt?: { x: number; y: number };
+  /** Moves the held pointer or finger to a point in steps over a time (set by the hold steps that can move on). */
+  heldMove?: (to: { x: number; y: number }, steps: number, ms: number) => Promise<void>;
   /** Scroll position of the time grid noted by "I swipe up quickly starting on the event ...". */
   gridScrollBefore?: number;
   /** The next finger drag holds perfectly still during the long press (iPhone model: no small moves). */
@@ -287,6 +289,7 @@ export class World {
 
   async dispose() {
     await this.held?.().catch(() => {});
+    this.heldMove = undefined;
     for (const c of this.ownContexts) await c.close().catch(() => {});
     // Leave the shared backend clean (outage, clock, poll interval) for the next scenario.
     if (this.api.usedTestApi) await this.api.reset().catch(() => {});

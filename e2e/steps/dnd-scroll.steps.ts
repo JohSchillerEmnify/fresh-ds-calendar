@@ -33,7 +33,10 @@ When('I move the dragged event to the middle of the time grid', async function (
   if (!this.held) throw new Error('nothing is picked up');
   const sc = await box(this.page.locator('[data-scroll-area]').first());
   const b = await box(this.page.locator('[data-dragging="true"]').first());
-  await this.page.mouse.move(b.x + b.width / 2, sc.y + sc.height / 2, { steps: 5 });
+  const to = { x: b.x + b.width / 2, y: sc.y + sc.height / 2 };
+  // a finger held by a hold step moves itself; else the mouse
+  if (this.heldMove) await this.heldMove(to, 5, 200);
+  else await this.page.mouse.move(to.x, to.y, { steps: 5 });
 });
 
 When('I scroll the mouse wheel up by {int} pixels while dragging', async function (this: World, px: number) {

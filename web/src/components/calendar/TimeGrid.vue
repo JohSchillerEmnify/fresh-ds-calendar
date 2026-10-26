@@ -5,6 +5,7 @@
  * `itemRenderers` (block content), `time-slot` clicks (create), and the exposed `scrollToMinutes`.
  */
 import { computed, nextTick, provide, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import EdgeBand from '@/features/calendar/EdgeBand.vue';
 import EventBar from '@/features/calendar/EventBar.vue';
 import ItemView from '@/components/calendar/ItemView.vue';
 import { useBars, useDaySegments } from '@/composables/useDaySegments';
@@ -12,7 +13,10 @@ import { useNav } from '@/composables/useNav';
 import { bindGridZoom, gridYUnder, hourHeight, previewShift, provideHourHeight, setHourHeight } from '@/composables/useHourHeight';
 import { isPhone } from '@/composables/useViewport';
 import { openNew } from '@/extensions/create';
+import { carriedGrid } from '@/features/calendar/dnd';
+import { bindGridDraw } from '@/features/calendar/draw';
 import { resizePreview } from '@/features/calendar/resize';
+import { inPreview } from '@/composables/usePreview';
 import { gridLayers } from '@/extensions/registry';
 import { HOURS, formatDate, hourLabel, toIsoDate } from '@/lib/dates';
 import { blockGeometry, MIN_BLOCK_PX, packColumns, STACK_INDENT_PX, TITLE_ROW_PX } from '@/lib/items';
@@ -28,6 +32,9 @@ const prefs = usePrefsStore();
 const nav = useNav();
 const segs = useDaySegments();
 const barsOf = useBars();
+/** The grid's root: a drag carried over a turn of the view keeps its all-day row open. */
+const rootEl = ref<HTMLElement | null>(null);
+const preview = inPreview();
 
 // Fit-to-height mode (two-row week overview): the active window [start, end] fills the measured area, so the whole
 // window shows without scrolling. The effective hour height replaces the shared zoom height for this grid and its
@@ -117,6 +124,7 @@ function commitZoom(next: number) {
   nextTick(() => { el.scrollTop = Math.max(0, want); });
 }
 let unbindZoom = () => {};
+let unbindDraw = () => {};
 let ro: ResizeObserver | null = null;
 onMounted(() => {
   nextTick(initialScroll);
@@ -127,8 +135,11 @@ onMounted(() => {
     return;
   }
   if (scroller.value) unbindZoom = bindGridZoom(scroller.value, { get: () => hh.value, preview: previewZoom, commit: commitZoom });
+  // draw a block on the empty grid to create (feature event-editing); not in a swipe preview
+  // (the two-row overview returned above: it has no drawing)
+  if (gridEl.value && !preview) unbindDraw = bindGridDraw(gridEl.value, { scroller: () => scroller.value });
 });
-onBeforeUnmount(() => { unbindZoom(); ro?.disconnect(); });
+onBeforeUnmount(() => { unbindZoom(); unbindDraw(); ro?.disconnect(); });
 watch(() => props.mode, () => nextTick(initialScroll));
 watch(() => toIsoDate(props.dates[0]), () => nextTick(initialScroll));
 watch(hh, () => { if (props.fit) nextTick(initialScroll); });
@@ -148,7 +159,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 </script>
 
 <template>
-  <div class="tg" :class="[mode, { phone: isPhone, fit: !!fit }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
+  <div ref="rootEl" class="tg" :class="[mode, { phone: isPhone, fit: !!fit, carrying: !!rootEl && carriedGrid === rootEl }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
     <div class="heads">
       <div class="gutter" />
       <button
@@ -187,6 +198,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
         </div>
       </div>
     </div>
+    <EdgeBand v-if="!fit && !preview" />
   </div>
 </template>
 
@@ -208,7 +220,7 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .sec svg { width: 12px; height: 12px; transition: transform 160ms; }
 .sec[data-mode='full'] svg { transform: rotate(180deg); }
 .alldays { border-bottom: 1px solid var(--md-sys-color-outline-variant); }
-.tg:has([data-dragging='true']) .adcol { min-height: 30px; }
+.tg:has([data-dragging='true']) .adcol, .tg.carrying .adcol { min-height: 30px; }
 .alldays { --bar-h: 20px; row-gap: 2px; }
 .alldays .abar { z-index: 2; }
 .alldays .gutter { grid-row: 1 / -1; grid-column: 1; }

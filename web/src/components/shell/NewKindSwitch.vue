@@ -9,8 +9,8 @@ import { t } from '@/i18n';
 /** The dialog bodies the switch offers: the two remembered kinds, and a birthday (never remembered: the "+" opens an event or a list). */
 type Kind = NewKind | 'birthday';
 
-/** `time`: undefined = none chosen (each form uses its own default), null = all-day / untimed. */
-const props = defineProps<{ kind: Kind; date: string; time?: string | null }>();
+/** `time`: undefined = none chosen (each form uses its own default), null = all-day / untimed. `minutes`: a drawn block's length. */
+const props = defineProps<{ kind: Kind; date: string; time?: string | null; minutes?: number }>();
 const ui = useUiStore();
 const options = computed(() => [
   { value: 'event' as const, label: t('calendar.create.event'), testid: 'new-kind-event' },
@@ -21,7 +21,7 @@ const options = computed(() => [
 function change(k: Kind) {
   if (k === props.kind) return;
   if (k !== 'birthday') rememberNewKind(k);
-  ui.openDialog(k, { mode: 'create', ...(k === 'birthday' ? { birthday: true } : {}), date: props.date, ...(props.time !== undefined ? { time: props.time } : {}) });
+  ui.openDialog(k, { mode: 'create', ...(k === 'birthday' ? { birthday: true } : {}), date: props.date, ...(props.time !== undefined ? { time: props.time } : {}), ...(props.minutes && k !== 'birthday' ? { minutes: props.minutes } : {}) });
 }
 </script>
 

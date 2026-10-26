@@ -3,6 +3,7 @@
  * warnings. Registered once from extensions/builtin.ts. Other features can reuse `useCalendarDrag` (./dnd).
  */
 import { registerDialog, registerGridLayer, registerCalendarHeader, registerItemRenderer } from '@/extensions/registry';
+import DrawBlock from './DrawBlock.vue';
 import DropIndicator from './DropIndicator.vue';
 import EventItem from './EventItem.vue';
 import NowCard from './NowCard.vue';
@@ -23,6 +24,7 @@ export function registerCalendarFeature(): void {
   registerDialog('birthday', () => import('./EventDialog.vue'));
   registerItemRenderer('event', EventItem);
   registerGridLayer(DropIndicator);
+  registerGridLayer(DrawBlock);
   registerGridLayer(NowMarker);
   // the Approaching card can be switched off in the settings (pref `approachingCard`)
   registerCalendarHeader(NowCard, () => usePrefsStore().approachingCard);

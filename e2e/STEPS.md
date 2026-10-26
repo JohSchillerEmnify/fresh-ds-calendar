@@ -2761,6 +2761,7 @@ I see no edge band
 I drop the dragged item on {date} at {time}
 I hold the all-day event {string} at the right edge of the all-day row for {int} ms
 I hold the event {string} over {date} at {time} for {int} ms
+I hold the event {string} at the right edge of the time grid until the view turns
 I drop the dragged item in the all-day row on {date}
 ```
 
@@ -2768,6 +2769,11 @@ I drop the dragged item in the all-day row on {date}
   press), moves in 10 steps sideways at the same height to 6 px inside the right/left side of the day columns area
   (`time-grid` minus the hour labels), i.e. inside the 24 px edge zone, and keeps the pointer there for N ms. The pointer
   stays down; the world's cleanup releases it. "I keep holding the dragged item for N ms" waits N ms more without moving.
+  Before a hold the card is scrolled to the middle of the grid (a pointer resting near its top or bottom would start the
+  auto-scroll); an edge hold stops 40 px short of the zone and then enters it in one move, so the time counts from there.
+- "I hold the event X at the right edge of the time grid until the view turns": the same hold, kept until the URL path
+  changes (polled every 50 ms, at most 5 s), then the pointer moves at once to the middle of the grid (no second turn on
+  a slow device: the iPhone model is too slow for timed holds).
 - "the edge band says T": the visible `drag-edge-band` (`data-side` `left|right`) has the text T. "I see no edge band":
   no `drag-edge-band` is visible.
 - "X is still being dragged": a card with `data-title` X and `data-dragging="true"` is visible (the drag goes on after

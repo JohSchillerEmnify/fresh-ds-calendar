@@ -52,6 +52,17 @@ Then(
 );
 
 Then(
+  'Google contains an event {string} from {date} {time} to {date} {time}',
+  async function (this: World, title: string, d1: string, from: string, d2: string, to: string) {
+    await pollEvent(this, title, false, (ev) =>
+      sameInstant(ev.start.dateTime, berlinIso(d1, from)) && sameInstant(ev.end.dateTime, berlinIso(d2, to))
+        ? 'ok'
+        : `start ${show(ev.start)} end ${show(ev.end)}`,
+    );
+  },
+);
+
+Then(
   'Google contains an all-day event {string} from {date} to {date}',
   async function (this: World, title: string, from: string, to: string) {
     const end = addDays(to, 1); // inclusive in steps, exclusive in Google

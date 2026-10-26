@@ -266,15 +266,15 @@ Feature: Drag and drop to reschedule
     stolen), the view turns to that day or week and the drag goes on there; staying in the zone turns it again after each
     such wait (owner, 2026-10-25; the timings may be tuned once tried). Leaving the zone before then hides the
     band and nothing turns. A drop always lands on the slot under the pointer of the day or week shown, so a drop on the
-    rest of the outermost column, after however long a hold, stays there.
+    rest of the outermost column, after however long a hold, stays there. The two-row week overview does not turn: all
+    seven days are on screen there.
 
-    @backlog
     Scenario Outline: Holding a dragged event at the <side> edge of the day view moves on to the <which> day
       When I open the day view for 2026-10-14
       And I hold the event "Dentist" at the <side> edge of the time grid for 300 ms
       Then the edge band says "<band>"
       And the URL path is "/day/2026-10-14"
-      When I keep holding the dragged item for 700 ms
+      When I keep holding the dragged item for 500 ms
       Then the URL path is "/day/<date>"
       And "Dentist" is still being dragged
       When I drop the dragged item on <date> at 11:00
@@ -286,7 +286,6 @@ Feature: Drag and drop to reschedule
         | right | next     | Thu 15 › | 2026-10-15 |
         | left  | previous | ‹ Tue 13 | 2026-10-13 |
 
-    @backlog
     Scenario Outline: Holding a dragged event at the <side> edge of the week view moves on to the <which> week
       When I open the week view for 2026-10-12
       And I hold the event "Dentist" at the <side> edge of the time grid for 300 ms
@@ -304,28 +303,35 @@ Feature: Drag and drop to reschedule
         | right | next     | 19–25 Oct › | 2026-10-19 | 2026-10-21 |
         | left  | previous | ‹ 5–11 Oct  | 2026-10-05 | 2026-10-07 |
 
-    @backlog
+    # owner, 2026-10-25: it has to work on the iPhone too (the card leaves the page while the finger is down)
+    @iphone
+    Scenario: On an iPhone the dragged event is carried over to the next day
+      When I open the day view for 2026-10-14
+      And I hold the event "Dentist" at the right edge of the time grid until the view turns
+      Then the URL path is "/day/2026-10-15"
+      And "Dentist" is still being dragged
+      When I drop the dragged item on 2026-10-15 at 11:00
+      Then Google contains an event "Dentist" on 2026-10-15 from 11:00 to 12:00
+
     Scenario: Staying at the edge keeps turning the days
       When I open the day view for 2026-10-14
-      And I hold the event "Dentist" at the right edge of the time grid for 1500 ms
+      And I hold the event "Dentist" at the right edge of the time grid for 1400 ms
       Then the URL path is "/day/2026-10-16"
       And the edge band says "Sat 17 ›"
       When I drop the dragged item on 2026-10-16 at 09:00
       Then Google contains an event "Dentist" on 2026-10-16 from 09:00 to 10:00
 
-    @backlog
     Scenario: A timed task list can be carried to the next day the same way
       Given the calendar contains a task list "Packing" on 2026-10-15 at 18:00 with items:
         | item     | done |
         | Passport | no   |
       When I open the day view for 2026-10-15
-      And I hold the task list "Packing" at the right edge of the time grid for 1000 ms
+      And I hold the task list "Packing" at the right edge of the time grid for 800 ms
       Then the URL path is "/day/2026-10-16"
       When I drop the dragged item on 2026-10-16 at 08:15
       Then the task list "Packing" is positioned at 08:15
       And the Google event for the task list "Packing" is a timed event on 2026-10-16 from 08:15 to 08:45
 
-    @backlog
     Scenario: Leaving the edge before the view turns keeps the day
       When I open the day view for 2026-10-14
       And I hold the event "Dentist" at the right edge of the time grid for 300 ms
@@ -338,7 +344,6 @@ Feature: Drag and drop to reschedule
       And the event "Dentist" starts at the time the drop indicator showed
 
     # owner, 2026-10-25: the week turn must not steal Sunday
-    @backlog
     Scenario: Dropping in the middle of Sunday after a long hold stays on Sunday
       When I open the week view for 2026-10-12
       And I hold the event "Dentist" over 2026-10-18 at 09:00 for 1500 ms
@@ -348,7 +353,6 @@ Feature: Drag and drop to reschedule
       Then Google contains an event "Dentist" on 2026-10-18 from 09:00 to 10:00
 
     # owner, 2026-10-25: all-day entries turn the day or week the same way
-    @backlog
     Scenario: An all-day event held at the edge of the all-day row moves on to the next week
       Given the calendar contains an all-day event "Trip" from 2026-10-14 to 2026-10-14
       When I open the week view for 2026-10-12
@@ -358,7 +362,15 @@ Feature: Drag and drop to reschedule
       Then I see the all-day event "Trip" on 2026-10-21
       And Google contains an all-day event "Trip" from 2026-10-21 to 2026-10-21
 
-    @mobile @backlog
+    Scenario: A multi-day all-day event carried to the next week moves by the days it was moved, keeping its length
+      Given the calendar contains an all-day event "Trip" from 2026-10-14 to 2026-10-16
+      When I open the week view for 2026-10-12
+      And I hold the all-day event "Trip" at the right edge of the all-day row for 1500 ms
+      Then the URL path is "/week/2026-10-19"
+      When I drop the dragged item in the all-day row on 2026-10-21
+      Then Google contains an all-day event "Trip" from 2026-10-21 to 2026-10-23
+
+    @mobile
     Scenario: On a phone a quick drop on the last day of the week still lands there
       Given I am using a phone
       When I open the week view for 2026-10-12

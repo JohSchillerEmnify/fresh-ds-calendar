@@ -33,7 +33,7 @@ import { usePluginEnabled } from '@/plugins';
 import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
 import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
 
-const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null }>();
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const pendingDeletes = usePendingDeletesStore();
@@ -54,7 +54,7 @@ let originalDoor = false;
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
-const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time));
+const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes));
 const error = ref('');
 const conflict = ref(false);
 const saving = ref(false);
@@ -219,7 +219,7 @@ function remove() {
 <template>
   <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
-      <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" />
+      <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" />
       <div class="headrow">
         <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
         <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />

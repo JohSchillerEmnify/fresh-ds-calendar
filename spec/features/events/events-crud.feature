@@ -373,7 +373,6 @@ Feature: Creating, editing and deleting events
     it; Cancel removes the block, saving replaces it with the new entry. A plain tap still opens the dialog at the
     tapped hour with the default length.
 
-    @backlog
     Scenario: Drawing a block in the day view opens the new dialog with its start and end
       When I open the day view for 2026-10-14
       And I draw a block on 2026-10-14 from 09:00 to 10:30
@@ -385,14 +384,12 @@ Feature: Creating, editing and deleting events
         | end time   | 10:30      |
       And the drawn block is shown on 2026-10-14 from 09:00 to 10:30
 
-    @backlog
     Scenario: The drawn block follows the pointer before it is let go
       When I open the day view for 2026-10-14
       And I hold a drawn block on 2026-10-14 from 13:00 to 14:45
       Then the drawn block is shown on 2026-10-14 from 13:00 to 14:45
       And the event dialog is closed
 
-    @backlog
     Scenario: A drawn block snaps to 15 minutes
       When I open the week view for 2026-10-12
       And I draw a block on 2026-10-14 from 09:07 to 10:22
@@ -400,7 +397,6 @@ Feature: Creating, editing and deleting events
         | start time | 09:00 |
         | end time   | 10:15 |
 
-    @backlog
     Scenario: A block drawn upwards runs from where the pointer stopped to where it started
       When I open the day view for 2026-10-14
       And I draw a block on 2026-10-14 from 11:00 to 10:00
@@ -408,7 +404,6 @@ Feature: Creating, editing and deleting events
         | start time | 10:00 |
         | end time   | 11:00 |
 
-    @backlog
     Scenario: In the week view a block can be drawn overnight into the next day
       When I open the week view for 2026-10-12
       And I draw a block from 2026-10-14 22:00 to 2026-10-15 01:00
@@ -426,14 +421,12 @@ Feature: Creating, editing and deleting events
       And the event "Night train" is positioned on 2026-10-15 from 00:00 to 01:00
       And Google contains an event "Night train" from 2026-10-14 22:00 to 2026-10-15 01:00
 
-    @backlog
     Scenario: Cancelling the dialog removes the drawn block
       When I open the day view for 2026-10-14
       And I draw a block on 2026-10-14 from 09:00 to 10:30
       And I cancel the event dialog
       Then no drawn block is shown
 
-    @backlog
     Scenario: Saving turns the drawn block into the event
       When I open the day view for 2026-10-14
       And I draw a block on 2026-10-14 from 09:00 to 10:30
@@ -444,7 +437,7 @@ Feature: Creating, editing and deleting events
       And the event "Focus" is positioned from 09:00 to 10:30
       And Google contains an event "Focus" on 2026-10-14 from 09:00 to 10:30
 
-    @mobile @backlog
+    @mobile
     Scenario: On a phone a long press starts drawing with a haptic tick
       Given I am using a phone
       When I open the day view for 2026-10-14
@@ -454,8 +447,17 @@ Feature: Creating, editing and deleting events
         | start time | 09:00 |
         | end time   | 10:30 |
 
+    # owner, 2026-10-25: drawing works on the iPhone too (long press on the empty grid, then drag)
+    @iphone
+    Scenario: On an iPhone a long press on the empty grid and a drag draw a block
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 09:00 to 10:30
+      Then the event form shows:
+        | start time | 09:00 |
+        | end time   | 10:30 |
+
     # owner, 2026-10-25: what was shown is what opens
-    @mobile @backlog
+    @mobile
     Scenario: On a phone a long press let go without moving opens the 15-minute block it showed
       Given I am using a phone
       When I open the day view for 2026-10-14
@@ -464,7 +466,7 @@ Feature: Creating, editing and deleting events
         | start time | 09:15 |
         | end time   | 09:30 |
 
-    @mobile @backlog
+    @mobile
     Scenario: On a phone a plain swipe on the empty grid scrolls and draws nothing
       Given I am using a phone
       When I open the day view for 2026-10-14

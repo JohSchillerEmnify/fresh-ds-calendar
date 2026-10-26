@@ -176,6 +176,7 @@ export default {
     },
   },
   drag: {
+    newBlock: 'New · {from} – {to}',
     moveFailed: 'Could not move “{title}”. {reason}',
     resizeFailed: 'Could not resize “{title}”. {reason}',
   },

@@ -21,8 +21,10 @@ export function parseItems(text: string): string[] {
 }
 
 /** Empty create form: the slot's (or focused) date, and the slot's time when one was tapped, else no time. A null date starts the form undated. */
-export function newTaskListForm(date: string | null, time?: string | null): TaskListForm {
-  return { title: '', date: date ?? '', noDate: date === null, time: time ?? '', estimate: '', categoryId: 'none', items: '', repeat: '', reminders: { useDefault: true, minutes: [] } };
+export function newTaskListForm(date: string | null, time?: string | null, minutes?: number): TaskListForm {
+  // a block drawn on the grid gives its length as the estimate, at most the 12 hours a list may take
+  const estimate = minutes ? String(Math.min(minutes, 720)) : '';
+  return { title: '', date: date ?? '', noDate: date === null, time: time ?? '', estimate, categoryId: 'none', items: '', repeat: '', reminders: { useDefault: true, minutes: [] } };
 }
 
 /**
