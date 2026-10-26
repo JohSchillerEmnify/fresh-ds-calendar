@@ -64,6 +64,12 @@ Tracked here so it survives across sessions. Newest first within each section. M
   edge to the previous day (time kept). Today the edge hold only works at the time grid's top and bottom (`dnd`).
 - **Confirm a new list item with a check button** (owner, 2026-10-23; needs its own slice + spec first). A small check
   mark / button at the right end of the new-item field adds the item, as an alternative to pressing Enter.
+- **Turn a calendar off on a schedule or for a while** (owner, 2026-10-26; needs its own slice + spec first, with
+  canvas mockups). (a) Schedule: a calendar shows only on chosen days/times, e.g. the work calendar only Monday to
+  Friday. (b) Temporarily off: hide a calendar for a few days, and it comes back by itself afterwards. Both from a long
+  press on the calendar's chip (owner: at least the temporary one must be a long press); the schedule may also live in
+  Settings. Open: what "off" hides (views, widget, reminders, daily summary?), how a hidden calendar is shown as
+  hidden/scheduled, and whether the setting syncs across devices (device-first, ADR 0025).
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
