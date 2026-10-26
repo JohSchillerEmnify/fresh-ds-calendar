@@ -2787,6 +2787,7 @@ I choose up to {int} events side by side in the week view
 the settings show up to {int} events side by side in the day view
 the settings show up to {int} events side by side in the week view
 the entries {string} each take one of {int} equal columns
+the entries are drawn {string}
 the event {string} has the narrow block padding
 the event {string} has the normal block padding
 the event {string} stays inside its day column
@@ -2800,9 +2801,10 @@ the event {string} stays inside its day column
 - "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
   (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of
   their boxes intersect, and each one's width is the day column's width / N within 4 px.
-- "has the narrow block padding": X's time grid block (`event-chip`) is at most 84 px wide (its content box then at most
-  76 px) and its computed padding is 3 px left, 2 px right. "has the normal block padding": wider than 84 px, padding 6 px
-  left, 5 px right. "stays inside its day column": X's chip box ends at or before its day column's right edge (0.5 px
+- "the entries are drawn S" (`solid`, `tinted` or `outline`): `PATCH /api/prefs/theme { overrides: { entries: S } }`.
+- "has the narrow block padding": X's time grid block (`event-chip`) is at most 84 px wide (border box), its computed
+  padding is 3 px left, 2 px right and its title (`event-chip-title`) is 11 px. "has the normal block padding": wider than
+  84 px, padding 6 px left, 5 px right, title 13 px. "stays inside its day column": X's chip box ends at or before its day column's right edge (0.5 px
   tolerance) and starts at or after its left edge.
 - "the event X is stacked on the event Y" (feature event-display) also checks that both blocks share a column: X's left
   edge lies inside Y's width (a cascade lies over the column, indented from the left; on a narrow phone column a block's

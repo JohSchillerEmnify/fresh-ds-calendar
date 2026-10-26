@@ -151,10 +151,13 @@ separately on `fix/touch-drag`; A and C build on top of it and must not touch th
   equal start and end keep the day's order.
 - Narrow-block padding (owner D3, 2026-10-25): `EventItem.vue`'s `@container (max-width: 76px) { .block { padding } }` never
   applied (a container cannot query itself), so a 14 px padding+border floor pushed narrow stacked chips past their day
-  column. The tight padding (3 px left, 2 px right, 1 px top/bottom) now follows the block's border box (<= 84 px, i.e. a
-  content box <= 76 px with that padding) via a `tight` class; the 11 px type rules stay in the container query and apply to
-  exactly the same blocks as before. Scenarios: "On a phone a block laid over a narrow week column stays inside its day
-  column", "A wide block keeps its normal padding". Baselines `two-row-week` and `two-row-grown-tight` (mobile) updated:
-  old vs new build differ only in the Mon column's block text (3 px left, 1 px up); their other differences from the
-  2026-10-19 baselines (Groceries title top-aligned, Standup drawn at its real 7 px in fit mode) were already there on
-  the old build, within the picture tolerance.
+  column. Now ONE border-box observer per block decides `narrow` (border box <= 84 px, the same in every entry style:
+  solid 0 px, tinted 3 px, outline 4 px border); `.block.narrow` carries the tight padding (3 px left, 2 px right, 1 px top
+  and bottom), the 11 px title and the hidden duration together, and the @container rule is gone (a width threshold
+  inside the block could not match the padding in every entry style, and two observers on one element risked a
+  ResizeObserver loop). The line budget uses that one measurement: content = border box - padding - the entry style's
+  border. Scenarios: "On a phone a block laid over a narrow week column stays inside its day column", "A block of 84 px or
+  less uses the tight padding and the small title together" and "A wide block keeps its normal padding and title size"
+  (both for solid, tinted and outline). Baselines `two-row-week` and `two-row-grown-tight` (mobile) were updated in
+  d7f900f for the shifted text of the Mon column's blocks (83 px); their older drift from the 2026-10-19 pictures
+  (Groceries title top-aligned, Standup drawn at its real 7 px in fit mode) was already there on the old build.

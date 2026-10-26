@@ -407,9 +407,30 @@ Feature: Displaying events in the calendar views
       And the event "Review" stays inside its day column
 
     @desktop @overlap
-    Scenario: A wide block keeps its normal padding
+    Scenario Outline: A wide block keeps its normal padding and title size (<entries> entries)
+      Given the entries are drawn "<entries>"
       When I open the day view for 2026-10-14
       Then the event "Dentist" has the normal block padding
+
+      Examples:
+        | entries |
+        | solid   |
+        | tinted  |
+        | outline |
+
+    @mobile @overlap @two-row
+    Scenario Outline: A block of 84 px or less uses the tight padding and the small title together (<entries> entries)
+      Given the entries are drawn "<entries>"
+      And the two-row week overview is on
+      And the calendar contains an event "Workshop" on 2026-10-12 from 13:00 to 16:00
+      When I open the week of 2026-10-12 on a phone
+      Then the event "Workshop" has the narrow block padding
+
+      Examples:
+        | entries |
+        | solid   |
+        | tinted  |
+        | outline |
 
     Scenario: Choosing up to 2 for the day view in the settings changes it right away
       Given the calendar contains an event "Standup" on 2026-10-14 from 09:00 to 10:30
