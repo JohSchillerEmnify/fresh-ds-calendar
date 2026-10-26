@@ -191,6 +191,8 @@ the first entry of the month cell of {date} is in the slot below the bar {string
 the all-day event {string} on {date} is at the height of the bar {string}
 the bar {string} has the height of the chip {string}
 the bar {string} shows no continuation arrows
+every all-day entry in the band is no taller than an all-day entry
+the band's section switch is easy to tap and covers no entry or day header
 I see the all-day event {string} on {date}
 I do not see the event {string}
 I do not see the event {string} on {date}
@@ -208,6 +210,11 @@ the items on {date} are shown in the order {string}
 ```
 
 - "the all-day event A on D is at the height of the bar B": A's chip top equals B's `event-bar` top within 3 px; when B is not on the page (day view clipped away), the top of the all-day area of D.
+- "every all-day entry in the band is no taller than an all-day entry": there is at least one visible `event-chip` in the
+  `week-allday-cell` / `day-allday-area` cells, and each is at most 22 px tall at a viewport at least 768 px wide, 18 px
+  below (the all-day entry's own height), with 0.5 px slack. "the band's section switch is easy to tap and covers no
+  entry or day header": the first visible `tasks-section-toggle` is at least 44 px tall, and its box does not overlap any
+  visible `week-header` / `day-header` or any visible `event-chip` in the band, and it ends inside the band, which does not scroll.
 - "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
   `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
 - Month slots (feature event-display): "the first entry of the month cell of D" is the
