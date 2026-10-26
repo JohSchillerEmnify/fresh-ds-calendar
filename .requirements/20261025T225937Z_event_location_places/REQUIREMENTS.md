@@ -194,3 +194,28 @@ Slice 3 = PR 3 (only if the owner wants it, Q8): "find on map" for locations wit
   cache may show a seen tile offline for up to 7 days after it went stale (`stale-if-error`); a map seen longer ago
   than that shows the placeholder. Keeping tiles longer than the headers allow would break the "honour cache headers"
   rule — decide with the owner only if this proves too short.
+
+## Implementation notes (PR 1, 2026-10-26)
+
+Owner confirmed A8 (a location changed in Google so it no longer starts with the stored name → plain text, no map) and
+that R12b (app name in the Android User-Agent) is **not** done.
+
+- Server: `server/src/services/place.ts` (`placeOf` / `placeProps`), validation `place: { name, lat, lon } | null`
+  (PATCH: null drops, absent keeps). `/api/config` `placeSearchUrl` / `mapTileUrl` from `PLACE_SEARCH_URL` /
+  `MAP_TILE_URL` (https only, else the defaults); TEST_MODE stand-ins in `server/src/api/testPlaces.ts`.
+- **CSP deviation from R12a's wording:** `connect-src` carries the tile host as well as Photon
+  (`connect-src 'self' https://photon.komoot.io https://tile.openstreetmap.org`). The service worker keeps the shown
+  map pictures for offline use (R7) and a worker's `fetch` falls under `connect-src` of the worker's own policy (the
+  server sends the CSP on `sw.js` too); without it every map picture would fail online in production (the e2e stand-ins
+  are same-origin and would not show it). Still exactly the two hosts; `img-src` has the tile host.
+- e2e guard: Chromium projects launch with `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE <test host>` instead of a
+  `context.route` in the fixture, because routing turns off the HTTP cache for every scenario. The WebKit (`iphone`)
+  project has no such guard; no location scenario runs there.
+- Web: `features/calendar/place.ts` (Photon client, tile maths), `LocationField.vue` (suggestions, keyboard),
+  `EventMap.vue` (static map, placeholder), `pwa/tileCache.ts` + `sw.ts` route (network first, keep shown pictures,
+  no-store/errors never kept, offline up to 7 days, max 200). The place travels inside `CalendarEvent`, so the
+  device's last known state keeps it (device-first).
+- Arrow keys and the read-only map came for free and are in PR 1; tap-to-open (browser/Android) and "find on map" stay
+  `@backlog`.
+- After a pick the map, and when the list opens the list, are scrolled above the dialog's sticky actions
+  (`scroll-margin-bottom`), so both OpenStreetMap credits are visible.
