@@ -82,7 +82,6 @@ Feature: The Approaching card and its track
     And I open the week view for 2026-10-12
     Then I do not see the Approaching card
 
-  @backlog
   Scenario Outline: With the Approaching card off the running entry shows the time left
     Given the time is 2026-10-14 09:30 and the clock is running
     And the Approaching card is off
@@ -101,14 +100,12 @@ Feature: The Approaching card and its track
       | view | period     |
       | week | 2026-10-12 |
 
-  @backlog
   Scenario: With the Approaching card on the running entry does not repeat the time left
     Given the time is 2026-10-14 09:30
     When I open the day view for 2026-10-14
     Then the now card shows the line "Dentist · 30 min left"
     And the event "Dentist" shows no time left
 
-  @backlog
   Scenario: Switching off the time left moves it from the card onto the running entry
     Given the time is 2026-10-14 09:30
     When I switch off the time left in the Approaching card in the settings
@@ -116,7 +113,6 @@ Feature: The Approaching card and its track
     Then the now card shows the line "Dentist"
     And the event "Dentist" shows "30 min left" after its time
 
-  @backlog
   Scenario: An entry that is not running shows no time left
     Given the time is 2026-10-14 08:00
     And the Approaching card is off

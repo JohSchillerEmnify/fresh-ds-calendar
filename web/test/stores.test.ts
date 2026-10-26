@@ -480,6 +480,7 @@ describe('prefs store streak and sync indicator', () => {
     await p.load();
     expect(p).toMatchObject({ streak: 'flame', syncIndicator: true });
     expect(p.current()).toMatchObject({ streak: 'flame', syncIndicator: true });
+    expect(p.approachTimeLeft).toBe(true);
     await p.set({ streak: 'plant' });
     expect(p.streak).toBe('plant');
     fail = true;

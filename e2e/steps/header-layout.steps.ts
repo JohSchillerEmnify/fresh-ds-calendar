@@ -222,3 +222,43 @@ Then('the {string} switch in the settings is off', async function (this: World, 
   const control = this.page.getByTestId('settings-view').getByRole('switch', { name: label, exact: true });
   await expect(control).toHaveAttribute('aria-checked', 'false');
 });
+
+/** The Today button's drawn fill and border: the pill inside on phones, the button itself on wide screens; `token` resolved to a colour. */
+async function todayLook(w: World, token: string) {
+  await expect(w.page.locator('[data-testid="month-cell"], [data-testid="week-header"], [data-testid="day-column"]').first()).toBeVisible();
+  return today(w).evaluate((btn, tok) => {
+    const probe = document.createElement('i');
+    probe.style.background = `var(${tok})`;
+    document.body.appendChild(probe);
+    const token = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    const pill = btn.querySelector('.pill') as HTMLElement;
+    const alpha = (c: string) => (c.startsWith('rgba') ? Number(c.split(',')[3].replace(')', '')) : 1);
+    const drawn = [pill, btn as HTMLElement].find((el) => alpha(getComputedStyle(el).backgroundColor) > 0) ?? (btn as HTMLElement);
+    const cs = getComputedStyle(drawn);
+    return { shown: btn.getAttribute('data-today-shown'), bg: cs.backgroundColor, token, border: parseFloat(cs.borderTopWidth) };
+  }, token);
+}
+
+Then('the Today button shows that today is on screen', async function (this: World) {
+  await expect.poll(() => todayLook(this, '--md-sys-color-secondary-container')).toMatchObject({ shown: 'true', border: 0 });
+  const look = await todayLook(this, '--md-sys-color-secondary-container');
+  expect(look.bg, 'filled with the secondary container colour').toBe(look.token);
+});
+
+Then('the Today button does not show that today is on screen', async function (this: World) {
+  await expect.poll(async () => (await todayLook(this, '--md-sys-color-surface')).shown).toBe('false');
+  const look = await todayLook(this, '--md-sys-color-surface');
+  expect(look.border, 'outlined').toBeGreaterThanOrEqual(1);
+  expect(look.bg, 'a solid surface fill').toBe(look.token);
+});
+
+Then('the day view shows no day header', async function (this: World) {
+  await expect(this.page.getByTestId('day-view')).toBeVisible();
+  await expect(this.page.getByTestId('day-column').first()).toBeVisible();
+  await expect(this.page.getByTestId('day-header')).toHaveCount(0);
+});
+
+Then('the week view shows {int} day headers', async function (this: World, n: number) {
+  await expect(this.page.getByTestId('week-header')).toHaveCount(n);
+});

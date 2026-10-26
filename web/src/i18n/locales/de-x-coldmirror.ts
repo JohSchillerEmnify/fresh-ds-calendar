@@ -130,6 +130,7 @@ export default {
       headerLayout: { label: 'Kopfzeile, yo', hint: 'Aufm Handy, Digga', twoRows: 'Zwei Zeilen', oneRow: 'Eine Zeile, fresh' },
       syncIndicator: { label: 'Sync-Anzeige, yo', hint: 'Zeigt das Sync-Symbol immer, nicht nur wenn der Abgleich rumzickt, Digga' },
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
+      approachTimeLeft: { label: 'Restzeit, yo', hint: 'Die Restzeit des laufenden Termins in der Karte; aus, steht sie am Termin selbst, Digga' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kurze Termine werden mindestens so lang gezeichnet. Lesbar bleiben, Digga.', off: 'Aus', minutes: '{n} Min.' },
       sideBySide: { day: 'Tagesansicht: Termine nebeneinander, yo', week: 'Wochenansicht: Termine nebeneinander, yo', hint: 'So viele Termine passen nebeneinander. Der Rest stapelt sich, Digga.', upTo: 'Bis zu {n}' },
       approachBar: { label: 'Leiste „Gleich“, yo', hint: 'Was heute als Nächstes kommt, als Leiste in der Karte, Digga' },

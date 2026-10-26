@@ -222,6 +222,8 @@ export interface Prefs {
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;
   approachingCard: boolean;
+  /** "Time left" in the Approaching card's line; off, the running entry shows it instead. */
+  approachTimeLeft: boolean;
   taskCategories: boolean;
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;

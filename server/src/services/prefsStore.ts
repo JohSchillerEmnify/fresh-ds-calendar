@@ -218,6 +218,8 @@ export interface Prefs {
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
   /** The Approaching card above the calendar views (feature labs-approach-bar). */
   approachingCard: boolean;
+  /** The running entry's "· N min left" in the Approaching card's line; off, or with the card off, the entry itself shows it (feature labs-approach-bar). */
+  approachTimeLeft: boolean;
   taskCategories: boolean;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
   tasksCalendarVisible: boolean;
@@ -300,6 +302,7 @@ export class PrefsStore {
       approachBar: p?.approachBar !== false,
       approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
       approachingCard: p?.approachingCard !== false,
+      approachTimeLeft: p?.approachTimeLeft !== false,
       taskCategories: p?.taskCategories !== false,
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
@@ -411,8 +414,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout };
   }
 
   /**

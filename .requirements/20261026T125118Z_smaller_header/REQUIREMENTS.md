@@ -393,6 +393,14 @@ baselines to look at). About 3.5–4 days in all.
 
 - "Time left" switch: decision 3 names a time-left line among the personal switches; there is no such switch today, so
   it is new, under "Approaching card", default on.
+- PR 2 as built: the Today button's look is carried by the `.pill` on phones and by the button on wide screens (outlined
+  = 1 px `outline` border on `surface`). Week-view day headers keep their today circle (only the day view lost its
+  header). On the chip the time left replaces the duration whenever the block has a time line (Q9: the line, not the
+  duration, is what the scenario reads); with several events running at once all of them show it when the card does
+  not. The card's hold during a gesture is a finger or mouse button down (`pointerdown`/`touchstart` until
+  `pointerup`/`touchend`/`touchcancel`). The card's "Next" line follows timed events only, so with the track off and
+  only a timed task list ahead the card is gone. Pref plumbing for `approachTimeLeft` shipped in this PR (it was not in
+  PR 0/1); `NowCardModel` gained `hasNext` (additive).
 - The time left on the chip shows only for timed events (the card's "running" rule, `nowCardModel`), not task lists.
 - "Nothing ahead" is scoped to today, like the card's "Next" line (tomorrow's entries do not keep the card).
 - The settings preview under the Header layout choice (frame S1) is a proposal; without it the row is the plain

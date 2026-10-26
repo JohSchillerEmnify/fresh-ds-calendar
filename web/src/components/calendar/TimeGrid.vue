@@ -161,12 +161,12 @@ function geo(p: { seg: { item: { id: string }; date: string }; top: number; heig
 }
 const settling = (id: string, date: string) => resizePreview.value?.settle && resizePreview.value.id === id && resizePreview.value.date === date;
 
-const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all: props.mode === 'week' ? 'week-allday-cell' : 'day-allday-area', col: props.mode === 'week' ? 'week-day-column' : 'day-column' };
+const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-cell' : 'day-allday-area', col: props.mode === 'week' ? 'week-day-column' : 'day-column' };
 </script>
 
 <template>
   <div ref="rootEl" class="tg" :class="[mode, { phone: isPhone, fit: !!fit, carrying: !!rootEl && carriedGrid === rootEl, 'allday-drop': !!rootEl && alldayDropGrid === rootEl }]" :style="{ '--hh': hh + 'px', '--n': dates.length }">
-    <div class="heads">
+    <div v-if="mode === 'week'" class="heads">
       <div class="gutter" />
       <button
         v-for="c in cols" :key="c.date" class="head" :class="{ today: c.today }" type="button" :data-testid="ids.header" :data-date="c.date"
@@ -215,7 +215,6 @@ const ids = { header: props.mode === 'week' ? 'week-header' : 'day-header', all:
 .gutter { width: var(--gw); }
 .head { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: var(--md-sys-shape-corner-medium); }
 .week .head { cursor: pointer; }
-.day .head { cursor: default; }
 .dow { font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); }
 .dn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: var(--md-sys-typescale-title-medium); }
 .phone .dn { width: 28px; height: 28px; font-size: 14px; }

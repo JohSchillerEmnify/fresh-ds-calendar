@@ -190,14 +190,13 @@ Feature: A smaller header: two rows or one row
 
   Rule: The date is shown once: the day view has no day header
 
-    @backlog
     Scenario: The day view shows the date only in the title
       When I open the day view for 2026-10-14
       Then the day view shows no day header
       And the period title is "Wednesday, 14 October 2026"
 
     # owner, 2026-10-26: desktop drops the day header too; its top bar keeps one row with the full date
-    @desktop @backlog
+    @desktop
     Scenario: On desktop the day view has no day header either
       When I open the day view for 2026-10-14
       Then the day view shows no day header
@@ -205,7 +204,7 @@ Feature: A smaller header: two rows or one row
       And the period title is "Wednesday, 14 October 2026"
 
     # owner, 2026-10-26: the Today button is the today mark, the same in both layouts
-    @mobile @backlog
+    @mobile
     Scenario Outline: The Today button marks today in both layouts
       Given the header layout is set to "<layout>"
       When I open the day view for <day>
@@ -218,7 +217,6 @@ Feature: A smaller header: two rows or one row
         | One row  | 2026-10-12 | shows         |
         | One row  | 2026-10-13 | does not show |
 
-    @backlog
     Scenario: The week view keeps its day headers
       When I open the week view for 2026-10-12
       Then the week view shows 7 day headers
