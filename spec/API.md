@@ -784,7 +784,8 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   ≥ 4 → droopy (25, the floor). No `lastWatered` → happy. Growth never decreases; the plant never dies.
 - Messages (exact): happy "Your plant is happy", thirsty "Your plant is a little thirsty", dry "Your plant could use
   some water", droopy "Your plant is resting. Anything you do will perk it up."
-- Streak and plant points are recorded regardless of the person pref `streak` (it only changes what is shown).
+- Streak and plant points are recorded regardless of the person pref `streak` (it only changes which widget the top
+  bar shows); the check-in message shows whatever `streak` is, `off` included.
 - **Sunflower field** (the scene of that name) uses the same points and mood: `plant.flowers = min(30,
   floor(growth / 40))`. Flowers never decrease. With `Settings.sunflowers = 'grow'` the field shows `plant.flowers`;
   with `'full'` it shows a fixed 30 and never grows (no `bloom`). The UI shows at most 15 on viewports < 600 px wide

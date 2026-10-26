@@ -119,6 +119,24 @@ Feature: A smaller header: two rows or one row
       And the period title is not cut short
       And the top bar's buttons are at least 44 by 44 pixels
 
+    # owner, 2026-10-26 (Q11): while a sync problem shows next to a streak in one row, the date's chevron is hidden
+    @mobile @backlog
+    Scenario: In one row with a streak on, a sync problem hides the date's chevron so the date fits
+      Given the streak is set to "Plant"
+      And the header layout is set to "One row"
+      When I open the day view for 2026-10-12
+      Then the period title's chevron is shown
+      When Google becomes unavailable
+      And the app regains focus
+      Then the sync icon shows a problem
+      And the period title's chevron is not shown
+      And the period title is "Mon, 12 Oct"
+      And the period title is not cut short
+      And the top bar is in one row
+      When Google becomes available again
+      And I retry the sync
+      Then the period title's chevron is shown
+
     @mobile @backlog
     Scenario: Choosing a theme keeps the header layout
       Given the header layout is set to "One row"

@@ -2976,6 +2976,8 @@ the top bar is in two rows
 the top bar is at most {int} pixels tall
 the period title is not cut short
 the period title's font size is {int} pixels
+the period title's chevron is shown
+the period title's chevron is not shown
 the Today button is an icon with the label {string}
 the Today button shows the word {string}
 the top bar's buttons are at least {int} by {int} pixels
@@ -3013,7 +3015,9 @@ the {string} switch in the settings is off
   vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
 - "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
 - "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
-  title's font size is N pixels": the computed `font-size` of `period-title .t` is N px.
+  title's font size is N pixels": the computed `font-size` of `period-title .t` is N px. "the period title's chevron is
+  shown / not shown": the `svg` (the ⌄ expand icon) inside `period-title` is visible / not visible (hidden, taking no
+  room); the title stays a button that opens the date picker either way.
 - "the Today button is an icon with the label L": `nav-today` has `aria-label` L, contains an `svg` and no visible text.
   "the Today button shows the word W": `nav-today`'s visible text is W.
 - "the top bar's buttons are at least W by H pixels": for every visible `button` inside `top-bar` (title, arrows, Today,

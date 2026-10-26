@@ -70,7 +70,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   (segmented button `settings-streak`), replacing the two switches. Personal pref `streak` (`off` | `flame` | `plant`),
   default Off, not part of the theme. Off for everyone after the change ("Off for everyone"): the old switches are not
   carried over (migration below). Counting stays: check-ins and plant points are recorded whatever is chosen; only
-  what the top bar shows changes. The check-in message comes with the flame, as built (assumption below).
+  what the top bar shows changes. The check-in message ("Checked in, day N", "Welcome back!") always shows, whatever
+  is chosen, Off included (owner, 2026-10-26; as built it came only with the flame, `StreakToast` in
+  `LeadingWidgets.vue` gated by `streakFlame`).
 - **Streak migration** (one-time, server): `Settings.streakFlame` / `Settings.plant` are retired. On load the server
   drops both keys from `settings.json` (the next save writes the file without them); `GET /api/settings` no longer
   returns them and `PATCH /api/settings` rejects them (400, like the retired `garden`). Nothing is copied into the
@@ -80,9 +82,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   arrive, treats `streak` as Off (no flash of a flame or plant).
 - **One row with a streak on** (owner): the row stays one row. The plant (the only streak widget that is a button) gets
   a tap area 44 px tall x 32 px wide; every other button keeps 44 x 44. The flame and the sync icon are not buttons
-  and need no tap area (the flame is drawn in a 32 px wide slot). Known consequence: with a streak on **and** syncing
-  failing (the problem icon showing), the short date in one row is cut, about 22 px short on a 390 px phone; the owner
-  has not decided this case (Q11), so no rule is specified for it.
+  and need no tap area (the flame is drawn in a 32 px wide slot). With a streak on **and** syncing failing (the problem
+  icon showing) the short date would be cut by about 22 px on a 390 px phone, so in one row the date's ⌄ chevron is
+  hidden only while that lasts and the date fits in full (owner, 2026-10-26, Q11). The title stays tappable.
 - **Today** (owner): the Today button is the today mark. Filled (the built-in tonal look, secondary container) while
   today is in the shown period; outlined on a solid surface fill (the scene never shows through) when it is not. It
   replaces the today circle of the "Mon 26" day header. Same in both layouts and on desktop.
@@ -113,9 +115,13 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   is off.
 - **All-day row on demand** (owner): an empty row costs 45 px; it must still accept drops, hence the drag rule.
 - **Streak and Approaching card are personal switches, not themed** (owner, decided): like the header layout, they are
-  about how a person uses the app. Consequence: the streak choice moves from the shared `Settings` to the person prefs
-  (today the two switches are shared by everyone on the server); "personal" is read as per person, like the other
-  personal switches.
+  about how a person uses the app. Decision (owner, 2026-10-26): the streak choice is **per person**; it moves from
+  the shared `Settings` (today the two switches are shared by everyone on the server) to the person prefs, like the
+  other personal switches. On a server with several people each chooses their own.
+- **Check-in message always** (owner, 2026-10-26): the message is the reward of the check-in, not of the flame, so it
+  shows whatever the streak choice is.
+- **Chevron gives way to a sync problem** (owner, Q11): the chevron is the least needed glyph (the title stays a
+  button); hiding it only while both a streak and a sync problem show keeps one row and the full date.
 - **One streak choice instead of two switches** (owner): the flame and the plant never both fit the one-row budget; one
   choice keeps the row to at most one 32 px widget. **Off by default and for everyone** (owner): the top bar starts as
   quiet as possible; who wants a streak picks one. Alternative weighed: keep each person's old switches (rejected by
@@ -151,12 +157,13 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
     plus a sync problem in one row).
 15. R15 Streak choice "Streak" (Off | Flame | Plant) in Settings › Focus & motivation; person pref `streak`
     (`off` | `flame` | `plant`, default `off`), validated by the server (400 otherwise), synced like the other prefs,
-    not part of the theme. Flame shows `streak-flame` (and the check-in message), Plant shows `plant-button`, Off
-    neither. Check-ins and plant points are counted whatever is chosen.
+    not part of the theme, per person. Flame shows `streak-flame`, Plant shows `plant-button`, Off neither. Check-ins
+    and plant points are counted and the check-in message shows whatever is chosen.
 16. R16 Migration: `Settings.streakFlame` and `Settings.plant` retired (not served, `PATCH /api/settings` 400, dropped
     from `settings.json` on load, also from a restored backup); not copied to anyone's prefs, so everyone is Off.
 17. R17 One row with a streak on stays one row: `plant-button` tap area at least 44 tall x 32 wide; every other top-bar
-    button at least 44 x 44; the flame and the sync icon are not buttons. Supersedes R5 for the plant only.
+    button at least 44 x 44; the flame and the sync icon are not buttons. Supersedes R5 for the plant only. While the
+    sync problem icon shows next to a streak in one row, the title's chevron is hidden and the date is not cut (Q11).
 18. R18 Today button: `data-today-shown="true"` and filled (tonal, secondary container) while today is in the shown
     period; otherwise outlined with an opaque surface background. Both layouts and desktop. (Refines R8.)
 19. R19 Sync indicator: person pref `syncIndicator` (boolean, default `false`, 400 otherwise), switch
@@ -193,7 +200,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 - AC14 (R14) "the period title is not cut short" in AC3/AC4 and in the two streak scenarios of AC17.
 - AC15 (R15) plant.feature "The streak choice decides what the top bar shows" (Off, Flame, Plant), "Nobody sees a
   streak until they choose one", "The streak choice follows the person to another device", "The plant keeps growing
-  while it is not shown"; streak.feature "The check-in counts while the streak is not shown"; sunflowers.feature "The
+  while it is not shown"; streak.feature "The check-in counts and its message shows whatever the streak choice is"
+  (Off, Plant); sunflowers.feature "The
   field shows whatever the streak choice is" (3); server unit: `streak` default `off`, valid values, invalid → 400;
   web unit: prefs store default and rollback.
 - AC16 (R16) server unit: a `settings.json` with `streakFlame: true, plant: true` loads without them, the next save
@@ -201,7 +209,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   person's `GET /api/prefs` says `streak: 'off'`; web unit: a cached settings copy with the old keys does not show a
   flame or plant.
 - AC17 (R17) header-layout "With the plant on, the one row keeps its date and gives the plant a narrower tap area",
-  "With the flame on, the one row keeps its date".
+  "With the flame on, the one row keeps its date", "In one row with a streak on, a sync problem hides the date's
+  chevron so the date fits".
 - AC18 (R18) header-layout "The Today button marks today in both layouts" (4); navigation.feature Today-button scenarios
   (AC8) with the filled / outlined-on-solid looks in STEPS.md.
 - AC19 (R19) header-layout rule "The sync icon shows only when syncing fails, unless the person turns it on" (3);
@@ -225,8 +234,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   outline "The streak choice decides what the top bar shows"; "The plant and the sunflowers are on by default" became
   "The sunflowers grow with points by default" (the plant line goes with `Settings.plant`); the scenarios that show
   the plant or its card got `Given the streak is set to "Plant"`; three more @backlog scenarios.
-- streak.feature: Background `And the streak is set to "Flame"` (all its scenarios show the flame or its message);
-  one @backlog scenario (the check-in counts while nothing is shown).
+- streak.feature: Background `And the streak is set to "Flame"` (its scenarios check the count on the flame);
+  description: the message shows whatever the choice; one @backlog outline (count and message with Off and Plant).
 - sunflowers.feature: "The field shows whatever the plant setting is" replaced by the @backlog outline "The field
   shows whatever the streak choice is".
 - These non-@backlog scenarios now use the new step `the streak is set to X`, which the build adds (step 1b); until
@@ -255,7 +264,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 1. Pref `headerLayout` + `approachTimeLeft` (server store, routes validation, API.md, types, prefs store, last known
    state) → unit tests.
 1b. Streak: pref `streak` + migration (settings store drops `streakFlame`/`plant`, validation rejects them, types,
-   web settings/prefs stores, `AppTopBar` → `LeadingWidgets` from `prefs.streak`), Settings › Focus & motivation
+   web settings/prefs stores, `AppTopBar` → `LeadingWidgets` from `prefs.streak`, `StreakToast` no longer gated by
+   the flame), Settings › Focus & motivation
    segmented `settings-streak` replacing the two switches, step `the streak is set to X` → unit tests, then the
    plant/streak/sunflowers scenarios. Independent of the header work: can ship first as its own PR.
 1c. Sync indicator: pref `syncIndicator`, `settings-sync-indicator`, `SyncStatus` hidden unless error or on → unit +
@@ -263,7 +273,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 2. Settings rows: "Header layout" segmented (`settings-header-layout`) before "Approaching card"; "Time left" switch
    (`settings-approach-time-left`) under it → e2e "The choice is made in the settings …".
 3. Top bar: `data-layout` on `top-bar`; Two rows CSS (18 px title, 32 px nav visuals with 44 px hit areas); One row
-   grid + Today icon pill + short day title; plant tap area 32 x 44 and flame slot 32 px in one row; left-handed
+   grid + Today icon pill + short day title; plant tap area 32 x 44 and flame slot 32 px in one row; title chevron
+   hidden while a streak and the sync problem icon both show; left-handed
    one-row mirror; ≥ 768 px unchanged → header-layout layout scenarios.
    **PR 1 — header layouts** (steps 1–3): independently mergeable; the default Two rows already saves 12 px of bar height.
 4. (PR 1 also changes `mobile.steps.ts` to measure hit areas.) Day view: drop the day header at every width (desktop
@@ -330,10 +341,11 @@ baselines to look at). About 3.5–4 days in all.
   without ‹ Today ›. Recommendation: they follow it too (one row: title + widgets/actions in 52 px; two rows: the title
   row alone, 52 px, as there is no nav row). Narrowest phone: 360 px (budget in Q1 is then 30 px tighter; the title
   ellipsis is the fallback).
-- Q11 **One row with a streak on and syncing failing (new, open; the owner has not decided).** At 390 px the row has
+- Q11 **One row with a streak on and syncing failing.** *Answered (owner, 2026-10-26):* the date's ⌄ chevron is
+  hidden only while that lasts, so the date fits in full (R17). Original analysis: at 390 px the row has
   384 px: short date ≈ 131 px + ‹ Today › 132 + filter and settings 88 + flame or plant 32 = 383 px. When the sync
-  problem icon also shows (28 px), the date gets about 22 px less than it needs and is cut. No rule is specified until
-  the owner decides (options seen, not chosen: accept the ellipsis while the problem lasts; hide the streak widget
+  problem icon also shows (28 px), the date gets about 22 px less than it needs and is cut (options seen before the
+  decision: accept the ellipsis while the problem lasts; hide the streak widget
   while the problem icon shows; let the banner carry the problem and keep the icon out of one row).
 
 ## Assumptions
@@ -344,10 +356,6 @@ baselines to look at). About 3.5–4 days in all.
 - "Nothing ahead" is scoped to today, like the card's "Next" line (tomorrow's entries do not keep the card).
 - The settings preview under the Header layout choice (frame S1) is a proposal; without it the row is the plain
   segmented button.
-- "Personal switches" for the flame and plant means per-person prefs (like the header layout), so `streak` moves out of
-  the shared `Settings`; on a server with several people each now chooses their own.
-- The check-in message ("Checked in, day N", "Welcome back!") stays tied to the flame as built: with Off or Plant it
-  is not shown. So with the default Off nobody sees it until they pick Flame.
 - The streak choice is a segmented button labelled "Streak" with the options "Off", "Flame", "Plant" (German labels
   come with the build's i18n); "Settings › Motivation" in the decision is the section "Focus & motivation".
 - The sync indicator switch applies at every width (desktop too); the decision names no limit.
