@@ -63,6 +63,14 @@ describe('map picture cache', () => {
     await expect(later[0]).resolves.toBeUndefined();
   });
 
+  it('answers without waiting for the store', async () => {
+    const stuck = { ...fakeCache(), put: vi.fn(() => new Promise<void>(() => {})) };
+    const later: Promise<unknown>[] = [];
+    const res = await serveTile(tile(), stuck as never, async () => png(), 1, (p) => later.push(p));
+    expect(res.status).toBe(200);
+    expect(later).toHaveLength(1);
+  });
+
   it('keeps at most the newest pictures', async () => {
     const cache = fakeCache();
     for (let i = 0; i <= MAX_TILES; i++) await serveTile(tile(i), cache as never, async () => png(), 1);

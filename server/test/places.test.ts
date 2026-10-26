@@ -32,6 +32,12 @@ describe('place search and map addresses', () => {
     expect(c.mapTileUrl).toBe('https://tiles.example.org/{z}/{x}/{y}.png');
   });
 
+  it('allows commas in the path and query', async () => {
+    const c = await liveConfig({ PLACE_SEARCH_URL: 'https://photon.example.org/api?layers=a,b', MAP_TILE_URL: 'https://tiles.example.org/{z}/{x}/{y}.png?style=a,b' });
+    expect(c.placeSearchUrl).toBe('https://photon.example.org/api?layers=a,b');
+    expect(c.mapTileUrl).toBe('https://tiles.example.org/{z}/{x}/{y}.png?style=a,b');
+  });
+
   it('keeps the defaults for addresses that are not https or lack the tile placeholders', async () => {
     const c = await liveConfig({ PLACE_SEARCH_URL: 'http://photon.example.org/api', MAP_TILE_URL: 'https://tiles.example.org/tile.png' });
     expect(c.placeSearchUrl).toBe('https://photon.komoot.io/api');
@@ -48,6 +54,8 @@ describe('unsafe place addresses', () => {
     ['MAP_TILE_URL', 'https://{s}.tiles.example.org/{z}/{x}/{y}.png'],
     ['MAP_TILE_URL', 'https://tiles.example.org;/{z}/{x}/{y}.png'],
     ['MAP_TILE_URL', 'https://tiles_x.example.org/{z}/{x}/{y}.png'],
+    ['MAP_TILE_URL', 'https://tiles.example.org:99999/{z}/{x}/{y}.png'],
+    ['PLACE_SEARCH_URL', 'https://999.1.1.1/api'],
   ])('falls back to the default for %s=%s', async (name, value) => {
     const c = await liveConfig({ [name]: value });
     expect(name === 'PLACE_SEARCH_URL' ? c.placeSearchUrl : c.mapTileUrl).toBe(name === 'PLACE_SEARCH_URL' ? 'https://photon.komoot.io/api' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');

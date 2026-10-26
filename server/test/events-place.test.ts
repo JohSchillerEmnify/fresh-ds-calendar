@@ -47,6 +47,16 @@ describe('event place', () => {
     expect((await remote(c.body.id)).extendedProperties?.private?.placeName).toBeUndefined();
   });
 
+  it('a location-only change keeps the place while it still leads with the name, and clears it otherwise', async () => {
+    const c = await t.json('POST', '/api/events', { ...timed, location: at, place: weber });
+    const kept = await t.json('PATCH', `/api/events/${c.body.id}`, { location: 'Zahnarztpraxis Dr. Weber, Neue Str. 1' });
+    expect(kept.body.place).toEqual(weber);
+    expect((await remote(c.body.id)).extendedProperties.private.placeName).toBe(weber.name);
+    const gone = await t.json('PATCH', `/api/events/${c.body.id}`, { location: 'Praxis am Markt' });
+    expect(gone.body.place).toBeUndefined();
+    expect((await remote(c.body.id)).extendedProperties?.private?.placeName).toBeUndefined();
+  });
+
   it('replaces the place with a newly picked one', async () => {
     const c = await t.json('POST', '/api/events', { ...timed, location: at, place: weber });
     const mitte = { name: 'Zahnklinik Mitte', lat: 52.52, lon: 13.388 };
