@@ -46,8 +46,8 @@ Tracked here so it survives across sessions. Newest first within each section. M
   high contrast: labels and roles, focus order and visible focus, tap target sizes (44 px is our comfort target, WCAG 2.2
   AA asks 24), colour contrast of themes and scenes, gestures that need an alternative (swipe periods, drag and drop,
   long press, draw to create), live regions (sync status, check-in toast). Output: a findings list by severity, then
-  fixes slice by slice. First known item: the period arrows on touch screens (being built 2026-10-26 as invisible
-  screen-reader buttons).
+  fixes slice by slice. Known items: the touch screens' period arrows are screen-reader-only (2026-10-26) and show no
+  focus ring when a keyboard user tabs to them (WCAG 2.4.7).
 
 - **Simplification & reuse audit of the overview item components** (owner, 2026-10-16: "why do we have so many variants
   of what should be one dynamic component?"). `TaskListCard` alone carries variants card/allday/chip/block/dot plus grown,
