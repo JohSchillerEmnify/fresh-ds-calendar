@@ -404,3 +404,139 @@ When('I drag the event {string} to {date} with a finger held perfectly still', a
 Then('the browser did not take the touch over for scrolling', async function (this: World) {
   expect(await this.page.evaluate(() => (window as unknown as { __pointerCancels?: number }).__pointerCancels), 'pointercancel events during the drag').toBe(0);
 });
+
+// ---------------------------------------------------------------- turning the day or week while dragging (A)
+
+/**
+ * Picks the card up at its usual grab point and moves it (10 steps) to `to`, keeping it held for `ms`; the pointer or
+ * finger stays down ("held"), can move on ("heldMove") and is released by a drop step or the world's cleanup.
+ */
+async function holdAt(w: World, card: Locator, to: (from: Point) => Promise<Point>, ms: number, approach = 0) {
+  // in the middle of the grid: a pointer resting near its top or bottom would start the auto-scroll during the hold
+  await card.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  await w.page.waitForTimeout(100);
+  const from = await grabPoint(w, card);
+  const dest = await to(from);
+  // an edge hold stops `approach` px short of the zone first, then enters it in one move: the hold counts from there
+  const near = { x: dest.x - approach, y: dest.y };
+  if (useTouch(w)) {
+    const f = await fingerDown(w, from, 500);
+    await f.move(near, 10, 300);
+    if (approach) await f.move(dest, 1, 0);
+    w.heldMove = (p, steps, t) => f.move(p, steps, t);
+    w.held = async () => { await f.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; };
+  } else {
+    const { mouse } = w.page;
+    await mouse.move(from.x, from.y);
+    await mouse.down();
+    await mouse.move(near.x, near.y, { steps: 10 });
+    if (approach) await mouse.move(dest.x, dest.y);
+    let at = dest;
+    w.heldMove = async (p, steps) => { await mouse.move(p.x, p.y, { steps }); at = p; };
+    w.held = async () => { await mouse.move(at.x, at.y); await mouse.up(); w.held = undefined; w.heldMove = undefined; w.heldAt = undefined; };
+  }
+  w.heldAt = dest;
+  await w.page.waitForTimeout(ms);
+}
+
+/** The visible (not fit) time grid's day columns: left edge of the first, right edge of the last. */
+async function columnsEdges(w: World): Promise<{ left: number; right: number }> {
+  const cols = w.page.locator('.tg:not(.fit) [data-testid="week-day-column"], .tg:not(.fit) [data-testid="day-column"]').locator('visible=true');
+  const first = await box(cols.first());
+  const last = await box(cols.last());
+  return { left: first.x, right: last.x + last.width };
+}
+
+const edgePoint = (w: World, side: 'left' | 'right') => async (from: Point) => {
+  const e = await columnsEdges(w);
+  return { x: side === 'right' ? e.right - 6 : e.left + 6, y: from.y };
+};
+/** How far short of an edge zone a hold stops before entering it (signed: towards the middle). */
+const APPROACH = { right: 40, left: -40 } as const;
+
+When('I hold the event {string} at the right edge of the time grid for {int} ms', async function (this: World, title: string, ms: number) {
+  await holdAt(this, this.eventChip(title), edgePoint(this, 'right'), ms, APPROACH.right);
+});
+
+When('I hold the event {string} at the left edge of the time grid for {int} ms', async function (this: World, title: string, ms: number) {
+  await holdAt(this, this.eventChip(title), edgePoint(this, 'left'), ms, APPROACH.left);
+});
+
+When('I hold the task list {string} at the right edge of the time grid for {int} ms', async function (this: World, title: string, ms: number) {
+  await holdAt(this, this.taskCard(title), edgePoint(this, 'right'), ms, APPROACH.right);
+});
+
+When('I hold the all-day event {string} at the right edge of the all-day row for {int} ms', async function (this: World, title: string, ms: number) {
+  await holdAt(this, eventHandle(this, title), edgePoint(this, 'right'), ms, APPROACH.right);
+});
+
+When('I hold the event {string} over {date} at {time} for {int} ms', async function (this: World, title: string, date: string, time: string, ms: number) {
+  const chip = this.eventChip(title);
+  await holdAt(this, chip, async (from) => {
+    const p = await targetPoint(this, chip, from, date, time);
+    // a phone's day column is about 49 px wide: its middle sits on the 24 px edge zone; stay 4 px clear of it
+    const e = await columnsEdges(this);
+    return { x: Math.min(Math.max(p.x, e.left + 28), e.right - 28), y: p.y };
+  }, ms);
+});
+
+When('I keep holding the dragged item for {int} ms', async function (this: World, ms: number) {
+  if (!this.held) throw new Error('nothing is held');
+  await this.page.waitForTimeout(ms);
+});
+
+Then('the edge band says {string}', async function (this: World, text: string) {
+  await expect(this.page.getByTestId('drag-edge-band')).toHaveText(text);
+});
+
+Then('I see no edge band', async function (this: World) {
+  await expect(this.page.getByTestId('drag-edge-band')).toHaveCount(0);
+});
+
+Then('{string} is still being dragged', async function (this: World, title: string) {
+  await expect(this.page.locator(`${attr('data-title', title)}[data-dragging="true"]`).locator('visible=true')).toHaveCount(1);
+});
+
+/** Moves the held card to a point, lets go there and waits for the save and for nothing to be lifted any more. */
+async function dropAt(w: World, to: Point | (() => Promise<Point>)) {
+  if (!w.held || !w.heldMove) throw new Error('nothing is held');
+  // out of an edge zone at once (no further turn while the target is looked up), then to the target
+  const e = await columnsEdges(w);
+  await w.heldMove({ x: (e.left + e.right) / 2, y: w.heldAt?.y ?? (await w.page.viewportSize())!.height / 2 }, 1, 0);
+  await w.heldMove(typeof to === 'function' ? await to() : to, 10, 300);
+  const saved = w.page.waitForResponse((r) => isPersist(r.url(), r.request().method()));
+  await w.held();
+  await saved;
+  await expect(w.page.locator('[data-dragging="true"]')).toHaveCount(0);
+}
+
+When('I drop the dragged item on {date} at {time}', async function (this: World, date: string, time: string) {
+  const [h, m] = time.split(':').map(Number);
+  await dropAt(this, async () => {
+    const slot = this.page.locator(`${tid('time-slot')}${attr('data-date', date)}${attr('data-hour', String(h))}`).first();
+    await expect(slot).toBeAttached();
+    // the slot is brought into view the way the auto-scroll would, without moving the pointer
+    await slot.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await this.page.waitForTimeout(100);
+    const b = await box(slot);
+    // the card is held 5 minutes below its top (grabPoint): the pointer goes 5 minutes below the slot time
+    return { x: b.x + b.width / 2, y: b.y + ((m + 5) / 60) * b.height };
+  });
+});
+
+When('I drop the dragged item in the all-day row on {date}', async function (this: World, date: string) {
+  const cell = this.page.locator(`${tid('week-allday-cell')}${attr('data-date', date)}, ${tid('day-allday-area')}${attr('data-date', date)}`).first();
+  await dropAt(this, async () => centre(await box(cell)));
+});
+
+/**
+ * Holds X at the right edge until the view has turned once, then moves out of the edge zone to the middle of the grid at
+ * once (no second turn on a slow device): the turn is waited for, not timed.
+ */
+When('I hold the event {string} at the right edge of the time grid until the view turns', async function (this: World, title: string) {
+  const before = new URL(this.page.url()).pathname;
+  await holdAt(this, this.eventChip(title), edgePoint(this, 'right'), 0, APPROACH.right);
+  await expect.poll(() => new URL(this.page.url()).pathname, { timeout: 5_000, intervals: [50] }).not.toBe(before);
+  const e = await columnsEdges(this);
+  await this.heldMove!({ x: (e.left + e.right) / 2, y: this.heldAt!.y }, 1, 0);
+});
