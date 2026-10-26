@@ -4,6 +4,13 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Approaching card: the entries at the front of the track show no title** (owner, 2026-10-26, screenshot, phone, two
+  rows, live 0.23.0+14aeaaf). In the card's track the first bars (here the green one starting about 18:30, before
+  "HipHop", and the left part of "Hellbreakers") are drawn empty: the title of the entry in front cannot be read. Earlier
+  the same day (before header PR 2) the card showed "Pauke Retournieren" and "Bachata Sensual" labelled. Root-cause by
+  falsifying hypotheses (candidates: header PR 2's card/"time left" change, label placement for bars that start before
+  the visible window or overlap the next bar, the narrower two-row layout), reproducing test first.
+
 - **The live clock runs 4 app timers where at most 2 are allowed** (full e2e 2026-10-26; also red on a55be8f, so older
   than that day's work). `performance.feature` "The live clock uses one timer and pauses while hidden" fails on mobile
   (`Received: 4`). Root-cause by falsification, then fix.
