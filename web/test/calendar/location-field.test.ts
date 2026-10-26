@@ -47,7 +47,7 @@ async function mountField() {
   return { w, text, place, input: w.get(tid('event-location')) };
 }
 
-async function type(input: Awaited<ReturnType<typeof mountField>>['input'], v: string, wait = 300) {
+async function type(input: Awaited<ReturnType<typeof mountField>>['input'], v: string, wait = 150) {
   await input.setValue(v);
   await vi.advanceTimersByTimeAsync(wait);
   await flushPromises();
@@ -74,7 +74,7 @@ describe('location field', () => {
     const calls = photon();
     const { w, input } = await mountField();
     await type(input, 'Zah', 100);
-    await type(input, 'Zahn', 299);
+    await type(input, 'Zahn', 149);
     expect(calls).toHaveLength(0);
     await vi.advanceTimersByTimeAsync(1);
     await flushPromises();
@@ -88,6 +88,53 @@ describe('location field', () => {
     expect(input.attributes('aria-expanded')).toBe('true');
     // the list is brought into view above the dialog's actions
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+  });
+
+  it('keeps the shown places while typing and swaps them when the new answer arrives', async () => {
+    const calls = photon();
+    const { w, input } = await mountField();
+    await type(input, 'Zahn');
+    (fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(async (url: string) => {
+      calls.push({ url });
+      return new Response(JSON.stringify({ features: [feature(mitte)] }));
+    });
+    await type(input, 'Zahnk', 100);
+    expect(w.findAll(tid('place-suggestion-name')).map((r) => r.text())).toEqual([weber.name, mitte.name]);
+    await vi.advanceTimersByTimeAsync(50);
+    await flushPromises();
+    expect(w.findAll(tid('place-suggestion-name')).map((r) => r.text())).toEqual([mitte.name]);
+  });
+
+  it('shows a query it has answered before at once, without asking again', async () => {
+    const calls = photon();
+    const { w, input } = await mountField();
+    await type(input, 'Zahn');
+    await type(input, 'Zahnk');
+    expect(calls).toHaveLength(2);
+    await input.setValue('Zahn');
+    expect(calls).toHaveLength(2);
+    expect(w.findAll(tid('place-suggestion-name')).map((r) => r.text())).toEqual([weber.name, mitte.name]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('forgets the highlight when typing on, so Enter does not pick a stale place', async () => {
+    photon();
+    const { input, place } = await mountField();
+    await type(input, 'Zahn');
+    await input.trigger('keydown', { key: 'ArrowDown' });
+    await input.setValue('Zahnk');
+    await input.trigger('keydown', { key: 'Enter' });
+    expect(place.value).toBeNull();
+  });
+
+  it('empties the shown places when the text drops below three characters', async () => {
+    photon();
+    const { w, input } = await mountField();
+    await type(input, 'Zahn');
+    expect(w.find(tid('place-suggestions')).exists()).toBe(true);
+    await input.setValue('Za');
+    expect(w.find(tid('place-suggestions')).exists()).toBe(false);
   });
 
   it('cancels a search that newer text replaced', async () => {
