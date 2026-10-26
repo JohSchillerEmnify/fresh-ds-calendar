@@ -125,6 +125,7 @@ export default {
       defaultEventColor: 'Standardfarbe für Termine',
       calendarColor: 'Farbe des Kalenders',
       approachingCard: { label: 'Karte „Gleich“', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender' },
+      approachTimeLeft: { label: 'Restzeit', hint: 'Die Restzeit des laufenden Termins in der Karte „Gleich“; aus, steht sie am Termin selbst' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kürzere Termine und Aufgabenlisten werden so lang gezeichnet und angeordnet, damit ihr Titel lesbar bleibt', off: 'Aus', minutes: '{n} Min.' },
       sideBySide: { day: 'Tagesansicht: Termine nebeneinander', week: 'Wochenansicht: Termine nebeneinander', hint: 'Überlappende Termine teilen sich die Breite in bis zu so vielen Spalten; weitere liegen versetzt auf der letzten', upTo: 'Bis zu {n}' },
       headerLayout: { label: 'Kopfzeile', hint: 'Auf dem Handy', twoRows: 'Zwei Zeilen', oneRow: 'Eine Zeile' },

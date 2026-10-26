@@ -20,6 +20,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const approachBar = ref(true);
   const approachWindowHours = ref<ApproachWindowHours>(3);
   const approachingCard = ref(true);
+  /** The Approaching card's "· 30 min left" line; when off the running entry shows the time left. */
+  const approachTimeLeft = ref(true);
   /** Task-list categories shown (on by default); off hides every category UI but keeps the stored ids. */
   const taskCategories = ref(true);
   const tasksCalendarVisible = ref(false);
@@ -71,6 +73,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     approachBar.value = p.approachBar ?? approachBar.value;
     approachWindowHours.value = p.approachWindowHours ?? approachWindowHours.value;
     approachingCard.value = p.approachingCard ?? approachingCard.value;
+    approachTimeLeft.value = p.approachTimeLeft ?? approachTimeLeft.value;
     taskCategories.value = p.taskCategories ?? taskCategories.value;
     tasksCalendarVisible.value = p.tasksCalendarVisible ?? tasksCalendarVisible.value;
     supportCat.value = p.supportCat ?? supportCat.value;
@@ -103,7 +106,7 @@ export const usePrefsStore = defineStore('prefs', () => {
   /** Every preference as it is now (the rollback copy of `set`, and what the last known state keeps). */
   function current(): Prefs {
     return {
-      labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
+      labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, approachTimeLeft: approachTimeLeft.value, taskCategories: taskCategories.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
       versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value, weekTwoRow: weekTwoRow.value, weekTwoRowTop: weekTwoRowTop.value, labsGrowCards: labsGrowCards.value, minEventMinutes: minEventMinutes.value, daySideBySide: daySideBySide.value, weekSideBySide: weekSideBySide.value, streak: streak.value, syncIndicator: syncIndicator.value, headerLayout: headerLayout.value,
     };
@@ -128,5 +131,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout, loaded, load, set, current, restore: apply };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout, loaded, load, set, current, restore: apply };
 });

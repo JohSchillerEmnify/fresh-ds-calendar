@@ -155,7 +155,7 @@ function openList() {
       :data-tasklist-id="id" :data-title="tl ? displayTitle(tl) : ''" :aria-label="tl ? neutralName(tl) : t('tasks.list.fallbackLabel')"
       :style="timed ? timedStyle : pos ? { left: pos.left + 'px', top: pos.top + 'px', width: pos.width + 'px', maxHeight: pos.maxHeight + 'px', '--min-h': pos.minHeight + 'px', borderRadius: pos.radius, '--xr': pos.radius } : { visibility: 'hidden' }"
     >
-      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" :tight="(pos?.minHeight || 0) < 30" @open-list="openList" @collapse="emit('close')" />
+      <TaskListCard :segment="segment" :variant="variant" grown :grow-dir="pos?.dir" :tight="(pos?.minHeight || 0) < 36" @open-list="openList" @collapse="emit('close')" />
     </div>
   </Teleport>
 </template>

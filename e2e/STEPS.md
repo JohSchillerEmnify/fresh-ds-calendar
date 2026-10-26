@@ -3096,7 +3096,8 @@ the top bar's widgets are in reverse order
 - "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
   `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
 - "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the
-  built-in tonal look: its computed background is the secondary container colour, no outline). "does not show":
+  built-in tonal look: the computed background of its drawn shape, the `.pill` inside on phones and the button itself on
+  wide screens, is the secondary container colour, no outline). "does not show":
   `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
   colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
   month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or

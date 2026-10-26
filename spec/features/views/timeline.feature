@@ -94,7 +94,6 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     And the current event progress is 70 percent
 
   # owner, 2026-10-26: no "Nothing else today" card any more; the card goes when nothing is on or ahead (feature header-layout)
-  @backlog
   Scenario Outline: The Approaching card is gone when nothing is on or ahead today
     Given the time is 2026-10-12 13:40
     And <track>
@@ -107,7 +106,6 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
       | the approaching track is off | week |
       | the approach bar is on       | day  |
 
-  @backlog
   Scenario: The Approaching card goes when the last entry of the day ends
     Given the time is 2026-10-12 13:20 and the clock is running
     When I open the day view for 2026-10-12

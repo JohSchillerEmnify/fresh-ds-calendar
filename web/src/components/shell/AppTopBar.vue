@@ -8,6 +8,7 @@ import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
 import { useNav } from '@/composables/useNav';
+import { inPeriod } from '@/lib/dates';
 import { isPhone, isTouchLayout } from '@/composables/useViewport';
 import { topBarWidgets } from '@/extensions/registry';
 import { useCalendarStore } from '@/stores/calendar';
@@ -34,6 +35,8 @@ const filters = useFilters();
 /** The header layout in force: the person's choice on a phone; desktop and tablets keep their own one row (feature header-layout). */
 const layout = computed(() => (isPhone.value ? prefs.headerLayout : 'wide'));
 const oneRow = computed(() => layout.value === 'one-row');
+/** Today is in the period the title names: the Today button is the today mark, filled then, outlined otherwise (feature header-layout). */
+const todayShown = computed(() => inPeriod(cal.view, cal.anchor, clock.todayDate));
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
 /** A date-less Labs view (Now, Timeline): the title is the view's name and there is no moving through periods. */
 const dateless = computed(() => datelessLab(route.meta.lab as string | undefined));
@@ -56,7 +59,7 @@ function toggleFilters() {
       <div v-if="!route.meta.tasks && !dateless" class="nav">
         <!-- touch screens move by swiping the calendar: no arrows there (owner, 2026-10-26) -->
         <IconButton v-if="!isTouchLayout" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
-        <Button variant="tonal" class="today" data-testid="nav-today" :aria-label="oneRow ? t('calendar.topBar.today') : undefined" :title="oneRow ? t('calendar.topBar.today') : undefined" @click="nav.today()"><span class="pill"><IconToday v-if="oneRow" /><template v-else>{{ t('calendar.topBar.today') }}</template></span></Button>
+        <Button variant="tonal" class="today" :class="{ off: !todayShown }" data-testid="nav-today" :data-today-shown="todayShown" :aria-label="oneRow ? t('calendar.topBar.today') : undefined" :title="oneRow ? t('calendar.topBar.today') : undefined" @click="nav.today()"><span class="pill"><IconToday v-if="oneRow" /><template v-else>{{ t('calendar.topBar.today') }}</template></span></Button>
         <IconButton v-if="!isTouchLayout" :label="t('calendar.topBar.next')" data-testid="nav-next" @click="nav.next()"><IconNext /></IconButton>
       </div>
       <div class="widgets">
@@ -91,6 +94,8 @@ function toggleFilters() {
 .chev.up { transform: rotate(180deg); }
 .nav { grid-area: nav; display: flex; align-items: center; gap: 2px; }
 .today { padding: 0 16px; }
+/* Today is not on screen: outlined on a solid surface fill, so a scene never shows through (on phones the pill carries the look) */
+.today.off { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
 .widgets { grid-area: widgets; display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 0; }
 .actions { grid-area: actions; display: flex; }
 .fwrap { position: relative; display: inline-flex; }
@@ -112,6 +117,8 @@ function toggleFilters() {
   .nav .today:focus-visible .pill { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
   .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 12%, var(--md-sys-color-secondary-container)); }
   .pill { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+  .nav .today.off { background: transparent; border: 0; }
+  .today.off .pill { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
   [data-layout='two-rows'] .nav { height: 32px; align-items: flex-start; }
   [data-layout='two-rows'] .today { height: 44px; align-items: flex-start; }
   [data-layout='two-rows'] .pill { height: 32px; padding: 0 12px; border-radius: 16px; font-size: 13px; }

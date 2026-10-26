@@ -158,7 +158,6 @@ Feature: Navigation and view switching
 
   # owner, 2026-10-26: the date is shown once, so the day view's "Mon 12" header goes; the Today button takes over its
   # today highlight in every view: filled while today is shown, outlined on a solid background when it is not.
-  @backlog
   Scenario Outline: The Today button shows when today is on screen
     When I open the <view> view for <period>
     Then the Today button shows that today is on screen
@@ -169,7 +168,6 @@ Feature: Navigation and view switching
       | week  | 2026-10-12 |
       | day   | 2026-10-12 |
 
-  @backlog
   Scenario Outline: The Today button does not show it when today is not on screen
     When I open the <view> view for <period>
     Then the Today button does not show that today is on screen
@@ -180,7 +178,6 @@ Feature: Navigation and view switching
       | week  | 2026-10-19 |
       | day   | 2026-10-13 |
 
-  @backlog
   Scenario: Going to today in the day view lights up the Today button
     When I open the day view for 2026-12-24
     And I go to today

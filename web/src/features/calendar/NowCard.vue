@@ -6,7 +6,7 @@
  * keeps today loaded) unless the person switched it off. Rendered once by the shell above the calendar views, so a
  * view switch keeps it; it animates in only when it really appears. `data-entered` counts those enter animations.
  */
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useDaySegments } from '@/composables/useDaySegments';
 import { absMinutes, trackBands } from '@/features/bedtime/bedtime';
 import { useBedtimeWindows } from '@/features/bedtime/useBedtime';
@@ -28,17 +28,30 @@ const approach = computed(() => (prefs.approachBar ? approachEntries(segs(clock.
 const nights = useBedtimeWindows(() => ({ from: clock.today, to: toIsoDate(addDays(clock.todayDate, 2)) }));
 const bands = computed(() => (prefs.approachBar ? trackBands(nights.value, absMinutes(clock.today, clock.minutesNow), prefs.approachWindowHours * 60) : []));
 const track = computed(() => approach.value.entries.length > 0 || bands.value.length > 0);
+/** Something is on or ahead today (a running or coming timed event, or the track's entries and nights): else the card is gone (feature header-layout). */
+const wanted = computed(() => !!model.value.current || model.value.hasNext || track.value);
+/** A finger down (drag, scroll) keeps the card in place so the grid does not jump under it; it goes when the gesture ends. */
+const touching = ref(false);
+const held = ref(false);
+const shown = computed(() => wanted.value || (touching.value && held.value));
+watch(shown, (v) => { held.value = v; }, { immediate: true });
+const down = () => { touching.value = true; };
+const up = () => { touching.value = false; };
+onMounted(() => { for (const e of ['pointerdown', 'touchstart']) window.addEventListener(e, down, true); for (const e of ['pointerup', 'touchend', 'touchcancel']) window.addEventListener(e, up, true); });
+onBeforeUnmount(() => { for (const e of ['pointerdown', 'touchstart']) window.removeEventListener(e, down, true); for (const e of ['pointerup', 'touchend', 'touchcancel']) window.removeEventListener(e, up, true); });
+/** The card's line carries the time left only when the person keeps that line on. */
+const currentLine = computed(() => (prefs.approachTimeLeft ? model.value.current?.line : model.value.current?.title));
 const entered = ref(0);
 </script>
 
 <template>
   <Transition name="now" appear @before-enter="entered++">
   <section
-    class="now-card" :class="{ track }" data-testid="now-card" :aria-label="t('calendar.now.label')" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
+    v-if="shown" class="now-card" :class="{ track }" data-testid="now-card" :aria-label="t('calendar.now.label')" :data-entered="entered" :data-has-current="model.current ? 'true' : 'false'"
     :style="{ '--c': model.current?.color }"
   >
     <div class="one" :data-testid="model.current ? 'now-card-current' : undefined">
-      <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ model.current.line }}</p>
+      <p v-if="model.current" class="line strong" data-testid="now-card-line">{{ currentLine }}</p>
       <p v-if="!track" class="line next" :class="{ strong: !model.current }" data-testid="now-card-line">{{ model.nextLine }}</p>
     </div>
     <ApproachBar v-if="track" :entries="approach.entries" :at-end="approach.atEnd" :now-min="clock.minutesNow" :window-min="prefs.approachWindowHours * 60" :bands="bands" />

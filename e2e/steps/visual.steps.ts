@@ -143,6 +143,8 @@ Then('the {string} still looks like {string}', async function (this: World, name
   const target = region(this, name);
   await expect(target).toBeVisible();
   // the floating "+" button would cover the bottom right of the time grid; it is not part of that picture
+  // the 4 s check-in toast would sit in a picture or not by timing alone
+  await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   if (name === 'time grid') await this.page.addStyleTag({ content: '[data-testid="create-fab-area"] { display: none !important; }' });
   // the check-in message slides over the top bar for a few seconds after the app opens; it is not part of that picture
   if (name === 'top bar') await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });

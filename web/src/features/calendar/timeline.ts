@@ -23,6 +23,8 @@ export function formatDuration(totalMinutes: number): string {
 export interface NowCardModel {
   current: { id: string; title: string; left: string; line: string; elapsedPercent: number; color: string } | null;
   nextLine: string;
+  /** A timed event still starts later today (else the card has no "Next" line and, with nothing running, goes). */
+  hasNext: boolean;
 }
 
 /** Timed, non-all-day event segments of one day, as the Now card sees them. */
@@ -32,7 +34,7 @@ function timedEvents(segs: Segment[]): Segment[] {
 
 /**
  * Now card for today. Current = start <= now < end (the one ending first when several). Next = the first timed event
- * starting after now (not the current one), else "Nothing else today".
+ * starting after now (not the current one), else "Nothing else today" (`hasNext` false: the card itself goes then).
  */
 export function nowCardModel(daySegments: Segment[], nowMin: number): NowCardModel {
   const evs = timedEvents(daySegments);
@@ -40,7 +42,8 @@ export function nowCardModel(daySegments: Segment[], nowMin: number): NowCardMod
   const cur = running[0];
   const upcoming = evs.filter((s) => s.startMin > nowMin).sort((a, b) => a.startMin - b.startMin)[0];
   const nextLine = upcoming ? t('calendar.now.next', { title: upcoming.item.title, duration: formatDuration(upcoming.startMin - nowMin) }) : t('calendar.now.nothingElse');
-  if (!cur) return { current: null, nextLine };
+  const hasNext = !!upcoming;
+  if (!cur) return { current: null, nextLine, hasNext };
   const left = formatDuration(cur.endMin - nowMin);
   const total = cur.endMin - cur.startMin;
   return {
@@ -49,7 +52,7 @@ export function nowCardModel(daySegments: Segment[], nowMin: number): NowCardMod
       elapsedPercent: Math.min(100, Math.max(0, Math.floor(((nowMin - cur.startMin) / total) * 100))),
       color: (cur.item as { color: string }).color,
     },
-    nextLine,
+    nextLine, hasNext,
   };
 }
 

@@ -14,6 +14,7 @@ import { inPreview } from '@/composables/usePreview';
 import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
 import { entryBorderPx, entryStyle } from '@/theme/entryStyle';
 import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
@@ -27,6 +28,7 @@ const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
 const clock = useClockStore();
 const ui = useUiStore();
+const prefs = usePrefsStore();
 const root = ref<HTMLElement | null>(null);
 const ev = computed(() => props.segment.item as CalendarEvent);
 // a preview copy (swipe neighbour) is inert: no drag handlers
@@ -63,6 +65,8 @@ const descLines = computed(() => (showLocation.value && ev.value.description ? M
 const showDuration = computed(() => showTime.value && h.value >= 58);
 const lines = computed(() => budget.value.lines);
 const duration = computed(() => formatDuration(props.segment.endMin - props.segment.startMin));
+/** The running entry's time left, shown on its own time line when the Approaching card does not carry it (card or its time-left line off). */
+const timeLeft = computed(() => (current.value && !(prefs.approachingCard && prefs.approachTimeLeft) ? t('calendar.nowNext.left', { left: formatDuration(props.segment.endMin - clock.minutesNow) }) : ''));
 const timeText = computed(() => {
   const s = props.segment;
   if (!s.startTime) return '';
@@ -82,7 +86,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
     <template v-else-if="variant === 'block'">
       <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
       <span v-if="showTime" class="meta">
-        <span class="time" data-testid="event-chip-time">{{ timeText }}</span><span v-if="showDuration" class="dur"> · {{ duration }}</span>
+        <span class="time" data-testid="event-chip-time">{{ timeText }}<template v-if="timeLeft"> · {{ timeLeft }}</template></span><span v-if="!timeLeft && showDuration" class="dur"> · {{ duration }}</span>
       </span>
       <span v-if="showLocation" class="meta" data-testid="event-chip-location">{{ ev.location }}</span>
       <span v-if="descLines > 0" class="desc" data-testid="event-chip-description" :style="{ '--dlines': descLines }">{{ ev.description }}</span>
