@@ -95,6 +95,8 @@ All variables (defaults from `server/src/config.ts`):
 | `LOG_LEVEL` | `info` | log level (`debug`/`info`/`warn`/`error`) |
 | `ALLOWED_EMAILS` | – | comma-separated Google addresses that may sign in |
 | `DOOR_API_TOKEN`, `DOOR_PERSON` | – | optional door plugin (ADR 0003/0004): the board's key and the person it sees; unset = no door |
+| `PLACE_SEARCH_URL` | `https://photon.komoot.io/api` | Photon place search the device asks directly for location suggestions (https only). Its origin is added to the CSP `connect-src`; on the VPS also change the Caddyfile CSP |
+| `MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | map picture template the device loads directly (https only, needs `{z}` `{x}` `{y}`). Its origin is added to the CSP `img-src` and `connect-src` (the service worker keeps shown pictures for offline use); on the VPS also change the Caddyfile CSP |
 | `ALLOW_INSECURE_MOCK` | – | `1` lets the mock (no sign-in) start on a public HTTPS address or in production |
 | `CHANGELOG_PATH` | `CHANGELOG.md` | source of the in-app release notes |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | – | Web Push keys; without them the server generates a pair on first start into `DATA_DIR/vapid.json` |
