@@ -1164,7 +1164,9 @@ the sunflowers look {string}
   "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
   label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
-  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`.
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
+  season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
+  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off first so the chosen scene stays).
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -2785,7 +2787,7 @@ I drop the dragged item in the all-day row on {date}
   at the height of T, then keeps the pointer there for N ms (still down).
 - "I hold the all-day event X at the right edge of the all-day row for N ms": the same as the time grid step, with X's
   chip in the all-day row and the pointer 6 px inside the right side of that row. "I drop the dragged item in the all-day
-  row on D": moves to the `week-allday-cell` of D and releases; waits for the save.
+  row on D": moves to the `week-allday-cell` of D (in the day view its `day-allday-area`) and releases; waits for the save.
 - The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
   event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
 
@@ -2957,4 +2959,83 @@ the clock widget says {string}
   morningTime: T } }`.
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
+
+## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
+
+```
+the header layout is set to {string}
+I choose {string} as the header layout
+the header layout {string} is selected
+the top bar is in one row
+the top bar is in two rows
+the top bar is at most {int} pixels tall
+the period title is not cut short
+the period title's font size is {int} pixels
+the Today button is an icon with the label {string}
+the Today button shows the word {string}
+the top bar's buttons are at least {int} by {int} pixels
+the downloaded theme file has no header layout
+the Today button shows that today is on screen
+the Today button does not show that today is on screen
+the day view shows no day header
+the week view shows {int} day headers
+the all-day row is shown
+the all-day row is not shown
+the tasks section switch is shown
+I pick up the task list {string}
+no character of the top bar scene is under a control
+the top bar scene's parts are drawn at their full size
+the top bar scene does not show the {string}
+the Approaching card is off
+I see the Approaching card
+I switch off the time left in the Approaching card in the settings
+the event {string} shows {string} after its time
+the event {string} shows no time left
+```
+
+- Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
+  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened.
+  "I choose L as the header layout" picks the option labelled L in `settings-header-layout` (a segmented button) and
+  waits for the `PATCH /api/prefs` response (200); "the header layout L is selected" = that option has
+  `aria-pressed="true"`.
+- "the top bar is in one row": the visible `period-title`, `nav-prev`, `nav-today`, `nav-next` and `settings-button` have
+  vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
+- "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
+- "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
+  title's font size is N pixels": the computed `font-size` of `period-title .t` is N px.
+- "the Today button is an icon with the label L": `nav-today` has `aria-label` L, contains an `svg` and no visible text.
+  "the Today button shows the word W": `nav-today`'s visible text is W.
+- "the top bar's buttons are at least W by H pixels": for every visible `button` inside `top-bar` (title, arrows, Today,
+  filter, settings, sync, streak flame, plant), `document.elementFromPoint` at the four points 1 px inside a W x H box
+  centred on the button returns the button or a descendant: the hit area is at least W x H even where the drawn
+  control is smaller.
+- "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
+  `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
+- "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and its look differs from
+  the "not shown" look (its computed background is the secondary container; not shown: transparent with an outline).
+  "does not show": `data-today-shown="false"`. "Today is on screen" means today is in the period the title names (the
+  month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or
+  `day-column` visible) before the check.
+- "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
+  N day headers": N visible `week-header` elements.
+- "the all-day row is shown": the all-day row of the first time grid (`day-allday-area`, or the `week-allday-cell`s)
+  is visible and at least 30 px tall. "is not shown": the all-day band (`.alldays` of the first time grid) is absent or
+  0 px tall.
+- "the tasks section switch is shown": `tasks-section-toggle` is visible.
+- "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
+  long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
+- "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,
+  `.tbs .ghost`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
+  arrow, Today, flame, plant, sync, filter and settings icons: for an `svg` the box of its drawn `path`).
+- "the top bar scene's parts are drawn at their full size": every scene layer container (`.tbs .life`, `.tbs .mo`,
+  `.tbs .sl`) is 96 px tall (the as-built scene box), whatever the bar's height; the bar clips it at its bottom edge.
+- "the top bar scene does not show the X": no visible element for part X (`hare` = `.tbs .hare`) in the scene.
+- "the Approaching card is off"
+  (Given): `PATCH /api/prefs { approachingCard: false }`. "I see the Approaching card": `now-card` is visible.
+- "I switch off the time left in the Approaching card in the settings": opens the settings and turns
+  `settings-approach-time-left` off (pref `approachTimeLeft`), waiting for the `PATCH /api/prefs` response.
+- "the event X shows T after its time": X's `event-chip-time` text ends with `· T` (a middle dot, then T).
+  "shows no time left": X's `event-chip-time` is visible and has no "left" part. The time left updates with the app clock.
+- The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
+  `scene-<scene>-<layout>-<scheme>`.
 

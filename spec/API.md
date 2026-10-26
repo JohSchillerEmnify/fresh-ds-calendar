@@ -193,6 +193,10 @@ open the list sheet; `labsGrowCards` (boolean, default `false`) is the Labs swit
 tap opens the list sheet).
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; any other value is a 400; feature nav-position).
+The person pref `headerLayout` (`'two-rows' | 'one-row'`, default `'two-rows'`; anything else is a 400) is the phone's
+top bar layout (feature header-layout). It is a person pref, not part of the theme: `PATCH /api/prefs/theme`, theme
+files and theme import/export never carry it. `approachTimeLeft` (boolean, default `true`) shows the running entry's
+"· N min left" line in the Approaching card; off (or `approachingCard` off) the running entry shows it instead.
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 
