@@ -134,6 +134,7 @@ export default {
       minEventLength: { label: 'Minimum event length', hint: 'Shorter events and task lists are drawn and laid out this long, so their titles stay readable', off: 'Off', minutes: '{n} min' },
       sideBySide: { day: 'Day view: events side by side', week: 'Week view: events side by side', hint: 'Overlapping events share the width up to this many columns; more lie on top of the last one', upTo: 'Up to {n}' },
       approachBar: { label: 'Approaching track', hint: 'What comes next today as a track in the Approaching card' },
+      syncIndicator: { label: 'Sync indicator', hint: 'Shows the sync icon all the time, not only when syncing fails' },
       approachWindow: {
         label: 'Track reaches ahead',
         hours: '{count} hour | {count} hours',
@@ -156,7 +157,7 @@ export default {
     },
     motivation: {
       calmMode: { label: 'Calm mode', hint: 'Fewer details, quieter colors, reduced motion' },
-      streakFlame: 'Streak flame',
+      streak: { label: 'Streak', off: 'Off', flame: 'Flame', plant: 'Plant' },
       currentStreak: 'Current streak',
       bestStreak: 'Best streak',
       supportCat: 'Support cat',
@@ -192,7 +193,6 @@ export default {
     },
     leftHanded: { label: 'Left-handed mode', hint: 'Mirrors the phone layout so the main controls sit under the left thumb' },
     navPosition: { label: 'View switcher', hint: 'Where Year, Month, Week and Day sit', phone: 'On phones', desktop: 'On desktop and tablets', bottom: 'Bottom', top: 'Top', rail: 'Side rail' },
-    plant: 'Plant',
     sunflowers: { label: 'Sunflowers', hint: 'Applies to the Sunflower field scene', grow: 'Grow with points', full: 'Full field' },
     ownThemes: { label: 'Generate themes with AI', hint: 'Experimental: get a prompt to paste into an AI, then import the theme it returns' },
   },

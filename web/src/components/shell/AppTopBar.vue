@@ -10,6 +10,7 @@ import { datelessLab } from '@/features/labs/labs';
 import { useNav } from '@/composables/useNav';
 import { topBarWidgets } from '@/extensions/registry';
 import { useCalendarStore } from '@/stores/calendar';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import InstallPrompts from './InstallPrompts.vue';
@@ -23,6 +24,7 @@ import { t } from '@/i18n';
 const cal = useCalendarStore();
 const ui = useUiStore();
 const settings = useSettingsStore();
+const prefs = usePrefsStore();
 const nav = useNav();
 const clock = useClockStore();
 const router = useRouter();
@@ -54,7 +56,7 @@ function toggleFilters() {
       </div>
       <div class="widgets">
         <slot name="leading-widgets">
-          <LeadingWidgets :streak-flame="settings.settings.streakFlame" :show-plant="settings.settings.plant" :today="() => clock.today" />
+          <LeadingWidgets :streak="prefs.streak" :today="() => clock.today" />
           <component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" />
         </slot>
         <slot name="trailing-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.trailing" :key="'t' + i" /></slot>

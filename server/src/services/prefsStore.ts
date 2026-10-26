@@ -28,6 +28,10 @@ export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'a
 export type NavPosition = 'bottom' | 'top' | 'rail';
 export const NAV_POSITION_VALUES: readonly NavPosition[] = ['bottom', 'top', 'rail'];
 
+/** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
+export type StreakChoice = 'off' | 'flame' | 'plant';
+export const STREAK_VALUES: readonly StreakChoice[] = ['off', 'flame', 'plant'];
+
 /** How the Tasks view groups its lists (feature tasks-view). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category', 'none'];
@@ -253,6 +257,10 @@ export interface Prefs {
   daySideBySide: DaySideBySide;
   /** Overlapping events side by side in the week view and the phone widget's week before they cascade (default 2). */
   weekSideBySide: WeekSideBySide;
+  /** What the top bar shows of the streak: off (the default, for everyone after the old switches went), flame or plant. */
+  streak: StreakChoice;
+  /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
+  syncIndicator: boolean;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -311,6 +319,8 @@ export class PrefsStore {
       minEventMinutes: isMinEventMinutes(p?.minEventMinutes) ? p.minEventMinutes : 0,
       daySideBySide: isDaySideBySide(p?.daySideBySide) ? p.daySideBySide : 4,
       weekSideBySide: isWeekSideBySide(p?.weekSideBySide) ? p.weekSideBySide : 2,
+      streak: STREAK_VALUES.includes(p?.streak as StreakChoice) ? (p!.streak as StreakChoice) : 'off',
+      syncIndicator: p?.syncIndicator === true,
     };
   }
 
@@ -394,8 +404,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator };
   }
 
   /**

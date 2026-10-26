@@ -19,7 +19,7 @@ const cats = [
 ];
 let settings = {
   themeMode: 'system', seedColor: '#1a73e8', defaultView: 'month', defaultEventColorId: null, animationLevel: 'full', sounds: false,
-  calmMode: false, ignoreSystemMotion: false, transitionWarningMinutes: 10, streakFlame: true, plant: true, sunflowers: 'grow', scene: 'sunflowers', categories: cats,
+  calmMode: false, ignoreSystemMotion: false, transitionWarningMinutes: 10, sunflowers: 'grow', scene: 'sunflowers', categories: cats,
   updated: NOW, version: 1,
 };
 const ev = (id, title, start, end, color = '#039be5', allDay = false) => ({

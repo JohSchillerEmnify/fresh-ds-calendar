@@ -18,7 +18,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 export const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system', seedColor: DEFAULT_SEED, defaultView: 'month', defaultEventColorId: null,
   animationLevel: 'full', sounds: false, calmMode: false, ignoreSystemMotion: false,
-  streakFlame: true, plant: true, sunflowers: 'grow', categories: DEFAULT_CATEGORIES,
+  sunflowers: 'grow', categories: DEFAULT_CATEGORIES,
   updated: '', version: 0,
 };
 
@@ -30,7 +30,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const categories = computed(() => s.value.categories);
   const categoryById = (id: string | null | undefined) => categories.value.find((c) => c.id === id);
-  /** Scene the top bar shows (API.md "Scenes"): the theme's scene, whatever the plant setting; none = nothing. */
+  /** Scene the top bar shows (API.md "Scenes"): the theme's scene, whatever the streak choice; none = nothing. */
   const effectiveScene = computed<ShownScene>(() => useThemeStore().resolved.attrs.scene);
 
   async function load(signal?: AbortSignal): Promise<void> {

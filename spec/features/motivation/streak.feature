@@ -76,7 +76,6 @@ Feature: Daily check-in streak
     And the response JSON field "checkedInToday" equals "true"
     And the response JSON field "newToday" equals "false"
 
-  @backlog
   Scenario Outline: The check-in counts and its message shows whatever the streak choice is
     Given the streak is set to "<streak>"
     And I checked in on 2026-10-09, 2026-10-10 and 2026-10-11

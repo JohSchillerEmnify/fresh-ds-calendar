@@ -7,6 +7,7 @@ import { registerBuiltinExtensions } from '@/extensions/builtin';
 import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
+import { useMotivationStore } from '@/features/motivation/store';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:00+02:00`, `${d}T${Number(h) + 1}:00:00+02:00`);
@@ -215,6 +216,47 @@ describe('shell navigation', () => {
   });
 });
 
+describe('top bar: streak choice and sync icon', () => {
+  const motivation = () => ({ streak: { current: 2, best: 7, lastCheckIn: '2026-10-12', checkedInToday: true }, plant: { growth: 30, stage: 'Sprout', stageIndex: 1, nextStageAt: 60, todayPoints: 0, lastWatered: '2026-10-12', flowers: 0, vitality: 100, mood: 'happy', message: 'Your plant is happy' } });
+  const widgets = (w: VueWrapper) => ({ flame: w.find(tid('streak-flame')).exists(), plant: w.find(tid('plant-button')).exists() });
+  // the motivation store fetches on its own (global fetch), not through the API client
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async (u: string) => new Response(JSON.stringify(String(u).endsWith('/checkin') ? { current: 2, best: 7, checkedInToday: true, newToday: false, motivation: motivation() } : motivation()))));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('shows no streak by default, even when the settings still carry the retired flame and plant switches', async () => {
+    const { w } = await mountAt('/week/2026-10-12', {
+      'GET /api/settings': () => ({ ...settingsFixture(), streakFlame: true, plant: true }),
+      'GET /api/prefs': () => ({}),
+    });
+    // the motivation has arrived, yet neither widget shows
+    await wait(() => expect(useMotivationStore().motivation).not.toBeNull());
+    expect(widgets(w)).toEqual({ flame: false, plant: false });
+  });
+  it.each([['flame', { flame: true, plant: false }], ['plant', { flame: false, plant: true }], ['off', { flame: false, plant: false }]] as const)('the person pref streak %s decides the top bar widget', async (streak, expected) => {
+    const { w } = await mountAt('/week/2026-10-12', { 'GET /api/prefs': () => ({ streak }) });
+    await wait(() => expect(widgets(w)).toEqual(expected));
+  });
+  it('hides the sync icon while all is well, keeping its state in the page, and shows it while syncing fails', async () => {
+    let down = false;
+    const { w } = await mountAt('/week/2026-10-12', {
+      'GET /api/items': () => (down ? { status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'x' } } } : { items: [], from: 'a', to: 'b', syncedAt: 's' }),
+    });
+    await wait(() => expect(w.get(tid('sync-status')).attributes('data-state')).toBe('idle'));
+    expect(w.get(tid('sync-status')).isVisible()).toBe(false);
+    down = true;
+    await w.get(tid('nav-next')).trigger('click');
+    await wait(() => expect(w.get(tid('sync-status')).attributes('data-state')).toBe('error'));
+    expect(w.get(tid('sync-status')).isVisible()).toBe(true);
+  });
+  it('shows the sync icon all the time with the sync indicator on', async () => {
+    const { w } = await mountAt('/week/2026-10-12', { 'GET /api/prefs': () => ({ syncIndicator: true }) });
+    await wait(() => expect(w.get(tid('sync-status')).isVisible()).toBe(true));
+    expect(w.get(tid('sync-status')).attributes('data-state')).not.toBe('error');
+  });
+});
+
 describe('month picker', () => {
   it('opens from the title, shows the month, marks days with items and picks a day', async () => {
     const { w, router } = await mountAt('/week/2026-10-12');
@@ -340,23 +382,35 @@ describe('settings', () => {
     await w.get(tid('settings-theme')).trigger('click');
     await wait(() => expect(router.currentRoute.value.path).toBe('/settings/theme'));
   });
-  it('motivation: the Plant switch and the Sunflowers choice replace the garden style', async () => {
-    const { w, m } = await mountAt('/settings');
+  it('motivation: one Streak choice (Off by default) replaces the flame and plant switches; the Sunflowers choice', async () => {
+    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
     await wait(() => expect(w.find(tid('settings-view')).exists()).toBe(true));
     expect(w.find(tid('settings-garden')).exists()).toBe(false);
+    expect(w.find(tid('settings-streak-flame')).exists()).toBe(false);
+    expect(w.find(tid('settings-plant')).exists()).toBe(false);
+    expect(w.findAll('[data-testid="settings-streak"] button').map((b) => b.text())).toEqual(['Off', 'Flame', 'Plant']);
+    expect(w.get('[data-testid="settings-streak"] [aria-pressed="true"]').attributes('data-value')).toBe('off');
+    await w.get('[data-testid="settings-streak"] [data-value="plant"]').trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ streak: 'plant' }));
+    expect(w.get('[data-testid="settings-streak"] [aria-pressed="true"]').attributes('data-value')).toBe('plant');
     // without the Sunflower field scene the setting is shown but inactive, with a hint
     expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeDefined();
     expect(w.get(tid('settings-sunflowers-hint')).text()).toBe('Applies to the Sunflower field scene');
     await useThemeStore().pick('scene', 'sunflowers');
     await wait(() => expect(w.find(tid('settings-sunflowers-hint')).exists()).toBe(false));
     expect(w.get('[data-testid="settings-sunflowers"] button').attributes('disabled')).toBeUndefined();
-    expect(w.get(tid('settings-plant')).attributes('aria-checked')).toBe('true');
     expect(w.get('[data-testid="settings-sunflowers"] [aria-pressed="true"]').attributes('data-value')).toBe('grow');
     expect(w.findAll('[data-testid="settings-sunflowers"] button').map((b) => b.text())).toEqual(['Grow with points', 'Full field']);
-    await w.get(tid('settings-plant')).trigger('click');
-    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ plant: false }));
     await w.get('[data-testid="settings-sunflowers"] [data-value="full"]').trigger('click');
     await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ sunflowers: 'full' }));
+  });
+  it('calendar: the Sync indicator switch is off by default and saves the person pref', async () => {
+    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
+    await wait(() => expect(w.find(tid('settings-sync-indicator')).exists()).toBe(true));
+    expect(w.get(tid('settings-sync-indicator')).attributes('aria-checked')).toBe('false');
+    await w.get(tid('settings-sync-indicator')).trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ syncIndicator: true }));
+    expect(w.get(tid('settings-sync-indicator')).attributes('aria-checked')).toBe('true');
   });
   it('theme menu: saves theme mode and presets, validates the custom seed, applies the theme', async () => {
     const { w, m } = await mountAt('/settings/theme');

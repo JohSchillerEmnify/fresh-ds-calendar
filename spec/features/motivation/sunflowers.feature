@@ -21,7 +21,6 @@ Feature: Sunflower field
     And the sunflower field shows 5 flowers
     And the sunflower field is labelled "Sunflower field: 5 flowers"
 
-  @backlog
   Scenario Outline: The field shows whatever the streak choice is
     Given the streak is set to "<streak>"
     When I open the app

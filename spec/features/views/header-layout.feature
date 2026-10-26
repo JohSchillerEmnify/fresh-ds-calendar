@@ -282,12 +282,10 @@ Feature: A smaller header: two rows or one row
 
   Rule: The sync icon shows only when syncing fails, unless the person turns it on
 
-    @backlog
     Scenario: By default the sync icon stays out of the way while all is well
       When I open the week view for 2026-10-12
       Then I do not see the sync icon
 
-    @backlog
     Scenario: A sync problem always shows its icon
       When I open the week view for 2026-10-12
       And Google becomes unavailable
@@ -298,7 +296,6 @@ Feature: A smaller header: two rows or one row
       And I retry the sync
       Then I do not see the sync icon
 
-    @backlog
     Scenario: With the sync indicator on the sync icon shows all the time
       When I open the settings
       Then the "Sync indicator" switch in the settings is off

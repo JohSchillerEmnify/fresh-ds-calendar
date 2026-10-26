@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { IconSync, IconSyncProblem as IconProblem } from '@/components/icons';
+import { computed } from 'vue';
+import { usePrefsStore } from '@/stores/prefs';
 import { useSyncStore } from '@/stores/sync';
 import { t } from '@/i18n';
 
 const sync = useSyncStore();
+const prefs = usePrefsStore();
+/** Off by default the icon shows only while syncing fails; the element stays in the page for its data attributes. */
+const shown = computed(() => prefs.syncIndicator || sync.state === 'error');
 </script>
 
 <template>
-  <span class="status" role="status" data-testid="sync-status" :data-state="sync.state" :data-rate-limited="sync.rateLimited || undefined" :data-last-sync="sync.lastSync ?? ''" :aria-label="sync.state === 'error' ? t('calendar.sync.problem') : sync.state === 'syncing' ? t('calendar.sync.syncing') : t('calendar.sync.synced')">
+  <span v-show="shown" class="status" role="status" data-testid="sync-status" :data-state="sync.state" :data-rate-limited="sync.rateLimited || undefined" :data-last-sync="sync.lastSync ?? ''" :aria-label="sync.state === 'error' ? t('calendar.sync.problem') : sync.state === 'syncing' ? t('calendar.sync.syncing') : t('calendar.sync.synced')">
     <component :is="sync.state === 'error' ? IconProblem : IconSync" :class="{ spin: sync.state === 'syncing' }" />
   </span>
 </template>

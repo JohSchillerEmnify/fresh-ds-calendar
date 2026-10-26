@@ -127,7 +127,6 @@ Feature: Plant companion
     Then the page does not contain the words "dead, died, dying, lost, failed, neglected"
 
   # owner, 2026-10-26: one choice replaces the two switches
-  @backlog
   Scenario Outline: The streak choice decides what the top bar shows
     When I open the settings
     And I choose "<streak>" for the streak
@@ -141,7 +140,6 @@ Feature: Plant companion
       | Flame  | see        | do not see |
       | Plant  | do not see | see        |
 
-  @backlog
   Scenario: Nobody sees a streak until they choose one
     When I open the app
     Then I do not see the streak flame
@@ -149,7 +147,6 @@ Feature: Plant companion
     When I open the settings
     Then the streak choice "Off" is selected
 
-  @backlog
   Scenario: The streak choice follows the person to another device
     When I open the settings
     And I choose "Flame" for the streak
@@ -158,7 +155,6 @@ Feature: Plant companion
     Then I see the streak flame
     And I do not see the plant
 
-  @backlog
   Scenario: The plant keeps growing while it is not shown
     When I open the app
     Then I do not see the plant

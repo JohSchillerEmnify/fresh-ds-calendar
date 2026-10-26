@@ -21,11 +21,11 @@ Top bar (`TopBar` slots):
   (`position: relative`). Reads flowers/mood/bloom from the motivation store (needs Pinia). Optional overrides:
   `flowers`, `mood`, `change`, `fieldMode` (`grow` | `full`, a fixed 30-flower field). Sunflowers: landscape behind the field, butterfly once per session (Full, >= 1 flower). Mordor: eye opens once per
   session (Full), replaces the butterfly. Static at Reduced/Off.
-- `leading-widgets`: `<LeadingWidgets :streak-flame="settings.streakFlame" :show-plant="settings.plant" :today="() => appClockLocalDate" />`.
+- `leading-widgets`: `<LeadingWidgets :streak="prefs.streak" :today="() => appClockLocalDate" />` (`off` | `flame` | `plant`; the check-in toast shows whatever it is).
   It starts the store on mount (loads `/api/motivation`, first-open `POST /api/streak/checkin`, re-checks on
   `visibilitychange` when the app-clock day changed) and stops it on unmount. It renders `streak-flame`,
   `plant-button` (+ `plant-card` popover, do not `overflow:hidden` its ancestor), and the `streak-message` toast.
-  `showPlant: false` renders no plant button; the sunflower field is a scene and does not depend on it.
+  A `streak` other than `plant` renders no plant button; the sunflower field is a scene and does not depend on it.
 
 After mutations whose response has `X-Motivation-Changed: 1` call `useMotivationStore().refresh()`; the store diffs
 and emits `change = { id, kinds: ('water'|'grow'|'bloom'|'perk-up')[] }`, which Plant/SunflowerField play.

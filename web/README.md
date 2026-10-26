@@ -48,7 +48,7 @@ Other hooks:
 - `TimeGrid` exposes `scrollToMinutes(min)`; blocks are `top = start/60 * hourHeight`, min height 24 px, Google-like column packing in `lib/items.ts#packColumns`.
 - Motion/motivation (merged from feat/web-motion): `App.vue` feeds `animationLevel`/`calmMode` to `useAnimationLevel`, `sounds` to `setSoundsEnabled`;
   `main.ts` calls `installMotion()`. `AppTopBar` mounts `<TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers">` (the theme's scene,
-  whatever the plant setting; `sunflowers` grows with points or is a fixed full field) in the `background` slot and `<LeadingWidgets>` in `leading-widgets`. `api.onMotivationChanged` triggers `motivation.refresh()`.
+  whatever the streak choice; `sunflowers` grows with points or is a fixed full field) in the `background` slot and `<LeadingWidgets>` in `leading-widgets`. `api.onMotivationChanged` triggers `motivation.refresh()`.
   Swipe navigation bails when `isGestureClaimed()`. `/lab` is the lazy MotionLab route. See `src/motion/README.md` for the reward/drag APIs the event and task list UI should use.
 - `settings.installAppearance()` sets `data-theme`, the theme-color meta and `html[data-calm]`; `html[data-motion]` is owned by `motion/level.ts`.
 
