@@ -154,8 +154,8 @@ Then('the top bar scene shows {int} {string} at rest', async function (this: Wor
   expect(await readParticles(this.page, kind), `${kind} still`).toEqual(first);
 });
 
-/** The scene's characters: the cat, the Easter hare and the Halloween ghost (a visitor, drawn only while it passes). */
-const CHARACTERS = '[data-testid="top-bar-scene"] :is([data-part="cat"], [data-part="hare"], [data-part="ghost"])';
+/** The scene's characters: the cat, the Easter hare, the Halloween ghost (a visitor, drawn only while it passes) and Mordor's eye. */
+const CHARACTERS = '[data-testid="top-bar-scene"] :is([data-part="cat"], [data-part="hare"], [data-part="ghost"], [data-part="eye"])';
 
 Then('no character of the top bar scene is under a control', async function (this: World) {
   // the scene has drawn (the sunflower field has no character at all)
