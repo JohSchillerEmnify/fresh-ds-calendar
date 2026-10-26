@@ -25,6 +25,11 @@ export interface AppConfig {
   /** Google addresses that may sign in (auth is on with PROVIDER=google). */
   allowedEmails: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  /**
+   * Where the device asks for places and map pictures, straight from the device (feature event-location): the Photon
+   * search endpoint and the tile URL template with `{z}`, `{x}`, `{y}`. `PLACE_SEARCH_URL` / `MAP_TILE_URL` override them.
+   */
+  places: { searchUrl: string; tileUrl: string };
   /** Door plugin (ADR 0003/0004): the board's bearer key and the person whose calendar it sees; no token = no door. */
   door: { token: string | null; person: string | null };
   google: {
@@ -34,6 +39,21 @@ export interface AppConfig {
     calendarIds: string[];
     redirectUri: string | null;
   };
+}
+
+/** The public Photon instance (OpenStreetMap data, no key; owner, board item g6). */
+export const DEFAULT_PLACE_SEARCH_URL = 'https://photon.komoot.io/api';
+/** The OpenStreetMap Foundation's standard tile server (tile usage policy: credit, Referer, no prefetching). */
+export const DEFAULT_MAP_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+/** An https URL from the environment, else the default (a typo must not point the device at an unknown or plain-http host). */
+function httpsUrl(v: string | undefined, fallback: string, ok: (u: string) => boolean = () => true): string {
+  if (!v) return fallback;
+  try {
+    return new URL(v).protocol === 'https:' && ok(v) ? v : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 const bool = (v: string | undefined, d: boolean) => (v === undefined || v === '' ? d : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase()));
@@ -59,6 +79,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: [...new Set([...(publicUrl ? [publicUrl] : []), ...list(env.ALLOWED_ORIGINS)])],
     allowedEmails: parseEmails(env.ALLOWED_EMAILS),
     logLevel: (['debug', 'info', 'warn', 'error'] as const).find((l) => l === env.LOG_LEVEL) ?? 'info',
+    places: {
+      searchUrl: httpsUrl(env.PLACE_SEARCH_URL, DEFAULT_PLACE_SEARCH_URL),
+      tileUrl: httpsUrl(env.MAP_TILE_URL, DEFAULT_MAP_TILE_URL, (u) => ['{z}', '{x}', '{y}'].every((k) => u.includes(k))),
+    },
     door: { token: env.DOOR_API_TOKEN || null, person: parseEmails(env.DOOR_PERSON)[0] ?? null },
     google: {
       clientId: env.GOOGLE_CLIENT_ID || null,

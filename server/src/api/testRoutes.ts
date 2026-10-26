@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { configResponse } from './routes.js';
+import { placeTestRoutes } from './testPlaces.js';
 import type { Ctx } from '../context.js';
 import { ApiException, validation } from '../lib/errors.js';
 import fs from 'node:fs';
@@ -297,6 +298,9 @@ export function testRoutes(ctx: Ctx): Hono {
   t.get('/pushes', (c) => c.json({ pushes: ctx.pushRecorder?.sent ?? [] }));
   t.get('/push-subscriptions', (c) => c.json({ subscriptions: ctx.push.all() }));
   t.post('/push/tick', async (c) => c.json({ sent: await ctx.push.tick() }));
+
+  // ---- place search and map pictures (feature event-location) ----
+  placeTestRoutes(t, ctx);
 
   t.get('/memory', (c) => {
     if (c.req.query('gc') === 'true') { (globalThis as { gc?: () => void }).gc?.(); (globalThis as { gc?: () => void }).gc?.(); }

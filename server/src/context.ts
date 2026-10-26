@@ -23,6 +23,7 @@ import type { CalendarProvider } from './providers/CalendarProvider.js';
 import { MockGoogleProvider } from './providers/mock/MockGoogleProvider.js';
 import { seedDemo } from './seed.js';
 import type { ApkInfo } from './routes/download.js';
+import type { TestPlace } from './api/testPlaces.js';
 import { loadReleaseNotes, type ReleaseNote } from './services/releaseNotes.js';
 
 export const VERSION = process.env.APP_VERSION ?? '0.1.0';
@@ -55,7 +56,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Door plugin key and person in place of the config's (null = no door). */ door?: { token: string; person: string } | null };
+  overrides: { pollIntervalMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Door plugin key and person in place of the config's (null = no door). */ door?: { token: string; person: string } | null; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;
