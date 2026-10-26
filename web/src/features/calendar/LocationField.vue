@@ -150,7 +150,7 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
 .list { margin-top: 8px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; box-shadow: var(--md-sys-elevation-3); }
 .opt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; box-sizing: border-box; cursor: pointer; }
 .opt + .opt { border-top: 1px solid var(--md-sys-color-outline-variant); }
-.opt:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
+@media (hover: hover) { .opt:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); } }
 .opt.on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .pin { width: 20px; height: 20px; flex: none; color: var(--md-sys-color-on-surface-variant); }
 .txt { display: flex; flex-direction: column; min-width: 0; }

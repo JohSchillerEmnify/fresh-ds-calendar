@@ -76,7 +76,8 @@ function onLoad(src: string): void {
 </template>
 
 <style scoped>
-.map-box { height: 140px; flex: none; }
+/* scrolled into view above the dialog's sticky actions bar */
+.map-box { height: 140px; flex: none; scroll-margin-bottom: 88px; }
 /* the pictures are OpenStreetMap's own look; the box takes the app's field corners */
 .map { position: relative; height: 100%; overflow: hidden; border-radius: var(--md-sys-shape-corner-small); background: #f2efe9; }
 .tile { position: absolute; width: 256px; height: 256px; max-width: none; user-select: none; pointer-events: none; }

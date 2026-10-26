@@ -1,5 +1,5 @@
 /** The event dialog with a picked place: saving it, showing it again, the map and the field order (feature event-location). */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import EventDialog from '@/features/calendar/EventDialog.vue';
 import LocationField from '@/features/calendar/LocationField.vue';
@@ -34,7 +34,10 @@ async function open(props: Record<string, unknown>, routes: Record<string, () =>
 const fieldOrder = () => [...document.body.querySelectorAll('[data-testid="event-dialog"] [data-field]')].map((e) => e.getAttribute('data-field'));
 
 describe('event dialog with a place', () => {
-  beforeEach(() => { document.body.innerHTML = ''; });
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    Element.prototype.scrollIntoView = vi.fn(); // jsdom has no layout
+  });
 
   it('saves a picked place: Google gets "<name>, <address>", the event keeps the place', async () => {
     const { w, m } = await open({ mode: 'create', date: '2026-10-14', time: '09:00' }, { 'POST /api/events': () => ({ status: 201, body: dentist }) });
@@ -45,6 +48,8 @@ describe('event dialog with a place', () => {
     await flushPromises();
     expect($('event-location-address')?.textContent).toBe(address);
     expect($('event-map')?.dataset.lat).toBe('52.4867');
+    // the new map is brought into view above the dialog's actions
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
     await w.get(tid('event-save')).trigger('submit');
     await flushPromises();
     expect(m.calls.find((c) => c.method === 'POST')!.body).toMatchObject({ location: at, place: weber });

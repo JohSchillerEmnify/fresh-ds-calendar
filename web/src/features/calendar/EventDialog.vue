@@ -157,6 +157,13 @@ const duration = computed(() => {
   return formatDuration(wallMinutes(f.endDate, f.endTime) - wallMinutes(f.startDate, f.startTime));
 });
 
+// a picked place's map appears under the field: bring it above the sticky actions (the keyboard has closed by then)
+watch(() => form.value.place, async (p, before) => {
+  if (!p || p === before) return;
+  await nextTick();
+  sheet.value?.querySelector('.map-box')?.scrollIntoView({ block: 'nearest' });
+});
+
 watch(() => form.value.title, () => { if (error.value === t('calendar.event.validation.titleRequired')) error.value = ''; });
 
 function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEvent {

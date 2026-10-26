@@ -2748,7 +2748,9 @@ The device asks the place search and the map pictures directly, at the addresses
 (`placeSearchUrl`, `mapTileUrl`). In TEST_MODE those addresses point at the test server itself, so a test never reaches
 the real hosts: `POST /api/__test/places` (`{ places: { name, address, lat, lon }[] }`, cleared by reset) sets the places
 its fake search knows (Photon's GeoJSON answer shape), and its fake tile route answers plain generated pictures. As a
-second guard the e2e fixture aborts every request to a host other than the test server.
+second guard the Chromium projects resolve no host other than the test server's (`--host-resolver-rules` in
+`playwright.config.ts`; a `context.route` guard would turn off the HTTP cache for every scenario), so any request to
+another host fails.
 
 ```
 the place search knows:
