@@ -14,46 +14,54 @@ scratchpad); exact art, sizes, spots per header layout and still-particle spots 
   the scene is still from the start.
 - So after the 10 s, and at Reduced / Off, every particle sits above the bar (`top: -10px`): the still Fall and Winter
   pictures are a bare tint plus the cat. There are no props (unlike Spring, Summer, Halloween and the holidays).
+  Christmas uses the same white flakes (`.christmas .p`) and has the same problem.
 
 ## To Be
 
 - Fall: an autumn tree (37 x 46 px; orange, red, amber and gold crown, brown trunk; clearly unlike Halloween's black
   bare tree) and a leaf pile (30 x 10). Winter: a snowy bare tree (37 x 46), a snowman (24 x 30) with a red scarf, a
-  snow drift 9 px tall. Props are part of the picture in both states (moving and still), light and dark.
-- When the 10 s end, the nine particles glide to hand-placed spots inside the visible bar and rest there. The same
-  picture shows from the start at Reduced and Off.
+  snow drift 9 px tall. Props are part of the picture in both states (moving and still), light and dark, and stand
+  still (no sway).
+- When the 10 s end, the nine particles of Fall, Winter and Christmas glide in about 1 s to hand-placed spots inside
+  the visible bar and rest there; by 11 s the scene is still. A resting particle may sit close to a control, never
+  under one. The same picture shows from the start at Reduced and Off.
 - Per header layout (header-layout.feature: nothing under a control, full size, the cat rule, props cut only at the
   bar's bottom edge): in Two rows (H2) and the as-built bar (H0) all props show at the mockup spots; in One row (H1)
   the trees and the snowman are left out (no gap wide enough, like the Easter hare); the leaf pile, the drift (full
-  width) and the still particles stay, at their H1 spots.
+  width) and the still particles stay, at their H1 spots. On desktop and tablets (wider one-row bar) every prop sits in
+  a free gap by the same rules (full size, never under a control); those spots come from separate mockups.
 
 ## Requirements
 
 1. R1 The Fall scene shows an autumn tree and a leaf pile; the Winter scene a snowy bare tree, a snowman with a red
    scarf and a snow drift; all at the sizes above, in light and dark, while moving and when still.
-2. R2 No prop is under a control in any header layout; props keep their full size (cut only at the bar's bottom edge).
+2. R2 No prop is under a control in any header layout or on desktop / tablet; props keep their full size (cut only at
+   the bar's bottom edge) and do not sway.
 3. R3 In One row the autumn tree, the snowy tree and the snowman are left out; the leaf pile and the drift stay.
-4. R4 When the scene rests, the nine leaves / snowflakes lie at fixed, hand-placed spots fully inside the bar, per
-   header layout (the `STILL` table of fwart.cjs), the same picture every time.
+4. R4 When the Fall, Winter or Christmas scene rests, its nine leaves / snowflakes lie at fixed, hand-placed spots
+   fully inside the bar, per header layout (Fall / Winter: the `STILL` table of fwart.cjs; Christmas: still to be
+   placed), the same picture every time; none under a control (close is fine).
 5. R5 At Reduced and Off the scene shows the R4 picture from the start.
-6. R6 When the moving window ends, the particles glide from where they are to their spots instead of jumping. The
-   glide's length is an owner decision (open question Q1).
+6. R6 When the moving window ends (10 s), the particles glide from where they are to their spots in about 1 s
+   instead of jumping; by 11 s nothing moves.
 
 ## Acceptance Criteria
 
 - AC1 (R1) "The Fall and Winter props stay when the scene rests": after 11 s the scene is still and shows the props
   and the cat. Look matches the approved mockup (snapshot below, plus a human look at phone size).
 - AC2 (R2) "The Fall and Winter props sit clear of the controls": per layout and prop, the prop's drawn box does not
-  intersect any control glyph. Full size is covered by header-layout's outline (Fall and Winter rows).
+  intersect any control glyph. Full size on the phone is covered by header-layout's outline (Fall and Winter rows).
+  "On desktop the Fall and Winter props sit in a free gap at full size": the same check plus full size, on desktop.
 - AC3 (R3) "In one row the Fall scene leaves out its tree" and "... the Winter scene leaves out its tree and the
   snowman".
-- AC4 (R4) "After the moving the leaves or snowflakes lie still where I can see them": 9 particles fully inside the
-  bar, not moving, snapshot `scene-<theme>-still`.
+- AC4 (R4) "After the moving the leaves or snowflakes lie still where I can see them" (Fall, Winter, Christmas): 9
+  particles fully inside the bar, not moving, snapshot `scene-<theme>-still`. "No resting leaf or snowflake is under
+  a control": per layout, no particle box intersects a control glyph.
 - AC5 (R5) "With fewer animations the scene shows the same still picture from the start": same 9-particle check and
   the same snapshot name as AC4, so the Reduced / Off picture equals the rested Full picture.
-- AC6 (R6) "When the moving ends the leaves glide to their spots": right after the window ends each particle has a
-  running position transition and moves between two readings; it ends at its resting spot. Duration not asserted
-  until Q1 is answered.
+- AC6 (R6) "When the moving ends the leaves glide to their spots within a second": right after the window ends each
+  particle has a running position transition and moves between two readings; 1 s later nothing runs and each is at
+  its resting spot.
 
 ## Testing Plan
 
@@ -70,33 +78,34 @@ scratchpad); exact art, sizes, spots per header layout and still-particle spots 
 ## Implementation Plan
 
 1. Prop components (AutumnTree, LeafPile, SnowyTree, Snowman, SnowDrift) from fwart.cjs, with `data-part`, sized like
-   SceneLife parts (`min(<n>cqh, <px>)`) → AC1 e2e + `@visual` look.
-2. Placement per layout (H0/H2 spots, H1 leaves out trees and snowman) → AC2, AC3. Depends on the header-layout build
-   (layout attribute on the bar); until it lands, only H0.
-3. Still spots per scene and layout; applied under `html[data-scenes='still']` and at Reduced / Off → AC4, AC5 + unit.
-4. Glide: a position transition when `data-scenes` turns `still` (Full only; Off already zeroes transitions) → AC6,
-   with the length from Q1; re-run the still/perf scenarios.
+   SceneLife parts (`min(<n>cqh, <px>)`), no sway → AC1 e2e + `@visual` look.
+2. Placement per layout (H0/H2 spots, H1 leaves out trees and snowman; desktop / tablet free gap once its mockups are
+   approved) → AC2, AC3. Depends on the header-layout build (layout attribute on the bar); until it lands, only H0.
+3. Still spots per scene and layout (Fall, Winter from fwart.cjs; Christmas spots hand-placed and shown to the owner
+   first); applied under `html[data-scenes='still']` and at Reduced / Off → AC4, AC5 + unit.
+4. Glide: a 1 s position transition when `data-scenes` turns `still` (Full only; Off already zeroes transitions) →
+   AC6; re-run the still/perf scenarios.
 5. Gates: `pnpm --silent verify`, targeted e2e, `@visual` look.
 
 PR boundary: steps 1-5 are one PR (one visible feature, small). If the header-layout build is not merged yet, ship
 steps 1, 3, 4 (H0 only) as PR 1 and step 2 as a sequential PR 2 after the header build (not stacked).
 
-## Open questions
+## Answered questions (owner, 2026-10-26)
 
-- Q1 (owner) How long does the glide into the still spots take? The mockups show only start and end. Note: the existing
-  "still after 11 s" scenarios and the `@perf` idle window assume nothing moves from about 11 s on, so a glide longer
-  than about 1 s would need those scenarios adjusted.
-- Q2 (owner) Desktop and tablets keep a one-row bar with the full date (header-layout); the mockups place props and
-  particles only for a 390 px phone. Where do the props and the still particles sit on wider bars: the same px from
-  the left, or kept clear of the controls by the same rule, spread across the width?
-- Q3 (owner) Should Christmas (same white flakes, same `top: -10px` problem) get still spots too, or stay as it is?
-- Q4 (owner, minor) May a resting leaf or flake sit close to a control glyph, as in the approved H1 mockup, or must the
-  particles also keep clear of the controls like the props?
+- Q1 Glide length: about 1 s. It starts at 10 s and ends by 11 s, so the existing "still after 11 s" checks and the
+  `@perf` idle window stay as they are.
+- Q2 Desktop and tablets: the props sit in a free gap of the wider bar under the same rules (full size, never under a
+  control). Mockups for those widths are made separately; the spec states only the rule.
+- Q3 Christmas: same treatment; its flakes settle at hand-placed visible spots (added to the still-picture rule).
+- Q4 A resting leaf or flake may sit close to a control, but never under one.
 
-## Assumptions
+## Decisions (owner, 2026-10-26; were assumptions)
 
-- A1 The props are not "characters" in the header-layout sense, but the owner's "nothing under a control" applies to
-  them too (the mockups place them clear), so AC2 checks it.
-- A2 The props do not move (no sway); only the particles move during the 10 s.
-- A3 Part names for tests: `autumn-tree`, `leaf-pile`, `snowy-tree`, `snowman`, `snow-drift` (the mockup used
-  `snow-tree`).
+- D1 The props, like the characters, are never under a control.
+- D2 The props do not move (no sway); only the particles move during the 10 s.
+- D3 Part names for tests: `autumn-tree`, `leaf-pile`, `snowy-tree`, `snowman`, `snow-drift`.
+
+## Still to place
+
+- The Christmas still spots per layout and the desktop / tablet prop spots are not in the approved mockups; they are
+  hand-placed and shown to the owner before the build of those parts.

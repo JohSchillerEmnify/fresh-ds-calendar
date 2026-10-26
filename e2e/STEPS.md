@@ -1186,7 +1186,7 @@ the sunflowers look {string}
   season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
   `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off first so the chosen scene stays).
   `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or
-  (the Fall and Winter rules of theme-scenes) `Fall` or `Winter`.
+  (the Fall and Winter rules of theme-scenes) `Fall`, `Winter` or `Christmas`.
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -1831,8 +1831,10 @@ the top bar scene shows the {string}
 the top bar scene does not show the {string}
 the {string} of the top bar scene is not under a control
 the top bar scene shows {int} {string} at rest
-the {string} of the top bar scene glide to their resting spots
+no {string} of the top bar scene is under a control
+the {string} of the top bar scene glide to their resting spots within {int} second(s)
 the header layout is set to {string}
+the top bar scene's parts are drawn at their full size
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
@@ -1877,14 +1879,18 @@ the support cat is gone within {int} ms
   control glyph in `top-bar` (the same glyph list as "no character of the top bar scene is under a control").
   "the top bar scene shows N X at rest": exactly N particles of kind X, each fully inside the `top-bar` box and
   at least 4 px from its top edge, none with a running animation or transition; read twice 500 ms apart, each
-  particle's box is unchanged. "the X of the top bar scene glide to their resting spots": waits until
-  `html[data-scenes]` turns `still`, then reads every particle of kind X at once and again 100 ms later: each one has
-  a running transition or animation on its position (duration above 0), the two readings differ for at least 7 of
-  the 9, and once nothing runs any more each particle is at the spot "at rest" reads; the glide's length is not
-  checked (open owner question).
-- "the header layout is set to L" and "the top bar scene does not show the X" are the same steps as in spec/header's
-  "Header layout" section (`PATCH /api/prefs { headerLayout }`, labels `Two rows` / `One row`); listed here so this
-  branch passes check-steps on its own. Whichever branch merges second keeps one copy.
+  particle's box is unchanged. "no X of the top bar scene is under a control": no particle of kind X has a box that
+  intersects a control glyph box (same glyph list as above); being close to one is fine.
+  "the X of the top bar scene glide to their resting spots within N second(s)": waits until `html[data-scenes]` turns
+  `still` (the end of the 10 s moving window), then reads every particle of kind X at once and again 100 ms later
+  (fake clock): each one has a running transition or animation on its position (duration above 0), and the two
+  readings differ for at least 7 of the 9; after N s more (fake clock) nothing runs any more and every particle is at
+  the spot "at rest" reads. The owner's glide is about 1 s (2026-10-26), so the "still after 11 s" checks hold.
+  The Christmas scene's "snowflakes" are `.season.christmas .p`.
+- "the header layout is set to L", "the top bar scene does not show the X" and "the top bar scene's parts are drawn at
+  their full size" are the same steps as in spec/header's "Header layout" section (`PATCH /api/prefs { headerLayout }`,
+  labels `Two rows` / `One row`; full size = every scene layer container, `.tbs .life`, `.tbs .mo`, `.tbs .sl`, is
+  96 px tall); listed here so this branch passes check-steps on its own. Whichever branch merges second keeps one copy.
 - The `"top bar"` region of "the {string} still looks like {string}" is `top-bar` (the whole bar with its scene).
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
