@@ -80,6 +80,7 @@ interface CalendarEvent {
   title: string;           // 1–200 chars after trim
   description: string;     // '' if none, max 8000
   location: string;        // '' if none, max 500
+  place?: Place;           // the place picked for the location (feature event-location); absent for typed text, and once `location` no longer starts with `place.name` (changed elsewhere)
   allDay: boolean;
   start: DateTime | LocalDate;  // LocalDate iff allDay
   end: DateTime | LocalDate;    // exclusive; LocalDate iff allDay
@@ -338,11 +339,14 @@ that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in
 | `DELETE` | `/api/events/:id` | – | `204` |
 
 ```ts
+interface Place { name: string; lat: number; lon: number }  // name 1–200 chars after trim; lat -90..90, lon -180..180 (WGS 84)
+
 interface CreateEventInput {
   calendarId?: string;     // default: primary calendar
   title: string;
   description?: string;
-  location?: string;
+  location?: string;       // with a picked place: "<name>, <address>"
+  place?: Place | null;    // stored in Google's private extended properties placeName/placeLat/placeLon; PATCH: null drops it, absent keeps it
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;   // must be > start (all-day: exclusive date > start date)
