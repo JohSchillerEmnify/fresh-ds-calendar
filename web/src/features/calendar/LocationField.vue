@@ -8,7 +8,7 @@
  * the search fails, it is the plain text field it always was: no list and no message. Keyboard: arrows highlight, Enter
  * picks the highlighted place (or moves on to the description), Escape closes the list without closing the dialog.
  */
-import { computed, onBeforeUnmount, ref, useId } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue';
 import TextField from '@/components/m3/TextField.vue';
 import { IconLocationOn } from '@/components/icons';
 import { language, t } from '@/i18n';
@@ -28,6 +28,13 @@ const listId = useId();
 const hits = ref<PlacePick[]>([]);
 const active = ref(-1);
 const open = computed(() => hits.value.length > 0);
+const list = ref<HTMLElement | null>(null);
+// the list opens under the field: bring it (with its credit) above the dialog's sticky actions
+watch(open, async (o) => {
+  if (!o) return;
+  await nextTick();
+  list.value?.scrollIntoView({ block: 'nearest' });
+});
 let timer: ReturnType<typeof setTimeout> | undefined;
 let inflight: AbortController | null = null;
 let blurTimer: ReturnType<typeof setTimeout> | undefined;
@@ -127,7 +134,7 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
       @update:model-value="onInput" @keydown="onKeydown" @blur="onBlur" @focus="onFocus"
     />
     <p v-if="place?.address" class="addr" data-testid="event-location-address">{{ place.address }}</p>
-    <div v-if="open" :id="listId" class="list" role="listbox" :aria-label="t('calendar.event.place.suggestions')" data-testid="place-suggestions" @mousedown.prevent>
+    <div v-if="open" :id="listId" ref="list" class="list" role="listbox" :aria-label="t('calendar.event.place.suggestions')" data-testid="place-suggestions" @mousedown.prevent>
       <div
         v-for="(h, i) in hits" :id="optionId(i)" :key="`${h.lat},${h.lon},${h.name}`" class="opt" :class="{ on: i === active }" role="option" :aria-selected="i === active"
         data-testid="place-suggestion" @click="pick(h, true)"
@@ -147,7 +154,7 @@ onBeforeUnmount(() => { close(); clearTimeout(blurTimer); });
 .loc { display: flex; flex-direction: column; gap: 0; }
 /* the address of a picked place: like the field's supporting text, wrapping instead of being cut off (owner, Q9) */
 .addr { margin: 4px 16px 0; font: var(--md-sys-typescale-label-medium); color: var(--md-sys-color-on-surface-variant); overflow-wrap: anywhere; }
-.list { margin-top: 8px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; box-shadow: var(--md-sys-elevation-3); }
+.list { scroll-margin-bottom: 88px; margin-top: 8px; background: var(--md-sys-color-surface-container); border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; box-shadow: var(--md-sys-elevation-3); }
 .opt { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; box-sizing: border-box; cursor: pointer; }
 .opt + .opt { border-top: 1px solid var(--md-sys-color-outline-variant); }
 @media (hover: hover) { .opt:hover { background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); } }

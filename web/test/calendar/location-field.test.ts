@@ -82,6 +82,8 @@ describe('location field', () => {
     expect(rows.map((r) => [r.get(tid('place-suggestion-name')).text(), r.get(tid('place-suggestion-address')).text()])).toEqual([[weber.name, weber.address], [mitte.name, mitte.address]]);
     expect(w.get(tid('place-suggestions-credit')).text()).toBe('© OpenStreetMap');
     expect(input.attributes('aria-expanded')).toBe('true');
+    // the list is brought into view above the dialog's actions
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
   });
 
   it('cancels a search that newer text replaced', async () => {
