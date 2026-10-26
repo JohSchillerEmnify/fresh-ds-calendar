@@ -122,7 +122,7 @@ export default {
     title: 'Title',
     date: 'Date',
     time: 'Time (optional)',
-    noDate: 'No date',
+    clearDate: 'Clear date',
     estimate: 'Estimate in minutes (optional)',
     category: 'Category',
     items: 'Items (one per line)',

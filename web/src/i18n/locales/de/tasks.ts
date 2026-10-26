@@ -120,7 +120,7 @@ export default {
     title: 'Titel',
     date: 'Datum',
     time: 'Uhrzeit (optional)',
-    noDate: 'Ohne Datum',
+    clearDate: 'Datum entfernen',
     estimate: 'Schätzung in Minuten (optional)',
     category: 'Kategorie',
     items: 'Einträge (einer pro Zeile)',
