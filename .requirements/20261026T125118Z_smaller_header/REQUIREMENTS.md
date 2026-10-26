@@ -94,6 +94,11 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   stays in the page when hidden, with its data attributes (the e2e sync waits read them).
 - **Desktop** (owner): the desktop day view drops the day header too; the grid starts 36 px higher. The desktop top
   bar keeps its one row with the full date; the header layout setting is for phones only (Q4 answered).
+- **Left-handed is an exact mirror** (owner, 2026-10-26): in left-handed mode (`html[data-hand='left'][data-touch]`) the
+  top bar's boxes are the mirror image of the right-handed bar's, in both layouts, so a season scene can simply be
+  flipped: the period title's text is aligned to the outer (right) edge, the widgets (flame or plant, sync) come in
+  reverse order, and ‹ Today › keeps its order (back stays on the left; the group is symmetric, so the mirror of the ‹
+  box is the › box). Desktop (≥ 768 px) is not affected.
 - Scenes: every scene re-arranged for each layout, light and dark. Every part keeps its as-built size (the 96 px scene
   box sits on the bar's bottom edge, sky parts move down by 96 − bar height, taller props are cut only at the bottom
   edge). Characters (cat, hare, ghost) never under or behind a control: measured against every control glyph and moved
@@ -128,6 +133,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   the owner: "Off for everyone").
 - **Plant tap area 32 px wide** (owner): keeps one row one row; 32 px is above the WCAG 2.5.8 minimum of 24 px.
 - **Sync icon only on problems by default** (owner): while all is well it carries no information; it frees 28 px.
+- **Left-handed as an exact mirror** (owner, 2026-10-26): a scene arranged for the right-handed bar only needs to be
+  flipped, not re-arranged a third time; ‹ Today › keeps its reading order because "back" on the right would be
+  confusing, and the group's symmetry keeps the mirror exact anyway.
 - **Today button as the today mark** (owner): the date is shown once, so the highlight needs a new home; the solid
   fill when outlined keeps it readable over every scene.
 
@@ -170,6 +178,10 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
     `settings-sync-indicator` in Settings › Calendar. Off: `sync-status` hidden (no room taken) unless
     `data-state="error"`; on: always shown. The element stays in the page in both cases.
 20. R20 Desktop day view: no day header; the grid starts 36 px higher; top bar unchanged (one row, full date).
+21. R21 Left-handed mirror (phones, both layouts): every top-bar control's box in left-handed mode is the mirror image
+    (about the bar's vertical centre line) of its right-handed box within 1 px; ‹ Today › keeps its order (the ‹ box
+    mirrors to the › box and back); the title's text is aligned to the outer edge; the widgets are in reverse order.
+    Refines R6 (owner, 2026-10-26).
 
 ## Acceptance Criteria
 
@@ -218,6 +230,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   unit: `syncIndicator` default false, non-boolean → 400.
 - AC20 (R20) header-layout "@desktop On desktop the day view has no day header either"; the 36 px is checked in the
   desktop day-view visual (the grid's top moves up by the old header's 36 px).
+
+- AC21 (R21) header-layout "In left-handed mode the top bar is the mirror image of the right-handed one" (Two rows,
+  One row); AC6 stays.
 
 ## Changed existing scenarios (verified one by one)
 
@@ -275,7 +290,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 3. Top bar: `data-layout` on `top-bar`; Two rows CSS (18 px title, 32 px nav visuals with 44 px hit areas); One row
    grid + Today icon pill + short day title; plant tap area 32 x 44 and flame slot 32 px in one row; title chevron
    hidden while a streak and the sync problem icon both show; left-handed
-   one-row mirror; ≥ 768 px unchanged → header-layout layout scenarios.
+   one-row mirror and the exact box mirror of R21 in both layouts (title text at the outer edge, widgets reversed,
+   ‹ Today › in order); ≥ 768 px unchanged → header-layout layout scenarios.
    **PR 1 — header layouts** (steps 1–3): independently mergeable; the default Two rows already saves 12 px of bar height.
 4. (PR 1 also changes `mobile.steps.ts` to measure hit areas.) Day view: drop the day header at every width (desktop
    grid 36 px higher); Today button `data-today-shown` + filled / outlined-on-solid look in all views and both layouts
@@ -322,7 +338,8 @@ baselines to look at). About 3.5–4 days in all.
 - Q4 **Desktop (≥ 768 px).** *Answered (owner, 2026-10-26):* the desktop top bar keeps its one row with the full
   date; the desktop day view drops the day header, its grid starts 36 px higher (R7, R20). Original: it already has one row with the full date and the Today word. Recommendation: the setting
   applies to phones only (the hint says "On phones"); desktop unchanged except the day header going (date once).
-- Q5 **Left-handed in one row.** Recommendation: mirror like two rows: settings, filter, sync, plant, flame at the left,
+- Q5 **Left-handed in one row.** *Answered (owner, 2026-10-26):* an exact mirror of the right-handed boxes in both
+  layouts, ‹ Today › in its order (R21). Original recommendation: mirror like two rows: settings, filter, sync, plant, flame at the left,
   then the date, ‹ Today › at the right (matches the existing left-handed rule: settings left, Today right).
 - Q6 **Longest dates in two rows.** "Wednesday, 30 September 2026" is 262 px at 18 px; with the chevron, padding and
   filter + settings it needs ≈ 400 px, so it still truncates at 390 px by about 10–20 px. Recommendation: accept the ellipsis for

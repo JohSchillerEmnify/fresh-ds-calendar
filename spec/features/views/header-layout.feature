@@ -11,7 +11,9 @@ Feature: A smaller header: two rows or one row
   switcher position: kept per person (so it follows them to every device), not part of the theme, so choosing a theme,
   preset or scene keeps it and a theme file never carries it. It applies to phones (narrower than 768 px); desktop and
   tablets keep their one row with the full date. Left-handed mode mirrors the one row as it mirrors the two rows:
-  settings and the other icons at the left, the date, then ‹ Today › at the right.
+  settings and the other icons at the left, the date, then ‹ Today › at the right. It is an exact mirror of the
+  right-handed bar's boxes in both layouts (owner, 2026-10-26), so a scene can simply be flipped: the title's text sits
+  at the outer edge, the widgets come in reverse order, and ‹ Today › keeps its order (the group is symmetric).
   The Today button is the today mark (it replaces the today circle of the old "Mon 12" day header): filled while today
   is in the shown period, outlined on a solid background (the scene never shows through) when it is not; the same in
   both layouts and on desktop. The day view has no day header at any width, so on desktop its grid starts 36 px higher.
@@ -161,6 +163,24 @@ Feature: A smaller header: two rows or one row
       Then the top bar is in one row
       And the "settings button" is on the "left" side of the screen
       And the "Today button" is on the "right" side of the screen
+
+    # owner, 2026-10-26: left-handed is an exact mirror of the right-handed boxes, so the season scene can be flipped
+    @mobile @backlog
+    Scenario Outline: In left-handed mode the top bar is the mirror image of the right-handed one
+      Given the streak is set to "Flame"
+      And the sync indicator is on
+      And the header layout is set to "<layout>"
+      When I open the day view for 2026-10-12
+      And I note where the top bar's controls are
+      And I turn on left-handed mode
+      Then every control of the top bar is at the mirror image of where it was, within 1 pixel
+      And the period title's text is aligned to the outer edge
+      And the top bar's widgets are in reverse order
+
+      Examples:
+        | layout   |
+        | Two rows |
+        | One row  |
 
     @desktop @backlog
     Scenario: Desktop keeps its one row with the full date whatever the phone layout is

@@ -3004,6 +3004,12 @@ I see the sync icon
 I do not see the sync icon
 the sync icon shows a problem
 the {string} switch in the settings is off
+the sync indicator is on
+I note where the top bar's controls are
+I turn on left-handed mode
+every control of the top bar is at the mirror image of where it was, within {int} pixel
+the period title's text is aligned to the outer edge
+the top bar's widgets are in reverse order
 ```
 
 - Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
@@ -3061,6 +3067,18 @@ the {string} switch in the settings is off
   is `settings-sync-indicator` (label "Sync indicator", Settings › Calendar) and is turned on with the generic
   `I turn on {string} in the settings` step; "the X switch in the settings is off" = the switch labelled X on the open
   settings page has `aria-checked="false"`.
+- Left-handed mirror (owner, 2026-10-26). "the sync indicator is on" (Given): `PATCH /api/prefs { syncIndicator: true }`.
+  "I note where the top bar's controls are": records, for each visible control of `top-bar`, its box relative to the
+  `top-bar` box: `period-title`, its text (`period-title .t`) and chevron `svg`, `nav-prev`, `nav-today`, `nav-next`,
+  `streak-flame`, `plant-button`, `sync-status`, `filter-button`, `settings-button`, and the top bar's width W. "I turn
+  on left-handed mode": `PATCH /api/prefs { leftHanded: true }`, then reloads the same page and waits for the
+  calendar. "every control of the top bar is at the mirror image of where it was, within N pixel": for each noted
+  control, its left-handed box (relative to `top-bar`) has the same top, width and height and a left of W − (old left +
+  old width), each within N px; `nav-prev` and `nav-next` swap (the mirror of the ‹ box is where › now is, and the
+  reverse), so ‹ Today › keeps its order. "the period title's text is aligned to the outer edge": the right edge of
+  `period-title .t` is at the right edge of `period-title`'s content box (within 1 px), with no free room to its right.
+  "the top bar's widgets are in reverse order": the visible widgets (`streak-flame` / `plant-button`, `sync-status`)
+  are ordered right to left as they were left to right.
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
   `scene-<scene>-<layout>-<scheme>`.
 
