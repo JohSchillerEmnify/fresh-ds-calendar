@@ -35,6 +35,14 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Tech debt
 
+- **Accessibility audit** (owner, 2026-10-26: "we anyway need an accessibility audit at some point"). Go through the app
+  with screen readers (VoiceOver on iPhone, TalkBack on Android), keyboard only, 200–400 % zoom, reduced motion and
+  high contrast: labels and roles, focus order and visible focus, tap target sizes (44 px is our comfort target, WCAG 2.2
+  AA asks 24), colour contrast of themes and scenes, gestures that need an alternative (swipe periods, drag and drop,
+  long press, draw to create), live regions (sync status, check-in toast). Output: a findings list by severity, then
+  fixes slice by slice. First known item: the period arrows on touch screens (being built 2026-10-26 as invisible
+  screen-reader buttons).
+
 - **Simplification & reuse audit of the overview item components** (owner, 2026-10-16: "why do we have so many variants
   of what should be one dynamic component?"). `TaskListCard` alone carries variants card/allday/chip/block/dot plus grown,
   mini, collapsed, titles modes, and `EventItem`/`EventBar`/`BasicItem` overlap too. Audit whether these can collapse into
