@@ -105,6 +105,56 @@ Feature: Drag and drop to reschedule
       | day  | 15:00 to 17:00 | 15:15 to 16:00 |
       | day  | 15:00 to 15:45 | 15:15 to 17:00 |
 
+  # owner, 2026-10-25: on an iPhone dragging did not move anything in any view, on Android not in the month view.
+  # @iphone also runs on an iPhone-like WebKit (project iphone); @mobile on an Android-like Chromium.
+  @mobile @iphone
+  Scenario: On a phone a long press drags an event to another time in the day view
+    Given I am using a phone
+    When I open the day view for 2026-10-14
+    And I drag the event "Dentist" down by 60 minutes
+    Then the event "Dentist" is positioned from 10:00 to 11:00
+    And Google contains an event "Dentist" on 2026-10-14 from 10:00 to 11:00
+
+  @mobile @iphone
+  Scenario: On a phone a long press drags an event to another day and time in the week view
+    Given I am using a phone
+    When I open the week view for 2026-10-12
+    And I drag the event "Dentist" to 2026-10-16 at 14:00
+    Then the event "Dentist" is positioned from 14:00 to 15:00
+    And Google contains an event "Dentist" on 2026-10-16 from 14:00 to 15:00
+
+  @mobile @iphone
+  Scenario: On a phone a long press drags an event to another day in the month view
+    Given I am using a phone
+    When I open the month view for 2026-10
+    And I drag the event "Dentist" to 2026-10-21
+    Then I see the event "Dentist" on 2026-10-21
+    And Google contains an event "Dentist" on 2026-10-21 from 09:00 to 10:00
+
+  # a finger held still lets the drag itself keep the page from scrolling (the card's own touch listener on iPhone)
+  @mobile @iphone
+  Scenario: On a phone a drag with a still finger keeps the page from scrolling in the month view
+    Given I am using a phone
+    When I open the month view for 2026-10
+    And I drag the event "Dentist" to 2026-10-21 with a finger held perfectly still
+    Then I see the event "Dentist" on 2026-10-21
+    And the browser did not take the touch over for scrolling
+
+  @mobile @iphone
+  Scenario: On a phone the event dragged in the month view stays visible under the finger
+    Given I am using a phone
+    When I open the month view for 2026-10
+    And I hold the event "Dentist" over 2026-10-21
+    Then the dragged event is drawn visibly in the day under the finger
+
+  @mobile @iphone
+  Scenario: On a phone a quick swipe that starts on an event still scrolls the day
+    Given I am using a phone
+    When I open the day view for 2026-10-14
+    And I swipe up quickly starting on the event "Dentist"
+    Then the time grid has scrolled down
+    And the event "Dentist" is not lifted
+
   Rule: Releasing a timed entry without moving it shows resize handles
 
     Scenario: Releasing a picked-up event without moving shows resize handles

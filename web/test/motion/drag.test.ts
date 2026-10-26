@@ -10,6 +10,16 @@ const rect = (l: number, t: number, w: number, h: number) => ({ left: l, top: t,
 const down = (type = 'touch', x = 50, y = 50) => el.dispatchEvent(pe('pointerdown', { x, y, pointerType: type }));
 const move = (x: number, y: number, type = 'touch') => window.dispatchEvent(pe('pointermove', { x, y, pointerType: type }));
 const up = (x: number, y: number, type = 'touch') => window.dispatchEvent(pe('pointerup', { x, y, pointerType: type }));
+/** A touch event with one finger at x, y (`released`: touchend/touchcancel, no finger left on the screen). */
+const touch = (type: string, x: number, y: number, released = false, others: { identifier: number; clientX: number; clientY: number }[] = []) => {
+  const e = new Event(type, { bubbles: true, cancelable: true });
+  const t = { identifier: 1, clientX: x, clientY: y };
+  Object.defineProperty(e, 'touches', { value: released ? others : [...others, t] });
+  Object.defineProperty(e, 'changedTouches', { value: [t] });
+  return e;
+};
+/** Finger down on the card the way a browser sends it: pointerdown, then touchstart. */
+const fingerDown = (x = 50, y = 50) => { down('touch', x, y); el.dispatchEvent(touch('touchstart', x, y)); };
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -215,6 +225,140 @@ describe('drag state machine', () => {
     expect(c.state).toBe('idle');
     expect(onDrop).not.toHaveBeenCalled();
   });
+  // owner, 2026-10-25: iOS WebKit decides at touchstart whether touch moves can stop scrolling, from the non-passive
+  // touchmove listeners present then: one added on pointerdown is too late
+  it('touch: the card has its own non-passive touchmove listener from creation until destroy', () => {
+    const add = vi.spyOn(el, 'addEventListener');
+    const rem = vi.spyOn(el, 'removeEventListener');
+    const { c } = make();
+    const reg = add.mock.calls.find((a) => a[0] === 'touchmove');
+    expect(reg?.[2]).toMatchObject({ passive: false });
+    c.destroy();
+    expect(rem.mock.calls.some((a) => a[0] === 'touchmove' && a[1] === reg![1])).toBe(true);
+  });
+  it('touch: the card\'s own listener prevents moves while lifted', () => {
+    const { c } = make();
+    const e1 = touch('touchmove', 50, 50);
+    expect(el.dispatchEvent(e1)).toBe(true);
+    down();
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    const e2 = touch('touchmove', 60, 60);
+    el.dispatchEvent(e2);
+    expect(e2.defaultPrevented).toBe(true);
+    c.destroy();
+  });
+  it('touch: a move while the press is still pending is never prevented (iOS lets the first move decide on scrolling)', () => {
+    const { c } = make();
+    fingerDown();
+    expect(c.state).toBe('pending');
+    const e = touch('touchmove', 52, 51);
+    el.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+    c.destroy();
+  });
+  it('touch: a pointercancel while lifted (the browser started a pan) keeps the drag and follows the touch to the drop', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    expect(c.state).toBe('dragging');
+    el.dispatchEvent(touch('touchmove', 80, 90));
+    vi.advanceTimersByTime(50);
+    expect(el.style.transform).toContain('scale(1.05)');
+    el.dispatchEvent(touch('touchend', 80, 90, true));
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('touch: after a pointercancel only the first finger steers, a second one is ignored', () => {
+    const at: number[][] = [];
+    const { c } = make({ hitTest: (x, y) => { at.push([x, y]); return target; } });
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    // a second finger lands and moves; it is listed first
+    el.dispatchEvent(touch('touchmove', 80, 90, false, [{ identifier: 2, clientX: 300, clientY: 300 }]));
+    expect(at.at(-1)).toEqual([80, 90]);
+    // the second finger lifts: the drag goes on
+    el.dispatchEvent(Object.defineProperties(new Event('touchend', { bubbles: true }), {
+      touches: { value: [{ identifier: 1, clientX: 80, clientY: 90 }] }, changedTouches: { value: [{ identifier: 2, clientX: 300, clientY: 300 }] },
+    }));
+    expect(c.state).toBe('dragging');
+    c.destroy();
+  });
+  it('pen: a pointercancel while lifted with no touch events (pen on Windows/ChromeOS) springs back instead of staying lifted', async () => {
+    const { c, onDrop } = make();
+    down('pen');
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'pen' }));
+    expect(c.state).toBe('returning');
+    expect(onDrop).not.toHaveBeenCalled();
+    finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('touch: a touchcancel while lifted springs back', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    el.dispatchEvent(touch('touchcancel', 80, 90, true));
+    expect(c.state).toBe('returning');
+    expect(onDrop).not.toHaveBeenCalled();
+    finishAll(); await flush();
+  });
+  it('the click right after a drop never reaches an ancestor\'s capture listener (phone month opens the day on a chip click)', async () => {
+    const seen = vi.fn();
+    el.parentElement!.addEventListener('click', seen, true);
+    make();
+    down();
+    vi.advanceTimersByTime(400);
+    up(50, 50);
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(500);
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).toHaveBeenCalledTimes(1);
+    el.parentElement!.removeEventListener('click', seen, true);
+    await flush(); finishAll(); await flush();
+  });
+  it('back-to-back drops: the click after the second drop is still swallowed (the first drop\'s timer does not disarm it)', async () => {
+    const seen = vi.fn();
+    el.parentElement!.addEventListener('click', seen, true);
+    make();
+    const mouseDrop = () => { down('mouse'); move(70, 50, 'mouse'); up(70, 50, 'mouse'); };
+    mouseDrop();
+    await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(300);
+    mouseDrop();
+    await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(150); // 450 ms after the first drop, 150 ms after the second
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).not.toHaveBeenCalled();
+    el.parentElement!.removeEventListener('click', seen, true);
+  });
+  it('a press that may become a drag never starts a text selection', () => {
+    const { c } = make();
+    const sel = () => { const e = new Event('selectstart', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; };
+    expect(sel()).toBe(false);
+    down();
+    expect(sel()).toBe(true);
+    vi.advanceTimersByTime(400);
+    expect(sel()).toBe(true);
+    c.destroy();
+    expect(sel()).toBe(false);
+  });
+  it('touch: a pointercancel before the long press gives way to the scroll', () => {
+    const { c } = make();
+    down();
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    expect(c.state).toBe('idle');
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('idle');
+  });
   it('pointercancel cancels', async () => {
     const { c } = make();
     down('mouse'); move(70, 50, 'mouse');
@@ -318,6 +462,53 @@ describe('drag inside a scroll container', () => {
     return { c, targets, ghostTop, indicatorTop, minutes: () => last!.key.minutes };
   }
 
+  it('touch: the scroll container does not scroll natively while a card is lifted, and does again after the drop', async () => {
+    sc.style.overflowY = 'auto';
+    const { c } = makeScroll();
+    down('touch', 60, TOP0 + 10);
+    expect(sc.style.overflowY).toBe('auto');
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    expect(sc.style.overflowY).toBe('hidden');
+    up(60, TOP0 + 10);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(sc.style.overflowY).toBe('auto');
+  });
+  it('touch: the scroll container scrolls again after a touchcancel, Escape, a pen pointercancel and a destroy mid-drag', async () => {
+    sc.style.overflowY = 'auto';
+    const lifted = (type = 'touch') => {
+      down(type, 60, TOP0 + 10);
+      if (type === 'touch') el.dispatchEvent(touch('touchstart', 60, TOP0 + 10));
+      vi.advanceTimersByTime(400);
+      expect(sc.style.overflowY).toBe('hidden');
+    };
+    const { c } = makeScroll();
+    lifted();
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    el.dispatchEvent(touch('touchcancel', 60, TOP0 + 10, true));
+    finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(sc.style.overflowY).toBe('auto');
+    lifted();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    finishAll(); await flush();
+    expect(sc.style.overflowY).toBe('auto');
+    lifted('pen');
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'pen' }));
+    finishAll(); await flush();
+    expect(sc.style.overflowY).toBe('auto');
+    lifted();
+    c.destroy();
+    expect(sc.style.overflowY).toBe('auto');
+  });
+  it('mouse: the scroll container keeps scrolling while dragging (wheel)', () => {
+    const { c } = makeScroll();
+    down('mouse', 60, TOP0 + 10); move(60, TOP0 + 30, 'mouse');
+    expect(c.state).toBe('dragging');
+    expect(sc.style.overflowY).toBe('');
+    c.destroy();
+  });
   it('wheel scroll while dragging recomputes the indicator and keeps the ghost on it', () => {
     const { c, ghostTop, indicatorTop, minutes } = makeScroll();
     down('mouse', 50, 310); move(50, 350, 'mouse'); vi.advanceTimersByTime(40);

@@ -523,9 +523,27 @@ one hour of the time grid is still about twice as tall as at the start
 the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
+the page does not bounce when pulled
+nothing on the calendar screen can be selected by a long press
+the text fields of the open form can be selected
+the text in the open dialog can be selected by a long press
+the text on the page can be selected by a long press
 ```
 
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
+- "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
+  page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it
+  is ignored there). A real pull cannot be made in the test browsers.
+- "nothing on the calendar screen can be selected by a long press" (no dialog open): at every point of a 24 px grid over the viewport the topmost
+  element (`elementFromPoint`) that is not a text field (`input`, `textarea`, `select`, `[contenteditable]`) has a
+  computed `-webkit-user-select` (or `user-select`) of `none`; the failure lists the offending elements. (iOS starts its
+  text selection only where the touched point is selectable; a long press itself cannot be made in the test browsers.)
+- "the text in the open dialog / on the page can be selected by a long press": at every point of a 16 px grid over the
+  open dialog (last `role=dialog`) or `section.page`, the topmost element that holds text of its own and is not a
+  button (`button`, `[role=button]`) has a computed `-webkit-user-select` (or `user-select`) other than `none`; at least
+  one such element is found.
+- "the text fields of the open form can be selected": every visible `input`/`textarea` in the open dialog has a computed
+  `-webkit-user-select` (or `user-select`) other than `none` (iOS refuses to edit such fields).
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
@@ -1037,12 +1055,42 @@ I drag the top handle of {string} up by {int} minutes
 the event {string} shows resize handles
 the event {string} shows no resize handles
 I tap the event {string} right beside the bottom handle of {string}
+I hold the event {string} over {date}
+the dragged event is drawn visibly in the day under the finger
+I swipe up quickly starting on the event {string}
+the time grid has scrolled down
+I drag the event {string} to {date} with a finger held perfectly still
+the browser did not take the touch over for scrolling
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
   the `time-slot` of the date/hour plus the minute offset (quarter-hour precision), or the `month-cell` /
   `week-allday-cell` of the date.
 - Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
+- iPhone project (`iphone`, WebKit with the iPhone 13 profile; runs only scenarios tagged `@iphone`): Playwright has no
+  touch moves for WebKit, so the finger is a model of iOS WebKit (`e2e/steps/support/iosTouch.ts`) that dispatches
+  `pointerdown`/`touchstart`, `pointermove`/`touchmove`, `pointerup`/`touchend` (pointer events first) at the element
+  under the finger, with these WebKit rules (UIProcess sources, WebKit bugs 184250/185656):
+  - touch moves are cancelable only when a non-passive `touchmove` listener was on the touched element's path (element,
+    ancestors, document, window) at `touchstart`; listeners on window/document/body without `passive` count as passive.
+  - the native pan may be stopped only by the first `touchmove` of the touch: when that one is not default-prevented,
+    the pan starts at the first move more than 10 px from the start; it then sends `pointercancel` when the move has a
+    vertical part (the calendar area is `touch-action: pan-y`), no more pointer events follow, later touch moves are not
+    cancelable, and the nearest ancestor whose computed `overflow-y` is `auto`/`scroll` scrolls with the finger.
+  - a real finger is never still: the long press (500 ms) has two moves of 1 and 2 px in it.
+  Because of these small moves the model always starts its pan once the lifted card moves, so the ordinary drags test
+  the drag's way through `pointercancel`; only "with a finger held perfectly still" (no small moves) tests that the
+  card's own touch listener lets the drag stop the pan.
+- "I drag the event X to D with a finger held perfectly still": as "I drag the event X to D", but the iPhone model's long
+  press has no small moves (CDP touch has none anyway). Every `pointercancel` from then on is counted; "the browser did
+  not take the touch over for scrolling" = none was sent.
+- "I hold the event X over D": long press X and move the finger to the centre of D's `month-cell` in 10 steps, finger
+  kept down (released by the scenario's cleanup). "the dragged event is drawn visibly in the day under the finger": the lifted
+  chip's centre lies in the `month-cell` under the finger (it snaps to the cell's top), and the topmost element there
+  (`elementFromPoint`, which honours clipping) is the chip or inside it.
+- "I swipe up quickly starting on the event X": finger down 5 minutes below X's top, 240 px up in 8 moves over 150 ms
+  (no long press), up. The time grid's scroll position is noted first; "the time grid has scrolled down" = the
+  `time-grid`'s scroll container `scrollTop` grew by at least 40 px.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
 - "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
   without moving; "release without moving" = mouse up / touch end.

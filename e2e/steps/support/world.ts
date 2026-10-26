@@ -1,5 +1,6 @@
 import { expect, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { Api } from './api.js';
+import { installIosTouchModel } from './iosTouch.js';
 
 export const DEFAULT_POLL_MS = 30_000;
 
@@ -98,6 +99,10 @@ export class World {
   held?: () => Promise<void>;
   /** Where "I pick up ..." pressed (page coordinates). */
   heldAt?: { x: number; y: number };
+  /** Scroll position of the time grid noted by "I swipe up quickly starting on the event ...". */
+  gridScrollBefore?: number;
+  /** The next finger drag holds perfectly still during the long press (iPhone model: no small moves). */
+  stillFinger?: boolean;
   /** The person of the last sign-in step ("they" in the sign-in scenarios). */
   person?: string;
   /** The week the last "without signing in" step opened. */
@@ -229,6 +234,8 @@ export class World {
   static async prepareContext(context: BrowserContext) {
     // Records when the first month cell becomes visible (for "the month view was rendered within N ms").
     await context.addInitScript(installProbes);
+    // iPhone project: a model of iOS WebKit's touch handling drives the finger (STEPS.md "Drag and drop")
+    if (context.browser()?.browserType().name() === 'webkit') await context.addInitScript(installIosTouchModel);
     // The server sends a Content-Security-Policy (server/src/lib/securityHeaders.ts): any violation fails the scenario.
     await context.exposeFunction('__reportCspViolation', (v: string) => { cspViolations.push(v); });
     await context.addInitScript(() => {

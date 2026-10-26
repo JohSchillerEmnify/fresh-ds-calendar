@@ -161,3 +161,41 @@ Feature: Mobile-first layout
     And I open the week view for 2026-10-12
     When I start swiping left on the calendar by a quarter of the width
     Then no neighbouring period is shown beside the current one
+
+  # owner, 2026-10-25: on an iPhone the whole page bounced when pulled up and left a gap at the bottom
+  @iphone
+  Scenario: The page itself does not bounce when pulled
+    When I open the month view for 2026-10
+    Then the page does not bounce when pulled
+
+  # owner, 2026-10-25: on an iPhone a long press selected text instead of picking the entry up
+  @iphone
+  Scenario Outline: A long press on the calendar views never selects text (<view> view)
+    Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When I open the <view> view for <period>
+    Then nothing on the calendar screen can be selected by a long press
+
+    Examples:
+      | view  | period     |
+      | month | 2026-10    |
+      | week  | 2026-10-12 |
+      | day   | 2026-10-14 |
+
+  # owner, 2026-10-26: only the calendar is protected; text in dialogs and on the settings pages stays selectable
+  @iphone
+  Scenario: Text in an event's dialog can still be selected
+    Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00
+    When I open the day view for 2026-10-14
+    And I open the event "Dentist"
+    Then the text in the open dialog can be selected by a long press
+
+  @iphone
+  Scenario: Text on the settings page can still be selected
+    When I open the settings page "/settings"
+    Then the text on the page can be selected by a long press
+
+  @iphone
+  Scenario: The fields of the event form can still be selected and edited
+    When I open the day view for 2026-10-14
+    And I click the time slot 15:00 on 2026-10-14
+    Then the text fields of the open form can be selected

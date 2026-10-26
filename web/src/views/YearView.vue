@@ -65,7 +65,8 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
 .months { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 4px; padding: 8px 8px 16px; align-content: start; }
 @media (min-width: 768px) { .months { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px; padding: 16px 24px; } }
 .ym { display: block; min-width: 0; padding: 6px 4px 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; transition: background 150ms, transform 250ms var(--md-sys-motion-spring); }
-.ym:hover { background: var(--md-sys-color-surface-container); }
+/* touch screens: no hover state left behind after a tap */
+@media (hover: hover) { .ym:hover { background: var(--md-sys-color-surface-container); } }
 .ym:active { transform: scale(0.97); }
 .name { display: block; padding: 0 4px 4px; font: var(--md-sys-typescale-label-large); color: var(--md-sys-color-primary); }
 .mini { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }

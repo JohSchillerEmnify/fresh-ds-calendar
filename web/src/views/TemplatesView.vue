@@ -79,7 +79,8 @@ h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .row { display: flex; align-items: center; gap: 4px; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 8px; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); }
-.main:hover { background: var(--md-sys-color-surface-container-high); }
+/* touch screens: no hover state left behind after a tap */
+@media (hover: hover) { .main:hover { background: var(--md-sys-color-surface-container-high); } }
 .lab { font: var(--md-sys-typescale-body-large); overflow-wrap: anywhere; }
 .sub { font: var(--md-sys-typescale-body-medium); color: var(--md-sys-color-on-surface-variant); }
 .empty { margin: 4px 8px 8px; }

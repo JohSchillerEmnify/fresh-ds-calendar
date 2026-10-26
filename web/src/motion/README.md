@@ -65,10 +65,16 @@ Settings page: best streak = `store.motivation.streak.best`.
   isGestureClaimed()   // true while a drag owns the pointer; also window event 'gesture-claim' on pick-up
   ```
   Give draggable cards `touch-action: none` only if scrolling inside is not needed; on touch the long-press
-  (350 ms, <8 px) happens first and a non-passive `touchmove` guard blocks scroll once dragging. While dragging,
-  window-capture listeners stop `pointermove/up` propagation, so swipe navigation (bubble phase) never sees them; the
-  swipe handler should also bail when `isGestureClaimed()`. Data attr `data-dragging="true|false"` on the card.
-  Escape / pointercancel springs back. A click right after a drag is swallowed.
+  (350 ms, <8 px) happens first; a move while still pending is never prevented (scroll wins). The card has its own
+  non-passive `touchmove` listener from mount (iOS decides at touchstart whether a touch's moves can stop scrolling,
+  from the listeners present then) and blocks scroll with it once lifted. While a touch drag is lifted its scroll
+  container (`scrollEl`) has `overflow-y: hidden` (edge auto-scroll still scrolls it), and `selectstart` and
+  `contextmenu` are prevented from press to release. While dragging, window-capture listeners stop `pointermove/up`
+  propagation, so swipe navigation (bubble phase) never sees them; the swipe handler should also bail when
+  `isGestureClaimed()`. Data attr `data-dragging="true|false"` on the card. Escape springs back. `pointercancel`
+  springs back, except for a press that sent touch events (the browser started its own pan, iOS): that drag follows the
+  same finger's touch events to `touchend` (drop) or `touchcancel` (spring back). The click on the card right after a
+  drop is swallowed on window capture for 400 ms.
 
 ## features/motivation API (`@/features/motivation`)
 
