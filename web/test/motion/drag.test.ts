@@ -272,6 +272,18 @@ describe('drag state machine', () => {
     expect(c.state).toBe('idle');
     expect(isGestureClaimed()).toBe(false);
   });
+  it('touch: the touch events carry a lifted drag even when the pointer events just stop (no pointercancel, a sideways move on iOS)', async () => {
+    const at: number[][] = [];
+    const { c, onDrop } = make({ hitTest: (x, y) => { at.push([x, y]); return target; } });
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    el.dispatchEvent(touch('touchmove', 120, 50));
+    expect(at.at(-1)).toEqual([120, 50]);
+    el.dispatchEvent(touch('touchend', 120, 50, true));
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+  });
   it('touch: after a pointercancel only the first finger steers, a second one is ignored', () => {
     const at: number[][] = [];
     const { c } = make({ hitTest: (x, y) => { at.push([x, y]); return target; } });
@@ -497,6 +509,27 @@ describe('carry: the card may leave the page mid-drag (the view turns to another
     expect(ghost()).toBeNull();
     expect(c.state).toBe('idle');
     expect(el.style.visibility).toBe('');
+  });
+  it('useDraggable still answers for a carried drag after its card was unbound (the component unmounted)', async () => {
+    const { ref } = await import('vue');
+    const r = ref<HTMLElement | null>(el);
+    const hitTest = vi.fn(() => target);
+    const s = effectScope();
+    const d = s.run(() => useDraggable(r, { hitTest, onDrop: async () => {} }))!;
+    await flush();
+    down();
+    vi.advanceTimersByTime(400);
+    d.carry();
+    r.value = null;
+    await flush();
+    expect(d.state).toBe('dragging');
+    const n = hitTest.mock.calls.length;
+    d.refresh();
+    expect(hitTest.mock.calls.length).toBe(n + 1);
+    up(80, 90);
+    await flush(); finishAll(); await flush();
+    expect(d.state).toBe('idle');
+    s.stop();
   });
   it('refresh re-runs the hit test where the pointer is (the grid changed under a still pointer)', () => {
     const hitTest = vi.fn(() => target);
