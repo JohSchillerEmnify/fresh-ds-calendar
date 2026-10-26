@@ -58,6 +58,9 @@ describe('place and event', () => {
     expect(placeFromEvent(e)).toEqual({ ...weber, address: 'Hauptstraße 12, 10827 Berlin' });
     expect(placeFromEvent({ ...e, location: 'Zahnarztpraxis Dr. Weber' })).toEqual({ ...weber, address: '' });
     expect(placeFromEvent({ ...e, place: undefined })).toBeNull();
+    // only the name itself or "<name>, …" belongs to the place; other text changed elsewhere is plain text (A8)
+    expect(placeFromEvent({ ...e, location: 'Zahnarztpraxis Dr. Weber (Halle 2)' })).toBeNull();
+    expect(placeFromEvent({ ...e, location: 'Zahnarztpraxis Dr. Webergasse 3' })).toBeNull();
   });
 });
 

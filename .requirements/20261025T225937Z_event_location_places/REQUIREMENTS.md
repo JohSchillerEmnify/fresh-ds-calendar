@@ -56,8 +56,10 @@ or a placeholder with pin + name.
 4. **Store.** On save the position is written to the Google event in `extendedProperties.private` (proposed keys
    `placeName`, `placeLat`, `placeLon`) next to `location`; the API's `CalendarEvent` gains
    `place?: { name: string; lat: number; lon: number }`. The address line is `location` minus the leading
-   `"<name>, "`; when `location` no longer starts with the name (changed in Google Calendar), the place is ignored and
-   the event shows its location as plain text without a map. Reading an event returns it; the device store keeps it (ADR 0023/0025).
+   `"<name>, "`. The place belongs to the location only while `location` **is the name or starts with `"<name>, "`**;
+   any other text (changed in Google Calendar, e.g. `"<name> (Halle 2)"`, or a longer word such as "Weber" vs
+   "Weberstraße 3") ignores the place, the event shows its location as plain text without a map, and saving never cuts
+   that text back to the name. The server stores a written place only when it leads the location by the same rule. Reading an event returns it; the device store keeps it (ADR 0023/0025).
 5. **Free text.** Text not picked is saved as typed, with no place. Editing the text of a picked place drops the
    place (map disappears; saved without position). Clearing the field clears both.
 6a. **Placement.** New event: the location field stays where it is (after Reminders) and the map appears under it
@@ -164,8 +166,9 @@ Slice 3 = PR 3 (only if the owner wants it, Q8): "find on map" for locations wit
 - A3: Location text written back = `"<name>, <address>"` (owner, Q5).
 - A4: Static tile map, no Leaflet/MapLibre dependency.
 - A5: Suggestions in the app's UI language (en/de), no location bias in slice 1 (owner, Q7).
-- A8: A location changed in Google Calendar so it no longer starts with the stored place name drops the place (shown as
-  plain text, no map) — inferred from Q5/Q9 so a stale map never shows next to a changed location.
+- A8: A location changed in Google Calendar so it is no longer the stored place name or `"<name>, …"` drops the place
+  (shown as plain text, no map, the text kept as it is) — inferred from Q5/Q9 so a stale map never shows next to a
+  changed location (owner confirmed; exact rule after review 2026-10-26).
 - A6: The Android WebView's own Referer + browser UA is acceptable to OSM as browser traffic (the policy says nothing
   about WebViews); appending an app token to the UA is extra identification, not a requirement. If the owner prefers,
   it can be dropped.

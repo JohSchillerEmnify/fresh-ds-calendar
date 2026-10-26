@@ -22,7 +22,7 @@ import {
 } from './taskCodec.js';
 import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
-import { placeOf, placeProps } from './place.js';
+import { placeLeads, placeOf, placeProps } from './place.js';
 import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
@@ -348,7 +348,7 @@ export class CalendarService {
     const g: GoogleEventInput = { summary: input.title, ...this.gTimes(input) };
     if (input.description) g.description = input.description;
     if (input.location) g.location = input.location;
-    if (input.place) g.extendedProperties = { private: placeProps(input.place) as Record<string, string> };
+    if (input.place && placeLeads(input.location ?? '', input.place.name)) g.extendedProperties = { private: placeProps(input.place) as Record<string, string> };
     if (input.colorId) g.colorId = input.colorId;
     if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
@@ -395,7 +395,11 @@ export class CalendarService {
       colorId: m.colorId, ...this.gTimes(m),
     };
     if (input.reminders) patch.reminders = this.remindersOf(input.reminders, cur.reminders);
-    if (input.place !== undefined) patch.extendedProperties = { private: placeProps(input.place) };
+    // the place is kept only while it still leads the location; a changed location without one clears stale properties
+    if (input.place !== undefined || input.location !== undefined) {
+      const place = input.place === undefined ? placeOf(cur) ?? null : input.place;
+      patch.extendedProperties = { private: placeProps(place && placeLeads(m.location, place.name) ? place : null) };
+    }
     let ev = await this.provider.patchEvent(cur.calendarId, id, patch, { ifMatch: ifMatch ?? cur.etag });
     if (m.calendarId !== cur.calendarId) ev = await this.provider.moveEvent(cur.calendarId, id, m.calendarId);
     return this.toEvent(ev, await this.calendarColor(ev.calendarId));

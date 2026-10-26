@@ -41,7 +41,7 @@ export interface CalendarEvent {
   title: string;
   description: string;
   location: string;
-  /** The place picked for the location (feature event-location); absent for typed text or once `location` no longer starts with its name. */
+  /** The place picked for the location (feature event-location); absent for typed text or once `location` is neither its name nor starts with `"<name>, "`. */
   place?: Place;
   allDay: boolean;
   start: DateTime | LocalDate;

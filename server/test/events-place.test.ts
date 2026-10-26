@@ -62,6 +62,25 @@ describe('event place', () => {
     expect(g.body.place).toBeUndefined();
   });
 
+  it('ignores the place when the location only begins with the name but goes on differently', async () => {
+    for (const location of ['Zahnarztpraxis Dr. Weber (Halle 2)', 'Zahnarztpraxis Dr. Webergasse 3']) {
+      const c = await t.json('POST', '/api/events', { ...timed, location: at, place: weber });
+      await t.json('PATCH', `/api/__test/remote/events/${c.body.id}`, { location });
+      expect((await t.json('GET', `/api/events/${c.body.id}`)).body.place, location).toBeUndefined();
+    }
+    const exact = await t.json('POST', '/api/events', { ...timed, location: weber.name, place: weber });
+    expect(exact.body.place).toEqual(weber);
+  });
+
+  it('does not store a place whose name does not lead the location', async () => {
+    const c = await t.json('POST', '/api/events', { ...timed, location: 'Somewhere else', place: weber });
+    expect(c.body.place).toBeUndefined();
+    expect((await remote(c.body.id)).extendedProperties?.private?.placeName).toBeUndefined();
+    const p = await t.json('PATCH', `/api/events/${c.body.id}`, { location: 'Zahnarztpraxis Dr. Weber (Halle 2)', place: weber });
+    expect(p.body.place).toBeUndefined();
+    expect((await remote(c.body.id)).extendedProperties?.private?.placeName).toBeUndefined();
+  });
+
   it('reads the place of an event another client wrote with the same properties', async () => {
     const ins = await t.json('POST', '/api/__test/remote/events', {
       summary: 'Swim', location: 'Stadtbad Neukölln, Ganghoferstraße 3, 12043 Berlin',

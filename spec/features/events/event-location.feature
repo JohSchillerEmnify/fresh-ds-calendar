@@ -108,6 +108,20 @@ Feature: Places for an event's location
       And I open the event "Dentist"
       Then the event dialog shows no map
 
+    Scenario: A location changed in Google Calendar is kept as it is and shows no map
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
+      And Google changes the location of the event "Dentist" to "Zahnarztpraxis Dr. Weber (Haus 2)"
+      When I open the week view for 2026-10-12
+      And I open the event "Dentist"
+      Then the event form shows:
+        | location | Zahnarztpraxis Dr. Weber (Haus 2) |
+      And the event dialog shows no map
+      When I fill in the event form with:
+        | title | Dentist at Weber |
+      And I save the event
+      Then the Google event "Dentist at Weber" has:
+        | location | Zahnarztpraxis Dr. Weber (Haus 2) |
+
     Scenario: An opened event shows its location and map right under the title
       Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
       When I open the week view for 2026-10-12

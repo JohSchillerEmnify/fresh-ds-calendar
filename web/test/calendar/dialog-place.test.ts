@@ -93,6 +93,27 @@ describe('event dialog with a place', () => {
     expect(m.calls.find((c) => c.method === 'PATCH')!.body).toEqual({ location: 'Zahnarzt am Markt', place: null });
   });
 
+  it('never cuts a location changed elsewhere back to the place name: changing a reminder sends no location', async () => {
+    const halle = { ...dentist, id: 'halle', location: 'Zahnarztpraxis Dr. Weber (Halle 2)' };
+    const { w, m } = await open({ id: 'halle' }, { 'GET /api/events/halle': () => halle, 'PATCH /api/events/halle': () => ({ body: halle }) });
+    expect((document.body.querySelector(tid('event-location')) as HTMLInputElement).value).toBe('Zahnarztpraxis Dr. Weber (Halle 2)');
+    expect($('event-map')).toBeNull();
+    await w.get('button[data-testid="event-reminders-none"]').trigger('click');
+    await w.get(tid('event-save')).trigger('submit');
+    await flushPromises();
+    const body = m.calls.find((c) => c.method === 'PATCH')!.body;
+    expect(body.location).toBeUndefined();
+    expect(body.reminders).toEqual({ useDefault: false, minutes: [] });
+  });
+
+  it('a typed location clears a place Google may still hold', async () => {
+    const { w, m } = await open({ id: 'plain' }, { 'PATCH /api/events/plain': () => ({ body: plain }) });
+    await w.get(tid('event-location')).setValue('Zahnarzt am Markt');
+    await w.get(tid('event-save')).trigger('submit');
+    await flushPromises();
+    expect(m.calls.find((c) => c.method === 'PATCH')!.body).toEqual({ location: 'Zahnarzt am Markt', place: null });
+  });
+
   it('sends nothing for an opened place that was not changed', async () => {
     const { w, m } = await open({ id: 'dentist' });
     await w.get(tid('event-save')).trigger('submit');

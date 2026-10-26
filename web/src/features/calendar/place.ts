@@ -97,13 +97,17 @@ export function placeLocation(p: PlacePick): string {
 /**
  * The picked place of a saved event, with its address read back from the location.
  *
+ * The place belongs to the location only while that is the name or `"<name>, <address>"` (A8, the server's rule too):
+ * other text, e.g. "<name> (Halle 2)" changed in Google Calendar, stays plain text and is never cut back to the name.
+ *
  * @param ev The event.
- * @returns The place, or null when the event has none.
+ * @returns The place, or null when the event has none or its location was changed elsewhere.
  */
 export function placeFromEvent(ev: Pick<CalendarEvent, 'location' | 'place'>): PlacePick | null {
   if (!ev.place) return null;
   const prefix = `${ev.place.name}, `;
-  return { ...ev.place, address: ev.location.startsWith(prefix) ? ev.location.slice(prefix.length) : '' };
+  if (ev.location === ev.place.name) return { ...ev.place, address: '' };
+  return ev.location.startsWith(prefix) ? { ...ev.place, address: ev.location.slice(prefix.length) } : null;
 }
 
 /** One map picture of the small map: its tile numbers and where its top-left corner sits in the box (px). */

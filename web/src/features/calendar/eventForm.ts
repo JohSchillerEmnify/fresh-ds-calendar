@@ -138,8 +138,10 @@ export function diffInput(next: CreateEventInput, ev: CalendarEvent): Partial<Cr
   if (next.title !== ev.title) out.title = next.title;
   if ((next.description ?? '') !== ev.description) out.description = next.description;
   if ((next.location ?? '') !== ev.location) out.location = next.location;
-  const [a, b] = [next.place ?? null, ev.place ?? null];
+  const [a, b] = [next.place ?? null, placeFromEvent(ev)];
   if (a?.name !== b?.name || a?.lat !== b?.lat || a?.lon !== b?.lon) out.place = a;
+  // a new location always says whether it has a place, so no stale place properties linger in Google
+  if (out.location !== undefined) out.place = a;
   if ((next.colorId ?? null) !== ev.colorId) out.colorId = next.colorId ?? null;
   if (next.calendarId && next.calendarId !== ev.calendarId) out.calendarId = next.calendarId;
   if (next.reminders && !sameReminders(next.reminders, ownReminders(ev))) out.reminders = next.reminders;

@@ -80,7 +80,7 @@ interface CalendarEvent {
   title: string;           // 1–200 chars after trim
   description: string;     // '' if none, max 8000
   location: string;        // '' if none, max 500
-  place?: Place;           // the place picked for the location (feature event-location); absent for typed text, and once `location` no longer starts with `place.name` (changed elsewhere)
+  place?: Place;           // the place picked for the location (feature event-location); absent for typed text, and once `location` is neither `place.name` nor starts with `"<place.name>, "` (changed elsewhere)
   allDay: boolean;
   start: DateTime | LocalDate;  // LocalDate iff allDay
   end: DateTime | LocalDate;    // exclusive; LocalDate iff allDay
@@ -348,7 +348,7 @@ interface CreateEventInput {
   title: string;
   description?: string;
   location?: string;       // with a picked place: "<name>, <address>"
-  place?: Place | null;    // stored in Google's private extended properties placeName/placeLat/placeLon; PATCH: null drops it, absent keeps it
+  place?: Place | null;    // stored in Google's private extended properties placeName/placeLat/placeLon only while `location` is the name or starts with "<name>, " (else dropped); PATCH: null drops it, absent keeps it (a new location must still match)
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;   // must be > start (all-day: exclusive date > start date)

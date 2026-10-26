@@ -2768,6 +2768,7 @@ the event dialog shows no error
 the calendar contains an event {string} on {date} from {time} to {time} at the place {string}
 the calendar {string} contains an event {string} on {date} from {time} to {time} at the place {string}
 I have seen the map of the event {string}
+Google changes the location of the event {string} to {string}
 I tap the map
 the OpenStreetMap page of the place {string} opens in a new tab
 the phone is asked to show the place {string} in a maps app
@@ -2798,6 +2799,8 @@ the map is shown without scrolling the event dialog
 - "… at the place N": creates the event through the public API with the location `<name>, <address>` of the known place
   N and its place (`place: { name, lat, lon }`); "the calendar C contains …" inserts it into C as another Google client
   would, with the same private extended properties the app writes.
+- "Google changes the location of the event T to L": patches the Google event's `location` as Google Calendar would,
+  leaving its private extended properties as they are.
 - "I have seen the map of the event T": opens the event, waits for "a map with a pin", then closes the dialog; the map
   pictures are then in the device's cache.
 - "I tap the map": taps `event-map` (or the placeholder). "the OpenStreetMap page of the place N opens in a new tab":
