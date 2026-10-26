@@ -305,8 +305,7 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
    **PR 3 — scenes for both layouts**: must land with or right after PR 1 (until then One row shows the scenes cut
    as-is). If the owner prefers, PR 1 + PR 3 ship together as one PR (recommended: one PR, atomic commits).
 
-**PR 0 — streak choice and sync indicator** (steps 1b, 1c): independent of the header layouts and mergeable first;
-it re-records the top-bar @visual baselines once.
+**PR 0 — streak choice and sync indicator** (steps 1b, 1c): independent of the header layouts and mergeable first.
 
 Effort: PR 0 ≈ 0.5 day; PR 1 ≈ 0.5–1 day; PR 2 ≈ 1 day; PR 3 ≈ 1–1.5 days (12 scenes x 2 layouts x 2 schemes, measured placement, 48
 baselines to look at). About 3.5–4 days in all.
