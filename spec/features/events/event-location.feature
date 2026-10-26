@@ -2,19 +2,24 @@
 Feature: Places for an event's location
   While the location of an event is typed, matching places from OpenStreetMap are suggested (owner, board item g6:
   "Location: address suggestions + small map", Photon for the suggestions, an OpenStreetMap map, no API key). Picking
-  one fills the field with the place's name and address and shows a small map with a pin under the field; the map
-  carries the OpenStreetMap credit. Typing stays plain text: a location that is not picked is kept exactly as typed and
+  one puts the place's name in the field with its address as a small second line under it (owner, 2026-10-26: no
+  cut-off address) and shows a small map with a pin under that; the map carries the OpenStreetMap credit. Typing stays plain text: a location that is not picked is kept exactly as typed and
   shows no map.
-  The place search and the map pictures are asked through the app's own server, never by the device directly, so the
-  place search sees only the typed text, not who asks (proposed, see the open questions). Only the typed text (at least
-  3 characters, after a short pause) and the app's language are sent.
-  The picked place's position is stored with the event (in Google, next to the location text, which stays readable in
-  Google Calendar), so the map shows again on every device without a new search.
+  The app asks the place search (Photon) and the OpenStreetMap map pictures straight from the device, not through the
+  app's server (owner, 2026-10-26). Only the typed text (at least 3 characters, after a short pause) and the app's
+  language are sent with a search (owner, 2026-10-26), no nearby preference; like any web page, the device's address and
+  the app's site are seen by them. There is no switch to turn suggestions off for now.
+  Google Calendar gets the location as "<name>, <address>", readable there as usual, and the place's name and
+  position are stored with the event in Google's private event properties (owner), so the name, the address line and
+  the map show again on every device without a new search.
   Like everything else, the location and the place's position are kept on the device (ADR 0025): without a connection
   the field is plain text and nothing is suggested; the map shows from the pictures the device has already seen, and
   otherwise a placeholder with the pin and the place's name.
   Tapping an event opens its sheet (there is no separate details page), so the map lives in that sheet under the
-  location field, and in the read-only sheet of events that cannot be edited.
+  location field, and in the read-only sheet of events that cannot be edited (owner, 2026-10-26). When an event with a
+  location is opened, the location and its map sit right under the title, so the map shows without scrolling; a new
+  event keeps the location field in its usual place. Tapping the map opens the place in the phone's maps app in the
+  Android app and on the OpenStreetMap website in a browser (owner).
 
   Background:
     Given the calendar is empty
@@ -46,14 +51,15 @@ Feature: Places for an event's location
       Then I see no place suggestions
 
     @backlog
-    Scenario: Picking a place fills the location and shows a small map
+    Scenario: Picking a place puts its name in the field, its address under it, and shows a small map
       When I open the week view for 2026-10-12
       And I start creating an event
       And I type "Zahn" in the event field "location"
       And I pick the place suggestion "Zahnarztpraxis Dr. Weber"
       Then I see no place suggestions
       And the event form shows:
-        | location | Zahnarztpraxis Dr. Weber, Hauptstraße 12, 10827 Berlin |
+        | location | Zahnarztpraxis Dr. Weber |
+      And the location's address line says "Hauptstraße 12, 10827 Berlin"
       And the event dialog shows a map with a pin on "Zahnarztpraxis Dr. Weber"
       And the map credits OpenStreetMap
 
@@ -73,7 +79,10 @@ Feature: Places for an event's location
         | location | Zahnarztpraxis Dr. Weber, Hauptstraße 12, 10827 Berlin |
       When I open the app again
       And I open the event "Dentist"
-      Then the event dialog shows a map with a pin on "Zahnarztpraxis Dr. Weber"
+      Then the event form shows:
+        | location | Zahnarztpraxis Dr. Weber |
+      And the location's address line says "Hauptstraße 12, 10827 Berlin"
+      And the event dialog shows a map with a pin on "Zahnarztpraxis Dr. Weber"
 
     @backlog
     Scenario: A location typed without picking is kept as typed and shows no map
@@ -90,6 +99,7 @@ Feature: Places for an event's location
         | location | Zahnarzt am Markt |
       When I open the event "Dentist"
       Then the event dialog shows no map
+      And the location has no address line
 
     @backlog
     Scenario: Changing the text of a picked place drops its map
@@ -99,9 +109,18 @@ Feature: Places for an event's location
       And I fill in the event form with:
         | location | Zahnarzt am Markt |
       Then the event dialog shows no map
+      And the location has no address line
       When I save the event
       And I open the event "Dentist"
       Then the event dialog shows no map
+
+    @backlog
+    Scenario: An opened event shows its location and map right under the title
+      Given the calendar contains an event "Dentist" on 2026-10-14 from 09:00 to 10:00 at the place "Zahnarztpraxis Dr. Weber"
+      When I open the week view for 2026-10-12
+      And I open the event "Dentist"
+      Then the event form starts with the fields "title, location"
+      And the map is shown without scrolling the event dialog
 
   Rule: Without a connection the location is plain text and the map shows what the device already has
 
@@ -157,7 +176,8 @@ Feature: Places for an event's location
       And I press Arrow down in the event field "location"
       And I press Enter in the event field "location"
       Then the event form shows:
-        | location | Zahnarztpraxis Dr. Weber, Hauptstraße 12, 10827 Berlin |
+        | location | Zahnarztpraxis Dr. Weber |
+      And the location's address line says "Hauptstraße 12, 10827 Berlin"
       And the event dialog shows a map with a pin on "Zahnarztpraxis Dr. Weber"
 
     @backlog
@@ -201,7 +221,8 @@ Feature: Places for an event's location
       Then the event dialog is read-only
       And the event dialog shows a map with a pin on "Stadtbad Neukölln"
 
-  Rule: A location typed elsewhere can be found on the map on request
+  Rule: Later slice — a location typed elsewhere can be found on the map, only on request
+    The location text is sent to the place search only when the person asks (owner, 2026-10-26).
 
     @backlog
     Scenario: A location from Google without a place offers to find it on the map

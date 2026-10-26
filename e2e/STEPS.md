@@ -2744,9 +2744,11 @@ opening the event {string} shows the time {string}
 
 ## Places for an event's location (`@location`; `@id:event-location`)
 
-The place search and the map pictures come through the app's server. In TEST_MODE the server never asks the outside
-world: `POST /api/__test/places` (`{ places: { name, address, lat, lon }[] }`, cleared by reset) gives it the places it
-knows, and map pictures are plain generated tiles.
+The device asks the place search and the map pictures directly, at the addresses `/api/config` hands it
+(`placeSearchUrl`, `mapTileUrl`). In TEST_MODE those addresses point at the test server itself, so a test never reaches
+the real hosts: `POST /api/__test/places` (`{ places: { name, address, lat, lon }[] }`, cleared by reset) sets the places
+its fake search knows (Photon's GeoJSON answer shape), and its fake tile route answers plain generated pictures. As a
+second guard the e2e fixture aborts every request to a host other than the test server.
 
 ```
 the place search knows:
@@ -2768,6 +2770,10 @@ I tap the map
 the OpenStreetMap page of the place {string} opens in a new tab
 the phone is asked to show the place {string} in a maps app
 I ask to find the location on the map
+the event form starts with the fields {string}
+the location's address line says {string}
+the location has no address line
+the map is shown without scrolling the event dialog
 ```
 
 - "the place search knows:" (table `name`, `address`, `latitude`, `longitude`): `POST /api/__test/places`. The fake
@@ -2788,7 +2794,7 @@ I ask to find the location on the map
   `© OpenStreetMap`.
 - "the event dialog shows no error": `event-error` does not exist.
 - "… at the place N": creates the event through the public API with the location `<name>, <address>` of the known place
-  N and its position (`place: { lat, lon }`); "the calendar C contains …" inserts it into C as another Google client
+  N and its place (`place: { name, lat, lon }`); "the calendar C contains …" inserts it into C as another Google client
   would, with the same private extended properties the app writes.
 - "I have seen the map of the event T": opens the event, waits for "a map with a pin", then closes the dialog; the map
   pictures are then in the device's cache.
@@ -2796,6 +2802,12 @@ I ask to find the location on the map
   a new page opens whose URL is the OpenStreetMap page marking N's position.
 - "the phone is asked to show the place N in a maps app": native, proven by the app's own tests (a `geo:` intent with
   N's position and name); `@backlog` for Playwright.
+- "the location's address line says A": `event-location-address` (the small line right under the location field) is
+  visible with exactly A; "has no address line": it does not exist. After a pick the location field holds only the
+  place's name; Google gets `<name>, <address>` (check with "the Google event … has:").
+- "the event form starts with the fields L" (comma-separated field names as in form tables): the first fields of the
+  event form (`[data-field]`, in document order) are exactly these. "the map is shown without scrolling the event
+  dialog": with the dialog's scroll position at the top, `event-map` lies fully inside the visible part of the dialog.
 - "I ask to find the location on the map": taps `event-location-find` next to the location field; the suggestions for
   the field's text show.
 
