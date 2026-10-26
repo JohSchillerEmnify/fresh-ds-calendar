@@ -1885,8 +1885,8 @@ the support cat is gone within {int} ms
   ‹ and › arrows, the Today pill, the flame, the plant, the sync icon, the filter and settings icons (for an `svg`
   the box of its drawn `path`; the Today pill: the button box).
   "the X of the top bar scene is drawn at its full size": every visible element of part X is at least its full
-  height (trees 43 px, snowman 42, leaf pile 13, sledge 13, kite 20) and its bottom edge is not above the bottom of the
-  `top-bar` box by more than 1 px (the kite: it hangs from the bar's top; its top lies inside the bar).
+  height (trees 43 px, snowman 42, leaf pile 13, sledge 13, kite 20) and its bottom edge lies between 1 px above and
+  2.5 px below the bottom of the `top-bar` box (the kite: it hangs from the bar's top; its top lies inside the bar).
   "the X of the top bar scene runs the full width of the bar": part X spans the `top-bar` box from its left to its
   right edge (within 1 px) and sits on its bottom edge.
   "the top bar scene shows N X at rest": exactly N particles of kind X, each visible, fully inside the `top-bar` box

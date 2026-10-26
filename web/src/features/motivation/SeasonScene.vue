@@ -25,13 +25,15 @@ const particles = Array.from({ length: 9 }, (_, i) => ({
 const GLIDE_MS = 1000;
 
 const root = ref<HTMLElement | null>(null);
-const { width } = useElementSize(root);
+const { width, height } = useElementSize(root);
 const resting = computed(() => (props.season === 'fall' || props.season === 'winter' || props.season === 'christmas') && props.bar ? props.season : null);
 /** The particles' resting styles while the scene is still (bottom-based, so a taller bar with a status bar keeps them by the controls). */
 const spots = computed(() => {
   const s = resting.value;
   if (!s || !sceneStill.value) return null;
-  const layout = layoutFor(width.value), bar = BAR[layout], k = particleScale(s);
+  // the bar's height changes with its header layout: read the layout again then
+  void height.value;
+  const layout = layoutFor(width.value, root.value?.closest('[data-testid="top-bar"]')?.getAttribute('data-layout') ?? undefined), bar = BAR[layout], k = particleScale(s);
   return STILL[s][layout].map(([x, y], i) => ({
     ...anchor(x, PARTICLE_SIZE[i], bar.w), top: 'auto', bottom: `${bar.h - y - PARTICLE_SIZE[i]}px`,
     transform: `rotate(${PARTICLE_TURN[i]}deg) scale(${k})`, opacity: 0.95,

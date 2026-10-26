@@ -179,7 +179,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Winter | snowman     |
         | Winter | sledge      |
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: In each header layout the Fall and Winter props sit clear of the controls
       Given the scene is "<theme>"
       And the header layout is set to "<layout>"
@@ -202,7 +202,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Winter | One row  | snowman     |
         | Winter | One row  | sledge      |
 
-    @mobile @backlog
+    @mobile
     Scenario: In one row the Winter scene leaves out its tree
       Given the scene is "Winter"
       And the header layout is set to "One row"
@@ -302,7 +302,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Fall   | leaves     |
         | Winter | snowflakes |
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: In each header layout no resting leaf or snowflake is under a control
       Given the scene is "<theme>"
       And the header layout is set to "<layout>"

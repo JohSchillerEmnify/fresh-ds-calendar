@@ -156,6 +156,13 @@ of the controls". AC9 (R9) "While the Fall or Winter scene moves its own visitor
 - A6 Particles rest at the mockup's size (Fall 5/7/9 px leaves, Winter and Christmas flakes at 0.75), with a thin
   blue-grey rim on white flakes in light mode so they show on the pale bar.
 - A7 Today's bar (H0) is built in PR A with the H0 spots; PR B adds the H1 / H2 spots once header PR 1 is on main.
+  Header PR 1 was on main when PR A was done, so PR B replaces the H0 spots (that bar no longer exists on phones) and
+  reads the header layout from the bar's `data-layout` (two rows when absent, e.g. the settings preview).
+- A8 In one row and two rows the cat keeps the as-built 30 px height of the 96 px scene box (the mockups' size), so the
+  one-row cat at the bottom edge shows its head; in one row the kite does not sway (it fills its gap) and its string
+  runs to the bar's bottom edge.
+- A9 Review 2026-10-26: a part that would reach above the bar is left out like one under a control; the kite is also
+  judged by points along its string; the glide's horizontal offset is turned round in a mirrored (left-handed) scene.
 
 ## Build order (round 3)
 

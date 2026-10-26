@@ -119,7 +119,13 @@ Then('the {string} of the top bar scene is drawn at its full size', async functi
     expect(b.h, `${label} height`).toBeGreaterThanOrEqual(full - 0.5);
     // the kite hangs from the sky, inside the bar; everything else stands on the bar's bottom edge
     if (part === 'kite') expect(b.top, `${label} top`).toBeGreaterThanOrEqual(bar.y);
-    else expect(Math.abs(b.bottom - (bar.y + bar.height)), `${label} bottom edge`).toBeLessThanOrEqual(1);
+    // standing on the bottom edge; a prop may sink below it (the bar cuts it there), never float above it
+    else {
+      const lift = bar.y + bar.height - b.bottom;
+      expect(lift, `${label} above the bottom edge`).toBeLessThanOrEqual(1);
+      // the deepest a prop stands is the one-row sledge, 2 px below the edge
+      expect(lift, `${label} sunk below the bottom edge`).toBeGreaterThanOrEqual(-2.5);
+    }
   }
 });
 

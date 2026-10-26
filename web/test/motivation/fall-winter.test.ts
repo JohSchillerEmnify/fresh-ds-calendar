@@ -2,16 +2,20 @@
 import { describe, expect, it } from 'vitest';
 import { anchor, BAR, KITE, layoutFor, PARTICLE_SIZE, PARTICLE_TURN, particleScale, PROPS, propWidth, STILL, type SceneLayout } from '@/features/motivation/fallWinter';
 
-const LAYOUTS: SceneLayout[] = ['H0', 'T', 'D'];
+const LAYOUTS: SceneLayout[] = ['H1', 'H2', 'T', 'D'];
 
 describe('Fall and Winter spots', () => {
-  it('picks the layout by the bar width: phone below 768 px, tablet below 1100 px, desktop above', () => {
-    expect([375, 767, 768, 1099, 1100, 1920].map(layoutFor)).toEqual(['H0', 'H0', 'T', 'T', 'D', 'D']);
+  it('picks the layout by the bar width and, on a phone, its header layout (two rows by default)', () => {
+    expect([375, 767, 768, 1099, 1100, 1920].map((w) => layoutFor(w))).toEqual(['H2', 'H2', 'T', 'T', 'D', 'D']);
+    expect(layoutFor(375, 'one-row')).toBe('H1');
+    expect(layoutFor(375, 'two-rows')).toBe('H2');
+    expect(layoutFor(820, 'wide')).toBe('T');
   });
 
   it('keeps a box at its distance to the nearer edge of the bar', () => {
     expect(anchor(158, 41.6, 390)).toEqual({ left: '158px' });
     expect(anchor(273, 49.6, 390)).toEqual({ right: '67.4px' });
+    expect(anchor(188, 34, 390, 'left')).toEqual({ left: '188px' });
   });
 
   it.each(['fall', 'winter', 'christmas'] as const)('%s: nine resting spots per layout, each fully inside the bar', (scene) => {

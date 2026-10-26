@@ -11,25 +11,26 @@ import { computed, ref, watch } from 'vue';
 import { BUTTERFLY_RHYTHM } from './butterflyVisits';
 import { useClearOfControls } from './clearOfControls';
 import FallWinterProp from './FallWinterProp.vue';
-import { anchor, BAR, CAT_X, catHeight, FLOCK_Y, KITE, PROPS, propWidth, ROBIN_X, type SceneLayout } from './fallWinter';
+import { anchor, BAR, CAT_SIZE, CAT_X, FLOCK_Y, KITE, PROPS, propWidth, ROBIN, type SceneLayout } from './fallWinter';
 import { sceneStill } from './sceneRest';
 import { useSceneVisits } from './useSceneVisits';
 
 const props = defineProps<{ scene: 'fall' | 'winter'; layout: SceneLayout }>();
 
 const bar = computed(() => BAR[props.layout]);
-const items = computed(() => PROPS[props.scene][props.layout].map((p) => ({ ...p, style: { ...anchor(p.x, propWidth(p), bar.value.w, p.side), height: `${p.h}px` } })));
+const items = computed(() => PROPS[props.scene][props.layout].map((p) => ({ ...p, style: { ...anchor(p.x, propWidth(p), bar.value.w, p.side), height: `${p.h}px`, ...(p.bottom === undefined ? {} : { bottom: `${p.bottom}px` }) } })));
 
 /** A box given by its left edge in mockup px, placed from the same side as the cat (so the string always meets its paw). */
 function besideCat(left: number, width: number) {
-  const cat = CAT_X.fall[props.layout], cw = catHeight(bar.value.h);
+  const cat = CAT_X.fall[props.layout], cw = CAT_SIZE[props.layout].h;
   return 'left' in anchor(cat, cw, bar.value.w) ? { left: `${left}px` } : { right: `${Math.round((bar.value.w - left - width) * 10) / 10}px` };
 }
 
 /** The kite (16 x 20, tail below) and its string from the bridle down to the cat's front paw, in px from the bar's bottom. */
 const kite = computed(() => {
-  const { h } = bar.value, k = KITE[props.layout], ch = catHeight(h);
-  const paw = { x: CAT_X.fall[props.layout] + 0.66 * ch, up: 0.28 * ch - 1 };
+  const { h } = bar.value, k = KITE[props.layout], cat = CAT_SIZE[props.layout];
+  // in one row the cat's paw is below the bar: the string runs to the bar's bottom edge there
+  const paw = { x: CAT_X.fall[props.layout] + 0.66 * cat.h, up: Math.max(1, 0.28 * cat.h + cat.bottom) };
   const bridle = { x: k.x + 8, up: h - k.y - 10 };
   return {
     fig: { ...besideCat(k.x, 16), bottom: `${h - k.y - 20}px` },
@@ -38,7 +39,7 @@ const kite = computed(() => {
 });
 
 const flock = computed(() => ({ bottom: `${bar.value.h - FLOCK_Y[props.layout] - 12}px` }));
-const robin = computed(() => ({ ...anchor(ROBIN_X[props.layout], 17, bar.value.w), bottom: '8px' }));
+const robin = computed(() => ({ ...anchor(ROBIN[props.layout].x, 17, bar.value.w), bottom: `${ROBIN[props.layout].bottom}px` }));
 
 /** The visitor of the moving window: once per window, never while the scene rests. */
 const visit = useSceneVisits(BUTTERFLY_RHYTHM, () => true, { rests: () => sceneStill.value });
@@ -61,7 +62,7 @@ watch(() => props.layout, check, { flush: 'post' });
     <FallWinterProp v-for="(p, i) in items" :key="`${layout}-${i}`" :kind="p.kind" :h="p.h" :style="p.style" />
     <template v-if="scene === 'fall'">
       <svg class="kite-fig" data-part="kite" data-line=".kite-string path" viewBox="0 0 16 20" :style="kite.fig" focusable="false">
-        <g class="sway">
+        <g class="sway" :class="{ calm: layout === 'H1' }">
           <path class="k-tail" d="M8 20 C5 23 11 26 8 29 C5 32 10 34 8 37" />
           <path class="k-bow" d="M6.400 24.400 L9.600 25.800 L9.600 23.200 L6.400 24.600 Z M6.200 31.200 L9.400 32.400 L9.400 30 L6.200 31.400 Z" />
           <path class="k-a" d="M8 0 L16 7 L8 20 Z" /><path class="k-b" d="M8 0 L0 7 L8 20 Z" />
@@ -100,6 +101,8 @@ html[data-theme='dark'] .drift .rim { stroke: #fff; }
 .kite-fig { position: absolute; z-index: 1; width: 16px; height: 20px; overflow: visible; }
 .sway { transform-origin: 8px 10px; animation: kite-sway 2.600s ease-in-out infinite alternate; animation-play-state: paused; }
 html[data-motion='full'] .sway { animation-play-state: running; }
+/* in one row the kite fills its narrow gap: it does not sway there (fwart.cjs) */
+.sway.calm { animation: none; }
 .k-a { fill: #e2552a; }
 .k-b, .k-bow { fill: #f6bd3b; }
 .k-spar { fill: none; stroke: #7a4a1e; stroke-width: 0.800; }

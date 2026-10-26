@@ -8,7 +8,7 @@ import BeachScene from './BeachScene.vue';
 import ChristmasNight from './ChristmasNight.vue';
 import EasterScene from './EasterScene.vue';
 import FallWinterScene from './FallWinterScene.vue';
-import { anchor, BAR, CAT_X, catHeight, layoutFor } from './fallWinter';
+import { anchor, BAR, CAT_SIZE, CAT_X, layoutFor } from './fallWinter';
 import ButterflyWings from './ButterflyWings.vue';
 import HalloweenNight from './HalloweenNight.vue';
 import LilyOfTheValley from './LilyOfTheValley.vue';
@@ -67,16 +67,16 @@ const visit = useSceneVisits(
 /** At Halloween bats come instead of butterflies (same rhythm, same test hook). */
 const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
 
-/** The bar layout Fall and Winter place their parts for, from the layer's width. */
+/** The bar layout Fall and Winter place their parts for: the layer's width and the bar's header layout (which changes its height). */
 const root = ref<HTMLElement | null>(null);
-const { width } = useElementSize(root);
-const layout = computed(() => layoutFor(width.value));
+const { width, height } = useElementSize(root);
+const layout = computed(() => (height.value, layoutFor(width.value, root.value?.closest('[data-testid="top-bar"]')?.getAttribute('data-layout') ?? undefined)));
 /** Where the cat sits: at its Fall / Winter spot, elsewhere at its percentage. */
 const catStyle = computed(() => {
   if (props.scene !== 'fall' && props.scene !== 'winter') return { left: `${CAT[props.scene].left}%` };
   // a fixed height (not the bar's), so the kite's string meets the paw in a taller bar too (a status bar above it)
-  const bar = BAR[layout.value], h = catHeight(bar.h);
-  return { ...anchor(CAT_X[props.scene][layout.value], h, bar.w), height: `${h}px` };
+  const bar = BAR[layout.value], { h, bottom } = CAT_SIZE[layout.value];
+  return { ...anchor(CAT_X[props.scene][layout.value], h, bar.w), height: `${h}px`, bottom: `${bottom}px` };
 });
 </script>
 
