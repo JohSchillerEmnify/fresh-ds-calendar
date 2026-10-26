@@ -542,7 +542,8 @@ the text on the page can be selected by a long press
 - "the text in the open dialog / on the page can be selected by a long press": at every point of a 16 px grid over the
   open dialog (last `role=dialog`) or `section.page`, the topmost element that holds text of its own and is not a
   button (`button`, `[role=button]`) has a computed `-webkit-user-select` (or `user-select`) other than `none`; at least
-  one such element is found.
+  one such element is found. The grid is probed once the area's finite animations have finished (`getAnimations`,
+  subtree): a phone sheet counts as visible while it still sits below the screen, sliding in.
 - "the text fields of the open form can be selected": every visible `input`/`textarea` in the open dialog has a computed
   `-webkit-user-select` (or `user-select`) other than `none` (iOS refuses to edit such fields).
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.

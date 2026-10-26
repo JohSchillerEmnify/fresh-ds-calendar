@@ -37,6 +37,10 @@ Then('nothing on the calendar screen can be selected by a long press', async fun
 /** Elements with text of their own inside `area` that a long press could not select (STEPS.md "Mobile"). */
 async function unselectableText(area: Locator): Promise<{ checked: number; bad: string[] }> {
   await expect(area).toBeVisible();
+  // a phone sheet is "visible" while it still sits below the screen, sliding in: probe it at rest, as a finger would
+  await area.evaluate((root) => Promise.all(root.getAnimations({ subtree: true })
+    .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+    .map((a) => a.finished.catch(() => undefined))));
   return area.evaluate((root) => {
     const r = root.getBoundingClientRect();
     const sel = (e: Element) => { const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string }; return cs.webkitUserSelect || cs.userSelect; };
@@ -56,23 +60,6 @@ async function unselectableText(area: Locator): Promise<{ checked: number; bad: 
 }
 
 Then('the text in the open dialog can be selected by a long press', async function (this: World) {
-  const DIAG = await this.page.getByRole('dialog').last().evaluate((root) => {
-    const r = root.getBoundingClientRect();
-    const cats: Record<string, number> = {}; const hits: Record<string, number> = {};
-    for (let y = Math.max(0, r.top) + 2; y < Math.min(innerHeight, r.bottom); y += 16) {
-      for (let x = Math.max(0, r.left) + 2; x < Math.min(innerWidth, r.right); x += 16) {
-        const e = document.elementFromPoint(x, y);
-        const k = !e ? 'null' : !root.contains(e) ? 'outside' : ![...e.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim()) ? 'noText' : e.closest('button, [role="button"]') ? 'button' : 'TEXT';
-        cats[k] = (cats[k] ?? 0) + 1;
-        if (e && k !== 'noText') { const d = `${k}:${e.tagName}.${String(e.className).split(' ')[0]}`; hits[d] = (hits[d] ?? 0) + 1; }
-      }
-    }
-    const anims = document.getAnimations().map((a) => { const t = (a.effect as KeyframeEffect)?.target as Element | null; return `${(a as CSSAnimation).animationName ?? '?'}@${t?.tagName}.${String(t?.className ?? '').split(' ')[0]}:${a.playState}:${Math.round(Number(a.currentTime))}`; });
-    const rises = [...root.querySelectorAll('.rise')].map((e) => getComputedStyle(e).opacity).join(',');
-    const body = root.querySelector('.body') as HTMLElement;
-    return { now: Math.round(performance.now()), rect: [r.top, r.bottom, r.left, r.right].map(Math.round), ih: innerHeight, cats, hits, anims, rises, bodyScroll: body?.scrollTop, motion: document.documentElement.dataset.motion, panelOpacity: getComputedStyle(root).opacity, transform: getComputedStyle(root).transform };
-  });
-  console.log('DIAG', JSON.stringify(DIAG));
   const { checked, bad } = await unselectableText(this.page.getByRole('dialog').last());
   expect(checked, 'text found in the dialog').toBeGreaterThan(0);
   expect(bad, 'dialog text a long press could not select').toEqual([]);
