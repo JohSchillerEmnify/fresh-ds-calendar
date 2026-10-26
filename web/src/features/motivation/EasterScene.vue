@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The Easter part of the living scene layer: the spring meadow with its first flowers, painted eggs
- * (`data-part="easter-egg"`) hidden in the grass and a hare (`data-part="hare"`) whose ears twitch at Full only.
+ * (`data-part="easter-egg"`) hidden in the grass and a hare (`data-part="hare"`) whose ears twitch at Full only. `SceneLife` moves the hare (`--clear-x`) or leaves it out when it cannot sit clear of the controls.
  */
 import SpringMeadow from './SpringMeadow.vue';
 
@@ -38,7 +38,7 @@ const EGGS = [
 .egg svg { display: block; width: 100%; height: 100%; }
 .shell { fill: var(--egg); stroke: color-mix(in oklab, var(--egg) 60%, #000); stroke-width: 0.500; }
 .band { fill: none; stroke: var(--stripe); stroke-width: 1; stroke-linejoin: round; }
-.hare { position: absolute; left: 66%; bottom: 0; height: min(66cqh, 44px); width: auto; overflow: visible; }
+.hare { position: absolute; left: var(--clear-x, 66%); bottom: 0; height: min(66cqh, 44px); width: auto; overflow: visible; }
 .fur { fill: color-mix(in oklab, #b08968 70%, var(--md-sys-color-on-surface, #231917)); }
 .tail { fill: #fff; } .eye { fill: #231917; } .nose { fill: #f48fb1; }
 .ears { transform-box: fill-box; transform-origin: 50% 100%; animation: hare-ears 3.200s ease-in-out infinite; animation-play-state: paused; }

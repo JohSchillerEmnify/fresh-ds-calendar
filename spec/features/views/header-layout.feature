@@ -306,7 +306,7 @@ Feature: A smaller header: two rows or one row
 
   Rule: Every scene looks right in both layouts
 
-    @mobile @backlog
+    @mobile @visual
     Scenario Outline: No scene character sits under a control and every part keeps its size
       Given the device prefers a <scheme> color scheme
       And the scene is "<scene>"
@@ -367,7 +367,7 @@ Feature: A smaller header: two rows or one row
         | New Year        | Two rows | light  |
         | New Year        | One row  | light  |
 
-    @mobile @backlog
+    @mobile
     Scenario: The Easter hare is left out where it cannot sit clear of the controls
       Given the scene is "Easter"
       And the header layout is set to "One row"
@@ -375,7 +375,7 @@ Feature: A smaller header: two rows or one row
       Then the top bar scene does not show the "hare"
       And no character of the top bar scene is under a control
 
-    @mobile @backlog
+    @mobile
     Scenario: With reduced motion the one-row scene is still from the start
       Given the device prefers reduced motion
       And the seasons and holidays follow the calendar

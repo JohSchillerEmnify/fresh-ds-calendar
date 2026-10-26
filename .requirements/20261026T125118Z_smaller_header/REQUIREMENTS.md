@@ -408,3 +408,14 @@ baselines to look at). About 3.5–4 days in all.
 - The streak choice is a segmented button labelled "Streak" with the options "Off", "Flame", "Plant" (German labels
   come with the build's i18n); "Settings › Motivation" in the decision is the section "Focus & motivation".
 - The sync indicator switch applies at every width (desktop too); the decision names no limit.
+
+## PR 3 assumptions (built while the owner was away)
+
+- Phone layouts only get the 96 px scene box (bottom edge on the bar's bottom edge, sky parts and tall props moved down as in
+  `scenes.cjs`); tablet and desktop are unchanged. Fall and Winter keep their own spots, sky and guard; only their box is 96 px.
+- The sunflower backdrop sky is not moved down (the scene fills the whole bar); only its clouds are.
+- "Character" = cat, Easter hare, Halloween ghost. The cat and the hare are moved at full size to the nearest free spot of the
+  real bar (guard `clearOfControls.ts`, `movable`), the hare is left out when none is free (One row). The ghost is a visitor
+  (first visit after 8-12 min) and is only checked, not moved. The jack-o'-lanterns stay as built.
+- The picture scenario carries `@visual` besides `@mobile` (it records 48 mobile baselines, names with spaces become hyphens).
+- The hare is left out in One row by rule (as in the approved mockup) although a 49 px gap exists on a 375 px bar: the scenario says so.
