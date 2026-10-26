@@ -2,18 +2,18 @@
 Feature: A smaller header: two rows or one row
   The top bar took 96 px on a phone and the day view showed the date twice (owner, 2026-10-26). The person chooses
   one of two header layouts in Settings › Calendar ("Header layout"): "Two rows" (the default) keeps the full date
-  ("Monday, 12 October 2026") in an 18 px title row and puts ‹ Today › with the streak and the sync icon in a compact
-  second row, 84 px in all; "One row" puts the short date ("Mon, 12 Oct"), ‹, a Today icon and › into one 52 px row
-  with the streak, sync, filter and settings at its right. Only the day view's title is shortened; the week, month and
-  year titles stay as they are. The visuals may be smaller, but every button keeps a hit area of at least 44 by 44 px;
-  the one exception is the plant in one row, whose tap area is 44 px tall and 32 px wide so the row stays one row. The
+  ("Monday, 12 October 2026") in an 18 px title row and puts Today with the streak and the sync icon in a compact
+  second row, 84 px in all; "One row" puts the short date ("Mon, 12 Oct") and a Today icon into one 52 px row with the
+  streak, sync, filter and settings at its right. Touch screens have no ‹ › arrows: a swipe on the calendar moves to the
+  next or previous period (owner, 2026-10-26; feature navigation); desktop with a mouse keeps them. Only the day view's title is shortened; the week, month and
+  year titles stay as they are. The visuals may be smaller, but every button keeps a hit area of at least 44 by 44 px
+  (in two rows Today's reaches invisibly below the bar); the one exception is the plant in one row, whose tap area is 44 px tall and 32 px wide so the row stays one row. The
   streak flame and the sync icon are not buttons and need no tap area. The choice is a personal setting like the view
   switcher position: kept per person (so it follows them to every device), not part of the theme, so choosing a theme,
   preset or scene keeps it and a theme file never carries it. It applies to phones (narrower than 768 px); desktop and
-  tablets keep their one row with the full date. Left-handed mode mirrors the one row as it mirrors the two rows:
-  settings and the other icons at the left, the date, then ‹ Today › at the right. It is an exact mirror of the
-  right-handed bar's boxes in both layouts (owner, 2026-10-26), so a scene can simply be flipped: the title's text sits
-  at the outer edge, the widgets come in reverse order, and ‹ Today › keeps its order (the group is symmetric).
+  tablets keep their one row with the full date. Left-handed mode mirrors both layouts: settings and the other icons at
+  the left, the date at the right. It is an exact mirror of the right-handed bar's boxes (owner, 2026-10-26), so a scene
+  can simply be flipped: the title's text sits at the outer edge and the widgets come in reverse order.
   The Today button is the today mark (it replaces the today circle of the old "Mon 12" day header): filled while today
   is in the shown period, outlined on a solid background (the scene never shows through) when it is not; the same in
   both layouts and on desktop. The day view has no day header at any width, so on desktop its grid starts 36 px higher.
@@ -31,7 +31,7 @@ Feature: A smaller header: two rows or one row
 
   Rule: Two rows is the default, one row is the person's choice
 
-    @mobile @backlog
+    @mobile
     Scenario: A phone shows the two-row header by default
       When I open the day view for 2026-10-12
       Then the top bar is in two rows
@@ -40,8 +40,8 @@ Feature: A smaller header: two rows or one row
       And the period title is not cut short
       And the period title's font size is 18 pixels
 
-    @mobile @backlog
-    Scenario: The one-row header puts the short date, the arrows and Today in one row
+    @mobile
+    Scenario: The one-row header puts the short date and Today in one row
       Given the header layout is set to "One row"
       When I open the day view for 2026-10-12
       Then the top bar is in one row
@@ -51,7 +51,7 @@ Feature: A smaller header: two rows or one row
       And the period title's font size is 18 pixels
       And the Today button is an icon with the label "Today"
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Only the day view's title is shortened in one row
       Given the header layout is set to "One row"
       When I open the path "<path>"
@@ -65,26 +65,28 @@ Feature: A smaller header: two rows or one row
         | /month/2026-10   | October 2026     |
         | /year/2026       | 2026             |
 
-    @mobile @backlog
+    @mobile
     Scenario: German shows the short date in German in one row
       Given the browser language is "de-DE"
       And the header layout is set to "One row"
       When I open the day view for 2026-10-13
       Then the period title is "Di., 13. Okt."
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Every button in the header keeps a 44 px hit area
       Given the header layout is set to "<layout>"
+      And the streak is set to "<streak>"
       When I open the week view for 2026-10-12
       Then the navigation, view switcher and create buttons are at least 44 by 44 pixels
       And the top bar's buttons are at least 44 by 44 pixels
 
       Examples:
-        | layout   |
-        | Two rows |
-        | One row  |
+        | layout   | streak |
+        | Two rows | Off    |
+        | One row  | Off    |
+        | Two rows | Plant  |
 
-    @mobile @backlog
+    @mobile
     Scenario: The choice is made in the settings and follows the person
       When I open the day view for 2026-10-12
       And I open the settings
@@ -97,7 +99,7 @@ Feature: A smaller header: two rows or one row
       Then the top bar is in one row
 
     # owner, 2026-10-26: with a streak on the row stays one row; only the plant is a button, its tap area 32 px wide
-    @mobile @backlog
+    @mobile
     Scenario: With the plant on, the one row keeps its date and gives the plant a narrower tap area
       Given the streak is set to "Plant"
       And the header layout is set to "One row"
@@ -110,7 +112,7 @@ Feature: A smaller header: two rows or one row
       And the plant's tap area is at least 32 by 44 pixels
       And the top bar's buttons other than the plant are at least 44 by 44 pixels
 
-    @mobile @backlog
+    @mobile
     Scenario: With the flame on, the one row keeps its date
       Given the streak is set to "Flame"
       And the header layout is set to "One row"
@@ -121,25 +123,21 @@ Feature: A smaller header: two rows or one row
       And the period title is not cut short
       And the top bar's buttons are at least 44 by 44 pixels
 
-    # owner, 2026-10-26 (Q11): while a sync problem shows next to a streak in one row, the date's chevron is hidden
-    @mobile @backlog
-    Scenario: In one row with a streak on, a sync problem hides the date's chevron so the date fits
+    # owner, 2026-10-26: without the arrows the date fits next to a streak and a sync problem; the chevron stays
+    @mobile
+    Scenario: In one row a streak and a sync problem leave the date in full
       Given the streak is set to "Plant"
       And the header layout is set to "One row"
       When I open the day view for 2026-10-12
-      Then the period title's chevron is shown
-      When Google becomes unavailable
+      And Google becomes unavailable
       And the app regains focus
       Then the sync icon shows a problem
-      And the period title's chevron is not shown
       And the period title is "Mon, 12 Oct"
       And the period title is not cut short
+      And the period title's chevron is shown
       And the top bar is in one row
-      When Google becomes available again
-      And I retry the sync
-      Then the period title's chevron is shown
 
-    @mobile @backlog
+    @mobile
     Scenario: Choosing a theme keeps the header layout
       Given the header layout is set to "One row"
       When I open the theme menu
@@ -155,17 +153,17 @@ Feature: A smaller header: two rows or one row
       Then the theme file "Spring" is downloaded
       And the downloaded theme file has no header layout
 
-    @mobile @backlog
+    @mobile
     Scenario: In left-handed mode the one row is mirrored
       Given the header layout is set to "One row"
       And left-handed mode is on
       When I open the day view for 2026-10-12
       Then the top bar is in one row
       And the "settings button" is on the "left" side of the screen
-      And the "Today button" is on the "right" side of the screen
+      And the "period title" is on the "right" side of the screen
 
     # owner, 2026-10-26: left-handed is an exact mirror of the right-handed boxes, so the season scene can be flipped
-    @mobile @backlog
+    @mobile
     Scenario Outline: In left-handed mode the top bar is the mirror image of the right-handed one
       Given the streak is set to "Flame"
       And the sync indicator is on
@@ -182,7 +180,7 @@ Feature: A smaller header: two rows or one row
         | Two rows |
         | One row  |
 
-    @desktop @backlog
+    @desktop
     Scenario: Desktop keeps its one row with the full date whatever the phone layout is
       Given the header layout is set to "One row"
       When I open the day view for 2026-10-12

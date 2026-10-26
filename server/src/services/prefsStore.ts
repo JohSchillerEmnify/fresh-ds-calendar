@@ -32,6 +32,10 @@ export const NAV_POSITION_VALUES: readonly NavPosition[] = ['bottom', 'top', 'ra
 export type StreakChoice = 'off' | 'flame' | 'plant';
 export const STREAK_VALUES: readonly StreakChoice[] = ['off', 'flame', 'plant'];
 
+/** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
+export type HeaderLayout = 'two-rows' | 'one-row';
+export const HEADER_LAYOUT_VALUES: readonly HeaderLayout[] = ['two-rows', 'one-row'];
+
 /** How the Tasks view groups its lists (feature tasks-view). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category', 'none'];
@@ -261,6 +265,8 @@ export interface Prefs {
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
   syncIndicator: boolean;
+  /** The phone's top bar: two rows (default) or one row (feature header-layout). */
+  headerLayout: HeaderLayout;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -321,6 +327,7 @@ export class PrefsStore {
       weekSideBySide: isWeekSideBySide(p?.weekSideBySide) ? p.weekSideBySide : 2,
       streak: STREAK_VALUES.includes(p?.streak as StreakChoice) ? (p!.streak as StreakChoice) : 'off',
       syncIndicator: p?.syncIndicator === true,
+      headerLayout: HEADER_LAYOUT_VALUES.includes(p?.headerLayout as HeaderLayout) ? (p!.headerLayout as HeaderLayout) : 'two-rows',
     };
   }
 
@@ -404,8 +411,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout };
   }
 
   /**

@@ -17,7 +17,7 @@ import {
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, parseTemplate, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isMinEventMinutes, isDaySideBySide, isWeekSideBySide, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, STREAK_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type StreakChoice, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isMinEventMinutes, isDaySideBySide, isWeekSideBySide, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, STREAK_VALUES, HEADER_LAYOUT_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type StreakChoice, type HeaderLayout, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 import type { Scope } from '../services/calendar.js';
@@ -185,6 +185,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (b.streak !== undefined) {
       if (!STREAK_VALUES.includes(b.streak as StreakChoice)) throw validation('streak must be off, flame or plant', 'streak');
       patch.streak = b.streak as StreakChoice;
+    }
+    if (b.headerLayout !== undefined) {
+      if (!HEADER_LAYOUT_VALUES.includes(b.headerLayout as HeaderLayout)) throw validation('headerLayout must be two-rows or one-row', 'headerLayout');
+      patch.headerLayout = b.headerLayout as HeaderLayout;
     }
     if (b.minEventMinutes !== undefined) {
       if (!isMinEventMinutes(b.minEventMinutes)) throw validation('minEventMinutes must be 0, 15 or 30', 'minEventMinutes');

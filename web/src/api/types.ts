@@ -267,8 +267,12 @@ export interface Prefs {
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
   syncIndicator: boolean;
+  /** The phone's top bar: two rows (the default) or one row (feature header-layout); not part of the theme. */
+  headerLayout: HeaderLayout;
 }
 
+/** The "Header layout" choice in Settings › Calendar (phones only). */
+export type HeaderLayout = 'two-rows' | 'one-row';
 /** The "Streak" choice in Settings › Focus & motivation. */
 export type StreakChoice = 'off' | 'flame' | 'plant';
 /** The minimum event length choices, in minutes (0 = off). */

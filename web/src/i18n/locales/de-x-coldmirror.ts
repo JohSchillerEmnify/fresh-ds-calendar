@@ -127,6 +127,7 @@ export default {
       defaultView: 'Standard-Ansicht, yo',
       defaultEventColor: 'Standardfarbe für Termine, fresh',
       calendarColor: 'Farbe vom Kalender, yo',
+      headerLayout: { label: 'Kopfzeile, yo', hint: 'Aufm Handy, Digga', twoRows: 'Zwei Zeilen', oneRow: 'Eine Zeile, fresh' },
       syncIndicator: { label: 'Sync-Anzeige, yo', hint: 'Zeigt das Sync-Symbol immer, nicht nur wenn der Abgleich rumzickt, Digga' },
       approachingCard: { label: 'Karte „Gleich“, yo', hint: 'Was jetzt läuft und als Nächstes kommt, über dem Kalender. Sie haben fett vergessen? Fresh D. nicht.' },
       minEventLength: { label: 'Mindestlänge für Termine', hint: 'Kurze Termine werden mindestens so lang gezeichnet. Lesbar bleiben, Digga.', off: 'Aus', minutes: '{n} Min.' },

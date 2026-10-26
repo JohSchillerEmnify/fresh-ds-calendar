@@ -8,6 +8,7 @@ import { useClockStore } from '@/stores/clock';
 import { useSettingsStore } from '@/stores/settings';
 import { useThemeStore } from '@/stores/theme';
 import { useMotivationStore } from '@/features/motivation/store';
+import { isTouchLayout } from '@/composables/useViewport';
 import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, d: string, h = '09') => eventFixture(id, `${d}T${h}:00:00+02:00`, `${d}T${Number(h) + 1}:00:00+02:00`);
@@ -43,7 +44,8 @@ const tid = (id: string) => `[data-testid="${id}"]`;
 // the deploy host is slower: lazy chunks (e.g. the colour library) can take over the 1 s default
 const wait = async (fn: () => void) => { await vi.waitFor(fn, { timeout: 5000 }); await flushPromises(); };
 
-beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); });
+// a mouse by default (jsdom has no matchMedia): the arrows are a desktop control; touch screens swipe (owner, 2026-10-26)
+beforeEach(() => { document.body.innerHTML = ''; localStorage.clear(); isTouchLayout.value = false; });
 afterEach(() => { wrapper?.unmount(); wrapper = null; });
 
 describe('routing', () => {
@@ -213,6 +215,21 @@ describe('shell navigation', () => {
     await useThemeStore().pick('scene', 'mordor');
     await flushPromises();
     await wait(() => expect(w.find(`${tid('top-bar-background')} [data-testid="scene-mordor"]`).exists()).toBe(true));
+  });
+});
+
+describe('top bar: arrows only with a mouse', () => {
+  it('a touch screen has no ‹ › arrows; Today stays', async () => {
+    isTouchLayout.value = true;
+    const { w } = await mountAt('/week/2026-10-12');
+    expect(w.find(tid('nav-today')).exists()).toBe(true);
+    expect(w.find(tid('nav-prev')).exists()).toBe(false);
+    expect(w.find(tid('nav-next')).exists()).toBe(false);
+  });
+  it('a mouse keeps the arrows', async () => {
+    const { w } = await mountAt('/week/2026-10-12');
+    expect(w.find(tid('nav-prev')).exists()).toBe(true);
+    expect(w.find(tid('nav-next')).exists()).toBe(true);
   });
 });
 
@@ -403,6 +420,16 @@ describe('settings', () => {
     expect(w.findAll('[data-testid="settings-sunflowers"] button').map((b) => b.text())).toEqual(['Grow with points', 'Full field']);
     await w.get('[data-testid="settings-sunflowers"] [data-value="full"]').trigger('click');
     await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH').at(-1)!.body).toEqual({ sunflowers: 'full' }));
+  });
+  it('calendar: the Header layout choice (Two rows by default) sits before the Approaching card and saves the person pref', async () => {
+    const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });
+    await wait(() => expect(w.find(tid('settings-header-layout')).exists()).toBe(true));
+    expect(w.findAll('[data-testid="settings-header-layout"] button').map((b) => b.text())).toEqual(['Two rows', 'One row']);
+    expect(w.get('[data-testid="settings-header-layout"] [aria-pressed="true"]').attributes('data-value')).toBe('two-rows');
+    const ids = w.findAll('[data-testid^="settings-"]').map((e) => e.attributes('data-testid'));
+    expect(ids.indexOf('settings-header-layout')).toBeLessThan(ids.indexOf('settings-approaching-card'));
+    await w.get('[data-testid="settings-header-layout"] [data-value="one-row"]').trigger('click');
+    await wait(() => expect(m.calls.filter((c) => c.method === 'PATCH' && c.path === '/api/prefs').at(-1)!.body).toEqual({ headerLayout: 'one-row' }));
   });
   it('calendar: the Sync indicator switch is off by default and saves the person pref', async () => {
     const { w, m } = await mountAt('/settings', { 'PATCH /api/prefs': ({ body }) => body });

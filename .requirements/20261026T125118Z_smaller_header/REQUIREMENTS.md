@@ -43,10 +43,10 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 - Settings › Calendar gets "Header layout": **Two rows** (default) | **One row** (segmented button, right before the
   Approaching card switches; frame S1). Personal pref `headerLayout`, kept per person, not theming: a theme, preset or
   scene change keeps it; theme files and import/export never carry it.
-- **Two rows** (H2): 84 px. Title row 48 px, title 18 px, full date. Compact nav row 32 px visuals: ‹ Today › chip and
-  the streak (if chosen) / sync (if shown) at the right.
+- **Two rows** (H2): 84 px. Title row 48 px, title 18 px, full date. Compact nav row 32 px visuals: the Today chip (no ‹ ›
+  on touch screens, R22) and the streak (if chosen) / sync (if shown) at the right.
 - **One row** (H1): 52 px. Title 18 px with the short date in the day view ("Mon, 26 Oct"; "Di., 13. Okt." in German);
-  ‹ [Today icon pill] › right after it; the streak (flame or plant, if chosen) / sync (if shown) / filter / settings
+  the Today icon pill right after it; the streak (flame or plant, if chosen) / sync (if shown) / filter / settings
   at the right. Week, month and year
   titles unchanged.
 - Hit areas of buttons stay at least 44 x 44 px; the visuals may be smaller. Exception: the plant in one row, 44 x 32
@@ -82,9 +82,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   arrive, treats `streak` as Off (no flash of a flame or plant).
 - **One row with a streak on** (owner): the row stays one row. The plant (the only streak widget that is a button) gets
   a tap area 44 px tall x 32 px wide; every other button keeps 44 x 44. The flame and the sync icon are not buttons
-  and need no tap area (the flame is drawn in a 32 px wide slot). With a streak on **and** syncing failing (the problem
-  icon showing) the short date would be cut by about 22 px on a 390 px phone, so in one row the date's ⌄ chevron is
-  hidden only while that lasts and the date fits in full (owner, 2026-10-26, Q11). The title stays tappable.
+  and need no tap area (the flame is drawn in a 32 px wide slot). Without the arrows the short date fits next to a
+  streak and the sync problem icon (and the switched-on sync indicator), chevron included; the Q11 rule that hid the
+  chevron is dropped (owner, 2026-10-26).
 - **Today** (owner): the Today button is the today mark. Filled (the built-in tonal look, secondary container) while
   today is in the shown period; outlined on a solid surface fill (the scene never shows through) when it is not. It
   replaces the today circle of the "Mon 26" day header. Same in both layouts and on desktop.
@@ -94,11 +94,19 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   stays in the page when hidden, with its data attributes (the e2e sync waits read them).
 - **Desktop** (owner): the desktop day view drops the day header too; the grid starts 36 px higher. The desktop top
   bar keeps its one row with the full date; the header layout setting is for phones only (Q4 answered).
+- **No arrows on touch screens** (owner, 2026-10-26, during PR 1): the ‹ › arrows are dropped wherever `data-touch`
+  is set (phones and touch tablets, both layouts); Today stays; a swipe on the calendar moves to the next or previous
+  period. Desktop with a mouse keeps its arrows. ("Drop them, or move them somewhere completely different if we need
+  to, but for now drop them.") Consequences: the 44 px hit area is a comfort target (Apple HIG), kept 44 wide; in two
+  rows Today's (and the plant's) 44 px tall tap area reaches invisibly 10 px below the bar (Q1 option a); the one-row date now fits next
+  to a streak and a sync problem (measured), so the chevron-hiding rule of Q11 is dropped. The Labs horizontal view has
+  no swipe, so on a touch screen it moves only by the date picker and Today.
 - **Left-handed is an exact mirror** (owner, 2026-10-26): in left-handed mode (`html[data-hand='left'][data-touch]`) the
   top bar's boxes are the mirror image of the right-handed bar's, in both layouts, so a season scene can simply be
-  flipped: the period title's text is aligned to the outer (right) edge, the widgets (flame or plant, sync) come in
-  reverse order, and ‹ Today › keeps its order (back stays on the left; the group is symmetric, so the mirror of the ‹
-  box is the › box). Desktop (≥ 768 px) is not affected.
+  flipped: the period title's text is aligned to the outer (right) edge and the widgets (flame or plant, sync) come in
+  reverse order (as decided, ‹ Today › kept its order; the arrows have since gone on touch screens). Desktop (≥ 768 px)
+  is not affected. In one row this puts Today left of the screen's middle, so the older one-row scenario checks the
+  date at the right instead of Today.
 - Scenes: every scene re-arranged for each layout, light and dark. Every part keeps its as-built size (the 96 px scene
   box sits on the bar's bottom edge, sky parts move down by 96 − bar height, taller props are cut only at the bottom
   edge). Characters (cat, hare, ghost) never under or behind a control: measured against every control glyph and moved
@@ -146,13 +154,18 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
    of the last known state.
 2. R2 The pref is not theming: not written by `PATCH /api/prefs/theme`, not in theme files, export or import, kept
    across theme, preset and scene changes.
-3. R3 Two rows: top bar ≤ 84 px, title 18 px full date, nav row with ‹ Today chip › and the widgets.
+3. R3 Two rows: top bar ≤ 84 px, title 18 px full date, nav row with the Today chip (‹ › only with a mouse, R22) and
+   the widgets.
 4. R4 One row: top bar ≤ 52 px, one row, title 18 px, short date in the day view only, Today as an icon pill labelled
    "Today", widgets and actions at the right.
 5. R5 Every top-bar button has a hit area ≥ 44 x 44 px in both layouts (except the plant in one row, R17); the flame
    and the sync icon are not buttons; the mobile touch-target step
-   (`mobile.steps.ts:101-113`) is changed to measure the hit area, not the drawn box.
-6. R6 Left-handed one row: settings and the other icons left, date, ‹ Today › right (recommendation, Q5).
+   (`mobile.steps.ts:101-113`) is changed to measure the hit area, not the drawn box. Test method (coordinator,
+   2026-10-26): the hit area is probed at the four edge midpoints 1 px inside the W x H box centred on the button, not
+   at its corners, because hit testing follows a round button's rounded corners (every 44 px icon button is round).
+   Known gap: the install button (`install-app-button`, shown only before the app is installed) is drawn and tapped
+   32 px tall in the two-row nav row (open with the coordinator).
+6. R6 Left-handed one row: settings and the other icons left, the date right (Q5; refined by R21 and R22).
 7. R7 Phones only (< 768 px); desktop and tablets keep their one row and full date (owner, 2026-10-26; Q4).
 8. R8 Day view: no day header at any width; the Today button shows when today is on screen (all views; R18).
 9. R9 All-day row only when something is in it (week: any day), as today with its switch; shown during a drag; gone after.
@@ -161,8 +174,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 12. R12 The running entry shows "· N min left" after its time when the card does not show it; never both.
 13. R13 Scenes: every scene in both layouts, light and dark: full-size parts, no character under a control,
     left out where it cannot fit; calm mode and reduced motion unchanged; theme tokens only.
-14. R14 The title is never cut short for the dates in the scenarios (see Q6 for the longest dates; and Q11: streak on
-    plus a sync problem in one row).
+14. R14 The title is never cut short for the dates in the scenarios (see Q6 for the longest dates), also with a
+    streak and a sync problem in one row.
 15. R15 Streak choice "Streak" (Off | Flame | Plant) in Settings › Focus & motivation; person pref `streak`
     (`off` | `flame` | `plant`, default `off`), validated by the server (400 otherwise), synced like the other prefs,
     not part of the theme, per person. Flame shows `streak-flame`, Plant shows `plant-button`, Off neither. Check-ins
@@ -171,7 +184,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
     from `settings.json` on load, also from a restored backup); not copied to anyone's prefs, so everyone is Off.
 17. R17 One row with a streak on stays one row: `plant-button` tap area at least 44 tall x 32 wide; every other top-bar
     button at least 44 x 44; the flame and the sync icon are not buttons. Supersedes R5 for the plant only. While the
-    sync problem icon shows next to a streak in one row, the title's chevron is hidden and the date is not cut (Q11).
+    sync problem icon shows next to a streak in one row, the date is not cut and keeps its chevron (Q11 superseded by
+    the no-arrows decision).
 18. R18 Today button: `data-today-shown="true"` and filled (tonal, secondary container) while today is in the shown
     period; otherwise outlined with an opaque surface background. Both layouts and desktop. (Refines R8.)
 19. R19 Sync indicator: person pref `syncIndicator` (boolean, default `false`, 400 otherwise), switch
@@ -179,16 +193,19 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
     `data-state="error"`; on: always shown. The element stays in the page in both cases.
 20. R20 Desktop day view: no day header; the grid starts 36 px higher; top bar unchanged (one row, full date).
 21. R21 Left-handed mirror (phones, both layouts): every top-bar control's box in left-handed mode is the mirror image
-    (about the bar's vertical centre line) of its right-handed box within 1 px; ‹ Today › keeps its order (the ‹ box
-    mirrors to the › box and back); the title's text is aligned to the outer edge; the widgets are in reverse order.
+    (about the bar's vertical centre line) of its right-handed box within 1 px (touch screens have no ‹ › arrows, R22); the title's text is aligned to the outer edge; the widgets are in reverse order.
     Refines R6 (owner, 2026-10-26).
+22. R22 No ‹ › arrows wherever `data-touch` is set; Today stays; a swipe on the calendar moves to the next / previous
+    period; desktop with a mouse keeps the arrows (owner, 2026-10-26).
 
 ## Acceptance Criteria
 
 - AC1 (R1) header-layout "The choice is made in the settings and follows the person"; server unit: default, valid,
   invalid → 400; web unit: prefs store apply/current/rollback.
-- AC2 (R2) header-layout "Choosing a theme keeps the header layout", "A theme file does not carry the header layout";
-  server unit: `PATCH /api/prefs/theme` ignores/rejects `headerLayout`.
+- AC2 (R2) header-layout "Choosing a theme keeps the header layout"; server unit: `PATCH /api/prefs/theme` rejects
+  `headerLayout` and `GET /api/prefs/theme` never returns it. "A theme file does not carry the header layout" stays
+  `@backlog`: theme export is not built yet (theme-import "I can export my own theme as a file" is `@backlog`), and the
+  scenario exports the preset "Spring", while the planned export is for own themes; it is built with the export.
 - AC3 (R3) header-layout "A phone shows the two-row header by default".
 - AC4 (R4) header-layout "The one-row header puts …", "Only the day view's title is shortened in one row" (4 rows),
   "German shows the short date in German in one row".
@@ -221,8 +238,8 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
   person's `GET /api/prefs` says `streak: 'off'`; web unit: a cached settings copy with the old keys does not show a
   flame or plant.
 - AC17 (R17) header-layout "With the plant on, the one row keeps its date and gives the plant a narrower tap area",
-  "With the flame on, the one row keeps its date", "In one row with a streak on, a sync problem hides the date's
-  chevron so the date fits".
+  "With the flame on, the one row keeps its date", "In one row a streak and a sync problem leave the date in
+  full".
 - AC18 (R18) header-layout "The Today button marks today in both layouts" (4); navigation.feature Today-button scenarios
   (AC8) with the filled / outlined-on-solid looks in STEPS.md.
 - AC19 (R19) header-layout rule "The sync icon shows only when syncing fails, unless the person turns it on" (3);
@@ -233,6 +250,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 
 - AC21 (R21) header-layout "In left-handed mode the top bar is the mirror image of the right-handed one" (Two rows,
   One row); AC6 stays.
+- AC22 (R22) navigation "On a touch screen a swipe goes to the next or previous period and no arrows are shown";
+  "Previous and next move by exactly one period" is `@desktop`; the other scenarios with "I go to the next period"
+  swipe on touch screens.
 
 ## Changed existing scenarios (verified one by one)
 
@@ -288,10 +308,9 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
 2. Settings rows: "Header layout" segmented (`settings-header-layout`) before "Approaching card"; "Time left" switch
    (`settings-approach-time-left`) under it → e2e "The choice is made in the settings …".
 3. Top bar: `data-layout` on `top-bar`; Two rows CSS (18 px title, 32 px nav visuals with 44 px hit areas); One row
-   grid + Today icon pill + short day title; plant tap area 32 x 44 and flame slot 32 px in one row; title chevron
-   hidden while a streak and the sync problem icon both show; left-handed
-   one-row mirror and the exact box mirror of R21 in both layouts (title text at the outer edge, widgets reversed,
-   ‹ Today › in order); ≥ 768 px unchanged → header-layout layout scenarios.
+   grid + Today icon pill + short day title; plant tap area 32 x 44 and flame slot 32 px in one row; no ‹ › on touch
+   screens (R22); left-handed one-row mirror and the exact box mirror of R21 in both layouts (title text at the outer
+   edge, widgets reversed); ≥ 768 px unchanged → header-layout layout scenarios.
    **PR 1 — header layouts** (steps 1–3): independently mergeable; the default Two rows already saves 12 px of bar height.
 4. (PR 1 also changes `mobile.steps.ts` to measure hit areas.) Day view: drop the day header at every width (desktop
    grid 36 px higher); Today button `data-today-shown` + filled / outlined-on-solid look in all views and both layouts
@@ -305,18 +324,18 @@ desktop day header) recorded below. Spec gate: scenarios and this file only; not
    **PR 3 — scenes for both layouts**: must land with or right after PR 1 (until then One row shows the scenes cut
    as-is). If the owner prefers, PR 1 + PR 3 ship together as one PR (recommended: one PR, atomic commits).
 
-**PR 0 — streak choice and sync indicator** (steps 1b, 1c): independent of the header layouts and mergeable first;
-it re-records the top-bar @visual baselines once.
+**PR 0 — streak choice and sync indicator** (steps 1b, 1c): independent of the header layouts and mergeable first.
 
 Effort: PR 0 ≈ 0.5 day; PR 1 ≈ 0.5–1 day; PR 2 ≈ 1 day; PR 3 ≈ 1–1.5 days (12 scenes x 2 layouts x 2 schemes, measured placement, 48
 baselines to look at). About 3.5–4 days in all.
 
 ## Open questions (with a recommendation each)
 
-- Q1 **Hit areas vs the bar heights and widths.** *Width part answered (owner, 2026-10-26):* one row stays one row;
+- Q1 **Hit areas vs the bar heights and widths.** *Two-row overlap answered (owner, 2026-10-26): no arrows on touch
+  screens; Today's tap area reaches below the bar (option a).* *Width part answered (owner, 2026-10-26):* one row stays one row;
   the plant gets a 44 x 32 tap area, everything else 44 x 44; the flame and the sync icon are not buttons; the sync
   icon is hidden unless syncing fails (or the Sync indicator is on); the streak is one widget at most (R15, R17). The
-  streak-plus-sync-problem case is Q11. *Still open:* the two-row vertical overlap below (recommendation unchanged).
+  streak-plus-sync-problem case is Q11. The two-row vertical overlap below was answered by option a (R22).
   Original analysis: Two rows: 84 px = 2 + 48 title row + 32 nav row
   + 2, so a 44 px tall nav hit area reaches 6 px above into the title row or 6 px below the bar over the card/grid.
   Recommendation: the nav row's hit areas reach 6 px down over the content (the bar is stacked above it), the title
@@ -354,11 +373,13 @@ baselines to look at). About 3.5–4 days in all.
   needs the block's height budget). Recommendation: for the running entry the time line takes priority over the second
   title line; a block too short for two lines shows "30 min left" after its title. Until decided, the week example of
   that scenario runs on desktop only.
-- Q10 Which bars follow the layout: the Tasks view and the date-less Labs views (Now, Timeline) use the same top bar
+- Q10 *Built as recommended in PR 1, not yet confirmed by the owner:* the Tasks and date-less Labs bars follow the
+  layout (18 px title; two rows show their widget row only when a widget shows). Which bars follow the layout: the Tasks view and the date-less Labs views (Now, Timeline) use the same top bar
   without ‹ Today ›. Recommendation: they follow it too (one row: title + widgets/actions in 52 px; two rows: the title
   row alone, 52 px, as there is no nav row). Narrowest phone: 360 px (budget in Q1 is then 30 px tighter; the title
   ellipsis is the fallback).
-- Q11 **One row with a streak on and syncing failing.** *Answered (owner, 2026-10-26):* the date's ⌄ chevron is
+- Q11 **One row with a streak on and syncing failing.** *Superseded (owner, 2026-10-26): the arrows are gone on touch
+  screens and the date fits with its chevron.* Earlier answer: the date's ⌄ chevron is
   hidden only while that lasts, so the date fits in full (R17). Original analysis: at 390 px the row has
   384 px: short date ≈ 131 px + ‹ Today › 132 + filter and settings 88 + flame or plant 32 = 383 px. When the sync
   problem icon also shows (28 px), the date gets about 22 px less than it needs and is cut (options seen before the

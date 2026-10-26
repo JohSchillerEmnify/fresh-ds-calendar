@@ -130,6 +130,7 @@ export default {
       defaultView: 'Default view',
       defaultEventColor: 'Default event color',
       calendarColor: 'Calendar color',
+      headerLayout: { label: 'Header layout', hint: 'On phones', twoRows: 'Two rows', oneRow: 'One row' },
       approachingCard: { label: 'Approaching card', hint: 'What is on now and next, above the calendar' },
       minEventLength: { label: 'Minimum event length', hint: 'Shorter events and task lists are drawn and laid out this long, so their titles stay readable', off: 'Off', minutes: '{n} min' },
       sideBySide: { day: 'Day view: events side by side', week: 'Week view: events side by side', hint: 'Overlapping events share the width up to this many columns; more lie on top of the last one', upTo: 'Up to {n}' },

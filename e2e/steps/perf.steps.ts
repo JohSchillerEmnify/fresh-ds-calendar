@@ -10,6 +10,7 @@ import { detachedNodes, measureMemory } from './support/cdp.js';
 import { addDays, berlinIso } from './support/dates.js';
 import { isTaskList, readItems } from './support/google.js';
 import { expandTaskList } from './support/tasklist.js';
+import { goToPeriod } from './support/ui.js';
 import type { World } from './support/world.js';
 
 const MB = 1024 * 1024;
@@ -48,11 +49,7 @@ When('I expand and collapse the task list {string} {int} times', async function 
 });
 
 When('I go to the next period {int} times', async function (this: World, n: number) {
-  for (let i = 0; i < n; i++) {
-    const before = this.page.url();
-    await this.page.getByTestId('nav-next').click();
-    await expect.poll(() => this.page.url()).not.toBe(before);
-  }
+  for (let i = 0; i < n; i++) await goToPeriod(this.page, 'next');
 });
 
 // --- browser memory --------------------------------------------------------------------------------------------

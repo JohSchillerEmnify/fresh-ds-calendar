@@ -3,6 +3,8 @@ Feature: Navigation and view switching
   The calendar has a month, a week (Monday to Sunday) and a day view.
   Every view has a deep-linkable URL: /month/YYYY-MM, /week/YYYY-MM-DD (Monday), /day/YYYY-MM-DD.
   "Today" always comes from the app clock, which tests fix with "Given today is ...".
+  Desktop with a mouse moves through the periods with the ‹ › arrows in the top bar; phones and touch tablets have no
+  arrows and move by swiping the calendar (owner, 2026-10-26); Today is everywhere.
 
   Background:
     Given the calendar is empty
@@ -82,6 +84,8 @@ Feature: Navigation and view switching
       | /day/2026-02-30   |
       | /unknown          |
 
+  # the ‹ › arrows are a desktop control: touch screens have none and move by swiping (owner, 2026-10-26)
+  @desktop
   Scenario Outline: Previous and next move by exactly one period
     When I open the <view> view for <start>
     And I go to the next period
@@ -97,6 +101,23 @@ Feature: Navigation and view switching
       | week  | 2026-10-12 | /week/2026-10-19 | /week/2026-10-05 |
       | week  | 2026-12-28 | /week/2027-01-04 | /week/2026-12-21 |
       | day   | 2026-10-12 | /day/2026-10-13  | /day/2026-10-11  |
+      | day   | 2026-12-31 | /day/2027-01-01  | /day/2026-12-30  |
+
+  # owner, 2026-10-26: phones and touch tablets have no ‹ › arrows; Today stays, a swipe moves through the periods
+  @mobile
+  Scenario Outline: On a touch screen a swipe goes to the next or previous period and no arrows are shown
+    When I open the <view> view for <start>
+    Then the top bar shows no arrows
+    When I swipe left on the calendar
+    Then the URL path is "<next>"
+    When I swipe right on the calendar
+    And I swipe right on the calendar
+    Then the URL path is "<previous>"
+
+    Examples:
+      | view  | start      | next             | previous         |
+      | month | 2026-10    | /month/2026-11   | /month/2026-09   |
+      | week  | 2026-10-12 | /week/2026-10-19 | /week/2026-10-05 |
       | day   | 2026-12-31 | /day/2027-01-01  | /day/2026-12-30  |
 
   Scenario Outline: The today button returns to the period containing today
