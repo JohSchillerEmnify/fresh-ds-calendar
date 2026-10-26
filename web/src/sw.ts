@@ -30,7 +30,8 @@ precacheAndRoute((self as unknown as WorkerScope).__WB_MANIFEST);
 cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/app\.apk$/, /^\/app\.json$/, /^\/privacy\.html$/] }));
 // map pictures (the tile server, or the TEST_MODE stand-in under /api): network first, the shown ones kept for offline
-registerRoute(({ request, url }) => isTileRequest(request.destination, url), async ({ request }) => serveTile(request, await caches.open(TILE_CACHE), (r) => fetch(r), Date.now()));
+registerRoute(({ request, url }) => isTileRequest(request.destination, url, self.location.origin), async ({ request, event }) =>
+  serveTile(request, await caches.open(TILE_CACHE), (r) => fetch(r), Date.now(), (p) => (event as unknown as { waitUntil(p: Promise<unknown>): void }).waitUntil(p)));
 // /api is never cached
 registerRoute(({ url }) => /^\/api\//.test(url.pathname), new NetworkOnly());
 

@@ -18,10 +18,13 @@ const tile = (n = 1) => new Request(`https://tile.openstreetmap.org/16/35198/${2
 
 describe('map picture cache', () => {
   it('knows map pictures by their z/x/y path, also the test stand-in', () => {
-    expect(isTileRequest('image', new URL('https://tile.openstreetmap.org/16/35198/21502.png'))).toBe(true);
-    expect(isTileRequest('image', new URL('http://localhost:3000/api/__test/tiles/16/1/2.png'))).toBe(true);
-    expect(isTileRequest('image', new URL('http://localhost:3000/icons/icon-192.png'))).toBe(false);
-    expect(isTileRequest('', new URL('https://tile.openstreetmap.org/16/35198/21502.png'))).toBe(false);
+    expect(isTileRequest('image', new URL('https://tile.openstreetmap.org/16/35198/21502.png'), 'http://localhost:3000')).toBe(true);
+    expect(isTileRequest('image', new URL('http://localhost:3000/api/__test/tiles/16/1/2.png'), 'http://localhost:3000')).toBe(true);
+    expect(isTileRequest('image', new URL('http://localhost:3000/icons/icon-192.png'), 'http://localhost:3000')).toBe(false);
+    // the app's own /api is never cached, whatever the path looks like
+    expect(isTileRequest('image', new URL('http://localhost:3000/api/themes/1/2/3.png'), 'http://localhost:3000')).toBe(false);
+    expect(isTileRequest('image', new URL('http://localhost:3000/1/2/3.png'), 'http://localhost:3000')).toBe(false);
+    expect(isTileRequest('', new URL('https://tile.openstreetmap.org/16/35198/21502.png'), 'http://localhost:3000')).toBe(false);
   });
 
   it('asks the network first and keeps what it showed', async () => {
@@ -47,6 +50,17 @@ describe('map picture cache', () => {
     await serveTile(tile(1), cache as never, async () => png({ 'cache-control': 'no-store' }), 1);
     await serveTile(tile(2), cache as never, async () => new Response('x', { status: 404 }), 1);
     expect(cache.m.size).toBe(0);
+  });
+
+  it('storing is best effort: a full or broken cache never costs the picture, and it does not wait for the store', async () => {
+    const broken = { ...fakeCache(), put: vi.fn(async () => { throw new DOMException('full', 'QuotaExceededError'); }) };
+    const res = await serveTile(tile(), broken as never, async () => png(), 1);
+    expect(res.status).toBe(200);
+    const later: Promise<unknown>[] = [];
+    const ok = await serveTile(tile(), broken as never, async () => png(), 1, (p) => later.push(p));
+    expect(ok.status).toBe(200);
+    expect(later).toHaveLength(1);
+    await expect(later[0]).resolves.toBeUndefined();
   });
 
   it('keeps at most the newest pictures', async () => {
