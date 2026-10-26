@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import { useElementSize } from '@vueuse/core';
+import { motionLevel } from '@/motion/level';
+import { useClearOfControls } from './clearOfControls';
+import { anchor, BAR, layoutFor, PARTICLE_SIZE, PARTICLE_TURN, particleScale, STILL } from './fallWinter';
+import { sceneStill } from './sceneRest';
 import type { BackdropScene } from './types';
 
 /**
@@ -7,16 +13,64 @@ import type { BackdropScene } from './types';
  * The holiday scenes use the same layer: Easter pastel petals, Summer holidays sea and rising bubbles, Christmas snow,
  * New Year's Eve a night sky with twinkling stars, New Year a sunrise with falling confetti. The drift and the
  * twinkle run only at the Full animation level and only while the scene moves (`sceneRest.ts`; `data-season` marks it).
+ * In the top bar (`bar`) the Fall, Winter and Christmas particles rest at their spots (`fallWinter.ts`) while the scene
+ * is still, spread over the whole bar; when the moving ends they glide there in one second instead of jumping.
  */
-defineProps<{ season: BackdropScene }>();
+const props = defineProps<{ season: BackdropScene; bar?: boolean }>();
 const particles = Array.from({ length: 9 }, (_, i) => ({
   left: `${6 + i * 11}%`, top: `${6 + ((i * 37) % 46)}%`, delay: `${-(i * 1.3) % 7}s`, dur: `${7 + (i % 4) * 1.6}s`, size: `${5 + (i % 3) * 2}px`,
 }));
+
+/** How long the particles take to glide to their resting spots (owner, 2026-10-26). */
+const GLIDE_MS = 1000;
+
+const root = ref<HTMLElement | null>(null);
+const { width } = useElementSize(root);
+const resting = computed(() => (props.season === 'fall' || props.season === 'winter' || props.season === 'christmas') && props.bar ? props.season : null);
+/** The particles' resting styles while the scene is still (bottom-based, so a taller bar with a status bar keeps them by the controls). */
+const spots = computed(() => {
+  const s = resting.value;
+  if (!s || !sceneStill.value) return null;
+  const layout = layoutFor(width.value), bar = BAR[layout], k = particleScale(s);
+  return STILL[s][layout].map(([x, y], i) => ({
+    ...anchor(x, PARTICLE_SIZE[i], bar.w), top: 'auto', bottom: `${bar.h - y - PARTICLE_SIZE[i]}px`,
+    transform: `rotate(${PARTICLE_TURN[i]}deg) scale(${k})`, opacity: 0.95,
+  }));
+});
+
+const els = () => [...(root.value?.querySelectorAll<HTMLElement>('.p') ?? [])];
+// only the resting Fall, Winter and Christmas particles are kept clear; the other seasons never watch the bar
+const check = resting.value ? useClearOfControls(root, '.p', () => !!spots.value) : () => {};
+let glides: Animation[] = [];
+/** Where each particle was when the moving window ended (centre and opacity), until the glide starts. */
+let from: { x: number; y: number; o: number }[] | null = null;
+// the moving window just ended at Full: note where the drifting particles are, before the still picture is applied
+watch(sceneStill, (still) => {
+  from = null;
+  if (!still || !resting.value || motionLevel.value !== 'full' || !root.value) return;
+  from = els().map((el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, o: Number(getComputedStyle(el).opacity) }; });
+}, { flush: 'sync' });
+// once the resting spots are drawn: glide from the noted places to them; a new moving window cancels the glide
+watch(spots, (now) => {
+  glides.forEach((a) => a.cancel());
+  glides = [];
+  const start = now && motionLevel.value === 'full' ? from : null;
+  from = null;
+  if (!start || !root.value || typeof Element.prototype.animate !== 'function') return check();
+  // screen offsets, applied inside the scene layer: a mirrored scene (left-handed) turns the horizontal one round
+  const flip = Math.sign(new DOMMatrix(getComputedStyle(root.value.closest('.tbs') ?? root.value).transform).a) || 1;
+  glides = els().map((el, i) => {
+    const r = el.getBoundingClientRect(), f = start[i];
+    const dx = (f.x - (r.left + r.width / 2)) * flip, dy = f.y - (r.top + r.height / 2);
+    return el.animate([{ translate: `${dx}px ${dy}px`, opacity: f.o }, { translate: '0 0', opacity: 0.95 }], { duration: GLIDE_MS, easing: 'ease-out' });
+  });
+  void Promise.all(glides.map((a) => a.finished)).then(check, () => {});
+}, { flush: 'post' });
 </script>
 
 <template>
-  <div class="season" :class="season" :data-season="season">
-    <i v-for="(p, n) in particles" :key="n" class="p" :style="{ left: p.left, '--top': p.top, animationDelay: p.delay, animationDuration: p.dur, width: p.size, height: p.size }" />
+  <div ref="root" class="season" :class="[season, { rest: spots }]" :data-season="season">
+    <i v-for="(p, n) in particles" :key="n" class="p" :style="spots ? { ...spots[n], width: p.size, height: p.size } : { left: p.left, '--top': p.top, animationDelay: p.delay, animationDuration: p.dur, width: p.size, height: p.size }" />
   </div>
 </template>
 
@@ -41,6 +95,9 @@ html[data-motion='full'] .p { animation-play-state: running; }
 .summer .p { background: #ffe082; border-radius: 50%; filter: blur(1px); animation-name: rise; top: auto; bottom: -10px; }
 .fall .p { background: #e65100; border-radius: 0 80% 0 80%; }
 .winter .p, .christmas .p { background: #fff; border-radius: 50%; }
+/* at rest the white flakes get a thin blue-grey rim, so they show on the pale light bar */
+html:not([data-theme='dark']) :is(.winter, .christmas).rest .p { box-shadow: 0 0 0 0.600px #9db3c9; }
+.p[data-hidden] { visibility: hidden; }
 .easter .p { background: #ffe082; border-radius: 80% 0 80% 0; }
 .summerholidays .p { background: #e0f7fa; border-radius: 50%; animation-name: rise; top: auto; bottom: -10px; }
 .newyear .p:nth-child(3n) { background: #ef5350; }

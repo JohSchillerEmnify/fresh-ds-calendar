@@ -1184,9 +1184,8 @@ the sunflowers look {string}
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
   `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
   season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
-  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off first so the chosen scene stays).
-  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or
-  (the Fall and Winter rules of theme-scenes) `Fall`, `Winter` or `Christmas`.
+  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off in the same request, so the
+  chosen scene stays).
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -1876,8 +1875,10 @@ the support cat is gone within {int} ms
   label lowercased and hyphenated. "leaves" are the nine particles of the Fall scene (`.season.fall .p`),
   "snowflakes" those of the Winter or Christmas scene (`.season.winter .p`, `.season.christmas .p`). A part counts
   as shown when it is visible (not `display: none`, not `visibility: hidden`).
-  "the top bar scene shows the X": a visible part X lies at least 1 px inside the `top-bar` box (a visitor: waits up
-  to the step timeout for it to come). "does not show the X": no visible element for part X in the scene.
+  A part the scene left out because it would be under a control carries `data-hidden` (and is hidden); another part
+  of its kind may still show. "the top bar scene shows the X": a visible part X without `data-hidden` lies at least
+  1 px inside the `top-bar` box (a visitor: waits up to the step timeout for it to come in). The four-part step "the
+  top bar scene shows A, B, C and D" also skips parts with `data-hidden`. "does not show the X": no visible element for part X in the scene.
   "the X of the top bar scene is not under a control": for every visible element of part X, the box of each drawn
   shape (`path`, `circle`, `ellipse`, `rect`; the kite: its kite shapes and points along its string), clipped to the
   `top-bar` box, does not intersect the box of any visible control in `top-bar`: the title text and its chevron, the
@@ -1895,10 +1896,11 @@ the support cat is gone within {int} ms
   "no X of the top bar scene is under a control": no visible particle of kind X has a box that intersects a control box
   (same list as above); being close to one is fine.
   "the X of the top bar scene glide to their resting spots within N second(s)": waits until `html[data-scenes]` turns
-  `still` (the end of the 10 s moving window), then reads every particle of kind X at once and again 100 ms later:
-  each one has a running animation (duration above 0), and the two readings differ for at least 7 of the 9; after
-  N s more (real time: the glide runs on the page's animation timeline, which the fake clock does not drive) nothing
-  runs any more and every particle is at the spot "at rest" reads. The owner's glide is 1 s (2026-10-26), so the
+  `still` (the end of the 10 s moving window), then reads each particle's glide (a Web Animation, not a CSS one):
+  every particle has one lasting at most N s, and for at least 7 of the 9 its first keyframe is translated more than
+  0.5 px away from the spot; within N s more (real time: the glide runs on the page's animation timeline, which the
+  fake clock does not drive) nothing runs any more and every particle stays where it is. "spread over the whole bar"
+  counts only shown particles. The owner's glide is 1 s (2026-10-26), so the
   "still after 11 s" checks hold.
   "the top bar scene is drawn mirrored": the computed `transform` of the scene layer (`top-bar-scene`) is a matrix
   whose first value is -1 (`scaleX(-1)`), so the scene layer is drawn mirrored. In left-handed mode the Fall and Winter
@@ -2737,7 +2739,8 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`). The `now-marker` is masked.
+(`template-save-dialog`), `templates page` (`templates-page`), `top bar` (`top-bar`; the check-in message
+`streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
 

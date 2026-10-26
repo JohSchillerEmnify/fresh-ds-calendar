@@ -140,7 +140,6 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     tree and the snowman stand in the one-row gap. While the scene moves, Fall has a flock of three birds and Winter a
     robin as its visitor instead of the butterfly. In left-handed mode the whole scene is drawn mirrored.
 
-    @backlog
     Scenario Outline: The Fall and Winter props stay when the scene rests
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
@@ -154,7 +153,6 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Fall   | "autumn tree", "leaf pile", "kite" and "cat" |
         | Winter | "snowy tree", "snowman", "sledge" and "cat"  |
 
-    @backlog
     Scenario Outline: The Fall and Winter ground runs the full width of the bar
       Given the scene is "<theme>"
       When I open the day view for 2026-10-12
@@ -165,7 +163,6 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Fall   | leaf litter |
         | Winter | snow drift  |
 
-    @backlog
     Scenario Outline: The Fall and Winter props sit clear of the controls at full size
       Given the scene is "<theme>"
       When I open the day view for 2026-10-12
@@ -214,7 +211,6 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       And the top bar scene shows the "snowman"
       And the top bar scene shows the "snow drift"
 
-    @backlog
     Scenario Outline: While the Fall or Winter scene moves its own visitor passes, not a butterfly
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
@@ -230,7 +226,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Fall   | bird flock |
         | Winter | robin      |
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: In left-handed mode the Fall and Winter scenes are drawn mirrored
       Given left-handed mode is on
       And the scene is "<theme>"
@@ -243,21 +239,20 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Winter |
 
   Rule: When the Fall, Winter or Christmas scene rests, its leaves or snowflakes lie where they can be seen
-    Owner, 2026-10-26: the nine leaves (Fall) or snowflakes (Winter, Christmas) come to rest at hand-placed spots
-    spread over the whole bar, the same spots every time, placed for each header layout, so the still picture is never
-    a bare tint. A resting leaf or flake may sit close to a control but never under one. The Reduced and Off animation
-    levels show that same picture from the start. When the moving ends at 10 s, the leaves and snowflakes glide to
-    their spots in one second instead of jumping, so by 11 s the scene is still. The Christmas candles and tree stay as
-    they are.
+    Owner, 2026-10-26: the nine leaves (Fall) or snowflakes (Winter, Christmas) come to rest at hand-placed spots, the
+    Fall and Winter ones spread over the whole bar, the Christmas ones between the candles; the same spots every time,
+    placed for each header layout, so the still picture is never a bare tint. A resting leaf or flake may sit close to
+    a control but never under one. The Reduced and Off animation levels show that same picture from the start. When
+    the moving ends at 10 s, the leaves and snowflakes glide to their spots in one second instead of jumping, so by
+    11 s the scene is still. The Christmas candles and tree stay as they are.
 
-    @visual @backlog
+    @visual
     Scenario Outline: After the moving the leaves or snowflakes lie still where I can see them
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
       When I open the day view for 2026-10-12
       And 11 seconds pass
       Then the top bar scene shows 9 "<particles>" at rest
-      And the "<particles>" of the top bar scene are spread over the whole bar
       And no "<particles>" of the top bar scene is under a control
       And the "top bar" still looks like "scene-<theme>-still"
 
@@ -267,7 +262,19 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Winter    | snowflakes |
         | Christmas | snowflakes |
 
-    @visual @backlog
+    Scenario Outline: The resting leaves and snowflakes are spread over the whole bar
+      Given the animation level is "Reduced"
+      And the scene is "<theme>"
+      When I open the day view for 2026-10-12
+      Then the top bar scene shows 9 "<particles>" at rest
+      And the "<particles>" of the top bar scene are spread over the whole bar
+
+      Examples:
+        | theme  | particles  |
+        | Fall   | leaves     |
+        | Winter | snowflakes |
+
+    @visual
     Scenario Outline: With fewer animations the scene shows the same still picture from the start
       Given the animation level is "<level>"
       And the scene is "<theme>"
@@ -281,7 +288,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Off     | Winter    | snowflakes |
         | Reduced | Christmas | snowflakes |
 
-    @visual @backlog
+    @visual
     Scenario Outline: The Fall and Winter still pictures in the dark
       Given the device prefers a dark color scheme
       And the animation level is "Reduced"
@@ -309,7 +316,6 @@ Feature: Season themes keep my light or dark choice and bring their own scene
         | Winter    | Two rows | snowflakes |
         | Christmas | One row  | snowflakes |
 
-    @backlog
     Scenario: When the moving ends the leaves glide to their spots within a second
       Given the scene is "Fall"
       And the time is 2026-10-12 08:00 and the clock is running

@@ -5,11 +5,23 @@ import { chooseSelect } from './support/settings.js';
 import { chooseOption, selectedLabel } from './support/ui.js';
 import { exactText, type World } from './support/world.js';
 
-const SCENES: Record<string, 'sunflowers' | 'mordor' | 'none'> = {
+const SCENES: Record<string, string> = {
   'Sunflower field': 'sunflowers',
   Mordor: 'mordor',
   None: 'none',
+  Halloween: 'halloween',
+  Spring: 'spring',
+  Summer: 'summer',
+  Fall: 'fall',
+  Winter: 'winter',
+  Easter: 'easter',
+  'Summer holidays': 'summerholidays',
+  Christmas: 'christmas',
+  "New Year's Eve": 'newyearseve',
+  'New Year': 'newyear',
 };
+/** The season and holiday scenes: picking one switches the seasons and holidays off, so the chosen scene stays. */
+const SEASONAL = new Set(['halloween', 'spring', 'summer', 'fall', 'winter', 'easter', 'summerholidays', 'christmas', 'newyearseve', 'newyear']);
 /** The streak choice by its settings label (person pref `streak`). */
 const STREAKS: Record<string, 'off' | 'flame' | 'plant'> = { Off: 'off', Flame: 'flame', Plant: 'plant' };
 const streakValue = (label: string) => {
@@ -39,7 +51,7 @@ Given(
 Given('the scene is {string}', async function (this: World, label: string) {
   const scene = SCENES[label];
   if (!scene) throw new Error(`Unknown scene "${label}"`);
-  await this.api.patch('/api/prefs/theme', { overrides: { scene } });
+  await this.api.patch('/api/prefs/theme', SEASONAL.has(scene) ? { seasonal: 'off', overrides: { scene } } : { overrides: { scene } });
 });
 
 Given('the streak is set to {string}', async function (this: World, label: string) {

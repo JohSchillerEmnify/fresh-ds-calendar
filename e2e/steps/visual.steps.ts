@@ -22,6 +22,7 @@ function region(w: World, name: string): Locator {
     case 'clock': return w.byTestId('clock-view').locator('svg.face');
     case 'template save sheet': return w.byTestId('template-save-dialog');
     case 'templates page': return w.byTestId('templates-page');
+    case 'top bar': return w.byTestId('top-bar');
     default: throw new Error(`unknown region "${name}"`);
   }
 }
@@ -143,6 +144,8 @@ Then('the {string} still looks like {string}', async function (this: World, name
   await expect(target).toBeVisible();
   // the floating "+" button would cover the bottom right of the time grid; it is not part of that picture
   if (name === 'time grid') await this.page.addStyleTag({ content: '[data-testid="create-fab-area"] { display: none !important; }' });
+  // the check-in message slides over the top bar for a few seconds after the app opens; it is not part of that picture
+  if (name === 'top bar') await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   await expect(target).toHaveScreenshot(`${picture}.png`, { mask: [this.page.getByTestId('now-marker')] });
 });
 
