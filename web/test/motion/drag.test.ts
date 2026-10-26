@@ -33,7 +33,7 @@ beforeEach(() => {
   document.body.appendChild(el);
 });
 afterEach(() => {
-  clearEffects(); el.remove(); removeWaapi(); vi.useRealTimers(); vi.unstubAllGlobals();
+  clearEffects(); el.remove(); document.querySelectorAll('[data-drag-ghost]').forEach((g) => g.remove()); removeWaapi(); vi.useRealTimers(); vi.unstubAllGlobals();
 });
 
 const target = { key: 'slot', dx: 100, dy: 60 };
@@ -399,6 +399,42 @@ describe('drag state machine', () => {
     down(); expect(c.state).toBe('idle'); // pointerdown listener gone
     add.mockRestore(); rem.mockRestore();
   });
+  it('a destroy mid-drag tells onStateChange the drag is over (its owner clears what it showed)', () => {
+    const { c, states } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.destroy();
+    expect(states.at(-1)).toBe('idle');
+  });
+  it('Android: pointer and touch events for the same finger drop once, whichever comes first', async () => {
+    for (const order of [['pointerup', 'touchend'], ['touchend', 'pointerup']]) {
+      const { c, onDrop } = make();
+      fingerDown();
+      vi.advanceTimersByTime(400);
+      move(80, 90);
+      el.dispatchEvent(touch('touchmove', 80, 90));
+      for (const ev of order) {
+        if (ev === 'pointerup') up(80, 90);
+        else el.dispatchEvent(touch('touchend', 80, 90, true));
+      }
+      expect(onDrop).toHaveBeenCalledTimes(1);
+      await flush(); finishAll(); await flush();
+      expect(c.state).toBe('idle');
+      c.destroy();
+    }
+  });
+  it('a move to the same point does not run the hit test again; a refresh does', () => {
+    const hitTest = vi.fn(() => target);
+    const { c } = make({ hitTest });
+    down('mouse');
+    move(60, 50, 'mouse');
+    const n = hitTest.mock.calls.length;
+    move(60, 50, 'mouse');
+    expect(hitTest.mock.calls.length).toBe(n);
+    c.refresh();
+    expect(hitTest.mock.calls.length).toBe(n + 1);
+    c.destroy();
+  });
   it('useDraggable re-binds when the element is replaced', async () => {
     const { ref, nextTick } = await import('vue');
     const r = ref<HTMLElement | null>(el);
@@ -461,6 +497,7 @@ describe('carry: the card may leave the page mid-drag (the view turns to another
     up(80, 90);
     expect(onDrop).toHaveBeenCalledWith(target);
     await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(50);
     expect(ghost()).toBeNull();
     expect(c.state).toBe('idle');
     expect(isGestureClaimed()).toBe(false);
@@ -496,8 +533,25 @@ describe('carry: the card may leave the page mid-drag (the view turns to another
     expect(c.state).toBe('idle');
     expect(rem.mock.calls.some((x) => x[0] === 'pointermove')).toBe(true);
     down(); expect(c.state).toBe('idle'); // fully destroyed: the pointerdown listener is gone
+    vi.advanceTimersByTime(50);
     expect(ghost()).toBeNull();
     rem.mockRestore();
+  });
+  it('the ghost carries no id or test ids (it never counts as the card), and stays until the moved card had a frame to render', async () => {
+    el.id = 'card';
+    el.dataset.testid = 'event-chip';
+    el.innerHTML = '<span data-testid="event-chip-title">T</span>';
+    const { c } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    const g = ghost()!;
+    expect([g.id, g.dataset.testid, g.querySelector('[data-testid]')]).toEqual(['', undefined, null]);
+    up(80, 90);
+    await flush();
+    expect(ghost()).not.toBeNull();
+    vi.advanceTimersByTime(50);
+    expect(ghost()).toBeNull();
   });
   it('a cancel while carried removes the ghost', async () => {
     const { c } = make();
@@ -506,6 +560,7 @@ describe('carry: the card may leave the page mid-drag (the view turns to another
     c.carry();
     c.cancel();
     await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(50);
     expect(ghost()).toBeNull();
     expect(c.state).toBe('idle');
     expect(el.style.visibility).toBe('');

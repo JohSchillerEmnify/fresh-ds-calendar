@@ -11,8 +11,8 @@
  * update, PATCH with If-Match, rollback + spring back + snackbar on failure. Duration is preserved, timed stays
  * timed, all-day stays all-day (feature drag-to-reschedule), multi-day items move by the dragged day's delta.
  */
-import { getCurrentInstance, nextTick, shallowRef, type Ref } from 'vue';
-import type { Router } from 'vue-router';
+import { inject, nextTick, shallowRef, type Ref } from 'vue';
+import { routerKey } from 'vue-router';
 import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import type { ItemVariant } from '@/extensions/registry';
 import { neutralName, type Segment } from '@/lib/items';
@@ -111,8 +111,8 @@ function setDropAttr(prev: Element | null, next: Element | null): Element | null
 /** Makes the card draggable (long press on touch, press and move on mouse). Cleans up with the component scope. */
 export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment: () => Segment, variant: () => ItemVariant, disabled?: () => boolean) {
   let marked: Element | null = null;
-  // the router without an inject: the drag may turn the view after this card's component is gone
-  const router = getCurrentInstance()?.appContext.config.globalProperties.$router as Router | undefined;
+  // taken now, in setup: the drag may turn the view after this card's component is gone (null outside the app, in tests)
+  const router = inject(routerKey, null);
   /** The time grid this drag started in; it outlives the card when the view turns. */
   let dragGrid: Element | null = null;
   /** The edge zone the pointer rests in, and the timer that turns the view after the hold. */

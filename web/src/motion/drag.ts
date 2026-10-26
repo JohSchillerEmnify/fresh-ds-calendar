@@ -283,7 +283,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     if (state !== 'idle') e.preventDefault();
   };
   const onScroll = () => {
-    if (state === 'dragging') update(cur.x, cur.y);
+    if (state === 'dragging') update(cur.x, cur.y, true);
   };
   /** Swallows the click on this card right after a drop, on window so no ancestor's capture listener sees it either. */
   const onClickCapture = (e: Event) => {
@@ -342,15 +342,20 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   /** Removes the carry ghost and shows the card again (it may be gone from the page by now). */
   function dropGhost() {
     if (!ghost) return;
-    ghost.remove();
+    const g = ghost;
     ghost = null;
     el.style.visibility = prevVisibility;
+    // the moved card renders on the next frame: the copy goes after it, so nothing blinks
+    requestAnimationFrame(() => requestAnimationFrame(() => g.remove()));
   }
 
   function carry() {
     if (state !== 'dragging' || ghost || !ctx) return;
     const r = ctx.originRect;
     const g = el.cloneNode(true) as HTMLElement;
+    // a copy, never the card: no id and no test ids to be found by
+    g.removeAttribute('id');
+    for (const n of [g, ...g.querySelectorAll('[data-testid],[id]')]) { n.removeAttribute('data-testid'); n.removeAttribute('id'); }
     g.dataset.dragGhost = 'true';
     g.setAttribute('aria-hidden', 'true');
     Object.assign(g.style, {
@@ -451,13 +456,18 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       );
       if (a) anims.push(a);
     }
-    update(cur.x, cur.y);
+    tested = null;
+    update(cur.x, cur.y, true);
     lastT = performance.now();
     raf = requestAnimationFrame(frame);
   }
 
-  function update(x: number, y: number) {
+  /** Where the hit test last ran: a move to the same point does not run it again (a scroll or a refresh forces it). */
+  let tested: Point | null = null;
+  function update(x: number, y: number, force = false) {
     if (!ctx) return;
+    if (!force && tested && tested.x === x && tested.y === y) return;
+    tested = { x, y };
     setTarget(opts.hitTest(x, y, ctx));
   }
 
@@ -549,7 +559,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     if (v && performance.now() - edgeSince >= EDGE_DWELL_MS) {
       const before = sc.scrollTop;
       sc.scrollTop += v * 600 * dt;
-      if (sc.scrollTop !== before) update(cur.x, cur.y);
+      if (sc.scrollTop !== before) update(cur.x, cur.y, true);
     }
   }
 
@@ -775,7 +785,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     dropGhost();
     if (state !== 'idle') restoreStyle();
     reset();
-    state = 'idle';
+    // the owner hears the drag is over (it clears its drop preview, edge band and the like)
+    if (state !== 'idle') setState('idle');
     delete el.dataset.dragging;
   }
 
@@ -786,7 +797,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     cancel,
     carry,
     refresh() {
-      if (state === 'dragging') update(cur.x, cur.y);
+      if (state === 'dragging') update(cur.x, cur.y, true);
     },
     destroy() {
       // a carried drag outlives its card's component: it ends at the drop

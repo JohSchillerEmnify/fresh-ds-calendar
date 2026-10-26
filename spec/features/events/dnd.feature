@@ -266,7 +266,8 @@ Feature: Drag and drop to reschedule
     stolen), the view turns to that day or week and the drag goes on there; staying in the zone turns it again after each
     such wait (owner, 2026-10-25; the timings may be tuned once tried). Leaving the zone before then hides the
     band and nothing turns. A drop always lands on the slot under the pointer of the day or week shown, so a drop on the
-    rest of the outermost column, after however long a hold, stays there.
+    rest of the outermost column, after however long a hold, stays there. The two-row week overview does not turn: all
+    seven days are on screen there.
 
     Scenario Outline: Holding a dragged event at the <side> edge of the day view moves on to the <which> day
       When I open the day view for 2026-10-14
@@ -360,6 +361,14 @@ Feature: Drag and drop to reschedule
       When I drop the dragged item in the all-day row on 2026-10-21
       Then I see the all-day event "Trip" on 2026-10-21
       And Google contains an all-day event "Trip" from 2026-10-21 to 2026-10-21
+
+    Scenario: A multi-day all-day event carried to the next week moves by the days it was moved, keeping its length
+      Given the calendar contains an all-day event "Trip" from 2026-10-14 to 2026-10-16
+      When I open the week view for 2026-10-12
+      And I hold the all-day event "Trip" at the right edge of the all-day row for 1500 ms
+      Then the URL path is "/week/2026-10-19"
+      When I drop the dragged item in the all-day row on 2026-10-21
+      Then Google contains an all-day event "Trip" from 2026-10-21 to 2026-10-23
 
     @mobile
     Scenario: On a phone a quick drop on the last day of the week still lands there
