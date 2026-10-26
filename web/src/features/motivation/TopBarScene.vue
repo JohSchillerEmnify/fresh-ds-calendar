@@ -9,7 +9,8 @@ import { SUNFLOWER_MAX, type ChangeKind, type Mood, type SceneName } from './typ
  * Background scene for the top bar `background` slot. `scene` is the EFFECTIVE scene resolved by the shell
  * (mordor | sunflowers | none). Sunflower data comes from the motivation store unless overridden by props; with
  * `fieldMode` 'full' the sunflower field is a fixed full field that never grows (no flower count, no bloom).
- * Absolutely positioned, pointer-events none: it fills its positioned parent.
+ * Absolutely positioned, pointer-events none: it fills its positioned parent. In left-handed mode on a touch screen the
+ * Fall and Winter scenes are flipped, like the bar.
  */
 const props = defineProps<{ scene: SceneName; fieldMode?: 'grow' | 'full'; flowers?: number; mood?: Mood; change?: { id: number; kinds: ChangeKind[] } | null }>();
 const store = getActivePinia() ? useMotivationStore() : null;
@@ -33,4 +34,6 @@ const bind = computed(() =>
 
 <style scoped>
 .tbs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+/* left-handed mode mirrors the bar on touch screens; the Fall and Winter scenes are drawn mirrored with it (owner, 2026-10-26) */
+html[data-hand='left'][data-touch] .tbs:is([data-scene='fall'], [data-scene='winter']) { transform: scaleX(-1); }
 </style>

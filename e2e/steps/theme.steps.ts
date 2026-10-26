@@ -297,7 +297,8 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
   for (const part of parts) {
-    const el = scene.locator(`[data-part="${part}"]`).first();
+    // a part left out where it would be under a control (data-hidden) does not count; another one of its kind may show
+    const el = scene.locator(`[data-part="${part}"]:not([data-hidden])`).first();
     await expect(el, part).toBeAttached();
     // fireworks and confetti are 0x0 anchors whose pieces are drawn around them: a box-less anchor is judged by its first piece
     const box = await el.boundingBox();

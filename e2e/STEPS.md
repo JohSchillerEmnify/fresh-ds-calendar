@@ -1181,7 +1181,8 @@ the sunflowers look {string}
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
   `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
   season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
-  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off first so the chosen scene stays).
+  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off in the same request, so the
+  chosen scene stays).
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -1822,6 +1823,15 @@ the top bar scene is still
 the scene's cat is moving
 a visitor passes through the top bar scene
 the visitor flies across the top bar scene
+the top bar scene shows the {string}
+the {string} of the top bar scene is not under a control
+the top bar scene shows {int} {string} at rest
+no {string} of the top bar scene is under a control
+the {string} of the top bar scene glide to their resting spots within {int} second(s)
+the {string} of the top bar scene runs the full width of the bar
+the {string} of the top bar scene is drawn at its full size
+the {string} of the top bar scene are spread over the whole bar
+the top bar scene is drawn mirrored
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
@@ -1856,6 +1866,43 @@ the support cat is gone within {int} ms
   `sky`, `hills`, `cloud` and `bee`); the step lowercases and
   hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
+- Fall and Winter props and still picture (rules at the end of theme-scenes.feature, round 3): the props are parts
+  `autumn-tree`, `leaf-pile`, `kite` (Fall), `snowy-tree`, `snowman`, `sledge` (Winter); the ground is `leaf-litter`
+  (Fall) and `snow-drift` (Winter); the visitors are `bird-flock` (Fall) and `robin` (Winter). Part names are the
+  label lowercased and hyphenated. "leaves" are the nine particles of the Fall scene (`.season.fall .p`),
+  "snowflakes" those of the Winter or Christmas scene (`.season.winter .p`, `.season.christmas .p`). A part counts
+  as shown when it is visible (not `display: none`, not `visibility: hidden`).
+  A part the scene left out because it would be under a control carries `data-hidden` (and is hidden); another part
+  of its kind may still show. "the top bar scene shows the X": a visible part X without `data-hidden` lies at least
+  1 px inside the `top-bar` box (a visitor: waits up to the step timeout for it to come in). The four-part step "the
+  top bar scene shows A, B, C and D" also skips parts with `data-hidden`. "does not show the X": no visible element for part X in the scene.
+  "the X of the top bar scene is not under a control": for every visible element of part X, the box of each drawn
+  shape (`path`, `circle`, `ellipse`, `rect`; the kite: its kite shapes and points along its string), clipped to the
+  `top-bar` box, does not intersect the box of any visible control in `top-bar`: the title text and its chevron, the
+  ‹ and › arrows, the Today pill, the flame, the plant, the sync icon, the filter and settings icons (for an `svg`
+  the box of its drawn `path`; the Today pill: the button box).
+  "the X of the top bar scene is drawn at its full size": every visible element of part X is at least its full
+  height (trees 43 px, snowman 42, leaf pile 13, sledge 13, kite 20) and its bottom edge lies between 1 px above and
+  2.5 px below the bottom of the `top-bar` box (the kite: it hangs from the bar's top; its top lies inside the bar).
+  "the X of the top bar scene runs the full width of the bar": part X spans the `top-bar` box from its left to its
+  right edge (within 1 px) and sits on its bottom edge.
+  "the top bar scene shows N X at rest": exactly N particles of kind X, each visible, fully inside the `top-bar` box
+  and at least 1 px from its top edge, none with a running animation or transition; read twice 500 ms apart, each
+  particle's box is unchanged. "the X of the top bar scene are spread over the whole bar": the leftmost particle's
+  left edge is in the left quarter of the bar and the rightmost particle's right edge in its right quarter.
+  "no X of the top bar scene is under a control": no visible particle of kind X has a box that intersects a control box
+  (same list as above); being close to one is fine.
+  "the X of the top bar scene glide to their resting spots within N second(s)": waits until `html[data-scenes]` turns
+  `still` (the end of the 10 s moving window), then reads each particle's glide (a Web Animation, not a CSS one):
+  every particle has one lasting at most N s, and for at least 7 of the 9 its first keyframe is translated more than
+  0.5 px away from the spot; within N s more (real time: the glide runs on the page's animation timeline, which the
+  fake clock does not drive) nothing runs any more and every particle stays where it is. "spread over the whole bar"
+  counts only shown particles. The owner's glide is 1 s (2026-10-26), so the
+  "still after 11 s" checks hold.
+  "the top bar scene is drawn mirrored": the computed `transform` of the scene layer (`top-bar-scene`) is a matrix
+  whose first value is -1 (`scaleX(-1)`), so the scene layer is drawn mirrored. In left-handed mode the Fall and Winter
+  scenes are flipped on a touch screen (`html[data-hand='left'][data-touch]`).
+- The `"top bar"` region of "the {string} still looks like {string}" is `top-bar` (the whole bar with its scene).
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
   reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in
@@ -2689,7 +2736,8 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`). The `now-marker` is masked.
+(`template-save-dialog`), `templates page` (`templates-page`), `top bar` (`top-bar`; the check-in message
+`streak-message` is hidden for its picture). The `now-marker` is masked.
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
 it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
 
