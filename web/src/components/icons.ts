@@ -58,6 +58,9 @@ import DownloadS from '~icons/material-symbols/download-sharp';
 import EditOutlineO from '~icons/material-symbols/edit-outline';
 import EditOutlineR from '~icons/material-symbols/edit-outline-rounded';
 import EditOutlineS from '~icons/material-symbols/edit-outline-sharp';
+import TodayO from '~icons/material-symbols/today';
+import TodayR from '~icons/material-symbols/today-rounded';
+import TodayS from '~icons/material-symbols/today-sharp';
 import ExpandMoreO from '~icons/material-symbols/expand-more';
 import ExpandMoreR from '~icons/material-symbols/expand-more-rounded';
 import ExpandMoreS from '~icons/material-symbols/expand-more-sharp';
@@ -143,6 +146,7 @@ export const IconCloudOff = appIcon('IconCloudOff', { outlined: CloudOffO, round
 export const IconDeleteOutline = appIcon('IconDeleteOutline', { outlined: DeleteOutlineO, rounded: DeleteOutlineR, sharp: DeleteOutlineS });
 export const IconDownload = appIcon('IconDownload', { outlined: DownloadO, rounded: DownloadR, sharp: DownloadS });
 export const IconEditOutline = appIcon('IconEditOutline', { outlined: EditOutlineO, rounded: EditOutlineR, sharp: EditOutlineS });
+export const IconToday = appIcon('IconToday', { outlined: TodayO, rounded: TodayR, sharp: TodayS });
 export const IconExpandMore = appIcon('IconExpandMore', { outlined: ExpandMoreO, rounded: ExpandMoreR, sharp: ExpandMoreS });
 export const IconFilterList = appIcon('IconFilterList', { outlined: FilterListO, rounded: FilterListR, sharp: FilterListS });
 export const IconIosShare = appIcon('IconIosShare', { outlined: IosShareO, rounded: IosShareR, sharp: IosShareS });

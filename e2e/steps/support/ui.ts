@@ -171,3 +171,50 @@ export async function expectBottomSheet(page: Page, loc: Locator) {
     })
     .toBe('sheet');
 }
+
+/**
+ * The edge midpoints of a W x H box centred on the element, 1 px inside, where `document.elementFromPoint` does not
+ * return the element or a descendant: an empty list means its hit area is at least W x H (STEPS.md "Header layout";
+ * corners are not probed, as hit testing follows a round button's rounded corners).
+ */
+export async function hitAreaMisses(loc: Locator, width: number, height: number): Promise<string[]> {
+  return loc.evaluate((el, [w, h]) => {
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const points: [string, number, number][] = [['top', cx, cy - h / 2 + 1], ['bottom', cx, cy + h / 2 - 1], ['left', cx - w / 2 + 1, cy], ['right', cx + w / 2 - 1, cy]];
+    const out: string[] = [];
+    for (const [side, x, y] of points) {
+      const hit = document.elementFromPoint(x, y);
+      if (!hit || !(hit === el || el.contains(hit))) out.push(`${side} (${Math.round(x)}, ${Math.round(y)}) hits ${hit?.closest('[data-testid]')?.getAttribute('data-testid') ?? hit?.tagName ?? 'nothing'}`);
+    }
+    return out;
+  }, [width, height] as const);
+}
+
+/** The app's touch layout (phones and touch tablets, `html[data-touch]`): no ‹ › arrows there (owner, 2026-10-26). */
+export async function isTouchScreen(page: Page): Promise<boolean> {
+  await expect(page.getByTestId('top-bar')).toBeVisible();
+  return (await page.locator('html[data-touch]').count()) > 0;
+}
+
+/** Swipe on calendar-swipe-area: horizontal 200 px / 150 ms, vertical 300 px. Waits for the route change if any. */
+export async function swipeCalendar(page: Page, dx: number, dy: number) {
+  const area = await box(page.getByTestId('calendar-swipe-area'));
+  const cx = area.x + area.width / 2;
+  const cy = area.y + Math.min(area.height / 2, 400);
+  const before = page.url();
+  await touchDrag(page, { x: cx - dx / 2, y: cy - dy / 2 }, { x: cx + dx / 2, y: cy + dy / 2 }, { durationMs: 150 });
+  if (dx !== 0) await expect.poll(() => page.url(), { message: 'swipe changes the period' }).not.toBe(before);
+}
+
+/**
+ * Moves one period forward or back the way a person does: the ‹ › arrows where the top bar has them (desktop), a swipe
+ * on the calendar on touch screens, which have no arrows (owner, 2026-10-26). Waits for the route change.
+ */
+export async function goToPeriod(page: Page, dir: 'next' | 'prev') {
+  // decided by the device, not by what the bar shows, so a desktop that lost its arrows fails here
+  if (await isTouchScreen(page)) return swipeCalendar(page, dir === 'next' ? -200 : 200, 0);
+  const before = page.url();
+  await page.getByTestId(`nav-${dir}`).click();
+  await expect.poll(() => page.url()).not.toBe(before);
+}

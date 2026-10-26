@@ -2,7 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { gridHourHeight } from './support/grid.js';
-import { box, touchDrag, viewport } from './support/ui.js';
+import { box, hitAreaMisses, isTouchScreen, swipeCalendar, touchDrag, viewport } from './support/ui.js';
 import { attr, tid, type World } from './support/world.js';
 
 Then('the page has no horizontal scroll', async function (this: World) {
@@ -105,23 +105,19 @@ const TOUCH_TARGETS = [
 Then(
   'the navigation, view switcher and create buttons are at least {int} by {int} pixels',
   async function (this: World, width: number, height: number) {
+    // the hit area, not the drawn box: a compact header draws some of these smaller (feature header-layout)
+    // touch screens have no ‹ › arrows (owner, 2026-10-26)
+    const touch = await isTouchScreen(this.page);
     for (const id of TOUCH_TARGETS) {
-      const b = await box(this.page.getByTestId(id).first());
-      expect.soft(b.width, `${id} width`).toBeGreaterThanOrEqual(width);
-      expect.soft(b.height, `${id} height`).toBeGreaterThanOrEqual(height);
+      if (touch && (id === 'nav-prev' || id === 'nav-next')) continue;
+      const target = this.page.getByTestId(id).first();
+      await expect(target).toBeVisible();
+      expect.soft(await hitAreaMisses(target, width, height), `${id} hit area`).toEqual([]);
     }
   },
 );
 
-/** Swipe on calendar-swipe-area: horizontal 200 px / 150 ms, vertical 300 px. Waits for the route change if any. */
-async function swipe(world: World, dx: number, dy: number) {
-  const area = await box(world.page.getByTestId('calendar-swipe-area'));
-  const cx = area.x + area.width / 2;
-  const cy = area.y + Math.min(area.height / 2, 400);
-  const before = world.page.url();
-  await touchDrag(world.page, { x: cx - dx / 2, y: cy - dy / 2 }, { x: cx + dx / 2, y: cy + dy / 2 }, { durationMs: 150 });
-  if (dx !== 0) await expect.poll(() => world.page.url(), { message: 'swipe changes the period' }).not.toBe(before);
-}
+const swipe = (world: World, dx: number, dy: number) => swipeCalendar(world.page, dx, dy);
 
 When('I swipe left on the calendar', async function (this: World) {
   await swipe(this, -200, 0);

@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { api } from '@/api/client';
 import { DEFAULT_BEDTIME } from '@/features/bedtime/bedtime';
 import { cachedLanguagePref, type LanguagePref } from '@/i18n';
-import type { ApproachWindowHours, DaySideBySide, MinEventMinutes, StreakChoice, WeekSideBySide, NavPosition, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, TaskOpen, UndatedDone } from '@/api/types';
+import type { ApproachWindowHours, DaySideBySide, HeaderLayout, MinEventMinutes, StreakChoice, WeekSideBySide, NavPosition, BedtimePrefs, NotifyPrefs, Prefs, SupportCatSetting, TasksFilter, TasksGroupBy, TasksSortBy, TasksSortDir, TaskOpen, UndatedDone } from '@/api/types';
 
 /**
  * Per-person preferences (`GET/PATCH /api/prefs`): Labs switches (experimental views), the Approaching card, its
@@ -60,6 +60,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   const streak = ref<StreakChoice>('off');
   /** The sync icon all the time; off, it shows only while syncing fails. */
   const syncIndicator = ref(false);
+  /** The phone's top bar layout (two rows by default). */
+  const headerLayout = ref<HeaderLayout>('two-rows');
   /** The server's answer has been applied once (the top bar's `data-ready`: a hidden streak is then a choice, not a wait). */
   const loaded = ref(false);
 
@@ -95,6 +97,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     weekSideBySide.value = p.weekSideBySide ?? weekSideBySide.value;
     streak.value = p.streak ?? streak.value;
     syncIndicator.value = p.syncIndicator ?? syncIndicator.value;
+    headerLayout.value = p.headerLayout ?? headerLayout.value;
   }
 
   /** Every preference as it is now (the rollback copy of `set`, and what the last known state keeps). */
@@ -102,7 +105,7 @@ export const usePrefsStore = defineStore('prefs', () => {
     return {
       labs: labs.value, labsViews: labsViews.value, approachBar: approachBar.value, approachWindowHours: approachWindowHours.value, approachingCard: approachingCard.value, taskCategories: taskCategories.value,
       tasksCalendarVisible: tasksCalendarVisible.value, supportCat: supportCat.value,
-      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value, weekTwoRow: weekTwoRow.value, weekTwoRowTop: weekTwoRowTop.value, labsGrowCards: labsGrowCards.value, minEventMinutes: minEventMinutes.value, daySideBySide: daySideBySide.value, weekSideBySide: weekSideBySide.value, streak: streak.value, syncIndicator: syncIndicator.value,
+      versionInCorner: versionInCorner.value, labsOwnThemes: labsOwnThemes.value, leftHanded: leftHanded.value, showCarriedFrom: showCarriedFrom.value, navPhone: navPhone.value, navDesktop: navDesktop.value, tasksGroupBy: tasksGroupBy.value, tasksSortBy: tasksSortBy.value, tasksSortDir: tasksSortDir.value, undatedDone: undatedDone.value, taskOpen: taskOpen.value, tasksFilter: tasksFilter.value, language: language.value, bedtime: bedtime.value, notify: notify.value, weekTwoRow: weekTwoRow.value, weekTwoRowTop: weekTwoRowTop.value, labsGrowCards: labsGrowCards.value, minEventMinutes: minEventMinutes.value, daySideBySide: daySideBySide.value, weekSideBySide: weekSideBySide.value, streak: streak.value, syncIndicator: syncIndicator.value, headerLayout: headerLayout.value,
     };
   }
 
@@ -125,5 +128,5 @@ export const usePrefsStore = defineStore('prefs', () => {
     }
   }
 
-  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, loaded, load, set, current, restore: apply };
+  return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout, loaded, load, set, current, restore: apply };
 });

@@ -124,6 +124,8 @@ export class World {
   serverRss?: number;
   requestCount?: number;
   lighthouseScore?: number;
+  /** The top bar's control boxes noted before switching to left-handed mode (feature header-layout), relative to the bar. */
+  topBarBoxes?: { width: number; boxes: Record<string, { x: number; y: number; w: number; h: number }> };
 
   constructor(
     page: Page,

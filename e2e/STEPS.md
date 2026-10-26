@@ -150,6 +150,7 @@ I open the day view for {date}
 I go to the next period
 I go to the previous period
 I go to today
+the top bar shows no arrows
 I switch to the {view} view
 I go back in the browser
 I reload the page
@@ -175,6 +176,11 @@ the week columns are {string}
 exactly one day is highlighted as today
 no day is highlighted as today
 ```
+
+- "I go to the next / previous period" moves as a person does: with the ‹ › arrows (`nav-next` / `nav-prev`) where the
+  top bar has them (desktop with a mouse), with a swipe left / right on `calendar-swipe-area` on touch screens, which
+  have none (owner, 2026-10-26); either way it waits for the URL to change. "the top bar shows no arrows": `top-bar`
+  has no `nav-prev` and no `nav-next`.
 
 ## Events: display
 
@@ -1959,7 +1965,7 @@ the support cat walks in from the {string}
 - "the X is on the S side of the screen" (S = `left` | `right`): the centre x of the element's bounding box is left
   / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
-  `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
+  `Today button` = `nav-today`, `period title` = `period-title`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
   `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
 - "the create button sits right of the open tasks tray": the left edge of `create-button` is at or right of the right
   edge of `task-tray` (polled: the tray animates its width).
@@ -2987,7 +2993,6 @@ the top bar is at most {int} pixels tall
 the period title is not cut short
 the period title's font size is {int} pixels
 the period title's chevron is shown
-the period title's chevron is not shown
 the Today button is an icon with the label {string}
 the Today button shows the word {string}
 the top bar's buttons are at least {int} by {int} pixels
@@ -3027,18 +3032,18 @@ the top bar's widgets are in reverse order
   "I choose L as the header layout" picks the option labelled L in `settings-header-layout` (a segmented button) and
   waits for the `PATCH /api/prefs` response (200); "the header layout L is selected" = that option has
   `aria-pressed="true"`.
-- "the top bar is in one row": the visible `period-title`, `nav-prev`, `nav-today`, `nav-next` and `settings-button` have
-  vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
+- "the top bar is in one row": the visible `period-title`, `nav-today` and `settings-button` (and `nav-prev` / `nav-next`
+  where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
 - "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
 - "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
   title's font size is N pixels": the computed `font-size` of `period-title .t` is N px. "the period title's chevron is
-  shown / not shown": the `svg` (the ⌄ expand icon) inside `period-title` is visible / not visible (hidden, taking no
-  room); the title stays a button that opens the date picker either way.
+  shown": the `svg` (the ⌄ expand icon) inside `period-title` is visible.
 - "the Today button is an icon with the label L": `nav-today` has `aria-label` L, contains an `svg` and no visible text.
   "the Today button shows the word W": `nav-today`'s visible text is W.
 - "the top bar's buttons are at least W by H pixels": for every visible `button` inside `top-bar` (title, arrows, Today,
-  filter, settings, plant, install), `document.elementFromPoint` at the four points 1 px inside a W x H box centred on
-  the button returns the button or a descendant: the hit area is at least W x H even where the drawn control is
+  filter, settings, plant, install), `document.elementFromPoint` at the four edge midpoints 1 px inside a W x H box
+  centred on the button (the middle of its top, bottom, left and right side) returns the button or a descendant (not the
+  corners: hit testing follows a round button's rounded corners): the hit area is at least W x H even where the drawn control is
   smaller. The streak flame (`streak-flame`) and the sync icon (`sync-status`) are not buttons and are not checked.
   "... other than the plant ...": the same, leaving out `plant-button`. "the plant's tap area is at least W by H
   pixels": the same check for `plant-button` alone (W wide, H tall).
@@ -3079,13 +3084,11 @@ the top bar's widgets are in reverse order
   settings page has `aria-checked="false"`.
 - Left-handed mirror (owner, 2026-10-26). "the sync indicator is on" (Given): `PATCH /api/prefs { syncIndicator: true }`.
   "I note where the top bar's controls are": records, for each visible control of `top-bar`, its box relative to the
-  `top-bar` box: `period-title`, its text (`period-title .t`) and chevron `svg`, `nav-prev`, `nav-today`, `nav-next`,
-  `streak-flame`, `plant-button`, `sync-status`, `filter-button`, `settings-button`, and the top bar's width W. "I turn
+  `top-bar` box: `period-title`, its text (`period-title .t`) and chevron `svg`, `nav-today`, `streak-flame`, `plant-button`, `sync-status`, `filter-button`, `settings-button`, and the top bar's width W. "I turn
   on left-handed mode": `PATCH /api/prefs { leftHanded: true }`, then reloads the same page and waits for the
   calendar. "every control of the top bar is at the mirror image of where it was, within N pixel": for each noted
   control, its left-handed box (relative to `top-bar`) has the same top, width and height and a left of W − (old left +
-  old width), each within N px; `nav-prev` and `nav-next` swap (the mirror of the ‹ box is where › now is, and the
-  reverse), so ‹ Today › keeps its order. "the period title's text is aligned to the outer edge": the right edge of
+  old width), each within N px (phones have no ‹ › arrows to compare). "the period title's text is aligned to the outer edge": the right edge of
   `period-title .t` is at the right edge of `period-title`'s content box (within 1 px), with no free room to its right.
   "the top bar's widgets are in reverse order": the visible widgets (`streak-flame` / `plant-button`, `sync-status`)
   are ordered right to left as they were left to right.

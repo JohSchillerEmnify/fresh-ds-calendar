@@ -13,6 +13,8 @@ export const useCalendarStore = defineStore('calendar', () => {
   const focus = ref<Date | null>(null);
 
   const title = computed(() => periodTitle(view.value, anchor.value));
+  /** The title of the one-row header: the day view's date shortened ("Mon, 12 Oct"), the other views' as `title`. */
+  const shortTitle = computed(() => periodTitle(view.value, anchor.value, true));
   const focusDate = computed(() => focus.value ?? anchor.value);
 
   /** Called by the router after every calendar navigation. */
@@ -34,5 +36,5 @@ export const useCalendarStore = defineStore('calendar', () => {
     focus.value = d;
   }
 
-  return { view, anchor, focus, focusDate, title, setFromRoute, setFocus };
+  return { view, anchor, focus, focusDate, title, shortTitle, setFromRoute, setFocus };
 });
