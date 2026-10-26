@@ -1185,6 +1185,8 @@ the sunflowers look {string}
   `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
   season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
   `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off first so the chosen scene stays).
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or
+  (the Fall and Winter rules of theme-scenes) `Fall` or `Winter`.
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -1825,6 +1827,12 @@ the top bar scene is still
 the scene's cat is moving
 a visitor passes through the top bar scene
 the visitor flies across the top bar scene
+the top bar scene shows the {string}
+the top bar scene does not show the {string}
+the {string} of the top bar scene is not under a control
+the top bar scene shows {int} {string} at rest
+the {string} of the top bar scene glide to their resting spots
+the header layout is set to {string}
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
@@ -1859,6 +1867,25 @@ the support cat is gone within {int} ms
   `sky`, `hills`, `cloud` and `bee`); the step lowercases and
   hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
+- Fall and Winter props and still picture (rules at the end of theme-scenes.feature): the props are parts
+  `autumn-tree`, `leaf-pile` (Fall), `snowy-tree`, `snowman`, `snow-drift` (Winter). "leaf" / "leaves" are the nine
+  particles of the Fall scene (`.season.fall .p`), "snowflakes" those of the Winter scene (`.season.winter .p`); the
+  step counts them like parts. "the top bar scene shows the X": part X is visible in the scene and at least 1 px of it
+  lies inside the `top-bar` box. "does not show the X": no visible element for part X in the scene (`hare` = `.tbs
+  .hare`, as in header-layout). "the X of the top bar scene is not under a control": the box of part X (the drawn
+  shape: for an `svg` its painted content, clipped to the `top-bar` box) does not intersect the box of any visible
+  control glyph in `top-bar` (the same glyph list as "no character of the top bar scene is under a control").
+  "the top bar scene shows N X at rest": exactly N particles of kind X, each fully inside the `top-bar` box and
+  at least 4 px from its top edge, none with a running animation or transition; read twice 500 ms apart, each
+  particle's box is unchanged. "the X of the top bar scene glide to their resting spots": waits until
+  `html[data-scenes]` turns `still`, then reads every particle of kind X at once and again 100 ms later: each one has
+  a running transition or animation on its position (duration above 0), the two readings differ for at least 7 of
+  the 9, and once nothing runs any more each particle is at the spot "at rest" reads; the glide's length is not
+  checked (open owner question).
+- "the header layout is set to L" and "the top bar scene does not show the X" are the same steps as in spec/header's
+  "Header layout" section (`PATCH /api/prefs { headerLayout }`, labels `Two rows` / `One row`); listed here so this
+  branch passes check-steps on its own. Whichever branch merges second keeps one copy.
+- The `"top bar"` region of "the {string} still looks like {string}" is `top-bar` (the whole bar with its scene).
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
   reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in

@@ -13,6 +13,9 @@ Feature: Season themes keep my light or dark choice and bring their own scene
   it was hidden counts as opening it, and choosing a different scene plays it too. With reduced motion the scene is
   still from the start. While the scene moves, its visitor passes once: a butterfly, at Halloween a bat or the little
   ghost (owner, 2026-10-24); there are no later visits until the scene moves again.
+  Fall and Winter used to be only a tint with nine drifting leaves or snowflakes, so their still picture was a bare tint
+  and the cat. Since the owner's decision of 2026-10-26 they have props that stay, and their leaves and snowflakes come
+  to rest at fixed spots where they can be seen (see the two rules at the end).
 
   Background:
     Given the calendar is empty
@@ -123,3 +126,101 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     And the time is 2026-10-31 18:00 and the clock is running
     When I open the week view for 2026-10-31
     Then the visitor flies across the top bar scene
+
+  Rule: Fall and Winter have props of their own that stay
+    Owner, 2026-10-26: the Fall scene has an autumn tree with an orange, red, amber and gold crown on a brown trunk,
+    clearly unlike Halloween's black bare tree, and a leaf pile; the Winter scene has a snowy bare tree, a snowman with
+    a red scarf and a snow drift. Each keeps its size (tree 37 by 46 px, leaf pile 30 by 10, snowman 24 by 30, drift
+    9 px tall) in light and dark and in every header layout, and none sits under a control. In one row no gap is wide
+    enough for the trees and the snowman, so they are left out there, as the Easter hare is; the leaf pile and the
+    drift stay.
+
+    @backlog
+    Scenario Outline: The Fall and Winter props stay when the scene rests
+      Given the scene is "<theme>"
+      And the time is 2026-10-12 08:00 and the clock is running
+      When I open the day view for 2026-10-12
+      And 11 seconds pass
+      Then the top bar scene is still
+      And the top bar scene shows <parts>
+
+      Examples:
+        | theme  | parts                                           |
+        | Fall   | "autumn tree", "leaf pile", "leaf" and "cat"    |
+        | Winter | "snowy tree", "snowman", "snow drift" and "cat" |
+
+    @mobile @backlog
+    Scenario Outline: The Fall and Winter props sit clear of the controls
+      Given the scene is "<theme>"
+      And the header layout is set to "<layout>"
+      When I open the day view for 2026-10-12
+      Then the top bar scene shows the "<prop>"
+      And the "<prop>" of the top bar scene is not under a control
+
+      Examples:
+        | theme  | layout   | prop        |
+        | Fall   | Two rows | autumn tree |
+        | Fall   | Two rows | leaf pile   |
+        | Fall   | One row  | leaf pile   |
+        | Winter | Two rows | snowy tree  |
+        | Winter | Two rows | snowman     |
+        | Winter | Two rows | snow drift  |
+        | Winter | One row  | snow drift  |
+
+    @mobile @backlog
+    Scenario: In one row the Fall scene leaves out its tree
+      Given the scene is "Fall"
+      And the header layout is set to "One row"
+      When I open the day view for 2026-10-12
+      Then the top bar scene does not show the "autumn tree"
+      And the top bar scene shows the "leaf pile"
+
+    @mobile @backlog
+    Scenario: In one row the Winter scene leaves out its tree and the snowman
+      Given the scene is "Winter"
+      And the header layout is set to "One row"
+      When I open the day view for 2026-10-12
+      Then the top bar scene does not show the "snowy tree"
+      And the top bar scene does not show the "snowman"
+      And the top bar scene shows the "snow drift"
+
+  Rule: When the Fall or Winter scene rests, its leaves or snowflakes lie where they can be seen
+    Owner, 2026-10-26: the nine leaves (Fall) or snowflakes (Winter) come to rest at hand-placed spots inside the
+    picture, the same spots every time and in every header layout, so the still picture is never a bare tint. The
+    Reduced and Off animation levels show that same picture from the start. When the moving ends, the leaves and
+    snowflakes glide to their spots rather than jump; how long the glide takes is still open.
+
+    @backlog
+    Scenario Outline: After the moving the leaves or snowflakes lie still where I can see them
+      Given the scene is "<theme>"
+      And the time is 2026-10-12 08:00 and the clock is running
+      When I open the day view for 2026-10-12
+      And 11 seconds pass
+      Then the top bar scene shows 9 "<particles>" at rest
+      And the "top bar" still looks like "scene-<theme>-still"
+
+      Examples:
+        | theme  | particles  |
+        | Fall   | leaves     |
+        | Winter | snowflakes |
+
+    @backlog
+    Scenario Outline: With fewer animations the scene shows the same still picture from the start
+      Given the animation level is "<level>"
+      And the scene is "<theme>"
+      When I open the day view for 2026-10-12
+      Then the top bar scene shows 9 "<particles>" at rest
+      And the "top bar" still looks like "scene-<theme>-still"
+
+      Examples:
+        | level   | theme  | particles  |
+        | Reduced | Fall   | leaves     |
+        | Off     | Winter | snowflakes |
+
+    @backlog
+    Scenario: When the moving ends the leaves glide to their spots
+      Given the scene is "Fall"
+      And the time is 2026-10-12 08:00 and the clock is running
+      When I open the day view for 2026-10-12
+      And 10 seconds pass
+      Then the "leaves" of the top bar scene glide to their resting spots
