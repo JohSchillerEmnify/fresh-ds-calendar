@@ -431,6 +431,85 @@ describe('drag state machine', () => {
   });
 });
 
+describe('carry: the card may leave the page mid-drag (the view turns to another day or week)', () => {
+  const ghost = () => document.querySelector<HTMLElement>('[data-drag-ghost]');
+  it('a ghost copy at the card\'s place keeps following, the hidden card can go, and the drop still lands', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    const g = ghost()!;
+    expect(g).not.toBeNull();
+    expect([g.style.position, g.style.left, g.style.top, g.style.width, g.style.height]).toEqual(['fixed', '40px', '40px', '100px', '40px']);
+    expect(el.style.visibility).toBe('hidden');
+    el.remove();
+    move(80, 90);
+    vi.advanceTimersByTime(200);
+    expect(g.style.transform).toContain('scale(1.05)');
+    up(80, 90);
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(ghost()).toBeNull();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('touch events sent to the removed card still carry the drag (iOS after a pointercancel)', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    c.carry();
+    el.remove();
+    const tm = touch('touchmove', 80, 90);
+    el.dispatchEvent(tm);
+    expect(tm.defaultPrevented).toBe(true);
+    vi.advanceTimersByTime(50);
+    expect(ghost()!.style.transform).toContain('scale(1.05)');
+    el.dispatchEvent(touch('touchend', 80, 90, true));
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+  });
+  it('a destroy while carried (the card unmounted) waits for the drop, then cleans up', async () => {
+    const rem = vi.spyOn(window, 'removeEventListener');
+    const { c, onDrop } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    c.destroy();
+    expect(c.state).toBe('dragging');
+    up(80, 90);
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(rem.mock.calls.some((x) => x[0] === 'pointermove')).toBe(true);
+    down(); expect(c.state).toBe('idle'); // fully destroyed: the pointerdown listener is gone
+    expect(ghost()).toBeNull();
+    rem.mockRestore();
+  });
+  it('a cancel while carried removes the ghost', async () => {
+    const { c } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    c.cancel();
+    await flush(); finishAll(); await flush();
+    expect(ghost()).toBeNull();
+    expect(c.state).toBe('idle');
+    expect(el.style.visibility).toBe('');
+  });
+  it('refresh re-runs the hit test where the pointer is (the grid changed under a still pointer)', () => {
+    const hitTest = vi.fn(() => target);
+    const { c } = make({ hitTest });
+    down();
+    vi.advanceTimersByTime(400);
+    const n = hitTest.mock.calls.length;
+    c.refresh();
+    expect(hitTest.mock.calls.length).toBe(n + 1);
+    c.destroy();
+  });
+});
+
 describe('drag inside a scroll container', () => {
   // The card lives inside the scroller: scrolling moves its layout box (and the grid) up by scrollTop.
   let sc: HTMLElement;

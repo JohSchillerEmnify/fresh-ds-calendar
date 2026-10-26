@@ -11,6 +11,7 @@
  *                 pending --move>slop (touch)--> idle (scroll wins)     dragging --Escape/cancel--> returning -> idle
  *                 dragging (touch) --pointercancel--> dragging on touch events (touchend drops, touchcancel cancels)
  *                 dropping: onDrop rejects -> returning (spring back) -> idle
+ *                 dragging --carry()--> dragging on a ghost copy: the card itself may leave the page (the view turns)
  */
 import { getCurrentScope, isRef, onScopeDispose, watch, type Ref } from 'vue';
 import { animate } from './animate';
@@ -125,6 +126,14 @@ export interface DragController {
   destroy(): void;
   /** Cancel an active drag (springs back). */
   cancel(): void;
+  /**
+   * Lets the card leave the page while it is lifted (the calendar turns to another day or week under the drag): a fixed
+   * copy of the card (`data-drag-ghost`) takes over the drawing, the card is hidden, its own touch listeners keep carrying
+   * a touch drag even once it is removed (iOS sends a touch's events to where it started), and a destroy waits for the drop.
+   */
+  carry(): void;
+  /** Re-runs the hit test at the pointer (the grid under a still pointer changed). */
+  refresh(): void;
 }
 
 export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): DragController {
@@ -164,6 +173,12 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   let locked: HTMLElement | null = null;
   let lockedOverflow = '';
   let prevStyle = { transform: '', transition: '', zIndex: '', boxShadow: '', touchAction: '', userSelect: '', willChange: '', position: '' };
+  /** The fixed copy that draws a carried drag (see `carry`), the card's visibility before, and a destroy waiting for the drop. */
+  let ghost: HTMLElement | null = null;
+  let prevVisibility = '';
+  let destroyLater = false;
+  /** Touch events the window listeners already handled (the card's own listeners skip them; they serve a removed card). */
+  const seenTouch = new WeakSet<Event>();
   const sx = new Spring1D(springs.follow);
   const sy = new Spring1D(springs.follow);
   const tilt = new Spring1D({ stiffness: 300, damping: 0.7 });
@@ -209,6 +224,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   const onWinUp = (e: PointerEvent) => handleUp(e);
   const onWinCancel = (e: PointerEvent) => handleCancelEvent(e);
   const onTouchMove = (e: TouchEvent) => {
+    seenTouch.add(e);
     if (state !== 'dragging') return;
     // a sheet's own swipe-to-dismiss underneath never sees the moves of a drag
     e.stopPropagation();
@@ -226,6 +242,14 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
    */
   const onElTouchMove = (e: TouchEvent) => {
     if (state === 'dragging' && e.cancelable) e.preventDefault();
+    // a carried card that left the page: its touch events no longer reach the window
+    if (ghost && !seenTouch.has(e)) onTouchMove(e);
+  };
+  const onElTouchEnd = (e: TouchEvent) => {
+    if (ghost && !seenTouch.has(e)) onTouchEnd(e);
+  };
+  const onElTouchCancel = (e: TouchEvent) => {
+    if (ghost && !seenTouch.has(e)) onTouchCancel(e);
   };
   /** Notes the finger of this press (passive): only a press that sends touch events can be carried by them. */
   const onElTouchStart = (e: TouchEvent) => {
@@ -234,6 +258,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   /** This press's finger in a touch list (a second finger never steers the drag). */
   const finger = (list: TouchList | undefined) => (list ? [...list].find((t) => t.identifier === touchId) : undefined);
   const onTouchEnd = (e: TouchEvent) => {
+    seenTouch.add(e);
     if (!touchFollow || state !== 'dragging') return;
     const t = finger(e.changedTouches);
     if (!t) return;
@@ -242,6 +267,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     drop();
   };
   const onTouchCancel = (e: TouchEvent) => {
+    seenTouch.add(e);
     if (touchFollow && state === 'dragging' && finger(e.changedTouches)) cancel();
   };
   const onKey = (e: KeyboardEvent) => {
@@ -311,6 +337,30 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       if (pointerId >= 0 && el.hasPointerCapture?.(pointerId)) el.releasePointerCapture(pointerId);
     } catch { /* ignore */ }
   }
+  /** Removes the carry ghost and shows the card again (it may be gone from the page by now). */
+  function dropGhost() {
+    if (!ghost) return;
+    ghost.remove();
+    ghost = null;
+    el.style.visibility = prevVisibility;
+  }
+
+  function carry() {
+    if (state !== 'dragging' || ghost || !ctx) return;
+    const r = ctx.originRect;
+    const g = el.cloneNode(true) as HTMLElement;
+    g.dataset.dragGhost = 'true';
+    g.setAttribute('aria-hidden', 'true');
+    Object.assign(g.style, {
+      position: 'fixed', left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: '0',
+      zIndex: '60', pointerEvents: 'none', transition: 'none', transform: el.style.transform, boxShadow: el.style.boxShadow,
+    });
+    document.body.appendChild(g);
+    ghost = g;
+    prevVisibility = el.style.visibility;
+    el.style.visibility = 'hidden';
+  }
+
   function restoreStyle() {
     el.style.transform = prevStyle.transform;
     el.style.transition = prevStyle.transition;
@@ -465,7 +515,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   /** How far the card's layout box moved since pick-up because its scroll container scrolled (0 when outside it). */
   function scrollShift(): Point {
-    if (!sc || !sc.contains(el)) return { x: 0, y: 0 };
+    // a ghost sits at the pick-up rect, fixed: the scroll of the grid no longer moves what is drawn
+    if (ghost || !sc || !sc.contains(el)) return { x: 0, y: 0 };
     return { x: sc.scrollLeft - scroll0.x, y: sc.scrollTop - scroll0.y };
   }
 
@@ -479,8 +530,9 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   function paint() {
     const { vx } = vt.velocity();
     tilt.target = clamp(vx / 160, -MAX_TILT, MAX_TILT);
-    el.style.transform = `translate3d(${sx.x.toFixed(2)}px, ${sy.x.toFixed(2)}px, 0) rotate(${tilt.x.toFixed(2)}deg) scale(1.05)`;
-    el.style.boxShadow = '0 14px 30px rgba(0,0,0,0.28), 0 4px 10px rgba(0,0,0,0.18)';
+    const v = ghost ?? el;
+    v.style.transform = `translate3d(${sx.x.toFixed(2)}px, ${sy.x.toFixed(2)}px, 0) rotate(${tilt.x.toFixed(2)}deg) scale(1.05)`;
+    v.style.boxShadow = '0 14px 30px rgba(0,0,0,0.28), 0 4px 10px rgba(0,0,0,0.18)';
   }
 
   function autoScroll(dt: number) {
@@ -551,9 +603,11 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
 
   function finishVisual() {
     cancelAnims();
+    dropGhost();
     restoreStyle();
     reset();
     setState('idle');
+    if (destroyLater) destroyNow();
   }
 
   function springBack(from: Point, scaleFrom = 1.05) {
@@ -582,6 +636,8 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       return;
     }
     if (state !== 'dragging') return;
+    // a carried card's origin is on another day or week: nothing to spring back to on screen
+    if (ghost) return finishVisual();
     const from = currentOffset();
     setTarget(null);
     el.dataset.dragging = 'false';
@@ -605,6 +661,7 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
     const from = currentOffset();
     if (!t) {
       el.dataset.dragging = 'false';
+      if (ghost) return finishVisual();
       springBack(from);
       return;
     }
@@ -622,6 +679,13 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       p = opts.onDrop(t);
     } catch (err) {
       p = Promise.reject(err);
+    }
+    if (ghost) {
+      // the moved card is drawn at its new place by the consumer: the ghost goes, a failure rolls back off screen
+      Promise.resolve(p).catch(() => undefined);
+      spawnBling(blingAt);
+      finishVisual();
+      return;
     }
     if (optimistic) {
       // The consumer has applied (or is applying) the optimistic move: clear our transform, wobble at the new place.
@@ -689,9 +753,30 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
   el.addEventListener('pointerdown', onDown);
   el.addEventListener('touchmove', onElTouchMove, { passive: false });
   el.addEventListener('touchstart', onElTouchStart, { passive: true });
+  el.addEventListener('touchend', onElTouchEnd);
+  el.addEventListener('touchcancel', onElTouchCancel);
   el.addEventListener('dragstart', preventNative);
   function preventNative(e: Event) {
     e.preventDefault();
+  }
+
+  function destroyNow() {
+    destroyLater = false;
+    el.removeEventListener('pointerdown', onDown);
+    el.removeEventListener('touchmove', onElTouchMove);
+    el.removeEventListener('touchstart', onElTouchStart);
+    el.removeEventListener('touchend', onElTouchEnd);
+    el.removeEventListener('touchcancel', onElTouchCancel);
+    if (clickTimer) clearTimeout(clickTimer);
+    clickTimer = null;
+    el.removeEventListener('dragstart', preventNative);
+    window.removeEventListener('click', onClickCapture, true);
+    cancelAnims();
+    dropGhost();
+    if (state !== 'idle') restoreStyle();
+    reset();
+    state = 'idle';
+    delete el.dataset.dragging;
   }
 
   return {
@@ -699,19 +784,17 @@ export function createDragController<K>(el: HTMLElement, opts: DragOptions<K>): 
       return state;
     },
     cancel,
+    carry,
+    refresh() {
+      if (state === 'dragging') update(cur.x, cur.y);
+    },
     destroy() {
-      el.removeEventListener('pointerdown', onDown);
-      el.removeEventListener('touchmove', onElTouchMove);
-      el.removeEventListener('touchstart', onElTouchStart);
-      if (clickTimer) clearTimeout(clickTimer);
-      clickTimer = null;
-      el.removeEventListener('dragstart', preventNative);
-      window.removeEventListener('click', onClickCapture, true);
-      cancelAnims();
-      if (state !== 'idle') restoreStyle();
-      reset();
-      state = 'idle';
-      delete el.dataset.dragging;
+      // a carried drag outlives its card's component: it ends at the drop
+      if (ghost && state === 'dragging') {
+        destroyLater = true;
+        return;
+      }
+      destroyNow();
     },
   };
 }
@@ -738,6 +821,8 @@ export function useDraggable<K>(elRef: Ref<HTMLElement | null | undefined> | (()
   return {
     get state() { return ctl?.state ?? 'idle'; },
     cancel: () => ctl?.cancel(),
+    carry: () => ctl?.carry(),
+    refresh: () => ctl?.refresh(),
     dispose,
   };
 }
