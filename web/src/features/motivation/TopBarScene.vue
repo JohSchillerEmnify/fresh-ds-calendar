@@ -40,6 +40,9 @@ const bind = computed(() =>
    down so they keep their place at the top. Fall and Winter keep their own spots (FallWinterScene) and their own sky: only the box. */
 /* One row: the 49 px hare is left out (owner-approved mockup, scenes.cjs; its only gap is the cat's) */
 [data-layout='one-row'] .tbs :deep(.hare) { display: none; }
+/* one row: Mordor's tower, with its eye, stands in the gap between the date's chevron and the Today pill, clear of every control */
+[data-layout='one-row'] .tbs :deep(.mo-tower) { right: auto; left: calc(43% - 39px); }
+html[data-hand='left'][data-touch] [data-layout='one-row'] .tbs :deep(.mo-tower) { left: calc(57% - 39px); }
 [data-layout='one-row'] .tbs { --d: 44px; --t60: 8px; --t58: 6px; --t56: 4px; }
 [data-layout='two-rows'] .tbs { --d: 12px; --t60: 0px; --t58: 0px; --t56: 0px; }
 :is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(:is(.life, .mo, .sl)) { inset: auto 0 0 0; height: 96px; overflow: visible; }

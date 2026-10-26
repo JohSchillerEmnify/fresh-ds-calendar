@@ -3113,7 +3113,7 @@ the top bar's widgets are in reverse order
 - "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
   long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
 - "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,
-  `.tbs .ghost`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
+  `.tbs .ghost`, Mordor's `.tbs [data-part=eye]`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
   arrow, Today, flame, plant, sync, filter and settings icons: for an `svg` the box of its drawn `path`).
 - "the top bar scene's parts are drawn at their full size": every scene layer container (`.tbs .life`, `.tbs .mo`,
   `.tbs .sl`) is 96 px tall (the as-built scene box), whatever the bar's height; the bar clips it at its bottom edge.
