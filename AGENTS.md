@@ -47,6 +47,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
   number. `git add` named files, never `-A`.
 
 ## Rules
+- **Don't reinvent the wheel:** before writing infrastructure (storage wrappers, rate limits, recurrence, gestures, sync, parsing), use a maintained library or an existing store in the repo; check its current docs first. Any own implementation needs a one-line reason in the report.
 - **Reuse before adding:**
   - `AdaptiveSheet` for overlays;
   - the one prefs mechanism for settings;
