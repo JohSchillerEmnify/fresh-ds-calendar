@@ -4,6 +4,11 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Approaching card track overlaps other items, e.g. the "signed in" and streak notices** (owner, 2026-10-30, live
+  0.23.0+8952b21). Items on the Approaching track and other things on screen (the signed-in note, the streak note,
+  others) lie on top of each other. Expected: nothing covers anything; notices and the track each stay readable and
+  tappable. Open: which device/layout, and which one is on top. Screenshot + reproducing test first, then fix.
+
 - **Approaching card: back-to-back entries cover the titles of the ones before them** (owner, 2026-10-26, screenshot,
   phone, live 0.23.0+14aeaaf). Four entries in quick succession in two lanes (Bachata Sensual → HipHop, Pauke
   Retournieren → Hellbreakers): the two in front have their titles behind the bars that follow, so "Bachata Sensual"
