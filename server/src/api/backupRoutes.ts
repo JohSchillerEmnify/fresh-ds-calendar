@@ -34,7 +34,11 @@ export function backupRoutes(ctx: Ctx): Hono {
   });
   r.post('/backup/restore', async (c) => {
     try {
-      return c.json(await ctx.backup.restore(sub(c)));
+      const who = sub(c);
+      const restored = await ctx.backup.restore(who);
+      // a restore rewrites the person's files behind the API: every kind may have changed
+      ctx.changes.emitAll([who]);
+      return c.json(restored);
     } catch (e) {
       throw toApi(e);
     }

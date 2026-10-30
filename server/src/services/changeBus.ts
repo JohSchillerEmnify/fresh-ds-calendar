@@ -7,6 +7,9 @@
 export type ChangeKind =
   | 'events' | 'taskLists' | 'calendars' | 'settings' | 'prefs' | 'theme' | 'themes' | 'templates' | 'canvas' | 'motivation' | 'shares';
 
+/** Every kind, for a write that may change anything (a restore, a demo reset). */
+export const ALL_KINDS: readonly ChangeKind[] = ['events', 'taskLists', 'calendars', 'settings', 'prefs', 'theme', 'themes', 'templates', 'canvas', 'motivation', 'shares'];
+
 export interface ChangeEvent {
   /** Google `sub`s of the people whose data changed (the person's own, plus the members of a shared list). */
   subs: string[];
@@ -23,6 +26,11 @@ export class ChangeBus {
   on(listener: ChangeListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  /** Reports a write that may have changed every kind of data. */
+  emitAll(subs: string[]): void {
+    for (const k of ALL_KINDS) this.emit(subs, k);
   }
 
   /** Reports one successful write to every listener (a call with no people is ignored). */

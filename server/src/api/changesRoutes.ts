@@ -8,12 +8,13 @@ import { createHash } from 'node:crypto';
 import type { Context, Hono } from 'hono';
 import type { Ctx } from '../context.js';
 import { validation } from '../lib/errors.js';
-import { isLocalDate } from '../lib/time.js';
+import { dayNumber, isLocalDate } from '../lib/time.js';
 import { windowOf } from '../services/changeFeed.js';
 import type { CalendarService, ChangeState } from '../services/calendar.js';
 
 interface Cursor extends ChangeState { v: 1; files: Record<string, string> }
 const MAX_CURSOR_CHARS = 32_768;
+const MAX_DATE_SKEW_DAYS = 3;
 
 const isStringMap = (v: unknown): v is Record<string, string> => typeof v === 'object' && v !== null && !Array.isArray(v) && Object.values(v).every((x) => typeof x === 'string');
 
@@ -41,8 +42,11 @@ export interface ChangesViews {
 
 export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
   r.get('/changes', async (c) => {
-    const today = c.req.query('today') ?? ctx.motivation.today();
-    if (!isLocalDate(today)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
+    const asked = c.req.query('today');
+    if (asked !== undefined && !isLocalDate(asked)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
+    // the device's date only counts when it is close to the server's (time zones, a day change); a wild one must not size the window
+    const serverToday = ctx.motivation.today();
+    const today = asked !== undefined && Math.abs(dayNumber(asked) - dayNumber(serverToday)) <= MAX_DATE_SKEW_DAYS ? asked : serverToday;
     const sub = v.person(c);
     const cal = v.cal(c);
     const prev = decodeCursor(c.req.query('cursor'));

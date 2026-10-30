@@ -95,8 +95,11 @@ model {
     liveApi = component 'Live updates API' {
       description 'Holds one Server-Sent Events connection per open app (session required) and sends a content-free changed nudge on it, with a keep-alive comment every 25 seconds'
     }
+    changeFeed = component 'Change feed' {
+      description 'Reads one person\'s events and task lists through one Google sync token per calendar; an expired token (410), a calendar new to the device or too many changed series give that calendar in full; one failing calendar leaves the others answered'
+    }
     publisher = component 'Change publisher' {
-      description 'In-memory publish and subscribe: every write that goes through the server publishes to the person and to every member of a shared list; several server instances would need a shared broker (ADR 0030)'
+      description 'The change bus: in-memory publish and subscribe, fed by one middleware that reports every successful write (and a restore or demo reset as every kind) to the person and to every member of a shared list; several server instances would need a shared broker (ADR 0030)'
     }
     googlePoller = component 'Google poller' {
       description 'While at least one app of a person is connected, asks Google for changes every 20 seconds through the sync tokens and publishes when there are any'
@@ -146,6 +149,8 @@ model {
     }
 
     prefsApi -> prefsStore 'reads and writes'
+    calendarService -> changeFeed 'reads the changes of events and task lists through it'
+    changeFeed -> googleProvider 'lists each calendar by its sync token and a changed series by its instances'
     changesApi -> calendarService 'asks for the events changed since each calendar\'s sync token, limited to ±1 year, and every task list'
     calendarService -> googleProvider 'lists changes with a sync token per calendar; on 410 Gone lists the calendar again in full'
     liveApi -> publisher 'subscribes each open app to its person\'s nudges'

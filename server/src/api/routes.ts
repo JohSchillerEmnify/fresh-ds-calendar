@@ -127,12 +127,13 @@ export function apiRoutes(ctx: Ctx): Hono {
     const listId = /^\/tasklists\/([^/]+)/.exec(path)?.[1];
     const me = person(c);
     // the members are read before the write too: a delete or a leave removes the list they are found by
-    const before = kinds.length ? sharedPeople(me, listId) : [];
+    const rulePeople = () => (path.startsWith('/categories') ? Object.values(ctx.shared.rulesOf(me)).map((p) => p.sub) : []);
+    const before = kinds.length ? [...sharedPeople(me, listId), ...rulePeople()] : [];
     await next();
     if (!kinds.length || c.res.status >= 400) return;
     const shown = (await c.res.clone().json().catch(() => null)) as { id?: unknown } | null;
     const own = [me, ...before, ...sharedPeople(me, listId), ...sharedPeople(me, typeof shown?.id === 'string' ? shown.id : undefined),
-      ...(path.startsWith('/categories') ? Object.values(ctx.shared.rulesOf(me)).map((p) => p.sub) : [])];
+      ...rulePeople()];
     for (const k of kinds) ctx.changes.emit(k === 'settings' ? [...own, ...ctx.people.all().map((p) => p.sub)] : own, k);
   });
 
@@ -481,6 +482,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     ctx.calendar.invalidate();
     motivation.reset();
     await ctx.seed();
+    ctx.changes.emitAll([...new Set([person(c), ...ctx.people.all().map((p) => p.sub)])]);
     return c.json({ ok: true });
   });
 

@@ -114,3 +114,26 @@ describe('GoogleProvider sync tokens (mocked HTTP)', () => {
     expect(calls[0]!.url.searchParams.get('timeMin')).toBe('2026-10-01T00:00:00+02:00');
   });
 });
+
+describe('GoogleProvider truncated reads (mocked HTTP)', () => {
+  it('asks for a full list again when a change stream is too large to read to its end', async () => {
+    const page = Array.from({ length: 2500 }, (_, i) => gev({ id: `e${i}` }));
+    const { provider } = google(() => ({ json: { items: page, nextPageToken: 'more' } }));
+    await expect(provider.listChanges('primary', 'T1')).rejects.toBeInstanceOf(SyncTokenExpiredError);
+  });
+
+  it('asks for a full list again when the last page carries no new token', async () => {
+    const { provider } = google(() => ({ json: { items: [gev()] } }));
+    await expect(provider.listChanges('primary', 'T1')).rejects.toBeInstanceOf(SyncTokenExpiredError);
+  });
+
+  it('pages through every instance of a series and never returns a partial series', async () => {
+    const { provider, calls } = google((c) => (c.url.searchParams.get('pageToken') === 'p2'
+      ? { json: { items: [gev({ id: 'm_2', recurringEventId: 'm' })] } }
+      : { json: { items: [gev({ id: 'm_1', recurringEventId: 'm' })], nextPageToken: 'p2' } }));
+    expect((await provider.listInstances('primary', 'm', 'a', 'b')).map((e) => e.id)).toEqual(['m_1', 'm_2']);
+    expect(calls).toHaveLength(2);
+    const endless = google(() => ({ json: { items: [gev()], nextPageToken: 'again' } }));
+    await expect(endless.provider.listInstances('primary', 'm', 'a', 'b')).rejects.toThrow();
+  });
+});

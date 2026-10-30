@@ -1,7 +1,7 @@
 /** The one hook that reports every successful write (ChangeBus) and what the API reports to it. */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mockSub } from '../src/auth/people.js';
-import { ChangeBus, kindsOfPath, type ChangeEvent } from '../src/services/changeBus.js';
+import { ALL_KINDS, ChangeBus, kindsOfPath, type ChangeEvent } from '../src/services/changeBus.js';
 import { LOCAL_PERSON } from '../src/services/prefsStore.js';
 import { makeApp, sessionCookie, type TestApp } from './helpers.js';
 
@@ -70,5 +70,21 @@ describe('what the API reports', () => {
     seen.length = 0;
     await t.json('POST', `/api/tasklists/${shared.id}/leave`, undefined, anna);
     expect(seen.map((e) => [e.kind, [...e.subs].sort()])).toEqual([['taskLists', both]]);
+  });
+
+  it('reports a category share to the person it is moved to and to the one it was taken from', async () => {
+    const JO = 'jo@example.com', ANNA = 'anna@example.com';
+    await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+    const jo = { cookie: await sessionCookie(t, JO) };
+    await t.json('PUT', '/api/categories/shopping/share', { person: mockSub(ANNA) }, jo);
+    expect(seen.find((e) => e.kind === 'shares')!.subs.sort()).toEqual([mockSub(JO), mockSub(ANNA)].sort());
+    seen.length = 0;
+    await t.json('PUT', '/api/categories/shopping/share', { person: null }, jo);
+    expect(seen.find((e) => e.kind === 'shares')!.subs).toContain(mockSub(ANNA));
+  });
+
+  it('reports a demo reset as a change of every kind', async () => {
+    await t.json('POST', '/api/demo/reset');
+    expect(seen.map((e) => e.kind).sort()).toEqual([...ALL_KINDS].sort());
   });
 });

@@ -23,6 +23,10 @@ export interface GoogleProviderOptions {
   guard?: Omit<GuardOptions, 'subHash'>;
 }
 
+/** Most events one list read collects before it gives up, and most pages of instances read for one series. */
+const MAX_ITEMS = 10_000;
+const MAX_INSTANCE_PAGES = 40;
+
 interface GoogleErrorBody { status?: string; errors?: { reason?: string }[]; details?: { reason?: string }[] }
 
 /** Google's 403 reasons for a token that lacks the needed scope. */
@@ -217,18 +221,24 @@ export class GoogleProvider implements CalendarProvider {
       for (const e of res.data.items ?? []) items.push(fromApi(e, calendarId));
       pageToken = res.data.nextPageToken ?? undefined;
       nextSyncToken = res.data.nextSyncToken ?? undefined;
-    } while (pageToken && items.length < 10_000);
+    } while (pageToken && items.length < MAX_ITEMS);
+    // a stream we could not read to its end gives no new token: keeping the old one would repeat this forever, so list again in full
+    if (pageToken || !nextSyncToken) throw new SyncTokenExpiredError('Change stream too large or without a new token');
     return { items, nextSyncToken };
   }
 
   async listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {
     const items: GoogleEvent[] = [];
     let pageToken: string | undefined;
+    let pages = 0;
     do {
       const res = await this.call('events.instances', () => this.o.api.events.instances({ calendarId, eventId: seriesId, timeMin, timeMax, maxResults: 2500, pageToken }));
       for (const e of res.data.items ?? []) items.push(fromApi(e, calendarId));
       pageToken = res.data.nextPageToken ?? undefined;
-    } while (pageToken && items.length < 10_000);
+      pages++;
+    } while (pageToken && pages < MAX_INSTANCE_PAGES);
+    // a partial series must never pass as complete
+    if (pageToken) throw new ProviderError('Too many instances of one repeating event');
     return items.filter((e) => e.status !== 'cancelled');
   }
 }

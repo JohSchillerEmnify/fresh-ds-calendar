@@ -332,7 +332,8 @@ Per person (`local` while sign-in is off); all `204` unless noted. Why: feature 
 ### `GET /api/changes[?cursor=<opaque>][&today=YYYY-MM-DD]` → 200 (device sync, ADR 0025)
 
 What changed for the signed-in person since the device's cursor. Without a cursor, or with one that is not ours or is
-unreadable, everything the device keeps is answered in full (`full: true`). `today` defaults to the app clock's today.
+unreadable, everything the device keeps is answered in full (`full: true`). `today` is the device's date; it defaults to the
+app clock's today and is ignored (the server's today is used) when it is more than 3 days away from it.
 The cursor is opaque to the app: send back the `cursor` of the last answer you applied. It is per device (it holds the
 state of that device's last answer; two devices of one person sync independently) and is only a position, never a
 secret. Apply an answer in this order: `calendars`, then per kind the `replace` / `series` / `removed` drops, then
@@ -349,9 +350,10 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
     "replace": ["work"],
     "series": [{ "calendarId": "primary", "seriesId": "abc" }],
     "removed": [{ "calendarId": "primary", "id": "def" }],
-    "upserts": [ /* CalendarEvent, as GET /api/items */ ]
+    "upserts": [ /* CalendarEvent, as GET /api/items */ ],
+    "failed": []
   },
-  "taskLists": { "replace": false, "series": ["abc"], "removed": ["def", "shared:x1"], "upserts": [ /* TaskList */ ] },
+  "taskLists": { "replace": false, "series": ["abc"], "removed": ["def", "shared:x1"], "upserts": [ /* TaskList */ ], "failed": false },
   "files": { "prefs": { }, "settings": { } }
 }
 ```
@@ -366,6 +368,12 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   expired token is never an error.
 - `events.series` / `taskLists.series`: repeating events whose stored instances the device drops before applying
   `upserts` (their current instances inside the window are in `upserts`).
+- `events.failed` / `taskLists.failed`: calendars (the tasks calendar) that could not be read this time. The device keeps
+  its copy of them, their position in the cursor is unchanged, and the next call tries again; the rest of the answer is
+  complete. Person-wide failures (rate limit, sign-in again, missing calendar permission) still fail the whole call.
+- A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
+  event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
+  answered as `replace` instead of one Google call per series.
 - `events.removed`: deleted or moved away (the same id may come back in `upserts` for the new calendar, so apply drops first).
 - `taskLists`: all of the person's task lists, of any date and undated ones included, plus shared lists. `replace` is
   true when the tasks calendar was answered in full: the device drops all its own (non-`shared:`) lists first; shared
@@ -378,7 +386,8 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`).
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
 - Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
-  repeating event; a first or `replace` answer costs two list calls per calendar. The rate guard applies: while Google
+  repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token
+  comes from a read without time range or filters (Google refuses those together with a sync token). The rate guard applies: while Google
   rate-limits, the answer is `503 RATE_LIMITED` with `Retry-After`, as for `GET /api/items`; the device keeps its data
   and shows no banner.
 - Errors: `400` for a bad `today`.

@@ -1,5 +1,6 @@
 /** `GET /api/changes` (ADR 0025, spec/API.md): the device's "changes since" read, against the mock provider. */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ProviderError } from '../src/providers/CalendarProvider.js';
 import { mockSub } from '../src/auth/people.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
@@ -105,6 +106,7 @@ describe('with a cursor', () => {
   it('loads the days that enter the window as the days pass', async () => {
     await ev('In two years', '2027-10-20');
     const c0 = (await changes()).cursor;
+    await freeze(t, '2026-10-20T08:00:00+02:00');
     const next = await t.json('GET', `/api/changes?today=2026-10-20&cursor=${c0}`);
     expect(next.body.window.to).toBe('2027-10-21');
     expect(titles(next.body.events.upserts)).toEqual(['In two years']);
@@ -205,5 +207,71 @@ describe('shared lists', () => {
     await anna('POST', `/api/tasklists/${shared.id}/leave`);
     expect((await anna('GET', url(a2))).body.taskLists.removed).toEqual([shared.id]);
     expect((await jo('GET', url((await jo('GET', url(c0))).body.cursor))).body.taskLists.removed).toEqual([]);
+  });
+});
+
+describe('robustness', () => {
+  it('takes the sync token from a read without a time range or filter, which Google refuses together with a token', async () => {
+    const spy = vi.spyOn(t.app.ctx.mock!, 'listEvents');
+    await changes();
+    const tokenReads = spy.mock.calls.map((c) => c[0]).filter((p) => p.singleEvents === false);
+    expect(tokenReads.length).toBeGreaterThanOrEqual(3);
+    for (const p of tokenReads) expect(p).not.toHaveProperty('timeMin');
+    for (const p of tokenReads) expect(p).not.toHaveProperty('timeMax');
+    for (const p of tokenReads) expect(p).not.toHaveProperty('privateExtendedProperty');
+  });
+
+  it('ignores a date of the device that is far from the server\'s: the window stays around the server\'s today', async () => {
+    for (const today of ['9999-12-31', '0000-01-01', '2026-10-30']) {
+      const r = await t.json('GET', `/api/changes?today=${today}`);
+      expect(r.status, today).toBe(200);
+      expect(r.body.window).toEqual({ from: '2025-10-12', to: '2027-10-13' });
+    }
+    expect((await t.json('GET', '/api/changes?today=nope')).status).toBe(400);
+    expect((await t.json('GET', '/api/changes?today=2026-10-14')).body.window.from).toBe('2025-10-14');
+  });
+
+  it('lists a calendar in full instead of one instances call per series when many series changed', async () => {
+    const made = [];
+    for (let i = 0; i < 21; i++) made.push((await t.json('POST', '/api/tasklists', { title: `W${i}`, date: TODAY, items: [], recurrence: 'weekly' })).body);
+    const first = await changes();
+    for (const l of made) {
+      const inst = first.taskLists.upserts.find((x: any) => x.title === l.title);
+      await t.json('POST', `/api/tasklists/${inst.id}/items`, { title: 'x' });
+    }
+    const spy = vi.spyOn(t.app.ctx.mock!, 'listInstances');
+    const r = await changes(first.cursor);
+    expect(spy).not.toHaveBeenCalled();
+    expect(r.taskLists.replace).toBe(true);
+  });
+
+  it('answers the other calendars when one cannot be read, and keeps that calendar\'s place in the cursor', async () => {
+    await t.json('POST', '/api/__test/remote/events', { summary: 'Work 1', calendarId: 'work', start: { date: '2026-10-20' }, end: { date: '2026-10-21' } });
+    const c0 = (await changes()).cursor;
+    await t.json('POST', '/api/__test/remote/events', { summary: 'Work 2', calendarId: 'work', start: { date: '2026-10-21' }, end: { date: '2026-10-22' } });
+    await ev('Home 2');
+    const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+    const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+      if (id === 'work') throw new ProviderError('boom');
+      return real(id, tok);
+    });
+    const r = await t.json('GET', url(c0));
+    expect(r.status).toBe(200);
+    expect(r.body.events.failed).toEqual(['work']);
+    expect(titles(r.body.events.upserts)).toEqual(['Home 2']);
+    expect(r.body.events.replace).toEqual([]);
+    spy.mockRestore();
+    // the failed calendar is still where it was: its change arrives next time
+    expect(titles((await changes(r.body.cursor)).events.upserts)).toEqual(['Work 2']);
+  });
+
+  it('tells the device to drop the instances of a series that became a plain event', async () => {
+    const m = (await t.json('POST', '/api/__test/remote/events', { summary: 'Weekly', start: { date: '2026-10-14' }, end: { date: '2026-10-15' }, recurrence: ['RRULE:FREQ=WEEKLY'] })).body;
+    const first = await changes();
+    expect(first.events.upserts.filter((e: any) => e.title === 'Weekly').length).toBeGreaterThan(50);
+    await t.json('PATCH', `/api/__test/remote/events/${m.id}`, { recurrence: null });
+    const r = await changes(first.cursor);
+    expect(r.events.series).toEqual([{ calendarId: 'primary', seriesId: m.id }]);
+    expect(r.events.upserts.map((e: any) => e.id)).toEqual([m.id]);
   });
 });

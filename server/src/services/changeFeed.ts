@@ -6,11 +6,15 @@
  */
 import type { CalendarEvent, TaskList } from '../api/types.js';
 import { addDays, dayNumber, startOfLocalDay, formatInZone } from '../lib/time.js';
-import { NotFoundError, SyncTokenExpiredError, type CalendarProvider, type GoogleEvent, type ProviderCalendar } from '../providers/CalendarProvider.js';
+import {
+  CalendarPermissionMissingError, NotFoundError, RateLimitedError, ReauthRequiredError, SyncTokenExpiredError, type CalendarProvider, type GoogleEvent, type ProviderCalendar,
+} from '../providers/CalendarProvider.js';
 import { isTaskListEvent } from './taskCodec.js';
 
 /** Days of window end the device may be behind before a calendar is simply listed again. */
 const MAX_GAP_DAYS = 31;
+/** More changed repeating events than this in one calendar and poll: list the calendar in full instead of one `events.instances` call each. */
+const MAX_SERIES_CALLS = 20;
 const YEAR_BACK = 365;
 const YEAR_AHEAD = 366;
 
@@ -26,6 +30,8 @@ export interface EventChanges {
   series: { calendarId: string; seriesId: string }[];
   removed: { calendarId: string; id: string }[];
   upserts: CalendarEvent[];
+  /** Calendars that could not be read this time: the device keeps its copy of them; their cursor position is unchanged. */
+  failed: string[];
 }
 
 export interface TaskListChanges {
@@ -34,6 +40,8 @@ export interface TaskListChanges {
   series: string[];
   removed: string[];
   upserts: TaskList[];
+  /** The tasks calendar could not be read this time: the device keeps its copy of the lists (shared lists are unaffected). */
+  failed: boolean;
 }
 
 /** How the feed reads and maps one kind of calendar. */
@@ -48,7 +56,7 @@ interface Spec<T> {
   gap(fromDate: string): Promise<T[]>;
 }
 
-interface Part<T> { replace: boolean; series: string[]; removed: string[]; upserts: T[]; token?: string }
+interface Part<T> { failed?: boolean; replace: boolean; series: string[]; removed: string[]; upserts: T[]; token?: string }
 
 export interface FeedDeps {
   eventCalendars(): Promise<ProviderCalendar[]>;
@@ -79,13 +87,14 @@ export class CalendarChanges {
   async since(prev: FeedState | null, forced: ReadonlySet<string>): Promise<{ events: EventChanges; taskLists: TaskListChanges; state: FeedState }> {
     const cals = await this.deps.eventCalendars();
     const tokens: Record<string, string> = {};
-    const events: EventChanges = { calendars: cals.map((c) => c.id), replace: [], series: [], removed: [], upserts: [] };
+    const events: EventChanges = { calendars: cals.map((c) => c.id), replace: [], series: [], removed: [], upserts: [], failed: [] };
     const eventParts = await Promise.all(cals.map(async (cal) => {
       const part = await this.read(cal.id, prev, forced.has(cal.id), this.eventSpec(cal));
       return { cal, part };
     }));
     for (const { cal, part } of eventParts) {
       if (part.token) tokens[cal.id] = part.token;
+      if (part.failed) events.failed.push(cal.id);
       if (part.replace) events.replace.push(cal.id);
       events.series.push(...part.series.map((seriesId) => ({ calendarId: cal.id, seriesId })));
       events.removed.push(...part.removed.map((id) => ({ calendarId: cal.id, id })));
@@ -95,7 +104,7 @@ export class CalendarChanges {
     if (tasks.token) tokens[this.deps.tasksId] = tasks.token;
     return {
       events,
-      taskLists: { replace: tasks.replace, series: tasks.series, removed: tasks.removed, upserts: tasks.upserts },
+      taskLists: { replace: tasks.replace, series: tasks.series, removed: tasks.removed, upserts: tasks.upserts, failed: !!tasks.failed },
       state: { to: windowOf(this.today).to, tokens },
     };
   }
@@ -109,8 +118,8 @@ export class CalendarChanges {
       inScope: (e) => this.overlaps(e),
       map: (e) => this.deps.toEvent(e, cal),
       full: async () => {
-        // the token comes from an unexpanded read: it cannot be asked together with a time range, and the window read below needs one
-        const base = await p.listEvents({ calendarId: cal.id, singleEvents: false, showDeleted: true, timeMin });
+        // the token comes from a read without the parameters Google refuses together with a sync token (time range, filters); the window read below has them
+        const base = await p.listEvents({ calendarId: cal.id, singleEvents: false, showDeleted: true });
         const win = await p.listEvents({ calendarId: cal.id, timeMin, timeMax });
         return { upserts: win.items.filter((e) => e.status !== 'cancelled' && mine(e)).map((e) => this.deps.toEvent(e, cal)), token: base.nextSyncToken };
       },
@@ -147,6 +156,16 @@ export class CalendarChanges {
 
   /** One calendar: incremental with its token, else (no token, expired, forced, or too far behind) in full. */
   private async read<T>(calendarId: string, prev: FeedState | null, forced: boolean, spec: Spec<T>): Promise<Part<T>> {
+    try {
+      return await this.readOrThrow(calendarId, prev, forced, spec);
+    } catch (e) {
+      // the person-wide failures stop the whole answer; one calendar's failure leaves that calendar as the device has it
+      if (e instanceof RateLimitedError || e instanceof ReauthRequiredError || e instanceof CalendarPermissionMissingError) throw e;
+      return { failed: true, replace: false, series: [], removed: [], upserts: [], token: prev?.tokens[calendarId] };
+    }
+  }
+
+  private async readOrThrow<T>(calendarId: string, prev: FeedState | null, forced: boolean, spec: Spec<T>): Promise<Part<T>> {
     const token = prev?.tokens[calendarId];
     const gap = prev ? dayNumber(windowOf(this.today).to) - dayNumber(prev.to) : 0;
     if (token && !forced && gap <= MAX_GAP_DAYS) {
@@ -174,10 +193,14 @@ export class CalendarChanges {
       } else if (e.recurringEventId) dirty.add(e.recurringEventId);
       else if (e.recurrence?.length) { if (spec.mine(e)) dirty.add(e.id); }
       else if (spec.mine(e)) {
+        // a series that became a plain event: the device drops the instances it still holds
+        part.series.push(e.id);
         if (spec.inScope(e)) part.upserts.push(spec.map(e));
         else part.removed.push(e.id);
       }
     }
+    // too many changed series for one call each: a full read of the calendar is cheaper (the caller lists it again)
+    if (dirty.size > MAX_SERIES_CALLS) throw new SyncTokenExpiredError('Too many changed series');
     // the instances of a changed series come from Google, which applies the rule, the exceptions and the window
     for (const seriesId of dirty) {
       part.series.push(seriesId);
