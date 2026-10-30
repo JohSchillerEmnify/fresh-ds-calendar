@@ -15,6 +15,7 @@ Feature: Working with task list items
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
 
+  @smoke
   Scenario: Tick an item
     When I tick the item "Eggs"
     Then the item "Eggs" is ticked
