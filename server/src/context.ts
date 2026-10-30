@@ -4,6 +4,7 @@ import { PeopleStore } from './auth/peopleStore.js';
 import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CanvasStore } from './services/canvasStore.js';
+import { IdempotencyStore } from './services/idempotencyStore.js';
 import { TemplateStore } from './services/templateStore.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
@@ -40,6 +41,7 @@ export interface Ctx {
   prefs: PrefsStore;
   themes: ThemeStore;
   canvas: CanvasStore;
+  idempotency: IdempotencyStore;
   templates: TemplateStore;
   /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
@@ -89,6 +91,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const prefs = new PrefsStore(config.dataDir);
   const themes = new ThemeStore(config.dataDir);
   const canvas = new CanvasStore(config.dataDir);
+  const idempotency = new IdempotencyStore(config.dataDir);
   const templates = new TemplateStore(config.dataDir);
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
@@ -122,7 +125,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {
-    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, idempotency, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));

@@ -21,7 +21,7 @@ TypeScript types live in one shared module (`server/src/api/types.ts`, copied or
 - **Unknown fields** in request bodies → `400 VALIDATION_ERROR`.
 - **Idempotency (ADR 0031)**: every write (`POST`, `PATCH`, `DELETE`, item operations) may carry `Idempotency-Key: <opaque,
   at most 64 characters>`, made by the app per outbox entry. The server keeps the answer of a key for 24 hours per
-  person; a resend with the same key answers the first result (status and body) and changes nothing again. A key reused
+  person (in the person's `idempotency.json`, so a server restart does not forget it); a resend with the same key answers the first result (status and body) and changes nothing again. Only successful answers are kept. A key reused
   for a different method or path → `422 IDEMPOTENCY_KEY_REUSED`. Without the header a write behaves as before.
 
 ## Error format

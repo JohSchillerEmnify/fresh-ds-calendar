@@ -1,5 +1,7 @@
 /** Idempotency-Key replay and the refuse-next-write test hook (ADR 0031, API.md). */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { buildApp } from '../src/app.js';
+import { loadConfig } from '../src/config.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
 let t: TestApp;
@@ -78,6 +80,35 @@ describe('Idempotency-Key', () => {
     await t.json('POST', '/api/tasklists', list);
     await t.json('POST', '/api/tasklists', list);
     expect(await count()).toBe(2);
+  });
+});
+
+describe('Idempotency-Key across a restart', () => {
+  it('answers the first result again after the server was restarted, and writes nothing', async () => {
+    const h = { 'Idempotency-Key': 'durable-1', 'content-type': 'application/json' };
+    const first = await t.json('POST', '/api/tasklists', list, h);
+    const config = { ...loadConfig({ TEST_MODE: 'true', DATA_DIR: t.dir }), webDist: null };
+    const again = buildApp(config);
+    try {
+      await again.request('/api/__test/clock', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ now: '2026-10-12T08:00:00+02:00' }) });
+      const res = await again.request('/api/tasklists', { method: 'POST', headers: h, body: JSON.stringify(list) });
+      expect(res.status).toBe(201);
+      expect(await res.json()).toEqual(first.body);
+      // the new process starts with an empty mock calendar: nothing was written again
+      expect((await (await again.request('/api/__test/remote/events')).json()).items).toEqual([]);
+    } finally { again.close(); }
+  });
+
+  it('forgets a stored key after 24 hours', async () => {
+    const h = { 'Idempotency-Key': 'durable-2', 'content-type': 'application/json' };
+    await t.json('POST', '/api/tasklists', list, h);
+    const config = { ...loadConfig({ TEST_MODE: 'true', DATA_DIR: t.dir }), webDist: null };
+    const again = buildApp(config);
+    try {
+      await again.request('/api/__test/clock', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ now: '2026-10-13T08:00:01+02:00' }) });
+      await again.request('/api/tasklists', { method: 'POST', headers: h, body: JSON.stringify(list) });
+      expect((await (await again.request('/api/__test/remote/events')).json()).items).toHaveLength(1);
+    } finally { again.close(); }
   });
 });
 

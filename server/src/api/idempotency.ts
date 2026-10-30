@@ -3,13 +3,13 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { Ctx } from '../context.js';
 import { ApiException } from '../lib/errors.js';
 import type { AuthEnv } from '../auth/middleware.js';
+import { LOCAL_PERSON } from '../services/prefsStore.js';
 
-const IDEMPOTENCY_TTL_MS = 24 * 3600 * 1000;
 const MAX_KEY_LENGTH = 64;
 const READ_ONLY = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 interface Answer { status: number; body: string; type: string | null }
-interface Entry { signature: string; at: number; answer: Promise<Answer | null> }
+interface Running { signature: string; answer: Promise<Answer | null> }
 
 /** True for an event or task list write. */
 function isOutboxWrite(c: Context): boolean {
@@ -27,41 +27,42 @@ export function refuseNextWrite(ctx: Ctx): MiddlewareHandler {
   };
 }
 
-/** Keeps the answer of a successful write, or forgets the key so a failed write's resend runs again. */
-async function settleAnswer(c: Context, seen: Map<string, Entry>, id: string, settle: (a: Answer | null) => void): Promise<void> {
-  if (c.res.status >= 200 && c.res.status < 300) {
-    settle({ status: c.res.status, body: await c.res.clone().text(), type: c.res.headers.get('content-type') });
-  } else {
-    seen.delete(id);
-    settle(null);
-  }
-}
+const replay = (a: Answer) => new Response(a.body || null, { status: a.status, headers: a.type ? { 'content-type': a.type } : {} });
 
-/** Replays the first answer of a write with an `Idempotency-Key`, per person for 24 hours (successes only). */
+/** Replays the first answer of a write with an `Idempotency-Key` (per person, 24 h, durable, successes only); equal requests at once share one run. */
 export function idempotency(ctx: Ctx): MiddlewareHandler<AuthEnv> {
-  const seen = new Map<string, Entry>();
+  const running = new Map<string, Running>();
   return async (c, next) => {
     const key = c.req.header('Idempotency-Key');
     if (key === undefined || READ_ONLY.has(c.req.method)) return next();
     if (key === '' || key.length > MAX_KEY_LENGTH) throw new ApiException('VALIDATION_ERROR', 400, `Idempotency-Key must be 1 to ${MAX_KEY_LENGTH} characters`);
 
-    // expired keys go so the map stays small
+    const sub = c.get('person')?.sub ?? LOCAL_PERSON;
     const now = ctx.clock.now().getTime();
-    for (const [k, e] of seen) if (now - e.at > IDEMPOTENCY_TTL_MS) seen.delete(k);
-
-    const id = `${c.get('person')?.sub ?? ''}\n${key}`;
     const signature = `${c.req.method} ${c.req.path}`;
-    const hit = seen.get(id);
+    const reused = () => new ApiException('IDEMPOTENCY_KEY_REUSED', 422, 'This Idempotency-Key was used for another request');
+    const stored = ctx.idempotency.get(sub, key, now);
+    if (stored) {
+      if (stored.signature !== signature) throw reused();
+      return replay(stored);
+    }
+    const id = `${sub}\n${key}`;
+    const hit = running.get(id);
     if (hit) {
-      if (hit.signature !== signature) throw new ApiException('IDEMPOTENCY_KEY_REUSED', 422, 'This Idempotency-Key was used for another request');
+      if (hit.signature !== signature) throw reused();
       // an equal request still running is awaited; a failed first try runs again
       const answer = await hit.answer;
-      if (answer) return new Response(answer.body || null, { status: answer.status, headers: answer.type ? { 'content-type': answer.type } : {} });
+      if (answer) return replay(answer);
     }
 
     let settle!: (a: Answer | null) => void;
-    seen.set(id, { signature, at: now, answer: new Promise((r) => { settle = r; }) });
+    running.set(id, { signature, answer: new Promise((r) => { settle = r; }) });
     await next();
-    await settleAnswer(c, seen, id, settle);
+    running.delete(id);
+    if (c.res.status >= 200 && c.res.status < 300) {
+      const answer = { status: c.res.status, body: await c.res.clone().text(), type: c.res.headers.get('content-type') };
+      ctx.idempotency.put(sub, key, { ...answer, signature, at: now }, now);
+      settle(answer);
+    } else settle(null);
   };
 }

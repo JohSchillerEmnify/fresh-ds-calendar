@@ -6,7 +6,7 @@
 ## Decision
 - **Outbox.** Events, task lists and their items are changed on the device at once and appended to a per-person outbox
   in IndexedDB; one sender sends it in order, one entry at a time, on open, focus, `online`, the poll and right after a
-  change. Each entry carries the changed fields, its etag and an `Idempotency-Key` (API.md), so a resend is harmless.
+  change. Each entry carries the changed fields, its etag and an `Idempotency-Key` (API.md), so a resend is harmless. The server keeps each key's answer for 24 hours in the person's own JSON file, so it survives a restart (an in-memory table would let a resend after a restart apply twice).
   Settings, themes, templates, the Canvas and sharing follow in slice 3.
 - **Last arrival wins.** On `412` the entry is resent on the newest etag: the change that reaches the server last wins,
   only the fields it touches change, a delete wins over an edit. The overwritten side is not told.
