@@ -4,12 +4,11 @@
  * a leaf-strewn ground across the whole bar, autumn trees, leaf piles and the cat's kite on a string to its paw (the
  * kite sways while the scene moves). Winter: a snow drift across the whole bar, snowy trees, a snowman and a sledge.
  * While the scene moves its visitor comes once: a flock of three birds flies across (Fall), a robin hops onto the
- * sledge (Winter). The spots per bar layout come from `fallWinter.ts`; a prop that would land under a control is left
- * out (`clearOfControls.ts`). The cat itself comes from `SceneLife`, at {@link CAT_X}.
+ * sledge (Winter). The spots per bar layout come from `fallWinter.ts`; the props may stay partly under a control
+ * (decoration, owner 2026-10-30). The cat itself comes from `SceneLife`, at {@link CAT_X}.
  */
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { BUTTERFLY_RHYTHM } from './butterflyVisits';
-import { useClearOfControls } from './clearOfControls';
 import FallWinterProp from './FallWinterProp.vue';
 import { anchor, BAR, CAT_SIZE, CAT_X, FLOCK_Y, KITE, PROPS, propWidth, ROBIN, type SceneLayout } from './fallWinter';
 import { sceneStill } from './sceneRest';
@@ -45,9 +44,6 @@ const robin = computed(() => ({ ...anchor(ROBIN[props.layout].x, 17, bar.value.w
 const visit = useSceneVisits(BUTTERFLY_RHYTHM, () => true, { rests: () => sceneStill.value });
 
 const root = ref<HTMLElement | null>(null);
-const check = useClearOfControls(root, '.fwp, .kite-fig');
-// another layout draws other props: measure them once they are drawn
-watch(() => props.layout, check, { flush: 'post' });
 </script>
 
 <template>

@@ -1962,9 +1962,7 @@ the scene's cat is moving
 a visitor passes through the top bar scene
 the visitor flies across the top bar scene
 the top bar scene shows the {string}
-the {string} of the top bar scene is not under a control
 the top bar scene shows {int} {string} at rest
-no {string} of the top bar scene is under a control
 the {string} of the top bar scene glide to their resting spots within {int} second(s)
 the {string} of the top bar scene runs the full width of the bar
 the {string} of the top bar scene is drawn at its full size
@@ -2014,11 +2012,6 @@ the support cat is gone within {int} ms
   of its kind may still show. "the top bar scene shows the X": a visible part X without `data-hidden` lies at least
   1 px inside the `top-bar` box (a visitor: waits up to the step timeout for it to come in). The four-part step "the
   top bar scene shows A, B, C and D" also skips parts with `data-hidden`. "does not show the X": no visible element for part X in the scene.
-  "the X of the top bar scene is not under a control": for every visible element of part X, the box of each drawn
-  shape (`path`, `circle`, `ellipse`, `rect`; the kite: its kite shapes and points along its string), clipped to the
-  `top-bar` box, does not intersect the box of any visible control in `top-bar`: the title text and its chevron, the
-  ‹ and › arrows, the Today pill, the flame, the plant, the sync icon, the filter and settings icons (for an `svg`
-  the box of its drawn `path`; the Today pill: the button box).
   "the X of the top bar scene is drawn at its full size": every visible element of part X is at least its full
   height (trees 43 px, snowman 42, leaf pile 13, sledge 13, kite 20) and its bottom edge lies between 1 px above and
   2.5 px below the bottom of the `top-bar` box (the kite: it hangs from the bar's top; its top lies inside the bar).
@@ -2028,8 +2021,6 @@ the support cat is gone within {int} ms
   and at least 1 px from its top edge, none with a running animation or transition; read twice 500 ms apart, each
   particle's box is unchanged. "the X of the top bar scene are spread over the whole bar": the leftmost particle's
   left edge is in the left quarter of the bar and the rightmost particle's right edge in its right quarter.
-  "no X of the top bar scene is under a control": no visible particle of kind X has a box that intersects a control box
-  (same list as above); being close to one is fine.
   "the X of the top bar scene glide to their resting spots within N second(s)": waits until `html[data-scenes]` turns
   `still` (the end of the 10 s moving window), then reads each particle's glide (a Web Animation, not a CSS one):
   every particle has one lasting at most N s, and for at least 7 of the 9 its first keyframe is translated more than
@@ -3224,8 +3215,8 @@ the top bar's widgets are in reverse order
   `expressive-<scene>-<size>-<scheme>` (feature header-expressive).
 - Scene hooks: heroes are the `data-part`s `cat`, `hare`, `mordor-eye`, `mordor-tower`, `moon`, `sun`, `sunrise`, `xmas-tree`, `snowman`,
   `beach-umbrella` (always drawn, inside the bar within 2.5 px, never under a drawn control); the other large props `autumn-tree`,
-  `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are judged the same when drawn (a prop that would be under a
-  control is left out with `data-hidden`). A control's drawn box is its text, its icon's shapes or the Today `.pill`. The sunflower field has no cat.
+  `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are decoration and are not judged (owner 2026-10-30:
+  they stay where they are, even partly under a control or cut by the bar). A control's drawn box is its text, its icon's shapes or the Today `.pill`. The sunflower field has no cat.
 
 
 ## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, shared-lists)
@@ -3431,7 +3422,7 @@ the floating toolbar is shown
   container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
   shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
   the viewport (`data-hidden="true"`), "shown" = fully inside it. "the surface" is the visible screen without an open dialog.
-- "no raw buttons outside m3": the lint gate (to be added to `pnpm verify`; name it in the lint rule's message as
+- "no raw buttons outside m3": the lint gate (`vue/no-restricted-html-elements` in `eslint.config.js`, run by `pnpm verify`; its message says
   "no raw buttons outside m3") rejects a bare `<button>` in `web/src/**` outside `web/src/components/m3`. Proven by a unit
   test; the scenario is `@unit` and skipped by e2e.
 - "the Mordor eye and tower sit between ...": the `data-part` boxes `mordor-eye` and `mordor-tower` lie horizontally between

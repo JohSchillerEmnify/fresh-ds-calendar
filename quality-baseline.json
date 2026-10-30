@@ -232,7 +232,6 @@
    "no-regex-spaces|web/test/theme.test.ts": 3,
    "no-useless-assignment|scripts/e2e-affected.mjs": 1,
    "no-useless-assignment|web/src/features/calendar/lineBudget.ts": 1,
-   "sonarjs/cognitive-complexity|e2e/steps/scene-props.steps.ts": 1,
    "sonarjs/cognitive-complexity|e2e/steps/visual.steps.ts": 1,
    "sonarjs/cognitive-complexity|scripts/e2e-affected.mjs": 1,
    "sonarjs/cognitive-complexity|server/src/providers/google/GoogleProvider.ts": 1,

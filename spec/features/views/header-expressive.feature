@@ -115,6 +115,10 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       Then the period title is "Okt. 2026"
 
   Rule: Scenes keep every large element visible
+    Owner, 2026-10-30: the cat and each scene's main element (the heroes: cat, hare, Mordor eye and tower, moon, sun,
+    Christmas tree, snowman, beach umbrella) are always whole and never under a control. Small decoration (single
+    pumpkins, bare and autumn trees, leaf piles, the sledge, resting leaves and flakes) may stay where it is, partly
+    under a control or cut by the bar.
 
     @mobile @visual
     Scenario Outline: The cat and every large scene element are fully visible

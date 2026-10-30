@@ -83,7 +83,7 @@ const catStyle = computed(() => {
 
 /** Fall and Winter have their own spots for every part (`FallWinterScene`); the other scenes' characters are kept clear here. */
 const ownSpots = () => props.scene === 'fall' || props.scene === 'winter';
-const check = useClearOfControls(root, '[data-part=cat], [data-part=hare], [data-part=bare-tree], [data-part=sprouting-tree], [data-part=jack-o-lantern]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
+const check = useClearOfControls(root, '[data-part=cat], [data-part=hare]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
 // another layout moves the controls: measure again once the layer is drawn for it
 watch(layout, check, { flush: 'post' });
 // visitors pass behind the controls unseen

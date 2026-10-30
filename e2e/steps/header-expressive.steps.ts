@@ -43,7 +43,7 @@ When('I tap the period title', async function (this: World) {
 const SCENE = '[data-testid="top-bar-scene"]';
 /** The scene's heroes: the cat and the large part that defines each scene. They are always drawn, whole, and never under a control. */
 const HEROES = ['cat', 'hare', 'mordor-eye', 'mordor-tower', 'moon', 'sun', 'sunrise', 'xmas-tree', 'snowman', 'beach-umbrella'];
-/** The other large props: drawn whole when they fit between the controls, left out (`data-hidden`) where they would be under one. */
+/** The other large props are decoration (owner 2026-10-30): they stay where they are, even partly under a control or cut by the bar, so only the heroes are judged. */
 const PROPS = ['autumn-tree', 'snowy-tree', 'bare-tree', 'sprouting-tree', 'jack-o-lantern', 'sledge', 'leaf-pile'];
 const LARGE_SEL = [...HEROES, ...PROPS].map((p) => `${SCENE} [data-part="${p}"]`).join(', ');
 /** The drawn controls of the bar (the Today pill, not its larger tap area). */
@@ -101,7 +101,8 @@ async function shownLarge(w: World) {
 
 Then('every large element of the top bar scene is fully visible', async function (this: World) {
   await expect(this.page.locator(SCENE)).toBeAttached();
-  const { bar, parts } = await shownLarge(this);
+  const { bar, parts: all } = await shownLarge(this);
+  const parts = all.filter((p) => HEROES.includes(p.name));
   // ground-standing parts may sink 2.5 px into the bar's bottom edge, trees may touch the side edges by 2 px
   const bad = parts.filter((p) => p.hidden || !p.box || p.box.l < bar.l - 2 || p.box.r > bar.r + 2 || p.box.t < bar.t - 0.5 || p.box.b > bar.b + 2.5)
     .map((p) => `${p.name} ${p.hidden ? 'left out' : JSON.stringify(p.box)}`);
@@ -121,7 +122,7 @@ async function drawnControls(w: World): Promise<Rect[]> {
 Then("no control covers any part of the top bar scene's large elements", async function (this: World) {
   await expect(this.page.locator(SCENE)).toBeAttached();
   const [controls, { parts }] = await Promise.all([drawnControls(this), shownLarge(this)]);
-  const hits = parts.filter((p) => p.box && controls.some((c) => Math.min(p.box!.r, c.r) - Math.max(p.box!.l, c.l) > 0 && Math.min(p.box!.b, c.b) - Math.max(p.box!.t, c.t) > 0)).map((p) => p.name);
+  const hits = parts.filter((p) => HEROES.includes(p.name) && p.box && controls.some((c) => Math.min(p.box!.r, c.r) - Math.max(p.box!.l, c.l) > 0 && Math.min(p.box!.b, c.b) - Math.max(p.box!.t, c.t) > 0)).map((p) => p.name);
   expect(hits, 'large elements under a control').toEqual([]);
 });
 
