@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// `pnpm verify`: quick pre-merge gate. Runs tsc (web/server/e2e), unit tests, i18n:check, check-steps, dedup and lint in parallel.
+// `pnpm verify`: quick pre-merge gate. Runs tsc (web/server/e2e), unit tests, i18n:check, check-steps and the ratcheted
+// quality gates (arch, dedup, types, lint, comments, knip; see scripts/quality.mjs) in parallel.
 // Prints one OK line, or per failing check its name plus the first lines of relevant errors. Exit 1 on failure.
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -41,6 +42,12 @@ const tsc = (dir, bin) => ({
   errors: (o) => o.split('\n').filter((x) => /error TS\d+/.test(x)),
 });
 
+/** A ratcheted quality gate run (scripts/quality.mjs); its output lines are the details on failure. */
+const quality = (...gates) => ({
+  cmd: ['node', ['scripts/quality.mjs', 'check', ...gates], root],
+  errors: (o) => o.split('\n').filter((x) => x.trim()),
+});
+
 const checks = {
   'tsc web': tsc('web', 'vue-tsc'),
   'tsc server': tsc('server', 'tsc'),
@@ -49,8 +56,11 @@ const checks = {
   'unit web': tests('web'),
   i18n: { cmd: ['pnpm', ['i18n:check'], root], errors: (o) => o.split('\n').filter((x) => /ERROR|^\s+missing/.test(x)) },
   steps: { cmd: ['python3', ['e2e/scripts/check-steps.py'], root], errors: (o) => o.split('\n').filter((x) => x.trim()) },
-  dedup: { cmd: ['pnpm', ['exec', 'jscpd', 'web/src', 'server/src', 'shared', '--silent', '--reporters', 'console'], root], errors: (o) => o.split('\n').filter((x) => /threshold|duplication|clone/i.test(x)) },
-  lint: { cmd: ['pnpm', ['exec', 'eslint', '--quiet', '.'], root], errors: (o) => o.split('\n').filter((x) => /error|^\//.test(x)) },
+  'quality arch': quality('arch'),
+  'quality dedup': quality('dedup'),
+  'quality types': quality('types'),
+  'quality lint': quality('lint', 'comments'),
+  'quality knip': quality('knip'),
 };
 
 const t0 = Date.now();
@@ -62,7 +72,9 @@ if (failed.length === 0) {
   const n = (k) => results.find((r) => r.name === k);
   const tscs = ['web', 'server', 'e2e'].filter((k) => n('tsc ' + k)).join('/');
   const secs = Math.round((Date.now() - t0) / 1000);
-  console.log(`verify: OK (tsc ${tscs}, unit ${checks['unit server'].count(n('unit server').out) ?? '?'}+${checks['unit web'].count(n('unit web').out) ?? '?'}, i18n, steps, dedup, lint) in ${secs}s`);
+  console.log(`verify: OK (tsc ${tscs}, unit ${checks['unit server'].count(n('unit server').out) ?? '?'}+${checks['unit web'].count(n('unit web').out) ?? '?'}, i18n, steps, quality) in ${secs}s`);
+  // one line per quality gate
+  for (const r of results.filter((x) => x.name.startsWith('quality '))) process.stdout.write(r.out);
 } else {
   for (const r of failed) {
     let lines = r.c.errors(r.out);

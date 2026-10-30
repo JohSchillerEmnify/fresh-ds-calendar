@@ -20,6 +20,8 @@
     "goldens:update": "bash scripts/goldens.sh update",
     "dedup": "jscpd web/src server/src shared",
     "lint": "eslint .",
+    "quality": "node scripts/quality.mjs check",
+    "quality:ratchet": "node scripts/quality.mjs ratchet",
     "hooks:install": "bash scripts/hooks/install.sh",
     "leaks": "bash scripts/leak-check.sh all"
   },
@@ -31,11 +33,13 @@
     "@capacitor/cli": "8.5.3",
     "@capacitor/core": "8.5.3",
     "@eslint/js": "^10.0.1",
+    "dependency-cruiser": "^18.7.0",
     "eslint": "^10.13.0",
     "eslint-plugin-sonarjs": "^4.2.2",
     "eslint-plugin-vue": "^10.11.1",
     "globals": "^17.13.0",
     "jscpd": "^5.4.1",
+    "knip": "^6.43.0",
     "typescript-eslint": "^8.71.2",
     "vue-eslint-parser": "^10.4.1"
   },

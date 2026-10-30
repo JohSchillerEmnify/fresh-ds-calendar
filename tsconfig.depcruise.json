@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "paths": { "@/*": ["./web/src/*"] }
+  },
+  "include": ["web/src", "server/src", "shared"]
+}
