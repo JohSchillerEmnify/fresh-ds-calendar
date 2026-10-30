@@ -8,7 +8,8 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 export interface Envelope { v: 1; alg: 'A256GCM'; iv: string; tag: string; ct: string }
 
 /** True when `key` is base64 for exactly 32 bytes. */
-export const validKey = (key: string | undefined): key is string => !!key && Buffer.from(key, 'base64').length === 32;
+export const validKey = (key: string | undefined): key is string =>
+  !!key && /^[A-Za-z0-9+/]{43}=$/.test(key) && Buffer.from(key, 'base64').length === 32;
 
 /** True when a parsed JSON value looks like an {@link Envelope}. */
 export const isEnvelope = (v: unknown): v is Envelope => {
