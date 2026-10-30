@@ -1,6 +1,7 @@
 /** Writing on the open list (feature handwritten-lists): a draft line becomes an item after a pause; all writes go to the outbox, with undo. */
 import { computed, onBeforeUnmount, ref, type Ref } from 'vue';
 import type { InkStroke } from '@/api/types';
+import { inkKey } from '@calendar/shared/ink';
 import { INK_LIST_MAX_BYTES, inkListBytes } from '@calendar/shared/limits';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { t } from '@/i18n';
@@ -66,7 +67,9 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
       return;
     }
     const now = ink.strokes(step.itemId);
-    const next = step.before ?? now.slice(0, -1);
+    const known = new Set(now.map(inkKey));
+    // a stroke that comes back is drawn again as far as the server is concerned: a fresh time keeps an earlier erase from dropping it
+    const next = (step.before ?? now.slice(0, -1)).map((s) => (known.has(inkKey(s)) ? s : { ...s, t: Date.now() }));
     if (!next.length && created.has(step.itemId)) outbox.deleteItem(listId(), step.itemId, '');
     else outbox.setInk(listId(), step.itemId, next, now);
   }
