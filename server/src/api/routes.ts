@@ -26,6 +26,9 @@ import { isSharedId } from '../services/sharedLists.js';
 
 const HEALTH_TTL_MS = 10_000;
 
+/** The ids of a list's handwritten items. */
+const inkIds = (l: { items: { id: string; ink?: true }[] }): string[] => l.items.filter((i) => i.ink).map((i) => i.id);
+
 /** The list holds all the ink it may (decision Q3); the web app suggests a new list. */
 const inkFull = () => new ApiException('PAYLOAD_TOO_LARGE', 413, 'This list is full of ink. Start a new list.', undefined, 'tasklist.inkFull');
 
@@ -306,18 +309,19 @@ export function apiRoutes(ctx: Ctx): Hono {
   });
   r.post('/tasklists', async (c) => {
     const input = parse(createTaskListSchema, await body(c));
-    if (!ctx.ink.fits(person(c), '', '', (input.items ?? []).flatMap((i) => i.strokes ?? []) as InkStroke[])) throw inkFull();
+    const kept = (input.items ?? []).filter((i) => i.title.trim() || i.strokes);
+    if (!ctx.inks.fitsNew(kept.flatMap((i) => (i.strokes ? [i.strokes as InkStroke[]] : [])))) throw inkFull();
     const list = await cal(c).createTaskList(input);
-    // ink items keep their strokes in the ink store, under the ids the list gave them (same order as the input)
-    const inked = (input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => i.strokes);
-    list.items.forEach((item, n) => { const s = inked[n]; if (s) ctx.ink.setItem(person(c), list.id, item.id, s as InkStroke[]); });
+    // ink items keep their strokes in the ink store, under the ids the list gave them (same order as the kept input)
+    list.items.forEach((item, n) => { const s = kept[n]?.strokes; if (s) ctx.inks.set(person(c), list.id, item.id, s as InkStroke[]); });
     return c.json(list, 201);
   });
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
   r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c))));
   r.delete('/tasklists/:id', async (c) => {
+    const before = await cal(c).getTaskList(c.req.param('id'));
     await cal(c).deleteTaskList(c.req.param('id'), c.req.header('If-Match'));
-    ctx.ink.removeList(person(c), c.req.param('id'));
+    if (!before.seriesId && !isSharedId(c.req.param('id'))) ctx.inks.remove(person(c), c.req.param('id'), inkIds(before));
     return c.body(null, 204);
   });
   // ---- sharing (feature shared-lists) ----
@@ -331,7 +335,7 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.get('/categories/shares', (c) => c.json({ shares: ctx.shared.rulesOf(person(c)) }));
   r.put('/categories/:id/share', async (c) => c.json({ shares: await cal(c).shareCategory(c.req.param('id'), parse(categoryShareSchema, await body(c)).person) }));
   // ---- handwritten items (feature handwritten-lists): the item is in the list, its strokes in the ink store ----
-  r.get('/ink', (c) => c.json(ctx.ink.get(person(c))));
+  r.get('/ink', (c) => c.json(ctx.inks.doc(person(c))));
   r.post('/tasklists/:id/items', async (c) => {
     const input = parse(addItemSchema, await body(c));
     const sub = person(c);
@@ -342,27 +346,34 @@ export function apiRoutes(ctx: Ctx): Hono {
     }
     if (input.title !== undefined) throw validation('An ink item has no title', 'title');
     const itemId = input.id ?? nanoid();
-    if (!ctx.ink.fits(sub, listId, itemId, input.strokes as InkStroke[])) throw inkFull();
+    const strokes = input.strokes as InkStroke[];
+    const before = await cal(c).getTaskList(listId);
+    if (!ctx.inks.fits(sub, listId, inkIds(before), itemId, strokes)) throw inkFull();
     const list = await cal(c).addItem(listId, { ...input, id: itemId, title: '', ink: true }, scopeOf(c));
-    ctx.ink.setItem(sub, listId, itemId, input.strokes as InkStroke[]);
+    // a repeated request finds the item already there: its ink is stored once, and only for an ink item
+    if (list.items.find((i) => i.id === itemId)?.ink) ctx.inks.set(sub, listId, itemId, strokes);
     return c.json(list, 201);
   });
   r.put('/tasklists/:id/items/:itemId/ink', async (c) => {
     const { strokes } = parse(inkSchema, await body(c));
     const sub = person(c);
     const [listId, itemId] = [c.req.param('id'), c.req.param('itemId')];
-    const item = (await cal(c).getTaskList(listId)).items.find((i) => i.id === itemId);
+    const list = await cal(c).getTaskList(listId);
+    const item = list.items.find((i) => i.id === itemId);
     if (!item) throw notFound('Item not found');
     if (!item.ink) throw validation('Only a handwritten item holds ink', 'itemId');
-    if (!ctx.ink.fits(sub, listId, itemId, strokes as InkStroke[])) throw inkFull();
-    ctx.ink.setItem(sub, listId, itemId, strokes as InkStroke[]);
+    if (!ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes as InkStroke[])) throw inkFull();
+    ctx.inks.set(sub, listId, itemId, strokes as InkStroke[]);
     return c.json(await cal(c).getTaskList(listId));
   });
   r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
   r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)), scopeOf(c))));
   r.delete('/tasklists/:id/items/:itemId', async (c) => {
-    const list = await cal(c).deleteItem(c.req.param('id'), c.req.param('itemId'), scopeOf(c));
-    ctx.ink.removeItem(person(c), c.req.param('id'), c.req.param('itemId'));
+    const [listId, itemId, scope] = [c.req.param('id'), c.req.param('itemId'), scopeOf(c)];
+    const before = await cal(c).getTaskList(listId);
+    const list = await cal(c).deleteItem(listId, itemId, scope);
+    // one occurrence of a repeating list losing the item leaves it to the others (the ink is shared by item id)
+    if (before.items.find((i) => i.id === itemId)?.ink && (scope === 'following' || !before.seriesId)) ctx.inks.remove(person(c), listId, [itemId]);
     return c.json(list);
   });
 

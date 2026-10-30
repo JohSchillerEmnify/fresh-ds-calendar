@@ -119,6 +119,18 @@ export function add(s: OutboxState, change: Change, o: { title: string; shown?: 
   if (!s.retry) void flush(s);
 }
 
+/** A newer rewrite of an item's ink replaces an unsent one (or the strokes of its unsent add); false when none is waiting. The entry being sent is left alone. */
+function foldInk(s: OutboxState, listId: string, itemId: string, strokes: InkStroke[]): boolean {
+  const mine = (e: OutboxEntry) => e.change.id === listId && 'itemId' in e.change && e.change.itemId === itemId;
+  let at = -1;
+  s.entries.value.forEach((e, i) => { if (mine(e) && (e.change.op === 'item.ink' || (e.change.op === 'item.add' && !!e.change.strokes))) at = i; });
+  if (at < 0 || (s.running && at === 0)) return false;
+  // a later delete or order of the item leaves nothing to fold into
+  if (s.entries.value.slice(at + 1).some((e) => e.change.id === listId && e.change.op === 'item.delete' && e.change.itemId === itemId)) return false;
+  commit(s, s.entries.value.map((e, i) => (i === at ? { ...e, change: { ...e.change, strokes } as Change } : e)));
+  return true;
+}
+
 /** The writes the views make; each is shown on the device at once. */
 export function writes(s: OutboxState) {
   const title = (listId: string, itemId: string): string => {
@@ -157,7 +169,9 @@ export function writes(s: OutboxState) {
       return itemId;
     },
     /** The new strokes of a handwritten item (all of them, replacing the old). */
-    setInk: (listId: string, itemId: string, strokes: InkStroke[]): void => add(s, { op: 'item.ink', id: listId, itemId, strokes }, { title: items().get(listId)?.title ?? '' }),
+    setInk(listId: string, itemId: string, strokes: InkStroke[]): void {
+      if (!foldInk(s, listId, itemId, strokes)) add(s, { op: 'item.ink', id: listId, itemId, strokes }, { title: items().get(listId)?.title ?? '' });
+    },
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
       add(s, { op: 'item.patch', id: listId, itemId, patch, ...scoped(scope) }, { title: patch.title ?? title(listId, itemId) }),
     deleteItem: (listId: string, itemId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.delete', id: listId, itemId, ...scoped(scope) }, { title: text }),

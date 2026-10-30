@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { OutboxEntry } from '../src/lib/outbox';
-import { eraseAt, inkBytes, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
+import { keptItems, type OutboxEntry } from '../src/lib/outbox';
+import { eraseAt, isRuled, penRole, readableInk, strokePath, toLineUnits, withPendingInk } from '../src/lib/ink';
 
 describe('penRole', () => {
   it('lets only a pen draw: the mouse never does, a finger only with the setting', () => {
@@ -45,12 +45,6 @@ describe('eraseAt', () => {
   });
 });
 
-describe('inkBytes', () => {
-  it('measures the JSON of the strokes', () => {
-    expect(inkBytes([{ p: [[0, 0, 0]] }])).toBe(JSON.stringify([{ p: [[0, 0, 0]] }]).length);
-  });
-});
-
 describe('readableInk', () => {
   const lum = (h: string) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!; };
   it('lightens black on a dark background and keeps readable colours', () => {
@@ -66,15 +60,22 @@ describe('readableInk', () => {
 describe('withPendingInk', () => {
   const s = (n: number) => ({ p: [[n, 0, 1]] as [number, number, number][] });
   const entry = (change: OutboxEntry['change']): OutboxEntry => ({ key: 'k', person: 'p', seq: 1, change, title: '' });
-  it('puts unsent ink adds and rewrites over the server ink, in order, and leaves the input alone', () => {
-    const base = { L: { a: [s(1)] } };
+  it('puts unsent ink adds, rewrites and deletes over the server ink, in order, and leaves the input alone', () => {
+    const base = { a: [s(1)], z: [s(9)] };
     const out = withPendingInk(base, [
       entry({ op: 'item.add', id: 'L', itemId: 'b', title: '', strokes: [s(2)] }),
       entry({ op: 'item.ink', id: 'L', itemId: 'a', strokes: [s(3), s(4)] }),
       entry({ op: 'item.add', id: 'L', itemId: 'c', title: 'text' }),
+      entry({ op: 'item.delete', id: 'L', itemId: 'z' }),
     ]);
-    expect(out).toEqual({ L: { a: [s(3), s(4)], b: [s(2)] } });
-    expect(base).toEqual({ L: { a: [s(1)] } });
+    expect(out).toEqual({ a: [s(3), s(4)], b: [s(2)] });
+    expect(base).toEqual({ a: [s(1)], z: [s(9)] });
+  });
+  it('counts the items of a new list the way the server keeps them: an empty line is no item', () => {
+    const items = [{ title: '', strokes: [s(1)] }, { title: ' ' }, { title: '', strokes: [s(2)] }];
+    expect(keptItems(items)).toHaveLength(2);
+    const out = withPendingInk({}, [entry({ op: 'list.create', id: 'dev', input: { title: '', date: null, items } })]);
+    expect(Object.keys(out)).toEqual(['dev-0', 'dev-1']);
   });
 });
 

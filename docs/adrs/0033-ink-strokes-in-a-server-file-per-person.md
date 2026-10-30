@@ -18,6 +18,9 @@ as `[x, y, pressure]` points, and a list holds about 200 KB of ink. The web app 
   per-person file beside canvas and templates (ADR 0018, 0024) is the established pattern and the backup takes it
   with the person's files.
 
+Ink is keyed by item id, not by list: item ids are unique, so the occurrences of a repeating list that hold an item share
+its ink without copying. A shared list keeps its ink inside its own document, so it follows the list to every member.
+
 ## Consequences
 
 Ink is not in Google, so it is not searchable or visible in Google's apps (placeholder only). The file is read and

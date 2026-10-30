@@ -73,10 +73,10 @@ export interface InkStroke {
   p: InkPoint[];
   c?: string;
 }
-/** A person's ink: the strokes of every ink item, by task list id then item id (`users/<sub>/ink.json`). */
+/** The ink a person sees: the strokes of every ink item by item id (item ids are unique, so a repeating list's occurrences share them). */
 export interface InkDoc {
   version: 1;
-  lists: Record<string, Record<string, InkStroke[]>>;
+  items: Record<string, InkStroke[]>;
 }
 
 /** A note's top-left corner on the Canvas (feature tasks-canvas). */

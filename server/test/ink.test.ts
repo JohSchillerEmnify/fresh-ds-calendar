@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { freeze, makeApp, type TestApp } from './helpers.js';
+import { mockSub } from '../src/auth/people.js';
+import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
 let t: TestApp;
 beforeAll(() => { t = makeApp(); });
@@ -20,7 +21,7 @@ describe('ink items', () => {
     expect(r.body.totalCount).toBe(2);
     expect((await raw(l.id)).description).toBe('☐ Text item\n☐ Handwritten item');
     const ink = (await t.json('GET', '/api/ink')).body;
-    expect(ink.lists[l.id][r.body.items[1].id]).toEqual([stroke()]);
+    expect(ink.items[r.body.items[1].id]).toEqual([stroke()]);
   });
 
   it('replaces the strokes of an ink item with PUT and keeps the item', async () => {
@@ -28,7 +29,7 @@ describe('ink items', () => {
     const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [stroke()] })).body.items[1].id;
     const r = await t.json('PUT', `/api/tasklists/${l.id}/items/${id}/ink`, { strokes: [stroke(), stroke(4)] });
     expect(r.status).toBe(200);
-    expect((await t.json('GET', '/api/ink')).body.lists[l.id][id]).toHaveLength(2);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toHaveLength(2);
     const empty = await t.json('PUT', `/api/tasklists/${l.id}/items/${id}/ink`, { strokes: [] });
     expect(empty.status).toBe(200);
     expect((await t.json('GET', `/api/tasklists/${l.id}`)).body.items).toHaveLength(2);
@@ -60,16 +61,16 @@ describe('ink items', () => {
     const a = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [stroke()] })).body.items[1].id;
     const b = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [stroke()] })).body.items[2].id;
     await t.json('DELETE', `/api/tasklists/${l.id}/items/${a}`);
-    expect(Object.keys((await t.json('GET', '/api/ink')).body.lists[l.id])).toEqual([b]);
+    expect(Object.keys((await t.json('GET', '/api/ink')).body.items)).toEqual([b]);
     await t.req('DELETE', `/api/tasklists/${l.id}`);
-    expect((await t.json('GET', '/api/ink')).body.lists[l.id]).toBeUndefined();
+    expect((await t.json('GET', '/api/ink')).body.items).toEqual({});
   });
 
   it('serves the ink as a device file in the changes feed', async () => {
     const l = await mk();
     await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [stroke()] });
     const ch = (await t.json('GET', '/api/changes')).body;
-    expect(ch.files.ink.lists[l.id]).toBeDefined();
+    expect(Object.keys(ch.files.ink.items)).toHaveLength(1);
   });
 });
 
@@ -78,9 +79,95 @@ describe('ink items in a new list', () => {
     const r = await t.json('POST', '/api/tasklists', { title: '', date: null, items: [{ title: '', strokes: [stroke()] }, { title: 'Text' }, { title: '', strokes: [stroke(4)] }] });
     expect(r.status).toBe(201);
     expect(r.body.items.map((i: { ink?: true; title: string }) => [i.ink ?? false, i.title])).toEqual([[true, ''], [false, 'Text'], [true, '']]);
-    const doc = (await t.json('GET', '/api/ink')).body.lists[r.body.id];
+    const doc = (await t.json('GET', '/api/ink')).body.items;
     expect(doc[r.body.items[0].id]).toEqual([stroke()]);
     expect(doc[r.body.items[2].id]).toEqual([stroke(4)]);
     expect(doc[r.body.items[1].id]).toBeUndefined();
+  });
+});
+
+describe('ink of repeating lists', () => {
+  const week = async (date: string) => (await t.json('GET', '/api/items?from=2026-10-12&to=2026-11-09')).body.items.find((i: { kind: string; date: string }) => i.kind === 'tasklist' && i.date === date);
+
+  it('an ink item added for this and all following lists has its strokes in every one of them', async () => {
+    const a = (await t.json('POST', '/api/tasklists', { title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: 'Sink' }] })).body;
+    const second = await week('2026-10-21');
+    const r = await t.json('POST', `/api/tasklists/${second.id}/items?scope=following`, { strokes: [stroke()] });
+    expect(r.status).toBe(201);
+    const id = r.body.items[1].id;
+    for (const d of ['2026-10-21', '2026-10-28']) expect((await week(d)).items[1]).toMatchObject({ id, ink: true });
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+    expect((await week('2026-10-14')).items).toHaveLength(1);
+    // removed for the following lists: the ink goes
+    await t.json('DELETE', `/api/tasklists/${second.id}/items/${id}?scope=following`);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toBeUndefined();
+    expect(a.id).toBeDefined();
+  });
+
+  it('keeps the ink when one occurrence only loses the item or is deleted, and removes it when the series is deleted', async () => {
+    const a = (await t.json('POST', '/api/tasklists', { title: 'Clean', date: '2026-10-14', recurrence: 'weekly', items: [{ title: '', strokes: [stroke()] }] })).body;
+    const id = a.items[0].id;
+    const second = await week('2026-10-21');
+    await t.json('DELETE', `/api/tasklists/${second.id}/items/${id}`);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+    await t.req('DELETE', `/api/tasklists/${a.id}`);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+    await t.req('DELETE', `/api/tasklists/${a.seriesId}`);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toBeUndefined();
+  });
+});
+
+describe('ink of shared lists follows the list', () => {
+  it('a member writes and the owner sees the strokes; both lose them with the list', async () => {
+    const JO = 'jo@example.com', ANNA = 'anna@example.com';
+    await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+    const as = async (email: string) => {
+      const cookie = await sessionCookie(t, email);
+      return (m: string, u: string, b?: unknown) => t.json(m, u, b, { cookie });
+    };
+    const jo = await as(JO);
+    const anna = await as(ANNA);
+    const own = (await jo('POST', '/api/tasklists', { title: 'Groceries', date: null, items: [{ title: 'Milk' }] })).body;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    const r = await anna('POST', `/api/tasklists/${shared.id}/items`, { strokes: [stroke()] });
+    expect(r.status).toBe(201);
+    const id = r.body.items[1].id;
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+    expect((await anna('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+    expect((await anna('PUT', `/api/tasklists/${shared.id}/items/${id}/ink`, { strokes: [] })).status).toBe(200);
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([]);
+    await jo('DELETE', `/api/tasklists/${shared.id}`);
+    expect((await anna('GET', '/api/ink')).body.items[id]).toBeUndefined();
+  });
+});
+
+describe('ink item rules', () => {
+  it('has no title: a rename is refused, and a repeated add with the same id stores the ink once', async () => {
+    const l = await mk();
+    const first = await t.json('POST', `/api/tasklists/${l.id}/items`, { id: 'item-abc123', strokes: [stroke()] });
+    const again = await t.json('POST', `/api/tasklists/${l.id}/items`, { id: 'item-abc123', strokes: [stroke(5)] });
+    expect(again.body.items).toHaveLength(first.body.items.length);
+    expect((await t.json('PATCH', `/api/tasklists/${l.id}/items/item-abc123`, { title: 'x' })).status).toBe(400);
+  });
+  it('is not taken for a text item with the same id', async () => {
+    const l = await mk();
+    const id = l.items[0].id;
+    await t.json('POST', `/api/tasklists/${l.id}/items`, { id, strokes: [stroke()] });
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toBeUndefined();
+  });
+});
+
+describe('ink when a list is shared and shared no more', () => {
+  it('moves with the list into the shared store and back to the owner', async () => {
+    const JO = 'jo@example.com', ANNA = 'anna@example.com';
+    await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+    const cookie = await sessionCookie(t, JO);
+    const jo = (m: string, u: string, b?: unknown) => t.json(m, u, b, { cookie });
+    const own = (await jo('POST', '/api/tasklists', { title: 'G', date: null, items: [{ title: '', strokes: [stroke()] }] })).body;
+    const id = own.items[0].id;
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+    await jo('DELETE', `/api/tasklists/${shared.id}/share`);
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
   });
 });

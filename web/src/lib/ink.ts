@@ -1,7 +1,7 @@
 /** Pure rules of handwritten items (feature handwritten-lists): pointers, line-height units, outlines, erasing, colours. */
 import { getStroke } from 'perfect-freehand';
 import type { InkDoc, InkPoint, InkStroke } from '@calendar/shared/api';
-import type { OutboxEntry } from './outbox';
+import { keptItems, type OutboxEntry } from './outbox';
 
 /** What a pointer event does in the writing area. */
 export type PenRole = 'draw' | 'erase' | 'ignore';
@@ -55,11 +55,6 @@ export function eraseAt(strokes: InkStroke[], x: number, y: number, radius: numb
   return strokes.filter((s) => !s.p.some((pt, i) => (i === 0 ? Math.hypot(x - pt[0], y - pt[1]) : segmentDistance(x, y, s.p[i - 1]!, pt)) <= radius));
 }
 
-/** Size of the strokes as the server counts it, against the list limit (decision Q3). */
-export function inkBytes(strokes: InkStroke[]): number {
-  return JSON.stringify(strokes).length;
-}
-
 const channel = (v: number): number => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 const rgb = (hex: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 const luminance = (hex: string): number => { const [r, g, b] = rgb(hex).map((v) => channel(v / 255)); return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!; };
@@ -78,16 +73,17 @@ export function readableInk(hex: string, dark: boolean): string {
   return toHex(target);
 }
 
-/** The server's ink with the unsent changes of the outbox on top (writing offline shows at once; ADR 0031). */
-export function withPendingInk(lists: InkDoc['lists'], entries: OutboxEntry[]): InkDoc['lists'] {
-  let out = lists;
+/** The ink of items by id, with the unsent changes of the outbox on top (writing offline shows at once; ADR 0031). */
+export function withPendingInk(items: InkDoc['items'], entries: OutboxEntry[]): InkDoc['items'] {
+  let out = items;
   for (const { change: c } of entries) {
     if (c.op === 'list.create') {
-      const made = Object.fromEntries((c.input.items ?? []).flatMap((i, n) => (i.strokes ? [[`${c.id}-${n}`, i.strokes]] : [])));
-      if (Object.keys(made).length) out = { ...out, [c.id]: { ...out[c.id], ...made } };
-    }
-    if ((c.op === 'item.add' && c.strokes) || c.op === 'item.ink') {
-      out = { ...out, [c.id]: { ...out[c.id], [c.itemId]: c.strokes ?? [] } };
+      const made = Object.fromEntries(keptItems(c.input.items).flatMap((i, n) => (i.strokes ? [[`${c.id}-${n}`, i.strokes]] : [])));
+      if (Object.keys(made).length) out = { ...out, ...made };
+    } else if ((c.op === 'item.add' && c.strokes) || c.op === 'item.ink') {
+      out = { ...out, [c.itemId]: c.strokes ?? [] };
+    } else if (c.op === 'item.delete' && c.itemId in out) {
+      out = Object.fromEntries(Object.entries(out).filter(([id]) => id !== c.itemId));
     }
   }
   return out;

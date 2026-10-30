@@ -811,7 +811,10 @@ export class CalendarService {
       if (input.estimateMinutes !== undefined) next.estimateMinutes = input.estimateMinutes;
       if (input.canvas !== undefined) next.canvas = input.canvas;
       if (input.items !== undefined) {
-        next.items = input.items.filter((i) => i.title.trim()).map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done }));
+        // an ink item (empty title) sent back with its id stays what it is
+        const inked = new Set(d.items.filter((i) => i.ink).map((i) => i.id));
+        next.items = input.items.filter((i) => i.title.trim() || (i.id && inked.has(i.id)))
+          .map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done, ...(i.id && inked.has(i.id) ? { ink: true as const } : {}) }));
       }
       return next;
     }, ifMatch, input.reminders);
@@ -874,6 +877,7 @@ export class CalendarService {
       const idx = d.items.findIndex((i) => i.id === itemId);
       if (idx < 0) throw notFound('Item not found');
       const cur = d.items[idx]!;
+      if (cur.ink && input.title !== undefined) throw validation('An ink item has no title', 'title');
       if (input.done === true && !cur.done) ticked = true;
       const items = [...d.items];
       items[idx] = { ...cur, title: input.title ?? cur.title, done: input.done ?? cur.done };
@@ -946,6 +950,7 @@ export class CalendarService {
     if (d.categoryId !== null && !this.settings.categories().some((c) => c.id === d.categoryId)) d.categoryId = null;
     const calendarId = await this.tasks.id();
     const ev = await this.provider.insertEvent(calendarId, encodeTaskList(d, this.tz, this.colorFor(d)));
+    this.shared!.releaseInk(doc);
     this.shared!.remove(doc);
     return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories());
   }

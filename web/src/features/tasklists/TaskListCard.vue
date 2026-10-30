@@ -152,7 +152,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
-      <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :strokes="ink.strokes(tl.id, lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
+      <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :strokes="ink.strokes(lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
@@ -165,7 +165,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :strokes="ink.strokes(tl.id, i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :strokes="ink.strokes(i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="fit.foot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>

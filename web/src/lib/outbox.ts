@@ -52,11 +52,16 @@ export function kindOf(c: Change): ChangeKind {
 /** Whether an entry has something to correct in a form (not a tick, a delete or a reorder). */
 export const editable = (c: Change): boolean => c.op === 'event.create' || c.op === 'event.update' || c.op === 'list.create' || c.op === 'list.update';
 
+/** The items of a new list the server keeps: an empty line is no item (it drops them, so positions must be counted after this). */
+export function keptItems<T extends { title: string; strokes?: unknown }>(items: T[] | undefined): T[] {
+  return (items ?? []).filter((i) => i.title.trim() || i.strokes);
+}
+
 const recount = (tl: TaskList, items: TaskItem[]): TaskList => ({ ...tl, items, doneCount: items.filter((i) => i.done).length, totalCount: items.length });
 
 /** A new task list as the device shows it before the server has answered. */
 export function localTaskList(id: string, input: CreateTaskListInput): TaskList {
-  const items = (input.items ?? []).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false, ...(i.strokes ? { ink: true as const } : {}) }));
+  const items = keptItems(input.items).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false, ...(i.strokes ? { ink: true as const } : {}) }));
   return recount({
     kind: 'tasklist', id, calendarId: '', title: input.title, date: input.date, time: input.date ? input.time ?? null : null, items, doneCount: 0, totalCount: 0,
     estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null, categoryId: input.categoryId ?? null, tags: input.tags ?? [],

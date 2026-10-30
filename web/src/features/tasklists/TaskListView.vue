@@ -208,7 +208,7 @@ async function commitRename() {
 // --- handwriting (feature handwritten-lists) -------------------------------------------------------------------
 /** Pen writing happens in the open list (the sheet); everywhere else ink is shown read-only. */
 const writing = computed(() => inkMode.enabled.value && !!props.closable && !props.compact);
-const inkWriting = useInkWriting(() => props.id, writing);
+const inkWriting = useInkWriting(() => props.id, writing, () => (tl.value?.items ?? []).filter((i) => i.ink).map((i) => i.id));
 const inkLabel = (item: TaskItem, i: number): string => t(item.done ? 'ink.itemTicked' : 'ink.item', { n: i + 1, total: tl.value?.items.length ?? 0 });
 // --- list actions -----------------------------------------------------------------------------------------------
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
@@ -294,7 +294,7 @@ defineExpose({ root, busy });
           >
             <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="item.ink ? inkLabel(item, i) : t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
             <div v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
-              <InkLine :strokes="ink.strokes(id, item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
+              <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
             </div>
             <input
               v-else-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.itemTitle')"

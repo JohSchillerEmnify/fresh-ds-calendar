@@ -1,8 +1,8 @@
 /** Handwritten lists on the device: the person's ink (server copy plus unsent writes), writing mode, colour and pen, per device. */
 import { defineStore } from 'pinia';
 import { ref, shallowRef, watch } from 'vue';
-import type { CalendarItem, InkDoc, InkStroke } from '@/api/types';
-import type { Change, OutboxEntry } from '@/lib/outbox';
+import type { CalendarItem, InkDoc, InkStroke, TaskList } from '@/api/types';
+import { keptItems, type Change, type OutboxEntry } from '@/lib/outbox';
 import { withPendingInk } from '@/lib/ink';
 import { ports } from '@/lib/outboxPorts';
 import { useOutboxStore } from './outbox';
@@ -22,8 +22,8 @@ function write(key: string, value: string | null): void {
 
 export const useInkStore = defineStore('ink', () => {
   const outbox = useOutboxStore();
-  const server = shallowRef<InkDoc['lists']>({});
-  const lists = shallowRef<InkDoc['lists']>({});
+  const server = shallowRef<InkDoc['items']>({});
+  const lists = shallowRef<InkDoc['items']>({});
   const mode = ref<'ink' | 'text'>(read(MODE_KEY) === 'text' ? 'text' : 'ink');
   /** `null` = the theme's text colour (decision Q4). */
   const colour = ref<string | null>(/^#[0-9a-f]{6}$/i.test(read(COLOUR_KEY) ?? '') ? read(COLOUR_KEY) : null);
@@ -34,22 +34,28 @@ export const useInkStore = defineStore('ink', () => {
 
   /** Takes the server's ink (every sync); unsent writes stay on top. */
   function fromDevice(d: InkDoc | undefined): void {
-    server.value = d?.lists ?? {};
+    server.value = d?.items ?? {};
     lists.value = withPendingInk(server.value, outbox.entries);
   }
   /** An ink write reached the server: its strokes join the server's copy before the outbox forgets the entry. */
   function adopt(c: Change, fresh?: CalendarItem): void {
     if (c.op === 'list.create') {
       if (fresh?.kind !== 'tasklist') return;
-      const made = Object.fromEntries((c.input.items ?? []).flatMap((i, n) => (i.strokes && fresh.items[n] ? [[fresh.items[n].id, i.strokes]] : [])));
-      if (Object.keys(made).length) server.value = { ...server.value, [fresh.id]: { ...server.value[fresh.id], ...made } };
+      const made = Object.fromEntries(keptItems(c.input.items).flatMap((i, n) => (i.strokes && fresh.items[n] ? [[fresh.items[n].id, i.strokes]] : [])));
+      if (Object.keys(made).length) server.value = { ...server.value, ...made };
+      return;
+    }
+    // a deleted list takes the ink of its items along
+    if (c.op === 'list.delete') {
+      const gone = new Set(ports.items?.get(c.id)?.kind === 'tasklist' ? (ports.items.get(c.id) as TaskList).items.map((i) => i.id) : []);
+      server.value = Object.fromEntries(Object.entries(server.value).filter(([id]) => !gone.has(id)));
       return;
     }
     server.value = withPendingInk(server.value, [{ change: c } as OutboxEntry]);
   }
   /** The strokes of one ink item. */
-  function strokes(listId: string, itemId: string): InkStroke[] {
-    return lists.value[listId]?.[itemId] ?? [];
+  function strokes(itemId: string): InkStroke[] {
+    return lists.value[itemId] ?? [];
   }
   function setMode(m: 'ink' | 'text'): void { mode.value = m; write(MODE_KEY, m); }
   function setColour(c: string | null): void { colour.value = c; write(COLOUR_KEY, c); }

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { CategoryInfo, Person, SharedInfo } from '../api/types.js';
+import type { CategoryInfo, InkStroke, Person, SharedInfo } from '../api/types.js';
 import type { PeopleStore } from '../auth/peopleStore.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import type { Clock } from '../lib/clock.js';
@@ -8,6 +8,7 @@ import { logEvent } from '../lib/diag.js';
 import { forbidden, notFound, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { formatInZone } from '../lib/time.js';
+import type { InkStore } from './inkStore.js';
 import type { TaskListData } from './taskCodec.js';
 
 /** Prefix of a shared list's API id (`shared:<id>`) and its `calendarId` (feature shared-lists). */
@@ -32,6 +33,8 @@ export interface SharedListDoc {
   data: TaskListData;
   /** The owner's category as it looked when last written, so members see its name, colour and icon. */
   category: CategoryInfo | null;
+  /** The strokes of the list's handwritten items by item id (feature handwritten-lists): ink belongs to the list. */
+  ink?: Record<string, InkStroke[]>;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -67,6 +70,8 @@ export class SharedListService {
     private readonly clock: Clock,
     private readonly tz: string,
     private readonly allow: AllowCheck,
+    /** Personal ink: a list that becomes shared takes the ink of its items along. */
+    private readonly inkStore?: InkStore,
   ) {
     this.dir = path.join(dataDir, 'shared', 'lists');
     this.rulesFile = path.join(dataDir, 'shared', 'category-shares.json');
@@ -164,6 +169,8 @@ export class SharedListService {
   /** Stores a new list. */
   create(owner: string, members: string[], data: TaskListData, category: CategoryInfo | null): SharedListDoc {
     const doc: SharedListDoc = { version: 1, id: nanoid(12), rev: 1, owner, members: [...new Set(members)], updated: this.stamp(), data, category };
+    const ink = this.inkStore?.take(owner, data.items.filter((i) => i.ink).map((i) => i.id));
+    if (ink && Object.keys(ink).length) doc.ink = ink;
     this.persist(doc);
     return doc;
   }
@@ -175,10 +182,21 @@ export class SharedListService {
     return this.touch(doc);
   }
 
+  /** Replaces the list's ink and bumps the version, so every member's device takes it in. */
+  saveInk(doc: SharedListDoc, ink: Record<string, InkStroke[]>): SharedListDoc {
+    doc.ink = ink;
+    return this.touch(doc);
+  }
+
   /** Replaces the members and bumps the version. */
   setMembers(doc: SharedListDoc, members: string[]): SharedListDoc {
     doc.members = [...new Set(members)];
     return this.touch(doc);
+  }
+
+  /** Stops sharing: the ink of the list goes back to its owner. */
+  releaseInk(doc: SharedListDoc): void {
+    for (const [id, strokes] of Object.entries(doc.ink ?? {})) this.inkStore?.setItem(doc.owner, id, strokes);
   }
 
   /** Deletes the list for everybody. */
