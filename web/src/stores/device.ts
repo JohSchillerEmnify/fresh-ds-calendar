@@ -6,9 +6,9 @@ import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { useCanvasStore } from '@/features/tasklists/canvasStore';
 import { useMotivationStore } from '@/features/motivation/store';
 import {
-  applyChanges, dropItem, emptyData, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
+  applyChanges, dropItem, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
 } from '@/lib/deviceData';
-import { deviceDb, devicePerson, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
+import { deviceDb, devicePerson, onDeviceWipe, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useAuthStore } from './auth';
 import { useCalendarsStore } from './calendars';
@@ -55,6 +55,15 @@ export const useDeviceStore = defineStore('device', () => {
   const written: Record<string, unknown> = {};
   let pending: Disposer | null = null;
   let stops: Array<() => void> = [];
+  /** Counts wipes: an answer that was on its way when the data was wiped belongs to the wiped person and is dropped. */
+  let epoch = 0;
+  onDeviceWipe(() => {
+    epoch++;
+    pending?.();
+    pending = null;
+    data.value = null;
+    for (const k of Object.keys(written)) delete written[k];
+  });
 
   /** The person of the session as the server says, `null` while unknown or signed out. */
   function sessionPerson(): string | null {
@@ -127,6 +136,8 @@ export const useDeviceStore = defineStore('device', () => {
     for (const k of RECORDS) if (k === 'meta' || written[k] !== next[k]) entries[k] = JSON.parse(JSON.stringify(next[k]));
     try {
       await db.putMany(entries);
+      // wiped while writing: the person pointer must not come back
+      if (!deviceDb()) return;
       setDevicePerson(who);
       for (const k of RECORDS) written[k] = next[k];
       mark('synced', d.syncedAt);
@@ -153,13 +164,15 @@ export const useDeviceStore = defineStore('device', () => {
     const clock = useClockStore();
     const base = res.full || !data.value ? emptyData(person ?? '') : data.value;
     const complete = res.events.failed.length === 0 && !res.taskLists.failed;
-    const next = applyChanges(base, res);
+    const quiet = !!data.value && isQuiet(data.value, res);
+    // an answer that changes nothing keeps the very same lists (so they are not rewritten) and is not handed on again
+    const next = quiet ? { ...base, cursor: res.cursor, files: base.files } : applyChanges(base, res);
     // the clock's config (zone, frozen time, polling, plugins) goes with the data so a start without a connection has it
     const config = clock.loaded ? clock.config as AppConfig : next.config;
     data.value = complete ? { ...next, config, syncedAt: clock.nowMs() } : { ...next, config };
     fresh.value = complete;
     failed.value = !complete;
-    hydrate();
+    if (!quiet) hydrate();
     // a sync is already one batch: it is written at once, so a page closed right after still has it
     pending?.();
     mark('saving');
@@ -169,8 +182,18 @@ export const useDeviceStore = defineStore('device', () => {
   /** One round of the device sync: asks the server what changed since the cursor and takes it in. Throws on failure (the caller reports it). */
   async function sync(): Promise<void> {
     const clock = useClockStore();
+    const auth = useAuthStore();
+    // who is asking must be known before the device's answer may be used: another person's store is wiped by the watcher
+    if (auth.status === 'unknown') await auth.check();
+    const asking = sessionPerson();
+    if (asking && person !== null && asking !== person) return;
+    const mine = epoch;
     try {
-      take(await api.changes(data.value?.cursor ?? null, clock.today));
+      const res = await api.changes(data.value?.cursor ?? null, clock.today);
+      // wiped or another person signed in while the answer was on its way: it is not this device's data
+      const now = sessionPerson();
+      if (mine !== epoch || (now && asking && now !== asking) || (now && person !== null && now !== person)) return;
+      take(res);
     } catch (e) {
       failed.value = true;
       throw e;
@@ -184,9 +207,9 @@ export const useDeviceStore = defineStore('device', () => {
     scheduleSave();
   }
   /** A successful delete (or a list that left): the item leaves the device copy. */
-  function drop(id: string): void {
+  function drop(id: string, calendarId?: string): void {
     if (!data.value) return;
-    data.value = dropItem(data.value, id);
+    data.value = dropItem(data.value, id, calendarId);
     scheduleSave();
   }
   /** A successful write of a per-person file: its answer replaces the device copy. */

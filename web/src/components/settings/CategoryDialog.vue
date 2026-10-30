@@ -12,10 +12,8 @@ import TextField from '@/components/m3/TextField.vue';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { t } from '@/i18n';
 import { useDeviceStore } from '@/stores/device';
-import { useItemsStore } from '@/stores/items';
 import { useSyncStore } from '@/stores/sync';
 import { useSettingsStore } from '@/stores/settings';
-import { useTaskListsStore } from '@/features/tasklists/store';
 import { googleColorLabel } from '@/theme/labels';
 
 const props = defineProps<{ category?: Category }>();
@@ -52,12 +50,9 @@ function save() {
     if (!props.category) return settings.addCategory(body);
     await settings.updateCategory(props.category.id, body);
     if (sharedWith.value === sharedBefore) return;
-    // the lists of the category move into (out of) the shared store: reload what is on screen
+    // the lists of the category move into (out of) the shared store with new ids: the device takes in the move
     device.putFile('categoryShares', await api.shareCategory(props.category.id, sharedWith.value || null));
-    // the lists got new ids on the server: the device takes in the move
-    void useSyncStore().syncNow('changed').catch(() => undefined);
-    void useItemsStore().refreshVisible().catch(() => undefined);
-    void useTaskListsStore().refresh().catch(() => undefined);
+    void useSyncStore().resyncAfterWrite();
   });
 }
 </script>

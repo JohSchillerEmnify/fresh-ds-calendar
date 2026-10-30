@@ -7,6 +7,7 @@ import { DisposerBag, listen } from '@/lib/timers';
 import type { SceneName as ShownScene } from '@/features/motivation/types';
 import { usePrefsStore } from './prefs';
 import { useDeviceStore } from './device';
+import { useSyncStore } from './sync';
 import { useThemeStore } from './theme';
 
 export const DEFAULT_CATEGORIES: Category[] = [
@@ -84,6 +85,8 @@ export const useSettingsStore = defineStore('settings', () => {
   async function categoryOp(fn: () => Promise<Settings>): Promise<Settings> {
     const next = keep(await fn());
     s.value = next;
+    // the lists carry their category's colour: the device takes in the lists the server recoloured
+    void useSyncStore().resyncAfterWrite();
     return next;
   }
   const addCategory = (c: { name: string; color: string; icon?: string | null }) => categoryOp(() => api.createCategory(c));

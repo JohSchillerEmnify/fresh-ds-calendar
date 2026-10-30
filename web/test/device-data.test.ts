@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEvent, TaskList } from '@/api/types';
 import {
-  applyChanges, covers, dropItem, emptyData, itemsIn, putItem, summaryOf, windowOf, type ChangeSet, type DeviceData,
+  applyChanges, covers, dropItem, isQuiet, emptyData, itemsIn, putItem, summaryOf, windowOf, type ChangeSet, type DeviceData,
 } from '@/lib/deviceData';
 import { eventFixture } from './helpers';
 
@@ -54,11 +54,11 @@ describe('applyChanges', () => {
   });
 
   it('drops the stored instances of a series and puts the current ones in', () => {
-    const d = held([ev('s_1', '2026-10-13'), ev('s_2', '2026-10-20'), ev('s2_1', '2026-10-14')]);
+    const d = held([ev('s_20261013', '2026-10-13'), ev('s_20261020', '2026-10-20'), ev('s2_20261014', '2026-10-14')]);
     const next = applyChanges(d, answer({
-      events: { calendars: ['primary'], replace: [], series: [{ calendarId: 'primary', seriesId: 's' }], removed: [], failed: [], upserts: [ev('s_3', '2026-10-27')] },
+      events: { calendars: ['primary'], replace: [], series: [{ calendarId: 'primary', seriesId: 's' }], removed: [], failed: [], upserts: [ev('s_20261027', '2026-10-27')] },
     }));
-    expect(ids(next)).toEqual(['s2_1', 's_3']);
+    expect(ids(next)).toEqual(['s2_20261014', 's_20261027']);
   });
 
   it('drops events that moved out of the window and keeps task lists of every date', () => {
@@ -111,5 +111,40 @@ describe('writing through', () => {
     d = putItem(d, list('t', '2026-10-15', { title: 'new' }));
     expect(d.taskLists).toHaveLength(1);
     expect(ids(dropItem(d, 't'))).toEqual(['a']);
+  });
+});
+
+describe('series ids', () => {
+  it('drops the instances `<series>_<start>` of a series and keeps a plain event whose id only begins like it', () => {
+    const d = held([ev('s', '2026-10-12'), ev('s_20261013', '2026-10-13'), ev('s_20261020T080000Z', '2026-10-20'), ev('s_x1', '2026-10-14'), ev('s2_20261013', '2026-10-15')]);
+    const next = applyChanges(d, answer({ events: { calendars: ['primary'], replace: [], series: [{ calendarId: 'primary', seriesId: 's' }], removed: [], failed: [], upserts: [] } }));
+    expect(ids(next)).toEqual(['s2_20261013', 's_x1']);
+  });
+
+  it('drops the occurrences of a repeating task list by its series id', () => {
+    const d = held([], [list('w_20261012', '2026-10-12', { seriesId: 'w' }), list('w_20261019', '2026-10-19', { seriesId: 'w' }), list('other', '2026-10-12')]);
+    const next = applyChanges(d, answer({ taskLists: { replace: false, series: ['w'], removed: [], upserts: [], failed: false } }));
+    expect(ids(next)).toEqual(['other']);
+  });
+});
+
+describe('window, quiet answers and deletes', () => {
+  it('a failed calendar keeps the old window end so the days it missed are not shown as empty', () => {
+    const next = applyChanges(held([]), answer({ window: { from: '2025-10-20', to: '2027-10-21' }, events: { calendars: ['primary'], replace: [], series: [], removed: [], upserts: [], failed: ['primary'] } }));
+    expect(next.window).toEqual({ from: '2025-10-20', to: '2027-10-13' });
+  });
+
+  it('an answer with nothing in it is quiet; any change, file or failure is not', () => {
+    const d = { ...held([ev('a', '2026-10-13')]), calendars: [{ id: 'primary' }] as never };
+    expect(isQuiet(d, answer())).toBe(true);
+    expect(isQuiet(d, answer({ files: { prefs: {} } }))).toBe(false);
+    expect(isQuiet(d, answer({ window: { from: '2025-10-13', to: '2027-10-14' } }))).toBe(false);
+    expect(isQuiet(d, answer({ full: true }))).toBe(false);
+    expect(isQuiet(d, answer({ taskLists: { replace: false, series: [], removed: [], upserts: [], failed: true } }))).toBe(false);
+  });
+
+  it('a delete of an event takes only the one of its calendar when ids repeat', () => {
+    const d = held([ev('same', '2026-10-13', 'primary'), ev('same', '2026-10-13', 'work')]);
+    expect(dropItem(d, 'same', 'work').events.map((e) => e.calendarId)).toEqual(['primary']);
   });
 });

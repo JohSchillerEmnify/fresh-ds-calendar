@@ -233,6 +233,73 @@ describe('the device store', () => {
     expect(useDeviceStore().data!.events.map((e) => e.id)).toEqual(['New']);
   });
 
+  it('an answer with nothing in it neither rewrites the lists nor hands the data on again', async () => {
+    server();
+    const { device } = await session();
+    const events = device.data!.events, lists = device.data!.taskLists;
+    const hydrated = vi.spyOn(useItemsStore(), 'refreshFromDevice');
+    kv.data.delete('events');
+    await vi.advanceTimersByTimeAsync(5000);
+    device.take({ ...answer(), full: false, cursor: 'c2', events: { ...answer().events, replace: [], upserts: [] }, taskLists: { replace: false, series: [], removed: [], upserts: [], failed: false }, files: {} });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(device.data!.events).toBe(events);
+    expect(device.data!.taskLists).toBe(lists);
+    expect(hydrated).not.toHaveBeenCalled();
+    expect(stored('meta')!.cursor).toBe('c2');
+    expect(kv.data.has('events')).toBe(false);
+  });
+
+  it('a conflict re-reads the server state: the resync brings the fresh etag, not the stale device copy', async () => {
+    server();
+    await session();
+    const items = useItemsStore();
+    await items.setVisible('2026-10-12', '2026-10-19');
+    expect(items.get('Dentist')!.etag).toBe('etag-Dentist');
+    const fresh = { ...ev('Dentist', '2026-10-13'), etag: 'etag-2' };
+    mockFetch({
+      'GET /api/changes': () => ({ ...answer(), full: false, cursor: 'c2', events: { calendars: ['primary'], replace: [], series: [], removed: [], failed: [], upserts: [fresh] }, taskLists: { replace: false, series: [], removed: [], upserts: [], failed: false }, files: {} }),
+      'GET /api/summary': () => ({ days: {} }),
+    });
+    await useSyncStore().resyncAfterWrite();
+    expect(items.get('Dentist')!.etag).toBe('etag-2');
+  });
+
+  it('a sync waits for the session to be known and skips when it is another person than the stored one', async () => {
+    server();
+    await session();
+    freshPinia();
+    const m = mockFetch({
+      'GET /api/auth/me': () => ({ email: 'anna@example.com', name: 'Anna' }),
+      'GET /api/config': () => config(),
+      'GET /api/changes': () => answer(),
+    });
+    const device = useDeviceStore();
+    await device.restore('/week/2026-10-12');
+    await expect(device.sync()).resolves.toBeUndefined();
+    expect(m.calls.map((c) => c.path)).toContain('/api/auth/me');
+    expect(m.calls.map((c) => c.path)).not.toContain('/api/changes');
+  });
+
+  it('drops an answer that was on its way when the device was wiped', async () => {
+    let release!: () => void;
+    const m = server();
+    const gate = new Promise<void>((r) => { release = r; });
+    mockFetch({
+      'GET /api/config': () => config(), 'GET /api/auth/me': () => ({ email: null, name: null }),
+      'GET /api/changes': async () => { await gate; return answer(); },
+    });
+    const device = useDeviceStore();
+    await useAuthStore().check();
+    const p = device.sync();
+    await vi.advanceTimersByTimeAsync(10);
+    await wipeDevice();
+    release();
+    await p;
+    expect(device.data).toBeNull();
+    expect(kv.data.size).toBe(0);
+    expect(m.calls.length).toBeGreaterThanOrEqual(0);
+  });
+
   it('a start before the first sync reads from the server as before', async () => {
     server();
     expect(useDeviceStore().ready).toBe(false);

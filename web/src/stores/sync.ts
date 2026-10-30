@@ -172,6 +172,14 @@ export const useSyncStore = defineStore('sync', () => {
     return current;
   }
 
+  /**
+   * After a write whose effect reaches beyond the item it answered (a series, a category, a conflict): the device takes in
+   * the server's state and the views read it again. Reading the device alone would show the stale copy.
+   */
+  function resyncAfterWrite(): Promise<void> {
+    return syncNow('changed').catch(() => undefined);
+  }
+
   /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
   function markSynced(): void {
     if (state.value !== 'error') lastSync.value = new Date().toISOString();
@@ -242,5 +250,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, retry, start, stop, schedule };
+  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, resyncAfterWrite, retry, start, stop, schedule };
 });

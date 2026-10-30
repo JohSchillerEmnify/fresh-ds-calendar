@@ -22,6 +22,7 @@ import { isPhone } from '@/composables/useViewport';
 import { pop } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useSyncStore } from '@/stores/sync';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
@@ -256,11 +257,12 @@ async function saveBirthday() {
       const patch = birthdayPatch(form.value, ev);
       if (Object.keys(patch).length === 0) { emit('close'); return; }
       await items.optimisticItem(ev.id, birthdayEvent(ev.id, ev), () => api.updateEvent(ev.id, patch, { ifMatch: items.get(ev.id)?.etag ?? ev.etag }));
-      items.refreshVisible().catch(() => undefined); // the other years of the series; a failed reload is the sync banner's business
+      void useSyncStore().resyncAfterWrite(); // the other years of the series
     } else {
       const input = toBirthdayInput(form.value);
       const tmp = `tmp-${Date.now().toString(36)}`;
       await items.optimisticItem(tmp, birthdayEvent(tmp, null), () => api.createBirthday(input));
+      void useSyncStore().resyncAfterWrite(); // a birthday repeats every year
     }
     emit('close');
   } catch (e) {

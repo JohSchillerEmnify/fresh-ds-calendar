@@ -309,11 +309,12 @@ export const useItemsStore = defineStore('items', () => {
     } catch (e) { return report(e); }
   }
   async function deleteEvent(id: string, etag?: string, o: RequestOptions = {}): Promise<void> {
+    const was = byId.value[id];
     try {
       await api.deleteEvent(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
       deleted.add(id);
       remove(id);
-      useDeviceStore().drop(id);
+      useDeviceStore().drop(id, was?.kind === 'event' ? was.calendarId : undefined);
     } catch (e) { report(e); }
   }
   async function createTaskList(input: CreateTaskListInput): Promise<TaskList> {
@@ -321,6 +322,8 @@ export const useItemsStore = defineStore('items', () => {
       const tl = await api.createTaskList(input);
       if (tl.seriesId) createdSeries.set(tl.id, tl.seriesId);
       upsert(tl);
+      // a repeating list is many occurrences: the device takes in all of them
+      if (tl.recurrence || tl.seriesId) void useSyncStore().resyncAfterWrite();
       return tl;
     } catch (e) { return report(e); }
   }
@@ -331,7 +334,7 @@ export const useItemsStore = defineStore('items', () => {
         ? await api.updateTaskList(id, patch, {}, 'following')
         : await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
       upsert(tl);
-      if (scope === 'following') refreshVisible().catch(() => undefined);
+      if (scope === 'following') void useSyncStore().resyncAfterWrite();
       return tl;
     } catch (e) { return report(e); }
   }
@@ -344,6 +347,8 @@ export const useItemsStore = defineStore('items', () => {
         // every cached occurrence of the list, also of parts split off by a "this and following" change (same seriesKey)
         for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && (it.seriesKey ?? it.seriesId) === series) { deleted.add(it.id); remove(it.id); useDeviceStore().drop(it.id); }
         createdSeries.delete(id);
+        // occurrences the cache never held go too
+        void useSyncStore().resyncAfterWrite();
       } else {
         await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
       }

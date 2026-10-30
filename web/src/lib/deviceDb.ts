@@ -90,10 +90,17 @@ export function setDevicePerson(person: string): void {
   try { localStorage.setItem(PERSON_KEY, person); } catch { /* storage blocked: the data cannot be found offline */ }
 }
 
+const wipeListeners = new Set<() => void>();
+/** Calls `fn` whenever the device is wiped (the store drops what it holds in memory and any save still waiting). */
+export function onDeviceWipe(fn: () => void): void {
+  wipeListeners.add(fn);
+}
+
 /** Removes what this device keeps (sign-out, the sign-in page) and stops this page from saving again. Never throws. */
 export async function wipeDevice(): Promise<void> {
   const db = deviceDb();
   wiped = true;
+  wipeListeners.forEach((fn) => fn());
   // the cached theme is device-wide, not per person: it goes with the data so the next person starts from the default
   try { for (const k of Object.keys(localStorage)) if (k === PERSON_KEY || k.startsWith('cal.theme')) localStorage.removeItem(k); } catch { /* storage blocked */ }
   try { await db?.clear(); } catch { /* IndexedDB broken: nothing readable is left either */ }

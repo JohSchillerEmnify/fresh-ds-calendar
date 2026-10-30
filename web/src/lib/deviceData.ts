@@ -56,8 +56,12 @@ export function windowOf(today: LocalDate): DeviceWindow {
 
 const touches = (it: CalendarItem, from: LocalDate, to: LocalDate): boolean => itemSegments(it).some((s) => s.date >= from && s.date < to);
 
-/** Whether `id` is an instance of (or is) the repeating series `seriesId` (Google names instances `<series>_<start>`). */
-const inSeries = (id: string, seriesId: string): boolean => id === seriesId || id.startsWith(`${seriesId}_`);
+/**
+ * Whether `id` is (an instance of) the repeating series `seriesId`. Google names an instance `<series>_<start>`, the start
+ * being `YYYYMMDD` (all-day) or `YYYYMMDDTHHMMSSZ`; the change set carries no series field on events, so the id is the only link.
+ * Requiring that start keeps a plain event whose id merely begins with `<series>_` out of it.
+ */
+const inSeries = (id: string, seriesId: string): boolean => id === seriesId || (id.startsWith(`${seriesId}_`) && /^\d{8}(T\d{6}Z)?$/.test(id.slice(seriesId.length + 1)));
 
 /** Keeps the events that touch the window; task lists are never pruned. */
 export function pruneWindow(data: DeviceData, w: DeviceWindow): DeviceData {
@@ -86,10 +90,21 @@ export function applyChanges(data: DeviceData, res: ChangeSet): DeviceData {
   const byId = new Map(lists.map((l) => [l.id, l]));
   for (const l of tl.upserts) byId.set(l.id, l);
 
+  // a calendar that failed keeps its old window end (as the server's cursor does), so the days it missed are not shown as empty
+  const w = (ev.failed.length > 0 || tl.failed) && data.window ? { from: res.window.from, to: data.window.to } : res.window;
   return pruneWindow({
     ...data, cursor: res.cursor, calendars: res.calendars, events: [...byKey.values()],
     taskLists: [...byId.values()], files: { ...data.files, ...res.files },
-  }, res.window);
+  }, w);
+}
+
+/** Whether an answer changes nothing the device holds but its cursor (same window, no changes, no files, nothing failed). */
+export function isQuiet(data: DeviceData, res: ChangeSet): boolean {
+  const e = res.events, t = res.taskLists;
+  return !res.full && !!data.window && data.window.from === res.window.from && data.window.to === res.window.to
+    && e.replace.length === 0 && e.series.length === 0 && e.removed.length === 0 && e.upserts.length === 0 && e.failed.length === 0
+    && !t.replace && t.series.length === 0 && t.removed.length === 0 && t.upserts.length === 0 && !t.failed
+    && Object.keys(res.files).length === 0 && JSON.stringify(data.calendars) === JSON.stringify(res.calendars);
 }
 
 /** The items (events and dated task lists) that touch `[from, to)`. */
@@ -128,7 +143,11 @@ export function putItem(data: DeviceData, item: CalendarItem): DeviceData {
   return { ...data, taskLists: [...data.taskLists.filter((l) => l.id !== item.id), item] };
 }
 
-/** Takes a deleted item (by id) out of the held data. */
-export function dropItem(data: DeviceData, id: string): DeviceData {
-  return { ...data, events: data.events.filter((e) => e.id !== id), taskLists: data.taskLists.filter((l) => l.id !== id) };
+/** Takes a deleted item out of the held data; an event is told apart by its calendar (ids repeat across calendars). */
+export function dropItem(data: DeviceData, id: string, calendarId?: string): DeviceData {
+  return {
+    ...data,
+    events: data.events.filter((e) => !(e.id === id && (calendarId === undefined || e.calendarId === calendarId))),
+    taskLists: data.taskLists.filter((l) => l.id !== id),
+  };
 }

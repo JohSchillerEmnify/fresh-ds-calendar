@@ -24,6 +24,7 @@ import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
+import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, isComplete } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
@@ -61,6 +62,7 @@ const emit = defineEmits<{
   completed: [catMs: number];
 }>();
 const items = useItemsStore();
+const sync = useSyncStore();
 const pendingDeletes = usePendingDeletesStore();
 const ui = useUiStore();
 const clock = useClockStore();
@@ -196,7 +198,7 @@ async function commitRename() {
     await items.updateTaskList(props.id, { title: v }, undefined, s);
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
-    if (e instanceof ApiError && e.isConflict) void items.refreshVisible();
+    if (e instanceof ApiError && e.isConflict) void sync.resyncAfterWrite();
   }
 }
 /** Door plugin (ADR 0004): the switch is offered only where the deployment turned the plugin on; it patches the door tag at once. */
@@ -207,7 +209,7 @@ async function setDoor(on: boolean) {
     await items.updateTaskList(props.id, { tags: withDoor(tl.value.tags, on) });
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
-    if (e instanceof ApiError && e.isConflict) void items.refreshVisible();
+    if (e instanceof ApiError && e.isConflict) void sync.resyncAfterWrite();
   }
 }
 

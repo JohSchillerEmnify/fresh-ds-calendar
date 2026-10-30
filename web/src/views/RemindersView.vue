@@ -15,6 +15,7 @@ import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import { useCalendarsStore } from '@/stores/calendars';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
+import { useSyncStore } from '@/stores/sync';
 import { usePrefsStore } from '@/stores/prefs';
 import { useUiStore } from '@/stores/ui';
 import { t } from '@/i18n';
@@ -56,7 +57,7 @@ function back() {
 
 /** The items on screen carry the effective leads, so they are read again after a default changed. */
 function refreshItems() {
-  void items.refreshVisible().catch(() => undefined);
+  void useSyncStore().resyncAfterWrite();
 }
 
 async function saveCalendar(id: string, minutes: number[]) {
