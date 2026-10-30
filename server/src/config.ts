@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEmails } from './auth/people.js';
 import { logEvent } from './lib/diag.js';
+import { validKey } from './lib/secretBox.js';
 import { isValidTimeZone } from './lib/time.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -137,6 +138,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
  * @throws Error When the configuration would serve everybody without sign-in.
  */
 export function assertSafeToStart(config: AppConfig, env: NodeJS.ProcessEnv = process.env): void {
+  if (config.provider === 'google' && !config.testMode && !validKey(env.TOKEN_ENC_KEY)) {
+    throw new Error('Refusing to start: TOKEN_ENC_KEY must be 32 bytes, base64 (openssl rand -base64 32); it encrypts the stored Google refresh tokens. scripts/vps.sh deploy adds one to /opt/calendar/.env.');
+  }
   if (config.provider !== 'mock' || env.ALLOW_INSECURE_MOCK === '1') return;
   if (config.publicUrl?.startsWith('https://') || env.NODE_ENV === 'production') {
     throw new Error('Refusing to start without sign-in (PROVIDER is not "google") on a public address. Set PROVIDER=google, or ALLOW_INSECURE_MOCK=1 to run open on purpose.');
