@@ -1493,6 +1493,7 @@ the approach bar shows {string} and {string}
 the approach bar shows its entries in {int} rows
 no bar of the approach track lies on top of the month picker
 the approach bar shows {int} entries
+on the approach bar no title is covered by another bar
 on the approach bar {string} is {int} times as long as {string}
 the title of {string} is shown next to its block
 on the approach bar {string} starts at now and shows {int} minutes
@@ -1674,6 +1675,8 @@ I note the height of {string} on the runway
   `zoom`, `horizontal`, `now`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   "no bar of the approach track lies on top of the month picker": every `approach-block` whose centre lies inside the open
   `month-picker` box must hit-test (`elementFromPoint`) to the picker (at least one `approach-item` is shown).
+  "on the approach bar no title is covered by another bar": the text of every `approach-item` (the title inside its block or
+  `approach-title` beside it) hit-tests at its centre (`elementFromPoint`) to that same item.
   "the approach bar shows its entries in N rows": the `approach-item` chips occupy exactly N distinct vertical
   positions. "on the timeline A and B are side by side": the two `timeline-item`s overlap vertically and not
   horizontally.

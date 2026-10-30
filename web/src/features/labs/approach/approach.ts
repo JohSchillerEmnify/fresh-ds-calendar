@@ -67,6 +67,8 @@ export interface ApproachChip {
   /** The title does not fit in the block and sits right after it, `titleWidth` wide. */
   titleOutside: boolean;
   titleWidth: number;
+  /** Width of the block not covered by a later chip on its row: a title inside the block is clipped to it. */
+  visibleWidth: number;
 }
 
 export interface ApproachSizes {
@@ -91,7 +93,7 @@ const chipEnd = (c: ApproachChip, gapPx: number) => c.x + c.width + (c.titleOuts
  * when it fits, else right after the block (shortened to the room left on the track). The waiting entry (`atEnd`) is a
  * chip at the right end, at most a quarter of the track wide, title inside. Overlapping chips (block and outside title)
  * take a second row; with both rows taken a chip goes to the row that frees up first, the title of the chip before it
- * is shortened to make room and, if it still overlaps, the new chip is `faded`. Never more than {@link MAX_ROWS} rows.
+ * is shortened to make room and, if it still overlaps, the new chip is `faded`; a block a later chip covers shows its title only in the part left (`visibleWidth`). Never more than {@link MAX_ROWS} rows.
  */
 export function approachLayout(
   entries: Segment[], nowMin: number, windowMin: number, trackPx: number, sizes: ApproachSizes, atEnd = false,
@@ -119,7 +121,7 @@ export function approachLayout(
         titleWidth = Math.min(need, room);
       }
     }
-    const chip: ApproachChip = { segment, minutes, running: !atEnd && minutes <= 0, x, width, row: 0, faded: false, titleOutside, titleWidth };
+    const chip: ApproachChip = { segment, minutes, running: !atEnd && minutes <= 0, x, width, row: 0, faded: false, titleOutside, titleWidth, visibleWidth: width };
     // first row whose last chip ends before this one starts, else a new row, else the row that frees up first
     let row = last.findIndex((c) => chipEnd(c, gapPx) <= x);
     if (row < 0 && last.length < MAX_ROWS) row = last.length;
@@ -133,6 +135,11 @@ export function approachLayout(
     chip.row = row;
     last[row] = chip;
     return chip;
+  });
+  // later chips paint over earlier ones, so an earlier block only shows up to the next start on its row
+  chips.forEach((c, i) => {
+    const next = chips.slice(i + 1).find((o) => o.row === c.row && o.x < c.x + c.width);
+    if (next) c.visibleWidth = Math.max(0, next.x - c.x);
   });
   return { chips, rows: Math.max(1, last.length) };
 }
