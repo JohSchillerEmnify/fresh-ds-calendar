@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 import { ApiException, type ErrorDetail } from './errors.js';
-import { GOOGLE_COLOR_IDS } from './colors.js';
+import { GOOGLE_COLOR_IDS } from '@calendar/shared/colors';
 
 const TITLE_REQ = 'Title is required';
 const TITLE_MAX = 'Title must be at most 200 characters';

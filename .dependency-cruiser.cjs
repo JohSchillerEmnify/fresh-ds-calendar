@@ -71,7 +71,7 @@ module.exports = {
           '^web/src/(main|sw)\\.ts$',
           '^server/src/index\\.ts$',
           '\\.d\\.ts$',
-          '^shared/(index|prefs)\\.js$',
+          '^shared/(index|prefs|colors)\\.js$',
         ],
       },
       to: {},

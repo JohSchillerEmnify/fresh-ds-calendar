@@ -7,7 +7,7 @@ import { enabledPlugins } from '../plugins/registry.js';
 import { ApiException, preconditionFailed, validation, notFound } from '../lib/errors.js';
 import { templateNotFound } from '../services/templateStore.js';
 import { isLocalDate, formatInZone, dayNumber } from '../lib/time.js';
-import { nearestGoogleColorId } from '../lib/colors.js';
+import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { nanoid } from '../lib/ids.js';
 import { MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { parsePrefsPatch } from '@calendar/shared/prefs';
