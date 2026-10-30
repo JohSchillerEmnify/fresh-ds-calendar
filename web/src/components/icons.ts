@@ -16,6 +16,9 @@ import ContentCopyOutlineS from '~icons/material-symbols/content-copy-outline-sh
 import ArchiveOutlineO from '~icons/material-symbols/archive-outline';
 import ArchiveOutlineR from '~icons/material-symbols/archive-outline-rounded';
 import ArchiveOutlineS from '~icons/material-symbols/archive-outline-sharp';
+import BookmarkAddO from '~icons/material-symbols/bookmark-add-outline';
+import BookmarkAddR from '~icons/material-symbols/bookmark-add-outline-rounded';
+import BookmarkAddS from '~icons/material-symbols/bookmark-add-outline-sharp';
 import AddO from '~icons/material-symbols/add';
 import AddR from '~icons/material-symbols/add-rounded';
 import AddS from '~icons/material-symbols/add-sharp';
@@ -159,6 +162,7 @@ function appIcon(name: string, variants: Variants): Component & { variants: Vari
 export const IconMoreHoriz = appIcon('IconMoreHoriz', { outlined: MoreHorizO, rounded: MoreHorizR, sharp: MoreHorizS });
 export const IconContentCopyOutline = appIcon('IconContentCopyOutline', { outlined: ContentCopyOutlineO, rounded: ContentCopyOutlineR, sharp: ContentCopyOutlineS });
 export const IconArchiveOutline = appIcon('IconArchiveOutline', { outlined: ArchiveOutlineO, rounded: ArchiveOutlineR, sharp: ArchiveOutlineS });
+export const IconBookmarkAdd = appIcon('IconBookmarkAdd', { outlined: BookmarkAddO, rounded: BookmarkAddR, sharp: BookmarkAddS });
 export const IconAdd = appIcon('IconAdd', { outlined: AddO, rounded: AddR, sharp: AddS });
 export const IconArrowBack = appIcon('IconArrowBack', { outlined: ArrowBackO, rounded: ArrowBackR, sharp: ArrowBackS });
 export const IconCalendarMonth = appIcon('IconCalendarMonth', { outlined: CalendarMonthO, rounded: CalendarMonthR, sharp: CalendarMonthS });

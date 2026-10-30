@@ -9,7 +9,7 @@ import { TITLE_MAX } from '@calendar/shared/limits';
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconArchiveOutline as IconArchive } from '@/components/icons';
+import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconBookmarkAdd, IconArchiveOutline as IconArchive } from '@/components/icons';
 import { ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
@@ -241,7 +241,7 @@ const menuItems = computed(() => {
     { id: 'edit', label: t('tasks.list.edit'), icon: IconEdit, testid: 'tasklist-edit' },
     { id: 'duplicate', label: t('tasks.list.duplicate'), icon: IconCopy, testid: 'tasklist-duplicate' },
     ...(complete.value || !l.items.length ? [] : [{ id: 'archive', label: t('tasks.list.archive'), icon: IconArchive, testid: 'tasklist-archive' }]),
-    ...(noTemplateOffered.value ? [] : [{ id: 'template', label: t('tasks.templates.save'), testid: 'tasklist-save-template' }]),
+    ...(noTemplateOffered.value ? [] : [{ id: 'template', label: t('tasks.templates.save'), icon: IconBookmarkAdd, testid: 'tasklist-save-template' }]),
     isMemberOnly(l) ? { id: 'leave', label: t('sharing.leave'), icon: IconDelete, testid: 'tasklist-leave' } : { id: 'delete', label: t('tasks.list.delete'), icon: IconDelete, testid: 'tasklist-delete' },
   ];
 });
