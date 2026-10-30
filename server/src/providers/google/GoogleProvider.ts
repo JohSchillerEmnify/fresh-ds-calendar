@@ -3,7 +3,7 @@ import type { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError,
-  ReauthRequiredError, CalendarPermissionMissingError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
+  ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 import { GOOGLE_TIMEOUT_MS, calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
@@ -48,7 +48,7 @@ export function mapGoogleError(e: unknown): Error {
 }
 
 function mapGoogleErrorInner(e: unknown): Error {
-  if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof ReauthRequiredError || e instanceof CalendarPermissionMissingError || e instanceof NotFoundError || e instanceof PreconditionFailedError) return e;
+  if (e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof ReauthRequiredError || e instanceof CalendarPermissionMissingError || e instanceof NotFoundError || e instanceof PreconditionFailedError || e instanceof SyncTokenExpiredError) return e;
   const err = e as { code?: number | string; status?: number; response?: { status?: number; data?: { error?: string | GoogleErrorBody } }; message?: string };
   // Google refuses the stored refresh token: only signing in again helps
   if (err.response?.data?.error === 'invalid_grant' || err.message === 'invalid_grant') return new ReauthRequiredError('invalid_grant');
@@ -201,8 +201,35 @@ export class GoogleProvider implements CalendarProvider {
   }
 
   async listChanges(calendarId: string, syncToken: string): Promise<ListEventsResult> {
-    const res = await this.call('events.list', () => this.o.api.events.list({ calendarId, syncToken, showDeleted: true, maxResults: 2500 }));
-    return { items: (res.data.items ?? []).map((e) => fromApi(e, calendarId)), nextSyncToken: res.data.nextSyncToken ?? undefined };
+    const items: GoogleEvent[] = [];
+    let pageToken: string | undefined;
+    let nextSyncToken: string | undefined;
+    // every page repeats the same token and the parameters of the initial read (Google "Synchronize resources efficiently")
+    do {
+      const res = await this.call('events.list', async () => {
+        try {
+          return await this.o.api.events.list({ calendarId, syncToken, singleEvents: false, showDeleted: true, maxResults: 2500, pageToken });
+        } catch (e) {
+          if (Number((e as { response?: { status?: number }; status?: number }).response?.status ?? (e as { status?: number }).status) === 410) throw new SyncTokenExpiredError('Sync token expired');
+          throw e;
+        }
+      });
+      for (const e of res.data.items ?? []) items.push(fromApi(e, calendarId));
+      pageToken = res.data.nextPageToken ?? undefined;
+      nextSyncToken = res.data.nextSyncToken ?? undefined;
+    } while (pageToken && items.length < 10_000);
+    return { items, nextSyncToken };
+  }
+
+  async listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {
+    const items: GoogleEvent[] = [];
+    let pageToken: string | undefined;
+    do {
+      const res = await this.call('events.instances', () => this.o.api.events.instances({ calendarId, eventId: seriesId, timeMin, timeMax, maxResults: 2500, pageToken }));
+      for (const e of res.data.items ?? []) items.push(fromApi(e, calendarId));
+      pageToken = res.data.nextPageToken ?? undefined;
+    } while (pageToken && items.length < 10_000);
+    return items.filter((e) => e.status !== 'cancelled');
   }
 }
 

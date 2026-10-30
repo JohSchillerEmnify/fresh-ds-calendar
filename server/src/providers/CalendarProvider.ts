@@ -88,7 +88,14 @@ export interface CalendarProvider {
   patchEvent(calendarId: string, eventId: string, patch: GoogleEventPatch, o?: WriteOptions): Promise<GoogleEvent>;
   deleteEvent(calendarId: string, eventId: string, o?: WriteOptions): Promise<void>;
   moveEvent(calendarId: string, eventId: string, destinationCalendarId: string): Promise<GoogleEvent>;
-  listChanges?(calendarId: string, syncToken: string): Promise<ListEventsResult>;
+  /**
+   * What changed in a calendar since `syncToken` (a `nextSyncToken` of a list read with `singleEvents: false`): every page,
+   * unexpanded series and their exceptions, cancelled entries included. Throws {@link SyncTokenExpiredError} when the token
+   * is no longer usable (Google 410): the caller lists the calendar in full again.
+   */
+  listChanges(calendarId: string, syncToken: string): Promise<ListEventsResult>;
+  /** The instances of one repeating event (`events.instances`) in `[timeMin, timeMax)`, exceptions applied, cancelled ones left out. */
+  listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]>;
   /** Milliseconds left of a rate-limit cooldown (no Google calls are made meanwhile); 0 or absent when not cooling down. */
   cooldownMs?(): number;
 }
@@ -106,6 +113,8 @@ export class ProviderForbiddenError extends ProviderUnavailableError {}
 export class ReauthRequiredError extends Error {}
 /** Google refuses calendar calls because the person did not grant the calendar scope at sign-in. */
 export class CalendarPermissionMissingError extends Error {}
+/** A sync token was refused (Google 410 Gone): drop what was kept for that calendar and list it again without a token. */
+export class SyncTokenExpiredError extends Error {}
 export class ProviderError extends Error {}
 export class NotFoundError extends Error {}
 export class PreconditionFailedError extends Error {}
