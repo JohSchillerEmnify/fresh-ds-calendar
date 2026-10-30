@@ -60,6 +60,7 @@ Feature: Everything I see is kept on this device and synced with the server
     And the app uses the dark theme
     And the page language is "de"
 
+  @backlog
   Scenario: Without a connection the coming weeks show even when I never opened them
     Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
     And the calendar contains an event "Haircut" on 2026-10-21 from 15:00 to 16:00
@@ -70,6 +71,7 @@ Feature: Everything I see is kept on this device and synced with the server
     Then I see the event "Haircut" on 2026-10-21
     And I see the sync error banner
 
+  @backlog
   Scenario: Without a connection birthdays and events months ahead show
     Given the Birthdays calendar has a birthday "Anna" on 2027-02-03
     And the calendar contains an all-day event "Conference" on 2027-09-14
@@ -83,6 +85,7 @@ Feature: Everything I see is kept on this device and synced with the server
     When I open the month view for 2027-09
     Then I see the all-day event "Conference" on 2027-09-14
 
+  @backlog
   Scenario: Without a connection every task list shows, dated or not, also an old one still open
     Given the calendar contains an undated task list "Taxes" with items:
       | item | done |
@@ -104,6 +107,7 @@ Feature: Everything I see is kept on this device and synced with the server
     And the Tasks view lists "Groceries" under "Today"
     And the Tasks view lists "Taxes" under "No date"
 
+  @backlog
   Scenario: Without a connection my categories and bedtime still apply
     Given bedtime mode is on with fixed times 22:30 and 06:30
     And I open the app
@@ -115,7 +119,7 @@ Feature: Everything I see is kept on this device and synced with the server
     Then the night bands of 2026-10-12 are "00:00-06:30, 22:30-24:00"
     And the category "Errands" has the color "#0b8043"
 
-  @signin @themes
+  @signin @themes @backlog
   Scenario: Without a connection my own theme still applies
     Given "jo@example.com" may use the calendar
     And "jo@example.com" imported the theme file "ocean.json"
@@ -128,6 +132,7 @@ Feature: Everything I see is kept on this device and synced with the server
     Then the theme "Ocean" is in use
     And the top bar draws the decor "waves"
 
+  @backlog
   Scenario: Events more than a year away are not kept, opening their day loads them
     Given the calendar contains an event "Wedding" on 2027-11-20 from 14:00 to 18:00
     And I open the app
@@ -144,6 +149,7 @@ Feature: Everything I see is kept on this device and synced with the server
     And I open the app again
     Then I do not see the event "Wedding"
 
+  @backlog
   Scenario: A change made elsewhere is taken in at the next sync, also on days I never opened
     Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
     And automatic sync runs every 2 seconds
@@ -158,6 +164,7 @@ Feature: Everything I see is kept on this device and synced with the server
     And I open the month view for 2027-03
     Then I see the event "Flight" on 2027-03-01
 
+  @backlog
   Scenario: Settings and preferences changed on another device arrive when the app regains focus
     Given I open the week view for 2026-10-12
     And the app has synced this device
@@ -167,6 +174,7 @@ Feature: Everything I see is kept on this device and synced with the server
     Then the app uses the dark theme
     And the page language is "de"
 
+  @backlog
   Scenario: The note says when the calendar was last updated while a sync fails
     Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
     And I have seen the week view for 2026-10-12
@@ -179,6 +187,7 @@ Feature: Everything I see is kept on this device and synced with the server
     Then I do not see the sync error banner
     And I am not told when the calendar was last updated
 
+  @backlog
   Scenario: Without a connection a change is not saved yet
     Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
       | item | done |
@@ -202,7 +211,7 @@ Feature: Everything I see is kept on this device and synced with the server
     Then they see the sign-in page
     And this device keeps no last known calendar
 
-  @signin
+  @signin @backlog
   Scenario: Someone else signing in on this device sees nothing of mine
     Given "jo@example.com" and "anna@example.com" may use the calendar
     And "jo@example.com" has an event "Dentist" on 2026-10-13 from 10:00 to 11:00
@@ -230,6 +239,7 @@ Feature: Everything I see is kept on this device and synced with the server
     And I open the templates in the settings
     Then the templates page says "No templates yet. Save a task list as a template to reuse it."
 
+  @backlog
   Rule: Live sync: a change made on one device shows on every other open app within about a second
 
     Every open app keeps one live connection to the server. Whenever something changes through the server (events, task
