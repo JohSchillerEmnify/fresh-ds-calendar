@@ -119,6 +119,11 @@ In practice:
 4. **Run only the e2e scenarios you touched.** `pnpm e2e:affected` prints the `--grep` for them. The full suite is
    slow and only needed before a release.
 5. **Commit.** Use conventional commits (`feat:`, `fix:`, `docs:` …). They also drive the version number.
+6. **Leak guards.** Run `pnpm hooks:install` once. The pre-commit and pre-push hooks (and CI) run `scripts/leak-check.sh`:
+   gitleaks rules (secrets, keys, public IPs, e-mail addresses) plus your private denylist, checked in diffs, commit
+   messages and author e-mails.
+   - Put your own real values (domain, server IP, e-mails, one per line) in `~/.config/calendar/leak-denylist`, outside
+     git. `--no-verify` skips the hooks, but CI catches it anyway. Needs gitleaks or Docker.
 
 CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
 

@@ -60,6 +60,8 @@ The spec is the single source of truth. Code follows the spec, never the other w
 - **Data is device-first:** anything the app shows must be readable offline from the device copy (ADR 0023/0025).
 - **Nothing private in the repo:** no secrets, tokens, real host names, IP addresses or e-mail addresses. Use
   `cal.example.org`, `example.test` and the configuration settings (`CAL_DOMAIN`, `.env`).
+  Guards: `pnpm hooks:install` (pre-commit/pre-push) and CI run `scripts/leak-check.sh`; your own values go in
+  `~/.config/calendar/leak-denylist`, never in the repo.
 - **Git:**
   - No `git stash`: worktrees share one stash.
   - No force-push.

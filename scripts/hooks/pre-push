@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Blocks a push whose commits hold a secret or a private value (git passes the remote name and the refs on stdin).
+exec "$(dirname "$0")/../leak-check.sh" push "$@"

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Blocks a commit whose staged diff holds a secret or a private value (see scripts/leak-check.sh).
+exec "$(dirname "$0")/../leak-check.sh" staged

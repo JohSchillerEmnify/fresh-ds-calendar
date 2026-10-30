@@ -22,6 +22,14 @@ Docker volume mounted as `DATA_DIR` (`/data`). Background: ADR 0026.
 - [ ] Rotate VAPID keys: `push.json` holds browser push endpoints and keys.
 - [ ] Delete old provider snapshots and backup copies that are no longer needed.
 
+## A secret or private value reached the repo (leak guard hit after a push)
+
+- [ ] Rotate first: treat the value as public the moment it was pushed (see the lists above for what to rotate). Forks and
+      caches keep copies, so a rewrite alone is not enough.
+- [ ] Then remove it from history (`git filter-repo --replace-text`), force-push by hand, and ask GitHub support to purge
+      cached views if the repository is public.
+- [ ] Re-run `scripts/leak-check.sh all` (full history) until it passes; add the value to the private denylist.
+
 ## Wipe sessions
 
 ```sh
