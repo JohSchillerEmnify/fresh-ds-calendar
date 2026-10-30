@@ -266,6 +266,12 @@ export class World {
 
   /** "I switch to another device": fresh context with the same project options, no shared storage. */
   async switchDevice() {
+    this.context = await this.newDeviceContext();
+    this.page = await this.context.newPage();
+  }
+
+  /** A fresh browser context like another device's (no shared storage); closed when the scenario ends. */
+  async newDeviceContext(): Promise<BrowserContext> {
     const use = this.testInfo.project.use;
     const context = await this.browser.newContext({
       baseURL: use.baseURL,
@@ -280,8 +286,7 @@ export class World {
     });
     await World.prepareContext(context);
     this.ownContexts.push(context);
-    this.context = context;
-    this.page = await context.newPage();
+    return context;
   }
 
   /** Closes this context when the scenario ends (e.g. a second person's API session). */

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { api, ApiError, type SyncErrorBeacon } from '@/api/client';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
+import { startLiveSync } from '@/lib/liveSync';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
 import { useItemsStore } from './items';
@@ -19,6 +20,8 @@ export type SyncReason = 'open' | 'focus' | 'visible' | 'online' | 'retry' | 'po
 const FOCUS_DEBOUNCE_MS = 500;
 /** After a failed sync, automatic triggers wait at least the poll interval (or this, when polling is off) and any `Retry-After`. */
 const DEFAULT_BACKOFF_MS = 30_000;
+/** While the live connection is up the poll is only a safety net: at most once a minute. */
+const LIVE_POLL_MS = 60_000;
 /** A failure within this long after the page became visible again counts as "just resumed". */
 const RESUME_WINDOW_MS = 5000;
 
@@ -43,6 +46,7 @@ export const useSyncStore = defineStore('sync', () => {
   let pollTimer: Disposer | null = null;
   let focusTimer: Disposer | null = null;
   let started = false;
+  let liveUp = false;
   let current: Promise<void> | null = null;
   let again = false;
   let visibleAt = -Infinity;
@@ -202,8 +206,9 @@ export const useSyncStore = defineStore('sync', () => {
     pollTimer?.();
     pollTimer = null;
     if (!started || (typeof document !== 'undefined' && document.hidden)) return;
-    const ms = useClockStore().pollIntervalMs;
-    if (!ms || ms <= 0) return;
+    const configured = useClockStore().pollIntervalMs;
+    if (!configured || configured <= 0) return;
+    const ms = liveUp ? Math.max(configured, LIVE_POLL_MS) : configured;
     pollTimer = appTimeout(async () => {
       pollTimer = null;
       if (document.hidden) return;
@@ -238,11 +243,21 @@ export const useSyncStore = defineStore('sync', () => {
     bag.add(listen(window, 'focus', onFocus));
     // the network coming back is news, so it is not held back by the quiet period
     bag.add(listen(window, 'online', () => { void syncNow('online').then(schedule); }));
+    // a nudge or a reconnect is news, so it is not held back by the quiet period either
+    bag.add(startLiveSync({
+      changed: () => { if (!document.hidden) void syncNow('changed').then(schedule); },
+      connected: (up) => {
+        // tests wait for the stream before they change something elsewhere
+        document.documentElement.dataset.liveConnected = String(up);
+        if (up !== liveUp) { liveUp = up; schedule(); }
+      },
+    }));
     schedule();
   }
   /** Stop everything (timers and listeners). */
   function stop(): void {
     started = false;
+    liveUp = false;
     pollTimer?.();
     pollTimer = null;
     focusTimer?.();

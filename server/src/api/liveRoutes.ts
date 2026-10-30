@@ -37,7 +37,7 @@ export function liveRoutes(ctx: Ctx): Hono {
       let open = true;
       void ended.then(() => { open = false; remove(); });
       // the first comment flushes the headers, so the browser's `open` fires at once
-      await s.write(': connected\n\n');
+      await s.write('retry: 1000\n: connected\n\n');
       while (open) {
         await Promise.race([ended, s.sleep(HEARTBEAT_MS)]);
         if (open) await s.write(': keep-alive\n\n');
