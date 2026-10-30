@@ -1,7 +1,7 @@
 import * as v from 'valibot';
 import { ApiException, type ErrorDetail } from './errors.js';
 import { GOOGLE_COLOR_IDS } from '@calendar/shared/colors';
-import { ESTIMATE_MAX, ESTIMATE_MIN, LIST_ITEMS_MAX, TIME_RE, TITLE_MAX } from '@calendar/shared/limits';
+import { ESTIMATE_MAX, ESTIMATE_MIN, INK_STROKES_MAX, LIST_ITEMS_MAX, TIME_RE, TITLE_MAX } from '@calendar/shared/limits';
 
 const TITLE_REQ = 'Title is required';
 const TITLE_MAX_MSG = `Title must be at most ${TITLE_MAX} characters`;
@@ -68,7 +68,7 @@ export const canvasDocSchema = v.pipe(
 const inkPoint = v.tuple([v.pipe(v.number(), v.minValue(-5), v.maxValue(500)), v.pipe(v.number(), v.minValue(-5), v.maxValue(20)), v.pipe(v.number(), v.minValue(0), v.maxValue(1))]);
 /** A time in ms: a whole, non-negative number (a NaN or fractional time would poison the merge). */
 const whole = v.pipe(v.number(), v.integer(), v.minValue(0));
-const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000)), c: v.optional(hex), t: v.optional(whole) })), v.maxLength(500));
+const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000)), c: v.optional(hex), t: v.optional(whole) })), v.maxLength(INK_STROKES_MAX));
 /** `POST /api/templates`, `PUT /api/templates/:id` (feature tasklist-templates): a name, item titles, estimate, category. */
 export const templateSchema = so({
   name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(80, 'Name must be at most 80 characters')),

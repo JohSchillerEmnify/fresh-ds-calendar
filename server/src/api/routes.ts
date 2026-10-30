@@ -11,7 +11,8 @@ import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { nanoid } from '../lib/ids.js';
 import { MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { parsePrefsPatch } from '@calendar/shared/prefs';
-import { mergeInk } from '@calendar/shared/ink';
+import { mergeInk, visibleInk } from '@calendar/shared/ink';
+import { INK_STROKES_MAX } from '@calendar/shared/limits';
 import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
@@ -370,7 +371,8 @@ export function apiRoutes(ctx: Ctx): Hono {
     // a stroke time far ahead of the server's clock would make the stroke survive every erase: it counts as at most a little ahead
     const drawn = (sent as InkStroke[]).map((s) => (s.t !== undefined && s.t > nowMs + INK_SKEW_MS ? { ...s, t: nowMs + INK_SKEW_MS } : s));
     const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), drawn, base, Math.min(at ?? Number.MAX_SAFE_INTEGER, nowMs)) : drawn;
-    if (!ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
+    // a merge can add to what the device saw: what one item holds stays within what a request may carry
+    if (visibleInk(strokes).length > INK_STROKES_MAX || !ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
     ctx.inks.set(sub, listId, itemId, strokes);
     return c.json(await cal(c).getTaskList(listId));
   });

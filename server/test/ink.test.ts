@@ -92,6 +92,18 @@ describe('ink items', () => {
     });
   });
 
+  it('refuses a merge that would leave an item with more strokes than one item takes', async () => {
+    const l = await mk();
+    const mini = (i: number) => ({ p: [[i / 100, 0, 1]], t: i + 1 });
+    const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [mini(0)] })).body.items[1].id;
+    const url = `/api/tasklists/${l.id}/items/${id}/ink`;
+    expect((await t.json('PUT', url, { strokes: Array.from({ length: 500 }, (_, i) => mini(i)) })).status).toBe(200);
+    // another device started from the first stroke only and adds one more
+    const r = await t.json('PUT', url, { strokes: [mini(0), mini(900)], base: [`1|1|0`], at: 1000 });
+    expect(r.status).toBe(413);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toHaveLength(500);
+  });
+
   it('refuses ink for a text item and for an unknown item', async () => {
     const l = await mk();
     expect((await t.json('PUT', `/api/tasklists/${l.id}/items/${l.items[0].id}/ink`, { strokes: [stroke()] })).status).toBe(400);
