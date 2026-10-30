@@ -4,6 +4,10 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Flaky in a batch: "Someone else signing in on this device does not get my templates"** (2026-10-30, merged
+  device store): red once in a `@last-known-state|@sync|@crud` run, green 2/2 alone. Likely state left by the scenario
+  before it; find the leak (falsify) and fix the test or the wipe.
+
 - **Scene visitor leaves the top bar at the top edge** (2026-10-30, red on main 0b65029 and on the clock fix):
   theme-scenes "The visitor flies across the top bar scene" fails on mobile: at 20 % of the flight the visitor's top edge
   is 1.8 px above the bar (`Expected >= 0, Received -1.76`). Root-cause first (header/scene layout changes since 10-26?).
