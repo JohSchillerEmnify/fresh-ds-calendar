@@ -88,8 +88,9 @@ function down(e: PointerEvent): void {
   }
   const role = penRole(e, prefs.labsDrawWithFinger);
   if (role === 'ignore' || isPalm(e)) return;
-  try { svg.value?.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer cannot be captured */ }
+  // a stroke is going on: the other pointer is a palm or a second hand and must not capture it
   if (live.value) return;
+  try { svg.value?.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer cannot be captured */ }
   activeId = e.pointerId;
   const erase = role === 'erase' || ink.eraser;
   const first = point(e);
