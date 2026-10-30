@@ -68,17 +68,17 @@ describe('the sync store with a live connection', () => {
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
   const routes = () => mockFetch({
-    'GET /api/config': () => config({ pollIntervalMs: 5_000 }), 'GET /api/changes': () => changesFixture(), 'GET /api/items': () => ({ items: [], from: '2026-10-12', to: '2026-10-19', syncedAt: 'x' }),
+    'GET /api/config': () => config({ pollIntervalMs: 30_000 }), 'GET /api/changes': () => changesFixture(), 'GET /api/items': () => ({ items: [], from: '2026-10-12', to: '2026-10-19', syncedAt: 'x' }),
     'GET /api/calendars': () => ({ calendars: [] }), 'GET /api/summary': () => ({ days: {} }), 'GET /api/tasklists/open': () => ({ items: [], finishedToday: [] }),
   });
 
-  it('syncs once per nudge and polls only once a minute while connected, at the configured rate otherwise', async () => {
+  it('syncs once per nudge and polls only once a minute while connected (a normal 30 s poll), at the configured rate otherwise', async () => {
     const m = routes();
     const changes = () => m.calls.filter((c) => c.path === '/api/changes').length;
     await useClockStore().load();
     const sync = useSyncStore();
     sync.start();
-    await vi.advanceTimersByTimeAsync(5_100);
+    await vi.advanceTimersByTimeAsync(30_100);
     expect(changes()).toBe(1); // no stream yet: the configured poll
     const s = FakeSource.all[0]!;
     s.onopen!();
@@ -86,12 +86,12 @@ describe('the sync store with a live connection', () => {
     s.nudge();
     await vi.advanceTimersByTimeAsync(100);
     expect(changes()).toBe(before + 1);
-    await vi.advanceTimersByTimeAsync(30_000);
-    expect(changes()).toBe(before + 1); // connected: no 5 s poll
-    await vi.advanceTimersByTimeAsync(31_000);
+    await vi.advanceTimersByTimeAsync(40_000);
+    expect(changes()).toBe(before + 1); // connected: no 30 s poll
+    await vi.advanceTimersByTimeAsync(21_000);
     expect(changes()).toBe(before + 2);
     s.onerror!(); // connection lost: back to the configured rate
-    await vi.advanceTimersByTimeAsync(5_100);
+    await vi.advanceTimersByTimeAsync(30_100);
     expect(changes()).toBe(before + 3);
     sync.stop();
     expect(s.live).toHaveLength(0);

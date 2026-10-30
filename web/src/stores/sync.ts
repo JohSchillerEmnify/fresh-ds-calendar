@@ -20,8 +20,9 @@ export type SyncReason = 'open' | 'focus' | 'visible' | 'online' | 'retry' | 'po
 const FOCUS_DEBOUNCE_MS = 500;
 /** After a failed sync, automatic triggers wait at least the poll interval (or this, when polling is off) and any `Retry-After`. */
 const DEFAULT_BACKOFF_MS = 30_000;
-/** While the live connection is up the poll is only a safety net: at most once a minute. */
+/** While the live connection is up a normal poll is only a safety net: at most once a minute (a short interval set on purpose, e.g. by a test, stays). */
 const LIVE_POLL_MS = 60_000;
+const NORMAL_POLL_MS = 30_000;
 /** A failure within this long after the page became visible again counts as "just resumed". */
 const RESUME_WINDOW_MS = 5000;
 
@@ -208,7 +209,7 @@ export const useSyncStore = defineStore('sync', () => {
     if (!started || (typeof document !== 'undefined' && document.hidden)) return;
     const configured = useClockStore().pollIntervalMs;
     if (!configured || configured <= 0) return;
-    const ms = liveUp ? Math.max(configured, LIVE_POLL_MS) : configured;
+    const ms = liveUp && configured >= NORMAL_POLL_MS ? Math.max(configured, LIVE_POLL_MS) : configured;
     pollTimer = appTimeout(async () => {
       pollTimer = null;
       if (document.hidden) return;
