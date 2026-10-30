@@ -7,6 +7,12 @@ The short version of everything you need to run, change and deploy this calendar
 
 This is a hobby project, built for a household. Please know what you are getting.
 
+- **This app is vibe-coded.** Most of the code was written by AI agents and steered by one person.
+  - Specs, tests, reviews and a security audit keep it in check, but it has not been reviewed line by line by
+    experienced humans.
+  - Treat it like any unaudited hobby code: read what you run, and don't trust it with anything you can't afford
+    to lose or leak.
+
 - **No warranty.** The code is AGPL-3.0 and comes "as is" (see `LICENSE`). If you run it, you run it at your own risk.
   If you offer it to others over a network, the AGPL requires you to offer them your source code too.
 - **The admin can read everything.** Whoever has root on the server can read every user's data. That includes their
@@ -94,11 +100,20 @@ keeps the token key, but it asks for every other value again.
 
 ### Without an AI agent
 
-The project is spec-driven: the behaviour is written down first, then built.
+Two rules shape everything here.
 
-1. **Describe the change.** Write or change the scenario in `spec/features/<area>/*.feature`. Every step sentence must
-   exist in `e2e/STEPS.md`; check with `python3 e2e/scripts/check-steps.py`.
-2. **Build it test-first.** Write the failing test (unit test, or the scenario as an e2e test), then the code.
+- **Spec-driven development.** The behaviour is written down first, as Gherkin scenarios in `spec/features/`, and
+  those scenarios *are* the e2e tests (Playwright runs the `.feature` files directly). The spec is the source of truth:
+  if code and spec disagree, the code is wrong or the spec gets changed on purpose, never quietly.
+- **Test-driven development.** Red, then green, then refactor: a failing test first, then the smallest code that makes
+  it pass, then clean-up while it stays green. A bug gets a reproducing test before its fix.
+
+In practice:
+
+1. **Describe the change.** Write or change the scenario in `spec/features/<area>/*.feature`.
+   - Every step sentence must exist in `e2e/STEPS.md`; check with `python3 e2e/scripts/check-steps.py`.
+   - A bigger decision also gets a short ADR in `docs/adrs/`.
+2. **Build it test-first.** Write the failing test (a unit test, or the scenario as an e2e test), then the code.
 3. **Before every merge,** run `pnpm verify`. It runs the type checks, unit tests, i18n, the step contract,
    duplication and lint, in about a minute.
 4. **Run only the e2e scenarios you touched.** `pnpm e2e:affected` prints the `--grep` for them. The full suite is
@@ -116,8 +131,12 @@ Where things are:
 ### With an AI agent
 
 Agents (Claude Code, Codex, Cursor …) read [`AGENTS.md`](../AGENTS.md) in the repo root (for Claude Code, put `@AGENTS.md` in
-your own, git-ignored `CLAUDE.md`). It tells them the same rules in compact form: spec first, test first, `pnpm verify` before every merge, only
-targeted e2e, no secrets or real host names in the repo.
+your own, git-ignored `CLAUDE.md`). It spells out the spec-driven and test-driven workflow for them, step by step:
+- the spec first, with a stop for your OK;
+- red, then green, then refactor;
+- `pnpm verify` before every merge;
+- only targeted e2e;
+- no secrets or real host names in the repo.
 
 What works well:
 - **Let the agent write the scenarios first, and read them before it builds.** Changing a scenario is cheap; changing
