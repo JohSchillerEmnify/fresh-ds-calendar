@@ -183,6 +183,15 @@ describe('approach bar layout', () => {
     expect(k.chips[0].width).toBe(60); // a block keeps its duration
     expect(k.chips[2].faded).toBe(true);
   });
+  it('clips the title of a block to the part a later chip on its row leaves uncovered', () => {
+    const tight = segsOf([
+      ev('a', t(D, '08:10'), t(D, '08:40'), { title: 'A' }), ev('b', t(D, '08:12'), t(D, '08:40'), { title: 'B' }),
+      ev('c', t(D, '08:14'), t(D, '08:40'), { title: 'C' }),
+    ], D);
+    const k = at(8 * 60, 360, 180, tight);
+    // A: x 20, C (same row) starts at 28; B sits on the other row and covers nothing of A
+    expect(k.chips.map((c) => c.visibleWidth)).toEqual([8, 56, 52]);
+  });
   it('with many entries stays in two rows and inside the track', () => {
     const many = segsOf(Array.from({ length: 12 }, (_, i) => {
       const m = 8 * 60 + 5 + i * 10;

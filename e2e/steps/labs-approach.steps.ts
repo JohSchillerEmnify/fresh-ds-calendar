@@ -143,6 +143,22 @@ Then('no bar of the approach track lies on top of the month picker', async funct
   })).toEqual({ inside: expect.any(Number), covering: [] });
 });
 
+Then('on the approach bar no title is covered by another bar', async function (this: World) {
+  await expect(items(this).first()).toBeVisible();
+  // the centre of each title's box must hit-test to its own item, never to a bar that follows
+  await expect.poll(() => this.page.evaluate(() => {
+    const covered: string[] = [];
+    for (const it of document.querySelectorAll('[data-testid="approach-item"]')) {
+      const label = it.querySelector('.label, [data-testid="approach-title"]');
+      if (!label) continue;
+      const r = label.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!hit || !it.contains(hit)) covered.push(it.getAttribute('data-title') ?? '?');
+    }
+    return covered;
+  })).toEqual([]);
+});
+
 Then('the approach bar shows its entries in {int} rows', async function (this: World, rows: number) {
   await expect(this.page.getByTestId('now-card').getByTestId('approach-now')).toBeVisible();
   // rows = distinct vertical positions of the chips

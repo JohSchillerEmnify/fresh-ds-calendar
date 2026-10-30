@@ -146,3 +146,14 @@ Feature: The Approaching card and its track
     When I open the week view for 2026-10-12
     And I open the month picker
     Then no bar of the approach track lies on top of the month picker
+
+  Scenario: Back-to-back entries in two lanes keep every title readable
+    Given the time is 2026-10-14 10:00
+    And the approach bar is on
+    And the calendar contains an event "Bachata Sensual" on 2026-10-14 from 10:20 to 11:20
+    And the calendar contains an event "Pauke Retournieren" on 2026-10-14 from 10:25 to 10:55
+    And the calendar contains an event "Hellbreakers" on 2026-10-14 from 11:05 to 12:05
+    And the calendar contains an event "HipHop" on 2026-10-14 from 11:20 to 12:20
+    When I open the week view for 2026-10-12
+    Then the approach bar shows its entries in 2 rows
+    And on the approach bar no title is covered by another bar
