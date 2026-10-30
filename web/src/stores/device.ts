@@ -172,7 +172,10 @@ export const useDeviceStore = defineStore('device', () => {
   /** Takes in an answer of `/api/changes`: applies it, keeps it and hands it on. Exposed for tests; `sync` is the entry point. */
   function take(res: ChangeSet): void {
     const clock = useClockStore();
-    const base = res.full || !data.value ? emptyData(person ?? '') : data.value;
+    // a full answer starts from nothing, except what a calendar that could not be read this time still holds
+    const prev = data.value;
+    const base = !res.full || !prev ? (prev ?? emptyData(person ?? ''))
+      : { ...emptyData(person ?? ''), window: prev.window, events: prev.events.filter((e) => res.events.failed.includes(e.calendarId)), taskLists: res.taskLists.failed ? prev.taskLists : [] };
     const complete = res.events.failed.length === 0 && !res.taskLists.failed;
     const quiet = !!data.value && isQuiet(data.value, res);
     const before = data.value?.files.settings as { categories?: unknown } | undefined;
@@ -203,7 +206,7 @@ export const useDeviceStore = defineStore('device', () => {
       const [res] = await Promise.all([api.changes(needFull ? null : data.value?.cursor ?? null, clock.today), auth.status === 'unknown' ? auth.check() : undefined]);
       // wiped or another person signed in while the answer was on its way: it is not this device's data
       const now = sessionPerson();
-      if (mine !== epoch || (now && person !== null && now !== person)) return;
+      if (mine !== epoch || (person !== null && (!now || now !== person))) return;
       take(res);
       // a category changed elsewhere: the lists are read again in full at once
       if (needFull && again) await sync(false);

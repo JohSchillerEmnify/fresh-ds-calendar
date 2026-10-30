@@ -281,6 +281,42 @@ describe('the device store', () => {
     expect(device.data).toBe(before);
   });
 
+  it('an answer is not applied to restored data while the session is unknown', async () => {
+    server();
+    await session();
+    freshPinia();
+    const m = mockFetch({
+      'GET /api/auth/me': () => ({ status: 500, body: { error: { code: 'INTERNAL', message: 'x' } } }),
+      'GET /api/config': () => config(),
+      'GET /api/changes': () => ({ ...answer(), full: false, cursor: 'c9', events: { ...answer().events, upserts: [ev('Intruder', '2026-10-14')] }, taskLists: { replace: false, series: [], removed: [], upserts: [], failed: false }, files: {} }),
+    });
+    const device = useDeviceStore();
+    await device.restore('/week/2026-10-12');
+    await device.sync();
+    expect(useAuthStore().status).toBe('unknown');
+    expect(m.calls.map((c) => c.path)).toContain('/api/changes');
+    expect(device.data!.cursor).toBe('c1');
+    expect(device.data!.events.map((e) => e.id)).toEqual(['Dentist']);
+  });
+
+  it('a first sync with nobody stored works once the session is known', async () => {
+    server();
+    const device = useDeviceStore();
+    await device.sync();
+    expect(device.ready).toBe(true);
+  });
+
+  it('a full answer with a calendar that failed keeps that calendar\'s stored events', async () => {
+    server();
+    const { device } = await session();
+    await vi.advanceTimersByTimeAsync(5000);
+    device.take({
+      ...answer(), cursor: 'c3',
+      events: { calendars: ['primary', 'work'], replace: ['work'], series: [], removed: [], failed: ['primary'], upserts: [ev('Other', '2026-10-15')] },
+    });
+    expect(device.data!.events.map((e) => e.id).sort()).toEqual(['Dentist', 'Other']);
+  });
+
   it('drops an answer that was on its way when the device was wiped', async () => {
     let release!: () => void;
     const m = server();

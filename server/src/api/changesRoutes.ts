@@ -12,18 +12,21 @@ import { dayNumber, isLocalDate } from '../lib/time.js';
 import { windowOf } from '../services/changeFeed.js';
 import type { CalendarService, ChangeState } from '../services/calendar.js';
 
-interface Cursor extends ChangeState { v: 1; files: Record<string, string> }
+/** `p` is a short hash of the person the cursor was made for: another person's cursor is no cursor. */
+interface Cursor extends ChangeState { v: 1; p: string; files: Record<string, string> }
 const MAX_CURSOR_CHARS = 32_768;
 const MAX_DATE_SKEW_DAYS = 3;
 
 const isStringMap = (v: unknown): v is Record<string, string> => typeof v === 'object' && v !== null && !Array.isArray(v) && Object.values(v).every((x) => typeof x === 'string');
 
-/** The cursor a device sent, or null when it is missing or not one of ours (the device then gets everything in full). */
-export function decodeCursor(raw: string | undefined): Cursor | null {
+const personOf = (sub: string): string => createHash('sha1').update(sub).digest('base64url').slice(0, 12);
+
+/** The cursor a device sent, or null when it is missing, not one of ours or made for another person (the device then gets everything in full). */
+export function decodeCursor(raw: string | undefined, person?: string): Cursor | null {
   if (!raw || raw.length > MAX_CURSOR_CHARS) return null;
   try {
     const c = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')) as Partial<Cursor>;
-    return c.v === 1 && typeof c.to === 'string' && isLocalDate(c.to) && isStringMap(c.tokens) && isStringMap(c.shared) && isStringMap(c.files) ? (c as Cursor) : null;
+    return c.v === 1 && typeof c.to === 'string' && isLocalDate(c.to) && isStringMap(c.tokens) && isStringMap(c.shared) && isStringMap(c.files) && (person === undefined || c.p === personOf(person)) ? (c as Cursor) : null;
   } catch {
     return null;
   }
@@ -49,7 +52,7 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const today = asked !== undefined && Math.abs(dayNumber(asked) - dayNumber(serverToday)) <= MAX_DATE_SKEW_DAYS ? asked : serverToday;
     const sub = v.person(c);
     const cal = v.cal(c);
-    const prev = decodeCursor(c.req.query('cursor'));
+    const prev = decodeCursor(c.req.query('cursor'), sub);
 
     // the calendar list is small and always answered in full; reading it first fills the service's calendar cache
     const hidden = ctx.prefs.hiddenCalendars(sub);
@@ -80,7 +83,7 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const g = await cal.changesSince(prev, today, forced);
     // a calendar that failed is retried next time, including the relist its reminder overrides asked for
     if ((g.events.failed.length || g.taskLists.failed) && prev?.files.reminderOverrides !== undefined) versions.reminderOverrides = prev.files.reminderOverrides;
-    const cursor: Cursor = { v: 1, ...g.state, files: versions };
+    const cursor: Cursor = { v: 1, p: personOf(sub), ...g.state, files: versions };
     return c.json({ full: prev === null, cursor: encodeCursor(cursor), window: windowOf(today), calendars, events: g.events, taskLists: g.taskLists, files });
   });
 }

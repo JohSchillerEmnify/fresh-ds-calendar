@@ -41,6 +41,13 @@ describe('first call (no cursor)', () => {
     expect(f.themes).toEqual((await t.json('GET', '/api/themes')).body);
   });
 
+  it('a cursor made for another person is no cursor', async () => {
+    const c0 = (await changes()).cursor;
+    const other = Buffer.from(JSON.stringify({ ...decodeCursor(c0)!, p: 'someone-else' })).toString('base64url');
+    expect((await changes(other)).full).toBe(true);
+    expect((await changes(c0)).full).toBe(false);
+  });
+
   it('treats a cursor that is not ours as no cursor', async () => {
     expect((await changes('garbage')).full).toBe(true);
     expect((await changes(Buffer.from('{"v":2}').toString('base64url'))).full).toBe(true);
