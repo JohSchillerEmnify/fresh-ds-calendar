@@ -3335,6 +3335,7 @@ the support cat is fully visible in the top bar scene
 every large element of the top bar scene is fully visible
 no control covers any part of the top bar scene's large elements
 the Mordor eye and tower sit between the period title and the top bar's icons
+no visitor of the top bar scene is ever drawn under a control
 the floating toolbar offers {string}
 the floating toolbar is beside the create button
 the tools of the floating toolbar are tonal icon buttons with labels

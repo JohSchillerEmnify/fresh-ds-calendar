@@ -8,7 +8,7 @@ import BeachScene from './BeachScene.vue';
 import ChristmasNight from './ChristmasNight.vue';
 import EasterScene from './EasterScene.vue';
 import FallWinterScene from './FallWinterScene.vue';
-import { useClearOfControls } from './clearOfControls';
+import { useClearOfControls, useVisitorsClear } from './clearOfControls';
 import { anchor, BAR, CAT_SIZE, CAT_X, layoutFor } from './fallWinter';
 import ButterflyWings from './ButterflyWings.vue';
 import HalloweenNight from './HalloweenNight.vue';
@@ -86,6 +86,8 @@ const ownSpots = () => props.scene === 'fall' || props.scene === 'winter';
 const check = useClearOfControls(root, '[data-part=cat], [data-part=hare], [data-part=bare-tree], [data-part=sprouting-tree], [data-part=jack-o-lantern]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
 // another layout moves the controls: measure again once the layer is drawn for it
 watch(layout, check, { flush: 'post' });
+// visitors pass behind the controls unseen
+useVisitorsClear(root);
 </script>
 
 <template>

@@ -147,3 +147,34 @@ Then("the Mordor eye and tower sit between the period title and the top bar's ic
     expect(p.box!.r, `${p.name} left of the icons`).toBeLessThanOrEqual(left + 0.5);
   }
 });
+
+Then('no visitor of the top bar scene is ever drawn under a control', async function (this: World) {
+  await expect(this.page.locator(SCENE)).toBeAttached();
+  const sample = () => this.page.evaluate((sels) => {
+    const VIS = '[data-testid="top-bar-scene"] :is([data-part=butterfly], [data-part=bat], [data-part=ghost], [data-part=bird-flock], [data-part=robin])';
+    const controls = sels.flatMap((sel) => [...document.querySelectorAll(`[data-testid="top-bar"] ${sel}`)].flatMap((el) => {
+      const shapes = el.tagName.toLowerCase() === 'svg' ? [...el.querySelectorAll('path, circle, rect, ellipse')] : [el];
+      return shapes.map((s) => s.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
+    }));
+    const seen: string[] = [];
+    const hits: string[] = [];
+    for (const v of document.querySelectorAll<HTMLElement>(VIS)) {
+      seen.push(v.dataset.part ?? '');
+      if (v.hasAttribute('data-hidden') || getComputedStyle(v).visibility === 'hidden') continue;
+      const r = v.getBoundingClientRect();
+      if (controls.some((c) => Math.min(r.right, c.right) - Math.max(r.left, c.left) > 0.5 && Math.min(r.bottom, c.bottom) - Math.max(r.top, c.top) > 0.5)) hits.push(`${v.dataset.part} at ${Math.round(r.left)},${Math.round(r.top)}`);
+    }
+    return { seen, hits };
+  }, DRAWN);
+  // one visit lasts about ten seconds: sample it every 80 ms
+  const seen = new Set<string>();
+  const hits = new Set<string>();
+  for (let i = 0; i < 150; i++) {
+    const r = await sample();
+    r.seen.forEach((p) => seen.add(p));
+    r.hits.forEach((h) => hits.add(h));
+    await this.page.waitForTimeout(80);
+  }
+  expect(seen.size, 'a visitor came by').toBeGreaterThan(0);
+  expect([...hits].slice(0, 5), 'visitors drawn under a control').toEqual([]);
+});

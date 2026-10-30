@@ -181,3 +181,20 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       And left-handed mode is on
       When I open the day view for 2026-10-12
       Then every large element of the top bar scene is fully visible
+
+  Rule: Nothing flies under a control
+
+    @mobile
+    Scenario Outline: Visitors never pass over the title or an icon
+      Given the scene is "<scene>"
+      And the top bar size is set to "<size>"
+      When I open the day view for 2026-10-12
+      Then no visitor of the top bar scene is ever drawn under a control
+
+      Examples:
+        | scene     | size       |
+        | Halloween | Compact    |
+        | Halloween | Expressive |
+        | Spring    | Compact    |
+        | Fall      | Compact    |
+        | Winter    | Expressive |

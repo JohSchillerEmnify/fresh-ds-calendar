@@ -56,16 +56,16 @@ html[data-hand='left'][data-touch] .tbs:is([data-scene='fall'], [data-scene='win
 [data-layout='one-row'] .tbs { --bar-h: 52px; }
 [data-layout='two-rows'] .tbs { --bar-h: 84px; }
 /* the umbrella stands left of the sun's middle, the Christmas tree as tall as a Compact bar allows */
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='summerholidays'] :deep(.umbrella) { left: calc(50% - 58px); }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='summerholidays'] :deep(.umbrella) { left: calc(50% - 58px); }
 [data-layout='one-row'] .tbs[data-scene='christmas'] :deep(.tree) { height: 46px; }
 /* the tower is as tall as the bar, so the whole of it and its eye show */
 :is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='mordor'] :deep(.mo-tower) { height: var(--bar-h); translate: 0 0 !important; }
 [data-layout='one-row'] .tbs { --tw: 42px; }
 [data-layout='two-rows'] .tbs { --tw: 68px; }
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='halloween'] :deep(.sky) { right: auto; left: calc(50% - 29px); top: 2px; }
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='summer'] :deep(.at-sky) { right: auto; left: calc(50% - 20px); top: 2px; }
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='summerholidays'] :deep(.sun) { right: auto; left: calc(50% - 19px); top: 2px; }
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='newyear'] :deep(.sunrise) { left: calc(50% - 26px); }
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='christmas'] :deep(.tree) { left: calc(50% - 18px); }
-:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='easter'] :deep(.hare) { left: calc(50% - 21px); }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='halloween'] :deep(.sky) { right: auto; left: calc(50% - 29px); top: 2px; }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='summer'] :deep(.at-sky) { right: auto; left: calc(50% - 20px); top: 2px; }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='summerholidays'] :deep(.sun) { right: auto; left: calc(50% - 19px); top: 2px; }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='newyear'] :deep(.sunrise) { left: calc(50% - 26px); }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='christmas'] :deep(.tree) { left: calc(50% - 18px); }
+:is([data-layout='one-row'], [data-layout='two-rows'], [data-layout='wide']) .tbs[data-scene='easter'] :deep(.hare) { left: calc(50% - 21px); }
 </style>
