@@ -100,7 +100,7 @@ All variables (defaults from `server/src/config.ts`):
 | `DATA_DIR` | `./data` | the app's own files per person, the mock store, sessions and tokens |
 | `SEED` | `true` | seed demo data into an empty mock store |
 | `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
-| `POLL_INTERVAL_MS` | `30000` | web polling interval |
+| `POLL_INTERVAL_MS` | `30000` | web polling interval; while the live connection is up the app polls at most once a minute |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
 | `GOOGLE_REFRESH_TOKEN` | – | legacy single-account token, used only if Google returns none at the first sign-in |
 | `GOOGLE_CALENDAR_IDS` | `primary` | comma-separated calendars to show |
@@ -122,6 +122,10 @@ Google only accepts an HTTPS redirect URI on a real domain, so HTTPS comes first
 1. **DNS** — an A record for `cal.example.org` points at the VPS.
 2. **HTTPS** — Caddy (`deploy/vps/Caddyfile`) gets the Let's Encrypt certificate on the first deploy; nothing to do
    by hand.
+   Live sync (ADR 0030) keeps one `text/event-stream` request open per app (`GET /api/events/stream`, a comment line every
+   25 s). The shipped Caddyfile needs nothing extra: `reverse_proxy` flushes `text/event-stream` at once and `encode`
+   streams it unbuffered (Caddy docs). Any other proxy in front must not buffer or time out that path (nginx:
+   `proxy_buffering off` and a long `proxy_read_timeout`; the server also sends `X-Accel-Buffering: no`).
 3. **Google Cloud Console** (project e.g. "home-calendar"):
    - enable **Google Calendar API**;
    - OAuth consent screen: *External*; scopes `…/auth/calendar` and `…/auth/drive.appdata` (backups);

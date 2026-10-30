@@ -171,6 +171,7 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
       ctx.forgetPerson(p.sub);
       await dropPush(c, p.sub);
     }
+    ctx.live.endSession(getCookie(c, SESSION_COOKIE));
     ctx.auth.sessions.delete(getCookie(c, SESSION_COOKIE));
     deleteCookie(c, SESSION_COOKIE, { path: '/' });
     return c.body(null, 204);
@@ -182,6 +183,7 @@ export function authRoutes(ctx: Ctx): Hono<AuthEnv> {
     if (!p) throw new ApiException('UNAUTHENTICATED', 401, 'Sign in required');
     await dropPush(c, p.sub);
     ctx.auth.sessions.deleteSub(p.sub);
+    ctx.live.endPerson(p.sub);
     ctx.forgetPerson(p.sub);
     deleteCookie(c, SESSION_COOKIE, { path: '/' });
     return c.body(null, 204);
