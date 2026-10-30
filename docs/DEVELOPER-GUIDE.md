@@ -90,6 +90,11 @@ Steps:
    - `scripts/vps.sh harden` switches the server to a non-root deploy user with key-only SSH.
    - The Android app needs `CAL_DOMAIN` set for `scripts/android-build.sh`; see `DEPLOYMENT.md` → Android app.
 
+What the scripts refuse to do (ADR 0029):
+- `scripts/vps.sh env` and `deploy` stop at once when `CAL_DOMAIN` is not set. The public host name is never in the repo.
+- `scripts/android-build.sh` stops when neither `CAL_DOMAIN` nor `CAL_SERVER_URL` is set, and a release build of the
+  Android project fails without an `https://` server URL. The app's server is build configuration.
+
 Updating means running step 3 again. Deploys never touch the data. To roll back, check out the last good commit and
 deploy it.
 

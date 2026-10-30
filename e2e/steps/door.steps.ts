@@ -30,7 +30,13 @@ async function listByTitle(w: World, title: string, date?: string): Promise<List
   return l;
 }
 
+/** The clock minute of the latest ask: the server counts asks per minute and client, across scenarios. */
+let lastAskMinute = -1;
+const minuteNow = () => Math.floor(Date.now() / 60_000);
+const untilNextMinute = () => new Promise((r) => setTimeout(r, 60_000 - (Date.now() % 60_000) + 200));
+
 async function askDoor(w: World, key: string): Promise<DoorAnswer> {
+  lastAskMinute = minuteNow();
   const res = await w.request.fetch('/api/door', { headers: { authorization: `Bearer ${key}` }, failOnStatusCode: false });
   const a: DoorAnswer = { status: res.status(), body: await res.json().catch(() => null) };
   answers.set(w, a);
@@ -43,6 +49,11 @@ Given('the door board has the key of the owner', async function (this: World) {
 });
 Given("the door board's key is taken away", async function (this: World) {
   await this.api.setDoor({ off: true });
+});
+
+Given('the door board has the key of {string}', async function (this: World, person: string) {
+  await this.api.setAuth([person]);
+  await this.api.setDoor({ token: KEY, person });
 });
 
 // ---- lists ----
@@ -74,6 +85,29 @@ Given('another person {string} has a task list {string} on {date} marked to show
 When('the door board asks for its reminders', async function (this: World) { await askDoor(this, KEY); });
 When("the door board asks for today's events", async function (this: World) { await askDoor(this, KEY); });
 When("something asks for the door's reminders with a wrong key", async function (this: World) { await askDoor(this, 'not-the-key'); });
+
+/** The statuses of the last burst of asks (STEPS.md "asks for its reminders N times within a minute"). */
+const burst = new WeakMap<World, number[]>();
+When('the door board asks for its reminders {int} times within a minute', async function (this: World, n: number) {
+  // the limit counts per clock minute: start in a fresh one when this one already had asks or little of it is left
+  this.extendTimeout(130_000);
+  if (lastAskMinute === minuteNow() || 60_000 - (Date.now() % 60_000) < 5_000) await untilNextMinute();
+  const statuses: number[] = [];
+  for (let i = 0; i < n; i++) statuses.push((await askDoor(this, KEY)).status);
+  burst.set(this, statuses);
+  // the next scenario's asks must not meet this client's used-up minute
+  await untilNextMinute();
+});
+Then('the first {int} are answered', async function (this: World, n: number) {
+  expect(burst.get(this)!.slice(0, n)).toEqual(Array(n).fill(200));
+});
+Then('the next one is told there are too many requests', async function (this: World) {
+  const all = burst.get(this)!;
+  expect(all.slice(60)).toEqual([429]);
+});
+Then("it is told the door's person is not available", async function (this: World) {
+  expect(answer(this).status).toBe(503);
+});
 
 Then('it gets no reminders', async function (this: World) {
   const a = answer(this);

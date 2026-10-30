@@ -3154,3 +3154,134 @@ the top bar's widgets are in reverse order
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
   `scene-<scene>-<layout>-<scheme>`.
 
+
+## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, door-board, shared-lists)
+
+These scenarios describe behaviour that is already built. Two groups (the HTTP steps are in `e2e/steps/security.steps.ts` and
+`door.steps.ts`):
+
+- **HTTP steps (the scenarios without `@unit`)**: run against the TEST_MODE server through Playwright `request`
+  (no browser), keeping the last response like `I request {string}`.
+- **Server-start and file steps (the scenarios tagged `@unit`)**: they need a server started with other environment
+  settings or a look into the data folder, which the e2e server cannot do. Each scenario names the unit test that
+  covers it in a comment, so these steps have no e2e implementation. If e2e ever grows a "fresh server with these
+  settings" helper (see "I request ... on a fresh server" under Performance), they can be built on it and lose the tag.
+
+```
+the response header {string} is {string}
+the response header {string} contains {string}
+the Content-Security-Policy allows the inline script of the page by its fingerprint
+I send {string} with the header {string} set to {string}
+I send {string} with the body {string} as {string}
+I send {string} with a body of {int} kilobytes
+the response status is not {int}
+I request {string} with the cookie {string}
+the response text contains {string}
+the page is the privacy policy
+the calendar is not shown
+the privacy policy names {string} and says what it sees: {string}
+the privacy policy names the map picture service and says what it sees: {string}
+the privacy policy names the place search and says what it sees: {string}
+the privacy policy says the device, not the server, asks it
+the privacy policy says there is no advertising, tracking or analytics
+the privacy policy says the only outside parties are Google and the two map services
+the door board has the key of {string}
+the door board asks for its reminders {int} times within a minute
+the first {int} are answered
+the next one is told there are too many requests
+it is told the door's person is not available
+```
+
+- "the response header X is Y" / "contains Y": the header of the last response (name case-insensitive), compared exactly
+  or as a substring. The security headers are the ones `server/src/lib/securityHeaders.ts` sets (spec/API.md, "Sign-in").
+- "the Content-Security-Policy allows the inline script of the page by its fingerprint": requests `GET /index.html`,
+  computes `'sha256-<base64 of the SHA-256 of the text>'` for every `<script>` without `src`, and checks each is in the
+  `script-src` part of the last response's policy.
+- "I send "METHOD /path" with the header H set to V": a request without body but with that header, last response kept. The
+  header `origin` is sent as given (`null` is the text "null").
+- "I send "METHOD /path" with the body B as T": body text B with `Content-Type: T`; "with a body of N kilobytes": a JSON
+  object `{ "pad": "x..." }` of N KB with `Content-Type: application/json`.
+- "I request "METHOD /path" with the cookie "name=value"": the request carries that `Cookie` header and no other session.
+- "the response text contains T": the body of the last response as text includes T.
+- "the page is the privacy policy": the browser page shows a heading "Privacy policy" (`h1`). "the calendar is not shown": no
+  `week-view`, `month-view` or `signin-google` test hook, and the document is not the app shell (`#app` absent).
+- Privacy text checks use the last `GET /privacy.html` response. "names X and says what it sees: "a, b"": the page text
+  has X and every comma-separated phrase. "the map picture service" is the tile host and "the place search" the Photon
+  host named on the page. "the device, not the server, asks it" = the page text says the device (not the server) contacts
+  them. "no advertising, tracking or analytics" = those three words are in the "What is not done" list. "the only outside
+  parties are Google and the two map services" = the same list says apart from Google the only third parties are the two
+  map services.
+- "the door board has the key of "P"" (Given): `POST /api/__test/auth` with P as the only allowed address, then
+  `POST /api/__test/door { token, person: P }` with the fixed test key. "may no longer use the calendar" then changes the
+  allowed addresses to the other person, as in feature signin. "it is told the door's person is not available" = status 503.
+- "asks for its reminders N times within a minute": N sequential `GET /api/door` calls with the key, all inside one clock
+  minute (the step first waits for a fresh minute if this one already had door asks or fewer than 5 s are left, and afterwards waits for the next
+  minute so later scenarios start with an unused budget; this makes the scenario take about two minutes); the statuses are kept.
+  "the first N are answered" = those calls answered 200; "the next one is told ..." = the call after them answered 429.
+
+```
+the server has a valid encryption key
+the server is set up for real Google sign-in
+the encryption key is {string}
+the server starts
+the server restarts
+the server keeps running
+it starts
+it refuses to start
+it tells the operator that the encryption key must be 32 bytes in base64
+{string} has a Google connection stored unencrypted from before
+{string} has a Google connection stored encrypted
+the server next uses the Google connection of {string}
+the stored Google connection of {string} is {string}
+the stored Google connection of {string} does not contain the connection in readable form
+the stored Google connection of {string} can be read by the server's own user only
+{string} is connected to Google
+{string} is not connected to Google
+{string} is not asked to sign in again
+{string} is asked to sign in with Google again
+the stored sessions hold a fingerprint of the sign-in cookie and not the cookie value itself
+{string} has a session stored in the old readable form
+{string} is still signed in
+the server runs as the demo, without Google sign-in
+the server is set up for {string}
+the operator allows running open on purpose
+it tells the operator to turn on Google sign-in or to run open on purpose
+the server is set up with the default place search and map picture services
+the Content-Security-Policy lets the page reach outside only the place search and the map picture services
+the operator set the place search address to {string}
+the place search address is the public default
+the server is set up with a public address and one other allowed address
+a write from the public address is accepted
+a write from the other allowed address is accepted
+a write from a foreign website is refused
+the operator's door key is only {int} characters long
+the operator's door key is {int} characters long
+the door stays off
+the door is on
+the operator is told the key must have at least 32 characters
+the server sits behind the trusted proxy
+the server does not sit behind a trusted proxy
+one client has used up its 60 asks of this minute
+{int} other clients ask once each
+the client that used up its asks is still told there are too many requests
+one client asks 70 times, each time claiming to come from a different address
+one client asks 70 times, each time claiming a different first address but arriving through the same last hop
+{int} of the asks are told there are too many requests
+a client arriving through another last hop still has its own 60 asks
+{string} shares the task list {string} with {string}
+a second shared list file on the server is damaged because {string}
+the damaged file is left out and noted in the server log
+the Drive backup of {string} holds the shared list {string} and one damaged shared list
+{string} restores from the Drive backup
+the shared list {string} is back
+the damaged shared list is left out and noted in the server log
+```
+
+- These steps are unit-level (see the unit test named above each scenario); they are not implemented in `e2e/steps/` and
+  their scenarios are skipped by the `@unit` filter. Meaning of the setup phrases, for whoever builds them: "the server is set up
+  for "an https public address" / "production mode" / "a local http address" / "development mode" / "no address at all""
+  = `PUBLIC_URL=https://...` / `NODE_ENV=production` / `PUBLIC_URL=http://localhost:3000` / `NODE_ENV=development` / neither;
+  "runs as the demo" = `PROVIDER=mock` (or unset); "allows running open on purpose" = `ALLOW_INSECURE_MOCK=1`; "the
+  encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes; "sits behind the
+  trusted proxy" = `TRUST_PROXY=1`, and "claiming" = the `X-Forwarded-For` header (the last entry is the proxy's own);
+  "damaged because ..." = the shapes listed in `server/test/hardening-shared.test.ts`.

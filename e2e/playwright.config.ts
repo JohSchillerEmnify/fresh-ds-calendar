@@ -22,7 +22,7 @@ const testDir = defineBddConfig({
   outputDir: '.features-gen',
   missingSteps: 'fail-on-gen',
   // @backlog scenarios are agreed spec not built yet: every project skips them, so they need no steps yet
-  tags: 'not @backlog',
+  tags: 'not @backlog and not @unit',
 });
 
 export default defineConfig({
@@ -53,7 +53,7 @@ export default defineConfig({
   projects: [
     {
       name: 'mobile',
-      grepInvert: /@desktop|@tablet|@backlog/,
+      grepInvert: /@desktop|@tablet|@backlog|@unit/,
       use: {
         browserName: 'chromium',
         viewport: { width: 375, height: 812 },
@@ -82,12 +82,12 @@ export default defineConfig({
       // an iPhone (WebKit, touch): only the scenarios tagged @iphone; the finger is a model of iOS WebKit (STEPS.md)
       name: 'iphone',
       grep: /@iphone/,
-      grepInvert: /@backlog/,
+      grepInvert: /@backlog|@unit/,
       use: { ...devices['iPhone 13'], browserName: 'webkit' },
     },
     {
       name: 'desktop',
-      grepInvert: /@mobile|@tablet|@perf|@backlog/,
+      grepInvert: /@mobile|@tablet|@perf|@backlog|@unit/,
       use: {
         browserName: 'chromium',
         viewport: { width: 1280, height: 800 },

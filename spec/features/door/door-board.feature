@@ -128,3 +128,63 @@ Feature: Reminders and today's events for the door board
         | Pharmacy |
       When I open the list sheet of "Friday errands" and turn "Show on door" on
       Then "Friday errands" is marked to show on the door
+
+  Rule: The door key must be long enough to resist guessing
+
+    # unit: server/test/hardening-door.test.ts:keeps the door off (and says so) for a key shorter than 32 characters
+    @unit
+    Scenario: A key shorter than 32 characters keeps the door off
+      Given the operator's door key is only 20 characters long
+      When the server starts
+      Then the door stays off
+      And the operator is told the key must have at least 32 characters
+
+    # unit: server/test/hardening-door.test.ts:keeps the door off (and says so) for a key shorter than 32 characters
+    @unit
+    Scenario: A key of 32 characters or more switches the door on
+      Given the operator's door key is 40 characters long
+      When the server starts
+      Then the door is on
+
+  Rule: The door answers at most 60 times a minute per client
+
+    Scenario: The 61st ask within a minute is told to slow down
+      When the door board asks for its reminders 61 times within a minute
+      Then the first 60 are answered
+      And the next one is told there are too many requests
+
+    # unit: server/test/hardening-door.test.ts:a flood of distinct clients does not reset the counter of one that is over its limit
+    @unit
+    Scenario: A flood of other clients does not free a client that is over its limit
+      Given the server sits behind the trusted proxy
+      And one client has used up its 60 asks of this minute
+      When 1100 other clients ask once each
+      Then the client that used up its asks is still told there are too many requests
+
+  Rule: Clients are told apart by the trusted proxy's address only
+
+    # unit: server/test/hardening-door.test.ts:ignores X-Forwarded-For unless the server sits behind a trusted proxy
+    @unit
+    Scenario: Without a trusted proxy a made-up forwarding header does not buy more asks
+      Given the server does not sit behind a trusted proxy
+      When one client asks 70 times, each time claiming to come from a different address
+      Then 10 of the asks are told there are too many requests
+
+    # unit: server/test/hardening-door.test.ts:behind a trusted proxy the last hop is the client, so rotating the first entry does not help
+    @unit
+    Scenario: Behind a trusted proxy the client is the address the proxy saw
+      Given the server sits behind the trusted proxy
+      When one client asks 70 times, each time claiming a different first address but arriving through the same last hop
+      Then 10 of the asks are told there are too many requests
+      And a client arriving through another last hop still has its own 60 asks
+
+  Rule: A person who may no longer use the calendar gets no board
+
+    Scenario: The door's person is taken off the list of allowed people
+      Given "jo@example.com" and "anna@example.com" may use the calendar
+      And the door board has the key of "jo@example.com"
+      And the door board asks for its reminders
+      And it gets no reminders
+      When "jo@example.com" may no longer use the calendar
+      And the door board asks for its reminders
+      Then it is told the door's person is not available

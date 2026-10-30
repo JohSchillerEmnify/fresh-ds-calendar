@@ -4,7 +4,7 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { expect, type APIRequestContext } from '@playwright/test';
-import { Given, Then, When } from './fixtures.js';
+import { Given, Step, Then, When } from './fixtures.js';
 import { addDays, berlinIso } from './support/dates.js';
 import { tid, type World } from './support/world.js';
 

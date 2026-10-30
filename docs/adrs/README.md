@@ -30,3 +30,6 @@ One short ADR per cross-cutting decision: the decision, the alternatives, why it
 | [0024](0024-task-list-templates-live-on-the-server.md) | Task list templates on the server | accepted | A person's templates are stored on the app server, not in Google |
 | [0025](0025-device-first-storage-synced-with-the-server.md) | Device-first storage | accepted | Everything is stored on the device first and only synced with the server |
 | [0026](0026-secrets-at-rest.md) | Secrets at rest | accepted | Refresh tokens are sealed with `TOKEN_ENC_KEY` (AES-256-GCM); sessions are stored hashed and end after 180 days |
+| [0027](0027-door-limits-and-trusted-proxy.md) | Door limits and trusted proxy | accepted | The door key has 32+ characters; 60 asks a minute per client, counted by the trusted proxy's address only when `TRUST_PROXY` is set |
+| [0028](0028-origin-protection-and-security-headers.md) | Origin protection and security headers | accepted | Writes need an allowed `Origin`, JSON and at most 256 KB; every answer carries a CSP and the other security headers |
+| [0029](0029-public-host-name-from-configuration.md) | Public host name from configuration | accepted | `CAL_DOMAIN` / `CAL_SERVER_URL` are required; the repo names no real host |
