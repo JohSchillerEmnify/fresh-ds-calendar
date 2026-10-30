@@ -68,8 +68,11 @@ export interface TaskItem {
 
 /** One point of a stroke: x and y in line heights from the line's left and top, and the pen pressure 0..1. */
 export type InkPoint = [x: number, y: number, pressure: number];
-/** One pen stroke. */
-export type InkStroke = InkPoint[];
+/** One pen stroke: its points and its colour (`#rrggbb`; absent = the theme's text colour). */
+export interface InkStroke {
+  p: InkPoint[];
+  c?: string;
+}
 /** A person's ink: the strokes of every ink item, by task list id then item id (`users/<sub>/ink.json`). */
 export interface InkDoc {
   version: 1;

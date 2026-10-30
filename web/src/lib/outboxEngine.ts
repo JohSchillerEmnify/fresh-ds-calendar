@@ -1,7 +1,7 @@
 /** The outbox's work (ADR 0031): keeping entries, showing them on the device, sending them in order, answering refusals. */
 import type { Ref, ShallowRef } from 'vue';
 import { ApiError } from '@/api/client';
-import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, InkStroke, CreateTaskListInput, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import { t } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
@@ -150,6 +150,14 @@ export function writes(s: OutboxState) {
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
     addItem: (listId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...scoped(scope) }, { title: text }),
+    /** A handwritten item at the end of the list; returns its id. */
+    addInkItem(listId: string, strokes: InkStroke[]): string {
+      const itemId = newItemId();
+      add(s, { op: 'item.add', id: listId, itemId, title: '', strokes }, { title: '' });
+      return itemId;
+    },
+    /** The new strokes of a handwritten item (all of them, replacing the old). */
+    setInk: (listId: string, itemId: string, strokes: InkStroke[]): void => add(s, { op: 'item.ink', id: listId, itemId, strokes }, { title: items().get(listId)?.title ?? '' }),
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
       add(s, { op: 'item.patch', id: listId, itemId, patch, ...scoped(scope) }, { title: patch.title ?? title(listId, itemId) }),
     deleteItem: (listId: string, itemId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.delete', id: listId, itemId, ...scoped(scope) }, { title: text }),

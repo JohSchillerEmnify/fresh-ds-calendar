@@ -148,7 +148,7 @@ export const updateTaskListSchema = so({
 });
 /** One pen point: x and y in line heights, pressure 0..1 (feature handwritten-lists). */
 const inkPoint = v.tuple([v.pipe(v.number(), v.minValue(-5), v.maxValue(500)), v.pipe(v.number(), v.minValue(-5), v.maxValue(20)), v.pipe(v.number(), v.minValue(0), v.maxValue(1))]);
-const strokes = v.pipe(v.array(v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000))), v.maxLength(500));
+const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000)), c: v.optional(hex) })), v.maxLength(500));
 export const inkSchema = so({ strokes });
 export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: v.optional(itemTitle), strokes: v.optional(strokes), done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });

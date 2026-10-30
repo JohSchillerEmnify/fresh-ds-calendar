@@ -6,7 +6,7 @@ beforeAll(() => { t = makeApp(); });
 afterAll(() => t.cleanup());
 beforeEach(async () => { await t.req('POST', '/api/__test/reset'); await freeze(t); });
 
-const stroke = (n = 3) => Array.from({ length: n }, (_, i) => [i * 0.5, 0.4 + i * 0.01, 0.5]);
+const stroke = (n = 3) => ({ p: Array.from({ length: n }, (_, i) => [i * 0.5, 0.4 + i * 0.01, 0.5]), c: '#ff0000' });
 const mk = async () => (await t.json('POST', '/api/tasklists', { title: 'Groceries', date: '2026-10-14', items: [{ title: 'Text item' }] })).body;
 const raw = async (id: string) => (await t.json('GET', '/api/__test/remote/events')).body.items.find((e: { id: string }) => e.id === id);
 
@@ -42,7 +42,7 @@ describe('ink items', () => {
 
   it('refuses malformed strokes', async () => {
     const l = await mk();
-    for (const strokes of [[[[1, 2]]], [[['a', 1, 1]]], 'x', [[[1, 2, 3, 4]]]]) {
+    for (const strokes of [[{ p: [[1, 2]] }], [{ p: [['a', 1, 1]] }], 'x', [{ p: [[1, 2, 3, 4]] }], [{ p: [[1, 2, 3]], c: 'red' }], [{ p: [] }]]) {
       expect((await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes })).status).toBe(400);
     }
   });

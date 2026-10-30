@@ -716,7 +716,7 @@ A non-boolean switch or a `morningTime` that is not `HH:MM` answers `400` (`fiel
 An **ink item** is a task item with `ink: true` and an empty `title`; its strokes are not in Google (30 KB limit for
 private properties) but in one JSON document per person, `DATA_DIR/users/<sub>/ink.json` (`InkDoc`:
 `{ version: 1, lists: { <listId>: { <itemId>: InkStroke[] } } }`), which the Drive backup takes with the person's other
-files. A stroke is a list of `[x, y, pressure]`: x and y in line heights from the line's left and top (so the ink scales to
+files. A stroke is `{ p: [x, y, pressure][], c?: '#rrggbb' }` (no `c` = the theme's text colour); a point is `[x, y, pressure]`: x and y in line heights from the line's left and top (so the ink scales to
 any line, decision G8), pressure 0..1; at most 5000 points per stroke and 500 strokes per request. Google gets the
 description line `☐ Handwritten item` for the item (decision A3). The two prefs `labsHandwriting` and
 `labsDrawWithFinger` (boolean, default `false`) are the Labs switches.

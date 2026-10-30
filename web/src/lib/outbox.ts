@@ -1,6 +1,6 @@
 /** The pure parts of the outbox (ADR 0031): kinds of change, how an unsent change shows, id replacement, names. */
 import type {
-  CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
+  CalendarEvent, CalendarItem, ChangeScope, InkStroke, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
 
 /** One change of an event, a task list or one of its items; `id` is the event or the list (a device id until its create was sent). */
@@ -11,7 +11,8 @@ export type Change =
   | { op: 'list.create'; id: string; input: CreateTaskListInput }
   | { op: 'list.update'; id: string; patch: UpdateTaskListInput; scope?: ChangeScope }
   | { op: 'list.delete'; id: string }
-  | { op: 'item.add'; id: string; itemId: string; title: string; scope?: ChangeScope }
+  | { op: 'item.add'; id: string; itemId: string; title: string; scope?: ChangeScope; strokes?: InkStroke[] }
+  | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[] }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
   | { op: 'item.delete'; id: string; itemId: string; scope?: ChangeScope }
   | { op: 'item.order'; id: string; itemIds: string[] };
@@ -78,9 +79,13 @@ export function applyEntry(cur: CalendarItem | null | undefined, e: OutboxEntry)
     }
     default: break;
   }
-  if (cur?.kind !== 'tasklist') return cur;
+  return cur?.kind === 'tasklist' ? applyItemOp(cur, c) : cur;
+}
+
+/** One unsent item change on top of a task list. */
+function applyItemOp(cur: TaskList, c: Change): TaskList {
   switch (c.op) {
-    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: false }]);
+    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: false, ...(c.strokes ? { ink: true as const } : {}) }]);
     case 'item.patch': return recount(cur, cur.items.map((i) => (i.id === c.itemId ? { ...i, ...c.patch } : i)));
     case 'item.delete': return recount(cur, cur.items.filter((i) => i.id !== c.itemId));
     case 'item.order': {
@@ -114,7 +119,7 @@ export function renameItems(entries: OutboxEntry[], listId: string, from: string
   return entries.map((e) => {
     const c = e.change;
     if (c.id !== listId) return e;
-    if (c.op === 'item.patch' || c.op === 'item.delete') return { ...e, change: { ...c, itemId: real(c.itemId) } };
+    if (c.op === 'item.patch' || c.op === 'item.delete' || c.op === 'item.ink') return { ...e, change: { ...c, itemId: real(c.itemId) } };
     if (c.op === 'item.order') return { ...e, change: { ...c, itemIds: c.itemIds.map(real) } };
     return e;
   });

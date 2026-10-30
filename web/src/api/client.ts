@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, InkStroke, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -327,11 +327,14 @@ export class ApiClient {
   deleteTaskList(id: string, o?: RequestOptions) {
     return this.request<void>('DELETE', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  addTaskItem(id: string, item: { id?: string; title: string; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
+  addTaskItem(id: string, item: { id?: string; title?: string; strokes?: InkStroke[]; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('POST', scoped(`/api/tasklists/${enc(id)}/items`, scope), item, o);
   }
   updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), patch, o);
+  }
+  putItemInk(id: string, itemId: string, strokes: InkStroke[], o?: RequestOptions) {
+    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/${enc(itemId)}/ink`, { strokes }, o);
   }
   deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);
