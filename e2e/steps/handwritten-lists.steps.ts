@@ -1,5 +1,5 @@
 /** Handwritten lists steps (STEPS.md "Handwritten lists"): Labs switches, the writing mode, ink items and the pen. */
-import { expect, type Locator } from '@playwright/test';
+import { expect, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { Given, Step, Then, When } from './fixtures.js';
 import { call } from './sharing.steps.js';
 import { dragItem, expandTaskList } from './support/tasklist.js';
@@ -482,7 +482,8 @@ let backupFiles: Record<string, string> = {};
 When('the backup to Drive runs', async function (this: World) {
   backupFiles = (await this.api.get<{ files: Record<string, string> }>('/api/__test/backup/collect')).files;
 });
-Then('the backup holds the ink of the task list {string}', async function (this: World) {
+Then('the backup holds the ink of the task list {string}', async function (this: World, title: string) {
+  void title; // the seeded list's ink items are known from its creation
   const ink = Object.entries(backupFiles).find(([name]) => name.endsWith('/ink.json'));
   expect(ink, 'the backup has the ink file').toBeDefined();
   for (const id of seeded.get(this)!.ids) expect(ink![1]).toContain(id);
@@ -497,7 +498,8 @@ Then('I can still tick the item number {int}', async function (this: World, n: n
   await expect(row).toHaveAttribute('data-done', 'true');
 });
 
-When('I delete the task list {string}', async function (this: World) {
+When('I delete the task list {string}', async function (this: World, title: string) {
+  void title; // the list is the open one
   await this.expanded.getByTestId('tasklist-delete').click();
 });
 /** The ids of the seeded list that the server still holds ink for. */
@@ -505,11 +507,13 @@ async function inkHeld(w: World): Promise<number> {
   const { items } = await w.api.get<{ items: Record<string, unknown> }>('/api/ink');
   return seeded.get(w)!.ids.filter((id) => id in items).length;
 }
-Then('the server holds {int} ink item(s) for the task list {string}', async function (this: World, n: number) {
+Then('the server holds {int} ink item(s) for the task list {string}', async function (this: World, n: number, title: string) {
+  void title; // the seeded list's ink items are known from its creation
   this.extendTimeout(30_000);
   await expect.poll(() => inkHeld(this), { timeout: 20_000 }).toBe(n);
 });
-Then('the server holds no ink for the task list {string}', async function (this: World) {
+Then('the server holds no ink for the task list {string}', async function (this: World, title: string) {
+  void title; // the seeded list's ink items are known from its creation
   this.extendTimeout(30_000);
   await expect.poll(() => inkHeld(this), { timeout: 20_000 }).toBe(0);
 });
@@ -544,7 +548,8 @@ Given('the calendar contains a repeating task list {string} with the ink items {
   await this.page.goto('/');
   await this.calendarShown();
 });
-When('the next occurrence of the task list {string} is created', async function (this: World) {
+When('the next occurrence of the task list {string} is created', async function (this: World, title: string) {
+  void title; // the list is the only one with weekly occurrences
   await this.page.goto('/day/2026-10-19');
   await this.settled();
 });
@@ -593,13 +598,15 @@ When('I expand the task list {string} on a screen {int} pixels wide', async func
   scaled.set(this, await inkProportions(this, title, width));
   this.scaleTitle = title;
 });
-Then('the ink of the item number {int} has the same proportions to its line as on a {int} pixel wide screen', async function (this: World, _n: number, ref: number) {
+Then('the ink of the item number {int} has the same proportions to its line as on a {int} pixel wide screen', async function (this: World, n: number, ref: number) {
+  void n; // the first item is the one measured
   const mine = scaled.get(this)!;
   const there = await inkProportions(this, this.scaleTitle!, ref);
   expect(mine.w).toBeCloseTo(there.w, 1);
   expect(mine.h).toBeCloseTo(there.h, 1);
 });
-Then('the ink of the item number {int} is not cut off', async function (this: World) {
+Then('the ink of the item number {int} is not cut off', async function (this: World, n: number) {
+  void n; // the line was measured when the list was expanded
   expect(scaled.get(this)!.inside).toBe(true);
 });
 
@@ -619,4 +626,67 @@ Then('every writing tool is at the mirror image of where it was, within {int} pi
     expect(Math.abs(a.x - (before.width - b.x - b.w)), `${b.id} x`).toBeLessThanOrEqual(px);
     expect(Math.abs(a.y - b.y), `${b.id} y`).toBeLessThanOrEqual(px);
   }
+});
+
+// --- two devices change the same list (decision G5) ------------------------------------------------------------------------
+type Device = { page: Page; context: BrowserContext };
+const pair = new WeakMap<World, { first: Device; second: Device; title: string }>();
+
+/** Runs `fn` with the world pointing at one of the two devices. */
+async function on<T>(w: World, which: 'first' | 'second', fn: () => Promise<T>): Promise<T> {
+  const d = pair.get(w)![which];
+  const keep = { page: w.page, context: w.context };
+  [w.page, w.context] = [d.page, d.context];
+  try { return await fn(); } finally { [w.page, w.context] = [keep.page, keep.context]; }
+}
+async function openList(w: World, title: string) {
+  await w.page.goto('/day/2026-10-14');
+  await w.calendarShown();
+  await expandTaskList(w, title);
+}
+
+Given('two devices have the task list {string} open', async function (this: World, title: string) {
+  const other = await this.newDeviceContext();
+  pair.set(this, { first: { page: this.page, context: this.context }, second: { page: await other.newPage(), context: other }, title });
+  for (const which of ['first', 'second'] as const) await on(this, which, () => openList(this, title));
+});
+When('the first device writes an ink item while offline', async function (this: World) {
+  await on(this, 'first', async () => {
+    await this.context.setOffline(true);
+    await stroke(nextLine(this), 'pen');
+    await expect(rows(this)).toHaveCount(3);
+  });
+});
+When('the second device draws a stroke on the ink item number {int} while offline', async function (this: World, n: number) {
+  await on(this, 'second', async () => {
+    await this.context.setOffline(true);
+    await stroke(inkOf(this, n), 'pen');
+    await expect(inkOf(this, n)).toHaveAttribute('data-strokes', '2');
+  });
+});
+When('the first device erases the ink item number {int} while offline', async function (this: World, n: number) {
+  await on(this, 'first', async () => {
+    await this.context.setOffline(true);
+    await stroke(inkOf(this, n), 'pen', { buttons: 32 });
+    await expect(inkOf(this, n)).toHaveAttribute('data-strokes', '0');
+  });
+});
+When('both devices reconnect', async function (this: World) {
+  for (const which of ['first', 'second'] as const) {
+    await on(this, which, async () => {
+      await this.context.setOffline(false);
+      await expect.poll(() => this.page.evaluate(() => document.documentElement.dataset.unsynced ?? '0'), { timeout: 20_000 }).toBe('0');
+    });
+  }
+});
+/** Each device is opened afresh, so what it shows is what it holds after the merge. */
+async function eachDevice(w: World, check: () => Promise<void>) {
+  for (const which of ['first', 'second'] as const) await on(w, which, async () => { await openList(w, pair.get(w)!.title); await check(); });
+}
+Then('both devices show {int} items in the task list {string}', async function (this: World, n: number, title: string) {
+  void title; // one list is open on both devices
+  await eachDevice(this, () => expect(rows(this)).toHaveCount(n));
+});
+Then('both devices show the ink item number {int} with {int} stroke(s)', async function (this: World, n: number, strokes: number) {
+  await eachDevice(this, () => expect(inkOf(this, n)).toHaveAttribute('data-strokes', String(strokes)));
 });

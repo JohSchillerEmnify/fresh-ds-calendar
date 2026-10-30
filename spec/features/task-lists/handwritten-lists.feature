@@ -564,7 +564,6 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
       And two devices have the task list "Groceries" open
 
-    @backlog
     Scenario: New items and new strokes from both devices are kept
       When the first device writes an ink item while offline
       And the second device draws a stroke on the ink item number 1 while offline
@@ -572,14 +571,12 @@ Feature: Labs: handwritten lists
       Then both devices show 3 items in the task list "Groceries"
       And both devices show the ink item number 1 with 2 strokes
 
-    @backlog
     Scenario: A line erased on one device and extended later on the other keeps the later change
       When the first device erases the ink item number 1 while offline
       And the second device draws a stroke on the ink item number 1 while offline
       And both devices reconnect
       Then both devices show the ink item number 1 with 1 stroke
 
-    @backlog
     Scenario: A line extended on one device and erased later on the other keeps the later change
       When the second device draws a stroke on the ink item number 1 while offline
       And the first device erases the ink item number 1 while offline

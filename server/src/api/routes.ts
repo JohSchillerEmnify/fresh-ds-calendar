@@ -11,6 +11,7 @@ import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { nanoid } from '../lib/ids.js';
 import { MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { parsePrefsPatch } from '@calendar/shared/prefs';
+import { mergeInk } from '@calendar/shared/ink';
 import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
@@ -355,15 +356,17 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json(list, 201);
   });
   r.put('/tasklists/:id/items/:itemId/ink', async (c) => {
-    const { strokes } = parse(inkSchema, await body(c));
+    const { strokes: sent, base, at } = parse(inkSchema, await body(c));
     const sub = person(c);
     const [listId, itemId] = [c.req.param('id'), c.req.param('itemId')];
     const list = await cal(c).getTaskList(listId);
     const item = list.items.find((i) => i.id === itemId);
     if (!item) throw notFound('Item not found');
     if (!item.ink) throw validation('Only a handwritten item holds ink', 'itemId');
-    if (!ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes as InkStroke[])) throw inkFull();
-    ctx.inks.set(sub, listId, itemId, strokes as InkStroke[]);
+    // a change that says where it started from is merged with what other devices wrote meanwhile (decision G5)
+    const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), sent as InkStroke[], base, at ?? Date.now()) : (sent as InkStroke[]);
+    if (!ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
+    ctx.inks.set(sub, listId, itemId, strokes);
     return c.json(await cal(c).getTaskList(listId));
   });
   r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));

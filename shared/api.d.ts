@@ -72,6 +72,8 @@ export type InkPoint = [x: number, y: number, pressure: number];
 export interface InkStroke {
   p: InkPoint[];
   c?: string;
+  /** When it was drawn (ms): the identity of the stroke when two devices merge their changes. */
+  t?: number;
 }
 /** The ink a person sees: the strokes of every ink item by item id (item ids are unique, so a repeating list's occurrences share them). */
 export interface InkDoc {

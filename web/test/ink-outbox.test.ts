@@ -18,11 +18,11 @@ describe('outbox ink', () => {
     // the first entry is on its way (never answered), later ones wait behind it
     out.addItem('L', 'text');
     const id = out.addInkItem('L', [s(1)]);
-    out.setInk('L', id, [s(1), s(2)]);
+    out.setInk('L', id, [s(1), s(2)], [s(1)]);
     expect(out.entries.map((e) => e.change.op)).toEqual(['item.add', 'item.add']);
     expect((out.entries[1]!.change as { strokes: unknown[] }).strokes).toHaveLength(2);
-    out.setInk('L', 'other', [s(5)]);
-    out.setInk('L', 'other', [s(5), s(6)]);
+    out.setInk('L', 'other', [s(5)], []);
+    out.setInk('L', 'other', [s(5), s(6)], [s(5)]);
     expect(out.entries.map((e) => e.change.op)).toEqual(['item.add', 'item.add', 'item.ink']);
     expect((out.entries[2]!.change as { strokes: unknown[] }).strokes).toHaveLength(2);
   });
@@ -31,7 +31,7 @@ describe('outbox ink', () => {
     mockFetch({ 'POST /api/tasklists/L/items': () => new Promise(() => undefined) });
     const out = useOutboxStore();
     const id = out.addInkItem('L', [s(1)]);
-    out.setInk('L', id, [s(1), s(2)]);
+    out.setInk('L', id, [s(1), s(2)], [s(1)]);
     expect(out.entries).toHaveLength(2);
     expect((out.entries[0]!.change as { strokes: unknown[] }).strokes).toHaveLength(1);
   });

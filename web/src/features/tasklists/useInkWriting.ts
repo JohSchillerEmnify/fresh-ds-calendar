@@ -56,7 +56,7 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
     const before = ink.strokes(itemId);
     if (strokes.length > before.length && !room(itemId, strokes)) return;
     history.value.push(strokes.length > before.length ? { itemId } : { itemId, before });
-    outbox.setInk(listId(), itemId, strokes);
+    outbox.setInk(listId(), itemId, strokes, before);
   }
   function undo(): void {
     const step = history.value.pop();
@@ -68,7 +68,7 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
     const now = ink.strokes(step.itemId);
     const next = step.before ?? now.slice(0, -1);
     if (!next.length && created.has(step.itemId)) outbox.deleteItem(listId(), step.itemId, '');
-    else outbox.setInk(listId(), step.itemId, next);
+    else outbox.setInk(listId(), step.itemId, next, now);
   }
 
   usePenDoubleTap(undo, () => active.value);

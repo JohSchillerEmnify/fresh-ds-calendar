@@ -2,6 +2,7 @@
 import type { Ref, ShallowRef } from 'vue';
 import { ApiError } from '@/api/client';
 import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, InkStroke, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import { inkKey } from '@calendar/shared/ink';
 import { t } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
@@ -127,7 +128,7 @@ function foldInk(s: OutboxState, listId: string, itemId: string, strokes: InkStr
   if (at < 0 || (s.running && at === 0)) return false;
   // a later delete or order of the item leaves nothing to fold into
   if (s.entries.value.slice(at + 1).some((e) => e.change.id === listId && e.change.op === 'item.delete' && e.change.itemId === itemId)) return false;
-  commit(s, s.entries.value.map((e, i) => (i === at ? { ...e, change: { ...e.change, strokes } as Change } : e)));
+  commit(s, s.entries.value.map((e, i) => (i === at ? { ...e, change: { ...e.change, strokes, ...(e.change.op === 'item.ink' ? { at: Date.now() } : {}) } as Change } : e)));
   return true;
 }
 
@@ -168,9 +169,9 @@ export function writes(s: OutboxState) {
       add(s, { op: 'item.add', id: listId, itemId, title: '', strokes }, { title: '' });
       return itemId;
     },
-    /** The new strokes of a handwritten item (all of them, replacing the old). */
-    setInk(listId: string, itemId: string, strokes: InkStroke[]): void {
-      if (!foldInk(s, listId, itemId, strokes)) add(s, { op: 'item.ink', id: listId, itemId, strokes }, { title: items().get(listId)?.title ?? '' });
+    /** The new strokes of a handwritten item (all of them) and the strokes they started from, so the server can merge them with another device's. */
+    setInk(listId: string, itemId: string, strokes: InkStroke[], before: InkStroke[]): void {
+      if (!foldInk(s, listId, itemId, strokes)) add(s, { op: 'item.ink', id: listId, itemId, strokes, base: before.map(inkKey), at: Date.now() }, { title: items().get(listId)?.title ?? '' });
     },
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
       add(s, { op: 'item.patch', id: listId, itemId, patch, ...scoped(scope) }, { title: patch.title ?? title(listId, itemId) }),

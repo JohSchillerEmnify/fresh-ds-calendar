@@ -64,7 +64,7 @@ describe('withPendingInk', () => {
     const base = { a: [s(1)], z: [s(9)] };
     const out = withPendingInk(base, [
       entry({ op: 'item.add', id: 'L', itemId: 'b', title: '', strokes: [s(2)] }),
-      entry({ op: 'item.ink', id: 'L', itemId: 'a', strokes: [s(3), s(4)] }),
+      entry({ op: 'item.ink', id: 'L', itemId: 'a', strokes: [s(3), s(4)], base: [], at: 0 }),
       entry({ op: 'item.add', id: 'L', itemId: 'c', title: 'text' }),
       entry({ op: 'item.delete', id: 'L', itemId: 'z' }),
     ]);

@@ -35,6 +35,23 @@ describe('ink items', () => {
     expect((await t.json('GET', `/api/tasklists/${l.id}`)).body.items).toHaveLength(2);
   });
 
+  it('merges a change that names where it started from with what another device wrote meanwhile', async () => {
+    const l = await mk();
+    const first = { ...stroke(), t: 0 };
+    const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [first] })).body.items[1].id;
+    const url = `/api/tasklists/${l.id}/items/${id}/ink`;
+    const key = (s: { t?: number; p: number[][] }) => `${s.t ?? 0}|${s.p.length}|${s.p[0]!.join(',')}`;
+    // the other device erased the line at 300; this one drew at 200 while offline and arrives later
+    await t.json('PUT', url, { strokes: [], base: [key(first)], at: 300 });
+    const drawn = { ...stroke(2), t: 200 };
+    await t.json('PUT', url, { strokes: [first, drawn], base: [key(first)], at: 200 });
+    expect((await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length)).toEqual([]);
+    // a stroke drawn after the erase stays
+    const later = { ...stroke(2), t: 400 };
+    await t.json('PUT', url, { strokes: [later], base: [], at: 400 });
+    expect((await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length)).toEqual([later]);
+  });
+
   it('refuses ink for a text item and for an unknown item', async () => {
     const l = await mk();
     expect((await t.json('PUT', `/api/tasklists/${l.id}/items/${l.items[0].id}/ink`, { strokes: [stroke()] })).status).toBe(400);

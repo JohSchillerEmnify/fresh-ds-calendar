@@ -134,7 +134,7 @@ function up(e: PointerEvent): void {
     if (kept && kept.length !== props.strokes.length) emit('change', kept);
     return;
   }
-  emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}) }]);
+  emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}), t: Date.now() }]);
 }
 function cancel(e?: PointerEvent): void {
   if (e) fingers.delete(e.pointerId);

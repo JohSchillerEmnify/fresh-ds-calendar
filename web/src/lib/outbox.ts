@@ -12,7 +12,8 @@ export type Change =
   | { op: 'list.update'; id: string; patch: UpdateTaskListInput; scope?: ChangeScope }
   | { op: 'list.delete'; id: string }
   | { op: 'item.add'; id: string; itemId: string; title: string; scope?: ChangeScope; strokes?: InkStroke[] }
-  | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[] }
+  /** `base`: keys of the strokes the change started from, `at`: when it was made; the server merges with other devices' changes (decision G5). */
+  | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[]; base: string[]; at: number }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
   | { op: 'item.delete'; id: string; itemId: string; scope?: ChangeScope }
   | { op: 'item.order'; id: string; itemIds: string[] };

@@ -1,4 +1,5 @@
 /** Handwritten lists on the device: the person's ink (server copy plus unsent writes), writing mode, colour and pen, per device. */
+import { visibleInk } from '@calendar/shared/ink';
 import { defineStore } from 'pinia';
 import { ref, shallowRef, watch } from 'vue';
 import type { CalendarItem, InkDoc, InkStroke, TaskList } from '@/api/types';
@@ -55,7 +56,7 @@ export const useInkStore = defineStore('ink', () => {
   }
   /** The strokes of one ink item. */
   function strokes(itemId: string): InkStroke[] {
-    return lists.value[itemId] ?? [];
+    return visibleInk(lists.value[itemId] ?? []);
   }
   function setMode(m: 'ink' | 'text'): void { mode.value = m; write(MODE_KEY, m); }
   function setColour(c: string | null): void { colour.value = c; write(COLOUR_KEY, c); }

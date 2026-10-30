@@ -25,3 +25,12 @@ its ink without copying. A shared list keeps its ink inside its own document, so
 
 Ink is not in Google, so it is not searchable or visible in Google's apps (placeholder only). The file is read and
 replaced whole; a per-item merge (G5) is done by the outbox writing one item's strokes at a time.
+
+## Merging two devices (decision G5)
+
+The outbox sends an ink change with the keys of the strokes it started from (`base`) and the time it was made (`at`);
+a stroke carries the time it was drawn (`t`). The server applies the change on top of what it holds: strokes added are
+kept, strokes taken away are gone, and a line cleared as a whole removes everything drawn before `at` and leaves an erase
+mark (a stroke without points) so an older stroke that arrives later cannot bring the line back. Alternatives: whole-item
+last-write-wins (an extension on one device would undo an erase on the other, or lose its strokes), and a CRDT per line
+(more than one line of ink per item needs). Clocks of the devices are trusted to a few seconds.
