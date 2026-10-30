@@ -99,7 +99,13 @@ const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const title = computed(() => displayTitle(tl.value));
-const label = computed(() => t(title.value ? 'tasks.card.label' : 'tasks.card.labelUntitled', { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount }));
+const label = computed(() => {
+  const titled = !!title.value;
+  const params = { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount };
+  // one item is just done or not done: the count and ring are dropped for it too
+  if (!progress.value) return complete.value ? t(titled ? 'tasks.card.labelDone' : 'tasks.card.labelUntitledDone', params) : t(titled ? 'tasks.card.labelOpen' : 'tasks.card.labelUntitledOpen', params);
+  return t(titled ? 'tasks.card.label' : 'tasks.card.labelUntitled', params);
+});
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < MINI_BELOW_PX);
 /** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
@@ -150,7 +156,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
         <ProgressRing v-if="progress" class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
       </span>
     </span>
-    <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
+    <span v-if="progress" class="pbar" data-testid="tasklist-card-bar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm">

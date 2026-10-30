@@ -289,6 +289,9 @@ the task list {string} shows the done count {string}
 the task list {string} shows no done count
 the task list {string} shows the progress ring
 the task list {string} shows no progress ring
+the task list {string} shows no progress bar
+the task list {string} shows the progress bar
+the task list {string} is announced as {string}
 the task list {string} shows the item {string} below its title
 the task list {string} shows the item {string} next to its title
 the task list {string} does not show the item {string}
@@ -387,7 +390,7 @@ the real time block of the expanded task list matches the card {string}
   drag acts on the `tasklist-view` of that list's `tasks-item`.
 
 "the task list X shows the done count" checks the expanded header if X is expanded, else the collapsed card.
-"the task list X shows no done count / no progress ring" = the collapsed card has no `tasklist-card-count` / `tasklist-progress-ring` element (a list with exactly one item shows neither; the expanded list keeps both); "shows the progress ring" = the card has that ring element (some narrow variants hide it with CSS).
+"the task list X shows no done count / no progress ring" = the collapsed card has no `tasklist-card-count` / `tasklist-progress-ring` element (a list with exactly one item shows neither; the expanded list keeps both); "shows the progress ring" = the card has that ring element (some narrow variants hide it with CSS); "shows / shows no progress bar" = the card has / has no `tasklist-card-bar` element (the thin bar that narrow cards show instead of count and ring; a one-item list has none); "is announced as L" = the card's `aria-label` is exactly L ("T, 1 of 2 done"; a one-item list: "T, done" / "T, not done").
 "the task list X shows the item Y below / next to its title": the `tasklist-card-item` with `data-title` Y in X's
 collapsed card is visible and its box lies inside the card (an ellipsised name counts); "below" = its top
 is at or under the bottom of `tasklist-card-title`, "next to" = it shares the title's line. "does not show the item Y": the
