@@ -197,7 +197,8 @@ export class SharedListService {
   // ---------- category rules ----------
   /** Who the owner shares a category with (the member's sub), or null. */
   ruleFor(owner: string, categoryId: string): string | null {
-    return this.rules[owner]?.[categoryId] ?? null;
+    const mine = Object.hasOwn(this.rules, owner) ? this.rules[owner] : undefined;
+    return mine && Object.hasOwn(mine, categoryId) ? mine[categoryId] ?? null : null;
   }
 
   /** The owner's rules, `category id -> Person`. */

@@ -10,26 +10,27 @@ export interface Session { sub: string; email: string; name?: string; expiresAt:
 
 /** Server-side sessions in `DATA_DIR/sessions.json` (`id -> { sub, email, expiresAt }`), 90 days, extended on use. */
 export class SessionStore {
-  private sessions: Record<string, Session>;
+  /** A Map, so a cookie value like `constructor` is never an inherited property of a plain object. */
+  private sessions: Map<string, Session>;
 
   constructor(private readonly file: string | null, private readonly now: () => number) {
-    this.sessions = file ? readJson<Record<string, Session>>(file) ?? {} : {};
+    this.sessions = new Map(Object.entries(file ? readJson<Record<string, Session>>(file) ?? {} : {}));
   }
 
   create(p: { sub: string; email: string; name?: string }): string {
     const id = randomBytes(32).toString('base64url');
-    this.sessions[id] = { ...p, expiresAt: this.now() + SESSION_TTL_MS };
+    this.sessions.set(id, { ...p, expiresAt: this.now() + SESSION_TTL_MS });
     this.save();
     return id;
   }
 
   /** The live session for an id, or null. `extended` is true when its expiry was pushed forward by this use. */
   get(id: string | undefined): { session: Session; extended: boolean } | null {
-    const s = id ? this.sessions[id] : undefined;
+    const s = id ? this.sessions.get(id) : undefined;
     if (!id || !s) return null;
     const t = this.now();
     if (s.expiresAt <= t) {
-      delete this.sessions[id];
+      this.sessions.delete(id);
       this.save();
       return null;
     }
@@ -42,26 +43,25 @@ export class SessionStore {
   }
 
   delete(id: string | undefined): void {
-    if (id && this.sessions[id]) {
-      delete this.sessions[id];
+    if (id && this.sessions.delete(id)) {
       this.save();
     }
   }
 
   /** Ends every session of one person (TEST_MODE: the server "forgot" them). */
   deleteSub(sub: string): void {
-    const ids = Object.keys(this.sessions).filter((id) => this.sessions[id]!.sub === sub);
-    for (const id of ids) delete this.sessions[id];
+    const ids = [...this.sessions].filter(([, s]) => s.sub === sub).map(([id]) => id);
+    for (const id of ids) this.sessions.delete(id);
     if (ids.length) this.save();
   }
 
   clear(): void {
-    const had = Object.keys(this.sessions).length > 0;
-    this.sessions = {};
+    const had = this.sessions.size > 0;
+    this.sessions = new Map();
     if (had) this.save();
   }
 
   private save(): void {
-    if (this.file) writeJsonAtomic(this.file, this.sessions, 0o600);
+    if (this.file) writeJsonAtomic(this.file, Object.fromEntries(this.sessions), 0o600);
   }
 }
