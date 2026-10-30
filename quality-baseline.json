@@ -448,7 +448,7 @@
    "long|web/src/features/calendar/lineBudget.ts": 1,
    "long|web/src/features/calendar/place.ts": 9,
    "long|web/src/features/calendar/reminderPlan.ts": 7,
-   "long|web/src/features/calendar/resize.ts": 3,
+   "long|web/src/features/calendar/resize.ts": 2,
    "long|web/src/features/calendar/timeline.ts": 1,
    "long|web/src/features/calendar/transitionWarning.ts": 5,
    "long|web/src/features/labs/approach/ApproachBar.vue": 1,

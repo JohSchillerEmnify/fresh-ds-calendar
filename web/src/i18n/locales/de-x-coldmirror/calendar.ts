@@ -179,8 +179,6 @@ export default {
   },
   drag: {
     newBlock: 'Neu, yo · {from} – {to}',
-    moveFailed: '„{title}“ ließ sich nicht verschieben, Digga. {reason}',
-    resizeFailed: 'Die Länge von „{title}“ ließ sich nicht ändern, yo. {reason}',
   },
   warning: {
     startsIn: '{title} startet in {duration}, yo. BÄMbus!',

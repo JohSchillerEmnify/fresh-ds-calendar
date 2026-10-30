@@ -53,7 +53,6 @@ const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
 const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes));
 const error = ref('');
-const conflict = ref(false);
 const saving = ref(false);
 /** The list being edited, for the sharing controls (a shared list says who it is shared with). */
 const current = computed(() => {
@@ -147,7 +146,6 @@ function changedFields<T extends Record<string, unknown>>(body: T, current: unkn
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
   error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form)) ?? templateProblem();
-  conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
   // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones.
@@ -185,15 +183,8 @@ async function save() {
     emit('close');
   } catch (e) {
     saving.value = false;
-    if (e instanceof ApiError) {
-      error.value = e.isConflict ? t('tasks.dialog.conflict') : e.userMessage;
-      conflict.value = e.isConflict;
-    } else error.value = t('tasks.dialog.failed');
+    error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.failed');
   }
-}
-async function reload() {
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); error.value = ''; conflict.value = false; }
-  catch (e) { error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.reloadFailed'); }
 }
 /** Runs a sharing call; on failure the dialog stays open with the server's message. */
 function sharingAction(fn: () => Promise<void>, failed: MessageKey) {
@@ -221,7 +212,6 @@ function remove() {
         <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
       </div>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
-      <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">{{ t('tasks.dialog.loadLatest') }}</Button></div>
       <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" enterkeyhint="next" />
       <div class="two" :class="{ dated: !!form.date }">
         <div class="datecell">

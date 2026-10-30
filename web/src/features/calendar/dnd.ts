@@ -15,7 +15,7 @@ import { inject, nextTick, shallowRef, type Ref } from 'vue';
 import { routerKey } from 'vue-router';
 import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import type { ItemVariant } from '@/extensions/registry';
-import { neutralName, type Segment } from '@/lib/items';
+import type { Segment } from '@/lib/items';
 import { minutesToTime, routePath, shiftPeriod } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { createCellGrid, createSlotGrid, haptic, useDraggable, type DragContext, type DropTarget } from '@/motion';
@@ -26,7 +26,6 @@ import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
 import { EDGE_HOLD_MS, edgeLabel, edgeSide } from './edgeTurn';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
-import { t } from '@/i18n';
 
 /** Where the dragged card would land now (drives the `DropIndicator` grid layer). Null when not dragging. */
 export const dragPreview = shallowRef<{ date: string; minutes: number; durationMin: number } | null>(null);
@@ -85,20 +84,14 @@ export function planMove(seg: Segment, target: MoveTarget, tz: string): MovePlan
   return { next: { ...ev, start, end }, patch: { start, end, allDay: false } };
 }
 
-/** Optimistic move + PATCH. Rejects (after rollback and a snackbar) so the drag controller springs the card back. */
+/** Queues the move in the outbox; the card shows the new place at once. */
 export async function applyMove(seg: Segment, target: MoveTarget): Promise<void> {
   const items = useItemsStore();
   const plan = planMove(seg, target, useClockStore().timeZone);
   if (!plan) return;
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;
-  try {
-    useOutboxStore().changeItem(item, plan.next, plan.patch, etag);
-  } catch (e) {
-    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
-    useUiStore().notify(t('calendar.drag.moveFailed', { title: neutralName(item), reason: msg }), { testid: 'move-failed' });
-    throw e;
-  }
+  useOutboxStore().changeItem(item, plan.next, plan.patch, etag);
 }
 
 type CellKey = string;

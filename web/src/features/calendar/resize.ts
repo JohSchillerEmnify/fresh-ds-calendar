@@ -8,14 +8,13 @@
  */
 import { shallowRef } from 'vue';
 import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
-import { neutralName, type Segment } from '@/lib/items';
+import type { Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
-import { useUiStore, type ResizingEntry } from '@/stores/ui';
+import type { ResizingEntry } from '@/stores/ui';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
-import { t } from '@/i18n';
 
 export type ResizeEdge = 'top' | 'bottom';
 
@@ -80,23 +79,14 @@ export function planResize(seg: Segment, edge: ResizeEdge, deltaMin: number, tz:
 }
 
 /**
- * Optimistic save of a finished handle drag, like `applyMove`: the block keeps the dragged size meanwhile; on failure it
- * springs back to its old size and a snackbar says so. Never rejects.
+ * Queues a finished handle drag in the outbox, like `applyMove`: the block keeps the dragged size.
  */
 export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void> {
   const items = useItemsStore();
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;
-  try {
-    useOutboxStore().changeItem(item, plan.next, plan.patch, etag);
-    resizePreview.value = null;
-  } catch (e) {
-    const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
-    useUiStore().notify(t('calendar.drag.resizeFailed', { title: neutralName(item), reason: msg }), { testid: 'move-failed' });
-    // the store has rolled back: animate from the dragged size to the old one, then hand the geometry back to the store
-    resizePreview.value = { id: item.id, date: seg.date, startMin: seg.startMin, endMin: seg.endMin, settle: true };
-    setTimeout(() => { resizePreview.value = null; }, 300);
-  }
+  useOutboxStore().changeItem(item, plan.next, plan.patch, etag);
+  resizePreview.value = null;
 }
 
 /** Plans and saves a finished drag; the caller keeps `resizePreview` at the dragged geometry until this settles. */
