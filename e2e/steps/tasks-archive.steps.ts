@@ -29,10 +29,10 @@ async function openTab(world: World, tab: 'open' | 'archive') {
 const archiveItem = (w: World, title: string): Locator => w.byTestId('tasks-archive-item', attr('data-title', title));
 
 /** An undated list whose items are all ticked while the test clock stands on `date` (so `completedOn` = date). */
-async function finishedList(world: World, title: string, date: string, itemTitle: string) {
+export async function finishedList(world: World, title: string, date: string, itemTitle: string | { title: string; strokes: unknown[] }[]) {
   const before = (await world.api.get<{ plant: { growth: number; lastWatered: string | null; todayPoints: number } }>('/api/motivation')).plant;
   await world.api.setClock(berlinIso(date, '08:00'));
-  const list = await world.api.post<{ id: string; items: { id: string }[] }>('/api/tasklists', { title, date: null, items: [{ title: itemTitle }] });
+  const list = await world.api.post<{ id: string; items: { id: string }[] }>('/api/tasklists', { title, date: null, items: typeof itemTitle === 'string' ? [{ title: itemTitle }] : itemTitle });
   for (const i of list.items) await world.api.patch(`/api/tasklists/${list.id}/items/${i.id}`, { done: true });
   await world.api.setClock(berlinIso(BACKGROUND_TODAY, '08:00'));
   await world.api.setMotivation({ plant: { growth: before.growth, lastWatered: before.lastWatered, todayPoints: before.todayPoints } });

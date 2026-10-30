@@ -3446,15 +3446,9 @@ the calendar contains a repeating task list {string} with the ink items {string}
 the next occurrence of the task list {string} is created
 the next occurrence shows {int} ink items, scaled down
 the home-screen widget lists the task list {string}
-the widget shows {int} small ink pictures for the task list {string}
-the door board shows the task list {string}
-the door board shows {int} small ink pictures for the task list {string}
-the notification for the task list {string} is shown
-the notification text mentions {string}
+the widget shows {string} {int} times for the task list {string}
 a screen reader reads the item number {int} as {string}
-I filter the Tasks view by {string}
-the Tasks view shows the task list {string}
-the Tasks view does not show the task list {string}
+the calendar contains a task list {string} finished on {date} with the ink items {string}
 the title field is an ordinary text field
 the title field is not a writing area
 two devices have the task list {string} open
@@ -3497,12 +3491,13 @@ the server holds no ink for the task list {string}
   device ... while offline" sets that context offline, acts, and keeps it offline until "both devices reconnect", which
   restores both in the order first, second and waits for both to have synced. Steps are applied in the order written, so
   "later" means the later step. A seeded ink item holds one stroke (A9); "erases the ink item" removes all its strokes.
-- Widget / door board / notification (G2): the widget picture is checked on the widget's render endpoint, the door board
-  on `door-board` (`ink-picture` elements per ink item), the notification on the payload the push or reminder carries
-  (the text "Handwritten item" for an ink item).
+- Widget (G2): `@unit`, proven by the Android unit test named in the scenario (`WeekDataTest`); the widget is native and
+  cannot be driven from a browser. An ink item is the text "Handwritten item" there. Notifications never show item text
+  and the door board is deactivated (owner 2026-10-30).
 - Screen reader (G3): "a screen reader reads the item number N as T" = the accessible name of the Nth item (`aria-label`)
-  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. "I filter the Tasks view by T" types T into the
-  Tasks view filter field; "shows / does not show the task list" looks for the list card by its title.
+  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. The search of ink lists uses the existing
+  Archive steps ("I search the Archive for", "the Archive lists"); "finished on {date} with the ink items" creates the
+  ink list and ticks every item while the test clock stands on that date.
 - Title (G4): "an ordinary text field" = the title `input` is a text input without an ink canvas; "not a writing area" = no
   `ink-writing-area` inside the title field's row.
 - Strike and fade (G6): "the same strike line" = the computed `text-decoration-line`/colour/thickness of the ink item's
