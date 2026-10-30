@@ -9,7 +9,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from '@/features/tasklists/categories';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
-import { showProgress } from '@/features/tasklists/format';
+import { showProgress } from '@/features/tasklists';
 import { t } from '@/i18n';
 
 const props = defineProps<ItemRendererProps>();

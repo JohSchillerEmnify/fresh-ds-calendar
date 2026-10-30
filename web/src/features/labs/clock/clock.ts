@@ -4,7 +4,7 @@
  */
 import { addDays, minutesToTime, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { displayTitle, neutralName, type Segment } from '@/lib/items';
-import { showProgress } from '@/features/tasklists/format';
+import { showProgress } from '@/features/tasklists';
 import { formatDuration } from '@/features/calendar/timeline';
 import { localToIso } from '@/features/calendar/zone';
 import { t } from '@/i18n';
