@@ -134,7 +134,7 @@ describe('TemplateStore', () => {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, '{ not json');
       expect(s.list('alice')).toEqual([]);
-      const aside = fs.readdirSync(path.dirname(file)).filter((f) => f.startsWith('templates.json.corrupt-'));
+      const aside = fs.readdirSync(path.dirname(file)).filter((f) => f.startsWith('templates.corrupt-'));
       expect(aside).toHaveLength(1);
       expect(fs.readFileSync(path.join(path.dirname(file), aside[0]!), 'utf8')).toBe('{ not json');
       s.add('alice', { name: 'Packing', items: [{ title: 'Passport' }] });

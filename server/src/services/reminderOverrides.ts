@@ -5,9 +5,7 @@
  * under `users/<sub>/`. Files of the older format (path memory, kept calendar defaults) are read for their `events` only.
  */
 import fs from 'node:fs';
-import path from 'node:path';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
-import { listUserSubs, userDir } from '../auth/people.js';
+import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
 import type { Reminders } from '../api/types.js';
 
 interface Stored {
@@ -21,15 +19,16 @@ const FILE = 'reminder-overrides.json';
 export class ReminderOverrideStore {
   private cache = new Map<string, { stamp: string; data: Stored }>();
 
-  constructor(private readonly dataDir: string) {}
+  private readonly files: PersonJsonStore<Stored>;
 
-  private file(sub: string): string {
-    return path.join(userDir(this.dataDir, sub), FILE);
+  constructor(dataDir: string) {
+    this.files = new PersonJsonStore<Stored>(dataDir, FILE,
+      (r) => (isRecord(r) ? { events: (r.events ?? {}) as Stored['events'] } : null), () => ({ events: {} }));
   }
 
   /** The stored data, re-read when the file changed (a backup restore rewrites it). */
   private read(sub: string): Stored {
-    const file = this.file(sub);
+    const file = this.files.path(sub);
     let stamp = 'none';
     try {
       const s = fs.statSync(file);
@@ -39,14 +38,13 @@ export class ReminderOverrideStore {
     }
     const hit = this.cache.get(sub);
     if (hit && hit.stamp === stamp) return hit.data;
-    const raw = stamp === 'none' ? null : readJson<Partial<Stored>>(file);
-    const data: Stored = { events: raw?.events ?? {} };
+    const data = this.files.read(sub);
     this.cache.set(sub, { stamp, data });
     return data;
   }
 
   private write(sub: string, data: Stored): void {
-    writeJsonAtomic(this.file(sub), data);
+    this.files.write(sub, data);
     this.cache.delete(sub);
   }
 
@@ -70,6 +68,6 @@ export class ReminderOverrideStore {
   /** Forgets every person's overrides (test reset). */
   reset(): void {
     this.cache.clear();
-    for (const u of listUserSubs(this.dataDir)) fs.rmSync(path.join(userDir(this.dataDir, u), FILE), { force: true });
+    this.files.reset();
   }
 }

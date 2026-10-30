@@ -83,6 +83,7 @@ Steps:
 3. **Deploy:** `VPS_HOST=<server ip> CAL_DOMAIN=cal.example.org scripts/vps.sh deploy`.
    - It builds the checked-out commit and copies the image over SSH.
    - It starts the app behind Caddy, which gets the HTTPS certificate by itself.
+   - It waits for `/api/health` and rolls back to the previous image if the new one is not healthy; `scripts/vps.sh rollback [version]` does it by hand.
 4. **Check:**
    - `curl -s https://cal.example.org/api/health` should show `"provider":"google","providerStatus":"ok"`.
    - Then sign in and, under Settings → Account & data, allow backups to Google Drive.

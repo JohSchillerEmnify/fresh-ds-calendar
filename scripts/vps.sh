@@ -4,6 +4,7 @@
 #   scripts/vps.sh env      write /opt/calendar/.env (asks for the Google client and allowed emails)
 #   scripts/vps.sh deploy   build the checked-out commit here, ship it and the Android APK, and (re)start
 #   scripts/vps.sh logs     follow the app and Caddy logs
+#   scripts/vps.sh rollback [version]   run the previous image (or calendar:<version>) again; deploy does this itself when health fails
 # The VPS (1 CPU, 1 GB) never builds. ufw, Docker, swap and unattended-upgrades are already set up.
 # Connects as VPS_USER (default root: the owner chose to keep root SSH login, 2026-10-16). `harden` is available to switch
 # to a non-root `deploy` user and disable root login, but it is opt-in; run it only if you decide to. VPS_HOST is the bare address.
@@ -16,8 +17,37 @@ DEPLOY_USER=deploy
 if [[ "${1:-}" == harden ]]; then VPS_USER=${VPS_USER:-root}; else VPS_USER=${VPS_USER:-root}; fi
 HOST=$VPS_USER@$ADDR
 OPTS=(-i "$KEY" -o IdentitiesOnly=yes)
-on_vps() { ssh "${OPTS[@]}" "$HOST" "$@"; }
+# DRY_RUN=1 prints the remote commands instead of running them (DRY_RUN=unhealthy: the health check never reports ok)
+on_vps() {
+  if [[ -n "${DRY_RUN:-}" ]]; then
+    printf '[dry-run] on VPS: %s\n' "$*" >&2
+    if [[ "$*" == *api/health* && "$DRY_RUN" != unhealthy ]]; then echo '{"status":"ok"}'; fi
+    return 0
+  fi
+  ssh "${OPTS[@]}" "$HOST" "$@"
+}
+HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-120}
+HEALTH_INTERVAL=${HEALTH_INTERVAL:-3}
 here=$(cd "$(dirname "$0")/.." && pwd)
+
+# Starts the app from calendar:latest and waits until /api/health says ok; non-zero when it does not in HEALTH_TIMEOUT s
+up_and_wait() {
+  local waited=0 out
+  on_vps 'cd /opt/calendar && docker compose up -d --remove-orphans' || return 1
+  while (( waited < HEALTH_TIMEOUT )); do
+    out=$(on_vps "cd /opt/calendar && docker compose exec -T app sh -c 'wget -qO- \"http://127.0.0.1:\${PORT:-3000}/api/health\"' 2>/dev/null") || true
+    [[ "$out" == *'"status":"ok"'* ]] && return 0
+    sleep "$HEALTH_INTERVAL"; waited=$((waited + HEALTH_INTERVAL))
+  done
+  return 1
+}
+
+# Makes calendar:<tag> the running image again; tags on the VPS are the version with + written as -
+rollback_to() {
+  on_vps "docker image inspect calendar:$1 >/dev/null 2>&1 && docker tag calendar:$1 calendar:latest" \
+    || { echo "no image calendar:$1 on the VPS; available:" >&2; on_vps 'docker images calendar --format "{{.Tag}}  {{.CreatedSince}}"' >&2; return 1; }
+  up_and_wait
+}
 
 case "${1:-}" in
   harden)
@@ -83,11 +113,23 @@ REMOTE
     on_vps "grep -q '^CAL_DOMAIN=.' /opt/calendar/.env || echo 'CAL_DOMAIN=$CAL_DOMAIN' >> /opt/calendar/.env"
     # an .env from before token encryption gets a key (made on the VPS; losing it only means signing in again)
     on_vps "grep -q '^TOKEN_ENC_KEY=.' /opt/calendar/.env || echo \"TOKEN_ENC_KEY=\$(openssl rand -base64 32)\" >> /opt/calendar/.env"
-    scp "${OPTS[@]}" -q "$here/deploy/vps/compose.yml" "$here/deploy/vps/Caddyfile" "$HOST:/opt/calendar/"
+    if [[ -z "${DRY_RUN:-}" ]]; then scp "${OPTS[@]}" -q "$here/deploy/vps/compose.yml" "$here/deploy/vps/Caddyfile" "$HOST:/opt/calendar/"; fi
     version="$("$here/scripts/version.sh")+$(git -C "$here" rev-parse --short HEAD)"
-    docker build -q -t calendar:latest --build-arg "APP_VERSION=$version" "$here"
-    docker save calendar:latest | gzip -1 | on_vps 'gunzip | docker load'
-    on_vps 'cd /opt/calendar && docker compose up -d --remove-orphans && docker image prune -f >/dev/null && docker compose ps'
+    tag=${version//+/-}
+    if [[ -z "${DRY_RUN:-}" ]]; then docker build -q -t calendar:latest -t "calendar:$tag" --build-arg "APP_VERSION=$version" "$here"; fi
+    # what runs now stays on the VPS as calendar:previous, the rollback target
+    on_vps 'if docker image inspect calendar:latest >/dev/null 2>&1; then docker tag calendar:latest calendar:previous; fi'
+    if [[ -z "${DRY_RUN:-}" ]]; then docker save calendar:latest "calendar:$tag" | gzip -1 | on_vps 'gunzip | docker load'; fi
+    if ! up_and_wait; then
+      echo "calendar:$tag did not report ok on /api/health within ${HEALTH_TIMEOUT}s: rolling back to calendar:previous" >&2
+      if rollback_to previous; then echo "rolled back: the previous version is running again" >&2
+      else echo "ROLLBACK FAILED: check scripts/vps.sh logs" >&2; fi
+      exit 1
+    fi
+    # keep the last three versions (plus latest and previous); only dangling layers are pruned
+    on_vps 'docker images calendar --format "{{.Tag}}" | grep -vxE "latest|previous" | tail -n +4 | xargs -r -I{} docker rmi calendar:{} || true
+      docker image prune -f >/dev/null; cd /opt/calendar && docker compose ps'
+    if [[ -n "${DRY_RUN:-}" ]]; then echo "[dry-run] APK step skipped" >&2; exit 0; fi
     # the APK is not part of the image: it goes into the data volume (/data/downloads/app.apk, served as /app.apk)
     apk="${CAL_APK:-$here/deploy/data/downloads/app.apk}"
     if [[ -f "$apk" ]]; then
@@ -113,10 +155,16 @@ REMOTE
       echo "no APK at $apk: /app.apk on the VPS stays as it is (scripts/android-build.sh builds one)" >&2
     fi
     ;;
+  rollback)
+    target=${2:-previous}
+    [[ "$target" =~ ^[A-Za-z0-9_.+-]+$ ]] || { echo "rollback takes a version such as 0.18.0+94da588 (or nothing for the previous one)" >&2; exit 2; }
+    rollback_to "${target//+/-}" || { echo "rollback to $target failed or the app is not healthy" >&2; exit 1; }
+    on_vps 'cd /opt/calendar && docker compose ps'
+    ;;
   logs)
     on_vps 'cd /opt/calendar && docker compose logs -f --tail=100'
     ;;
   *)
-    sed -n '2,7p' "$0" >&2; exit 2
+    sed -n '2,8p' "$0" >&2; exit 2
     ;;
 esac

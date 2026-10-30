@@ -3260,3 +3260,14 @@ the damaged shared list is left out and noted in the server log
   "runs as the demo" = `PROVIDER=mock` (or unset); "allows running open on purpose" = `ALLOW_INSECURE_MOCK=1`; "the
   encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes;
   "damaged because ..." = the shapes listed in `server/test/hardening-shared.test.ts`.
+
+## Damaged data files (`@data`, `@unit`; feature damaged-files)
+
+Server-file scenarios, covered by unit tests (`server/test/personJsonStore.test.ts`); not run by the browser suite.
+
+```
+the stored preferences of {string} are damaged
+{string} changes a preference
+{string} has the default preferences plus the change
+the damaged file is kept as {string} with its old content
+```
