@@ -129,6 +129,7 @@ watch(layout, check, { flush: 'post' });
 
 /* the visiting butterfly (~10 s): Full flutters through (sometimes resting on a flower), Reduced only rests in place.
    Longhands, not `animation: 10s …`: the build's minifier turns a shorthand without a name into `animation: none`. */
+/* the flight's heights are fractions of the part of the 96 px layer the bar shows (--d is what the bar clips on top) */
 .flutter { position: absolute; left: 0; top: 0; width: 18px; animation-duration: 10s; animation-timing-function: ease-in-out; animation-fill-mode: both; }
 .flutter.b { --bw-wing: color-mix(in oklab, #ffc83d 70%, var(--md-sys-color-tertiary, #b5486f)); --bw-lower: color-mix(in oklab, #ff9a3d 60%, var(--md-sys-color-primary, #6750a4)); }
 .flutter.fly { animation-name: life-fly; }
@@ -143,18 +144,18 @@ watch(layout, check, { flush: 'post' });
 .bat.rest .bob { animation: life-bat-bob 1.6s ease-in-out infinite alternate; }
 @keyframes life-bat-bob { from { transform: translateY(-3px) rotate(-10deg); } to { transform: translateY(2px) rotate(6deg); } }
 @keyframes life-fly {
-  0% { translate: -24px 50cqh; }
-  25% { translate: 22cqw 14cqh; }
-  50% { translate: 48cqw 46cqh; }
-  75% { translate: 74cqw 10cqh; }
-  100% { translate: calc(100cqw + 24px) 36cqh; }
+  0% { translate: -24px calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.5); }
+  25% { translate: 22cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.14); }
+  50% { translate: 48cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.46); }
+  75% { translate: 74cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.1); }
+  100% { translate: calc(100cqw + 24px) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.36); }
 }
 @keyframes life-fly-rest {
-  0% { translate: -24px 40cqh; }
-  20% { translate: calc(var(--rest-x) / 2) 12cqh; }
+  0% { translate: -24px calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.4); }
+  20% { translate: calc(var(--rest-x) / 2) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.12); }
   35%, 65% { translate: var(--rest-x) var(--rest-y, 52cqh); }
-  85% { translate: calc((var(--rest-x) + 100cqw) / 2) 10cqh; }
-  100% { translate: calc(100cqw + 24px) 30cqh; }
+  85% { translate: calc((var(--rest-x) + 100cqw) / 2) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.1); }
+  100% { translate: calc(100cqw + 24px) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.3); }
 }
 @keyframes life-rest { 0%, 100% { opacity: 0; } 12%, 88% { opacity: 1; } }
 @keyframes life-bob { from { transform: translateY(-2px) rotate(-8deg); } to { transform: translateY(2px) rotate(8deg); } }
