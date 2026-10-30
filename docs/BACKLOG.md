@@ -4,6 +4,10 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Scene visitor leaves the top bar at the top edge** (2026-10-30, red on main 0b65029 and on the clock fix):
+  theme-scenes "The visitor flies across the top bar scene" fails on mobile: at 20 % of the flight the visitor's top edge
+  is 1.8 px above the bar (`Expected >= 0, Received -1.76`). Root-cause first (header/scene layout changes since 10-26?).
+
 - **Approaching card track overlaps other items, e.g. the "signed in" and streak notices** (owner, 2026-10-30, live
   0.23.0+8952b21, seen on the phone; maybe elsewhere too). SOME bars of the track — the ones further back — lie on top
   of the notices (signed-in note, streak note, others). Expected: notices are always above every bar of the track,
@@ -16,15 +20,6 @@ Tracked here so it survives across sessions. Newest first within each section. M
   and "Pauke Retournieren" cannot be read; only HipHop and Hellbreakers show. Expected: every bar's title readable
   (or clipped to its own bar), never covered by the next bar. Reproducing test first, then fix.
 
-- **The live clock runs 4 app timers where at most 2 are allowed** (full e2e 2026-10-26; also red on a55be8f, so older
-  than that day's work). `performance.feature` "The live clock uses one timer and pauses while hidden" fails on mobile
-  (`Received: 4`). Root-cause by falsification, then fix.
-- **Labs zoom month: back-to-back short events are not laid out as overlapping** (min-event-length outline, Example #6;
-  red on main since at least a7e9c5f): "title not covered". The zoom month gets no side-by-side limit.
-- **Labs Timeline: no way back to today after scrolling** (owner, 2026-10-26). After scrolling a while there is no
-  Today button to jump back. The date-less Labs views (Now, Timeline) hide the top bar's date/prev/next/Today since
-  2026-10-23; the Timeline needs a Today control again (spec + canvas mockup first: where it sits, maybe only once today
-  is out of view).
 
 - **Left-handed tablet: the + button covers the open tray** (2026-10-23, owner to decide). In left-handed mode on a
   tablet the add button sits over the open task tray. Moving it right of the tray puts it past the middle of an 820 px
