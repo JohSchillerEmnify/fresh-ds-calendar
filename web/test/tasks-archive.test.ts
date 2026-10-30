@@ -4,7 +4,7 @@ import { isFinished, matchesSearch, sortArchive, copyOf } from '@/features/taskl
 
 const tl = (title: string, o: Partial<TaskList> = {}): TaskList => ({
   kind: 'tasklist', id: title, calendarId: 'c', title, date: null, time: null, items: [], doneCount: 0, totalCount: 0, estimateMinutes: null,
-  recurrence: null, categoryId: null, tags: [], color: '#000', completedOn: null, etag: 'e', updated: '2026-10-01T10:00:00+02:00', ...o,
+  recurrence: null, categoryId: null, tags: [], color: '#000', calendarColor: '#000', completedOn: null, canvas: null, etag: 'e', updated: '2026-10-01T10:00:00+02:00', ...o,
 });
 const titles = (l: TaskList[]) => l.map((x) => x.title);
 

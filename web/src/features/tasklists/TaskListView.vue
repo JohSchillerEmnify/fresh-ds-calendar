@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TITLE_MAX } from '@calendar/shared/limits';
 /**
  * One task list with everything that can be done to it (feature tasklist-items): head with the collapse chevron,
  * "All done", item rows, add field and footer. Used as it is by the expanded list (inside AdaptiveSheet) and by the
@@ -143,7 +144,7 @@ async function commitEdit(item: TaskItem) {
   const v = draft.value.trim();
   if (!v || v === item.title) return;
   const s = await scope.ask(tl.value);
-  if (s) patchItem(props.id, item.id, { title: v.slice(0, 200) }, s);
+  if (s) patchItem(props.id, item.id, { title: v.slice(0, TITLE_MAX) }, s);
 }
 function cancelEdit() { editingItem.value = null; }
 
@@ -255,7 +256,7 @@ defineExpose({ root, busy });
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
       <div class="titles">
         <input
-          v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" maxlength="200" :aria-label="t('tasks.list.titleLabel')"
+          v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.titleLabel')"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
         <button v-else-if="displayTitle(tl)" class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
@@ -285,7 +286,7 @@ defineExpose({ root, busy });
           >
             <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
             <input
-              v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" maxlength="200" :aria-label="t('tasks.list.itemTitle')"
+              v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.itemTitle')"
               @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
             />
             <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
@@ -297,7 +298,7 @@ defineExpose({ root, busy });
 
         <form v-if="adding && !compact" class="add" @submit.prevent="add">
           <input
-            ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" maxlength="200"
+            ref="newInput" v-model="newTitle" class="new" data-testid="tasklist-new-item" type="text" enterkeyhint="done" :maxlength="TITLE_MAX"
             :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
           />
         </form>

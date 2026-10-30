@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { copyOf } from '@/features/tasklists/archive';
 import { effectiveFilter, effectiveGroupBy, effectiveSortBy, listCategoryId, listColor } from '@/features/tasklists/categories';
+import type { TaskList } from '@/api/types';
 
 describe('task categories switch: fall-backs while off', () => {
   it('groups by time instead of category, keeps other groupings', () => {
@@ -23,7 +24,7 @@ describe('task categories switch: fall-backs while off', () => {
     const l = { color: '#0b8043', calendarColor: '#039be5', categoryId: 'shopping' };
     expect(listColor(l, true)).toBe('#0b8043');
     expect(listColor(l, false)).toBe('#039be5');
-    expect(listColor({ color: '#111111' }, false)).toBe('#111111');
+    expect(listColor({ color: '#111111' } as Pick<TaskList, 'color' | 'calendarColor'>, false)).toBe('#111111');
     expect(listCategoryId(l, true)).toBe('shopping');
     expect(listCategoryId(l, false)).toBeNull();
   });

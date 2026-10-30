@@ -1,3 +1,4 @@
+import { TITLE_MAX } from '@calendar/shared/limits';
 import { stableId } from '../lib/ids.js';
 import { addDays, formatInZone, localDateOf, localTimeOf, zonedToUtc } from '../lib/time.js';
 import type { CanvasPlace, Category, Recurrence, TaskItem } from '../api/types.js';
@@ -182,7 +183,7 @@ export function parseDescription(desc: string | undefined): TaskItem[] {
     const line = raw.trim();
     if (!line) return;
     const m = /^(☐|☑|\[ \]|\[x\])\s*(.*)$/i.exec(line);
-    const title = (m ? m[2]! : line).trim().slice(0, 200);
+    const title = (m ? m[2]! : line).trim().slice(0, TITLE_MAX);
     if (!title) return;
     const done = !!m && (m[1] === '☑' || m[1]!.toLowerCase() === '[x]');
     items.push({ id: stableId(`${idx}:${title}`), title, done });

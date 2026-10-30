@@ -1,0 +1,158 @@
+/** Types of the per-person preferences table in `prefs.js` (`GET/PATCH /api/prefs`). */
+
+/** How often the emotional support cat comes by when a task list is finished. */
+export type SupportCat = 'off' | 'sometimes' | 'always';
+/** Where the view switcher sits (feature nav-position): bottom bar, tabs row under the top bar, or side rail. */
+export type NavPosition = 'bottom' | 'top' | 'rail';
+/** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
+export type StreakChoice = 'off' | 'flame' | 'plant';
+/** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
+export type HeaderLayout = 'two-rows' | 'one-row';
+/** How the Tasks view groups its lists (feature tasks-view). */
+export type TasksGroupBy = 'time' | 'category' | 'none';
+/** How the Tasks view sorts its lists. */
+export type TasksSortBy = 'date' | 'name' | 'category' | 'changed' | 'progress';
+/** Sort direction relative to the sort key's own default (feature tasks-view). */
+export type TasksSortDir = 'default' | 'reversed';
+/** The "When" choice of the Tasks filter (feature tasks-filter). */
+export type TasksWhen = 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week';
+/** The Tasks view's filter: category ids (or `none`) combined with "or", and one When choice, combined with "and". */
+export interface TasksFilter { categories: string[]; when: TasksWhen }
+/** What finishing an undated task list does: show it in the calendar on that day, or keep it in the Archive only. */
+export type UndatedDone = 'calendar' | 'archive';
+/** What tapping a task list card does: grow it inline or open the drawer. */
+export type TaskOpen = 'inline' | 'drawer';
+/** How far ahead the approach bar reaches, in whole hours from 1 to 24 (3, 6 and 12 offered; feature labs-approach-bar). */
+export type ApproachWindowHours = number;
+/** The minimum event length choices, in minutes (0 = off). */
+export type MinEventMinutes = 0 | 15 | 30;
+/** How many overlapping events the day view places side by side (feature event-display). */
+export type DaySideBySide = 2 | 3 | 4;
+/** How many overlapping events the week view places side by side (feature event-display). */
+export type WeekSideBySide = 2 | 3;
+
+/** The languages the app is translated into. */
+export declare const LANGUAGE_VALUES: readonly ['en', 'de', 'de-x-mainfr', 'de-x-coldmirror'];
+/** The `language` preference: `auto` follows the device, otherwise one of {@link LANGUAGE_VALUES}. */
+export type LanguagePref = 'auto' | (typeof LANGUAGE_VALUES)[number];
+
+/** Bedtime mode (feature bedtime): fixed times, or follow the first appointment of the next day. */
+export type BedtimeMode = 'fixed' | 'dynamic';
+/** The per-person bedtime preference; times are `HH:MM`, durations whole minutes. */
+export interface BedtimePrefs {
+  enabled: boolean;
+  mode: BedtimeMode;
+  bedtime: string;
+  wake: string;
+  /** "Different on weekends": the nights before Saturday and Sunday use the weekend pair. */
+  weekendDifferent: boolean;
+  weekendBedtime: string;
+  weekendWake: string;
+  sleepMinutes: number;
+  leadMinutes: number;
+  /** Minutes before bedtime for the in-app reminder; 0 = no reminder. */
+  reminderMinutes: number;
+}
+
+/** Which reminders reach the person as system notifications (Android app now, Web Push once HTTPS exists); the in-app snackbars follow their own settings. */
+export interface NotifyPrefs {
+  /** The bedtime reminder (its lead is `bedtime.reminderMinutes`). */
+  bedtime: boolean;
+  /** "Dentist starts in 10 min" before timed events (lead: the reminder lists, feature reminders). */
+  events: boolean;
+  /** The same before task lists with a time; default off. */
+  tasklists: boolean;
+  /** A morning overview of the day at `morningTime`. */
+  morning: boolean;
+  /** `HH:MM`. */
+  morningTime: string;
+}
+
+/** The per-person preferences returned by `GET /api/prefs`. */
+export interface Prefs {
+  /** Per Labs view id: shown in the view switcher or not; an id that is missing follows the client's registry default. */
+  labsViews: Record<string, boolean>;
+  labs: boolean;
+  approachBar: boolean;
+  approachWindowHours: ApproachWindowHours;
+  /** The Approaching card above the calendar views (feature labs-approach-bar). */
+  approachingCard: boolean;
+  /** The running entry's "· N min left" in the Approaching card's line; off, or with the card off, the entry itself shows it. */
+  approachTimeLeft: boolean;
+  /** Task-list categories shown; off hides every category UI but keeps the stored ids. */
+  taskCategories: boolean;
+  /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
+  tasksCalendarVisible: boolean;
+  supportCat: SupportCat;
+  /** The small build-version label in the bottom-left corner of the main UI (off by default). */
+  versionInCorner: boolean;
+  /** Left-handed mode: the phone and touch-tablet layout is mirrored (feature left-handed-mode; off by default). */
+  leftHanded: boolean;
+  /** The "From Sat 10 Oct" label on task lists carried over to today (on by default). */
+  showCarriedFrom: boolean;
+  /** Where the view switcher sits on phones (default `bottom`) and on desktop and tablets (default `rail`). */
+  navPhone: NavPosition;
+  navDesktop: NavPosition;
+  /** Tasks view grouping and sorting, remembered per person. */
+  tasksGroupBy: TasksGroupBy;
+  tasksSortBy: TasksSortBy;
+  /** Labs: the AI prompt and the import in the theme menu (saved own themes show either way). */
+  labsOwnThemes: boolean;
+  tasksSortDir: TasksSortDir;
+  /** "Finished list without a date" (feature tasks-archive). */
+  undatedDone: UndatedDone;
+  /** Tapping a task list card: grow inline (default) or open the drawer. */
+  taskOpen: TaskOpen;
+  /** The Tasks view's filter, shared by Open, Canvas and Archive (feature tasks-filter). */
+  tasksFilter: TasksFilter;
+  /** The UI language: `auto` (device language) or a fixed one (feature language). */
+  language: LanguagePref;
+  /** Bedtime mode: the night band in the timeline views and the reminder (feature bedtime). */
+  bedtime: BedtimePrefs;
+  /** Which reminders become system notifications (feature reminders). */
+  notify: NotifyPrefs;
+  /** Labs: the week as a two-row overview that fits one screen (feature two-row-week; off by default). */
+  weekTwoRow: boolean;
+  /** Days on the overview's top row: 4 (Mon-Thu on top) or 3 (Mon-Wed on top). */
+  weekTwoRowTop: 3 | 4;
+  /** Labs: a tap on a task-list card grows it in place (the grown card); off, a tap opens the list sheet. */
+  labsGrowCards: boolean;
+  /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off (feature min-event-length). */
+  minEventMinutes: MinEventMinutes;
+  /** Overlapping events side by side in the day view before they cascade (default 4). */
+  daySideBySide: DaySideBySide;
+  /** Overlapping events side by side in the week view and the phone widget's week before they cascade (default 2). */
+  weekSideBySide: WeekSideBySide;
+  /** What the top bar shows of the streak: off (the default), flame or plant. */
+  streak: StreakChoice;
+  /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
+  syncIndicator: boolean;
+  /** The phone's top bar: two rows (default) or one row (feature header-layout). */
+  headerLayout: HeaderLayout;
+}
+
+/** One preference of the table: its default and its validation (`{ value }`, or `{ error }` with the 400's message). */
+export interface PrefDef<T> {
+  default: T;
+  /** An object whose valid fields are merged over the current value instead of replacing it. */
+  merge?: true;
+  parse(raw: unknown, key: string): { value: T | Partial<T> } | { error: string };
+}
+
+/** Every preference with its default and validation, in the order of `GET /api/prefs`. */
+export declare const PREFS: { readonly [K in keyof Prefs]: PrefDef<Prefs[K]> };
+/** The preference names, in table order. */
+export declare const PREF_KEYS: readonly (keyof Prefs)[];
+/** The bedtime preference of a person who never touched the settings: bedtime mode is off. */
+export declare const DEFAULT_BEDTIME: BedtimePrefs;
+/** The notification preference of a new person: everything but the morning overview. */
+export declare const DEFAULT_NOTIFY: NotifyPrefs;
+
+/** Every preference at its default, as fresh objects. */
+export declare function defaultPrefs(): Prefs;
+/** Fills every preference of a stored document with a valid value: anything missing or invalid takes the default. */
+export declare function readPrefs(raw: Record<string, unknown> | null | undefined): Prefs;
+/** The value after a change: a `merge` preference merges the incoming fields over the current ones, others are replaced. */
+export declare function mergePref<K extends keyof Prefs>(key: K, current: Prefs[K], incoming: Prefs[K] | Partial<Prefs[K]>): Prefs[K];
+/** Validates a `PATCH /api/prefs` body against the table: the valid fields (merge preferences merged over `current`), or the first bad field with its message. */
+export declare function parsePrefsPatch(body: Record<string, unknown>, current: Prefs): { patch: Partial<Prefs> } | { error: string; field: string };

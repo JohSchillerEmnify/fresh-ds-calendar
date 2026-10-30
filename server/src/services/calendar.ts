@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
+import { LIST_ITEMS_MAX } from '@calendar/shared/limits';
 import type {
   Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, SummaryDay, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
 } from '../api/types.js';
 import type { AppConfig } from '../config.js';
 import type { Clock } from '../lib/clock.js';
-import { GOOGLE_COLORS } from '../lib/colors.js';
+import { GOOGLE_COLORS } from '@calendar/shared/colors';
 import { ApiException, forbidden, notFound, preconditionFailed, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { addDays, dayNumber, formatInZone, isDateTime, isLocalDate, localDateOf, localTimeOf, startOfLocalDay, zonedToUtc } from '../lib/time.js';
@@ -468,7 +469,7 @@ export class CalendarService {
   // ---------- task lists ----------
   private checkTaskData(d: TaskListData, keepCategory?: string | null): void {
     if (!d.title.trim() && d.items.length === 0) throw validation('Add a title or an item', 'title', 'tasklist.titleOrItem');
-    if (d.items.length > 200) throw validation('A task list can have at most 200 items', 'items', 'tasklist.tooManyItems');
+    if (d.items.length > LIST_ITEMS_MAX) throw validation(`A task list can have at most ${LIST_ITEMS_MAX} items`, 'items', 'tasklist.tooManyItems');
     if (new Set(d.tags.map((t) => t.toLowerCase())).size !== d.tags.length) throw validation('Tags must be unique', 'tags', 'tasklist.tagsUnique');
     if (d.date !== null && !isLocalDate(d.date)) throw validation('Date must be YYYY-MM-DD', 'date');
     if (d.date === null && d.recurrence) throw validation('An undated task list cannot repeat', 'date');

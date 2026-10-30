@@ -5,9 +5,10 @@
  * message runtime (ADR 0021).
  */
 import { ref } from 'vue';
+import { LANGUAGE_VALUES } from '@calendar/shared/prefs';
 
 /** The languages the app is translated into; `en` is the default and the last fallback. */
-export const LANGUAGES = ['en', 'de', 'de-x-mainfr', 'de-x-coldmirror'] as const;
+export const LANGUAGES = LANGUAGE_VALUES;
 export type Language = (typeof LANGUAGES)[number];
 
 /** The per-person `language` preference: `auto` follows the device, anything else is a fixed language. */

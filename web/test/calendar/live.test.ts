@@ -204,7 +204,7 @@ describe('transition warning (fake timers, one shared ticker)', () => {
     const { clock, items } = await boot('10:25', true);
     const cals = useCalendarsStore();
     const calId = items.all.find((i) => i.id === 'dentist')!.calendarId;
-    cals.list = [{ id: calId, name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true }];
+    cals.list = [{ id: calId, name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true, defaultReminders: [] }];
     const ui = useUiStore();
     useSettingsStore().settings = settingsFixture();
     startTransitionWarnings();
@@ -327,7 +327,7 @@ describe('transition warnings as Android notifications', () => {
     it('is cancelled when its calendar is hidden', async () => {
       const { plugin, items } = await rang('10:34');
       const cals = useCalendarsStore();
-      cals.list = [{ id: items.get('dentist')!.calendarId, name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true }];
+      cals.list = [{ id: items.get('dentist')!.calendarId, name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true, defaultReminders: [] }];
       await nextTick();
       expect(plugin.cancel.mock.calls.map(([o]) => o.id)).toContain(dentist);
     });

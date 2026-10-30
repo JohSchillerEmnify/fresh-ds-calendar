@@ -16,7 +16,7 @@ const tid = (id: string) => `[data-testid="${id}"]`;
 const list = (id: string): TaskList => ({
   kind: 'tasklist', id, calendarId: 'primary', title: id, date: '2026-10-12', time: null,
   items: [{ id: `${id}-1`, title: 'Milk', done: true }, { id: `${id}-2`, title: 'Eggs', done: false }], doneCount: 1, totalCount: 2,
-  estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', etag: 'e', updated: 'x',
+  estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: 'e', updated: 'x',
 });
 
 let wrapper: VueWrapper | null = null;
