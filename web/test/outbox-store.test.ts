@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import type { CalendarEvent, TaskList } from '@/api/types';
-import { memoryKv, setDeviceDb } from '@/lib/deviceDb';
+import { memoryKv, setDeviceDb, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
 import { useAuthStore } from '@/stores/auth';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
@@ -24,6 +24,9 @@ beforeEach(() => {
   kv = memoryKv();
   setDeviceDb(kv);
   freshPinia();
+  // the stores register with the outbox when they are created
+  useItemsStore();
+  useDeviceStore();
 });
 afterEach(() => { setDeviceDb(null); vi.useRealTimers(); });
 
@@ -192,7 +195,7 @@ describe('outbox: things created offline', () => {
     await flushPromises();
     expect(out.count).toBe(0);
     expect(items.get(local.id)).toBeUndefined();
-    expect(useUiStore().snackbars.filter((s) => s.testid === 'outbox-notice')).toHaveLength(2);
+    expect(useUiStore().snackbars.filter((s) => s.testid === 'outbox-notice')).toHaveLength(1);
   });
 });
 
@@ -232,5 +235,122 @@ describe('outbox: people', () => {
     await out.load();
     expect(unsent()).toEqual(['item.patch G']);
     expect(document.documentElement.dataset.unsynced).toBe('1');
+  });
+});
+
+const tickEntry = (person: string, key = 'k') => ({ key, person, seq: 1, title: 'Milk', change: { op: 'item.patch', id: 'G', itemId: 'm', patch: { done: true } } });
+
+describe('outbox: another person\'s entries', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('are not shown to the person signed in on this device, and are purged once they are known', async () => {
+    const m = mockFetch({ 'PATCH /api/tasklists/G/items/m': () => tick(list(), 'm') });
+    setDevicePerson('jo@example.com');
+    kv.data.set('outbox', [tickEntry('anna@example.com')]);
+    const items = useItemsStore();
+    items.upsert(list());
+    const out = useOutboxStore();
+    await out.load();
+    expect((items.get('G') as TaskList).items[0].done).toBe(false);
+    const auth = useAuthStore();
+    auth.status = 'in';
+    auth.email = 'jo@example.com';
+    await out.flush();
+    expect(writes(m)).toEqual([]);
+    expect(out.count).toBe(0);
+    expect(kv.data.get('outbox')).toEqual([]);
+  });
+
+  it('are shown only after the person is known, when they are theirs', async () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ email: 'jo@example.com', name: 'Jo' }), 'PATCH /api/tasklists/G/items/m': down });
+    useAuthStore().status = 'unknown';
+    kv.data.set('outbox', [tickEntry('jo@example.com')]);
+    const items = useItemsStore();
+    items.upsert(list());
+    const out = useOutboxStore();
+    await out.load();
+    expect((items.get('G') as TaskList).items[0].done).toBe(false);
+    await out.flush();
+    expect((items.get('G') as TaskList).items[0].done).toBe(true);
+  });
+
+  it('what is dropped is taken off the screen again', async () => {
+    mockFetch({ 'POST /api/tasklists': down });
+    const items = useItemsStore();
+    const out = useOutboxStore();
+    const local = out.createList({ title: 'Packing', date: null });
+    await flushPromises();
+    expect(items.get(local.id)).toBeDefined();
+    out.entries = out.entries.map((e) => ({ ...e, person: 'anna@example.com' }));
+    const auth = useAuthStore();
+    auth.status = 'in';
+    auth.email = 'jo@example.com';
+    await out.flush();
+    expect(items.get(local.id)).toBeUndefined();
+  });
+
+  it('a change made while nobody is known waits for the person and is never dropped', async () => {
+    const m = mockFetch({ 'GET /api/auth/me': () => apiError(503, 'PROVIDER_UNAVAILABLE'), 'PATCH /api/tasklists/G/items/m': () => tick(list(), 'm') });
+    const auth = useAuthStore();
+    auth.status = 'unknown';
+    useItemsStore().upsert(list());
+    const out = useOutboxStore();
+    out.patchItem('G', 'm', { done: true });
+    await flushPromises();
+    expect(out.count).toBe(1);
+    auth.status = 'in';
+    auth.email = 'jo@example.com';
+    await out.flush();
+    expect(out.count).toBe(0);
+    expect(writes(m)).toHaveLength(1);
+  });
+});
+
+describe('outbox: robustness', () => {
+  it('a sign-out during a refusal does not bring the entries back', async () => {
+    mockFetch({
+      'PATCH /api/tasklists/G/items/m': () => apiError(400, 'VALIDATION_ERROR'),
+      'GET /api/tasklists/G': async () => { await wipeDevice(); return list(); },
+    });
+    useItemsStore().upsert(list());
+    const out = useOutboxStore();
+    out.patchItem('G', 'm', { done: true });
+    out.patchItem('G', 'e', { done: true });
+    await flushPromises();
+    expect(out.count).toBe(0);
+    expect(kv.data.get('outbox') ?? []).toEqual([]);
+    expect(useUiStore().snackbars).toEqual([]);
+  });
+
+  it('a repeating list delete keeps its first path across retries (same key, same request)', async () => {
+    let up = false;
+    const m = mockFetch({
+      'DELETE /api/tasklists/G': () => (up ? { status: 204 } : down()),
+      'DELETE /api/tasklists/S': () => ({ status: 204 }),
+    });
+    vi.useFakeTimers();
+    const items = useItemsStore();
+    items.upsert(list());
+    useOutboxStore().deleteList(list());
+    await vi.advanceTimersByTimeAsync(0);
+    items.noteSeries('G', 'S');
+    up = true;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(writes(m).map((c) => c.path)).toEqual(['/api/tasklists/G', '/api/tasklists/G']);
+    expect(useOutboxStore().count).toBe(0);
+  });
+
+  it('a new change does not send while a retry is waiting', async () => {
+    vi.useFakeTimers();
+    const m = mockFetch({ 'PATCH /api/tasklists/G/items/m': down, 'PATCH /api/tasklists/G/items/e': () => tick(list(), 'e') });
+    useItemsStore().upsert(list());
+    const out = useOutboxStore();
+    out.patchItem('G', 'm', { done: true });
+    await vi.advanceTimersByTimeAsync(0);
+    out.patchItem('G', 'e', { done: true });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(writes(m)).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(writes(m)).toHaveLength(2);
   });
 });

@@ -11,8 +11,8 @@ export const isEvent = (c: Change): boolean => c.op.startsWith('event.');
 export const isCreate = (c: Change): boolean => c.op === 'event.create' || c.op === 'list.create';
 export const isDelete = (c: Change): boolean => c.op === 'event.delete' || c.op === 'list.delete' || c.op === 'item.delete';
 
-/** The request of an entry; `seriesOf` names the series a repeating list was just created with. */
-export function perform(e: OutboxEntry, seriesOf: (id: string) => string | undefined): Promise<unknown> {
+/** The request of an entry. */
+export function perform(e: OutboxEntry): Promise<unknown> {
   const c = e.change;
   const o: RequestOptions = { idempotencyKey: e.key, ...(e.etag ? { ifMatch: e.etag } : {}) };
   const plain: RequestOptions = { idempotencyKey: e.key };
@@ -24,7 +24,7 @@ export function perform(e: OutboxEntry, seriesOf: (id: string) => string | undef
     case 'list.update': return api.updateTaskList(c.id, c.patch, c.scope === 'following' ? plain : o, c.scope);
     case 'list.delete': {
       // a repeating list deleted right after it was created goes as a whole: no If-Match, the etag is its first week's
-      const series = seriesOf(c.id);
+      const series = e.series;
       return series ? api.deleteTaskList(series, plain) : api.deleteTaskList(c.id, o);
     }
     case 'item.add': return api.addTaskItem(c.id, { id: c.itemId, title: c.title }, plain, c.scope);

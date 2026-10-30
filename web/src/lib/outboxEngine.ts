@@ -31,6 +31,10 @@ export interface OutboxState {
   backoff: number;
   retry: Disposer | null;
   loaded: Promise<void> | null;
+  /** Counts wipes: an answer that was on its way when the device was wiped must not bring entries back. */
+  epoch: number;
+  /** Keys of the entries already shown on the device. */
+  shown: Set<string>;
 }
 
 const items = () => ports.items!;
@@ -65,32 +69,54 @@ function showOnDevice(e: OutboxEntry): void {
   } else if (next) items().upsert(next);
 }
 
-/** Reads the entries the device kept (the app start). */
+/** Reads the entries the device kept (the app start); they show once the person they belong to is known. */
 export function load(s: OutboxState): Promise<void> {
   s.loaded ??= (async () => {
     const kept = await deviceDb()?.get<OutboxEntry[]>(OUTBOX_KEY).catch(() => undefined);
     setEntries(s, s.entries.value);
     if (!kept?.length) return;
-    s.seq = Math.max(...kept.map((e) => e.seq));
+    s.seq = kept.reduce((m, e) => Math.max(m, e.seq), s.seq);
     setEntries(s, [...kept, ...s.entries.value]);
-    for (const e of kept) showOnDevice(e);
+    const who = ports.device?.person() ?? devicePerson();
+    if (who) settle(s, who);
   })();
   return s.loaded;
 }
 
-/** The entries of the person the session belongs to; those of another person are dropped, never sent. */
-function dropForeign(s: OutboxState, who: string): void {
-  if (s.entries.value.some((e) => e.person !== who)) commit(s, s.entries.value.filter((e) => e.person === who));
+/** Takes a dropped entry's change off the screen: what it created goes, anything else is read from the server again. */
+function undoShown(e: OutboxEntry): void {
+  const c = e.change;
+  if (isCreate(c)) {
+    items().remove(c.id);
+    ports.device?.drop(c.id);
+    return;
+  }
+  fetchCurrent(c).then((fresh) => { items().unhide(fresh); ports.device?.put(fresh); }, (err) => {
+    if (err instanceof ApiError && err.status === 404) { items().remove(c.id); ports.device?.drop(c.id); }
+  });
+}
+
+/** Once the person is known: ownerless changes become theirs, another person's are dropped and undone, the rest show. */
+function settle(s: OutboxState, who: string): void {
+  const foreign = s.entries.value.filter((e) => e.person !== '' && e.person !== who);
+  if (foreign.length || s.entries.value.some((e) => e.person === '')) {
+    commit(s, s.entries.value.filter((e) => !foreign.includes(e)).map((e) => (e.person === '' ? { ...e, person: who } : e)));
+  }
+  for (const e of foreign) if (s.shown.delete(e.key)) undoShown(e);
+  for (const e of s.entries.value) if (!s.shown.has(e.key)) { s.shown.add(e.key); showOnDevice(e); }
 }
 
 /** Appends a change: shown at once, kept, and sent when it can be. */
 export function add(s: OutboxState, change: Change, o: { title: string; shown?: CalendarEvent; etag?: string }): void {
-  const person = ports.device?.person() ?? devicePerson() ?? '-';
+  // nobody known yet (offline start): the change waits for its person and is claimed by them
+  const person = ports.device?.person() ?? devicePerson() ?? '';
   const etag = o.etag ?? (versioned(change) ? items().get(change.id)?.etag : undefined);
   const e: OutboxEntry = { key: newKey(), person, seq: ++s.seq, change, title: o.title, ...(etag ? { etag } : {}), ...(o.shown ? { shown: o.shown } : {}) };
   commit(s, [...s.entries.value, e]);
+  s.shown.add(e.key);
   showOnDevice(e);
-  void flush(s);
+  // a retry that is waiting keeps its backoff
+  if (!s.retry) void flush(s);
 }
 
 /** The writes the views make; each is shown on the device at once. */
@@ -170,7 +196,7 @@ function sent(s: OutboxState, e: OutboxEntry, fresh: unknown): void {
   const id = isCreate(c) && result ? result.id : c.id;
   if (c.op === 'list.delete' || c.op === 'event.delete') {
     items().hide(id);
-    const series = c.op === 'list.delete' ? items().seriesOf(id) : undefined;
+    const series = c.op === 'list.delete' ? e.series : undefined;
     if (series) dropSeries(series, id);
   } else if (result) showAnswer(s, c, id, result);
   void save(s);
@@ -217,10 +243,14 @@ function tell(d: OutboxEntry, err: ApiError): void {
 async function refuse(s: OutboxState, e: OutboxEntry, err: ApiError): Promise<boolean> {
   // what followed a refused create cannot be sent either (its thing does not exist)
   const dropped = isCreate(e.change) ? forId(s, e.change.id) : [e];
-  const remaining = s.entries.value.filter((x) => !dropped.includes(x));
-  if (!(await rollback(s, e, remaining))) return false;
-  commit(s, remaining);
-  for (const d of dropped) tell(d, err);
+  const epoch = s.epoch;
+  const undone = (list: OutboxEntry[]) => list.filter((x) => !dropped.some((d) => d.key === x.key));
+  if (!(await rollback(s, e, undone(s.entries.value)))) return false;
+  // wiped meanwhile (signed out): nothing of this may come back; else what is left now, not what was left before
+  if (s.epoch !== epoch) return true;
+  commit(s, undone(s.entries.value));
+  // the follow-ups of a refused create fall with it: one notice
+  tell(e, err);
   return true;
 }
 
@@ -247,9 +277,14 @@ async function answer(s: OutboxState, e: OutboxEntry, err: unknown): Promise<Out
 /** One try of an entry, a 412 answered by reading the version again. */
 async function attempt(s: OutboxState, first: OutboxEntry): Promise<Outcome> {
   let e = first;
+  // a repeating list's delete is pinned to its first request: a resend with the same key must be the same request
+  if (e.change.op === 'list.delete' && e.series === undefined) {
+    e = { ...e, series: items().seriesOf(e.change.id) ?? '' };
+    setEntries(s, s.entries.value.map((x) => (x.key === e.key ? e : x)));
+  }
   for (let n = 0; n < MAX_REFETCH; n++) {
     try {
-      sent(s, e, await perform(e, (id) => items().seriesOf(id)));
+      sent(s, e, await perform(e));
       return 'sent';
     } catch (err) {
       const r = await answer(s, e, err);
@@ -270,13 +305,15 @@ function scheduleRetry(s: OutboxState): void {
 export async function flush(s: OutboxState, resync = true): Promise<void> {
   if (s.running || !s.entries.value.length) return;
   s.running = true;
+  s.retry?.();
+  s.retry = null;
   let any = false;
   try {
     const auth = useAuthStore();
     if (auth.status === 'unknown') await auth.check();
     const who = ports.device?.person();
     if (!who) return;
-    dropForeign(s, who);
+    settle(s, who);
     while (s.entries.value.length) {
       const r = await attempt(s, s.entries.value[0]);
       if (r === 'retry') { scheduleRetry(s); return; }

@@ -8,12 +8,14 @@ import { add, flush, load, setEntries, writes, type OutboxState } from '@/lib/ou
 export const useOutboxStore = defineStore('outbox', () => {
   const entries = shallowRef<OutboxEntry[]>([]);
   const lastSent = ref<{ wall: number; app: number } | null>(null);
-  const s: OutboxState = { entries, lastSent, seq: 0, running: false, backoff: 0, retry: null, loaded: null };
+  const s: OutboxState = { entries, lastSent, seq: 0, running: false, backoff: 0, retry: null, loaded: null, epoch: 0, shown: new Set() };
 
   onDeviceWipe((keep) => {
     s.retry?.();
     s.retry = null;
     if (keep) return;
+    s.epoch++;
+    s.shown.clear();
     setEntries(s, []);
     s.loaded = null;
   });

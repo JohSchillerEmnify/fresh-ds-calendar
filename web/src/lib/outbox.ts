@@ -29,6 +29,8 @@ export interface OutboxEntry {
   etag?: string;
   /** How an event change looked on the device (the form's result), kept to show it again after a sync. */
   shown?: CalendarEvent;
+  /** A repeating list's delete: the series it goes as a whole for, pinned at its first try ('' = the list alone). */
+  series?: string;
   /** Names the change in notices and in the list of unsent changes. */
   title: string;
 }
