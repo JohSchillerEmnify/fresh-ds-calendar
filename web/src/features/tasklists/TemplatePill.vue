@@ -137,8 +137,7 @@ defineExpose({ open });
           <span class="name" data-testid="template-picker-name">{{ r.tpl.name }}</span>
           <span class="details" data-testid="template-picker-details">{{ r.details }}</span>
         </button>
-        <p v-if="!templates.loaded && templates.failed" class="empty" data-testid="template-picker-offline">{{ t('tasks.templates.offline') }}</p>
-        <p v-else-if="templates.loaded && !rows.length" class="empty" data-testid="template-picker-empty">{{ t('tasks.templates.empty') }}</p>
+        <p v-if="templates.loaded && !rows.length" class="empty" data-testid="template-picker-empty">{{ t('tasks.templates.empty') }}</p>
         <hr class="divider" data-testid="template-picker-divider" />
         <button type="button" class="item manage" data-testid="template-picker-manage" @click="manage">{{ t('tasks.templates.manage') }}</button>
       </div>

@@ -93,11 +93,25 @@ Feature: Seeing time: proportional timeline, now marker and time remaining
     Then the now card shows the line "Dentist · 15 min left"
     And the current event progress is 70 percent
 
-  Scenario: The Now card when nothing else is scheduled today
+  # owner, 2026-10-26: no "Nothing else today" card any more; the card goes when nothing is on or ahead (feature header-layout)
+  Scenario Outline: The Approaching card is gone when nothing is on or ahead today
     Given the time is 2026-10-12 13:40
-    When I open the week view for 2026-10-12
-    Then the now card shows the line "Nothing else today"
-    And the now card does not show a current event
+    And <track>
+    When I open the <view> view for 2026-10-12
+    Then I do not see the Approaching card
+
+    Examples:
+      | track                        | view |
+      | the approach bar is on       | week |
+      | the approaching track is off | week |
+      | the approach bar is on       | day  |
+
+  Scenario: The Approaching card goes when the last entry of the day ends
+    Given the time is 2026-10-12 13:20 and the clock is running
+    When I open the day view for 2026-10-12
+    Then I see the Approaching card
+    When 15 minutes pass
+    Then I do not see the Approaching card
 
   Scenario Outline: The Now card is shown in the month and year views of today and in another week
     Given the time is 2026-10-12 09:20

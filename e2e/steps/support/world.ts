@@ -1,5 +1,6 @@
 import { expect, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { Api } from './api.js';
+import { installIosTouchModel } from './iosTouch.js';
 
 export const DEFAULT_POLL_MS = 30_000;
 
@@ -98,6 +99,12 @@ export class World {
   held?: () => Promise<void>;
   /** Where "I pick up ..." pressed (page coordinates). */
   heldAt?: { x: number; y: number };
+  /** Moves the held pointer or finger to a point in steps over a time (set by the hold steps that can move on). */
+  heldMove?: (to: { x: number; y: number }, steps: number, ms: number) => Promise<void>;
+  /** Scroll position of the time grid noted by "I swipe up quickly starting on the event ...". */
+  gridScrollBefore?: number;
+  /** The next finger drag holds perfectly still during the long press (iPhone model: no small moves). */
+  stillFinger?: boolean;
   /** The person of the last sign-in step ("they" in the sign-in scenarios). */
   person?: string;
   /** The week the last "without signing in" step opened. */
@@ -110,13 +117,15 @@ export class World {
   appExchange?: { status: number; text: string };
   /** Hour height of the time grid captured before the last pinch ("as before" / "at the start"). */
   hourHeightBefore?: number;
-  lastResponse?: { status: number; json: unknown; url: string };
+  lastResponse?: { status: number; json: unknown; url: string; headers?: Record<string, string>; text?: string };
   /** The first-open check-in of the page opened by "I open the app" (settles to undefined when none comes). */
   firstCheckIn?: Promise<unknown>;
   browserMemory?: BrowserMemory;
   serverRss?: number;
   requestCount?: number;
   lighthouseScore?: number;
+  /** The top bar's control boxes noted before switching to left-handed mode (feature header-layout), relative to the bar. */
+  topBarBoxes?: { width: number; boxes: Record<string, { x: number; y: number; w: number; h: number }> };
 
   constructor(
     page: Page,
@@ -229,6 +238,8 @@ export class World {
   static async prepareContext(context: BrowserContext) {
     // Records when the first month cell becomes visible (for "the month view was rendered within N ms").
     await context.addInitScript(installProbes);
+    // iPhone project: a model of iOS WebKit's touch handling drives the finger (STEPS.md "Drag and drop")
+    if (context.browser()?.browserType().name() === 'webkit') await context.addInitScript(installIosTouchModel);
     // The server sends a Content-Security-Policy (server/src/lib/securityHeaders.ts): any violation fails the scenario.
     await context.exposeFunction('__reportCspViolation', (v: string) => { cspViolations.push(v); });
     await context.addInitScript(() => {
@@ -280,6 +291,7 @@ export class World {
 
   async dispose() {
     await this.held?.().catch(() => {});
+    this.heldMove = undefined;
     for (const c of this.ownContexts) await c.close().catch(() => {});
     // Leave the shared backend clean (outage, clock, poll interval) for the next scenario.
     if (this.api.usedTestApi) await this.api.reset().catch(() => {});

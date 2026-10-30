@@ -4,9 +4,8 @@ import type { Reminders } from '@/api/types';
 
 export interface TaskListForm {
   title: string;
+  /** '' = no date: the list is saved undated (the time and repeat are ignored). */
   date: string;
-  /** "No date": the list is saved undated (the date and time fields are ignored). */
-  noDate?: boolean;
   time: string;
   estimate: string;
   categoryId: string; // 'none' = no category
@@ -21,8 +20,10 @@ export function parseItems(text: string): string[] {
 }
 
 /** Empty create form: the slot's (or focused) date, and the slot's time when one was tapped, else no time. A null date starts the form undated. */
-export function newTaskListForm(date: string | null, time?: string | null): TaskListForm {
-  return { title: '', date: date ?? '', noDate: date === null, time: time ?? '', estimate: '', categoryId: 'none', items: '', repeat: '', reminders: { useDefault: true, minutes: [] } };
+export function newTaskListForm(date: string | null, time?: string | null, minutes?: number): TaskListForm {
+  // a block drawn on the grid gives its length as the estimate, at most the 12 hours a list may take
+  const estimate = minutes ? String(Math.min(minutes, 720)) : '';
+  return { title: '', date: date ?? '', time: time ?? '', estimate, categoryId: 'none', items: '', repeat: '', reminders: { useDefault: true, minutes: [] } };
 }
 
 /**
@@ -32,8 +33,8 @@ export function newTaskListForm(date: string | null, time?: string | null): Task
 export function validateForm(f: TaskListForm, itemCount = parseItems(f.items).length): string | null {
   if (!f.title.trim() && itemCount === 0) return t('tasklist.titleOrItem');
   if (f.title.trim().length > 200) return t('tasks.validation.titleTooLong');
-  if (!f.noDate && !parseIsoDate(f.date)) return t('tasks.validation.pickDate');
-  if (!f.noDate && f.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time)) return t('tasks.validation.timeFormat');
+  if (f.date && !parseIsoDate(f.date)) return t('tasks.validation.pickDate');
+  if (f.date && f.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time)) return t('tasks.validation.timeFormat');
   if (f.estimate.trim()) {
     const n = Number(f.estimate);
     if (!Number.isInteger(n) || n < 5 || n > 720) return t('tasks.validation.estimateRange');

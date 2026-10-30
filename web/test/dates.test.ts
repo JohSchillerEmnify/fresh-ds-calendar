@@ -20,6 +20,18 @@ describe('period titles (en-GB)', () => {
   });
 });
 
+describe('short period titles (the one-row header, feature header-layout)', () => {
+  it.each([
+    ['day', '2026-10-12', 'Mon, 12 Oct'],
+    ['day', '2026-10-14', 'Wed, 14 Oct'],
+    ['week', '2026-10-12', '12 – 18 Oct 2026'],
+    ['month', '2026-10-12', 'October 2026'],
+    ['year', '2026-10-12', '2026'],
+  ] as const)('%s %s -> %s (only the day is shortened)', (view, date, title) => {
+    expect(periodTitle(view, d(date), true)).toBe(title);
+  });
+});
+
 describe('grids and params', () => {
   it('October 2026 grid is Mon 28 Sep .. Sun 1 Nov; Nov 2026 has 6 weeks', () => {
     const g = monthGrid(d('2026-10-12'));

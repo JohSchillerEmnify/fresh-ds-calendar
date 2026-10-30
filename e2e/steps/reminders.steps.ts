@@ -171,6 +171,8 @@ const pushesOf = async (w: World) => (await w.api.call<{ pushes: Array<{ endpoin
 /** The push kind behind each icon name of the spec (the service worker picks the icon files by kind). */
 const KIND_OF_ICON: Record<string, string> = { 'calendar page': 'event', checklist: 'tasklist', sunrise: 'summary', moon: 'bedtime' };
 const browserEndpoint = (w: World): Promise<string> => w.page.evaluate(() => (window as unknown as { __e2ePushEndpoint?: string }).__e2ePushEndpoint ?? '');
+/** Per scenario: the endpoint this browser subscribed with (the page forgets it when it reloads). */
+const subscribedEndpoint = new WeakMap<World, string>();
 const subscriptionOf = async (w: World) => {
   const endpoint = await browserEndpoint(w);
   return endpoint ? (await w.api.call<PushState>('GET', '/api/__test/push-subscriptions')).subscriptions.find((s) => s.endpoint === endpoint) : undefined;
@@ -196,6 +198,13 @@ When('I switch on reminders in this browser', async function (this: World) {
   await expect(control).toBeVisible();
   await control.click();
   await expect(control).toHaveAttribute('aria-checked', 'true');
+  subscribedEndpoint.set(this, await browserEndpoint(this));
+});
+
+Then('this browser has no push subscription on the server', async function (this: World) {
+  const endpoint = subscribedEndpoint.get(this);
+  expect(endpoint, 'this browser subscribed first').toBeTruthy();
+  await expect.poll(async () => (await this.api.call<PushState>('GET', '/api/__test/push-subscriptions')).subscriptions.some((s) => s.endpoint === endpoint)).toBe(false);
 });
 
 Then('this browser has a push subscription on the server', async function (this: World) {

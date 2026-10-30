@@ -68,6 +68,17 @@ Then('the bar {string} has the height of the chip {string}', async function (thi
   await expect.poll(async () => Math.abs((await box(firstBar(this, bar))).height - (await box(this.eventChip(chip))).height), 'height difference in px').toBeLessThanOrEqual(1);
 });
 
+/** Visible entries in the week/day all-day band. */
+const bandChips = (w: World) => w.page.locator(`${tid('week-allday-cell')}, ${tid('day-allday-area')}`).locator(tid('event-chip')).locator('visible=true');
+
+Then('every all-day entry in the band is no taller than an all-day entry', async function (this: World) {
+  // The all-day entry's own min-height (EventItem `.allday`): 22 px, 18 px below the 768 px phone breakpoint.
+  const max = (this.page.viewportSize()?.width ?? 1280) >= 768 ? 22 : 18;
+  await expect(bandChips(this).first()).toBeVisible();
+  const heights = await bandChips(this).evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
+  expect(heights.filter((h) => h > max + 0.5), `all-day entry heights (max ${max} px): ${heights.join(', ')}`).toEqual([]);
+});
+
 Then('the bar {string} shows no continuation arrows', async function (this: World, title: string) {
   await expect(firstBar(this, title)).toBeVisible();
   const bars = this.eventBars(title);
@@ -148,6 +159,8 @@ Then('the event {string} is stacked on the event {string}', async function (this
   expect(l.x, 'later block is indented').toBeGreaterThan(e.x + 2);
   expect(l.y, 'later block starts lower').toBeGreaterThan(e.y);
   expect(l.y, 'blocks overlap vertically').toBeLessThan(e.y + e.height);
+  // a cascade lies over the same column, indented from the left: it starts inside the earlier block's width
+  expect(l.x, 'same column').toBeLessThan(e.x + e.width);
 });
 
 Then('the event {string} spans the full width of its day column', async function (this: World, title: string) {

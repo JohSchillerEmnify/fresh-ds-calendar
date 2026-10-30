@@ -16,7 +16,7 @@ When('I request {string}', async function (this: World, spec: string) {
   const body = await res.text();
   let json: unknown;
   try { json = JSON.parse(body); } catch { json = undefined; }
-  this.lastResponse = { status: res.status(), json, url: res.url() };
+  this.lastResponse = { status: res.status(), json, url: res.url(), headers: res.headers(), text: body };
 });
 
 function last(world: World) {

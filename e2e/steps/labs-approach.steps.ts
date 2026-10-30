@@ -173,3 +173,30 @@ Then('on the approach bar {string} starts at now and shows {int} minutes', async
   // width = N minutes on the track scale (± 10 %)
   await expect.poll(async () => Math.abs((await blockWidth(this, title)) / ((await pxPerMinute(this)) * minutes) - 1)).toBeLessThanOrEqual(0.1);
 });
+
+Given('the Approaching card is off', async function (this: World) {
+  await this.api.patch('/api/prefs', { approachingCard: false });
+});
+
+Then('I see the Approaching card', async function (this: World) {
+  await expect(this.page.getByTestId('now-card')).toBeVisible();
+});
+
+When('I switch off the time left in the Approaching card in the settings', async function (this: World) {
+  await openSettings(this);
+  const control = this.page.getByTestId('settings-approach-time-left');
+  await expect(control).toHaveAttribute('aria-checked', 'true');
+  const saved = prefsSaved(this);
+  await control.click();
+  expect((await saved).status(), 'prefs saved').toBe(200);
+  await this.page.getByTestId('settings-back').click();
+});
+
+Then('the event {string} shows {string} after its time', async function (this: World, title: string, left: string) {
+  await expect.poll(async () => (await this.eventChip(title).getByTestId('event-chip-time').innerText()).trim()).toMatch(new RegExp(`· ${left}$`));
+});
+
+Then('the event {string} shows no time left', async function (this: World, title: string) {
+  await expect(this.eventChip(title).getByTestId('event-chip-time')).toBeVisible();
+  await expect(this.eventChip(title).getByTestId('event-chip-time')).not.toContainText('left');
+});

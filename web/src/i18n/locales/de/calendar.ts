@@ -147,6 +147,12 @@ export default {
       location: 'Ort',
       description: 'Beschreibung',
     },
+    place: {
+      suggestions: 'Orte',
+      credit: '© OpenStreetMap',
+      map: 'Karte von {name}',
+      offline: 'Die Karte erscheint, wenn du online bist',
+    },
     validation: {
       titleRequired: 'Der Titel fehlt',
       titleLong: 'Der Titel darf höchstens 200 Zeichen lang sein',
@@ -172,6 +178,7 @@ export default {
     },
   },
   drag: {
+    newBlock: 'Neu · {from} – {to}',
     moveFailed: '„{title}“ konnte nicht verschoben werden. {reason}',
     resizeFailed: 'Die Länge von „{title}“ konnte nicht geändert werden. {reason}',
   },

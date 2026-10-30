@@ -10,6 +10,7 @@ const ELEMENTS: Record<string, string> = {
   'tray toggle': 'task-tray-chevron',
   'settings button': 'settings-button',
   'Today button': 'nav-today',
+  'period title': 'period-title',
   'undo action': 'undo-action',
   'time axis': 'time-axis',
   'open tasks tray': 'task-tray',

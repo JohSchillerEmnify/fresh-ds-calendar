@@ -1,7 +1,16 @@
 # Changelog
 
+## 2026-10-26
+- Streak: Settings › Focus & motivation now has one "Streak" choice, Off, Flame or Plant, instead of the two switches "Streak flame" and "Plant". It is your own setting and follows you to every device. It starts as Off for everyone, so the top bar is quieter; pick Flame or Plant to bring one back. Your check-ins and your plant keep counting whatever you choose, and the "Checked in, day N" message always shows.
+- The sync icon in the top bar now shows only while syncing fails. To see it all the time, turn on "Sync indicator" in Settings › Calendar.
+- A smaller header on phones: the top bar is lower (84 px instead of 96) with an 18 px date, and Settings › Calendar › "Header layout" offers "One row" (52 px): the short date ("Mon, 26 Oct") and a Today icon in one row with the other buttons. It is your own setting and follows you to every device; a theme never changes it. In left-handed mode the bar is the exact mirror image.
+- Day and week views: the all-day row only shows when something is in it (an all-day event, a multi-day event or a task list without a time), and its switch only when task lists are there. While you drag an entry, the row appears over the top of the calendar, so a task list can still be dropped there to lose its time.
+- Phones and touch tablets no longer show the ‹ › arrows in the top bar: swipe the calendar to go to the next or previous period; Today is still there. Desktop with a mouse keeps the arrows.
+
 ## 2026-10-25
-- Task list templates: save any task list as a template (also a finished one, or while creating a list), then start a new list from it with "From template" in the create form and set its date and time. Templates keep the items (unticked), estimate and category, follow you to every device and are managed in Settings › Task lists › Templates. In the Archive, "Use as template" is now called "Copy". On a phone, Edit and Delete in a list's footer are shown as icons.
+- Month view: an appointment that runs past midnight but is shorter than a day (e.g. 22:00 to 02:00) is now shown on its start day only, as in Google Calendar; the week and day views still show its part on each day.
+- Bedtime: a bedtime at exactly midnight (e.g. weekend times 00:00) now shows its moon at the end of the evening before, so a day never shows two moons; Friday and Saturday get their midnight moon back.
+- Task list templates: save any task list as a template (also a finished one, or while creating a list), then start a new list from it with "From template" in the create form and set its date and time. Templates keep the items (unticked), estimate and category, follow you to every device, are kept on the device so they also work without a connection (changing them still needs one), and are managed in Settings › Task lists › Templates. In the Archive, "Use as template" is now called "Copy". On a phone, Edit and Delete in a list's footer are shown as icons.
 
 ## 2026-10-24
 - Clock view: the middle now says what is running or comes next on two lines, the title over its start time and a full countdown ("19:40 · in 3 h 17 min", "until 19:30 · 1 h left"), so the time is never cut off; timed task lists count too, and when nothing else is on today it names tomorrow's first entry ("Tomorrow 09:00").

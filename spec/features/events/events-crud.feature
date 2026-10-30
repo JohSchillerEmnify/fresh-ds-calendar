@@ -1,6 +1,6 @@
 @events @crud @id:event-editing
 Feature: Creating, editing and deleting events
-  Events are created with the floating "+" button (or by tapping an empty time slot),
+  Events are created with the floating "+" button (or by tapping an empty time slot, or drawing a block on the grid),
   edited by opening them, and deleted from the edit dialog after confirmation.
   On phones the dialog is a bottom sheet; on desktop it is a centered modal.
   Every change is written to Google Calendar through the server.
@@ -9,6 +9,7 @@ Feature: Creating, editing and deleting events
     Given the calendar is empty
     And today is 2026-10-12
 
+  @ci
   Scenario: Create a timed event with the add button
     When I open the week view for 2026-10-12
     And I start creating an event
@@ -361,3 +362,116 @@ Feature: Creating, editing and deleting events
       When I tap beside the dialog
       Then the event form shows:
         | title | Dentist |
+
+  # owner, 2026-10-25 (design boards): draw a block on the empty grid to create, like Google Calendar
+  Rule: Drawing on the empty time grid opens the new dialog with the drawn start and end
+
+    In the day and week views (not the month view, not the two-row week overview) a block can be drawn on empty grid
+    space: on a phone long-press (with a haptic tick) and then drag, as a plain swipe keeps scrolling; with a mouse press
+    and drag. Start and end snap to the nearest 15 minutes, the block is at least 15 minutes long and may be drawn
+    upwards. In the week view it may reach into the next (or, drawn backwards, the previous) day column: an overnight
+    block. On release the new dialog opens with start and end filled in, while the drawn block stays visible behind
+    it; Cancel removes the block, saving replaces it with the new entry. A plain tap still opens the dialog at the
+    tapped hour with the default length.
+
+    Scenario: Drawing a block in the day view opens the new dialog with its start and end
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 09:00 to 10:30
+      Then the event dialog is open
+      And the event form shows:
+        | start date | 2026-10-14 |
+        | start time | 09:00      |
+        | end date   | 2026-10-14 |
+        | end time   | 10:30      |
+      And the drawn block is shown on 2026-10-14 from 09:00 to 10:30
+
+    Scenario: The drawn block follows the pointer before it is let go
+      When I open the day view for 2026-10-14
+      And I hold a drawn block on 2026-10-14 from 13:00 to 14:45
+      Then the drawn block is shown on 2026-10-14 from 13:00 to 14:45
+      And the event dialog is closed
+
+    Scenario: A drawn block snaps to 15 minutes
+      When I open the week view for 2026-10-12
+      And I draw a block on 2026-10-14 from 09:07 to 10:22
+      Then the event form shows:
+        | start time | 09:00 |
+        | end time   | 10:15 |
+
+    Scenario: A block drawn upwards runs from where the pointer stopped to where it started
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 11:00 to 10:00
+      Then the event form shows:
+        | start time | 10:00 |
+        | end time   | 11:00 |
+
+    Scenario: In the week view a block can be drawn overnight into the next day
+      When I open the week view for 2026-10-12
+      And I draw a block from 2026-10-14 22:00 to 2026-10-15 01:00
+      Then the event form shows:
+        | start date | 2026-10-14 |
+        | start time | 22:00      |
+        | end date   | 2026-10-15 |
+        | end time   | 01:00      |
+      And the drawn block is shown on 2026-10-14 from 22:00 to 24:00
+      And the drawn block is shown on 2026-10-15 from 00:00 to 01:00
+      When I fill in the event form with:
+        | title | Night train |
+      And I save the event
+      Then the event "Night train" is positioned on 2026-10-14 from 22:00 to 24:00
+      And the event "Night train" is positioned on 2026-10-15 from 00:00 to 01:00
+      And Google contains an event "Night train" from 2026-10-14 22:00 to 2026-10-15 01:00
+
+    Scenario: Cancelling the dialog removes the drawn block
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 09:00 to 10:30
+      And I cancel the event dialog
+      Then no drawn block is shown
+
+    Scenario: Saving turns the drawn block into the event
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 09:00 to 10:30
+      And I fill in the event form with:
+        | title | Focus |
+      And I save the event
+      Then no drawn block is shown
+      And the event "Focus" is positioned from 09:00 to 10:30
+      And Google contains an event "Focus" on 2026-10-14 from 09:00 to 10:30
+
+    @mobile
+    Scenario: On a phone a long press starts drawing with a haptic tick
+      Given I am using a phone
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 09:00 to 10:30
+      Then a haptic tick was requested
+      And the event form shows:
+        | start time | 09:00 |
+        | end time   | 10:30 |
+
+    # owner, 2026-10-25: drawing works on the iPhone too (long press on the empty grid, then drag)
+    @iphone
+    Scenario: On an iPhone a long press on the empty grid and a drag draw a block
+      When I open the day view for 2026-10-14
+      And I draw a block on 2026-10-14 from 09:00 to 10:30
+      Then the event form shows:
+        | start time | 09:00 |
+        | end time   | 10:30 |
+
+    # owner, 2026-10-25: what was shown is what opens
+    @mobile
+    Scenario: On a phone a long press let go without moving opens the 15-minute block it showed
+      Given I am using a phone
+      When I open the day view for 2026-10-14
+      And I long-press the empty time grid on 2026-10-14 at 09:20 and let go
+      Then the event form shows:
+        | start time | 09:15 |
+        | end time   | 09:30 |
+
+    @mobile
+    Scenario: On a phone a plain swipe on the empty grid scrolls and draws nothing
+      Given I am using a phone
+      When I open the day view for 2026-10-14
+      And I swipe up on the empty time grid of 2026-10-14
+      Then the time grid has scrolled
+      And no drawn block is shown
+      And the event dialog is closed

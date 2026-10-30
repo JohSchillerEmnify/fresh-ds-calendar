@@ -7,12 +7,13 @@ import type { Person, Reminders, TaskList, TaskTemplate } from '@/api/types';
 import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
 import Button from '@/components/m3/Button.vue';
+import IconButton from '@/components/m3/IconButton.vue';
+import { IconClose } from '@/components/icons';
 import NewKindSwitch from '@/components/shell/NewKindSwitch.vue';
 import ReminderEditor from '@/components/settings/ReminderEditor.vue';
 import Select from '@/components/m3/Select.vue';
 import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
-import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
@@ -33,14 +34,13 @@ import { usePluginEnabled } from '@/plugins';
 import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
 import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
 
-const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null }>();
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
 const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 const lists = useTaskListsStore();
-const clock = useClockStore();
 /** Door plugin (ADR 0004): the "Show on door" switch exists only where the deployment turned the plugin on. */
 const doorOn = usePluginEnabled(DOOR_PLUGIN);
 const door = ref(false);
@@ -54,7 +54,7 @@ let originalDoor = false;
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
-const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time));
+const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes));
 const error = ref('');
 const conflict = ref(false);
 const saving = ref(false);
@@ -76,7 +76,7 @@ const peopleOptions = computed(() => [
 function fill(src: TaskList) {
   etag = src.etag;
   Object.assign(form, {
-    title: src.title, date: src.date ?? '', noDate: src.date === null, time: src.time ?? '', estimate: src.estimateMinutes ? String(src.estimateMinutes) : '',
+    title: src.title, date: src.date ?? '', time: src.time ?? '', estimate: src.estimateMinutes ? String(src.estimateMinutes) : '',
     categoryId: src.categoryId ?? 'none',
     reminders: !src.reminders || src.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...src.reminders.minutes] },
   });
@@ -113,11 +113,9 @@ const repeatOptions = computed(() => [
   { value: 'weekly', label: t('tasks.dialog.weekly') }, { value: 'monthly', label: t('tasks.dialog.monthly') },
 ]);
 
-/** "No date" on: the list will appear only in the Tasks view. Off: back to a date (today when none is set). */
-function toggleNoDate() {
-  form.noDate = !form.noDate;
-  if (form.noDate) { form.time = ''; form.repeat = ''; }
-  else if (!form.date) form.date = clock.today;
+/** "Clear date": an empty Date field means no date, so the list will appear only in the Tasks view. */
+function clearDate() {
+  form.date = ''; form.time = ''; form.repeat = '';
 }
 
 // --- templates (feature tasklist-templates) ------------------------------------------------------------------------
@@ -152,7 +150,7 @@ async function save() {
   // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones — except with the door
   // plugin on, where the whole array goes with the door tag set or cleared (the other tags stay).
   const body = {
-    title: form.title.trim(), date: form.noDate ? null : form.date, time: form.noDate ? null : form.time || null,
+    title: form.title.trim(), date: form.date || null, time: form.date ? form.time || null : null,
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
     ...(doorOn.value ? { tags: withDoor(current?.kind === 'tasklist' ? current.tags : [], door.value) } : {}),
     // categories off: the picker is hidden, so the stored category is left alone
@@ -178,7 +176,7 @@ async function save() {
     } else if (editing.value) await items.updateTaskList(props.id!, body, etag);
     else {
       await items.createTaskList({
-        ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: form.repeat || null,
+        ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: (form.date && form.repeat) || null,
       });
       // the list is saved; a template that fails now is only reported, the list stays
       if (alsoTemplate.value) {
@@ -219,7 +217,7 @@ function remove() {
 <template>
   <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
-      <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" />
+      <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" />
       <div class="headrow">
         <h2 class="h">{{ editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle') }}</h2>
         <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
@@ -227,11 +225,13 @@ function remove() {
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
       <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">{{ t('tasks.dialog.loadLatest') }}</Button></div>
       <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" enterkeyhint="next" />
-      <div class="two">
-        <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" :disabled="form.noDate" data-testid="tasklist-date" />
-        <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" :disabled="form.noDate" data-testid="tasklist-time" />
+      <div class="two" :class="{ dated: !!form.date }">
+        <div class="datecell">
+          <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" class="grow" data-testid="tasklist-date" />
+          <IconButton v-if="form.date" :label="t('tasks.dialog.clearDate')" class="clear" data-testid="tasklist-date-clear" @click="clearDate"><IconClose /></IconButton>
+        </div>
+        <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" data-testid="tasklist-time" />
       </div>
-      <Button :variant="form.noDate ? 'tonal' : 'text'" class="nodate" :aria-pressed="form.noDate" data-testid="tasklist-no-date" @click="toggleNoDate">{{ t('tasks.dialog.noDate') }}</Button>
       <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
       <DoorSwitch v-if="doorOn" v-model="door" />
       <div v-if="cats.on.value" class="catrow">
@@ -253,7 +253,7 @@ function remove() {
         <ReminderEditor v-model="form.reminders" prefix="tasklist" allow-default :default-minutes="taskDefaults" data-testid="tasklist-reminders" />
       </div>
       <TextField v-if="!editing" v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
-      <Select v-if="!editing && !form.noDate" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
+      <Select v-if="!editing && form.date" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div v-if="!editing" class="tplrow">
         <span class="tpllab">{{ t('tasks.templates.alsoSave') }}</span>
         <Switch v-model="alsoTemplate" :label="t('tasks.templates.alsoSave')" data-testid="tasklist-save-as-template" />
@@ -280,7 +280,10 @@ function remove() {
 .err { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); font: var(--md-sys-typescale-body-medium); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .two > * { min-width: 0; }
-.nodate { align-self: flex-start; }
+.datecell { display: flex; align-items: center; }
+/* with a date the × sits beside it: the date column takes a little more room so the full date stays readable on a phone */
+.two.dated { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.datecell .clear { width: 32px; }
 .catrow { display: flex; gap: 10px; align-items: center; }
 .dot { flex: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .grow { flex: 1; min-width: 0; }

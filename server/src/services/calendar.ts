@@ -22,6 +22,7 @@ import {
 } from './taskCodec.js';
 import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
+import { placeLeads, placeOf, placeProps } from './place.js';
 import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
@@ -187,8 +188,9 @@ export class CalendarService {
     const found = this.calCache ? readOnlyReason(ev, this.calCache.cals) : null;
     const reason = special && found?.kind !== 'calendar' ? null : found;
     const readOnly = special ? inContactsCalendar(ev) || !!reason : !!reason;
+    const place = placeOf(ev);
     return {
-      kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '',
+      kind: 'event', id: ev.id, calendarId: ev.calendarId, title: ev.summary ?? '', description: ev.description ?? '', location: ev.location ?? '', ...(place ? { place } : {}),
       allDay: !!ev.start.date, start: this.norm(ev.start), end: this.norm(ev.end), colorId,
       color: colorId ? GOOGLE_COLORS[colorId]!.hex : calColor, ...(special ? { special } : {}),
       ...(readOnly ? { readOnly: true as const } : {}), ...(reason && !inContactsCalendar(ev) ? { readOnlyReason: reason } : {}), ...(special && !readOnly && birthdayDateLocked(ev) ? { dateLocked: true as const } : {}),
@@ -346,6 +348,7 @@ export class CalendarService {
     const g: GoogleEventInput = { summary: input.title, ...this.gTimes(input) };
     if (input.description) g.description = input.description;
     if (input.location) g.location = input.location;
+    if (input.place && placeLeads(input.location ?? '', input.place.name)) g.extendedProperties = { private: placeProps(input.place) as Record<string, string> };
     if (input.colorId) g.colorId = input.colorId;
     if (input.reminders && !input.reminders.useDefault) g.reminders = this.remindersOf(input.reminders);
     const ev = extra?.id && this.rawInsert ? await this.rawInsert(calendarId, { ...g, id: extra.id }) : await this.provider.insertEvent(calendarId, g);
@@ -392,6 +395,11 @@ export class CalendarService {
       colorId: m.colorId, ...this.gTimes(m),
     };
     if (input.reminders) patch.reminders = this.remindersOf(input.reminders, cur.reminders);
+    // the place is kept only while it still leads the location; a changed location without one clears stale properties
+    if (input.place !== undefined || input.location !== undefined) {
+      const place = input.place === undefined ? placeOf(cur) ?? null : input.place;
+      patch.extendedProperties = { private: placeProps(place && placeLeads(m.location, place.name) ? place : null) };
+    }
     let ev = await this.provider.patchEvent(cur.calendarId, id, patch, { ifMatch: ifMatch ?? cur.etag });
     if (m.calendarId !== cur.calendarId) ev = await this.provider.moveEvent(cur.calendarId, id, m.calendarId);
     return this.toEvent(ev, await this.calendarColor(ev.calendarId));

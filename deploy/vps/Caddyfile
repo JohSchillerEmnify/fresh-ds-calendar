@@ -1,4 +1,5 @@
-cal.example.org {
+# The public host name comes from CAL_DOMAIN (compose.yml passes it from /opt/calendar/.env); never written here.
+{$CAL_DOMAIN} {
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000"
@@ -6,7 +7,7 @@ cal.example.org {
 		Referrer-Policy strict-origin-when-cross-origin
 		# Same policy as server/src/lib/securityHeaders.ts; the sha256 is the inline theme script of web/index.html.
 		# server/test/security-headers.test.ts fails when this line is stale.
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-GrXD3QGPyKXRw5Boectly9RdwDLFDNEmyhoEGbeV11o='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-GrXD3QGPyKXRw5Boectly9RdwDLFDNEmyhoEGbeV11o='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://photon.komoot.io https://tile.openstreetmap.org; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 		X-Frame-Options DENY
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		-Server

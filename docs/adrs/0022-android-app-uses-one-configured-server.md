@@ -15,6 +15,10 @@ Change in the settings. The owner wants no such question: the app is for the pub
 - The plugin keeps its name `ServerChoice` because deployed web apps call it (`appVersion`); its `get` and `choose` are gone.
 - HTTPS only: the cleartext exception for the home-network host is removed.
 
+- 2026-10-30 note: the URL is build configuration, no longer a constant in the source (the repo is public and does not
+  name the production host): `ServerConfig.BASE_URL` = `BuildConfig.SERVER_URL`, from `CAL_SERVER_URL` / `-PcalServerUrl`
+  (release builds fail without it; see docs/DEPLOYMENT.md "Deployment settings").
+
 ## Alternatives
 
 - *Keep the chooser, default to the public server* — still a first-start question the owner does not want.

@@ -17,12 +17,14 @@ describe('reset', () => {
     await t.json('POST', '/api/__test/outage', { down: true });
     await t.json('POST', '/api/__test/config', { pollIntervalMs: 0 });
     await freeze(t);
-    await t.json('PATCH', '/api/settings', { plant: false });
+    await t.json('PATCH', '/api/settings', { sunflowers: 'full' });
+    await t.json('PATCH', '/api/prefs', { streak: 'flame', syncIndicator: true, headerLayout: 'one-row' });
     const r = await t.json('POST', '/api/__test/reset');
     expect(r.status).toBe(200);
     expect(r.body.items).toEqual([]);
     expect(r.body.calendars).toHaveLength(2);
-    expect(r.body.settings.plant).toBe(true);
+    expect(r.body.settings.sunflowers).toBe('grow');
+    expect((await t.json('GET', '/api/prefs')).body).toMatchObject({ streak: 'off', syncIndicator: false, headerLayout: 'two-rows' });
     const cfg = (await t.json('GET', '/api/config')).body;
     expect(cfg).toMatchObject({ clockFrozen: false, pollIntervalMs: 30000 });
     expect((await t.json('GET', '/api/health')).body.providerStatus).toBe('ok');

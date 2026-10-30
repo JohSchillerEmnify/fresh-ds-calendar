@@ -2,8 +2,8 @@
 Feature: The Tasks view lists every open task list
   A top-level "Tasks" view (after Day in the navigation) shows all open task lists, with and without a date.
   A task list without a date belongs to no day: it appears only here, never in the calendar views or the open
-  tasks tray. Giving it a date in the task list dialog puts it in the calendar on that day; "No date" takes it out
-  again. Lists are grouped (Time, Category, None; default Time) and sorted (Date, Name,
+  tasks tray. Picking a date in the task list dialog puts it in the calendar on that day, also straight from an
+  undated list; clearing the Date field (its "Clear date" button) takes it out again. Lists are grouped (Time, Category, None; default Time) and sorted (Date, Name,
   Category, Last changed, Progress; default Date); both choices are remembered per person.
   Time groups: Overdue, Today, This week (until Sunday), Later, No date.
 
@@ -11,6 +11,7 @@ Feature: The Tasks view lists every open task list
     Given the calendar is empty
     And today is 2026-10-12
 
+  @ci
   Scenario: A task list made in the Tasks view has no date and stays out of the calendar and the tray
     When I create the task list "Taxes" in the Tasks view
     Then the Tasks view lists "Taxes" under "No date"
@@ -23,6 +24,13 @@ Feature: The Tasks view lists every open task list
     When I remove the date of the task list "Taxes" in the Tasks view
     Then the Tasks view lists "Taxes" under "No date"
     And neither the calendar on 2026-10-12 nor the open tasks tray shows the task list "Taxes"
+
+  Scenario: On an undated task list I can pick a date straight away
+    Given the calendar contains an undated task list "Taxes" with items:
+      | item | done |
+      | Form | no   |
+    When I give the task list "Taxes" the date 2026-10-14 in the Tasks view
+    Then the calendar shows the task list "Taxes" on 2026-10-14
 
   Scenario: Lists are grouped by category
     Given the calendar contains a task list "Milk" in the category "Shopping" on 2026-10-14

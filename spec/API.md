@@ -80,6 +80,7 @@ interface CalendarEvent {
   title: string;           // 1–200 chars after trim
   description: string;     // '' if none, max 8000
   location: string;        // '' if none, max 500
+  place?: Place;           // the place picked for the location (feature event-location); absent for typed text, and once `location` is neither `place.name` nor starts with `"<place.name>, "` (changed elsewhere)
   allDay: boolean;
   start: DateTime | LocalDate;  // LocalDate iff allDay
   end: DateTime | LocalDate;    // exclusive; LocalDate iff allDay
@@ -145,8 +146,6 @@ interface Settings {
   ignoreSystemMotion: boolean;                  // default false; true lets animationLevel apply although the device asks for less motion
   sounds: boolean;                    // default false
   calmMode: boolean;                  // default false
-  streakFlame: boolean;               // default true: show the streak flame
-  plant: boolean;                     // default true: show the plant widget in the top bar (independent of the scene)
   sunflowers: 'grow' | 'full';        // default 'grow': how many flowers the Sunflower field scene shows
   categories: Category[];            // display order
   updated: DateTime;
@@ -169,7 +168,7 @@ feature theme-menu). The server only stores the values, and the user can change 
 (Spring, Easter, Summer, Summer holidays, Fall, Halloween, Christmas, New Year's Eve, New Year, Winter, Sunflower field, Mordor, None; values `spring`, `easter`, `summer`, `summerholidays`, `fall`, `halloween`, `christmas`, `newyearseve`, `newyear`, `winter`, `sunflowers`, `mordor`, `none`), stored as the `scene` attribute of the person's theme
 (`GET/PATCH /api/prefs/theme`, feature theme-menu; `seasonal` is `off`, `header` or `all`, see there). `PATCH /api/settings` rejects a `scene` field and
 `GET /api/settings` no longer returns one. Every scene shows whenever it is chosen: the Sunflower field no longer
-depends on any plant setting; the plant widget and the flame are widgets that show per `plant` / `streakFlame`.
+depends on any plant setting; the plant widget and the flame are widgets that show per the person pref `streak`.
 **Garden style is gone** (owner 2026-10-13): `Settings.garden` was removed, `PATCH /api/settings` rejects a `garden`
 field (400 `VALIDATION_ERROR`), and `plant` (switch) and `sunflowers` (grow / full) replaced it.
 *Migration of stored settings* (once, when the server loads a `settings.json` that has `garden` and no `plant`):
@@ -192,6 +191,23 @@ open the list sheet; `labsGrowCards` (boolean, default `false`) is the Labs swit
 tap opens the list sheet).
 The person prefs `navPhone` (default `bottom`) and `navDesktop` (default `rail`) place the view switcher (`bottom`, `top` or
 `rail`; any other value is a 400; feature nav-position).
+The person pref `headerLayout` (`'two-rows' | 'one-row'`, default `'two-rows'`; anything else is a 400) is the phone's
+top bar layout (feature header-layout). It is a person pref, not part of the theme: `PATCH /api/prefs/theme`, theme
+files and theme import/export never carry it. `approachTimeLeft` (boolean, default `true`) shows the running entry's
+"· N min left" line in the Approaching card; off (or `approachingCard` off) the running entry shows it instead.
+The person pref `streak` (`'off' | 'flame' | 'plant'`, default `'off'`; anything else is a 400) is what the top bar
+shows of the check-in streak and the plant (Settings › Focus & motivation, feature plant-companion; owner,
+2026-10-26). It is not part of the theme. The person pref `syncIndicator` (boolean, default `false`; a non-boolean is a
+400): off, the top bar's sync icon shows only while syncing fails; on, it shows all the time (feature header-layout).
+**Flame and plant switches retired** (owner 2026-10-26): `Settings.streakFlame` and `Settings.plant` (shared, default
+`true`) were replaced by the person pref `streak`. `GET /api/settings` no longer returns them and `PATCH
+/api/settings` rejects either field (400 `VALIDATION_ERROR`, like `garden`).
+*Migration* (once, when the server loads a `settings.json` that still has `streakFlame` or `plant`): both keys are
+dropped from the stored settings and are not carried into anyone's prefs, so every person, existing or new, reads
+`streak = 'off'` (the owner chose Off for everyone, whatever the switches were). No marker is needed: a person's
+`streak` is only ever written by that person's own choice, and an absent value means `'off'`. Restoring an older
+server backup that has the keys drops them again on load. Clients ignore the two fields in a cached copy of the
+settings (last known state).
 Default categories: `shopping` Shopping #0b8043 🛒, `todo` To-do #3f51b5 ✅, `work` Work #8e24aa 💼,
 `home` Home #f4511e 🏠.
 
@@ -208,6 +224,11 @@ for an unknown value; it returns the full preferences.
 **Minimum event length** (`prefs.minEventMinutes`, per person, feature `min-event-length`): `0 | 15 | 30`, default `0`
 (off). A shorter timed entry is laid out as this long in every time view and the phone widget; the entry's real times
 are unchanged. Any other value answers 400 `VALIDATION_ERROR` (field `minEventMinutes`).
+
+**Events side by side** (`prefs.daySideBySide` `2 | 3 | 4`, default `4`; `prefs.weekSideBySide` `2 | 3`, default `2`;
+per person, feature event-display, owner 2026-10-25): how many overlapping entries the day / week time grid places in
+columns next to each other before laying further ones over the last column. Any other value answers 400
+`VALIDATION_ERROR` (field `daySideBySide` / `weekSideBySide`).
 
 **Bedtime** (`prefs.bedtime`, per person, feature bedtime): an object
 `{ enabled: boolean; mode: 'fixed' | 'dynamic'; bedtime: 'HH:MM'; wake: 'HH:MM'; weekendDifferent: boolean;
@@ -238,6 +259,8 @@ outage is simulated).
   testMode: boolean;
   publicUrl: string | null; // PUBLIC_URL env
   version: string;
+  placeSearchUrl: string;   // Photon search endpoint the device asks directly (feature event-location): PLACE_SEARCH_URL env (https only), default 'https://photon.komoot.io/api'; TEST_MODE '/api/__test/photon'
+  mapTileUrl: string;       // map picture template with {z}/{x}/{y}: MAP_TILE_URL env (https only), default 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'; TEST_MODE '/api/__test/tiles/{z}/{x}/{y}.png'
 }
 ```
 
@@ -338,11 +361,14 @@ that state, and sends the flag (owner bug 2026-10-14: hidden calendars showed in
 | `DELETE` | `/api/events/:id` | – | `204` |
 
 ```ts
+interface Place { name: string; lat: number; lon: number }  // name 1–200 chars after trim; lat -90..90, lon -180..180 (WGS 84)
+
 interface CreateEventInput {
   calendarId?: string;     // default: primary calendar
   title: string;
   description?: string;
-  location?: string;
+  location?: string;       // with a picked place: "<name>, <address>"
+  place?: Place | null;    // stored in Google's private extended properties placeName/placeLat/placeLon only while `location` is the name or starts with "<name>, " (else dropped); PATCH: null drops it, absent keeps it (a new location must still match)
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;   // must be > start (all-day: exclusive date > start date)
@@ -758,7 +784,8 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   ≥ 4 → droopy (25, the floor). No `lastWatered` → happy. Growth never decreases; the plant never dies.
 - Messages (exact): happy "Your plant is happy", thirsty "Your plant is a little thirsty", dry "Your plant could use
   some water", droopy "Your plant is resting. Anything you do will perk it up."
-- Streak and plant points are recorded regardless of `streakFlame` / `plant` (these settings only change what is shown).
+- Streak and plant points are recorded regardless of the person pref `streak` (it only changes which widget the top
+  bar shows); the check-in message shows whatever `streak` is, `off` included.
 - **Sunflower field** (the scene of that name) uses the same points and mood: `plant.flowers = min(30,
   floor(growth / 40))`. Flowers never decrease. With `Settings.sunflowers = 'grow'` the field shows `plant.flowers`;
   with `'full'` it shows a fixed 30 and never grows (no `bloom`). The UI shows at most 15 on viewports < 600 px wide
@@ -797,6 +824,14 @@ the path is `404 NOT_FOUND` and `/api/config` and `/api/health` do not list `doo
 client, the door board: `Authorization: Bearer <DOOR_API_TOKEN>`, compared in constant time; missing or wrong →
 `401 UNAUTHENTICATED` with no data; more than 60 calls a minute → `429 RATE_LIMITED`. No browser session.
 
+`DOOR_API_TOKEN` must be at least 32 characters: a shorter key keeps the door off (the server logs `door_key_too_short` and
+warns on the console). The 60 calls a minute are counted per client, and a client is identified by the socket's address.
+With `TRUST_PROXY=1` (a reverse proxy that appends the caller's address to `X-Forwarded-For`) it is the LAST
+`X-Forwarded-For` entry, the one the proxy itself added; without it the header is client-supplied and ignored. At most 1000
+clients are counted at once: expired counters are dropped first, further newcomers share one counter, so a flood of
+made-up clients never resets the counter of one that is over its limit. Asking for the door's person after they were taken
+off `ALLOWED_EMAILS` (or before they have signed in) answers `503 PROVIDER_UNAVAILABLE`.
+
 ```ts
 {
   reminders: { title: string; list: string; date: LocalDate | null; time?: LocalTime }[];
@@ -810,6 +845,11 @@ repeating list once, with its latest due occurrence; oldest date first, undated 
 today's events of the visible calendars, in the API's `start`/`end` form (an all-day `end` is exclusive). Nothing else.
 
 `GET /api/config` and `GET /api/health` carry `plugins: string[]`, the enabled plugins by name.
+
+### `POST /api/demo/reset` → 200 `{ ok: true }` (demo mode only)
+
+Mock provider only (`PROVIDER=mock`; with Google the path is `404 NOT_FOUND`): forgets the demo calendar and the motivation
+state, then seeds the demo data again. It is the "Reset demo" action; like every write it needs an allowed `Origin`.
 
 ## Test-only endpoints (`TEST_MODE=true`)
 
@@ -826,6 +866,9 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |
+| `POST` | `/api/__test/places` | `{ places: { name, address, lat, lon }[] }` | The places the stand-in place search knows (feature event-location), in order; cleared by reset. `200 { places }` |
+| `GET` | `/api/__test/photon?q&lang&limit` | – | Photon's GeoJSON answer (`FeatureCollection` of `Point` features with `name`, `street`, `housenumber`, `postcode`, `city`): the known places whose name or address contains every word of `q` (case-insensitive), in order, at most `min(limit, 5)`. `200` |
+| `GET` | `/api/__test/tiles/:z/:x/:y.png` | – | A generated plain 256×256 map picture with OSM-like cache headers. `200 image/png` |
 | `POST` | `/api/__test/release-notes` | `{ notes: { date, text }[] }` | `GET /api/release-notes` answers this list (as given, at most 50) until the next reset. `200 { notes }` |
 | `POST` | `/api/__test/version` | `{ version: string }` | Makes `/api/config` (and the served `index.html` `data-app-version`) report this build version, to test the new-version notice. Cleared by reset. `200 { version }` |
 | `GET` | `/api/__test/remote/events?calendarId&q&includeCancelled` | – | Raw Google-shaped event resources (see below), optional exact `summary` match `q`. Includes all calendars when `calendarId` is omitted; cancelled events only with `includeCancelled=true`. `200 { items: GoogleEvent[] }` |
@@ -845,6 +888,13 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/backup/wipe` | `{ owner: string }` | Deletes everything under `users/<sub>/` of that Google address and ends its sessions (a new server). The mock Drive stays. `204` |
 | `GET` | `/api/__test/backup/drive?owner=<email>` | – | The files in that person's mock appDataFolder, newest first. `200 { files: { id, name, createdTime }[] }` |
 | `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string; date?: LocalDate; tags?: string[] }` | Creates a task list in the mock Google account of `owner` (an email), undated unless `date` is given; `category` is a category name; `tags` as stored. `201` `TaskList` |
+| `POST` | `/api/__test/calendars` | `{ owner: string; calendars: { id, name, color?, primary?, shared?, ownerEmail?, accessRole? }[] }` | Test-only: sets the calendar list of one person's mock account (`shared` calendars are read-only and not primary). `200 { ok }` |
+| `GET` | `/api/__test/remote/calendars?owner` | – | Test-only: the raw calendar list of one account (the shared one without `owner`), hidden entries included. `200 { calendars }` |
+| `GET` | `/api/__test/tasks-calendar?owner` | – | Test-only: the id of that person's tasks calendar, found or created as on first use. `200 { id }` |
+| `POST` | `/api/__test/auth` | `{ allowedEmails: string[] }` | Test-only: turns sign-in on with this allow-list; the addresses count as people who signed in once. `200 { on, allowedEmails }` |
+| `GET` | `/api/__test/oauth/consent?state` | – | Test-only: the fake Google consent screen; 302 to the callback with a code for the account chosen by `/api/__test/oauth/account`. |
+| `POST` | `/api/__test/oauth/calendar-access` | `{ granted: boolean }` | Test-only: the fake consent leaves the "Google Calendar" checkbox unticked (`false`) or ticked. `200 { granted }` |
+| `POST` | `/api/__test/oauth/revoke` | `{ email: string }` | Test-only: Google answers that person's token refresh with `invalid_grant` from now on. `200 { revoked }` |
 | `GET` | `/api/__test/memory?gc=true` | – | With `gc=true` runs `global.gc()` twice first (server started with `--expose-gc` in test mode). `200 { rss: number; heapUsed: number; heapTotal: number; external: number }` (bytes, from `process.memoryUsage()`) |
 
 ```ts

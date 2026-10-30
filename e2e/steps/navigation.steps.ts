@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import type { View } from './parameters.js';
 import { attr, tid, type World } from './support/world.js';
-import { expectJoined, pathname } from './support/ui.js';
+import { expectJoined, goToPeriod, pathname } from './support/ui.js';
 
 When('I open the app', async function (this: World) {
   // the app checks in on first open in the background (plant, streak): a later server read waits for it
@@ -32,16 +32,15 @@ When('I open the day view for {date}', async function (this: World, date: string
   await this.settled(); // data loaded: later "Google ..." changes must not race the first fetch
 });
 
-/** Click a period navigation button and wait until the route changed. */
-async function navigate(world: World, testId: string) {
-  const before = world.page.url();
+/** Dismiss what covers the toolbar, then move: Today by its button, next and previous as a person does (`goToPeriod`). */
+async function navigate(world: World, testId: 'nav-next' | 'nav-prev' | 'nav-today') {
   // An open bottom sheet (e.g. an expanded task list) covers the toolbar; a user dismisses it first.
   if (await world.page.getByTestId('sheet-scrim').isVisible()) {
     await world.page.keyboard.press('Escape');
     await expect(world.page.getByTestId('sheet-scrim')).toHaveCount(0);
   }
-  await world.page.getByTestId(testId).click();
-  if (testId !== 'nav-today') await expect.poll(() => world.page.url()).not.toBe(before);
+  if (testId === 'nav-today') return world.page.getByTestId(testId).click();
+  await goToPeriod(world.page, testId === 'nav-next' ? 'next' : 'prev');
 }
 
 When('I go to the next period', async function (this: World) {
@@ -125,7 +124,7 @@ Then('the week columns are {string}', async function (this: World, list: string)
   await expectJoined(this.page.getByTestId('week-header'), list);
 });
 
-const TODAY_HOLDERS = ['month-cell', 'week-header', 'day-header', 'year-day'];
+const TODAY_HOLDERS = ['month-cell', 'week-header', 'year-day'];
 const todaySelector = (date?: string) =>
   TODAY_HOLDERS.map((t) => `${tid(t)}[data-today="true"]${date ? attr('data-date', date) : ''}`).join(', ');
 

@@ -2,7 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Then, When } from './fixtures.js';
 import { gridHourHeight } from './support/grid.js';
-import { box, touchDrag, viewport } from './support/ui.js';
+import { box, hitAreaMisses, isTouchScreen, swipeCalendar, touchDrag, viewport } from './support/ui.js';
 import { attr, tid, type World } from './support/world.js';
 
 Then('the page has no horizontal scroll', async function (this: World) {
@@ -10,6 +10,76 @@ Then('the page has no horizontal scroll', async function (this: World) {
   await expect
     .poll(() => this.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
     .toBeLessThanOrEqual(0);
+});
+
+Then('the page does not bounce when pulled', async function (this: World) {
+  expect(await this.page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY)).toBe('none');
+});
+
+Then('nothing on the calendar screen can be selected by a long press', async function (this: World) {
+  await this.settled();
+  const offenders = await this.page.evaluate(() => {
+    const field = (e: Element) => !!e.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+    const sel = (e: Element) => { const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string }; return cs.webkitUserSelect || cs.userSelect; };
+    const seen = new Set<string>();
+    for (let y = 2; y < innerHeight; y += 24) {
+      for (let x = 2; x < innerWidth; x += 24) {
+        const e = document.elementFromPoint(x, y);
+        if (!e || field(e) || sel(e) === 'none') continue;
+        seen.add(`${e.tagName.toLowerCase()}${(e as HTMLElement).dataset.testid ? `[${(e as HTMLElement).dataset.testid}]` : ''}.${String(e.className).split(' ')[0]} (${sel(e)})`);
+      }
+    }
+    return [...seen];
+  });
+  expect(offenders, 'elements a long press could select text in').toEqual([]);
+});
+
+/** Elements with text of their own inside `area` that a long press could not select (STEPS.md "Mobile"). */
+async function unselectableText(area: Locator): Promise<{ checked: number; bad: string[] }> {
+  await expect(area).toBeVisible();
+  // a phone sheet is "visible" while it still sits below the screen, sliding in: probe it at rest, as a finger would
+  await area.evaluate((root) => Promise.all(root.getAnimations({ subtree: true })
+    .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+    .map((a) => a.finished.catch(() => undefined))));
+  return area.evaluate((root) => {
+    const r = root.getBoundingClientRect();
+    const sel = (e: Element) => { const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string }; return cs.webkitUserSelect || cs.userSelect; };
+    const ownText = (e: Element) => [...e.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim());
+    let checked = 0;
+    const bad = new Set<string>();
+    for (let y = Math.max(0, r.top) + 2; y < Math.min(innerHeight, r.bottom); y += 16) {
+      for (let x = Math.max(0, r.left) + 2; x < Math.min(innerWidth, r.right); x += 16) {
+        const e = document.elementFromPoint(x, y);
+        if (!e || !root.contains(e) || !ownText(e) || e.closest('button, [role="button"]')) continue;
+        checked++;
+        if (sel(e) === 'none') bad.add(`${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]} "${e.textContent!.trim().slice(0, 20)}"`);
+      }
+    }
+    return { checked, bad: [...bad] };
+  });
+}
+
+Then('the text in the open dialog can be selected by a long press', async function (this: World) {
+  const { checked, bad } = await unselectableText(this.page.getByRole('dialog').last());
+  expect(checked, 'text found in the dialog').toBeGreaterThan(0);
+  expect(bad, 'dialog text a long press could not select').toEqual([]);
+});
+
+Then('the text on the page can be selected by a long press', async function (this: World) {
+  const { checked, bad } = await unselectableText(this.page.locator('section.page'));
+  expect(checked, 'text found on the page').toBeGreaterThan(0);
+  expect(bad, 'page text a long press could not select').toEqual([]);
+});
+
+Then('the text fields of the open form can be selected', async function (this: World) {
+  const dialog = this.page.getByRole('dialog').last();
+  await expect(dialog).toBeVisible();
+  const fields = await dialog.locator('input:visible, textarea:visible').evaluateAll((els) => els.map((e) => {
+    const cs = getComputedStyle(e) as CSSStyleDeclaration & { webkitUserSelect?: string };
+    return `${(e as HTMLInputElement).type || e.tagName}:${cs.webkitUserSelect || cs.userSelect}`;
+  }));
+  expect(fields.length, 'the form has text fields').toBeGreaterThan(0);
+  expect(fields.filter((f) => f.endsWith(':none')), 'fields that cannot be selected').toEqual([]);
 });
 
 async function expectAtBottom(world: World, loc: Locator) {
@@ -35,23 +105,19 @@ const TOUCH_TARGETS = [
 Then(
   'the navigation, view switcher and create buttons are at least {int} by {int} pixels',
   async function (this: World, width: number, height: number) {
+    // the hit area, not the drawn box: a compact header draws some of these smaller (feature header-layout)
+    // touch screens have no ‹ › arrows (owner, 2026-10-26)
+    const touch = await isTouchScreen(this.page);
     for (const id of TOUCH_TARGETS) {
-      const b = await box(this.page.getByTestId(id).first());
-      expect.soft(b.width, `${id} width`).toBeGreaterThanOrEqual(width);
-      expect.soft(b.height, `${id} height`).toBeGreaterThanOrEqual(height);
+      if (touch && (id === 'nav-prev' || id === 'nav-next')) continue;
+      const target = this.page.getByTestId(id).first();
+      await expect(target).toBeVisible();
+      expect.soft(await hitAreaMisses(target, width, height), `${id} hit area`).toEqual([]);
     }
   },
 );
 
-/** Swipe on calendar-swipe-area: horizontal 200 px / 150 ms, vertical 300 px. Waits for the route change if any. */
-async function swipe(world: World, dx: number, dy: number) {
-  const area = await box(world.page.getByTestId('calendar-swipe-area'));
-  const cx = area.x + area.width / 2;
-  const cy = area.y + Math.min(area.height / 2, 400);
-  const before = world.page.url();
-  await touchDrag(world.page, { x: cx - dx / 2, y: cy - dy / 2 }, { x: cx + dx / 2, y: cy + dy / 2 }, { durationMs: 150 });
-  if (dx !== 0) await expect.poll(() => world.page.url(), { message: 'swipe changes the period' }).not.toBe(before);
-}
+const swipe = (world: World, dx: number, dy: number) => swipeCalendar(world.page, dx, dy);
 
 When('I swipe left on the calendar', async function (this: World) {
   await swipe(this, -200, 0);

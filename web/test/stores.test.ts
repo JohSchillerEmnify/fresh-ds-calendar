@@ -467,6 +467,44 @@ describe('prefs store taskOpen', () => {
   });
 });
 
+describe('prefs store streak and sync indicator', () => {
+  beforeEach(() => freshPinia());
+  it('starts with no streak and no sync indicator, applies the loaded choice and rolls back a refused change', async () => {
+    let fail = false;
+    mockFetch({
+      'GET /api/prefs': () => ({ streak: 'flame', syncIndicator: true }),
+      'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}),
+    });
+    const p = usePrefsStore();
+    expect(p).toMatchObject({ streak: 'off', syncIndicator: false });
+    await p.load();
+    expect(p).toMatchObject({ streak: 'flame', syncIndicator: true });
+    expect(p.current()).toMatchObject({ streak: 'flame', syncIndicator: true });
+    expect(p.approachTimeLeft).toBe(true);
+    await p.set({ streak: 'plant' });
+    expect(p.streak).toBe('plant');
+    fail = true;
+    await expect(p.set({ streak: 'off', syncIndicator: false })).rejects.toThrow();
+    expect(p).toMatchObject({ streak: 'plant', syncIndicator: true });
+  });
+});
+
+describe('prefs store header layout', () => {
+  beforeEach(() => freshPinia());
+  it('starts with two rows, applies the loaded layout, keeps it in the last known state and rolls back a refused change', async () => {
+    let fail = false;
+    mockFetch({ 'GET /api/prefs': () => ({ headerLayout: 'one-row' }), 'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}) });
+    const p = usePrefsStore();
+    expect(p.headerLayout).toBe('two-rows');
+    await p.load();
+    expect(p.headerLayout).toBe('one-row');
+    expect(p.current().headerLayout).toBe('one-row');
+    fail = true;
+    await expect(p.set({ headerLayout: 'two-rows' })).rejects.toThrow();
+    expect(p.headerLayout).toBe('one-row');
+  });
+});
+
 describe('settings store', () => {
   beforeEach(() => freshPinia());
   it('patches optimistically with If-Match, rolls back on failure', async () => {
@@ -503,7 +541,7 @@ describe('settings store', () => {
     expect(s.settings.sounds).toBe(true);
     expect(s.settings.defaultView).toBe('week');
   });
-  it('resolves the effective scene from the theme scene alone, whatever the plant setting', async () => {
+  it('resolves the effective scene from the theme scene alone, whatever the sunflowers setting', async () => {
     let server = settingsFixture();
     mockFetch({
       'GET /api/settings': () => server,
@@ -517,7 +555,7 @@ describe('settings store', () => {
     expect(s.effectiveScene).toBe('none'); // the Default theme has no scene of its own
     await theme.pick('scene', 'sunflowers');
     expect(s.effectiveScene).toBe('sunflowers');
-    await s.patch({ plant: false });
+    await s.patch({ sunflowers: 'full' });
     expect(s.effectiveScene).toBe('sunflowers');
     await theme.pick('scene', 'mordor');
     expect(s.effectiveScene).toBe('mordor');

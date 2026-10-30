@@ -16,6 +16,9 @@ services:
     environment:
       PROVIDER: google
       SEED: "false"
+      TOKEN_ENC_KEY: ${TOKEN_ENC_KEY:?set TOKEN_ENC_KEY in .env (scripts/vps.sh deploy adds it)}
+      # Caddy sits in front and sets X-Forwarded-For: the door rate limit counts its last entry
+      TRUST_PROXY: "1"
     volumes:
       - data:/data
     mem_limit: 512m
@@ -33,6 +36,8 @@ services:
     image: caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     restart: unless-stopped
     depends_on: [app]
+    environment:
+      CAL_DOMAIN: ${CAL_DOMAIN:?set CAL_DOMAIN in .env (scripts/vps.sh env writes it)}
     ports:
       - "80:80"
       - "443:443"

@@ -27,9 +27,11 @@ must follow the person to every device and must never show up as events.
 
 - Two devices changing the same template at the same moment: the last write wins.
 - At most 100 templates of at most 200 items each per person.
-- The templates are not in the last-known cache on the device (ADR 0023) for now: offline the template picker and the
-  Templates page say "Templates need a connection" instead of an empty list. Kept out to keep the first version small;
-  adding them later is a cache entry, not a design change.
+- The server is the store; the device keeps a copy with the rest of the last known state (ADR 0023, field `templates`
+  of the snapshot): restored at start, read again on every sync (a sync task) and when the picker or the Templates page
+  opens, wiped on sign-out with the rest. Offline the templates can be used but not changed (no queue, as every other
+  change). Revised 2026-10-25 (owner: "Everything should be stored on device and only synced from the server"); the
+  first version kept them out and said "Templates need a connection" offline, which the owner rejected.
 - An unreadable `templates.json` is moved aside (`templates.json.corrupt-<ms>`) and the person starts empty, so a
   damaged file is never overwritten by the next save.
 - Malformed entries of a readable file are dropped on read and not kept: the next save writes the file without them.

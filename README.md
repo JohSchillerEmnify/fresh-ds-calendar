@@ -8,6 +8,10 @@ installable as a PWA, plus an Android shell with home-screen widgets. Self-hoste
 It syncs with Google Calendar through a provider abstraction. A mock Google backend is the default
 (`PROVIDER=mock`); real Google (`PROVIDER=google`) needs your own OAuth credentials (see `docs/DEPLOYMENT.md` "Going live with Google").
 
+> **Vibe-coded.** Most of this code was written by AI agents under one person's direction: spec- and test-driven, reviewed and audited, but not line-by-line reviewed by experienced humans. Use at your own risk.
+
+**Before you run or deploy it, read [`docs/DEVELOPER-GUIDE.md`](docs/DEVELOPER-GUIDE.md)** (disclaimers, what the admin can read, deploy steps, working with or without an AI agent).
+
 Spec-driven: `spec/features/*.feature` is the single source of truth and runs directly as the e2e suite.
 
 ## Stack
@@ -52,7 +56,7 @@ Theme tokens: `pnpm -F @calendar/web tokens`. Deployment notes: [docs/DEPLOYMENT
 ## Android app
 
 A Capacitor shell around the calendar server `https://cal.example.org`, plus a weekly home-screen widget
-(`android/`, architecture: views `androidApp` and `widget`, ADRs 0012–0015, 0022). `scripts/android-build.sh` builds an unsigned release APK
+(`android/`, architecture: views `androidApp` and `widget`, ADRs 0012–0015, 0022). `scripts/android-build.sh` (needs `CAL_DOMAIN` or `CAL_SERVER_URL`, the server is not in the source) builds an unsigned release APK
 in a Docker image (JDK 21 + Android SDK 36) and signs it with your own release keystore, which is kept outside git
 (`*.jks`, `keystore.properties` are ignored). Back the key up: an installed app can only be updated by an APK signed with the same key.
 Native unit tests: `./gradlew testDebugUnitTest` in `android/`.

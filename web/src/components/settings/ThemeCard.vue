@@ -68,7 +68,8 @@ const style = computed<Record<string, string>>(() => {
 <style scoped>
 .item { display: flex; flex-direction: column; min-width: 0; }
 .tcard { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 6px; border-radius: var(--md-sys-shape-corner-large); border: 2px solid transparent; background: var(--md-sys-color-surface-container); transition: border-color 150ms, transform 150ms var(--md-sys-motion-spring), box-shadow 150ms; }
-.tcard:hover { transform: translateY(-1px); }
+/* touch screens: no hover state left behind after a tap */
+@media (hover: hover) { .tcard:hover { transform: translateY(-1px); } }
 .tcard[aria-pressed='true'] { border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent); }
 .scope { display: flex; flex-direction: column; border-radius: var(--md-sys-shape-corner-medium); overflow: hidden; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); height: 104px; }
 .hdr { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); padding: 4px 4px 3px; font-size: 9px; text-align: center; background: var(--md-sys-color-surface-container-high); overflow: hidden; }

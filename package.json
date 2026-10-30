@@ -19,7 +19,9 @@
     "goldens": "bash scripts/goldens.sh run",
     "goldens:update": "bash scripts/goldens.sh update",
     "dedup": "jscpd web/src server/src shared",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "hooks:install": "bash scripts/hooks/install.sh",
+    "leaks": "bash scripts/leak-check.sh all"
   },
   "engines": {
     "node": ">=24.11"

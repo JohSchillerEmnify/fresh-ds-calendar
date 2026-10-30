@@ -11,21 +11,34 @@
  * update, PATCH with If-Match, rollback + spring back + snackbar on failure. Duration is preserved, timed stays
  * timed, all-day stays all-day (feature drag-to-reschedule), multi-day items move by the dragged day's delta.
  */
-import { shallowRef, type Ref } from 'vue';
+import { inject, nextTick, shallowRef, type Ref } from 'vue';
+import { routerKey } from 'vue-router';
 import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import type { ItemVariant } from '@/extensions/registry';
 import { neutralName, type Segment } from '@/lib/items';
-import { minutesToTime } from '@/lib/dates';
+import { minutesToTime, routePath, shiftPeriod } from '@/lib/dates';
 import { isPhone } from '@/composables/useViewport';
 import { createCellGrid, createSlotGrid, haptic, useDraggable, type DragContext, type DropTarget } from '@/motion';
+import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
 import { useUiStore } from '@/stores/ui';
+import { EDGE_HOLD_MS, edgeLabel, edgeSide } from './edgeTurn';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 import { t } from '@/i18n';
 
 /** Where the dragged card would land now (drives the `DropIndicator` grid layer). Null when not dragging. */
 export const dragPreview = shallowRef<{ date: string; minutes: number; durationMin: number } | null>(null);
+
+/**
+ * The edge band while a dragged entry rests in an edge zone of the day or week view (feature drag-to-reschedule): which
+ * side, the day or week a turn leads to, and where to draw it (client px). Null otherwise.
+ */
+export const edgeBand = shallowRef<{ side: 'left' | 'right'; label: string; left: number; right: number; top: number; bottom: number; y: number } | null>(null);
+/** The time grid (`.tg`) a drag that turned the view is carried over: it keeps the all-day row open for the drop. */
+export const carriedGrid = shallowRef<Element | null>(null);
+/** The grid whose dragged entry may be dropped into the all-day row (a task list, or an entry that is not a timed block): its empty row shows as a drop target. */
+export const alldayDropGrid = shallowRef<Element | null>(null);
 
 export interface MoveTarget {
   date: string;
@@ -100,6 +113,54 @@ function setDropAttr(prev: Element | null, next: Element | null): Element | null
 /** Makes the card draggable (long press on touch, press and move on mouse). Cleans up with the component scope. */
 export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment: () => Segment, variant: () => ItemVariant, disabled?: () => boolean) {
   let marked: Element | null = null;
+  // taken now, in setup: the drag may turn the view after this card's component is gone (null outside the app, in tests)
+  const router = inject(routerKey, null);
+  /** The time grid this drag started in; it outlives the card when the view turns. */
+  let dragGrid: Element | null = null;
+  /** The edge zone the pointer rests in, and the timer that turns the view after the hold. */
+  let edge: 'left' | 'right' | null = null;
+  let edgeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearEdge() {
+    if (edgeTimer) clearTimeout(edgeTimer);
+    edgeTimer = null;
+    edge = null;
+    edgeBand.value = null;
+  }
+
+  /** Shows or hides the band and (re)starts the hold timer as the pointer enters or leaves an edge zone of the grid. */
+  function watchEdge(x: number, y: number, tg: Element) {
+    const view = useCalendarStore().view;
+    const cols = tg.classList.contains('fit') || (view !== 'day' && view !== 'week') ? []
+      : [...tg.querySelectorAll<HTMLElement>('[data-testid="week-day-column"],[data-testid="day-column"]')];
+    const box = tg.getBoundingClientRect();
+    const first = cols[0]?.getBoundingClientRect(), last = cols[cols.length - 1]?.getBoundingClientRect();
+    const side = first && last && y >= box.top && y <= box.bottom ? edgeSide(x, first.left, last.right) : null;
+    if (side && edgeBand.value) edgeBand.value = { ...edgeBand.value, y };
+    if (side === edge) return;
+    clearEdge();
+    if (!side || (view !== 'day' && view !== 'week')) return;
+    edge = side;
+    const dir = side === 'right' ? 1 : -1;
+    const sc = tg.querySelector('[data-scroll-area]')?.getBoundingClientRect() ?? box;
+    edgeBand.value = { side, label: edgeLabel(view, useCalendarStore().anchor, dir), left: first!.left, right: last!.right, top: sc.top, bottom: sc.bottom, y };
+    edgeTimer = setTimeout(() => void turn(dir), EDGE_HOLD_MS[view]);
+  }
+
+  /** Turns the view one day or week while the card stays lifted, then looks again where the pointer rests. */
+  async function turn(dir: 1 | -1) {
+    edgeTimer = null;
+    if (!router || drag.state !== 'dragging') return;
+    drag.carry();
+    carriedGrid.value = dragGrid;
+    const cal = useCalendarStore();
+    const view = cal.view;
+    await router.push({ path: routePath(view, shiftPeriod(view, cal.anchor, dir)), query: router.currentRoute.value.query });
+    await nextTick();
+    // the pointer may rest on: look again as if it had just arrived (a new band, a new hold)
+    edge = null;
+    drag.refresh();
+  }
 
   const slotsMode = () => variant() === 'block';
 
@@ -110,14 +171,15 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
 
   function hitTest(x: number, y: number, ctx: DragContext): DropTarget<MoveTarget> | null {
     const node = el.value;
-    if (!node) return null;
-    const month = node.closest('[data-testid="month-view"]');
+    const month = node?.closest('[data-testid="month-view"]');
     if (month) {
       const t = createCellGrid<CellKey>({ cells: () => cells(month, '[data-testid="month-cell"]') })(x, y, ctx);
       return t ? { ...t, key: { date: t.key, minutes: null } } : null;
     }
-    const tg = node.closest('.tg');
+    // a carried card may be gone from the page: its grid stays
+    const tg = (node?.isConnected ? node.closest('.tg') : null) ?? dragGrid;
     if (!tg) return null;
+    watchEdge(x, y, tg);
     // task lists may cross between the all-day row and the time grid (gain / lose their time); events keep their kind
     if (!slotsMode() || segment().item.kind === 'tasklist') {
       const t = createCellGrid<CellKey>({ cells: () => cells(tg, '[data-testid="week-allday-cell"],[data-testid="day-allday-area"]') })(x, y, ctx);
@@ -141,22 +203,30 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
       ? { date: t.key.date, minutes: t.key.minutes!, durationMin: Math.max(15, seg.endMin - seg.startMin || 30) }
       : null;
     if (slotsMode() && seg.item.kind !== 'tasklist') return;
-    const root = el.value?.closest('[data-testid="month-view"]') ?? el.value?.closest('.tg') ?? null;
+    const root = el.value?.closest('[data-testid="month-view"]') ?? (el.value?.isConnected ? el.value.closest('.tg') : null) ?? dragGrid;
     const cell = t && !timedTarget && root ? [...root.querySelectorAll('[data-date]')].find((c) => (c as HTMLElement).dataset.date === t.key.date
       && ['month-cell', 'week-allday-cell', 'day-allday-area'].includes((c as HTMLElement).dataset.testid ?? '')) ?? null : null;
     marked = setDropAttr(marked, cell);
   }
 
-  return useDraggable<MoveTarget>(el, {
+  const drag = useDraggable<MoveTarget>(el, {
     disabled,
     hitTest,
     onTarget,
-    scrollEl: () => el.value?.closest<HTMLElement>('[data-scroll-area]') ?? null,
+    scrollEl: () => el.value?.closest<HTMLElement>('[data-scroll-area]') ?? dragGrid?.querySelector<HTMLElement>('[data-scroll-area]') ?? null,
     onStateChange: (s) => {
-      if (s === 'dragging') useUiStore().resizing = null;
+      if (s === 'dragging') {
+        useUiStore().resizing = null;
+        dragGrid = el.value?.closest('.tg') ?? null;
+        alldayDropGrid.value = !slotsMode() || segment().item.kind === 'tasklist' ? dragGrid : null;
+      }
+      if (s !== 'dragging') clearEdge();
       if (s === 'idle' || s === 'returning') {
         dragPreview.value = null;
         marked = setDropAttr(marked, null);
+        dragGrid = null;
+        carriedGrid.value = null;
+        alldayDropGrid.value = null;
       }
     },
     onDrop: async (t) => {
@@ -172,6 +242,7 @@ export function useCalendarDrag(el: Ref<HTMLElement | null | undefined>, segment
       await applyMove(seg, t.key);
     },
   });
+  return drag;
 }
 
 /**

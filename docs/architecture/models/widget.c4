@@ -16,6 +16,22 @@ model {
     fetcher -> store 'saves the week with the minimum event length'
     renderer -> store 'reads the fetch for the current week, else the snapshot, with the minimum event length; theme and language always from the snapshot'
     renderer -> layout 'packs each day with the minimum event length'
+
+    widgetBridgePlugin = component 'WidgetBridge plugin' {
+      description 'The Capacitor plugin that stores the web snapshot and asks the widgets to refresh'
+    }
+    refreshWorker = component 'Refresh worker' {
+      description 'WorkManager job that fetches the week with the app session and redraws, periodically and on demand'
+    }
+    actionReceiver = component 'Widget action receiver' {
+      description 'Handles the refresh icon tap and the clock\'s 5-minute tick'
+    }
+
+    widgetBridgePlugin -> store 'saves the snapshot in'
+    refreshWorker -> fetcher 'runs'
+    refreshWorker -> renderer 'redraws the widgets after a fetch'
+    actionReceiver -> refreshWorker 'starts a refresh from a tap or tick'
+    widgetBridgePlugin -> refreshWorker 'asks for a refresh after a new snapshot'
   }
 
   extend calendar.androidApp {
@@ -28,6 +44,15 @@ model {
     nativeReminders = component 'Reminders plugin' {
       description 'The native plugin that holds the planned reminders as phone notifications, also across a reboot'
     }
+    reminderReceiver = component 'Reminder receiver' {
+      description 'Fires each planned reminder as a phone notification'
+    }
+    serverChoice = component 'ServerChoice plugin' {
+      description 'Name kept for deployed web apps; only tells the web app it runs in the app, the server is no longer chosen (ADR 0022)'
+    }
+
+    nativeReminders -> reminderReceiver 'schedules the alarms that fire'
+    shell -> serverChoice 'registers'
   }
 
   calendar.androidApp.shell -> calendar.web 'loads the server\'s web app as the shell\'s own address'
@@ -39,5 +64,6 @@ model {
   calendar.web.bedtime -> calendar.androidApp.nativeReminders 'schedules the next bedtime reminder as a notification, in the app'
 
   calendar.widget.fetcher -> calendar.server.prefsApi 'reads the minimum event length'
+  calendar.web.widgetBridge -> calendar.widget.widgetBridgePlugin 'hands the snapshot to, in the app'
   calendar.web.widgetBridge -> calendar.widget.store 'saves the snapshot after a sync, only when it changed, minimum event length included'
 }

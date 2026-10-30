@@ -10,6 +10,15 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { MiddlewareHandler } from 'hono';
+import { DEFAULT_MAP_TILE_URL, DEFAULT_PLACE_SEARCH_URL } from '../config.js';
+
+/** Where the device asks for places and map pictures (`AppConfig.places`). */
+export interface PlaceHosts { searchUrl: string; tileUrl: string }
+
+const DEFAULT_HOSTS: PlaceHosts = { searchUrl: DEFAULT_PLACE_SEARCH_URL, tileUrl: DEFAULT_MAP_TILE_URL };
+
+/** The origin of a URL or URL template (`{z}`-style placeholders only occur in the path). */
+const originOf = (url: string) => new URL(url.replace(/[{}]/g, '')).origin;
 
 /** Matches `<script>` elements without a `src` attribute and captures their text. */
 const INLINE_SCRIPT = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
@@ -27,16 +36,22 @@ export function inlineScriptHashes(html: string): string[] {
 /**
  * Builds the Content-Security-Policy value.
  *
+ * Besides the app itself it allows exactly the place search and the map picture host (feature event-location): the page
+ * asks the place search (`connect-src`) and shows the map pictures (`img-src`); the service worker fetches the pictures
+ * it keeps for offline use, and a worker's fetch falls under `connect-src`, so the picture host is there too.
+ *
  * @param scriptHashes Hash expressions from {@link inlineScriptHashes}, allowed next to `'self'` for scripts.
+ * @param hosts The configured place search and map picture addresses; the public defaults when omitted.
  * @returns The policy as one header value.
  */
-export function contentSecurityPolicy(scriptHashes: string[]): string {
+export function contentSecurityPolicy(scriptHashes: string[], hosts: PlaceHosts = DEFAULT_HOSTS): string {
+  const search = originOf(hosts.searchUrl), tiles = originOf(hosts.tileUrl);
   return [
     "default-src 'self'",
     `script-src ${["'self'", ...scriptHashes].join(' ')}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "connect-src 'self'",
+    `img-src 'self' data: blob: ${tiles}`,
+    `connect-src 'self' ${search === tiles ? search : `${search} ${tiles}`}`,
     "worker-src 'self'",
     "manifest-src 'self'",
     "object-src 'none'",
@@ -50,23 +65,31 @@ export function contentSecurityPolicy(scriptHashes: string[]): string {
 export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()';
 
 /**
+ * The Referrer-Policy value: the browsers' own default, sent explicitly so sauron matches the public instance. Never
+ * stricter: the OSM tile policy asks web pages to send their origin as Referer.
+ */
+export const REFERRER_POLICY = 'strict-origin-when-cross-origin';
+
+/**
  * Hono middleware that sets the security headers on every response.
  *
  * @param webDist Directory of the built web app; its `index.html` supplies the inline script hashes (none when absent).
+ * @param hosts The configured place search and map picture addresses (`AppConfig.places`).
  * @returns The middleware.
  */
-export function securityHeaders(webDist: string | null): MiddlewareHandler {
+export function securityHeaders(webDist: string | null, hosts: PlaceHosts = DEFAULT_HOSTS): MiddlewareHandler {
   let html = '';
   try {
     if (webDist) html = fs.readFileSync(path.join(webDist, 'index.html'), 'utf8');
   } catch {
     // no built web app (API-only run): the policy then simply allows no inline script
   }
-  const csp = contentSecurityPolicy(inlineScriptHashes(html));
+  const csp = contentSecurityPolicy(inlineScriptHashes(html), hosts);
   return async (c, next) => {
     c.header('Content-Security-Policy', csp);
     c.header('X-Frame-Options', 'DENY');
     c.header('Permissions-Policy', PERMISSIONS_POLICY);
+    c.header('Referrer-Policy', REFERRER_POLICY);
     await next();
   };
 }

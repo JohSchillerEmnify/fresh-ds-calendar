@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import { useElementSize } from '@vueuse/core';
 import { useClockStore } from '@/stores/clock';
 import { BUTTERFLY_RHYTHM, butterflyFlight, forcedButterfly } from './butterflyVisits';
 import BatWings from './BatWings.vue';
 import BeachScene from './BeachScene.vue';
 import ChristmasNight from './ChristmasNight.vue';
 import EasterScene from './EasterScene.vue';
+import FallWinterScene from './FallWinterScene.vue';
+import { useClearOfControls } from './clearOfControls';
+import { anchor, BAR, CAT_SIZE, CAT_X, layoutFor } from './fallWinter';
 import ButterflyWings from './ButterflyWings.vue';
 import HalloweenNight from './HalloweenNight.vue';
 import LilyOfTheValley from './LilyOfTheValley.vue';
@@ -23,8 +28,9 @@ import { useSceneVisits } from './useSceneVisits';
  * scene's own backdrop: spring brings sprouting trees, lily of the valley and the first flowers in the grass, summer
  * a few sunflowers and a small sun, Halloween its night (moon, bare trees, jack-o'-lanterns, now and then a ghost);
  * the holiday scenes bring eggs and a hare (Easter), sea and umbrella (Summer holidays), an Advent candle timeline ending in the tree
- * (Christmas), fireworks (New Year's Eve) and a sunrise (New Year). Every scene has one small cat and a visiting
- * butterfly (at Halloween the bat or the ghost; none at Christmas, New Year's Eve and New Year): in the seasonal scenes
+ * (Christmas), fireworks (New Year's Eve) and a sunrise (New Year); Fall and Winter their trees, leaf piles, kite, snowman
+ * and sledge (`FallWinterScene`). Every scene has one small cat and a visiting
+ * butterfly (at Halloween the bat or the ghost, in Fall a flock of birds, in Winter a robin; none at Christmas, New Year's Eve and New Year): in the seasonal scenes
  * it passes once while the scene moves, at Mordor on its rhythm. Parts carry `data-part`.
  * Sizes follow the bar height (container units), colours the theme tokens; motion follows `html[data-motion]`, and
  * the seasonal scenes rest as a still picture after their first ten seconds (`sceneRest.ts`; `data-life` marks the layer).
@@ -41,8 +47,8 @@ const CAT: Record<LifeScene, { left: number; delay: number }> = {
   easter: { left: 40, delay: 8 }, summerholidays: { left: 50, delay: 13 }, christmas: { left: 60, delay: 5 }, newyearseve: { left: 52, delay: 9 }, newyear: { left: 30, delay: 17 },
 };
 
-/** The scenes without a visiting butterfly: the winter holidays (snow, night, early morning). */
-const NO_FLYER: LifeScene[] = ['christmas', 'newyearseve', 'newyear'];
+/** The scenes without a visiting butterfly: the winter holidays (snow, night, early morning); Fall and Winter have their own visitors. */
+const NO_FLYER: LifeScene[] = ['fall', 'winter', 'christmas', 'newyearseve', 'newyear'];
 const clock = useClockStore();
 /** The butterfly (or bat) currently visiting, one at a time, or null between visits. */
 const visit = useSceneVisits(
@@ -61,10 +67,29 @@ const visit = useSceneVisits(
 );
 /** At Halloween bats come instead of butterflies (same rhythm, same test hook). */
 const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
+
+/** The bar layout Fall and Winter place their parts for: the layer's width and the bar's header layout (which changes its height). */
+const root = ref<HTMLElement | null>(null);
+const { width, height } = useElementSize(root);
+const layout = computed(() => (height.value, layoutFor(width.value, root.value?.closest('[data-testid="top-bar"]')?.getAttribute('data-layout') ?? undefined)));
+/** Where the cat sits: at its Fall / Winter spot, elsewhere at its percentage. */
+const catStyle = computed(() => {
+  // `--clear-x` is where the guard moved the cat to when its own spot is under a control
+  if (props.scene !== 'fall' && props.scene !== 'winter') return { left: `var(--clear-x, ${CAT[props.scene].left}%)` };
+  // a fixed height (not the bar's), so the kite's string meets the paw in a taller bar too (a status bar above it)
+  const bar = BAR[layout.value], { h, bottom } = CAT_SIZE[layout.value];
+  return { ...anchor(CAT_X[props.scene][layout.value], h, bar.w), height: `${h}px`, bottom: `${bottom}px` };
+});
+
+/** Fall and Winter have their own spots for every part (`FallWinterScene`); the other scenes' characters are kept clear here. */
+const ownSpots = () => props.scene === 'fall' || props.scene === 'winter';
+const check = useClearOfControls(root, '[data-part=cat], [data-part=hare]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
+// another layout moves the controls: measure again once the layer is drawn for it
+watch(layout, check, { flush: 'post' });
 </script>
 
 <template>
-  <div class="life" :data-life="scene" aria-hidden="true">
+  <div ref="root" class="life" :data-life="scene" aria-hidden="true">
     <template v-if="scene === 'spring'">
       <SpringMeadow />
       <SproutingTree class="at tall" style="left: 2%" />
@@ -82,16 +107,19 @@ const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
     <ChristmasNight v-else-if="scene === 'christmas'" />
     <NewYearsEveNight v-else-if="scene === 'newyearseve'" />
     <NewYearMorning v-else-if="scene === 'newyear'" />
+    <FallWinterScene v-else-if="scene === 'fall' || scene === 'winter'" :scene="scene" :layout="layout" />
     <span v-if="visit" class="flutter" :class="[visit.tint, visit.flight, flyer]" :data-part="flyer" :style="{ '--rest-x': `${visit.restX}cqw` }">
       <span class="bob"><BatWings v-if="flyer === 'bat'" /><ButterflyWings v-else /></span>
     </span>
-    <SceneCat class="at cat" :style="{ left: `${CAT[scene].left}%` }" :delay="CAT[scene].delay" />
+    <SceneCat class="at cat" :style="catStyle" :delay="CAT[scene].delay" />
   </div>
 </template>
 
 <style scoped>
 .life { position: absolute; inset: 0; overflow: hidden; pointer-events: none; container-type: size; }
 .at { position: absolute; bottom: 0; width: auto; }
+/* a character that cannot sit clear of the controls is left out, never shrunk (clearOfControls.ts) */
+.life :deep([data-hidden]) { visibility: hidden; }
 .tall { height: min(78cqh, 58px); }
 .mid { height: min(62cqh, 46px); }
 .short { height: min(52cqh, 38px); }
@@ -99,8 +127,9 @@ const flyer = props.scene === 'halloween' ? 'bat' : 'butterfly';
 .at-sky { position: absolute; right: 13%; top: -10%; height: min(62cqh, 40px); width: auto; }
 @container (max-width: 520px) { .extra { display: none; } }
 
-/* the visiting butterfly (~10 s): Full flutters through (sometimes resting on a flower), Reduced only rests in place */
-.flutter { position: absolute; left: 0; top: 0; width: 18px; animation: 10s ease-in-out both; }
+/* the visiting butterfly (~10 s): Full flutters through (sometimes resting on a flower), Reduced only rests in place.
+   Longhands, not `animation: 10s …`: the build's minifier turns a shorthand without a name into `animation: none`. */
+.flutter { position: absolute; left: 0; top: 0; width: 18px; animation-duration: 10s; animation-timing-function: ease-in-out; animation-fill-mode: both; }
 .flutter.b { --bw-wing: color-mix(in oklab, #ffc83d 70%, var(--md-sys-color-tertiary, #b5486f)); --bw-lower: color-mix(in oklab, #ff9a3d 60%, var(--md-sys-color-primary, #6750a4)); }
 .flutter.fly { animation-name: life-fly; }
 .flutter.fly-rest { animation-name: life-fly-rest; }

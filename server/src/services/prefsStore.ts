@@ -28,6 +28,14 @@ export const SUPPORT_CAT_VALUES: readonly SupportCat[] = ['off', 'sometimes', 'a
 export type NavPosition = 'bottom' | 'top' | 'rail';
 export const NAV_POSITION_VALUES: readonly NavPosition[] = ['bottom', 'top', 'rail'];
 
+/** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
+export type StreakChoice = 'off' | 'flame' | 'plant';
+export const STREAK_VALUES: readonly StreakChoice[] = ['off', 'flame', 'plant'];
+
+/** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
+export type HeaderLayout = 'two-rows' | 'one-row';
+export const HEADER_LAYOUT_VALUES: readonly HeaderLayout[] = ['two-rows', 'one-row'];
+
 /** How the Tasks view groups its lists (feature tasks-view). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 export const TASKS_GROUP_BY_VALUES: readonly TasksGroupBy[] = ['time', 'category', 'none'];
@@ -72,6 +80,18 @@ export type MinEventMinutes = 0 | 15 | 30;
 /** Whether `v` is one of the {@link MinEventMinutes} choices. */
 export function isMinEventMinutes(v: unknown): v is MinEventMinutes {
   return v === 0 || v === 15 || v === 30;
+}
+/** How many overlapping events the day view places side by side (feature event-display). */
+export type DaySideBySide = 2 | 3 | 4;
+/** How many overlapping events the week view places side by side (feature event-display). */
+export type WeekSideBySide = 2 | 3;
+/** Whether `v` is one of the {@link DaySideBySide} choices. */
+export function isDaySideBySide(v: unknown): v is DaySideBySide {
+  return v === 2 || v === 3 || v === 4;
+}
+/** Whether `v` is one of the {@link WeekSideBySide} choices. */
+export function isWeekSideBySide(v: unknown): v is WeekSideBySide {
+  return v === 2 || v === 3;
 }
 
 /** Whether `v` is an allowed approach window length (a whole number of hours, 1–24). */
@@ -198,6 +218,8 @@ export interface Prefs {
   labs: boolean; approachBar: boolean; approachWindowHours: ApproachWindowHours;
   /** The Approaching card above the calendar views (feature labs-approach-bar). */
   approachingCard: boolean;
+  /** The running entry's "· N min left" in the Approaching card's line; off, or with the card off, the entry itself shows it (feature labs-approach-bar). */
+  approachTimeLeft: boolean;
   taskCategories: boolean;
   /** "Show tasks calendar in Google": the tasks calendar's entry in Google's list is not hidden. */
   tasksCalendarVisible: boolean;
@@ -237,6 +259,16 @@ export interface Prefs {
   weekTwoRowTop: 3 | 4;
   /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off (feature min-event-length). */
   minEventMinutes: MinEventMinutes;
+  /** Overlapping events side by side in the day view before they cascade (default 4). */
+  daySideBySide: DaySideBySide;
+  /** Overlapping events side by side in the week view and the phone widget's week before they cascade (default 2). */
+  weekSideBySide: WeekSideBySide;
+  /** What the top bar shows of the streak: off (the default, for everyone after the old switches went), flame or plant. */
+  streak: StreakChoice;
+  /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
+  syncIndicator: boolean;
+  /** The phone's top bar: two rows (default) or one row (feature header-layout). */
+  headerLayout: HeaderLayout;
 }
 
 /** Everything stored in `prefs.json`: the {@link Prefs} plus hidden calendars, the tasks calendar id and the theme. */
@@ -270,6 +302,7 @@ export class PrefsStore {
       approachBar: p?.approachBar !== false,
       approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
       approachingCard: p?.approachingCard !== false,
+      approachTimeLeft: p?.approachTimeLeft !== false,
       taskCategories: p?.taskCategories !== false,
       tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
       tasksCalendarVisible: p?.tasksCalendarVisible === true,
@@ -293,6 +326,11 @@ export class PrefsStore {
       labsGrowCards: p?.labsGrowCards === true,
       weekTwoRowTop: p?.weekTwoRowTop === 3 ? 3 : 4,
       minEventMinutes: isMinEventMinutes(p?.minEventMinutes) ? p.minEventMinutes : 0,
+      daySideBySide: isDaySideBySide(p?.daySideBySide) ? p.daySideBySide : 4,
+      weekSideBySide: isWeekSideBySide(p?.weekSideBySide) ? p.weekSideBySide : 2,
+      streak: STREAK_VALUES.includes(p?.streak as StreakChoice) ? (p!.streak as StreakChoice) : 'off',
+      syncIndicator: p?.syncIndicator === true,
+      headerLayout: HEADER_LAYOUT_VALUES.includes(p?.headerLayout as HeaderLayout) ? (p!.headerLayout as HeaderLayout) : 'two-rows',
     };
   }
 
@@ -376,8 +414,8 @@ export class PrefsStore {
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
   labsPrefs(sub: string): Prefs {
-    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes } = this.read(sub);
-    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes };
+    const { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout } = this.read(sub);
+    return { labs, labsViews, approachBar, approachWindowHours, approachingCard, approachTimeLeft, taskCategories, tasksCalendarVisible, supportCat, versionInCorner, labsOwnThemes, leftHanded, showCarriedFrom, navPhone, navDesktop, tasksGroupBy, tasksSortBy, tasksSortDir, undatedDone, taskOpen, tasksFilter, language, bedtime, notify, weekTwoRow, weekTwoRowTop, labsGrowCards, minEventMinutes, daySideBySide, weekSideBySide, streak, syncIndicator, headerLayout };
   }
 
   /**

@@ -93,7 +93,9 @@ export default {
     calendar: {
       defaultView: 'Normale Ansichd',
       approachingCard: { label: 'Gleich-Karden', hint: 'Was etz lafft un was als Nächsdes kummt' },
+      approachTimeLeft: { label: 'Restzeid', hint: 'Die Restzeid vom laufenden Termin in der Karden; aus, stehd sie am Termin selber' },
       minEventLength: { label: 'Mindesdlänge für Termine', hint: 'Kürzere Termine wern so lang hiigmold, dass mer ihrn Titel noch lesn ko', off: 'Aus', minutes: '{n} Min.' },
+      sideBySide: { day: 'Dagesansichd: Termine nebnanander', week: 'Wochnansichd: Termine nebnanander', hint: 'So vill Termine passn nebnanander, der Rest leichd obndrauf', upTo: 'Bis zu {n}' },
       tasksCalendar: { label: 'Aufgabnkalender in Google zeing', hint: 'Die Lisdn bleibn auf jeden Fall in der App' },
     },
     tasklists: {
@@ -117,7 +119,6 @@ export default {
     },
     leftHanded: { label: 'Linkshänder-Modus', hint: 'Spiegld des Handy-Layout, dass die wichdichsdn Knöpf unterm linkn Daumen liegn' },
     navPosition: { label: 'Ansichdswechsl', hint: 'Wo Jahr, Monad, Woche un Dag liegn', phone: 'Aufm Handy', desktop: 'Am Desktop un Tablet', bottom: 'Unden', top: 'Oben', rail: 'Seidnleisdn' },
-    plant: 'Pflanze',
     sunflowers: { label: 'Sonnenblumn', hint: 'Gilt bloß für die Szene Sonnenblumnfeld', grow: 'Wachsn mid Punkdn', full: 'Volles Feld' },
     ownThemes: { label: 'Designs mit KI erzeuge', hint: 'Experimentell: a Prompt für a KI hole un des Design importiere, wo sie liefert' },
   },

@@ -39,7 +39,8 @@ export class PeopleStore {
 
   /** The person with this sub, or null when nobody with it signed in. */
   get(sub: string): Person | null {
-    const k = this.known[sub];
+    // own keys only: a sub from a request body like `constructor` must not find an inherited property
+    const k = Object.hasOwn(this.known, sub) ? this.known[sub] : undefined;
     if (!k) return null;
     const name = k.name || k.email;
     return { sub, name, email: k.email, initial: (name.trim()[0] ?? '?').toUpperCase() };

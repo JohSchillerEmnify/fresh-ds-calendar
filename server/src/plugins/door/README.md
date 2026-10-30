@@ -7,7 +7,7 @@ Read-only answer for the e-ink board inside the front door (its renderer runs on
 
 | Variable | Meaning |
 |---|---|
-| `DOOR_API_TOKEN` | The board's bearer key, at least 32 random bytes (`openssl rand -base64 32`). Never in a repo. |
+| `DOOR_API_TOKEN` | The board's bearer key, at least 32 characters (`openssl rand -base64 32`); a shorter key is logged and leaves the door off. Never in a repo. |
 | `DOOR_PERSON` | The Google address whose calendar the door sees. Ignored while sign-in is off (mock): then it is the local calendar. |
 
 Without `DOOR_API_TOKEN` the endpoint is not there (404), `/api/health` and `/api/config` do not list `door`, and

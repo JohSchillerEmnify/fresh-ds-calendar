@@ -24,6 +24,14 @@ const itemTitle = v.pipe(v.string('Item title is required'), v.trim(), v.minLeng
 
 const strict = v.strictObject;
 const so = <T extends v.ObjectEntries>(e: T) => strict(e);
+const LAT_MSG = 'Latitude must be a number from -90 to 90';
+const LON_MSG = 'Longitude must be a number from -180 to 180';
+/** A picked place (feature event-location): its name and position; null drops it. */
+const place = v.nullable(so({
+  name: v.pipe(v.string('Place name is required'), v.trim(), v.minLength(1, 'Place name is required'), v.maxLength(200, 'Place name must be at most 200 characters')),
+  lat: v.pipe(v.number(LAT_MSG), v.minValue(-90, LAT_MSG), v.maxValue(90, LAT_MSG)),
+  lon: v.pipe(v.number(LON_MSG), v.minValue(-180, LON_MSG), v.maxValue(180, LON_MSG)),
+}));
 /** Popup lead times in minutes: whole numbers up to Google's 4 weeks, at most 5, all different. */
 const leadMinutes = v.pipe(
   v.array(v.pipe(v.number('Reminder must be a number of minutes'), v.integer('Reminder must be a whole number of minutes'), v.minValue(0, 'Reminder must be 0-40320 minutes'), v.maxValue(40_320, 'Reminder must be 0-40320 minutes'))),
@@ -85,6 +93,7 @@ export const createEventSchema = so({
   title,
   description: v.optional(str(8000, 'Description')),
   location: v.optional(str(500, 'Location')),
+  place: v.optional(place),
   allDay: v.boolean('allDay must be a boolean'),
   start: v.string('Start is required'),
   end: v.string('End is required'),
@@ -103,6 +112,7 @@ export const updateEventSchema = so({
   title: v.optional(title),
   description: v.optional(str(8000, 'Description')),
   location: v.optional(str(500, 'Location')),
+  place: v.optional(place),
   allDay: v.optional(v.boolean('allDay must be a boolean')),
   start: v.optional(v.string('Start is required')),
   end: v.optional(v.string('End is required')),
@@ -149,8 +159,6 @@ export const settingsPatchSchema = so({
   sounds: v.optional(v.boolean()),
   calmMode: v.optional(v.boolean()),
   ignoreSystemMotion: v.optional(v.boolean()),
-  streakFlame: v.optional(v.boolean()),
-  plant: v.optional(v.boolean()),
   sunflowers: v.optional(v.picklist(['grow', 'full'], 'Invalid sunflowers setting')),
 });
 /** A whole number in a range (the theme sliders). */

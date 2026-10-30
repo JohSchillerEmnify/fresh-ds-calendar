@@ -83,10 +83,10 @@ The steps locate elements by these hooks; renaming one is a contract change.
 | `tasklist-card-overdue`, `tasklist-card-estimate`, `tasklist-progress-ring`, `tasklist-complete-message` | task list card additions |
 | `tasklist-view` | the list (sheet, tray, Tasks view, Canvas): `tasklist-expanded-title` (→ `tasklist-expanded-title-input`), `tasklist-expanded-count`, `tasklist-item` (`data-item-id`, `data-title`, `data-done`), `tasklist-item-checkbox`, `tasklist-item-title` (→ `tasklist-item-title-input`; Enter commits, Escape cancels), `tasklist-item-grip` (the drag handle, `aria-label` "Drag <item> to reorder"; the row has `data-dragging` while lifted), `tasklist-item-delete`, `tasklist-add` (→ `tasklist-new-item`), `tasklist-collapse` (`aria-expanded`; root `data-collapsed`), `tasklist-edit`, `tasklist-delete`, `tasklist-close` |
 | `event-dialog` | `data-presentation="sheet\|modal"`; `event-title`, `event-all-day`, `event-start-date`, `event-start-time`, `event-end-date`, `event-end-time`, `event-description`, `event-location`, `event-calendar`, `event-color` (order: Calendar color, Tomato, Flamingo, Tangerine, Banana, Sage, Basil, Peacock, Blueberry, Lavender, Grape, Graphite), `event-error`, `event-save`, `event-cancel`, `event-delete` |
-| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-no-date` (`aria-pressed`), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
+| `tasklist-dialog` | `data-presentation`; `tasklist-title`, `tasklist-date`, `tasklist-time`, `tasklist-date-clear` (empties the date: undated), `tasklist-category`, `tasklist-items` (create only), `tasklist-estimate`, `tasklist-repeat`, `tasklist-error`, `tasklist-save`, `tasklist-cancel` |
 | `sheet-scrim` | the area beside a dialog |
 | `streak-flame`, `streak-message`, `plant-button`, `plant-card`, `plant-card-stage`, `plant-card-line`, `settings-best-streak` | motivation |
-| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak-flame`, `settings-plant`, `settings-sunflowers` | settings additions |
+| `settings-animation-level`, `settings-sounds`, `settings-calm-mode`, `settings-streak`, `settings-sunflowers` | settings additions |
 | `tasks-view` (`data-group-by`, `data-sort-by`), `tasks-group-by`, `tasks-sort-by`, `tasks-sort-dir` (`data-dir`), `tasks-collapse-all`, `tasks-group` (`data-group`), `tasks-group-title`, `tasks-item` (`data-tasklist-id`, `data-title`, `data-date`) | Tasks view |
 | `tasks-tab-canvas`, `tasks-canvas`, `canvas-viewport` (`data-zoom`, `data-pan-x`, `data-pan-y`), `canvas-note` (`data-tasklist-id`, `data-x`, `data-y`, `data-placed`, `data-area`, `data-dimmed`; `canvas-note-grip`, `canvas-note-date`), `canvas-unsorted`, `canvas-area` (`data-area-id`, `data-name`, `data-color`, `data-x/y/w/h`, `data-selected`; `canvas-area-header`, `canvas-area-handle` `data-corner`), `canvas-area-add`, `canvas-area-editor` (`canvas-area-name-input`, `canvas-area-color`, `canvas-area-delete`, `canvas-area-editor-close`) | Canvas |
 | `confirm-dialog`, `confirm-ok`, `confirm-cancel` | delete confirmation |
@@ -150,6 +150,10 @@ I open the day view for {date}
 I go to the next period
 I go to the previous period
 I go to today
+the top bar shows no arrows
+the top bar shows the arrows
+a screen reader finds the buttons {string} and {string} in the top bar, off screen
+a keyboard user activates {string} in the top bar
 I switch to the {view} view
 I go back in the browser
 I reload the page
@@ -176,6 +180,14 @@ exactly one day is highlighted as today
 no day is highlighted as today
 ```
 
+- "I go to the next / previous period" moves as a person does: with the ‹ › arrows (`nav-next` / `nav-prev`) where the
+  top bar has them (desktop with a mouse), with a swipe left / right on `calendar-swipe-area` on touch screens, which
+  have none (owner, 2026-10-26); either way it waits for the URL to change. "the top bar shows no arrows": `top-bar`
+  has no visible `nav-prev` / `nav-next` (on touch they stay in the DOM as sr-only buttons, at most 1 px, for screen
+  readers and keyboards; owner, 2026-10-26). "the top bar shows the arrows": both are visible with a real size (a
+  narrow window with a mouse). "a screen reader finds the buttons X and Y ... off screen": each is found by role button
+  and accessible name, takes focus, and is at most 1 px. "a keyboard user activates X": focus, then Enter.
+
 ## Events: display
 
 ```
@@ -191,6 +203,7 @@ the first entry of the month cell of {date} is in the slot below the bar {string
 the all-day event {string} on {date} is at the height of the bar {string}
 the bar {string} has the height of the chip {string}
 the bar {string} shows no continuation arrows
+every all-day entry in the band is no taller than an all-day entry
 I see the all-day event {string} on {date}
 I do not see the event {string}
 I do not see the event {string} on {date}
@@ -208,6 +221,9 @@ the items on {date} are shown in the order {string}
 ```
 
 - "the all-day event A on D is at the height of the bar B": A's chip top equals B's `event-bar` top within 3 px; when B is not on the page (day view clipped away), the top of the all-day area of D.
+- "every all-day entry in the band is no taller than an all-day entry": there is at least one visible `event-chip` in the
+  `week-allday-cell` / `day-allday-area` cells, and each is at most 22 px tall at a viewport at least 768 px wide, 18 px
+  below (the all-day entry's own height), with 0.5 px slack.
 - "on each day" and "on {date}" accept a chip on that date or a multi-day bar covering it; "as a bar" checks one
   `event-bar` segment with `data-start`/`data-end` (clipped to the week row); "lane" checks `data-lane`.
 - Month slots (feature event-display): "the first entry of the month cell of D" is the
@@ -219,7 +235,7 @@ the items on {date} are shown in the order {string}
   grid (`data-hour-height` on `time-grid`) within ±3 px.
 - "do not overlap": bounding boxes do not intersect. "side by side": both have a top within the other's vertical span
   and different left edges. "stacked on": the first chip starts lower and further right than the second, boxes overlap
-  vertically (cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
+  vertically, and the first's left edge lies inside the second's width (same column; cascade, feature event-display). "spans the full width": chip width ≥ 90 % of its day column width.
 - "the items on D are shown in the order": DOM order of `data-title` of event chips and task list cards inside the
   month cell of D.
 
@@ -427,6 +443,7 @@ the task list {string} has no estimate
 
 ```
 Google contains an event {string} on {date} from {time} to {time}
+Google contains an event {string} from {date} {time} to {date} {time}
 Google contains an all-day event {string} from {date} to {date}
 Google contains no event {string}
 the Google event {string} has:
@@ -531,9 +548,28 @@ one hour of the time grid is still about twice as tall as at the start
 the task list {string} is drawn a quarter as tall as the event {string}
 the viewport meta tag contains {string}
 the bottom bar reserves the safe-area inset at the bottom
+the page does not bounce when pulled
+nothing on the calendar screen can be selected by a long press
+the text fields of the open form can be selected
+the text in the open dialog can be selected by a long press
+the text on the page can be selected by a long press
 ```
 
 - No horizontal scroll: `document.documentElement.scrollWidth <= window.innerWidth`.
+- "the page does not bounce when pulled": the computed `overscroll-behavior-y` of `<html>` is `none` (WebKit takes the
+  page's overscroll behaviour from the root element only, `LocalFrameView::verticalOverscrollBehavior`; on `<body>` it
+  is ignored there). A real pull cannot be made in the test browsers.
+- "nothing on the calendar screen can be selected by a long press" (no dialog open): at every point of a 24 px grid over the viewport the topmost
+  element (`elementFromPoint`) that is not a text field (`input`, `textarea`, `select`, `[contenteditable]`) has a
+  computed `-webkit-user-select` (or `user-select`) of `none`; the failure lists the offending elements. (iOS starts its
+  text selection only where the touched point is selectable; a long press itself cannot be made in the test browsers.)
+- "the text in the open dialog / on the page can be selected by a long press": at every point of a 16 px grid over the
+  open dialog (last `role=dialog`) or `section.page`, the topmost element that holds text of its own and is not a
+  button (`button`, `[role=button]`) has a computed `-webkit-user-select` (or `user-select`) other than `none`; at least
+  one such element is found. The grid is probed once the area's finite animations have finished (`getAnimations`,
+  subtree): a phone sheet counts as visible while it still sits below the screen, sliding in.
+- "the text fields of the open form can be selected": every visible `input`/`textarea` in the open dialog has a computed
+  `-webkit-user-select` (or `user-select`) other than `none` (iOS refuses to edit such fields).
 - "at the bottom of the screen": element's bottom edge is within the lowest 120 px of the viewport.
 - Swipes dispatch `touchstart`/`touchmove`/`touchend` on `calendar-swipe-area` (CDP `Input.dispatchTouchEvent`):
   horizontal 200 px over 150 ms for left/right; vertical 300 px for up.
@@ -1045,12 +1081,42 @@ I drag the top handle of {string} up by {int} minutes
 the event {string} shows resize handles
 the event {string} shows no resize handles
 I tap the event {string} right beside the bottom handle of {string}
+I hold the event {string} over {date}
+the dragged event is drawn visibly in the day under the finger
+I swipe up quickly starting on the event {string}
+the time grid has scrolled down
+I drag the event {string} to {date} with a finger held perfectly still
+the browser did not take the touch over for scrolling
 ```
 
 - Desktop project: mouse (`mouse.down` on the chip centre, move in 10 steps to the target, `mouse.up`). The target is
   the `time-slot` of the date/hour plus the minute offset (quarter-hour precision), or the `month-cell` /
   `week-allday-cell` of the date.
 - Mobile project: CDP touch events: `touchStart`, hold 500 ms (long press), `touchMove` in 10 steps, `touchEnd`.
+- iPhone project (`iphone`, WebKit with the iPhone 13 profile; runs only scenarios tagged `@iphone`): Playwright has no
+  touch moves for WebKit, so the finger is a model of iOS WebKit (`e2e/steps/support/iosTouch.ts`) that dispatches
+  `pointerdown`/`touchstart`, `pointermove`/`touchmove`, `pointerup`/`touchend` (pointer events first) at the element
+  under the finger, with these WebKit rules (UIProcess sources, WebKit bugs 184250/185656):
+  - touch moves are cancelable only when a non-passive `touchmove` listener was on the touched element's path (element,
+    ancestors, document, window) at `touchstart`; listeners on window/document/body without `passive` count as passive.
+  - the native pan may be stopped only by the first `touchmove` of the touch: when that one is not default-prevented,
+    the pan starts at the first move more than 10 px from the start; it then sends `pointercancel` when the move has a
+    vertical part (the calendar area is `touch-action: pan-y`), no more pointer events follow, later touch moves are not
+    cancelable, and the nearest ancestor whose computed `overflow-y` is `auto`/`scroll` scrolls with the finger.
+  - a real finger is never still: the long press (500 ms) has two moves of 1 and 2 px in it.
+  Because of these small moves the model always starts its pan once the lifted card moves, so the ordinary drags test
+  the drag's way through `pointercancel`; only "with a finger held perfectly still" (no small moves) tests that the
+  card's own touch listener lets the drag stop the pan.
+- "I drag the event X to D with a finger held perfectly still": as "I drag the event X to D", but the iPhone model's long
+  press has no small moves (CDP touch has none anyway). Every `pointercancel` from then on is counted; "the browser did
+  not take the touch over for scrolling" = none was sent.
+- "I hold the event X over D": long press X and move the finger to the centre of D's `month-cell` in 10 steps, finger
+  kept down (released by the scenario's cleanup). "the dragged event is drawn visibly in the day under the finger": the lifted
+  chip's centre lies in the `month-cell` under the finger (it snaps to the cell's top), and the topmost element there
+  (`elementFromPoint`, which honours clipping) is the chip or inside it.
+- "I swipe up quickly starting on the event X": finger down 5 minutes below X's top, 240 px up in 8 moves over 150 ms
+  (no long press), up. The time grid's scroll position is noted first; "the time grid has scrolled down" = the
+  `time-grid`'s scroll container `scrollTop` grew by at least 40 px.
 - After a drop the step waits for the `PATCH` response (or failure) and for the chip to settle (`data-dragging` absent).
 - "lifted": `data-dragging="true"` on the chip (the app sets it on pick-up). "pick up" = scroll the chip into view, press and hold 500 ms
   without moving; "release without moving" = mouse up / touch end.
@@ -1101,8 +1167,9 @@ the plant card shows {string}
 - Plant: `plant-button` (`data-stage`, `data-mood`); card `plant-card`, `plant-card-stage`, `plant-card-line`.
 
 ```
-I turn the streak flame {string}
-I turn the plant {string}
+the streak is set to {string}
+I choose {string} for the streak
+the streak choice {string} is selected
 I choose {string} for the sunflowers
 the scene is {string}
 the sunflowers are set to {string}
@@ -1118,11 +1185,18 @@ the sunflowers are not swaying
 the sunflowers look {string}
 ```
 
-- `I turn the streak flame "on|off"` toggles the `settings-streak-flame` switch to that state; `I turn the plant
-  "on|off"` does the same for the `settings-plant` switch. `I choose X for the sunflowers` picks the option with that
+- Streak choice (person pref `streak`: `Off` = `off`, the default; `Flame` = `flame`; `Plant` = `plant`). `the streak is
+  set to X` (Given) sends `PATCH /api/prefs { streak }` through the API before the page is opened. `I choose X for the
+  streak` picks the option labelled X in `settings-streak` (a segmented button in Focus & motivation; the settings are
+  open) and waits for the `PATCH /api/prefs` response (200); `the streak choice X is selected` = that option has
+  `aria-pressed="true"`. The steps `I see / do not see the streak flame` and `I see / do not see the plant` check
+  `streak-flame` and `plant-button` in the top bar. `I choose X for the sunflowers` picks the option with that
   label in `settings-sunflowers` (`Grow with points` = `grow`, `Full field` = `full`); `the sunflowers are set to X`
   (Given) does it with `PATCH /api/settings { sunflowers }`. `the scene is X` (Given) sets the person's scene with
-  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`.
+  `PATCH /api/prefs/theme { overrides: { scene } }`; X is `Sunflower field`, `Mordor` or `None`, or (feature header-layout) any
+  season or holiday scene by its theme name: `Halloween`, `Spring`, `Summer`, `Fall`, `Winter`, `Easter`, `Summer holidays`,
+  `Christmas`, `New Year's Eve`, `New Year` (the seasons and holidays are switched off in the same request, so the
+  chosen scene stays).
 - `the sunflowers setting is inactive`: `settings-sunflowers` is shown but its options are disabled, and the hint
   `settings-sunflowers-hint` is shown; `active`: the options are enabled and there is no hint. The setting stays
   global and is only inactive (not hidden) while the person's scene is not the Sunflower field.
@@ -1173,6 +1247,8 @@ the app is asked to sign in again
 
 - Google is the mock provider with one calendar per person (`TEST_MODE`); "signs in with Google" completes the OAuth
   round trip through the test double, no real Google. "they" is the person of the last sign-in step.
+  It opens the week view first; signed out, the app may leave it for `/signin` with a full page load before it has
+  loaded (after a sign-out on this page), which the step takes as the way to the sign-in page.
 - "may use the calendar": the allow-list of sign-in addresses for the scenario.
 - "cannot be read without signing in": a request to the events API without a session is refused as unauthenticated.
 - "is also signed in on another device": a second browser context of its own (not the page) signs the person in through the OAuth
@@ -1760,6 +1836,16 @@ the top bar scene is moving
 the top bar scene is still
 the scene's cat is moving
 a visitor passes through the top bar scene
+the visitor flies across the top bar scene
+the top bar scene shows the {string}
+the {string} of the top bar scene is not under a control
+the top bar scene shows {int} {string} at rest
+no {string} of the top bar scene is under a control
+the {string} of the top bar scene glide to their resting spots within {int} second(s)
+the {string} of the top bar scene runs the full width of the bar
+the {string} of the top bar scene is drawn at its full size
+the {string} of the top bar scene are spread over the whole bar
+the top bar scene is drawn mirrored
 the support cat comes by on the next finished list
 the support cat is set to {string} in the settings
 the support cat appears and is gone within {int} ms
@@ -1780,6 +1866,10 @@ the support cat is gone within {int} ms
   rendered), then poll up to 5 s. "the scene's cat is moving": the same as "is moving", counting only animations
   inside the scene's `cat` part (the living layer, not the backdrop). "a visitor passes through": a `butterfly`, `bat` or
   `ghost` part is visible in the top bar scene (the fake clock holds the visit while the step looks).
+  "the visitor flies across": the visitor's flight animation (Web Animations API, the one that is not the wing flap)
+  is paused and sought to 5 %, 10 % ... 95 % of its duration; at each point the visitor's box is read. Its horizontal
+  centre must reach the scene's left quarter and its right quarter, and from 20 % to 80 % its box lies fully inside
+  the scene's box. A visitor without a flight animation fails.
 - A seasonal scene's visitor passes once at the start of each moving window (Mordor keeps its rhythm: first after
   20-60 s, then every 3-5 min). The scene step sets `window.__butterflyNow = true` before loading so the "butterfly"
   part is present for the check at once (at Halloween it makes the visitor the bat, not the ghost).
@@ -1790,6 +1880,43 @@ the support cat is gone within {int} ms
   `sky`, `hills`, `cloud` and `bee`); the step lowercases and
   hyphenates the names (and drops apostrophes). Bats use the butterfly hook (`window.__butterflyNow`). "I choose the theme" without
   a prior "I open the theme menu" opens it from the week view for today first.
+- Fall and Winter props and still picture (rules at the end of theme-scenes.feature, round 3): the props are parts
+  `autumn-tree`, `leaf-pile`, `kite` (Fall), `snowy-tree`, `snowman`, `sledge` (Winter); the ground is `leaf-litter`
+  (Fall) and `snow-drift` (Winter); the visitors are `bird-flock` (Fall) and `robin` (Winter). Part names are the
+  label lowercased and hyphenated. "leaves" are the nine particles of the Fall scene (`.season.fall .p`),
+  "snowflakes" those of the Winter or Christmas scene (`.season.winter .p`, `.season.christmas .p`). A part counts
+  as shown when it is visible (not `display: none`, not `visibility: hidden`).
+  A part the scene left out because it would be under a control carries `data-hidden` (and is hidden); another part
+  of its kind may still show. "the top bar scene shows the X": a visible part X without `data-hidden` lies at least
+  1 px inside the `top-bar` box (a visitor: waits up to the step timeout for it to come in). The four-part step "the
+  top bar scene shows A, B, C and D" also skips parts with `data-hidden`. "does not show the X": no visible element for part X in the scene.
+  "the X of the top bar scene is not under a control": for every visible element of part X, the box of each drawn
+  shape (`path`, `circle`, `ellipse`, `rect`; the kite: its kite shapes and points along its string), clipped to the
+  `top-bar` box, does not intersect the box of any visible control in `top-bar`: the title text and its chevron, the
+  ‹ and › arrows, the Today pill, the flame, the plant, the sync icon, the filter and settings icons (for an `svg`
+  the box of its drawn `path`; the Today pill: the button box).
+  "the X of the top bar scene is drawn at its full size": every visible element of part X is at least its full
+  height (trees 43 px, snowman 42, leaf pile 13, sledge 13, kite 20) and its bottom edge lies between 1 px above and
+  2.5 px below the bottom of the `top-bar` box (the kite: it hangs from the bar's top; its top lies inside the bar).
+  "the X of the top bar scene runs the full width of the bar": part X spans the `top-bar` box from its left to its
+  right edge (within 1 px) and sits on its bottom edge.
+  "the top bar scene shows N X at rest": exactly N particles of kind X, each visible, fully inside the `top-bar` box
+  and at least 1 px from its top edge, none with a running animation or transition; read twice 500 ms apart, each
+  particle's box is unchanged. "the X of the top bar scene are spread over the whole bar": the leftmost particle's
+  left edge is in the left quarter of the bar and the rightmost particle's right edge in its right quarter.
+  "no X of the top bar scene is under a control": no visible particle of kind X has a box that intersects a control box
+  (same list as above); being close to one is fine.
+  "the X of the top bar scene glide to their resting spots within N second(s)": waits until `html[data-scenes]` turns
+  `still` (the end of the 10 s moving window), then reads each particle's glide (a Web Animation, not a CSS one):
+  every particle has one lasting at most N s, and for at least 7 of the 9 its first keyframe is translated more than
+  0.5 px away from the spot; within N s more (real time: the glide runs on the page's animation timeline, which the
+  fake clock does not drive) nothing runs any more and every particle stays where it is. "spread over the whole bar"
+  counts only shown particles. The owner's glide is 1 s (2026-10-26), so the
+  "still after 11 s" checks hold.
+  "the top bar scene is drawn mirrored": the computed `transform` of the scene layer (`top-bar-scene`) is a matrix
+  whose first value is -1 (`scaleX(-1)`), so the scene layer is drawn mirrored. In left-handed mode the Fall and Winter
+  scenes are flipped on a touch screen (`html[data-hand='left'][data-touch]`).
+- The `"top bar"` region of "the {string} still looks like {string}" is `top-bar` (the whole bar with its scene).
 - "comes by on the next finished list" forces the next roll (`POST /api/__test/cat { next: true }` or
   `window.__catNext = true` before load). The cat is `[data-testid="support-cat"]`; "appears and is gone" uses the
   reward-effect observer (inserted, then removed ≤ N ms). "set to X in the settings" picks the option with that label in
@@ -1855,6 +1982,7 @@ bedtime mode is on based on my first appointment with {int} hours of sleep and {
 the night bands of {date} are {string}
 the night band runs from {date} {time} to {date} {time}
 no night band is shown
+the bedtime moons of {date} are {string}
 the approach bar shows a night band
 I see the bedtime reminder {string}
 I do not see a bedtime reminder
@@ -1870,6 +1998,11 @@ I do not see a bedtime reminder
   "the night band runs from A to B" looks for a piece with that `data-from` and `data-to`. "no night band is shown":
   no `bedtime-band` and no `bedtime-track-band` exists. Day and week show `bedtime-band` pieces in the day columns,
   the Timeline in its day sections, the Strip in its columns and the Clock as arcs.
+- Moons: every bedtime moon in a day column or on the Clock has `data-testid="bedtime-moon"` with `data-date` (the day it
+  is drawn on) and `data-at` (`HH:MM` within that day; `24:00` for a bedtime at midnight, which is drawn at the end of
+  the evening before, not at 00:00 of the next day). "the bedtime moons of D are S" joins `data-at` of the moons with
+  `data-date` D (document order) with `", "`. The weekend setup step also sends `weekendDifferent: true`,
+  `weekendBedtime` and `weekendWake`.
 - Approach bar: "shows a night band" = a `bedtime-track-band` inside `approach-bar`.
 - Reminder: a snackbar with `data-testid="bedtime-reminder"`; "I see" compares its text exactly.
 
@@ -1890,7 +2023,7 @@ the support cat walks in from the {string}
 - "the X is on the S side of the screen" (S = `left` | `right`): the centre x of the element's bounding box is left
   / right of the viewport centre (`innerWidth / 2`). X names: `create button` = `create-button`, `tray toggle` =
   `task-tray-chevron` (the open/close chevron in the phone tray bar), `settings button` = `settings-button`,
-  `Today button` = `nav-today`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
+  `Today button` = `nav-today`, `period title` = `period-title`, `undo action` = `undo-action`, `time axis` = `time-axis` (the hour labels column of
   `time-grid`), `open tasks tray` = `task-tray` (the side panel on a tablet or desktop).
 - "the create button sits right of the open tasks tray": the left edge of `create-button` is at or right of the right
   edge of `task-tray` (polled: the tray animates its width).
@@ -1965,6 +2098,7 @@ the calendar contains an undated task list {string} with items:
 I open the Tasks view
 I create the task list {string} in the Tasks view
 I remove the date of the task list {string} in the Tasks view
+I give the task list {string} the date {date} in the Tasks view
 I group the Tasks view by {string}
 I sort the Tasks view by {string}
 I sort the Tasks view by {string} in reversed order
@@ -2004,7 +2138,9 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
   without a date), type T into `tasklist-title`, `tasklist-save`.
 - "I remove the date of the task list L": taps `tasklist-expanded-title` of L's `tasks-item` (opens the task list
-  dialog), clicks `tasklist-no-date`, `tasklist-save`.
+  dialog), clicks `tasklist-date-clear`, `tasklist-save`.
+- "I give the task list L the date D": opens L's dialog the same way, fills `tasklist-date` with D (the field is
+  never disabled, also on an undated list), `tasklist-save`, waits for the `PATCH` (200).
 - "I group … by G" clicks the `tasks-group-by` option with that label (`Time`, `Category`, `None`); "I sort … by S"
   picks the label in the `tasks-sort-by` select (`Date`, `Name`, `Category`, `Last changed`, `Progress`). Both wait for
   the `PATCH /api/prefs` response. "... in reversed order" also sets the `tasks-sort-dir` toggle to reversed
@@ -2060,6 +2196,7 @@ the open task list {string} has no date and {int} open item(s)
 ```
 I have the template {string} with the items {string}
 I have the template {string} with the items {string}, the estimate {int} minutes and the category {string}
+{string} has the template {string} with the items {string}
 the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
 I save the task list as a template
 the footer of the expanded task list shows {string}
@@ -2100,6 +2237,8 @@ I have no templates
 
 - Store: templates are per person on the app server, `GET/POST /api/templates`, `PUT/DELETE /api/templates/:id`
   (`users/<sub>/templates.json`). A template is `{ id, name, items: [{ title }], estimateMinutes, categoryId }`.
+- "P has the template T with the items "A, B"" (`@signin`): the same `POST /api/templates`, sent with the page's own
+  session, which must be signed in as P (checked with `GET /api/auth/me`).
 - "I have the template T with the items "A, B"[, the estimate N minutes and the category C]": `POST /api/templates`
   before the page opens (items split on `", "`, C resolved by name from `GET /api/settings`).
 - "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`
@@ -2311,6 +2450,7 @@ a day passes on the server
 the Drive holds {int} backup(s) of {string}
 I back up now
 I back up now {int} times
+{string} has signed in but not opened the calendar yet
 I chose the theme {string} and backed it up
 {string} is signed in with the theme {string} backed up
 I restore from the backup and confirm
@@ -2341,6 +2481,9 @@ there is no button to back up now
 - "the quiet period of the backup has passed": `POST /api/__test/backup/flush` (the debounce timer fires now, as if two
   quiet minutes had passed) and waits for it to finish. "a day passes on the server": sets the test clock 24 hours later
   (frozen) and calls `POST /api/__test/backup/tick` (the daily check, once).
+- "P has signed in but not opened the calendar yet": the OAuth round trip as P (`GET /api/auth/google/start` in the page's own
+  session) without loading the app, which would save P's prefs. Only files under `users/<sub>/` make a person "have data of their
+  own"; the server-wide files (settings, people, motivation) do not count.
 - "the Drive holds N backups of P": `GET /api/__test/backup/drive?owner=P` has N entries (`backup(s)` is optional text).
 - "I back up now": opens the settings when they are not open, clicks `settings-backup-now` and waits until the
   `POST /api/backup` response has arrived. "the last backup is from D at T": `settings-backup-status` has
@@ -2611,13 +2754,17 @@ written on the first run; re-baseline only for an intended change, after looking
 (`week-view`), `expanded task list` (`tasklist-expanded`), `all-day band` (row 0's band), `day column of {date}`
 (`week-day-column[data-date]`), `day column` (the day view's `day-column`), `top row` (`week-overview-row[data-row="0"]`),
 `list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `template save sheet`
-(`template-save-dialog`), `templates page` (`templates-page`). The `now-marker` is masked.
+(`template-save-dialog`), `templates page` (`templates-page`), `top bar` (`top-bar`; the check-in message
+`streak-message` is hidden for its picture). The `now-marker` is masked.
+`list form` (`tasklist-dialog`), `clock` (the dial `svg.face` inside `clock-view`), `time grid` (the time grid's scroll area `[data-scroll-area]`, as far as
+it is on screen; the floating "+" button is hidden for its picture). "I scroll the time grid to the end of the day" sets that area's `scrollTop` to its end. The `now-marker` is masked.
 
 ```
 no text in the {string} is clipped
 the head row and the items of the expanded task list do not overlap
 the pill of the expanded task list covers the card {string} it grew from
 the {string} still looks like {string}
+I scroll the time grid to the end of the day
 the pill of the expanded task list shows the count {string}
 the band's lists are one-line pills
 I tap the band's section switch
@@ -2688,6 +2835,182 @@ opening the event {string} shows the time {string}
 - "opening the event {string} shows the time {string}": opens the event (its dialog) and checks that its start and end
   time fields hold the two times of `HH:MM–HH:MM`: the real times, whatever length the block is drawn.
 
+## Turning the day or week while dragging (`@dnd`, owner 2026-10-25)
+
+```
+I hold the event {string} at the right edge of the time grid for {int} ms
+I hold the event {string} at the left edge of the time grid for {int} ms
+I hold the task list {string} at the right edge of the time grid for {int} ms
+I keep holding the dragged item for {int} ms
+the edge band says {string}
+I see no edge band
+{string} is still being dragged
+I drop the dragged item on {date} at {time}
+I hold the all-day event {string} at the right edge of the all-day row for {int} ms
+I hold the event {string} over {date} at {time} for {int} ms
+I hold the event {string} at the right edge of the time grid until the view turns
+I drop the dragged item in the all-day row on {date}
+```
+
+- "I hold X at the right/left edge of the time grid for N ms": picks X up as in "I pick up" (mouse press; finger long
+  press), moves in 10 steps sideways at the same height to 6 px inside the right/left side of the day columns area
+  (`time-grid` minus the hour labels), i.e. inside the 24 px edge zone, and keeps the pointer there for N ms. The pointer
+  stays down; the world's cleanup releases it. "I keep holding the dragged item for N ms" waits N ms more without moving.
+  Before a hold the card is scrolled to the middle of the grid (a pointer resting near its top or bottom would start the
+  auto-scroll); an edge hold stops 40 px short of the zone and then enters it in one move, so the time counts from there.
+- "I hold the event X at the right edge of the time grid until the view turns": the same hold, kept until the URL path
+  changes (polled every 50 ms, at most 5 s), then the pointer moves at once to the middle of the grid (no second turn on
+  a slow device: the iPhone model is too slow for timed holds).
+- "the edge band says T": the visible `drag-edge-band` (`data-side` `left|right`) has the text T. "I see no edge band":
+  no `drag-edge-band` is visible.
+- "X is still being dragged": a card with `data-title` X and `data-dragging="true"` is visible (the drag goes on after
+  the view turned).
+- "I drop the dragged item on D at T": moves the pointer in 10 steps to the 15-minute slot of D at T in the grid shown
+  (scrolling it into view as the auto-scroll does) and releases; waits for the save as after a drop.
+- "I hold the event X over D at T for N ms": picks X up and moves in 10 steps to the horizontal middle of D's day column
+  at the height of T, then keeps the pointer there for N ms (still down).
+- "I hold the all-day event X at the right edge of the all-day row for N ms": the same as the time grid step, with X's
+  chip in the all-day row and the pointer 6 px inside the right side of that row. "I drop the dragged item in the all-day
+  row on D": moves to the `week-allday-cell` of D (in the day view its `day-allday-area`) and releases; waits for the save.
+- The other drag steps ("I move the dragged event to the middle of the time grid", "I drop the dragged event", "the
+  event X starts at the time the drop indicator showed") also act on a drag begun by these steps.
+
+## Events side by side (`@overlap`; settings `settings-day-side-by-side`, `settings-week-side-by-side`, prefs `daySideBySide`, `weekSideBySide`)
+
+```
+the day view shows up to {int} events side by side
+the week view shows up to {int} events side by side
+I choose up to {int} events side by side in the day view
+I choose up to {int} events side by side in the week view
+the settings show up to {int} events side by side in the day view
+the settings show up to {int} events side by side in the week view
+the entries {string} each take one of {int} equal columns
+the entries are drawn {string}
+the event {string} has a {int} px entry border
+the event {string} has the narrow block padding
+the event {string} has the normal block padding
+the event {string} stays inside its day column
+```
+
+- "the day/week view shows up to N events side by side": patches the pref `daySideBySide` (2, 3 or 4; default 4) or
+  `weekSideBySide` (2 or 3; default 2) through the API.
+- "I choose up to N ... in the day/week view": on the settings screen picks the option `settings-day-side-by-side-N` /
+  `settings-week-side-by-side-N` of that segmented button (labels "Up to N") and waits for the `PATCH /api/prefs`
+  response (status 200). "the settings show up to N ...": that option is the selected one (`aria-pressed="true"`).
+- "the entries "A, B, …" each take one of N equal columns": the event chips / task list cards with those `data-title`s
+  (one segment each, on the day shown or the same day of the week) all overlap one another in time on screen, no two of
+  their boxes intersect, and each one's width is the day column's width / N within 4 px.
+- "the entries are drawn S" (`solid`, `tinted` or `outline`): `PATCH /api/prefs/theme { overrides: { entries: S } }`.
+- "has a N px entry border": the computed left plus right border width of X's block is N px (the style was applied).
+- "has the narrow block padding": X's time grid block (`event-chip`) is at most 84 px wide (border box), its computed
+  padding is 3 px left, 2 px right, its title (`event-chip-title`) is 11 px and no duration (`.dur`) is visible. "has the normal block padding": wider than
+  84 px, padding 6 px left, 5 px right, title 13 px. "stays inside its day column": X's chip box ends at or before its day column's right edge (0.5 px
+  tolerance) and starts at or after its left edge.
+- "the event X is stacked on the event Y" (feature event-display) also checks that both blocks share a column: X's left
+  edge lies inside Y's width (a cascade lies over the column, indented from the left; on a narrow phone column a block's
+  minimum width may reach past the column on the right).
+
+## Drawing on the time grid (`@crud`, owner 2026-10-25)
+
+```
+I draw a block on {date} from {time} to {time}
+I draw a block from {date} {time} to {date} {time}
+I hold a drawn block on {date} from {time} to {time}
+the drawn block is shown on {date} from {time} to {time}
+no drawn block is shown
+I swipe up on the empty time grid of {date}
+the time grid has scrolled
+I long-press the empty time grid on {date} at {time} and let go
+```
+
+- "I draw a block on D from T1 to T2": scrolls T1 of D into view, presses on empty grid space of D's day column at T1
+  (mouse press; on the phone a finger held 500 ms), moves in 10 steps to T2 (auto-scrolling as needed) and releases.
+  The times are exact grid positions, so T1 later than T2 draws upwards and off-quarter times test the snapping.
+  "I draw a block from D1 T1 to D2 T2" is the same across day columns (week view). "I hold a drawn block ..." does the
+  same without releasing; the world's cleanup releases it.
+- "the drawn block is shown on D from T1 to T2": the visible `draw-block` segment in D's day column has
+  `data-start-time` T1 and `data-end-time` T2 (`24:00` = end of day) and its top/height match the grid within ±3 px.
+  "no drawn block is shown": no `draw-block` is on the page.
+- "I long-press the empty time grid on D at T and let go": a finger held 500 ms on empty space of D's day column at T,
+  released without moving (phone).
+- "I swipe up on the empty time grid of D": a finger swipe (no hold: touch start, 10 moves 200 px up within 200 ms,
+  touch end) on empty space of D's day column. "the time grid has scrolled": the time grid's scroll container's
+  `scrollTop` differs from its value before the swipe.
+- "Google contains an event X from D1 T1 to D2 T2": like the one-day step, for a timed event ending on another day.
+## Places for an event's location (`@location`; `@id:event-location`)
+
+The device asks the place search and the map pictures directly, at the addresses `/api/config` hands it
+(`placeSearchUrl`, `mapTileUrl`). In TEST_MODE those addresses point at the test server itself, so a test never reaches
+the real hosts: `POST /api/__test/places` (`{ places: { name, address, lat, lon }[] }`, cleared by reset) sets the places
+its fake search knows (Photon's GeoJSON answer shape), and its fake tile route answers plain generated pictures. As a
+second guard the Chromium projects resolve no host other than the test server's (`--host-resolver-rules` in
+`playwright.config.ts`; a `context.route` guard would turn off the HTTP cache for every scenario), so any request to
+another host fails.
+
+```
+the place search knows:
+I type {string} in the event field {string}
+I see the place suggestions:
+I see no place suggestions
+the suggestions credit OpenStreetMap
+I pick the place suggestion {string}
+I press Arrow down in the event field {string}
+the event dialog shows a map with a pin on {string}
+the event dialog shows no map
+the event dialog shows a map placeholder for {string}
+the map credits OpenStreetMap
+the event dialog shows no error
+the calendar contains an event {string} on {date} from {time} to {time} at the place {string}
+the calendar {string} contains an event {string} on {date} from {time} to {time} at the place {string}
+I have seen the map of the event {string}
+Google changes the location of the event {string} to {string}
+I tap the map
+the OpenStreetMap page of the place {string} opens in a new tab
+the phone is asked to show the place {string} in a maps app
+I ask to find the location on the map
+the event form starts with the fields {string}
+the location's address line says {string}
+the location has no address line
+the map is shown without scrolling the event dialog
+```
+
+- "the place search knows:" (table `name`, `address`, `latitude`, `longitude`): `POST /api/__test/places`. The fake
+  answers the places whose name or address contains every typed word (case-insensitive), in table order, at most 5.
+- "I type T in the event field F": focuses the field, clears it and types T key by key (as a person does, so the
+  suggestions' pause applies), then waits 1 s or until `place-suggestions` shows, whichever is first.
+- "I see the place suggestions:" (table `name`, `address`): the `place-suggestion` rows of `place-suggestions`, in
+  order, each with `place-suggestion-name` and `place-suggestion-address`. "no place suggestions": `place-suggestions`
+  is not visible (checked after the pause plus 1 s). "the suggestions credit OpenStreetMap": `place-suggestions-credit`
+  is visible and contains `© OpenStreetMap`.
+- "I pick the place suggestion N": taps the `place-suggestion` whose name is N. "I press Arrow down in the event field
+  F": the `ArrowDown` key in that field (the first suggestion becomes `aria-selected`).
+- "the event dialog shows a map with a pin on N": `event-map` is visible, its `data-lat`/`data-lon` equal the place N
+  of the known places (4 decimals), `event-map-pin` is visible inside it and every map picture has loaded
+  (`data-loaded="true"`). "no map": neither `event-map` nor `event-map-placeholder` exists. "a map placeholder for N":
+  `event-map-placeholder` is visible, holds the pin and the text N, and no map picture is shown.
+- "the map credits OpenStreetMap": `event-map-credit` is visible on the map (inside its box, not covered) and contains
+  `© OpenStreetMap`.
+- "the event dialog shows no error": `event-error` does not exist.
+- "… at the place N": creates the event through the public API with the location `<name>, <address>` of the known place
+  N and its place (`place: { name, lat, lon }`); "the calendar C contains …" inserts it into C as another Google client
+  would, with the same private extended properties the app writes.
+- "Google changes the location of the event T to L": patches the Google event's `location` as Google Calendar would,
+  leaving its private extended properties as they are.
+- "I have seen the map of the event T": opens the event, waits for "a map with a pin", then closes the dialog; the map
+  pictures are then in the device's cache.
+- "I tap the map": taps `event-map` (or the placeholder). "the OpenStreetMap page of the place N opens in a new tab":
+  a new page opens whose URL is the OpenStreetMap page marking N's position.
+- "the phone is asked to show the place N in a maps app": native, proven by the app's own tests (a `geo:` intent with
+  N's position and name); `@backlog` for Playwright.
+- "the location's address line says A": `event-location-address` (the small line right under the location field) is
+  visible with exactly A; "has no address line": it does not exist. After a pick the location field holds only the
+  place's name; Google gets `<name>, <address>` (check with "the Google event … has:").
+- "the event form starts with the fields L" (comma-separated field names as in form tables): the first fields of the
+  event form (`[data-field]`, in document order) are exactly these. "the map is shown without scrolling the event
+  dialog": with the dialog's scroll position at the top, `event-map` lies fully inside the visible part of the dialog.
+- "I ask to find the location on the map": taps `event-location-find` next to the location field; the suggestions for
+  the field's text show.
+
 ## Android app and widgets (native, `@android-app`, `@phone-widget`)
 
 ```
@@ -2721,3 +3044,252 @@ the clock widget says {string}
 - These run on Android, not in the browser suite: the app's and the widget's own tests (`android/app/src/test`) or a
   device prove them. They stay `@backlog` for Playwright, which skips them.
 
+## Header layout (`@id:header-layout`; setting `settings-header-layout`, pref `headerLayout`)
+
+```
+the header layout is set to {string}
+I choose {string} as the header layout
+the header layout {string} is selected
+the top bar is in one row
+the top bar is in two rows
+the top bar is at most {int} pixels tall
+the period title is not cut short
+the period title's font size is {int} pixels
+the period title's chevron is shown
+the Today button is an icon with the label {string}
+the Today button shows the word {string}
+the top bar's buttons are at least {int} by {int} pixels
+the top bar's buttons other than the plant are at least {int} by {int} pixels
+the plant's tap area is at least {int} by {int} pixels
+the downloaded theme file has no header layout
+the Today button shows that today is on screen
+the Today button does not show that today is on screen
+the day view shows no day header
+the week view shows {int} day headers
+the all-day row is shown
+the all-day row is not shown
+the tasks section switch is shown
+the tasks section switch is not shown
+I pick up the task list {string}
+no character of the top bar scene is under a control
+the top bar scene's parts are drawn at their full size
+the top bar scene does not show the {string}
+the Approaching card is off
+I see the Approaching card
+I switch off the time left in the Approaching card in the settings
+the event {string} shows {string} after its time
+the event {string} shows no time left
+I see the sync icon
+I do not see the sync icon
+the sync icon shows a problem
+the {string} switch in the settings is off
+the sync indicator is on
+I note where the top bar's controls are
+I turn on left-handed mode
+every control of the top bar is at the mirror image of where it was, within {int} pixel
+the period title's text is aligned to the outer edge
+the top bar's widgets are in reverse order
+```
+
+- Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
+  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened.
+  "I choose L as the header layout" picks the option labelled L in `settings-header-layout` (a segmented button) and
+  waits for the `PATCH /api/prefs` response (200); "the header layout L is selected" = that option has
+  `aria-pressed="true"`.
+- "the top bar is in one row": the visible `period-title`, `nav-today` and `settings-button` (and `nav-prev` / `nav-next`
+  where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
+- "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
+- "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
+  title's font size is N pixels": the computed `font-size` of `period-title .t` is N px. "the period title's chevron is
+  shown": the `svg` (the ⌄ expand icon) inside `period-title` is visible.
+- "the Today button is an icon with the label L": `nav-today` has `aria-label` L, contains an `svg` and no visible text.
+  "the Today button shows the word W": `nav-today`'s visible text is W.
+- "the top bar's buttons are at least W by H pixels": for every visible `button` inside `top-bar` (title, arrows, Today,
+  filter, settings, plant, install), `document.elementFromPoint` at the four edge midpoints 1 px inside a W x H box
+  centred on the button (the middle of its top, bottom, left and right side) returns the button or a descendant (not the
+  corners: hit testing follows a round button's rounded corners): the hit area is at least W x H even where the drawn control is
+  smaller. The streak flame (`streak-flame`) and the sync icon (`sync-status`) are not buttons and are not checked.
+  "... other than the plant ...": the same, leaving out `plant-button`. "the plant's tap area is at least W by H
+  pixels": the same check for `plant-button` alone (W wide, H tall).
+- "the downloaded theme file has no header layout": the JSON of the last downloaded theme file contains no key
+  `headerLayout` (at any depth) and no key whose name contains `header` other than the scene keys.
+- "the Today button shows that today is on screen": `nav-today` has `data-today-shown="true"` and is filled (the
+  built-in tonal look: the computed background of its drawn shape, the `.pill` inside on phones and the button itself on
+  wide screens, is the secondary container colour, no outline). "does not show":
+  `data-today-shown="false"`, it has an outline (border at least 1 px wide) and its computed background is the surface
+  colour with alpha 1 (solid, so the scene never shows through). "Today is on screen" means today is in the period the title names (the
+  month's own days, not the neighbouring months' days in its grid; the week; the day). The views must have rendered (`month-cell`, `week-header` or
+  `day-column` visible) before the check.
+- "the day view shows no day header": the `day-view` is shown and there is no visible `day-header`. "the week view shows
+  N day headers": N visible `week-header` elements.
+- "the all-day row is shown": the all-day row of the first time grid (`day-allday-area`, or the `week-allday-cell`s)
+  is visible and at least 18 px tall
+  (one entry's height on a phone; the row is as tall as its entries). "is not shown": the all-day band (`.alldays` of the first time grid) is absent or
+  0 px tall.
+- "the tasks section switch is shown": `tasks-section-toggle` is visible; "is not shown": no visible `tasks-section-toggle`
+  in the first time grid (it shows only when task lists are in the all-day row).
+- "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
+  long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
+- "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,
+  `.tbs .ghost`, Mordor's `.tbs [data-part=eye]`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
+  arrow, Today, flame, plant, sync, filter and settings icons: for an `svg` the box of its drawn `path`).
+- "the top bar scene's parts are drawn at their full size": every scene layer container (`.tbs .life`, `.tbs .mo`,
+  `.tbs .sl`) is 96 px tall (the as-built scene box), whatever the bar's height; the bar clips it at its bottom edge.
+- "the top bar scene does not show the X": no visible element for part X (`hare` = `.tbs .hare`) in the scene.
+- "the Approaching card is off"
+  (Given): `PATCH /api/prefs { approachingCard: false }`. "I see the Approaching card": `now-card` is visible.
+- "I switch off the time left in the Approaching card in the settings": opens the settings and turns
+  `settings-approach-time-left` off (pref `approachTimeLeft`), waiting for the `PATCH /api/prefs` response.
+- "the event X shows T after its time": X's `event-chip-time` text ends with `· T` (a middle dot, then T).
+  "shows no time left": X's `event-chip-time` is visible and has no "left" part. The time left updates with the app clock.
+- Sync icon (`sync-status`, pref `syncIndicator`, default off). The element always stays in the page with its
+  `data-state` and `data-last-sync` (the sync waits above read it); what changes is whether it is drawn. "I see the sync
+  icon": `sync-status` is visible. "I do not see the sync icon": `sync-status` is not visible (hidden, and it takes no
+  room in the top bar). "the sync icon shows a problem": `sync-status` is visible with `data-state="error"`. The switch
+  is `settings-sync-indicator` (label "Sync indicator", Settings › Calendar) and is turned on with the generic
+  `I turn on {string} in the settings` step; "the X switch in the settings is off" = the switch labelled X on the open
+  settings page has `aria-checked="false"`.
+- Left-handed mirror (owner, 2026-10-26). "the sync indicator is on" (Given): `PATCH /api/prefs { syncIndicator: true }`.
+  "I note where the top bar's controls are": records, for each visible control of `top-bar`, its box relative to the
+  `top-bar` box: `period-title`, its text (`period-title .t`) and chevron `svg`, `nav-today`, `streak-flame`, `plant-button`, `sync-status`, `filter-button`, `settings-button`, and the top bar's width W. "I turn
+  on left-handed mode": `PATCH /api/prefs { leftHanded: true }`, then reloads the same page and waits for the
+  calendar. "every control of the top bar is at the mirror image of where it was, within N pixel": for each noted
+  control, its left-handed box (relative to `top-bar`) has the same top, width and height and a left of W − (old left +
+  old width), each within N px (phones have no ‹ › arrows to compare). "the period title's text is aligned to the outer edge": the right edge of
+  `period-title .t` is at the right edge of `period-title`'s content box (within 1 px), with no free room to its right.
+  "the top bar's widgets are in reverse order": the visible widgets (`streak-flame` / `plant-button`, `sync-status`)
+  are ordered right to left as they were left to right.
+- The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
+  `scene-<scene>-<layout>-<scheme>`.
+
+
+## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, door-board, shared-lists)
+
+These scenarios describe behaviour that is already built. Two groups (the HTTP steps are in `e2e/steps/security.steps.ts` and
+`door.steps.ts`):
+
+- **HTTP steps (the scenarios without `@unit`)**: run against the TEST_MODE server through Playwright `request`
+  (no browser), keeping the last response like `I request {string}`.
+- **Server-start and file steps (the scenarios tagged `@unit`)**: they need a server started with other environment
+  settings or a look into the data folder, which the e2e server cannot do. Each scenario names the unit test that
+  covers it in a comment, so these steps have no e2e implementation. If e2e ever grows a "fresh server with these
+  settings" helper (see "I request ... on a fresh server" under Performance), they can be built on it and lose the tag.
+
+```
+the response header {string} is {string}
+the response header {string} contains {string}
+the Content-Security-Policy allows the inline script of the page by its fingerprint
+I send {string} with the header {string} set to {string}
+I send {string} with the body {string} as {string}
+I send {string} with a body of {int} kilobytes
+the response status is not {int}
+I request {string} with the cookie {string}
+the response text contains {string}
+the page is the privacy policy
+the calendar is not shown
+the privacy policy names {string} and says what it sees: {string}
+the privacy policy names the map picture service and says what it sees: {string}
+the privacy policy names the place search and says what it sees: {string}
+the privacy policy says the device, not the server, asks it
+the privacy policy says there is no advertising, tracking or analytics
+the privacy policy says the only outside parties are Google and the two map services
+the door board has the key of {string}
+the door board asks for its reminders {int} times within a minute
+the first {int} are answered
+the next one is told there are too many requests
+it is told the door's person is not available
+```
+
+- "the response header X is Y" / "contains Y": the header of the last response (name case-insensitive), compared exactly
+  or as a substring. The security headers are the ones `server/src/lib/securityHeaders.ts` sets (spec/API.md, "Sign-in").
+- "the Content-Security-Policy allows the inline script of the page by its fingerprint": requests `GET /index.html`,
+  computes `'sha256-<base64 of the SHA-256 of the text>'` for every `<script>` without `src`, and checks each is in the
+  `script-src` part of the last response's policy.
+- "I send "METHOD /path" with the header H set to V": a request without body but with that header, last response kept. The
+  header `origin` is sent as given (`null` is the text "null").
+- "I send "METHOD /path" with the body B as T": body text B with `Content-Type: T`; "with a body of N kilobytes": a JSON
+  object `{ "pad": "x..." }` of N KB with `Content-Type: application/json`.
+- "I request "METHOD /path" with the cookie "name=value"": the request carries that `Cookie` header and no other session.
+- "the response text contains T": the body of the last response as text includes T.
+- "the page is the privacy policy": the browser page shows a heading "Privacy policy" (`h1`). "the calendar is not shown": no
+  `week-view`, `month-view` or `signin-google` test hook, and the document is not the app shell (`#app` absent).
+- Privacy text checks use the last `GET /privacy.html` response. "names X and says what it sees: "a, b"": the page text
+  has X and every comma-separated phrase. "the map picture service" is the tile host and "the place search" the Photon
+  host named on the page. "the device, not the server, asks it" = the page text says the device (not the server) contacts
+  them. "no advertising, tracking or analytics" = those three words are in the "What is not done" list. "the only outside
+  parties are Google and the two map services" = the same list says apart from Google the only third parties are the two
+  map services.
+- "the door board has the key of "P"" (Given): `POST /api/__test/auth` with P as the only allowed address, then
+  `POST /api/__test/door { token, person: P }` with the fixed test key. "may no longer use the calendar" then changes the
+  allowed addresses to the other person, as in feature signin. "it is told the door's person is not available" = status 503.
+- "asks for its reminders N times within a minute": N sequential `GET /api/door` calls with the key, all inside one clock
+  minute (the step first waits for a fresh minute if this one already had door asks or fewer than 5 s are left, and afterwards waits for the next
+  minute so later scenarios start with an unused budget; this makes the scenario take about two minutes); the statuses are kept.
+  "the first N are answered" = those calls answered 200; "the next one is told ..." = the call after them answered 429.
+
+```
+the server has a valid encryption key
+the server is set up for real Google sign-in
+the encryption key is {string}
+the server starts
+the server restarts
+the server keeps running
+it starts
+it refuses to start
+it tells the operator that the encryption key must be 32 bytes in base64
+{string} has a Google connection stored unencrypted from before
+{string} has a Google connection stored encrypted
+the server next uses the Google connection of {string}
+the stored Google connection of {string} is {string}
+the stored Google connection of {string} does not contain the connection in readable form
+the stored Google connection of {string} can be read by the server's own user only
+{string} is connected to Google
+{string} is not connected to Google
+{string} is not asked to sign in again
+{string} is asked to sign in with Google again
+the stored sessions hold a fingerprint of the sign-in cookie and not the cookie value itself
+{string} has a session stored in the old readable form
+{string} is still signed in
+the server runs as the demo, without Google sign-in
+the server is set up for {string}
+the operator allows running open on purpose
+it tells the operator to turn on Google sign-in or to run open on purpose
+the server is set up with the default place search and map picture services
+the Content-Security-Policy lets the page reach outside only the place search and the map picture services
+the operator set the place search address to {string}
+the place search address is the public default
+the server is set up with a public address and one other allowed address
+a write from the public address is accepted
+a write from the other allowed address is accepted
+a write from a foreign website is refused
+the operator's door key is only {int} characters long
+the operator's door key is {int} characters long
+the door stays off
+the door is on
+the operator is told the key must have at least 32 characters
+the server sits behind the trusted proxy
+the server does not sit behind a trusted proxy
+one client has used up its 60 asks of this minute
+{int} other clients ask once each
+the client that used up its asks is still told there are too many requests
+one client asks 70 times, each time claiming to come from a different address
+one client asks 70 times, each time claiming a different first address but arriving through the same last hop
+{int} of the asks are told there are too many requests
+a client arriving through another last hop still has its own 60 asks
+{string} shares the task list {string} with {string}
+a second shared list file on the server is damaged because {string}
+the damaged file is left out and noted in the server log
+the Drive backup of {string} holds the shared list {string} and one damaged shared list
+{string} restores from the Drive backup
+the shared list {string} is back
+the damaged shared list is left out and noted in the server log
+```
+
+- These steps are unit-level (see the unit test named above each scenario); they are not implemented in `e2e/steps/` and
+  their scenarios are skipped by the `@unit` filter. Meaning of the setup phrases, for whoever builds them: "the server is set up
+  for "an https public address" / "production mode" / "a local http address" / "development mode" / "no address at all""
+  = `PUBLIC_URL=https://...` / `NODE_ENV=production` / `PUBLIC_URL=http://localhost:3000` / `NODE_ENV=development` / neither;
+  "runs as the demo" = `PROVIDER=mock` (or unset); "allows running open on purpose" = `ALLOW_INSECURE_MOCK=1`; "the
+  encryption key is missing / too short / 32 bytes in base64" = `TOKEN_ENC_KEY` unset / 16 bytes / 32 bytes; "sits behind the
+  trusted proxy" = `TRUST_PROXY=1`, and "claiming" = the `X-Forwarded-For` header (the last entry is the proxy's own);
+  "damaged because ..." = the shapes listed in `server/test/hardening-shared.test.ts`.

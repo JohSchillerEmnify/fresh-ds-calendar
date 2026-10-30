@@ -74,16 +74,15 @@ Feature: Backup to Google Drive
     And there is no button to back up now
     And the Drive holds 0 backups of "anna@example.com"
 
-  @backlog
   Scenario: Only the last 7 backups are kept
     Given "jo@example.com" is signed in
     And I chose the theme "Neon"
     When I back up now 8 times
     Then the Drive holds 7 backups of "jo@example.com"
 
-  @backlog
   Scenario: Someone with nothing of their own on the server is not backed up
-    Given "anna@example.com" is signed in
+    Only what is kept for the person alone counts; the files shared by everyone do not. Opening the calendar already saves the person's own settings.
+    Given "anna@example.com" has signed in but not opened the calendar yet
     When a day passes on the server
     Then the Drive holds 0 backups of "anna@example.com"
 
@@ -95,7 +94,6 @@ Feature: Backup to Google Drive
     When I restore from the backup and confirm, twice
     Then the theme "Winter" is in use
 
-  @backlog
   Scenario: My restore does not overwrite what another person uses
     Given "jo@example.com" is signed in with the theme "Neon" backed up
     And "anna@example.com" adds the category "Garden"

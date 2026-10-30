@@ -14,6 +14,8 @@ import { inPreview } from '@/composables/usePreview';
 import { specialMarker } from '@/lib/items';
 import { vRipple } from '@/lib/ripple';
 import { useClockStore } from '@/stores/clock';
+import { usePrefsStore } from '@/stores/prefs';
+import { entryBorderPx, entryStyle } from '@/theme/entryStyle';
 import { useUiStore } from '@/stores/ui';
 import { cardClick, useCalendarDrag } from './dnd';
 import ResizeHandles from './ResizeHandles.vue';
@@ -26,6 +28,7 @@ const props = defineProps<ItemRendererProps>();
 const emit = defineEmits<{ open: [] }>();
 const clock = useClockStore();
 const ui = useUiStore();
+const prefs = usePrefsStore();
 const root = ref<HTMLElement | null>(null);
 const ev = computed(() => props.segment.item as CalendarEvent);
 // a preview copy (swipe neighbour) is inert: no drag handlers
@@ -41,9 +44,15 @@ const past = computed(() => isToday.value && !props.segment.allDay && props.segm
 const current = computed(() => isToday.value && !props.segment.allDay && props.segment.startMin <= clock.minutesNow && clock.minutesNow < props.segment.endMin);
 const h = computed(() => props.height ?? 0);
 // only a time grid block's look depends on its width: chips are not observed (a month holds hundreds, and each mount read forces a layout)
-const { width } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)));
-/** Narrow (<= 76 px) blocks use 11 px / 13 px type; the budget is derived from the real box, not fixed. */
-const narrow = computed(() => width.value > 0 && width.value <= 76);
+// One border-box observer per block (owner D3, 2026-10-25): the border box does not change with the padding or the entry
+// style's border, so the narrow look (tight padding and 11 px type together) cannot flip back and forth or disagree.
+const { width: boxWidth } = useElementSize(computed(() => (props.variant === 'block' ? root.value : null)), undefined, { box: 'border-box' });
+/** Narrow blocks (border box <= 84 px) use the tight padding and 11 px / 13 px type. */
+const narrow = computed(() => boxWidth.value > 0 && boxWidth.value <= 84);
+/** Left plus right border of the page's entry style (0 solid, 3 tinted, 4 outline), reactive so a live style change counts. */
+const border = computed(() => entryBorderPx(entryStyle.value));
+/** The content width the title wraps in: the border box less the padding (2 + 3 px narrow, 5 + 6 px otherwise) and border. */
+const width = computed(() => (boxWidth.value ? Math.max(0, boxWidth.value - (narrow.value ? 5 : 11) - border.value) : 0));
 const budget = computed(() => blockBudget({
   title: ev.value.title, height: h.value, width: width.value || 120, padV: 4, lineH: narrow.value ? 13 : 16, timeH: 14,
   charW: narrow.value ? 5.6 : 6.9, padH: narrow.value ? 6 : 12,
@@ -56,6 +65,8 @@ const descLines = computed(() => (showLocation.value && ev.value.description ? M
 const showDuration = computed(() => showTime.value && h.value >= 58);
 const lines = computed(() => budget.value.lines);
 const duration = computed(() => formatDuration(props.segment.endMin - props.segment.startMin));
+/** The running entry's time left, shown on its own time line when the Approaching card does not carry it (card or its time-left line off). */
+const timeLeft = computed(() => (current.value && !(prefs.approachingCard && prefs.approachTimeLeft) ? t('calendar.nowNext.left', { left: formatDuration(props.segment.endMin - clock.minutesNow) }) : ''));
 const timeText = computed(() => {
   const s = props.segment;
   if (!s.startTime) return '';
@@ -66,7 +77,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 
 <template>
   <button
-    ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing }]"
+    ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing, narrow }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-current="current || undefined"
     :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
@@ -75,7 +86,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
     <template v-else-if="variant === 'block'">
       <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
       <span v-if="showTime" class="meta">
-        <span class="time" data-testid="event-chip-time">{{ timeText }}</span><span v-if="showDuration" class="dur"> · {{ duration }}</span>
+        <span class="time" data-testid="event-chip-time">{{ timeText }}<template v-if="timeLeft"> · {{ timeLeft }}</template></span><span v-if="!timeLeft && showDuration" class="dur"> · {{ duration }}</span>
       </span>
       <span v-if="showLocation" class="meta" data-testid="event-chip-location">{{ ev.location }}</span>
       <span v-if="descLines > 0" class="desc" data-testid="event-chip-description" :style="{ '--dlines': descLines }">{{ ev.description }}</span>
@@ -112,7 +123,7 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 .allday.nofirst { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .allday.nolast { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-.block { container-type: inline-size; height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: var(--r-block); box-shadow: var(--block-sh); }
+.block { height: 100%; flex-direction: column; justify-content: flex-start; gap: 0; padding: 2px 5px 2px 6px; border-radius: var(--r-block); box-shadow: var(--block-sh); }
 .block .title {
   font: var(--md-sys-typescale-label-large); font-size: 13px; line-height: 16px; display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines); line-clamp: var(--lines); overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: auto; white-space: normal; flex: none;
@@ -121,11 +132,9 @@ html[data-calm='true'] .ev { filter: saturate(0.55); }
 .block .desc { font-size: 11px; line-height: 14px; opacity: 0.8; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--dlines); line-clamp: var(--dlines); overflow: hidden; overflow-wrap: break-word; flex: none; }
 .block.nofirst { border-top-left-radius: 0; border-top-right-radius: 0; }
 .block.nolast { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-@container (max-width: 76px) {
-  .block { padding: 1px 2px 1px 3px; }
-  .block .title { font-size: 11px; line-height: 13px; letter-spacing: -0.2px; }
-  .block .dur { display: none; }
-}
+.block.narrow { padding: 1px 2px 1px 3px; }
+.block.narrow .title { font-size: 11px; line-height: 13px; letter-spacing: -0.2px; }
+.block.narrow .dur { display: none; }
 
 /* phones: smaller type, tight padding, no ellipsis in the month: clip with a fade instead */
 @media (max-width: 767.98px) {

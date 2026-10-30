@@ -2,15 +2,17 @@ package lan.mordor.calendar.widget;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import lan.mordor.calendar.BuildConfig;
 
 /**
  * The calendar server of the app and the widget (feature android-app). Configuration, not a choice: always the public
- * instance (owner 2026-10-23, ADR 0022; the first-start chooser between it and the home-network server is gone). The app
+ * instance (owner 2026-10-23, ADR 0022; the first-start chooser between it and the home-network server is gone), whose
+ * URL is build configuration (CAL_SERVER_URL / -PcalServerUrl, see android/app/build.gradle), not source. The app
  * loads it, the widget calls its API.
  */
 public final class ServerConfig {
-    /** The public instance, reached from anywhere over HTTPS. */
-    public static final String BASE_URL = "https://cal.example.org";
+    /** The public instance, reached from anywhere over HTTPS; set at build time. */
+    public static final String BASE_URL = BuildConfig.SERVER_URL;
     /** Where the app with the chooser kept the choice. */
     static final String LEGACY_PREFS = "calendar_server";
 

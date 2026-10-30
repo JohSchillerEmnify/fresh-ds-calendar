@@ -68,6 +68,13 @@ export interface Reminders {
   minutes: number[];
 }
 
+/** A place picked from the place search (feature event-location): its name and position (WGS 84 degrees). */
+export interface Place {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface CalendarEvent {
   kind: 'event';
   id: string;
@@ -75,6 +82,8 @@ export interface CalendarEvent {
   title: string;
   description: string;
   location: string;
+  /** The place picked for the location; absent for typed text (the location then shows no map). */
+  place?: Place;
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;
@@ -213,6 +222,8 @@ export interface Prefs {
   approachBar: boolean;
   approachWindowHours: ApproachWindowHours;
   approachingCard: boolean;
+  /** "Time left" in the Approaching card's line; off, the running entry shows it instead. */
+  approachTimeLeft: boolean;
   taskCategories: boolean;
   /** "Show tasks calendar in Google": the tasks calendar is not hidden in Google's calendar list. */
   tasksCalendarVisible: boolean;
@@ -250,10 +261,28 @@ export interface Prefs {
   weekTwoRowTop: 3 | 4;
   /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off. */
   minEventMinutes: MinEventMinutes;
+  /** Overlapping events side by side in the day view before they cascade (default 4). */
+  daySideBySide: DaySideBySide;
+  /** Overlapping events side by side in the week view (and the phone widget's week) before they cascade (default 2). */
+  weekSideBySide: WeekSideBySide;
+  /** What the top bar shows of the check-in streak: nothing (the default), the flame or the plant (feature plant-companion). */
+  streak: StreakChoice;
+  /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
+  syncIndicator: boolean;
+  /** The phone's top bar: two rows (the default) or one row (feature header-layout); not part of the theme. */
+  headerLayout: HeaderLayout;
 }
 
+/** The "Header layout" choice in Settings › Calendar (phones only). */
+export type HeaderLayout = 'two-rows' | 'one-row';
+/** The "Streak" choice in Settings › Focus & motivation. */
+export type StreakChoice = 'off' | 'flame' | 'plant';
 /** The minimum event length choices, in minutes (0 = off). */
 export type MinEventMinutes = 0 | 15 | 30;
+/** The "Day view: events side by side" choices. */
+export type DaySideBySide = 2 | 3 | 4;
+/** The "Week view: events side by side" choices. */
+export type WeekSideBySide = 2 | 3;
 
 /** Bedtime mode: fixed times, or follow the first timed appointment of the next day. */
 export type BedtimeMode = 'fixed' | 'dynamic';
@@ -292,8 +321,6 @@ export interface Settings {
   sounds: boolean;
   calmMode: boolean;
   ignoreSystemMotion: boolean;
-  streakFlame: boolean;
-  plant: boolean;
   sunflowers: SunflowersMode;
   categories: Category[];
   updated: DateTime;
@@ -325,6 +352,10 @@ export interface AppConfig {
   apk: { versionCode: number; versionName: string; certSha256?: string } | null;
   /** Names of the optional plugins this deployment turned on (ADR 0004), e.g. `door`. */
   plugins: string[];
+  /** The place search (Photon) the device asks directly for location suggestions (feature event-location). */
+  placeSearchUrl: string;
+  /** The map picture template with `{z}`, `{x}`, `{y}` (OpenStreetMap tiles). */
+  mapTileUrl: string;
 }
 
 /** One plain-English line of CHANGELOG.md (`GET /api/release-notes`). */
@@ -350,6 +381,8 @@ export interface CreateEventInput {
   title: string;
   description?: string;
   location?: string;
+  /** The picked place; null drops it, absent keeps it (update). */
+  place?: Place | null;
   allDay: boolean;
   start: DateTime | LocalDate;
   end: DateTime | LocalDate;

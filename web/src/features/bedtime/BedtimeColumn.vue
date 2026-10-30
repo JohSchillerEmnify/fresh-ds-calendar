@@ -12,7 +12,8 @@ import { nextIsoDate, useBedtimeWindows } from './useBedtime';
 import { t } from '@/i18n';
 
 const props = defineProps<GridLayerProps>();
-const windows = useBedtimeWindows(() => ({ from: props.date, to: nextIsoDate(props.date) }));
+// up to the day after tomorrow: a night that starts at the next midnight still puts its moon on this day (24:00)
+const windows = useBedtimeWindows(() => ({ from: props.date, to: nextIsoDate(nextIsoDate(props.date)) }));
 /** The pieces of the nights that lie on this day. */
 const pieces = computed(() => windows.value.flatMap((w) => {
   const p = clipToDay(w, props.date);
@@ -23,11 +24,12 @@ const px = (min: number) => (min / 60) * props.hourHeight;
 
 <template>
   <div
-    v-for="p in pieces" :key="p.w.from" class="bedtime-band" :class="{ starts: p.startsHere, ends: p.endsHere }" data-testid="bedtime-band"
+    v-for="p in pieces" :key="p.w.from" class="bedtime-band" :class="{ starts: p.startsHere, ends: p.endsHere, midnight: p.endMin === p.startMin }"
+    :data-testid="p.endMin > p.startMin ? 'bedtime-band' : undefined"
     :data-date="date" :data-start="pieceTime(p.startMin)" :data-end="pieceTime(p.endMin)" :data-from="p.w.from" :data-to="p.w.to" :data-mode="p.w.mode"
     :style="{ top: px(p.startMin) + 'px', height: px(p.endMin - p.startMin) + 'px' }"
   >
-    <span v-if="p.startsHere" class="mark moon" role="img" data-testid="bedtime-moon" :aria-label="t('bedtime.moon', { time: p.w.from.slice(11) })"><IconBedtime /></span>
+    <span v-if="p.startsHere" class="mark moon" role="img" data-testid="bedtime-moon" :data-date="date" :data-at="pieceTime(p.startMin)" :aria-label="t('bedtime.moon', { time: p.w.from.slice(11) })"><IconBedtime /></span>
     <span v-if="p.endsHere" class="mark sun" role="img" data-testid="bedtime-sun" :aria-label="t('bedtime.sun', { time: p.w.to.slice(11) })"><IconSunny /></span>
   </div>
 </template>
@@ -41,4 +43,7 @@ const px = (min: number) => (min / 60) * props.hourHeight;
 .mark :deep(svg) { width: 12px; height: 12px; }
 .moon { top: 3px; }
 .sun { bottom: 3px; }
+/* a bedtime at midnight: no band, only the edge line and the moon just above the end of the day, inside the column */
+.midnight { border-top: 0; border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-on-surface) 55%, transparent); transform: translateY(-1px); }
+.midnight .moon { top: auto; bottom: 3px; }
 </style>

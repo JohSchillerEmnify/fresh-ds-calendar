@@ -34,8 +34,6 @@ describe('themed top bar scenes', () => {
   it.each<[SceneName, string[]]>([
     ['spring', ['sprouting-tree', 'lily-of-the-valley', 'first-flower', 'butterfly', 'cat']],
     ['summer', ['sunflower', 'sun', 'butterfly', 'cat']],
-    ['fall', ['butterfly', 'cat']],
-    ['winter', ['butterfly', 'cat']],
     ['mordor', ['butterfly', 'cat']],
     ['halloween', ['moon', 'bare-tree', 'jack-o-lantern', 'pumpkin', 'bat', 'cat']],
   ])('%s shows its own parts, a visiting butterfly (a bat at Halloween) and one cat', (scene, want) => {
@@ -52,12 +50,25 @@ describe('themed top bar scenes', () => {
     w.unmount();
   });
 
-  it('a seasonal scene\'s butterfly passes once while it moves (~10 s) and does not come back', async () => {
+  it.each<[SceneName, string[], string]>([
+    ['fall', ['autumn-tree', 'leaf-pile', 'kite', 'leaf-litter', 'cat'], 'bird-flock'],
+    ['winter', ['snowy-tree', 'snowman', 'sledge', 'snow-drift', 'cat'], 'robin'],
+  ])('%s shows its props, the cat and its own visitor instead of a butterfly', (scene, want, visitor) => {
+    const w = mountScene(scene, true);
+    const root = w.get('[data-testid="top-bar-scene"]').element;
+    for (const p of want) expect(parts(root, p), p).toBeGreaterThan(0);
+    expect(parts(root, 'cat')).toBe(1);
+    expect(parts(root, visitor)).toBe(1);
+    expect(parts(root, 'butterfly')).toBe(0);
+    w.unmount();
+  });
+
+  it.each<SceneName>(['spring', 'fall'])('a seasonal scene\'s visitor (%s) passes once while it moves (~10 s) and does not come back', async (scene) => {
     vi.useFakeTimers();
     enableTimerCounting();
     const before = window.__appTimers ?? 0;
-    const w = mountScene('fall');
-    const has = () => parts(w.element, 'butterfly');
+    const w = mountScene(scene);
+    const has = () => parts(w.element, scene === 'fall' ? 'bird-flock' : 'butterfly');
     expect(has()).toBe(1);
     await vi.advanceTimersByTimeAsync(BUTTERFLY_VISIT_MS);
     expect(has()).toBe(0);
@@ -93,6 +104,9 @@ describe('themed top bar scenes', () => {
     setAnimationSetting('reduced');
     const r = mountScene('winter', true);
     expect(parts(r.element, 'butterfly')).toBe(0);
+    expect(parts(r.element, 'robin')).toBe(0);
+    // the props stay in the still picture
+    expect(parts(r.element, 'snowman')).toBe(1);
     r.unmount();
     const m = mountScene('mordor', true);
     expect(m.get('[data-part="butterfly"]').classes()).toContain('rest');

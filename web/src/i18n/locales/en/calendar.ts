@@ -145,6 +145,12 @@ export default {
       location: 'Location',
       description: 'Description',
     },
+    place: {
+      suggestions: 'Places',
+      credit: '© OpenStreetMap',
+      map: 'Map of {name}',
+      offline: 'The map shows when you are online',
+    },
     validation: {
       titleRequired: 'Title is required',
       titleLong: 'Title must be at most 200 characters',
@@ -170,6 +176,7 @@ export default {
     },
   },
   drag: {
+    newBlock: 'New · {from} – {to}',
     moveFailed: 'Could not move “{title}”. {reason}',
     resizeFailed: 'Could not resize “{title}”. {reason}',
   },

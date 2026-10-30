@@ -12,7 +12,7 @@ import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardA
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import { NAV_POSITIONS } from '@/lib/navPosition';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, MinEventMinutes, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, HeaderLayout, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -130,6 +130,12 @@ const undatedDoneOptions = computed(() => [
 const minEventOptions = computed(() => ([0, 15, 30] as const).map((n) => ({
   value: String(n), label: n ? t('settings.calendar.minEventLength.minutes', { n }) : t('settings.calendar.minEventLength.off'), testid: `settings-min-event-length-${n}`,
 })));
+/** "Up to N" options of the day or week "events side by side" setting (values are strings for the segmented control). */
+const sideBySideOptions = (view: 'day' | 'week', ns: readonly number[]) => computed(() => ns.map((n) => ({
+  value: String(n), label: t('settings.calendar.sideBySide.upTo', { n }), testid: `settings-${view}-side-by-side-${n}`,
+})));
+const daySideOptions = sideBySideOptions('day', [2, 3, 4]);
+const weekSideOptions = sideBySideOptions('week', [2, 3]);
 const weekSplitOptions = [
   { value: '4', label: '4 / 3', testid: 'settings-week-two-row-split-4' },
   { value: '3', label: '3 / 4', testid: 'settings-week-two-row-split-3' },
@@ -157,6 +163,8 @@ const withCurrent = (offered: number[], current: number) => (offered.includes(cu
 const sleepOptions = computed(() => withCurrent([6, 7, 8, 9, 10].map((h) => h * 60), bt.value.sleepMinutes).map((m) => ({ value: String(m), label: t('bedtime.settings.sleep.hours', { count: m / 60 }, m / 60) })));
 const leadOptions = computed(() => withCurrent([0, 15, 30, 45, 60, 90, 120], bt.value.leadMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.lead.none') : t('bedtime.settings.lead.minutes', { count: m }) })));
 const reminderOptions = computed(() => withCurrent([0, 5, 10, 15, 30, 45, 60], bt.value.reminderMinutes).map((m) => ({ value: String(m), label: m === 0 ? t('bedtime.settings.reminder.off') : t('bedtime.settings.reminder.minutes', { count: m }) })));
+const headerLayouts = computed(() => (['two-rows', 'one-row'] as const).map((v) => ({ value: v, label: t(v === 'two-rows' ? 'settings.calendar.headerLayout.twoRows' : 'settings.calendar.headerLayout.oneRow') })));
+const streakOptions = computed(() => (['off', 'flame', 'plant'] as const).map((v) => ({ value: v, label: t(`settings.motivation.streak.${v}`) })));
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
 // --- categories ---------------------------------------------------------------------------
@@ -239,12 +247,17 @@ async function resetDemo() {
           <div class="row"><Select class="fw" :model-value="s.defaultView" :options="views" :label="t('settings.calendar.defaultView')" data-testid="settings-default-view" @update:model-value="save({ defaultView: $event as ViewName })" /></div>
           <div class="row"><Select class="fw" :model-value="s.defaultEventColorId ?? ''" :options="colorOptions" :label="t('settings.calendar.defaultEventColor')" data-testid="settings-default-event-color" @update:model-value="save({ defaultEventColorId: $event || null })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.calendar.minEventLength.label') }}</span><span class="sub">{{ t('settings.calendar.minEventLength.hint') }}</span><SegmentedButton :model-value="String(labs.minEventMinutes)" :options="minEventOptions" :label="t('settings.calendar.minEventLength.label')" data-testid="settings-min-event-length" @update:model-value="savePrefs({ minEventMinutes: Number($event) as MinEventMinutes })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.day') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.daySideBySide)" :options="daySideOptions" :label="t('settings.calendar.sideBySide.day')" data-testid="settings-day-side-by-side" @update:model-value="savePrefs({ daySideBySide: Number($event) as DaySideBySide })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.sideBySide.week') }}</span><span class="sub">{{ t('settings.calendar.sideBySide.hint') }}</span><SegmentedButton :model-value="String(labs.weekSideBySide)" :options="weekSideOptions" :label="t('settings.calendar.sideBySide.week')" data-testid="settings-week-side-by-side" @update:model-value="savePrefs({ weekSideBySide: Number($event) as WeekSideBySide })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.calendar.headerLayout.label') }}</span><span class="sub">{{ t('settings.calendar.headerLayout.hint') }}</span><SegmentedButton :model-value="labs.headerLayout" :options="headerLayouts" :label="t('settings.calendar.headerLayout.label')" data-testid="settings-header-layout" @update:model-value="savePrefs({ headerLayout: $event as HeaderLayout })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachingCard.label') }}</span><span class="sub">{{ t('settings.calendar.approachingCard.hint') }}</span></div><Switch :model-value="labs.approachingCard" :label="t('settings.calendar.approachingCard.label')" data-testid="settings-approaching-card" @update:model-value="savePrefs({ approachingCard: $event })" /></div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachTimeLeft.label') }}</span><span class="sub">{{ t('settings.calendar.approachTimeLeft.hint') }}</span></div><Switch :model-value="labs.approachTimeLeft" :label="t('settings.calendar.approachTimeLeft.label')" data-testid="settings-approach-time-left" @update:model-value="savePrefs({ approachTimeLeft: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.approachBar.label') }}</span><span class="sub">{{ t('settings.calendar.approachBar.hint') }}</span></div><Switch :model-value="labs.approachBar" :label="t('settings.calendar.approachBar.label')" data-testid="settings-approach-bar" @update:model-value="savePrefs({ approachBar: $event })" /></div>
           <div class="row">
             <Select class="grow" :model-value="approachChoice" :options="approachWindows" :label="t('settings.calendar.approachWindow.label')" data-testid="settings-approach-window" @update:model-value="pickApproachWindow" />
             <TextField v-if="approachChoice === 'custom'" v-model="customHours" class="hours" type="number" inputmode="numeric" min="1" max="24" step="1" :label="t('settings.calendar.approachWindow.customLabel')" data-testid="settings-approach-window-custom" :error="customHoursError" @commit="commitCustomHours" />
           </div>
+          <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.syncIndicator.label') }}</span><span class="sub">{{ t('settings.calendar.syncIndicator.hint') }}</span></div><Switch :model-value="labs.syncIndicator" :label="t('settings.calendar.syncIndicator.label')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.tasksCalendar.label') }}</span><span class="sub">{{ t('settings.calendar.tasksCalendar.hint') }}</span></div><Switch :model-value="labs.tasksCalendarVisible" :label="t('settings.calendar.tasksCalendar.label')" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.leftHanded.label') }}</span><span class="sub">{{ t('settings.leftHanded.hint') }}</span></div><Switch :model-value="labs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><SegmentedButton :model-value="labs.navPhone" :options="navOptions('phone')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.phone')}`" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPosition })" /></div>
@@ -277,8 +290,7 @@ async function resetDemo() {
         <section id="s-motivation" class="card" data-testid="settings-section" data-section="motivation" aria-labelledby="h-focus">
           <h2 id="h-focus">{{ title('motivation') }}</h2>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.motivation.calmMode.label') }}</span><span class="sub">{{ t('settings.motivation.calmMode.hint') }}</span></div><Switch :model-value="s.calmMode" :label="t('settings.motivation.calmMode.label')" data-testid="settings-calm-mode" @update:model-value="save({ calmMode: $event })" /></div>
-          <div class="row"><span class="lab grow">{{ t('settings.motivation.streakFlame') }}</span><Switch :model-value="s.streakFlame" :label="t('settings.motivation.streakFlame')" data-testid="settings-streak-flame" @update:model-value="save({ streakFlame: $event })" /></div>
-          <div class="row"><span class="lab grow">{{ t('settings.plant') }}</span><Switch :model-value="s.plant" :label="t('settings.plant')" data-testid="settings-plant" @update:model-value="save({ plant: $event })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.motivation.streak.label') }}</span><SegmentedButton :model-value="labs.streak" :options="streakOptions" :label="t('settings.motivation.streak.label')" data-testid="settings-streak" @update:model-value="savePrefs({ streak: $event as StreakChoice })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.sunflowers.label') }}</span><span v-if="!fieldActive" class="sub" data-testid="settings-sunflowers-hint">{{ t('settings.sunflowers.hint') }}</span><SegmentedButton :model-value="s.sunflowers" :options="sunflowerModes" :label="t('settings.sunflowers.label')" :disabled="!fieldActive" data-testid="settings-sunflowers" @update:model-value="save({ sunflowers: $event as SunflowersMode })" /></div>
           <div v-if="currentStreak !== null" class="row"><span class="lab grow">{{ t('settings.motivation.currentStreak') }}</span><StreakFlame :count="currentStreak" /></div>
           <div class="row"><span class="lab grow">{{ t('settings.motivation.bestStreak') }}</span><span class="val" data-testid="settings-best-streak">{{ best ?? '–' }}</span></div>
@@ -389,7 +401,8 @@ h1 { margin: 0; font: var(--md-sys-typescale-title-large); }
   .toc { display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(var(--safe-top) + 64px); align-self: start; padding-top: 4px; }
 }
 .tocitem { padding: 10px 16px; border-radius: var(--md-sys-shape-corner-full); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); text-decoration: none; }
-.tocitem:hover { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+/* touch screens: no hover state left behind after a tap */
+@media (hover: hover) { .tocitem:hover { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); } }
 .content { display: flex; flex-direction: column; gap: 12px; padding: 4px 12px 0; max-width: 640px; width: 100%; margin: 0 auto; }
 .card { scroll-margin-top: calc(var(--safe-top) + 64px); background: var(--md-sys-color-surface-container-low); border-radius: var(--md-sys-shape-corner-extra-large); padding: 8px 4px 8px; }
 h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-medium); color: var(--md-sys-color-primary); }
@@ -399,7 +412,8 @@ h2 { margin: 0; padding: 12px 16px 4px; font: var(--md-sys-typescale-title-mediu
 .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .fw { width: 100%; }
 .link { width: 100%; text-align: left; color: inherit; border-radius: var(--md-sys-shape-corner-large); }
-.link:hover { background: var(--md-sys-color-surface-container-high); }
+/* touch screens: no hover state left behind after a tap */
+@media (hover: hover) { .link:hover { background: var(--md-sys-color-surface-container-high); } }
 .sublab { display: block; padding: 4px 16px; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
 .note { margin: 0; padding: 0 16px; }
 .hours { flex: none; width: 104px; }

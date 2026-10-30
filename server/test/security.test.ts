@@ -382,7 +382,7 @@ describe('M7 fail closed', () => {
     expect(() => assertSafeToStart(cfg({}), { NODE_ENV: 'production', ALLOW_INSECURE_MOCK: '1' })).not.toThrow();
     expect(() => assertSafeToStart(cfg({ PUBLIC_URL: 'http://localhost:3000' }), {})).not.toThrow();
     expect(() => assertSafeToStart(cfg({}), {})).not.toThrow();
-    expect(() => assertSafeToStart(cfg({ PROVIDER: 'google', PUBLIC_URL: 'https://cal.example' }), { NODE_ENV: 'production' })).not.toThrow();
+    expect(() => assertSafeToStart(cfg({ PROVIDER: 'google', PUBLIC_URL: 'https://cal.example' }), { NODE_ENV: 'production', TOKEN_ENC_KEY: Buffer.alloc(32, 1).toString('base64') })).not.toThrow();
   });
 });
 
@@ -396,7 +396,7 @@ describe('M10 restore and backup hygiene', () => {
     registerSharedListsBackup({ registerSource: (s: never) => { src = s; } } as never, { reload() { /* not needed */ } } as never, dir);
     return src!;
   };
-  const list = (id: string, owner: string) => JSON.stringify({ version: 1, id, rev: 1, owner, members: [], data: {} });
+  const list = (id: string, owner: string) => JSON.stringify({ version: 1, id, rev: 1, owner, members: [], updated: '2026-10-12T08:00:00+02:00', data: { items: [] } });
   const file = (id: string) => path.join(dir, 'shared', 'lists', `${id}.json`);
 
   it('restore refuses a foreign-owned list and keeps the existing one', () => {

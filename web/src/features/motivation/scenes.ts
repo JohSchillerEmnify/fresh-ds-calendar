@@ -25,7 +25,7 @@ const lively = (scene: Exclude<SceneName, 'sunflowers' | 'none' | 'custom'>, bac
  * Add a scene = add an entry (+ the name to SceneName). `none` renders nothing.
  */
 export function buildScenes(p: ScenePieces): Record<SceneName, Component | null> {
-  const season = (s: BackdropScene): Component => lively(s, () => h(p.SeasonScene, { season: s }), p);
+  const season = (s: BackdropScene): Component => lively(s, () => h(p.SeasonScene, { season: s, bar: true }), p);
   return {
     sunflowers: SunflowerScene,
     mordor: lively('mordor', () => h(p.MordorIntro), p),

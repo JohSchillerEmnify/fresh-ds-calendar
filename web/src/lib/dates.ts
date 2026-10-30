@@ -144,12 +144,15 @@ export function shiftPeriod(view: ViewKind, anchor: Date, dir: 1 | -1): Date {
   return addDays(anchor, dir);
 }
 
-/** Period title in the active language: en-GB for English, `Intl` de-DE otherwise (feature language). */
-export function periodTitle(view: ViewKind, anchor: Date): string {
-  if (language.value !== 'en') return localizedPeriodTitle(view, anchor);
+/**
+ * Period title in the active language: en-GB for English, `Intl` de-DE otherwise (feature language). `short` shortens
+ * only the day view's title ("Mon, 12 Oct"; the one-row header, feature header-layout).
+ */
+export function periodTitle(view: ViewKind, anchor: Date, short = false): string {
+  if (language.value !== 'en') return localizedPeriodTitle(view, anchor, short);
   if (view === 'year') return format(anchor, 'yyyy');
   if (view === 'month') return format(anchor, 'MMMM yyyy');
-  if (view === 'day') return format(anchor, 'EEEE, d MMMM yyyy');
+  if (view === 'day') return format(anchor, short ? 'EEE, d MMM' : 'EEEE, d MMMM yyyy');
   const days = weekDays(anchor);
   const [a, b] = [days[0], days[6]];
   if (a.getFullYear() !== b.getFullYear()) return `${format(a, 'd MMM yyyy')} – ${format(b, 'd MMM yyyy')}`;
@@ -158,9 +161,10 @@ export function periodTitle(view: ViewKind, anchor: Date): string {
 }
 
 /** The period title through `Intl` (German and the fun languages). */
-function localizedPeriodTitle(view: ViewKind, anchor: Date): string {
+function localizedPeriodTitle(view: ViewKind, anchor: Date, short: boolean): string {
   if (view === 'year') return String(anchor.getFullYear());
   if (view === 'month') return intl({ month: 'long', year: 'numeric' }).format(anchor);
+  if (view === 'day' && short) return intl({ weekday: 'short', day: 'numeric', month: 'short' }).format(anchor);
   if (view === 'day') return intl({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(anchor);
   const days = weekDays(anchor);
   const [a, b] = [days[0], days[6]];

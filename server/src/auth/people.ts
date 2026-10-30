@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
+import { isEnvelope, open, seal, validKey } from '../lib/secretBox.js';
 
 /** Case-insensitive allow-list check (Google addresses are case-insensitive for our purposes). */
 export function isAllowed(email: string, allowed: readonly string[]): boolean {
@@ -33,8 +34,31 @@ export function listUserSubs(dataDir: string): string[] {
 export const userTokenFile =(dataDir: string, sub: string): string => path.join(userDir(dataDir, sub), 'google-token.json');
 const legacyTokenFile = (dataDir: string): string => path.join(dataDir, 'google-token.json');
 
+/** Token files that failed to decrypt, so each is logged once (not on every request). */
+const loggedBad = new Set<string>();
+
+/**
+ * Reads a token file: an envelope is decrypted with `TOKEN_ENC_KEY` (wrong key or tampering = null, logged once);
+ * a legacy plaintext file is returned and, when a key is set, re-written encrypted.
+ */
+function readTokenFile(file: string): { refresh_token?: string; scope?: string } | null {
+  const raw = readJson<unknown>(file);
+  const key = process.env.TOKEN_ENC_KEY;
+  if (isEnvelope(raw)) {
+    const v = open(raw, key) as { refresh_token?: string; scope?: string } | null;
+    if (!v && !loggedBad.has(file)) {
+      loggedBad.add(file);
+      console.warn(`token file ${path.basename(path.dirname(file))}/google-token.json cannot be decrypted (wrong TOKEN_ENC_KEY or damaged): treated as not connected`);
+    }
+    return v;
+  }
+  const plain = raw as { refresh_token?: string; scope?: string } | null;
+  if (plain && validKey(key) && typeof plain.refresh_token === 'string') writeJsonAtomic(file, seal(plain, key), 0o600);
+  return plain;
+}
+
 export function readUserToken(dataDir: string, sub: string): string | null {
-  return readJson<{ refresh_token?: string }>(userTokenFile(dataDir, sub))?.refresh_token ?? null;
+  return readTokenFile(userTokenFile(dataDir, sub))?.refresh_token ?? null;
 }
 
 /** The Google scope that lets the app use its own hidden Drive folder (backups, feature drive-backup). */
@@ -48,17 +72,19 @@ export const hasCalendarScope = (scope: string | null | undefined): boolean => (
 
 /** The scopes Google granted with the stored token; null for tokens stored before the scope was recorded. */
 export function readUserScope(dataDir: string, sub: string): string | null {
-  return readJson<{ scope?: string }>(userTokenFile(dataDir, sub))?.scope ?? null;
+  return readTokenFile(userTokenFile(dataDir, sub))?.scope ?? null;
 }
 
 /** Stores the refresh token (0600) together with the scopes Google granted, when known. */
 export function writeUserToken(dataDir: string, sub: string, refreshToken: string, scope?: string | null): void {
-  writeJsonAtomic(userTokenFile(dataDir, sub), { refresh_token: refreshToken, ...(scope != null ? { scope } : {}) }, 0o600);
+  const body = { refresh_token: refreshToken, ...(scope != null ? { scope } : {}) };
+  const key = process.env.TOKEN_ENC_KEY;
+  writeJsonAtomic(userTokenFile(dataDir, sub), validKey(key) ? seal(body, key) : body, 0o600);
 }
 
 /** Whether the person's token was granted the Drive app-folder scope; tokens stored before backups existed have none. */
 export function hasDriveScope(dataDir: string, sub: string): boolean {
-  const scope = readJson<{ scope?: string }>(userTokenFile(dataDir, sub))?.scope;
+  const scope = readTokenFile(userTokenFile(dataDir, sub))?.scope;
   return typeof scope === 'string' && scope.split(/\s+/).includes(DRIVE_APPDATA_SCOPE);
 }
 
@@ -68,7 +94,7 @@ export function hasDriveScope(dataDir: string, sub: string): boolean {
  */
 export function claimLegacyToken(dataDir: string, sub: string): string | null {
   const legacy = legacyTokenFile(dataDir);
-  const rt = readJson<{ refresh_token?: string }>(legacy)?.refresh_token;
+  const rt = readTokenFile(legacy)?.refresh_token;
   if (!rt) return null;
   const users = path.join(dataDir, 'users');
   const anyone = fs.existsSync(users) && fs.readdirSync(users).some((u) => fs.existsSync(path.join(users, u, 'google-token.json')));

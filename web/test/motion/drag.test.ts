@@ -10,6 +10,16 @@ const rect = (l: number, t: number, w: number, h: number) => ({ left: l, top: t,
 const down = (type = 'touch', x = 50, y = 50) => el.dispatchEvent(pe('pointerdown', { x, y, pointerType: type }));
 const move = (x: number, y: number, type = 'touch') => window.dispatchEvent(pe('pointermove', { x, y, pointerType: type }));
 const up = (x: number, y: number, type = 'touch') => window.dispatchEvent(pe('pointerup', { x, y, pointerType: type }));
+/** A touch event with one finger at x, y (`released`: touchend/touchcancel, no finger left on the screen). */
+const touch = (type: string, x: number, y: number, released = false, others: { identifier: number; clientX: number; clientY: number }[] = []) => {
+  const e = new Event(type, { bubbles: true, cancelable: true });
+  const t = { identifier: 1, clientX: x, clientY: y };
+  Object.defineProperty(e, 'touches', { value: released ? others : [...others, t] });
+  Object.defineProperty(e, 'changedTouches', { value: [t] });
+  return e;
+};
+/** Finger down on the card the way a browser sends it: pointerdown, then touchstart. */
+const fingerDown = (x = 50, y = 50) => { down('touch', x, y); el.dispatchEvent(touch('touchstart', x, y)); };
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -23,7 +33,7 @@ beforeEach(() => {
   document.body.appendChild(el);
 });
 afterEach(() => {
-  clearEffects(); el.remove(); removeWaapi(); vi.useRealTimers(); vi.unstubAllGlobals();
+  clearEffects(); el.remove(); document.querySelectorAll('[data-drag-ghost]').forEach((g) => g.remove()); removeWaapi(); vi.useRealTimers(); vi.unstubAllGlobals();
 });
 
 const target = { key: 'slot', dx: 100, dy: 60 };
@@ -215,6 +225,152 @@ describe('drag state machine', () => {
     expect(c.state).toBe('idle');
     expect(onDrop).not.toHaveBeenCalled();
   });
+  // owner, 2026-10-25: iOS WebKit decides at touchstart whether touch moves can stop scrolling, from the non-passive
+  // touchmove listeners present then: one added on pointerdown is too late
+  it('touch: the card has its own non-passive touchmove listener from creation until destroy', () => {
+    const add = vi.spyOn(el, 'addEventListener');
+    const rem = vi.spyOn(el, 'removeEventListener');
+    const { c } = make();
+    const reg = add.mock.calls.find((a) => a[0] === 'touchmove');
+    expect(reg?.[2]).toMatchObject({ passive: false });
+    c.destroy();
+    expect(rem.mock.calls.some((a) => a[0] === 'touchmove' && a[1] === reg![1])).toBe(true);
+  });
+  it('touch: the card\'s own listener prevents moves while lifted', () => {
+    const { c } = make();
+    const e1 = touch('touchmove', 50, 50);
+    expect(el.dispatchEvent(e1)).toBe(true);
+    down();
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    const e2 = touch('touchmove', 60, 60);
+    el.dispatchEvent(e2);
+    expect(e2.defaultPrevented).toBe(true);
+    c.destroy();
+  });
+  it('touch: a move while the press is still pending is never prevented (iOS lets the first move decide on scrolling)', () => {
+    const { c } = make();
+    fingerDown();
+    expect(c.state).toBe('pending');
+    const e = touch('touchmove', 52, 51);
+    el.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+    c.destroy();
+  });
+  it('touch: a pointercancel while lifted (the browser started a pan) keeps the drag and follows the touch to the drop', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    expect(c.state).toBe('dragging');
+    el.dispatchEvent(touch('touchmove', 80, 90));
+    vi.advanceTimersByTime(50);
+    expect(el.style.transform).toContain('scale(1.05)');
+    el.dispatchEvent(touch('touchend', 80, 90, true));
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('touch: the touch events carry a lifted drag even when the pointer events just stop (no pointercancel, a sideways move on iOS)', async () => {
+    const at: number[][] = [];
+    const { c, onDrop } = make({ hitTest: (x, y) => { at.push([x, y]); return target; } });
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    el.dispatchEvent(touch('touchmove', 120, 50));
+    expect(at.at(-1)).toEqual([120, 50]);
+    el.dispatchEvent(touch('touchend', 120, 50, true));
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+  });
+  it('touch: after a pointercancel only the first finger steers, a second one is ignored', () => {
+    const at: number[][] = [];
+    const { c } = make({ hitTest: (x, y) => { at.push([x, y]); return target; } });
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    // a second finger lands and moves; it is listed first
+    el.dispatchEvent(touch('touchmove', 80, 90, false, [{ identifier: 2, clientX: 300, clientY: 300 }]));
+    expect(at.at(-1)).toEqual([80, 90]);
+    // the second finger lifts: the drag goes on
+    el.dispatchEvent(Object.defineProperties(new Event('touchend', { bubbles: true }), {
+      touches: { value: [{ identifier: 1, clientX: 80, clientY: 90 }] }, changedTouches: { value: [{ identifier: 2, clientX: 300, clientY: 300 }] },
+    }));
+    expect(c.state).toBe('dragging');
+    c.destroy();
+  });
+  it('pen: a pointercancel while lifted with no touch events (pen on Windows/ChromeOS) springs back instead of staying lifted', async () => {
+    const { c, onDrop } = make();
+    down('pen');
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'pen' }));
+    expect(c.state).toBe('returning');
+    expect(onDrop).not.toHaveBeenCalled();
+    finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('touch: a touchcancel while lifted springs back', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    el.dispatchEvent(touch('touchcancel', 80, 90, true));
+    expect(c.state).toBe('returning');
+    expect(onDrop).not.toHaveBeenCalled();
+    finishAll(); await flush();
+  });
+  it('the click right after a drop never reaches an ancestor\'s capture listener (phone month opens the day on a chip click)', async () => {
+    const seen = vi.fn();
+    el.parentElement!.addEventListener('click', seen, true);
+    make();
+    down();
+    vi.advanceTimersByTime(400);
+    up(50, 50);
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(500);
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).toHaveBeenCalledTimes(1);
+    el.parentElement!.removeEventListener('click', seen, true);
+    await flush(); finishAll(); await flush();
+  });
+  it('back-to-back drops: the click after the second drop is still swallowed (the first drop\'s timer does not disarm it)', async () => {
+    const seen = vi.fn();
+    el.parentElement!.addEventListener('click', seen, true);
+    make();
+    const mouseDrop = () => { down('mouse'); move(70, 50, 'mouse'); up(70, 50, 'mouse'); };
+    mouseDrop();
+    await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(300);
+    mouseDrop();
+    await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(150); // 450 ms after the first drop, 150 ms after the second
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(seen).not.toHaveBeenCalled();
+    el.parentElement!.removeEventListener('click', seen, true);
+  });
+  it('a press that may become a drag never starts a text selection', () => {
+    const { c } = make();
+    const sel = () => { const e = new Event('selectstart', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; };
+    expect(sel()).toBe(false);
+    down();
+    expect(sel()).toBe(true);
+    vi.advanceTimersByTime(400);
+    expect(sel()).toBe(true);
+    c.destroy();
+    expect(sel()).toBe(false);
+  });
+  it('touch: a pointercancel before the long press gives way to the scroll', () => {
+    const { c } = make();
+    down();
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    expect(c.state).toBe('idle');
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('idle');
+  });
   it('pointercancel cancels', async () => {
     const { c } = make();
     down('mouse'); move(70, 50, 'mouse');
@@ -242,6 +398,42 @@ describe('drag state machine', () => {
     expect(vi.getTimerCount()).toBe(0);
     down(); expect(c.state).toBe('idle'); // pointerdown listener gone
     add.mockRestore(); rem.mockRestore();
+  });
+  it('a destroy mid-drag tells onStateChange the drag is over (its owner clears what it showed)', () => {
+    const { c, states } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.destroy();
+    expect(states.at(-1)).toBe('idle');
+  });
+  it('Android: pointer and touch events for the same finger drop once, whichever comes first', async () => {
+    for (const order of [['pointerup', 'touchend'], ['touchend', 'pointerup']]) {
+      const { c, onDrop } = make();
+      fingerDown();
+      vi.advanceTimersByTime(400);
+      move(80, 90);
+      el.dispatchEvent(touch('touchmove', 80, 90));
+      for (const ev of order) {
+        if (ev === 'pointerup') up(80, 90);
+        else el.dispatchEvent(touch('touchend', 80, 90, true));
+      }
+      expect(onDrop).toHaveBeenCalledTimes(1);
+      await flush(); finishAll(); await flush();
+      expect(c.state).toBe('idle');
+      c.destroy();
+    }
+  });
+  it('a move to the same point does not run the hit test again; a refresh does', () => {
+    const hitTest = vi.fn(() => target);
+    const { c } = make({ hitTest });
+    down('mouse');
+    move(60, 50, 'mouse');
+    const n = hitTest.mock.calls.length;
+    move(60, 50, 'mouse');
+    expect(hitTest.mock.calls.length).toBe(n);
+    c.refresh();
+    expect(hitTest.mock.calls.length).toBe(n + 1);
+    c.destroy();
   });
   it('useDraggable re-binds when the element is replaced', async () => {
     const { ref, nextTick } = await import('vue');
@@ -287,6 +479,125 @@ describe('drag state machine', () => {
   });
 });
 
+describe('carry: the card may leave the page mid-drag (the view turns to another day or week)', () => {
+  const ghost = () => document.querySelector<HTMLElement>('[data-drag-ghost]');
+  it('a ghost copy at the card\'s place keeps following, the hidden card can go, and the drop still lands', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    const g = ghost()!;
+    expect(g).not.toBeNull();
+    expect([g.style.position, g.style.left, g.style.top, g.style.width, g.style.height]).toEqual(['fixed', '40px', '40px', '100px', '40px']);
+    expect(el.style.visibility).toBe('hidden');
+    el.remove();
+    move(80, 90);
+    vi.advanceTimersByTime(200);
+    expect(g.style.transform).toContain('scale(1.05)');
+    up(80, 90);
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(50);
+    expect(ghost()).toBeNull();
+    expect(c.state).toBe('idle');
+    expect(isGestureClaimed()).toBe(false);
+  });
+  it('touch events sent to the removed card still carry the drag (iOS after a pointercancel)', async () => {
+    const { c, onDrop } = make();
+    fingerDown();
+    vi.advanceTimersByTime(400);
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    c.carry();
+    el.remove();
+    const tm = touch('touchmove', 80, 90);
+    el.dispatchEvent(tm);
+    expect(tm.defaultPrevented).toBe(true);
+    vi.advanceTimersByTime(50);
+    expect(ghost()!.style.transform).toContain('scale(1.05)');
+    el.dispatchEvent(touch('touchend', 80, 90, true));
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+  });
+  it('a destroy while carried (the card unmounted) waits for the drop, then cleans up', async () => {
+    const rem = vi.spyOn(window, 'removeEventListener');
+    const { c, onDrop } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    c.destroy();
+    expect(c.state).toBe('dragging');
+    up(80, 90);
+    expect(onDrop).toHaveBeenCalledWith(target);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(rem.mock.calls.some((x) => x[0] === 'pointermove')).toBe(true);
+    down(); expect(c.state).toBe('idle'); // fully destroyed: the pointerdown listener is gone
+    vi.advanceTimersByTime(50);
+    expect(ghost()).toBeNull();
+    rem.mockRestore();
+  });
+  it('the ghost carries no id or test ids (it never counts as the card), and stays until the moved card had a frame to render', async () => {
+    el.id = 'card';
+    el.dataset.testid = 'event-chip';
+    el.innerHTML = '<span data-testid="event-chip-title">T</span>';
+    const { c } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    const g = ghost()!;
+    expect([g.id, g.dataset.testid, g.querySelector('[data-testid]')]).toEqual(['', undefined, null]);
+    up(80, 90);
+    await flush();
+    expect(ghost()).not.toBeNull();
+    vi.advanceTimersByTime(50);
+    expect(ghost()).toBeNull();
+  });
+  it('a cancel while carried removes the ghost', async () => {
+    const { c } = make();
+    down();
+    vi.advanceTimersByTime(400);
+    c.carry();
+    c.cancel();
+    await flush(); finishAll(); await flush();
+    vi.advanceTimersByTime(50);
+    expect(ghost()).toBeNull();
+    expect(c.state).toBe('idle');
+    expect(el.style.visibility).toBe('');
+  });
+  it('useDraggable still answers for a carried drag after its card was unbound (the component unmounted)', async () => {
+    const { ref } = await import('vue');
+    const r = ref<HTMLElement | null>(el);
+    const hitTest = vi.fn(() => target);
+    const s = effectScope();
+    const d = s.run(() => useDraggable(r, { hitTest, onDrop: async () => {} }))!;
+    await flush();
+    down();
+    vi.advanceTimersByTime(400);
+    d.carry();
+    r.value = null;
+    await flush();
+    expect(d.state).toBe('dragging');
+    const n = hitTest.mock.calls.length;
+    d.refresh();
+    expect(hitTest.mock.calls.length).toBe(n + 1);
+    up(80, 90);
+    await flush(); finishAll(); await flush();
+    expect(d.state).toBe('idle');
+    s.stop();
+  });
+  it('refresh re-runs the hit test where the pointer is (the grid changed under a still pointer)', () => {
+    const hitTest = vi.fn(() => target);
+    const { c } = make({ hitTest });
+    down();
+    vi.advanceTimersByTime(400);
+    const n = hitTest.mock.calls.length;
+    c.refresh();
+    expect(hitTest.mock.calls.length).toBe(n + 1);
+    c.destroy();
+  });
+});
+
 describe('drag inside a scroll container', () => {
   // The card lives inside the scroller: scrolling moves its layout box (and the grid) up by scrollTop.
   let sc: HTMLElement;
@@ -318,6 +629,53 @@ describe('drag inside a scroll container', () => {
     return { c, targets, ghostTop, indicatorTop, minutes: () => last!.key.minutes };
   }
 
+  it('touch: the scroll container does not scroll natively while a card is lifted, and does again after the drop', async () => {
+    sc.style.overflowY = 'auto';
+    const { c } = makeScroll();
+    down('touch', 60, TOP0 + 10);
+    expect(sc.style.overflowY).toBe('auto');
+    vi.advanceTimersByTime(400);
+    expect(c.state).toBe('dragging');
+    expect(sc.style.overflowY).toBe('hidden');
+    up(60, TOP0 + 10);
+    await flush(); finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(sc.style.overflowY).toBe('auto');
+  });
+  it('touch: the scroll container scrolls again after a touchcancel, Escape, a pen pointercancel and a destroy mid-drag', async () => {
+    sc.style.overflowY = 'auto';
+    const lifted = (type = 'touch') => {
+      down(type, 60, TOP0 + 10);
+      if (type === 'touch') el.dispatchEvent(touch('touchstart', 60, TOP0 + 10));
+      vi.advanceTimersByTime(400);
+      expect(sc.style.overflowY).toBe('hidden');
+    };
+    const { c } = makeScroll();
+    lifted();
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'touch' }));
+    el.dispatchEvent(touch('touchcancel', 60, TOP0 + 10, true));
+    finishAll(); await flush();
+    expect(c.state).toBe('idle');
+    expect(sc.style.overflowY).toBe('auto');
+    lifted();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    finishAll(); await flush();
+    expect(sc.style.overflowY).toBe('auto');
+    lifted('pen');
+    window.dispatchEvent(pe('pointercancel', { pointerType: 'pen' }));
+    finishAll(); await flush();
+    expect(sc.style.overflowY).toBe('auto');
+    lifted();
+    c.destroy();
+    expect(sc.style.overflowY).toBe('auto');
+  });
+  it('mouse: the scroll container keeps scrolling while dragging (wheel)', () => {
+    const { c } = makeScroll();
+    down('mouse', 60, TOP0 + 10); move(60, TOP0 + 30, 'mouse');
+    expect(c.state).toBe('dragging');
+    expect(sc.style.overflowY).toBe('');
+    c.destroy();
+  });
   it('wheel scroll while dragging recomputes the indicator and keeps the ghost on it', () => {
     const { c, ghostTop, indicatorTop, minutes } = makeScroll();
     down('mouse', 50, 310); move(50, 350, 'mouse'); vi.advanceTimersByTime(40);

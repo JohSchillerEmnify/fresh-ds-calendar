@@ -82,4 +82,31 @@ unused = [e for e in exprs if e not in used]
 print(f'{count} expanded steps, {len(exprs)} expressions, {len(unused)} unused, {bad} problems')
 for e in unused:
     print('  unused: ' + e)
-sys.exit(1 if bad or unused else 0)
+
+# every @unit scenario names the unit test that proves it: "# unit: <file>:<test name>", the file existing and containing the name
+ROOT = os.path.dirname(SPEC)
+unit_bad = unit_count = 0
+for f in sorted(glob.glob(os.path.join(SPEC, 'features', '**', '*.feature'), recursive=True)):
+    tags, refs = [], []
+    for n, l in enumerate(open(f, encoding='utf-8').read().splitlines(), 1):
+        s = l.strip()
+        if s.startswith('@'):
+            tags += s.split()
+        elif s.startswith('# unit:'):
+            refs.append(s[len('# unit:'):].strip())
+        elif re.match(r'(Scenario|Scenario Outline):', s):
+            if '@unit' in tags:
+                unit_count += 1
+                ok = bool(refs)
+                for ref in refs:
+                    path, _, name = ref.partition(':')
+                    full = os.path.join(ROOT, path)
+                    ok = ok and bool(name) and os.path.isfile(full) and name in open(full, encoding='utf-8').read()
+                if not ok:
+                    unit_bad += 1
+                    print(f'{os.path.relpath(f, SPEC)}:{n}: @unit scenario without a "# unit: <file>:<test name>" naming an existing test: {refs}')
+            tags, refs = [], []
+        elif s and not s.startswith('#'):
+            tags, refs = [], []
+print(f'{unit_count} @unit scenarios, {unit_bad} problems')
+sys.exit(1 if bad or unused or unit_bad else 0)

@@ -271,9 +271,10 @@ Feature: Several reminders per event, read from and written to Google
     When the time is 2026-10-13 07:30
     Then the push "Your day" was sent once with the "sunrise" icon
 
-  @web-push @backlog
+  @web-push
   Scenario: Signing out stops reminders in this browser
-    Given "jo@example.com" is signed in
+    Given "jo@example.com" may use the calendar
+    And "jo@example.com" is signed in
     And I open the reminders settings
     And I switch on reminders in this browser
     When they sign out in the settings

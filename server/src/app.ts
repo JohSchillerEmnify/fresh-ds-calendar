@@ -42,7 +42,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   const app = new Hono() as App;
   app.ctx = ctx;
   app.close = () => ctx.close();
-  app.use('*', securityHeaders(config.webDist)); // CSP, X-Frame-Options, Permissions-Policy on every answer
+  app.use('*', securityHeaders(config.webDist, config.places)); // CSP, X-Frame-Options, Permissions-Policy, Referrer-Policy on every answer
 
   if (config.allowedOrigins.length) {
     app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed', 'X-Stale', 'Retry-After'] }));

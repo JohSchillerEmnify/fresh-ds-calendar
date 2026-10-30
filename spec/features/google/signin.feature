@@ -99,7 +99,6 @@ Feature: Signing in with Google
     When another app exchanges the code
     Then the app is asked to sign in again
 
-  @backlog
   Scenario: A person taken off the list is signed out on the next visit
     Given "anna@example.com" is signed in
     And "anna@example.com" may no longer use the calendar

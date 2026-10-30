@@ -7,7 +7,7 @@ Feature: Everything I see is kept on this device and synced with the server
   or not, old or new, finished or open, shared with me or not), the settings with the categories, the preferences
   (bedtime, notifications, language and the rest), the calendars, the chosen theme and my own themes, the task list
   templates (feature tasklist-templates), the Canvas areas, the reminder defaults, the people I can share with, my
-  streak and plant, and which optional plugins (the door board) are on. Days further away load from the server when I
+  streak and plant, and which optional plugins are on. Days further away load from the server when I
   open them and are not kept.
   The device takes in what changed on the server (made on another device, or in Google Calendar itself) when the app
   opens, when it regains focus or the connection, and at the polling interval, also for days I never opened.
@@ -214,3 +214,17 @@ Feature: Everything I see is kept on this device and synced with the server
     And I open the app again
     Then I do not see the event "Dentist"
     And I see the sync error banner
+
+  @signin @templates
+  Scenario: Someone else signing in on this device does not get my templates
+    Given "jo@example.com" and "anna@example.com" may use the calendar
+    And "jo@example.com" is signed in
+    And "jo@example.com" has the template "Packing" with the items "Passport"
+    And I have seen the week view for 2026-10-12
+    When they sign out in the settings
+    And "anna@example.com" signs in with Google
+    And I have seen the week view for 2026-10-12
+    And the network connection is lost
+    And I open the app again
+    And I open the templates in the settings
+    Then the templates page says "No templates yet. Save a task list as a template to reuse it."

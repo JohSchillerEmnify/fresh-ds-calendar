@@ -17,7 +17,7 @@ import {
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, parseTemplate, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
 import {
-  isApproachWindow, isMinEventMinutes, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
+  isApproachWindow, isMinEventMinutes, isDaySideBySide, isWeekSideBySide, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, STREAK_VALUES, HEADER_LAYOUT_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type StreakChoice, type HeaderLayout, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 import type { Scope } from '../services/calendar.js';
@@ -80,6 +80,9 @@ export function configResponse(ctx: Ctx) {
     version: ctx.overrides.version ?? VERSION,
     apk: ctx.overrides.apk !== undefined ? ctx.overrides.apk : readApkInfo(ctx.config.dataDir),
     plugins: enabledPlugins(ctx),
+    // TEST_MODE: the server's own stand-ins (testRoutes.ts), so a test never reaches the real hosts
+    placeSearchUrl: ctx.config.testMode ? '/api/__test/photon' : ctx.config.places.searchUrl,
+    mapTileUrl: ctx.config.testMode ? '/api/__test/tiles/{z}/{x}/{y}.png' : ctx.config.places.tileUrl,
   };
 }
 
@@ -156,10 +159,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
     const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards'] as const) {
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards', 'syncIndicator', 'approachTimeLeft'] as const) {
       if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
     }
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
+    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards', 'syncIndicator', 'approachTimeLeft'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
     if (b.labsViews !== undefined) {
       const v = toLabsViews(b.labsViews);
       if (!v) throw validation('labsViews must map view ids to booleans', 'labsViews');
@@ -179,9 +182,25 @@ export function apiRoutes(ctx: Ctx): Hono {
       if (!NAV_POSITION_VALUES.includes(b[k] as NavPosition)) throw validation(`Invalid ${k}`, k);
       patch[k] = b[k] as NavPosition;
     }
+    if (b.streak !== undefined) {
+      if (!STREAK_VALUES.includes(b.streak as StreakChoice)) throw validation('streak must be off, flame or plant', 'streak');
+      patch.streak = b.streak as StreakChoice;
+    }
+    if (b.headerLayout !== undefined) {
+      if (!HEADER_LAYOUT_VALUES.includes(b.headerLayout as HeaderLayout)) throw validation('headerLayout must be two-rows or one-row', 'headerLayout');
+      patch.headerLayout = b.headerLayout as HeaderLayout;
+    }
     if (b.minEventMinutes !== undefined) {
       if (!isMinEventMinutes(b.minEventMinutes)) throw validation('minEventMinutes must be 0, 15 or 30', 'minEventMinutes');
       patch.minEventMinutes = b.minEventMinutes;
+    }
+    if (b.daySideBySide !== undefined) {
+      if (!isDaySideBySide(b.daySideBySide)) throw validation('daySideBySide must be 2, 3 or 4', 'daySideBySide');
+      patch.daySideBySide = b.daySideBySide;
+    }
+    if (b.weekSideBySide !== undefined) {
+      if (!isWeekSideBySide(b.weekSideBySide)) throw validation('weekSideBySide must be 2 or 3', 'weekSideBySide');
+      patch.weekSideBySide = b.weekSideBySide;
     }
     if (b.weekTwoRowTop !== undefined) {
       if (b.weekTwoRowTop !== 3 && b.weekTwoRowTop !== 4) throw validation('weekTwoRowTop must be 3 or 4', 'weekTwoRowTop');

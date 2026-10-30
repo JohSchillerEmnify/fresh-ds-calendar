@@ -18,9 +18,11 @@ function region(w: World, name: string): Locator {
     case 'all-day band': return w.byTestId('week-overview-row', '[data-row="0"]').locator('.alldays');
     case 'list form': return w.byTestId('tasklist-dialog');
     case 'day column': return w.byTestId('day-column');
+    case 'time grid': return w.page.locator('[data-scroll-area]').first();
     case 'clock': return w.byTestId('clock-view').locator('svg.face');
     case 'template save sheet': return w.byTestId('template-save-dialog');
     case 'templates page': return w.byTestId('templates-page');
+    case 'top bar': return w.byTestId('top-bar');
     default: throw new Error(`unknown region "${name}"`);
   }
 }
@@ -130,10 +132,22 @@ Then('the pill of the expanded task list shows the count {string}', async functi
   expect(r.width, 'count width').toBeGreaterThan(8);
 });
 
+When('I scroll the time grid to the end of the day', async function (this: World) {
+  const area = this.page.locator('[data-scroll-area]').first();
+  await area.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+  await expect.poll(() => area.evaluate((el) => el.scrollTop + el.clientHeight >= el.scrollHeight - 1)).toBe(true);
+});
+
 /** A regression picture of the region; the baseline is written on the first run and reviewed by whoever changes the UI. */
 Then('the {string} still looks like {string}', async function (this: World, name: string, picture: string) {
   const target = region(this, name);
   await expect(target).toBeVisible();
+  // the floating "+" button would cover the bottom right of the time grid; it is not part of that picture
+  // the 4 s check-in toast would sit in a picture or not by timing alone
+  await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
+  if (name === 'time grid') await this.page.addStyleTag({ content: '[data-testid="create-fab-area"] { display: none !important; }' });
+  // the check-in message slides over the top bar for a few seconds after the app opens; it is not part of that picture
+  if (name === 'top bar') await this.page.addStyleTag({ content: '[data-testid="streak-message"] { display: none !important; }' });
   await expect(target).toHaveScreenshot(`${picture}.png`, { mask: [this.page.getByTestId('now-marker')] });
 });
 

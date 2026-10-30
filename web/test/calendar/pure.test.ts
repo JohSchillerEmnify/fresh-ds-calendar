@@ -186,6 +186,67 @@ describe('packing and proportions', () => {
   });
 });
 
+describe('side by side up to a limit (owner, 2026-10-25)', () => {
+  // the day/week grid at 48 px/h: one 18 px title row is 22.5 min, the cascade gap is max(15, that)
+  const pack = (items: ReturnType<typeof ev>[], limit: number) =>
+    Object.fromEntries(packColumns(segsOf(items, D), (25 / 48) * 60, true, (18 / 48) * 60, 0, limit).map((x) => [x.seg.item.id, x]));
+  const at = (id: string, s: string, e: string) => ev(id, t(D, s), t(D, e));
+  const board = [at('a', '09:00', '10:00'), at('b', '09:00', '10:30'), at('c', '09:00', '10:30'), at('d', '09:30', '11:00')];
+  it('up to 4: four overlapping entries take one of four equal columns each', () => {
+    const p = pack(board, 4);
+    expect(Object.values(p).every((x) => x.cols === 4 && x.span === 1 && x.level === 0)).toBe(true);
+    expect(new Set(Object.values(p).map((x) => x.col)).size).toBe(4);
+  });
+  it('up to 3: the fourth is laid over the last column, one level up, longer same-start entries first', () => {
+    const p = pack(board, 3);
+    expect([p.b.col, p.c.col, p.a.col]).toEqual([0, 1, 2]);
+    expect([p.a, p.b, p.c].every((x) => x.cols === 3 && x.level === 0)).toBe(true);
+    expect([p.d.col, p.d.cols, p.d.level, p.d.span]).toEqual([2, 3, 1, 1]);
+  });
+  it('up to 2: further entries cascade over the last column, which stays busy until they end', () => {
+    const p = pack([at('dentist', '09:00', '10:00'), at('standup', '09:00', '10:30'), at('call', '09:30', '11:00'), at('review', '10:00', '11:30')], 2);
+    expect([p.standup.col, p.dentist.col]).toEqual([0, 1]);
+    expect([p.call.col, p.call.level]).toEqual([1, 1]);
+    expect([p.review.col, p.review.level]).toEqual([1, 2]);
+    expect(Object.values(p).every((x) => x.cols === 2)).toBe(true);
+  });
+  it('a later entry takes the leftmost column an earlier one has left', () => {
+    const p = pack([at('dentist', '09:00', '10:00'), at('standup', '09:15', '10:30'), at('gym', '10:00', '11:00')], 2);
+    expect([p.dentist.col, p.standup.col, p.gym.col, p.gym.level]).toEqual([0, 1, 0, 0]);
+  });
+  it('an entry that would cover a title gets one more column, beyond the limit', () => {
+    const p = pack([at('a', '09:00', '10:00'), at('b', '09:00', '10:00'), at('c', '09:05', '10:00')], 2);
+    expect(Object.values(p).map((x) => [x.cols, x.level])).toEqual([[3, 0], [3, 0], [3, 0]]);
+    expect(new Set(Object.values(p).map((x) => x.col)).size).toBe(3);
+  });
+  it('the extra column for a title is one at most; further close starts are laid over the last column', () => {
+    const p = pack([at('a', '09:00', '10:00'), at('b', '09:05', '10:30'), at('c', '09:05', '10:00'), at('d', '09:10', '10:00')], 2);
+    expect([p.a, p.b, p.c].map((x) => [x.col, x.cols, x.level])).toEqual([[0, 3, 0], [1, 3, 0], [2, 3, 0]]);
+    expect([p.d.col, p.d.cols, p.d.level]).toEqual([2, 3, 1]);
+  });
+  it('entries with the same start and end keep the order they come in (the day\'s usual order)', () => {
+    const x = at('x', '09:00', '10:00'), y = at('y', '09:00', '10:00');
+    const cols = (items: ReturnType<typeof ev>[]) => packColumns(segsOf(items, D), 0, true, 0, 0, 2).map((p) => [p.seg.item.id, p.col]);
+    expect(cols([x, y])).toEqual([['x', 0], ['y', 1]]);
+    expect(cols([y, x])).toEqual([['y', 0], ['x', 1]]);
+  });
+  it('cascade depth is capped at 3', () => {
+    const many = ['09:00', '09:00', '09:30', '10:00', '10:30', '11:00'].map((s, i) => at('m' + i, s, '12:00'));
+    const p = pack(many, 2);
+    expect(Object.values(p).map((x) => x.level)).toEqual([0, 0, 1, 2, 3, 3]);
+  });
+  it('a block widens into free columns to its right; back-to-back entries stay full width', () => {
+    const p = pack([at('long', '09:00', '12:00'), at('short', '09:00', '09:30'), at('x', '09:00', '09:45'), at('late', '10:00', '11:00')], 3);
+    expect([p.long.cols, p.late.col, p.late.span]).toEqual([3, 1, 2]);
+    const q = pack([at('a', '09:00', '10:00'), at('b', '10:00', '11:00')], 2);
+    expect([q.a.cols, q.b.cols, q.b.col]).toEqual([1, 1, 0]);
+  });
+  it('without a limit the layout is unchanged (Labs views)', () => {
+    const a = ev('a', t(D, '09:00'), t(D, '10:30')), b = ev('b', t(D, '09:30'), t(D, '10:30'));
+    expect(packColumns(segsOf([a, b], D)).map((x) => x.level)).toEqual([0, 1]);
+  });
+});
+
 describe('now marker and Now card math', () => {
   it('now marker top is minutes * hour height', () => {
     expect(nowMarkerTop(9 * 60 + 20, 48)).toBeCloseTo((560 / 60) * 48);

@@ -2,9 +2,10 @@
  * Backup to Google Drive steps (STEPS.md "Backup to Google Drive"). Drive is `MockDrive` in TEST_MODE; the test hooks
  * force the debounce and daily timers and simulate a server that lost its data.
  */
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { signIn } from './signin.steps.js';
+import { chooseTheme } from './theme.steps.js';
 import type { World } from './support/world.js';
 
 const SUPPORT_CAT = { Off: 'off', Sometimes: 'sometimes', 'Every time': 'always' } as const;
@@ -97,4 +98,59 @@ Then('I am asked to allow backups to Google Drive', async function (this: World)
 Then('there is no button to back up now', async function (this: World) {
   await expect(this.page.getByTestId('settings-backup-now')).toHaveCount(0);
   await expect(this.page.getByTestId('settings-backup-restore')).toHaveCount(0);
+});
+
+Given('{string} has signed in but not opened the calendar yet', async function (this: World, email: string) {
+  // the sign-in round trip alone, in the page's own session (opening the calendar would save the person's prefs)
+  await this.api.chooseGoogleAccount(email);
+  await this.page.request.get('/api/auth/google/start');
+  expect((await this.page.request.get('/api/auth/me', { failOnStatusCode: false })).status()).toBe(200);
+});
+
+When('I back up now {int} times', async function (this: World, n: number) {
+  await settings(this);
+  for (let i = 0; i < n; i++) {
+    const done = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup' && r.request().method() === 'POST');
+    await this.page.getByTestId('settings-backup-now').click();
+    await done;
+  }
+});
+
+Given('{string} is signed in with the theme {string} backed up', async function (this: World, email: string, theme: string) {
+  await signIn(this, email);
+  await this.page.goto('/settings/theme');
+  await chooseTheme(this, theme);
+  const done = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup' && r.request().method() === 'POST');
+  await settings(this);
+  await this.page.getByTestId('settings-backup-now').click();
+  await done;
+});
+
+/** Per scenario: the HTTP client of the other person's own session. */
+const otherPerson = new WeakMap<World, APIRequestContext>();
+
+Given('{string} adds the category {string}', async function (this: World, email: string, name: string) {
+  const context = await this.browser.newContext({ baseURL: this.baseURL });
+  this.track(context);
+  await this.api.chooseGoogleAccount(email);
+  await context.request.get('/api/auth/google/start');
+  const res = await context.request.post('/api/categories', { data: { name, color: '#2e7d32' } });
+  expect(res.status(), 'category added').toBe(201);
+  otherPerson.set(this, context.request);
+});
+
+When('I restore from the backup and confirm', async function (this: World) {
+  await settings(this);
+  await this.page.getByTestId('settings-backup-restore').click();
+  await expect(this.page.getByTestId('confirm-dialog')).toBeVisible();
+  const restored = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/backup/restore' && r.request().method() === 'POST');
+  const reloaded = this.page.waitForEvent('load');
+  await this.page.getByTestId('confirm-ok').click();
+  expect((await restored).status(), 'restore answered').toBe(200);
+  await reloaded;
+});
+
+Then('the category {string} still exists', async function (this: World, name: string) {
+  const { categories } = (await (await otherPerson.get(this)!.get('/api/settings')).json()) as { categories: Array<{ name: string }> };
+  expect(categories.map((c) => c.name)).toContain(name);
 });

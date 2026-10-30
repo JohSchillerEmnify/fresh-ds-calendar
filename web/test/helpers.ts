@@ -36,7 +36,7 @@ export const settingsFixture = (o: Partial<Settings> = {}): Settings => ({ ...DE
 
 export const config = (o: Record<string, unknown> = {}) => ({
   now: '2026-10-12T06:00:00.000Z', clockFrozen: true, timeZone: 'Europe/Berlin', weekStartsOn: 1, pollIntervalMs: 30000,
-  provider: 'mock', testMode: false, publicUrl: null, version: 't', ...o,
+  provider: 'mock', testMode: false, publicUrl: null, version: 't', placeSearchUrl: 'https://photon.test/api', mapTileUrl: 'https://tiles.test/{z}/{x}/{y}.png', ...o,
 });
 
 export const apiError = (status: number, code: string, message = code) => ({ status, body: { error: { code, message } } });

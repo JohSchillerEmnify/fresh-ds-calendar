@@ -146,7 +146,7 @@ async function backToCalendar(world: World) {
 }
 
 /** Clicks a gallery card and waits until the choice has been saved in the background. */
-async function chooseTheme(world: World, name: string) {
+export async function chooseTheme(world: World, name: string) {
   const saved = world.page.waitForResponse(isSaved);
   await card(world, name).click();
   await expect(card(world, name)).toHaveAttribute('aria-pressed', 'true');
@@ -297,7 +297,8 @@ Then('the top bar scene shows {string}, {string}, {string} and {string}', async 
   await backToCalendar(this);
   const scene = this.page.getByTestId('top-bar-scene');
   for (const part of parts) {
-    const el = scene.locator(`[data-part="${part}"]`).first();
+    // a part left out where it would be under a control (data-hidden) does not count; another one of its kind may show
+    const el = scene.locator(`[data-part="${part}"]:not([data-hidden])`).first();
     await expect(el, part).toBeAttached();
     // fireworks and confetti are 0x0 anchors whose pieces are drawn around them: a box-less anchor is judged by its first piece
     const box = await el.boundingBox();
@@ -338,6 +339,36 @@ Then('the scene\'s cat is moving', async function (this: World) {
 
 Then('a visitor passes through the top bar scene', async function (this: World) {
   await expect(this.page.getByTestId('top-bar-scene').locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]').first()).toBeVisible();
+});
+
+Then('the visitor flies across the top bar scene', async function (this: World) {
+  const scene = this.page.getByTestId('top-bar-scene');
+  const visitor = scene.locator('[data-part="butterfly"], [data-part="bat"], [data-part="ghost"]').first();
+  await expect(visitor).toBeVisible();
+  const box = await scene.boundingBox();
+  if (!box) throw new Error('the top bar scene has no box');
+  // the flight is the visitor's own animation (the wing flap runs on a child): seek it instead of waiting 10 s
+  const samples: { at: number; x: number; y: number; w: number; h: number }[] = [];
+  for (let at = 5; at <= 95; at += 5) {
+    const b = await visitor.evaluate((el, pct) => {
+      const flight = el.getAnimations().find((a) => (a.effect as KeyframeEffect | null)?.target === el);
+      if (!flight) return null;
+      flight.pause();
+      flight.currentTime = (Number(flight.effect?.getComputedTiming().duration) * pct) / 100;
+      return el.getBoundingClientRect().toJSON() as { x: number; y: number; width: number; height: number };
+    }, at);
+    if (!b) throw new Error('the visitor has no flight animation (it stays where it is)');
+    samples.push({ at, x: b.x, y: b.y, w: b.width, h: b.height });
+  }
+  const centres = samples.map((s) => (s.x + s.w / 2 - box.x) / box.width);
+  expect(Math.min(...centres), 'reaches the left quarter').toBeLessThan(0.25);
+  expect(Math.max(...centres), 'reaches the right quarter').toBeGreaterThan(0.75);
+  for (const s of samples.filter((p) => p.at >= 20 && p.at <= 80)) {
+    expect(s.x, `${s.at} %: left edge inside`).toBeGreaterThanOrEqual(box.x);
+    expect(s.y, `${s.at} %: top edge inside`).toBeGreaterThanOrEqual(box.y);
+    expect(s.x + s.w, `${s.at} %: right edge inside`).toBeLessThanOrEqual(box.x + box.width);
+    expect(s.y + s.h, `${s.at} %: bottom edge inside`).toBeLessThanOrEqual(box.y + box.height);
+  }
 });
 
 Then('the theme menu sections are {string}, {string}, {string} and {string}', async function (this: World, a: string, b: string, c: string, d: string) {

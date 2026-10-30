@@ -11,6 +11,8 @@ export type ClientConfig = Omit<AppConfig, 'provider'> & { provider: AppConfig['
 const FALLBACK: ClientConfig = {
   now: '', clockFrozen: false, timeZone: 'Europe/Berlin', weekStartsOn: 1, pollIntervalMs: 30000,
   provider: null, testMode: false, publicUrl: null, version: '', apk: null, plugins: [],
+  // no server answer and nothing kept: no place search, the map shows its placeholder
+  placeSearchUrl: '', mapTileUrl: '',
 };
 
 /**

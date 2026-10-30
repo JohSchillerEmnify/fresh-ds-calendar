@@ -27,7 +27,9 @@ defineProps<{ drift: 'float' | 'fade'; x: number }>();
 <style scoped>
 .ghost {
   --ghost: color-mix(in oklab, #fff 90%, var(--md-sys-color-primary, #e8650c));
-  position: absolute; left: 0; top: 4cqh; width: min(46cqh, 30px); animation: 8s ease-in-out both;
+  position: absolute; left: 0; top: 4cqh; width: min(46cqh, 30px);
+  /* longhands: the build's minifier turns a shorthand without a name into `animation: none` (the ghost would not float) */
+  animation-duration: 8s; animation-timing-function: ease-in-out; animation-fill-mode: both;
 }
 .ghost svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 0 2px color-mix(in oklab, var(--ghost) 65%, transparent)); }
 .sheet { fill: var(--ghost); stroke: color-mix(in oklab, var(--md-sys-color-outline, #85736c) 45%, transparent); stroke-width: 0.500; }

@@ -16,6 +16,9 @@ import ArrowBackS from '~icons/material-symbols/arrow-back-sharp';
 import BedtimeO from '~icons/material-symbols/bedtime';
 import BedtimeR from '~icons/material-symbols/bedtime-rounded';
 import BedtimeS from '~icons/material-symbols/bedtime-sharp';
+import LocationOnO from '~icons/material-symbols/location-on';
+import LocationOnR from '~icons/material-symbols/location-on-rounded';
+import LocationOnS from '~icons/material-symbols/location-on-sharp';
 import SunnyO from '~icons/material-symbols/sunny';
 import SunnyR from '~icons/material-symbols/sunny-rounded';
 import SunnyS from '~icons/material-symbols/sunny-sharp';
@@ -55,6 +58,9 @@ import DownloadS from '~icons/material-symbols/download-sharp';
 import EditOutlineO from '~icons/material-symbols/edit-outline';
 import EditOutlineR from '~icons/material-symbols/edit-outline-rounded';
 import EditOutlineS from '~icons/material-symbols/edit-outline-sharp';
+import TodayO from '~icons/material-symbols/today';
+import TodayR from '~icons/material-symbols/today-rounded';
+import TodayS from '~icons/material-symbols/today-sharp';
 import ExpandMoreO from '~icons/material-symbols/expand-more';
 import ExpandMoreR from '~icons/material-symbols/expand-more-rounded';
 import ExpandMoreS from '~icons/material-symbols/expand-more-sharp';
@@ -140,6 +146,7 @@ export const IconCloudOff = appIcon('IconCloudOff', { outlined: CloudOffO, round
 export const IconDeleteOutline = appIcon('IconDeleteOutline', { outlined: DeleteOutlineO, rounded: DeleteOutlineR, sharp: DeleteOutlineS });
 export const IconDownload = appIcon('IconDownload', { outlined: DownloadO, rounded: DownloadR, sharp: DownloadS });
 export const IconEditOutline = appIcon('IconEditOutline', { outlined: EditOutlineO, rounded: EditOutlineR, sharp: EditOutlineS });
+export const IconToday = appIcon('IconToday', { outlined: TodayO, rounded: TodayR, sharp: TodayS });
 export const IconExpandMore = appIcon('IconExpandMore', { outlined: ExpandMoreO, rounded: ExpandMoreR, sharp: ExpandMoreS });
 export const IconFilterList = appIcon('IconFilterList', { outlined: FilterListO, rounded: FilterListR, sharp: FilterListS });
 export const IconIosShare = appIcon('IconIosShare', { outlined: IosShareO, rounded: IosShareR, sharp: IosShareS });
@@ -163,3 +170,5 @@ export const IconSyncProblem = appIcon('IconSyncProblem', { outlined: SyncProble
 export const IconTodayOutline = appIcon('IconTodayOutline', { outlined: TodayOutlineO, rounded: TodayOutlineR, sharp: TodayOutlineS });
 export const IconBedtime = appIcon('IconBedtime', { outlined: BedtimeO, rounded: BedtimeR, sharp: BedtimeS });
 export const IconSunny = appIcon('IconSunny', { outlined: SunnyO, rounded: SunnyR, sharp: SunnyS });
+/** A map pin (filled in every set: it marks a place on the small map and in the place suggestions). */
+export const IconLocationOn = appIcon('IconLocationOn', { outlined: LocationOnO, rounded: LocationOnR, sharp: LocationOnS });

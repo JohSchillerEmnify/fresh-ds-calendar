@@ -32,6 +32,67 @@ public class WeekLayoutTest {
     }
 
     @Test
+    public void theWeekSettingPlacesOverlapsSideBySideUpToItsLimit() {
+        // owner, 2026-10-25: the widget's week follows "Week view: events side by side" like the app (web packSideBySide)
+        List<WeekData.Item> day = List.of(ev("dentist", 540, 600), ev("standup", 540, 630), ev("call", 570, 660), ev("review", 600, 690));
+        List<WeekLayout.Placed> two = WeekLayout.packColumns(day, 25, 0, 2);
+        assertEquals(0, find(two, "standup").col);
+        assertEquals(1, find(two, "dentist").col);
+        assertEquals(1, find(two, "call").col);
+        assertEquals(1, find(two, "call").level);
+        assertEquals(2, find(two, "review").level);
+        for (WeekLayout.Placed p : two) assertEquals(2, p.cols);
+        List<WeekLayout.Placed> three = WeekLayout.packColumns(day, 25, 0, 3);
+        assertEquals(2, find(three, "call").col);
+        assertEquals(0, find(three, "call").level);
+        assertEquals(1, find(three, "review").col);
+        assertEquals(0, find(three, "review").level);
+        // a cascade that would hide a title opens one more column instead, beyond the limit
+        List<WeekLayout.Placed> close = WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 540, 600), ev("c", 545, 600)), 25, 0, 2);
+        for (WeekLayout.Placed p : close) {
+            assertEquals(3, p.cols);
+            assertEquals(0, p.level);
+        }
+        // the title row counts too, as on the web: 20 min in is less than a 25-min title row, so C opens a third column
+        List<WeekLayout.Placed> row = WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 540, 600), ev("c", 560, 600)), 11, 0, 2, 25);
+        for (WeekLayout.Placed p : row) {
+            assertEquals(3, p.cols);
+            assertEquals(0, p.level);
+        }
+        // without that title row, 20 min clears the 15-min gap and C cascades over the last column
+        assertEquals(1, find(WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 540, 600), ev("c", 560, 600)), 11, 0, 2, 0), "c").level);
+        // only one extra column: with limit + 1 in use, a further close start is laid over the last column
+        List<WeekLayout.Placed> capped = WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 545, 630), ev("c", 545, 600), ev("d", 550, 600)), 11, 0, 2, 25);
+        assertEquals(1, find(capped, "b").col);
+        assertEquals(2, find(capped, "c").col);
+        assertEquals(2, find(capped, "d").col);
+        assertEquals(1, find(capped, "d").level);
+        for (WeekLayout.Placed p : capped) assertEquals(3, p.cols);
+        // a later entry takes the column an earlier one has left
+        List<WeekLayout.Placed> freed = WeekLayout.packColumns(List.of(ev("a", 540, 600), ev("b", 555, 630), ev("g", 600, 660)), 25, 0, 2);
+        assertEquals(0, find(freed, "g").col);
+        assertEquals(0, find(freed, "g").level);
+    }
+
+    @Test
+    public void entriesWithEqualStartAndEndKeepTheirInputOrder() {
+        // mirrors the web: same start and end keep the day's usual order (the order they come in)
+        List<WeekLayout.Placed> xy = WeekLayout.packColumns(List.of(ev("x", 540, 600), ev("y", 540, 600)), 11, 0, 2, 0);
+        assertEquals(0, find(xy, "x").col);
+        assertEquals(1, find(xy, "y").col);
+        List<WeekLayout.Placed> yx = WeekLayout.packColumns(List.of(ev("y", 540, 600), ev("x", 540, 600)), 11, 0, 2, 0);
+        assertEquals(0, find(yx, "y").col);
+        assertEquals(1, find(yx, "x").col);
+    }
+
+    @Test
+    public void theTitleRowInMinutesIsRoundedUpSoATitleIsNeverCut() {
+        // 11 dp at 30 dp per hour is 22.0 min; at 31 dp per hour 21.29 min must count as 22, not 21
+        assertEquals(22, WeekLayout.titleRowMinutes(11, 30));
+        assertEquals(22, WeekLayout.titleRowMinutes(11, 31));
+    }
+
+    @Test
     public void touchingItemsDoNotOverlap() {
         List<WeekLayout.Placed> l = pack(ev("a", 600, 660), ev("b", 660, 720));
         assertEquals(1, find(l, "a").cols);

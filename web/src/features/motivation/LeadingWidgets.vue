@@ -5,30 +5,36 @@ import Plant from './Plant.vue';
 import PlantCard from './PlantCard.vue';
 import StreakFlame from './StreakFlame.vue';
 import StreakToast from './StreakToast.vue';
+import type { StreakChoice } from '@/api/types';
+import { usePrefsStore } from '@/stores/prefs';
 import { useMotivationStore } from './store';
 
 /**
- * Shell mount for the `leading-widgets` slot: streak flame and/or plant button (+ plant card popover + toast).
+ * Shell mount for the `leading-widgets` slot: the person's streak choice, the flame or the plant button (+ plant card
+ * popover), and the check-in toast, which shows whatever the choice is (Off included).
  * Starts the store (first-open check-in by the APP clock via `today`) and stops it on unmount.
  */
 const props = withDefaults(
-  defineProps<{ streakFlame?: boolean; showPlant?: boolean; today: () => string }>(),
-  { streakFlame: true, showPlant: true },
+  defineProps<{ streak?: StreakChoice; today: () => string }>(),
+  { streak: 'off' },
 );
 const store = useMotivationStore();
 const cardOpen = ref(false);
 const plantBtn = ref<HTMLElement | null>(null);
 const plant = computed(() => store.motivation?.plant ?? null);
-const streak = computed(() => store.motivation?.streak ?? null);
+const streakState = computed(() => store.motivation?.streak ?? null);
+const prefs = usePrefsStore();
+/** The motivation and the person's streak choice have both arrived, so what shows is final. */
+const ready = computed(() => !!store.motivation && prefs.loaded);
 
 onMounted(() => void store.start({ today: props.today }));
 onBeforeUnmount(() => store.stop());
 </script>
 
 <template>
-  <div class="lw" data-testid="leading-widgets">
-    <StreakFlame v-if="streakFlame && streak" :count="streak.current" :pulse="store.streakPulse" />
-    <div v-if="showPlant && plant" class="lw-plant">
+  <div class="lw" data-testid="leading-widgets" :data-ready="ready ? 'true' : undefined">
+    <StreakFlame v-if="props.streak === 'flame' && streakState" :count="streakState.current" :pulse="store.streakPulse" />
+    <div v-if="props.streak === 'plant' && plant" class="lw-plant">
       <button
         type="button"
         class="lw-btn"
@@ -44,7 +50,7 @@ onBeforeUnmount(() => store.stop());
       </button>
       <PlantCard v-if="cardOpen" :anchor="plantBtn" :plant="plant" :change="store.change" @close="cardOpen = false" />
     </div>
-    <StreakToast v-if="streakFlame" :message="store.message" @hide="store.dismissMessage()" />
+    <StreakToast :message="store.message" @hide="store.dismissMessage()" />
   </div>
 </template>
 

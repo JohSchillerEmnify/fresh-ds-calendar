@@ -3,6 +3,9 @@ Feature: Navigation and view switching
   The calendar has a month, a week (Monday to Sunday) and a day view.
   Every view has a deep-linkable URL: /month/YYYY-MM, /week/YYYY-MM-DD (Monday), /day/YYYY-MM-DD.
   "Today" always comes from the app clock, which tests fix with "Given today is ...".
+  Desktop with a mouse moves through the periods with the ‹ › arrows in the top bar, also in a narrow window; phones and
+  touch tablets show no arrows and move by swiping the calendar, but screen readers and keyboards still find
+  "Previous period" and "Next period" there (owner, 2026-10-26); Today is everywhere.
 
   Background:
     Given the calendar is empty
@@ -82,6 +85,8 @@ Feature: Navigation and view switching
       | /day/2026-02-30   |
       | /unknown          |
 
+  # the ‹ › arrows are a desktop control: touch screens have none and move by swiping (owner, 2026-10-26)
+  @desktop
   Scenario Outline: Previous and next move by exactly one period
     When I open the <view> view for <start>
     And I go to the next period
@@ -99,6 +104,38 @@ Feature: Navigation and view switching
       | day   | 2026-10-12 | /day/2026-10-13  | /day/2026-10-11  |
       | day   | 2026-12-31 | /day/2027-01-01  | /day/2026-12-30  |
 
+  # owner, 2026-10-26: phones and touch tablets show no ‹ › arrows; Today stays, a swipe moves through the periods
+  @mobile
+  Scenario Outline: On a touch screen a swipe goes to the next or previous period and no arrows are shown
+    When I open the <view> view for <start>
+    Then the top bar shows no arrows
+    When I swipe left on the calendar
+    Then the URL path is "<next>"
+    When I swipe right on the calendar
+    And I swipe right on the calendar
+    Then the URL path is "<previous>"
+
+    Examples:
+      | view  | start      | next             | previous         |
+      | month | 2026-10    | /month/2026-11   | /month/2026-09   |
+      | week  | 2026-10-12 | /week/2026-10-19 | /week/2026-10-05 |
+      | day   | 2026-12-31 | /day/2027-01-01  | /day/2026-12-30  |
+
+  # owner, 2026-10-26: the arrows are only out of sight on touch; assistive technology and keyboards keep them
+  @mobile
+  Scenario: On a touch screen a screen reader can still go to the next or previous period
+    When I open the month view for 2026-10
+    Then a screen reader finds the buttons "Previous period" and "Next period" in the top bar, off screen
+    When a keyboard user activates "Next period" in the top bar
+    Then the URL path is "/month/2026-11"
+
+  # owner, 2026-10-26: the arrows follow the pointer, not the width
+  @desktop
+  Scenario: A narrow window with a mouse shows the arrows
+    Given the browser window is 600 by 800 pixels wide and high
+    When I open the month view for 2026-10
+    Then the top bar shows the arrows
+
   Scenario Outline: The today button returns to the period containing today
     When I open the <view> view for <other>
     And I go to today
@@ -109,7 +146,12 @@ Feature: Navigation and view switching
       | view  | other      | today            |
       | month | 2027-03    | /month/2026-10   |
       | week  | 2026-11-23 | /week/2026-10-12 |
-      | day   | 2026-12-24 | /day/2026-10-12  |
+
+  # The day view has no day header any more (feature header-layout): its today highlight is the Today button's.
+  Scenario: The today button returns to today's day view
+    When I open the day view for 2026-12-24
+    And I go to today
+    Then the URL path is "/day/2026-10-12"
 
   Scenario Outline: The current day is highlighted in every view
     When I open the <view> view for <period>
@@ -120,7 +162,6 @@ Feature: Navigation and view switching
       | view  | period     |
       | month | 2026-10    |
       | week  | 2026-10-12 |
-      | day   | 2026-10-12 |
 
   Scenario Outline: No day is highlighted when today is not visible
     When I open the <view> view for <period>
@@ -130,7 +171,33 @@ Feature: Navigation and view switching
       | view  | period     |
       | month | 2026-12    |
       | week  | 2026-10-19 |
+
+  # owner, 2026-10-26: the date is shown once, so the day view's "Mon 12" header goes; the Today button takes over its
+  # today highlight in every view: filled while today is shown, outlined on a solid background when it is not.
+  Scenario Outline: The Today button shows when today is on screen
+    When I open the <view> view for <period>
+    Then the Today button shows that today is on screen
+
+    Examples:
+      | view  | period     |
+      | month | 2026-10    |
+      | week  | 2026-10-12 |
+      | day   | 2026-10-12 |
+
+  Scenario Outline: The Today button does not show it when today is not on screen
+    When I open the <view> view for <period>
+    Then the Today button does not show that today is on screen
+
+    Examples:
+      | view  | period     |
+      | month | 2026-12    |
+      | week  | 2026-10-19 |
       | day   | 2026-10-13 |
+
+  Scenario: Going to today in the day view lights up the Today button
+    When I open the day view for 2026-12-24
+    And I go to today
+    Then the Today button shows that today is on screen
 
   Scenario Outline: Switching views keeps today when it is visible, otherwise the focused date
     When I open the month view for <month>

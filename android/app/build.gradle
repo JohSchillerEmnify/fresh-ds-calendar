@@ -9,6 +9,19 @@ def keystoreProps = new Properties()
 def keystorePropsFile = new File(System.getenv('CAL_ANDROID_KEYSTORE_PROPS') ?: "${System.getProperty('user.home')}/.config/calendar-android/keystore.properties")
 if (keystorePropsFile.exists()) keystorePropsFile.withInputStream { keystoreProps.load(it) }
 
+// The calendar server the app loads (BuildConfig.SERVER_URL, read by ServerConfig): -PcalServerUrl=https://... or the
+// environment variable CAL_SERVER_URL. Not in the source: a release build without it fails; debug and unit tests fall
+// back to the placeholder.
+def calServerUrl = ((project.findProperty('calServerUrl') ?: System.getenv('CAL_SERVER_URL') ?: '') as String).trim()
+if (calServerUrl && !calServerUrl.matches('https://[^/\\s"]+')) {
+    throw new GradleException("calServerUrl / CAL_SERVER_URL must look like https://cal.example.org (https, no path), got: ${calServerUrl}")
+}
+gradle.taskGraph.whenReady { graph ->
+    if (!calServerUrl && graph.allTasks.any { it.project == project && it.name in ['assembleRelease', 'bundleRelease'] }) {
+        throw new GradleException('Set the calendar server for a release build: CAL_SERVER_URL=https://cal.example.org (or -PcalServerUrl=...)')
+    }
+}
+
 android {
     signingConfigs {
         release {
@@ -36,11 +49,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    buildFeatures {
+        buildConfig = true
+    }
     testOptions {
         unitTests.includeAndroidResources = true
     }
     buildTypes {
+        debug {
+            buildConfigField 'String', 'SERVER_URL', "\"${calServerUrl ?: 'https://cal.example.org'}\""
+        }
         release {
+            buildConfigField 'String', 'SERVER_URL', "\"${calServerUrl ?: 'https://cal.example.org'}\""
+
             if (keystorePropsFile.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

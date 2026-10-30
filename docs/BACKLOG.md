@@ -4,6 +4,28 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Bugs
 
+- **Approaching card track overlaps other items, e.g. the "signed in" and streak notices** (owner, 2026-10-30, live
+  0.23.0+8952b21, seen on the phone; maybe elsewhere too). SOME bars of the track — the ones further back — lie on top
+  of the notices (signed-in note, streak note, others). Expected: notices are always above every bar of the track,
+  readable and tappable. Likely the same stacking cause as the back-to-back title bug below. Reproducing test first,
+  then fix.
+
+- **Approaching card: back-to-back entries cover the titles of the ones before them** (owner, 2026-10-26, screenshot,
+  phone, live 0.23.0+14aeaaf). Four entries in quick succession in two lanes (Bachata Sensual → HipHop, Pauke
+  Retournieren → Hellbreakers): the two in front have their titles behind the bars that follow, so "Bachata Sensual"
+  and "Pauke Retournieren" cannot be read; only HipHop and Hellbreakers show. Expected: every bar's title readable
+  (or clipped to its own bar), never covered by the next bar. Reproducing test first, then fix.
+
+- **The live clock runs 4 app timers where at most 2 are allowed** (full e2e 2026-10-26; also red on a55be8f, so older
+  than that day's work). `performance.feature` "The live clock uses one timer and pauses while hidden" fails on mobile
+  (`Received: 4`). Root-cause by falsification, then fix.
+- **Labs zoom month: back-to-back short events are not laid out as overlapping** (min-event-length outline, Example #6;
+  red on main since at least a7e9c5f): "title not covered". The zoom month gets no side-by-side limit.
+- **Labs Timeline: no way back to today after scrolling** (owner, 2026-10-26). After scrolling a while there is no
+  Today button to jump back. The date-less Labs views (Now, Timeline) hide the top bar's date/prev/next/Today since
+  2026-10-23; the Timeline needs a Today control again (spec + canvas mockup first: where it sits, maybe only once today
+  is out of view).
+
 - **Left-handed tablet: the + button covers the open tray** (2026-10-23, owner to decide). In left-handed mode on a
   tablet the add button sits over the open task tray. Moving it right of the tray puts it past the middle of an 820 px
   tablet, which breaks the owner's scenario "On an iPad in left-handed mode the add button sits on the left" (checked:
@@ -24,6 +46,14 @@ Tracked here so it survives across sessions. Newest first within each section. M
   pointer/touch events on one row.
 
 ## Tech debt
+
+- **Accessibility audit** (owner, 2026-10-26: "we anyway need an accessibility audit at some point"). Go through the app
+  with screen readers (VoiceOver on iPhone, TalkBack on Android), keyboard only, 200–400 % zoom, reduced motion and
+  high contrast: labels and roles, focus order and visible focus, tap target sizes (44 px is our comfort target, WCAG 2.2
+  AA asks 24), colour contrast of themes and scenes, gestures that need an alternative (swipe periods, drag and drop,
+  long press, draw to create), live regions (sync status, check-in toast). Output: a findings list by severity, then
+  fixes slice by slice. Known items: the touch screens' period arrows are screen-reader-only (2026-10-26) and show no
+  focus ring when a keyboard user tabs to them (WCAG 2.4.7).
 
 - **Simplification & reuse audit of the overview item components** (owner, 2026-10-16: "why do we have so many variants
   of what should be one dynamic component?"). `TaskListCard` alone carries variants card/allday/chip/block/dot plus grown,
@@ -64,6 +94,12 @@ Tracked here so it survives across sessions. Newest first within each section. M
   edge to the previous day (time kept). Today the edge hold only works at the time grid's top and bottom (`dnd`).
 - **Confirm a new list item with a check button** (owner, 2026-10-23; needs its own slice + spec first). A small check
   mark / button at the right end of the new-item field adds the item, as an alternative to pressing Enter.
+- **Turn a calendar off on a schedule or for a while** (owner, 2026-10-26; needs its own slice + spec first, with
+  canvas mockups). (a) Schedule: a calendar shows only on chosen days/times, e.g. the work calendar only Monday to
+  Friday. (b) Temporarily off: hide a calendar for a few days, and it comes back by itself afterwards. Both from a long
+  press on the calendar's chip (owner: at least the temporary one must be a long press); the schedule may also live in
+  Settings. "Off" means exactly what switching a calendar off by hand does today (same hiding, same look, same sync);
+  this feature only switches it automatically (owner: "the behavior is already there, just currently manual").
 - Canvas performance on the phone (owner, 2026-10-14): pan/zoom/drag are already one transform and save on release; the
   cost is re-layerizing all notes each frame (~40 notes, about half the frames dropped at 8x CPU throttle). Real fix:
   render only the notes in the viewport (or `content-visibility`), needs a spec decision and a real-device trace. Idle
