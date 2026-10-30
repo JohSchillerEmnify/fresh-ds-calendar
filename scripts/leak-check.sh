@@ -86,7 +86,8 @@ case "$mode" in
     ;;
   push | all)
     if [ "$mode" = all ]; then
-      revs=(--all)
+      # own branches and tags only: remote-tracking refs of private mirrors may still hold the pre-scrub history
+      revs=(--branches --tags)
     else
       positives=() ; newbranch=0
       if [ -t 0 ]; then newbranch=1; positives=(HEAD)
