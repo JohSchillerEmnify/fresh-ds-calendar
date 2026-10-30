@@ -107,4 +107,19 @@ describe('InkLine', () => {
     draw(w.element, { pointerType: 'pen' });
     expect(w.emitted('change')).toBeUndefined();
   });
+
+  it('a palm moving or lifting while the pen writes does not add to the pen stroke or end it', () => {
+    const { w, svg } = setup();
+    const pen = { pointerType: 'pen' };
+    const palm = { pointerType: 'touch', width: 60 };
+    svg.dispatchEvent(ev('pointerdown', 150, 30, palm));
+    svg.dispatchEvent(ev('pointerdown', 10, 20, pen));
+    svg.dispatchEvent(ev('pointermove', 150, 35, palm));
+    svg.dispatchEvent(ev('pointermove', 40, 22, pen));
+    svg.dispatchEvent(ev('pointerup', 150, 35, palm));
+    expect(w.emitted('change')).toBeUndefined();
+    svg.dispatchEvent(ev('pointerup', 80, 20, pen));
+    const out = w.emitted('change')![0]![0] as { p: number[][] }[];
+    expect(out[0]!.p.every((q) => q[0]! < 3)).toBe(true);
+  });
 });

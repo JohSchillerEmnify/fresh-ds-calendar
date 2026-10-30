@@ -3347,7 +3347,7 @@ the stored preferences of {string} are damaged
 {string} has the default preferences plus the change
 the damaged file is kept as {string} with its old content
 ```
-## Handwritten lists (`@id:handwritten-lists`, Labs; all `@backlog`, not built yet)
+## Handwritten lists (`@id:handwritten-lists`, Labs; the `@backlog` scenarios are not built yet)
 
 ```
 the Labs switch {string} is on
