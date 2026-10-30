@@ -1,9 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MAX_THEMES, MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemeDoc, type ThemePicture } from '@calendar/shared';
-import { listUserSubs, userDir } from '../auth/people.js';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { nanoid } from '../lib/ids.js';
+import { isRecord, isSetAside, PersonJsonStore } from '../lib/personJsonStore.js';
 import { validation } from '../lib/errors.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 
@@ -48,10 +47,16 @@ export async function vetRestoredFile(rel: string, content: string): Promise<str
 
 /** A person's imported themes, one JSON file each in `DATA_DIR/users/<sub>/themes/` (feature theme-import). */
 export class ThemeStore {
-  constructor(private readonly dataDir: string) {}
+  private readonly files: PersonJsonStore<StoredTheme | null>;
+
+  constructor(dataDir: string) {
+    // a file without an id and document is set aside; "none" means no theme in that file
+    this.files = new PersonJsonStore<StoredTheme | null>(dataDir, 'themes',
+      (r) => (isRecord(r) && r.id && r.doc ? (r as unknown as StoredTheme) : null), () => null);
+  }
 
   private dir(sub: string): string {
-    return path.join(userDir(this.dataDir, sub), 'themes');
+    return this.files.path(sub);
   }
 
   /** The person's themes, oldest first. */
@@ -59,9 +64,9 @@ export class ThemeStore {
     const dir = this.dir(sub);
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir)
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => readJson<StoredTheme>(path.join(dir, f)))
-      .filter((t): t is StoredTheme => !!t?.id && !!t.doc)
+      .filter((f) => f.endsWith('.json') && !isSetAside(f))
+      .map((f) => this.files.read(sub, `themes/${f}`))
+      .filter((t): t is StoredTheme => t !== null)
       .sort((a, b) => a.created - b.created);
   }
 
@@ -69,7 +74,7 @@ export class ThemeStore {
   add(sub: string, doc: ThemeDoc, picture?: ThemePicture): StoredTheme {
     if (this.list(sub).length >= MAX_THEMES) throw validation(`You can keep at most ${MAX_THEMES} themes. Delete one first.`);
     const theme: StoredTheme = { id: nanoid(10), created: Date.now(), doc, ...(picture ? { picture } : {}) };
-    writeJsonAtomic(path.join(this.dir(sub), `${theme.id}.json`), theme);
+    this.files.write(sub, theme, `themes/${theme.id}.json`);
     return theme;
   }
 
@@ -84,6 +89,6 @@ export class ThemeStore {
 
   /** Forgets every person's themes (test reset). */
   reset(): void {
-    for (const u of listUserSubs(this.dataDir)) fs.rmSync(this.dir(u), { recursive: true, force: true });
+    this.files.reset();
   }
 }

@@ -1,7 +1,4 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
-import { listUserSubs, userDir } from '../auth/people.js';
+import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
 import { ReminderOverrideStore } from './reminderOverrides.js';
 
 /** The person used while sign-in is off. */
@@ -279,64 +276,69 @@ interface StoredPrefs extends Prefs {
   theme?: StoredTheme;
 }
 
+/** Fills every field of a stored document with a valid value, so a hand-edited or older file still reads. */
+function normalise(p: Partial<StoredPrefs> | null): StoredPrefs {
+  return {
+    ...p,
+    hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
+    labs: p?.labs === true,
+    labsViews: toLabsViews(p?.labsViews) ?? {},
+    approachBar: p?.approachBar !== false,
+    approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
+    approachingCard: p?.approachingCard !== false,
+    approachTimeLeft: p?.approachTimeLeft !== false,
+    taskCategories: p?.taskCategories !== false,
+    tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
+    tasksCalendarVisible: p?.tasksCalendarVisible === true,
+    supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
+    versionInCorner: p?.versionInCorner === true,
+    leftHanded: p?.leftHanded === true,
+    showCarriedFrom: p?.showCarriedFrom !== false,
+    navPhone: NAV_POSITION_VALUES.includes(p?.navPhone as NavPosition) ? (p!.navPhone as NavPosition) : 'bottom',
+    navDesktop: NAV_POSITION_VALUES.includes(p?.navDesktop as NavPosition) ? (p!.navDesktop as NavPosition) : 'rail',
+    tasksGroupBy: TASKS_GROUP_BY_VALUES.includes(p?.tasksGroupBy as TasksGroupBy) ? (p!.tasksGroupBy as TasksGroupBy) : 'time',
+    tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
+    labsOwnThemes: p?.labsOwnThemes === true,
+    tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
+    undatedDone: UNDATED_DONE_VALUES.includes(p?.undatedDone as UndatedDone) ? (p!.undatedDone as UndatedDone) : 'calendar',
+    taskOpen: TASK_OPEN_VALUES.includes(p?.taskOpen as TaskOpen) ? (p!.taskOpen as TaskOpen) : 'inline',
+    tasksFilter: toTasksFilter(p?.tasksFilter) ?? { ...DEFAULT_TASKS_FILTER, categories: [] },
+    language: isLanguagePref(p?.language) ? p.language : 'auto',
+    bedtime: readBedtime(p?.bedtime),
+    notify: readNotify(p?.notify),
+    weekTwoRow: p?.weekTwoRow === true,
+    labsGrowCards: p?.labsGrowCards === true,
+    weekTwoRowTop: p?.weekTwoRowTop === 3 ? 3 : 4,
+    minEventMinutes: isMinEventMinutes(p?.minEventMinutes) ? p.minEventMinutes : 0,
+    daySideBySide: isDaySideBySide(p?.daySideBySide) ? p.daySideBySide : 4,
+    weekSideBySide: isWeekSideBySide(p?.weekSideBySide) ? p.weekSideBySide : 2,
+    streak: STREAK_VALUES.includes(p?.streak as StreakChoice) ? (p!.streak as StreakChoice) : 'off',
+    syncIndicator: p?.syncIndicator === true,
+    headerLayout: HEADER_LAYOUT_VALUES.includes(p?.headerLayout as HeaderLayout) ? (p!.headerLayout as HeaderLayout) : 'two-rows',
+  };
+}
+
 /** Per-person preferences in `DATA_DIR/users/<sub>/prefs.json` (hidden calendars, Labs switches, support cat, theme, tasks calendar). */
 export class PrefsStore {
   /** The person's own reminders for events they can only read (its own file next to `prefs.json`). */
   readonly reminderOverrides: ReminderOverrideStore;
 
-  constructor(private readonly dataDir: string) {
-    this.reminderOverrides = new ReminderOverrideStore(dataDir);
-  }
+  private readonly files: PersonJsonStore<StoredPrefs>;
 
-  private file(sub: string): string {
-    return path.join(userDir(this.dataDir, sub), 'prefs.json');
+  constructor(dataDir: string) {
+    this.reminderOverrides = new ReminderOverrideStore(dataDir);
+    // every field falls back to its default; only a file that is not an object is set aside
+    this.files = new PersonJsonStore<StoredPrefs>(dataDir, 'prefs.json',
+      (r) => (isRecord(r) ? normalise(r) : null), () => normalise(null));
   }
 
   private read(sub: string): StoredPrefs {
-    const p = readJson<Partial<StoredPrefs>>(this.file(sub));
-    return {
-      ...p,
-      hiddenCalendars: Array.isArray(p?.hiddenCalendars) ? p.hiddenCalendars : [],
-      labs: p?.labs === true,
-      labsViews: toLabsViews(p?.labsViews) ?? {},
-      approachBar: p?.approachBar !== false,
-      approachWindowHours: isApproachWindow(p?.approachWindowHours) ? p.approachWindowHours : 3,
-      approachingCard: p?.approachingCard !== false,
-      approachTimeLeft: p?.approachTimeLeft !== false,
-      taskCategories: p?.taskCategories !== false,
-      tasksCalendarId: typeof p?.tasksCalendarId === 'string' && p.tasksCalendarId ? p.tasksCalendarId : null,
-      tasksCalendarVisible: p?.tasksCalendarVisible === true,
-      supportCat: SUPPORT_CAT_VALUES.includes(p?.supportCat as SupportCat) ? (p!.supportCat as SupportCat) : 'sometimes',
-      versionInCorner: p?.versionInCorner === true,
-      leftHanded: p?.leftHanded === true,
-      showCarriedFrom: p?.showCarriedFrom !== false,
-      navPhone: NAV_POSITION_VALUES.includes(p?.navPhone as NavPosition) ? (p!.navPhone as NavPosition) : 'bottom',
-      navDesktop: NAV_POSITION_VALUES.includes(p?.navDesktop as NavPosition) ? (p!.navDesktop as NavPosition) : 'rail',
-      tasksGroupBy: TASKS_GROUP_BY_VALUES.includes(p?.tasksGroupBy as TasksGroupBy) ? (p!.tasksGroupBy as TasksGroupBy) : 'time',
-      tasksSortBy: TASKS_SORT_BY_VALUES.includes(p?.tasksSortBy as TasksSortBy) ? (p!.tasksSortBy as TasksSortBy) : 'date',
-      labsOwnThemes: p?.labsOwnThemes === true,
-      tasksSortDir: TASKS_SORT_DIR_VALUES.includes(p?.tasksSortDir as TasksSortDir) ? (p!.tasksSortDir as TasksSortDir) : 'default',
-      undatedDone: UNDATED_DONE_VALUES.includes(p?.undatedDone as UndatedDone) ? (p!.undatedDone as UndatedDone) : 'calendar',
-      taskOpen: TASK_OPEN_VALUES.includes(p?.taskOpen as TaskOpen) ? (p!.taskOpen as TaskOpen) : 'inline',
-      tasksFilter: toTasksFilter(p?.tasksFilter) ?? { ...DEFAULT_TASKS_FILTER, categories: [] },
-      language: isLanguagePref(p?.language) ? p.language : 'auto',
-      bedtime: readBedtime(p?.bedtime),
-      notify: readNotify(p?.notify),
-      weekTwoRow: p?.weekTwoRow === true,
-      labsGrowCards: p?.labsGrowCards === true,
-      weekTwoRowTop: p?.weekTwoRowTop === 3 ? 3 : 4,
-      minEventMinutes: isMinEventMinutes(p?.minEventMinutes) ? p.minEventMinutes : 0,
-      daySideBySide: isDaySideBySide(p?.daySideBySide) ? p.daySideBySide : 4,
-      weekSideBySide: isWeekSideBySide(p?.weekSideBySide) ? p.weekSideBySide : 2,
-      streak: STREAK_VALUES.includes(p?.streak as StreakChoice) ? (p!.streak as StreakChoice) : 'off',
-      syncIndicator: p?.syncIndicator === true,
-      headerLayout: HEADER_LAYOUT_VALUES.includes(p?.headerLayout as HeaderLayout) ? (p!.headerLayout as HeaderLayout) : 'two-rows',
-    };
+    return this.files.read(sub);
   }
 
   private merge(sub: string, patch: Partial<StoredPrefs>): StoredPrefs {
     const p = { ...this.read(sub), ...patch };
-    writeJsonAtomic(this.file(sub), p satisfies StoredPrefs);
+    this.files.write(sub, p);
     return p;
   }
 
@@ -371,7 +373,7 @@ export class PrefsStore {
     const raw = prev.theme?.preset ?? 'Default';
     const own = cur.overrides.scene ?? (raw === 'Default' || raw === 'Neon' ? 'none' : 'preset');
     const overrides = own === 'none' ? { ...cur.overrides, scene: legacy } : cur.overrides;
-    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, seasonal: cur.seasonal, seasonalMigrated: true, sceneUnified: true } } satisfies StoredPrefs);
+    this.files.write(sub, { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, seasonal: cur.seasonal, seasonalMigrated: true, sceneUnified: true } });
   }
 
   /**
@@ -393,7 +395,7 @@ export class PrefsStore {
     } else if (overrides.scene === 'sunflowers') {
       overrides = { ...overrides, scene: 'none' };
     }
-    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, seasonal: cur.seasonal, seasonalMigrated: true, gardenMigrated: true } } satisfies StoredPrefs);
+    this.files.write(sub, { ...prev, theme: { ...prev.theme, preset: cur.preset, overrides, seasonal: cur.seasonal, seasonalMigrated: true, gardenMigrated: true } });
   }
 
   /** Merges a theme change into the stored preferences and returns the result. */
@@ -402,14 +404,14 @@ export class PrefsStore {
     const cur = this.theme(sub);
     const theme: ThemePref = { preset: patch.preset ?? cur.preset, overrides: patch.overrides ?? cur.overrides, seasonal: patch.seasonal ?? cur.seasonal };
     // a person's own save replaces the old scene and garden style, so there is nothing left to migrate
-    writeJsonAtomic(this.file(sub), { ...prev, theme: { ...theme, seasonalMigrated: true, sceneUnified: true, gardenMigrated: true } } satisfies StoredPrefs);
+    this.files.write(sub, { ...prev, theme: { ...theme, seasonalMigrated: true, sceneUnified: true, gardenMigrated: true } });
     return theme;
   }
 
   setHidden(sub: string, calendarId: string, hidden: boolean): void {
     const p = this.read(sub);
     const rest = p.hiddenCalendars.filter((i) => i !== calendarId);
-    writeJsonAtomic(this.file(sub), { ...p, hiddenCalendars: hidden ? [...rest, calendarId] : rest } satisfies StoredPrefs);
+    this.files.write(sub, { ...p, hiddenCalendars: hidden ? [...rest, calendarId] : rest });
   }
 
   /** The person's {@link Prefs} as `GET /api/prefs` returns them. */
@@ -446,6 +448,6 @@ export class PrefsStore {
   /** Forgets every person's preferences (test reset). */
   reset(): void {
     this.reminderOverrides.reset();
-    for (const u of listUserSubs(this.dataDir)) fs.rmSync(path.join(userDir(this.dataDir, u), 'prefs.json'), { force: true });
+    this.files.reset();
   }
 }

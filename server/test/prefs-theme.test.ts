@@ -86,10 +86,10 @@ describe('one scene choice (migration of the retired top bar scene)', () => {
     ['Fall', { scene: 'none' }, 'mordor', { scene: 'mordor' }],
     ['Default', { scene: 'winter' }, 'mordor', { scene: 'winter' }],
   ])('%s with overrides %j and old top bar scene %s becomes %j', (preset, overrides, legacy, expected) => {
-    const { prefs } = store();
+    const { d, prefs } = store();
     prefs.setTheme('local', { preset, overrides, seasonal: 'off' });
     // setTheme marks the theme as migrated, so write the pre-migration state by hand
-    const f = path.join(prefs['dataDir'], 'users', 'local', 'prefs.json');
+    const f = path.join(d, 'users', 'local', 'prefs.json');
     const j = JSON.parse(fs.readFileSync(f, 'utf8'));
     delete j.theme.sceneUnified;
     fs.writeFileSync(f, JSON.stringify(j));

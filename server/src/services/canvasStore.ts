@@ -1,8 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import type { CanvasArea, CanvasDoc } from '../api/types.js';
-import { listUserSubs, userDir } from '../auth/people.js';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
+import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
 
 /** What a person without a canvas document has. */
 const EMPTY: CanvasDoc = { version: 1, areas: [] };
@@ -12,27 +9,27 @@ const EMPTY: CanvasDoc = { version: 1, areas: [] };
  * document is read and replaced whole, so a later Google Drive backup can take the file as it is.
  */
 export class CanvasStore {
-  constructor(private readonly dataDir: string) {}
+  private readonly files: PersonJsonStore<CanvasDoc>;
 
-  private file(sub: string): string {
-    return path.join(userDir(this.dataDir, sub), 'canvas.json');
+  constructor(dataDir: string) {
+    this.files = new PersonJsonStore<CanvasDoc>(dataDir, 'canvas.json',
+      (r) => (isRecord(r) && Array.isArray(r.areas) ? { version: 1, areas: r.areas as CanvasArea[] } : null), () => ({ ...EMPTY }));
   }
 
-  /** The person's document; an empty one when none is stored or the file is unusable. */
+  /** The person's document; an empty one when none is stored (an unusable file is set aside first). */
   get(sub: string): CanvasDoc {
-    const d = readJson<Partial<CanvasDoc>>(this.file(sub));
-    return { version: 1, areas: Array.isArray(d?.areas) ? (d.areas as CanvasArea[]) : [] };
+    return this.files.read(sub);
   }
 
   /** Replaces the person's areas (already validated) and returns the stored document. */
   put(sub: string, areas: CanvasArea[]): CanvasDoc {
     const doc: CanvasDoc = { ...EMPTY, areas };
-    writeJsonAtomic(this.file(sub), doc);
+    this.files.write(sub, doc);
     return doc;
   }
 
   /** Forgets every person's document (test reset). */
   reset(): void {
-    for (const u of listUserSubs(this.dataDir)) fs.rmSync(this.file(u), { force: true });
+    this.files.reset();
   }
 }

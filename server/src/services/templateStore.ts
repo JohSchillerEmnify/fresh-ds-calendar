@@ -1,10 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import type { TaskTemplate, TaskTemplateInput } from '../api/types.js';
-import { listUserSubs, userDir } from '../auth/people.js';
-import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import { ApiException, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
+import { isRecord, PersonJsonStore } from '../lib/personJsonStore.js';
 
 /** The template is not one of the person's (unknown, deleted, or another person's). */
 export const templateNotFound = (): ApiException => new ApiException('NOT_FOUND', 404, 'Template not found', undefined, 'tasks.templates.notFound');
@@ -32,28 +29,21 @@ const sameName = (a: string, b: string): boolean => a.trim().localeCompare(b.tri
  * person's Drive with the rest of their folder (ADR 0010).
  */
 export class TemplateStore {
-  constructor(private readonly dataDir: string, private readonly log: (m: string) => void = (m) => console.warn(m)) {}
+  private readonly files: PersonJsonStore<TemplateDoc>;
 
-  private file(sub: string): string {
-    return path.join(userDir(this.dataDir, sub), 'templates.json');
+  constructor(dataDir: string, log: (m: string) => void = (m) => console.warn(m)) {
+    // an entry of the wrong shape is left out; a file without a templates list is set aside
+    this.files = new PersonJsonStore<TemplateDoc>(dataDir, 'templates.json',
+      (r) => (isRecord(r) && Array.isArray(r.templates) ? { version: 1, templates: r.templates.filter(isTemplate) } : null),
+      () => ({ version: 1, templates: [] }), (m) => log(`templates: ${m}`));
   }
 
   private read(sub: string): TaskTemplate[] {
-    const file = this.file(sub);
-    if (!fs.existsSync(file)) return [];
-    const d = readJson<Partial<TemplateDoc>>(file);
-    // an unreadable file is kept aside (never overwritten by the next save) and the person starts empty
-    if (!d || typeof d !== 'object' || !Array.isArray(d.templates)) {
-      const aside = `${file}.corrupt-${Date.now()}`;
-      fs.renameSync(file, aside);
-      this.log(`templates: unreadable ${path.basename(file)} moved aside to ${path.basename(aside)}`);
-      return [];
-    }
-    return d.templates.filter(isTemplate);
+    return this.files.read(sub).templates;
   }
 
   private write(sub: string, templates: TaskTemplate[]): void {
-    writeJsonAtomic(this.file(sub), { version: 1, templates } satisfies TemplateDoc);
+    this.files.write(sub, { version: 1, templates });
   }
 
   /** The person's templates, sorted by name. */
@@ -94,7 +84,7 @@ export class TemplateStore {
 
   /** Forgets every person's templates (test reset). */
   reset(): void {
-    for (const u of listUserSubs(this.dataDir)) fs.rmSync(this.file(u), { force: true });
+    this.files.reset();
   }
 
   private checkName(all: TaskTemplate[], name: string, self: string | null): void {
