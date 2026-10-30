@@ -62,7 +62,7 @@ Feature: Labs: handwritten lists
   G5. Conflicts: two devices change the same list -> merged per item: new strokes and items from both devices are
       kept; only when the same line was erased on one device and extended on the other does the later change win.
   G6. A ticked ink item is struck through with the same strike line as text items and faded to about half.
-  G7. Left-handed mode mirrors the tool row and the rows (owner, 2026-10-30): checkbox and grip handle on the right, the
+  G7. Left-handed mode mirrors the tool row and the rows (owner, 2026-10-30): checkbox on the right, grip handle on the left, the
       writing starts after a free strip on the left so the palm rests on the screen (not over its edge, which breaks palm
       rejection); writing still runs left to right. Save/Cancel mirror as in every dialog today. To verify with a
       left-handed tester.
