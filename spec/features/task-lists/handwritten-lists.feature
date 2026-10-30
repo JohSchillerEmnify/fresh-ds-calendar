@@ -52,6 +52,9 @@ Feature: Labs: handwritten lists
       of the app.
   G8. Ink is stored relative to the line height and scaled to the line on every screen, so the same ink looks the same
       on phone, tablet and desktop (smaller on a smaller line, never cut off).
+  M1. Calendar cards (owner, mockup review): an ink item shows on a card only where the card shows item lines today
+      (the card is long enough); a card's behaviour does not change: same height, collapse levels, done count and
+      grown card as with text items, an ink line simply takes the place of a title line.
 
   ASSUMPTIONS (not yet confirmed by the owner)
   A7. The chosen ink colour is remembered per device, like the writing mode (A4).
