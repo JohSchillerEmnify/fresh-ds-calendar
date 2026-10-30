@@ -4,6 +4,7 @@ import { PeopleStore } from './auth/peopleStore.js';
 import { Clock } from './lib/clock.js';
 import { formatInZone } from './lib/time.js';
 import { CanvasStore } from './services/canvasStore.js';
+import { IdempotencyStore } from './services/idempotencyStore.js';
 import { TemplateStore } from './services/templateStore.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
@@ -40,6 +41,7 @@ export interface Ctx {
   prefs: PrefsStore;
   themes: ThemeStore;
   canvas: CanvasStore;
+  idempotency: IdempotencyStore;
   templates: TemplateStore;
   /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
@@ -65,7 +67,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
+  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; /** Test mode: the next event or task list write answers this status and changes nothing. */ refuseNextWrite?: 400 | 404; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;
@@ -89,6 +91,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const prefs = new PrefsStore(config.dataDir);
   const themes = new ThemeStore(config.dataDir);
   const canvas = new CanvasStore(config.dataDir);
+  const idempotency = new IdempotencyStore(config.dataDir);
   const templates = new TemplateStore(config.dataDir);
   const motivation = new MotivationService(config.dataDir, clock, config.tz);
   const mockDrive = config.provider === 'mock' ? new MockDrive(path.join(config.dataDir, 'mock-drive.json'), clock) : null;
@@ -122,7 +125,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {
-    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes, live, googlePoller: poller, provider: prov, mock, settings, prefs, themes, canvas, idempotency, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));

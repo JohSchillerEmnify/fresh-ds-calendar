@@ -5,7 +5,7 @@ import { appTimeout, type Disposer } from '@/lib/timers';
 export interface SnackbarMessage {
   id: number;
   text: string;
-  action?: { label: string; run: () => void; testid?: string };
+  action?: { label: string; run: () => void; testid?: string; /** The message stays after the action (the person dismisses it). */ keep?: boolean };
   /** ms; 0 = stays until dismissed. */
   duration: number;
   testid?: string;

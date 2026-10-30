@@ -104,9 +104,10 @@ export class Api {
     }
   }
 
-  async remoteEvents(q?: string): Promise<GoogleEvent[]> {
-    const qs = q === undefined ? '' : `?q=${encodeURIComponent(q)}`;
-    return (await this.get<{ items: GoogleEvent[] }>(`/api/__test/remote/events${qs}`)).items;
+  /** `owner`: the Google address whose (mock) calendar is read; omitted = the shared calendar. */
+  async remoteEvents(q?: string, owner?: string): Promise<GoogleEvent[]> {
+    const qs = new URLSearchParams({ ...(q === undefined ? {} : { q }), ...(owner === undefined ? {} : { owner }) }).toString();
+    return (await this.get<{ items: GoogleEvent[] }>(`/api/__test/remote/events${qs ? `?${qs}` : ''}`)).items;
   }
   /** `owner`: the Google address whose (mock) calendar receives the event; omitted = the shared calendar. */
   remoteInsert(ev: Partial<GoogleEvent> & { calendarId?: string; owner?: string }) {

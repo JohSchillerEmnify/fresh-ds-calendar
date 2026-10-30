@@ -570,6 +570,79 @@ the live connection is blocked
 - Counting requests (section "Performance") is used with `/api/changes` to show that a device fetched nothing; the
   endpoint name follows the build (REQUIREMENTS "Live sync").
 
+## Offline changes (`@offline-changes`, ADR 0025 slice 2)
+
+```
+this device keeps {int} unsent change(s)
+this device keeps no unsent changes
+I wait until the changes are sent
+I close the app
+I switch to the second device
+I switch back to the first device
+the second device does not show the event {string}
+the server has the event {string} on {date} from {time} to {time}
+the server has no event {string}
+the server has the task list {string} with items:
+the server has no task list {string}
+the server refuses the next change as invalid
+I am told that the change to {string} was not saved because it was deleted elsewhere
+I am told that the change to {string} was not saved because the server refused it
+I am not told that a change was not saved
+I dismiss the notice
+I press Edit again in the notice
+the notice offers no Edit again
+1 minute passes
+I see the sync failed icon
+I do not see the sync failed icon
+I tap the sync failed icon
+I am told the last successful sync was at {string}
+the unsent changes list shows {string}
+the unsent changes list is empty
+Google deletes the task list {string}
+they ask to sign out in the settings
+they are asked whether to sign out and lose {int} unsent change(s)
+they choose to stay signed in
+they sign out anyway
+```
+
+- Hooks: `<html data-unsynced="N">` carries the outbox size for the waits; the icon is `sync-failed-icon` (top bar, beside
+  `sync-status`), its popover `sync-failed-popover` with the time (`sync-failed-last`), one `sync-failed-change` per unsent change
+  and `sync-failed-empty`. A refused change is a persistent snackbar `outbox-notice` (`outbox-notice-dismiss`,
+  `outbox-edit-again`). There is no per-item mark and no counter.
+- "this device keeps N unsent change(s)": the device store (IndexedDB) holds N outbox entries of the person, also while
+  signed out or on the sign-in page; "keeps no unsent changes": it holds none.
+- "N minutes pass" (existing, timeline) and "1 minute passes": with "the clock is running" the page's clock (Playwright `page.clock`) and the
+  server-side test clock move on by N minutes; with the server's time frozen (the offline scenarios) only the page's own `Date.now` jumps
+  (the app counts device time for the 5 minute rule); timers run in real time.
+- "I see/do not see the sync failed icon": `sync-failed-icon` is visible / not in the page. It shows when no send or sync
+  has succeeded for 5 minutes and goes at the next successful send or sync. "I tap the sync failed icon" opens its sheet.
+  "told the last successful sync was at T": `sync-failed-last` ends with T. "the unsent changes list shows X": one
+  `sync-failed-change` reads X (`<title> ticked`, `<title> created`, `<title> renamed`, `<title> changed`,
+  `<title> deleted`); "is empty": none and the sheet says nothing is unsent.
+- "Google deletes the task list T": deletes its Google event through `/api/__test/remote/*`.
+- "I wait until the changes are sent": waits until `data-unsynced` is `0` (at most the poll interval + 5 s; the
+  send is also started by `online`, focus and open).
+- "I close the app": navigates the page to `about:blank` (the page unloads, the device store stays);
+  "I open the app" (above) then loads it again. Deleting an item or entry enters the outbox when its undo time is
+  over ("the undo time is over" is reused), never before.
+- "I switch to the second device" / "I switch back to the first device": makes the page of "the app is open on a
+  second device" (or the first page) the current one without reloading; the network steps act on the current page's
+  context, so each device is offline on its own. "the second device does not show the event X": the second page
+  holds no chip for X (read without reload or focus).
+- Server checks ("the server has ..."): read through the test API (`GET /api/__test/remote/*`) for the signed-in
+  person (or the single owner), never through the page; an item table compares `item`/`done` in order. "the server
+  has the task list T with items" finds the list by title, dated or not.
+- "the server refuses the next change as invalid": `POST /api/__test/refuse-next-write { status: 400 }` (API.md); the next write request the server receives answers `400 VALIDATION_ERROR`, later ones are
+  normal.
+- Notices: a persistent notice (`save-failed-notice`, not a snackbar that fades) naming the entry as the person last saw
+  it on this device; "I dismiss the notice" presses its `save-failed-dismiss`; "not told that a change was not saved":
+  no `save-failed-notice` is visible. "I press Edit again in the notice" presses `save-failed-edit`, which reopens the
+  form of the failed change prefilled with what the person typed (an event or task list form; for something deleted
+  elsewhere it is the new-entry form); the button exists only where the person typed something (not for a tick), "the notice
+  offers no Edit again": the notice is visible and has no `save-failed-edit`.
+- Sign out with unsent changes: "they ask to sign out in the settings" presses `settings-signout` (Account) and stops at
+  the question (`unsent-changes-dialog`); "stay signed in" presses its Cancel, "sign out anyway" its confirm.
+
 ## Mobile
 
 ```

@@ -24,6 +24,7 @@ import { LABS_VIEWS, isLabsViewOn } from '@/features/labs/labs';
 import { StreakFlame } from '@/features/motivation';
 import { useMotivationStore } from '@/features/motivation/store';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import { useSignOut } from '@/composables/useSignOut';
 import { useAuthStore } from '@/stores/auth';
 import { useBackupStore } from '@/stores/backup';
 import { useClockStore } from '@/stores/clock';
@@ -189,6 +190,7 @@ onBeforeUnmount(() => motivation.stop());
 // --- backup to Google Drive (feature drive-backup) ---------------------------------------------
 const backup = useBackupStore();
 const confirmRestore = ref(false);
+const { asking: askLeave, leave, unsent: outbox } = useSignOut();
 void backup.load();
 const backupText = computed(() => {
   const s = backup.status;
@@ -359,8 +361,8 @@ async function resetDemo() {
 
         <section id="s-account" class="card" data-testid="settings-section" data-section="account" aria-labelledby="h-account">
           <h2 id="h-account">{{ title('account') }}</h2>
-          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
-          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signOutAll.label') }}</span><span class="sub">{{ t('settings.account.signOutAll.hint') }}</span></div><Button variant="outlined" data-testid="settings-signout-all" @click="auth.signOutAll()">{{ t('settings.account.signOutAll.button') }}</Button></div>
+          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="leave('one')">{{ t('settings.account.signOut') }}</Button></div>
+          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signOutAll.label') }}</span><span class="sub">{{ t('settings.account.signOutAll.hint') }}</span></div><Button variant="outlined" data-testid="settings-signout-all" @click="leave('all')">{{ t('settings.account.signOutAll.button') }}</Button></div>
           <div v-if="auth.calendarMissing" class="row"><div class="grow"><span class="lab">{{ t('settings.account.calendarAccess.label') }}</span><span class="sub">{{ t('settings.account.calendarAccess.hint') }}</span></div><Button variant="tonal" data-testid="settings-calendar-access" @click="auth.grantCalendar()">{{ t('settings.account.calendarAccess.grant') }}</Button></div>
           <template v-if="backup.status?.available">
             <div v-if="backup.status.permission === 'missing'" class="row">
@@ -386,6 +388,7 @@ async function resetDemo() {
       </div>
     </div>
     <IosInstallSheet v-if="installing" @close="installing = false" />
+    <ConfirmDialog :open="askLeave !== null" :title="t('outbox.signOutAsk', { count: outbox.count }, outbox.count)" :ok-label="t('outbox.signOutAnyway')" :cancel-label="t('outbox.stay')" @ok="leave(askLeave!, true)" @cancel="askLeave = null" />
     <ConfirmDialog :open="confirmRestore" :title="t('backup.restoreDialog.title')" :message="t('backup.restoreDialog.message')" :ok-label="t('backup.restoreDialog.ok')" @ok="runRestore" @cancel="confirmRestore = false" />
     <CategoryDialog v-if="adding" @close="adding = false" />
     <CategoryDialog v-if="editing" :category="editing" @close="editing = null" />

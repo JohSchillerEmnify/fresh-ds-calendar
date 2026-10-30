@@ -201,10 +201,10 @@ export class World {
   }
 
   // --- waiting -------------------------------------------------------------------------------------------------
-  /** One of the three calendar views is rendered. */
+  /** One of the calendar views (or the Tasks view the person was sent away from) is rendered. */
   async calendarShown() {
     await expect(
-      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}, ${tid('year-view')}`).first(),
+      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}, ${tid('year-view')}, ${tid('tasks-view')}`).first(),
     ).toBeVisible();
   }
 

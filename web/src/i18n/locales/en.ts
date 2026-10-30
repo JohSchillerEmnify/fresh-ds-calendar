@@ -8,6 +8,7 @@
  * vue-i18n's: `{name}` interpolates, `a | b` pluralises, and the characters `@`, `|`, `{` and `}` must be escaped.
  */
 import calendarEn from './en/calendar.ts';
+import outboxEn from './en/outbox.ts';
 import backupEn from './en/backup.ts';
 import canvasEn from './en/canvas.ts';
 import bedtimeEn from './en/bedtime.ts';
@@ -17,6 +18,7 @@ import themeEn from './en/theme.ts';
 
 export default {
   calendar: calendarEn,
+  outbox: outboxEn,
   backup: backupEn,
   canvas: canvasEn,
   bedtime: bedtimeEn,

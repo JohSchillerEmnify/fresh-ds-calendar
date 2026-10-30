@@ -1,6 +1,6 @@
 /** The device store (ADR 0025): sync, restore, reads from it, the window, per person, wipe, the "Last updated" note. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { useTaskListsStore } from '@/features/tasklists/store';
@@ -13,6 +13,7 @@ import { useCalendarsStore } from '@/stores/calendars';
 import { useClockStore } from '@/stores/clock';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
@@ -216,20 +217,20 @@ describe('the device store', () => {
     expect(device.noteShown).toBe(true);
   });
 
-  it('a successful write goes into the device copy, a failed one changes nothing', async () => {
+  it('a change goes into the device copy at once; the server\'s answer replaces it; a delete leaves it', async () => {
     server();
     await session();
     const items = useItemsStore();
+    const out = useOutboxStore();
     mockFetch({
       'POST /api/events': () => ev('New', '2026-10-14'),
       'DELETE /api/events/Dentist': () => ({ status: 204 }),
     });
-    await items.createEvent({ title: 'New' } as never);
+    out.saveEvent(ev('New', '2026-10-14') as never, { title: 'New' } as never, true);
+    expect(useDeviceStore().data!.events.map((e) => e.title).sort()).toEqual(['Dentist', 'New']);
+    await flushPromises();
     expect(useDeviceStore().data!.events.map((e) => e.id).sort()).toEqual(['Dentist', 'New']);
-    await items.deleteEvent('Dentist');
-    expect(useDeviceStore().data!.events.map((e) => e.id)).toEqual(['New']);
-    mockFetch({ 'POST /api/events': () => ({ status: 503, body: { error: { code: 'UNAVAILABLE', message: 'x' } } }) });
-    await expect(items.createEvent({ title: 'Lost' } as never)).rejects.toThrow();
+    out.deleteEvent(items.get('Dentist') as never);
     expect(useDeviceStore().data!.events.map((e) => e.id)).toEqual(['New']);
   });
 
@@ -283,6 +284,7 @@ describe('the device store', () => {
     server();
     await session();
     freshPinia();
+    useAuthStore().status = 'unknown';
     const m = mockFetch({
       'GET /api/auth/me': () => ({ email: 'anna@example.com', name: 'Anna' }),
       'GET /api/config': () => config(),
@@ -300,6 +302,7 @@ describe('the device store', () => {
     server();
     await session();
     freshPinia();
+    useAuthStore().status = 'unknown';
     const m = mockFetch({
       'GET /api/auth/me': () => ({ status: 500, body: { error: { code: 'INTERNAL', message: 'x' } } }),
       'GET /api/config': () => config(),

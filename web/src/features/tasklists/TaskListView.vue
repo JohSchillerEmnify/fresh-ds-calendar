@@ -9,7 +9,7 @@ import { TITLE_MAX } from '@calendar/shared/limits';
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd } from '@/components/icons';
-import { api, ApiError } from '@/api/client';
+import { ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import Button from '@/components/m3/Button.vue';
@@ -21,7 +21,7 @@ import { catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motiv
 import { displayTitle } from '@/lib/items';
 import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
-import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
@@ -29,7 +29,7 @@ import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, isComplete } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
-import { addItem, forget, moveItemTo, patchItem, removeItem, stableKey } from './ops';
+import { addItem, moveItemTo, patchItem } from './ops';
 import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
@@ -59,7 +59,6 @@ const emit = defineEmits<{
   /** A tick finished the list (the celebration is playing); `catMs` is the support cat's visit length (0 = no visit). */
   completed: [catMs: number];
 }>();
-const items = useItemsStore();
 const sync = useSyncStore();
 const pendingDeletes = usePendingDeletesStore();
 const ui = useUiStore();
@@ -87,7 +86,6 @@ const badgeText = computed(() => {
 
 onBeforeUnmount(() => {
   flashStop?.();
-  forget(props.id);
 });
 
 // --- ticking --------------------------------------------------------------------------------------------------
@@ -193,7 +191,7 @@ async function commitRename() {
   const s = await scope.ask(tl.value);
   if (!s) return;
   try {
-    await items.updateTaskList(props.id, { title: v }, undefined, s);
+    useOutboxStore().updateList(props.id, { title: v }, s);
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
     if (e instanceof ApiError && e.isConflict) void sync.resyncAfterWrite();
@@ -227,18 +225,15 @@ function move(itemId: string, to: number) {
 }
 useItemDrag({
   root,
-  signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => stableKey(i.id)).join(',')}`,
+  signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => i.id).join(',')}`,
   gripOnly: () => !!props.compact,
   disabled: () => !!editingItem.value,
   onMove: move,
 });
-/** An item still being added (temporary id) has nothing to undo on the server yet: removed directly. */
 async function removeEntry(item: TaskItem, index: number) {
   const s = await scope.ask(tl.value);
   if (!s) return;
-  // an item still being added has nothing to undo on the server yet: removed directly, for the lists the answer names
-  if (item.id.startsWith('tmp-')) removeItem(props.id, item.id, {}, undefined, s);
-  else pendingDeletes.deleteTaskItem(props.id, item, index, s);
+  pendingDeletes.deleteTaskItem(props.id, item, index, s);
 }
 
 /** True while a field or the scope question owns Escape (the host must not close then). */
@@ -281,7 +276,7 @@ defineExpose({ root, busy });
 
         <ul class="list">
           <li
-            v-for="(item, i) in tl.items" :key="stableKey(item.id)" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
+            v-for="(item, i) in tl.items" :key="item.id" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
             :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
           >
             <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />

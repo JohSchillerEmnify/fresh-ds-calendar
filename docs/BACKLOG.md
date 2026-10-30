@@ -72,6 +72,7 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Features
 
+- **Birthdays (create, edit) through the offline queue** (ADR 0031). Still online-only via `optimisticItem`; needs a scenario.
 - **In-app: should a session expiring mid-use return to the open page?** (2026-10-23, owner to confirm). The 401
   listener remembers the open page before it leaves for sign-in (unit-tested in `web/test/stores.test.ts`), but no
   scenario specifies it.

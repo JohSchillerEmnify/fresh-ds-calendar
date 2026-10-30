@@ -88,6 +88,8 @@ export interface RequestOptions {
   ifMatch?: string | number;
   /** Let the request outlive the page (deferred deletes sent on `pagehide`). */
   keepalive?: boolean;
+  /** Makes a resent write harmless: the server answers the first result again (API.md Idempotency). */
+  idempotencyKey?: string;
 }
 
 type Fetch = typeof fetch;
@@ -124,6 +126,7 @@ export class ApiClient {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (o.ifMatch !== undefined && o.ifMatch !== null) headers['If-Match'] = String(o.ifMatch);
+    if (o.idempotencyKey) headers['Idempotency-Key'] = o.idempotencyKey;
     let res: Response;
     try {
       res = await this.fetchImpl(this.baseUrl + path, {

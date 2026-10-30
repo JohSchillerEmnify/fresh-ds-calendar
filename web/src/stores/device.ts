@@ -9,11 +9,14 @@ import {
   applyChanges, dropItem, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
 } from '@/lib/deviceData';
 import { deviceDb, devicePerson, onDeviceWipe, setDevicePerson, wipeDevice } from '@/lib/deviceDb';
+import { withPending } from '@/lib/outbox';
+import { ports } from '@/lib/outboxPorts';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useAuthStore } from './auth';
 import { useCalendarsStore } from './calendars';
 import { useClockStore } from './clock';
 import { useItemsStore } from './items';
+import { useOutboxStore } from './outbox';
 import { usePrefsStore } from './prefs';
 import { useSettingsStore } from './settings';
 import { useThemeStore } from './theme';
@@ -102,7 +105,7 @@ export const useDeviceStore = defineStore('device', () => {
   /** Restores the data of the person last signed in here before the first route; the sign-in page wipes it instead. */
   async function restore(path: string): Promise<boolean> {
     if (path === '/signin') {
-      await Promise.race([wipeDevice(), new Promise((resolve) => { setTimeout(resolve, RESTORE_TIMEOUT_MS); })]);
+      await Promise.race([wipeDevice(true), new Promise((resolve) => { setTimeout(resolve, RESTORE_TIMEOUT_MS); })]);
       return false;
     }
     const who = devicePerson();
@@ -170,6 +173,18 @@ export const useDeviceStore = defineStore('device', () => {
     scheduleSave();
   }
 
+  /** The server's state with the changes not sent yet on top: a sync must not undo what the person did offline. */
+  function overlayUnsent(d: DeviceData): DeviceData {
+    const { entries } = useOutboxStore();
+    let out = d;
+    for (const id of new Set(entries.map((e) => e.change.id))) {
+      const base = d.events.find((e) => e.id === id) ?? d.taskLists.find((l) => l.id === id);
+      const shown = withPending(base, entries.filter((e) => e.change.id === id));
+      out = shown ? putItem(out, shown) : dropItem(out, id, base?.kind === 'event' ? base.calendarId : undefined);
+    }
+    return out;
+  }
+
   /** Takes in an answer of `/api/changes`: applies it, keeps it and hands it on. Exposed for tests; `sync` is the entry point. */
   function take(res: ChangeSet): void {
     const clock = useClockStore();
@@ -187,7 +202,7 @@ export const useDeviceStore = defineStore('device', () => {
     const next: DeviceData = { ...applied, needFull: wantFull || undefined };
     // the clock's config (zone, frozen time, polling, plugins) goes with the data so a start without a connection has it
     const config = clock.loaded ? clock.config as AppConfig : next.config;
-    data.value = complete ? { ...next, config, syncedAt: clock.nowMs() } : { ...next, config };
+    data.value = overlayUnsent(complete ? { ...next, config, syncedAt: clock.nowMs() } : { ...next, config });
     fresh.value = complete;
     failed.value = !complete;
     if (!quiet) hydrate();
@@ -216,6 +231,13 @@ export const useDeviceStore = defineStore('device', () => {
       throw e;
     }
   }
+
+  ports.device = {
+    person: sessionPerson,
+    find: (id) => data.value?.events.find((e) => e.id === id) ?? data.value?.taskLists.find((l) => l.id === id),
+    put: (item) => put(item),
+    drop: (id, calendarId) => drop(id, calendarId),
+  };
 
   /** A successful write's answer: the item goes into the device copy at once. */
   function put(item: CalendarItem): void {
@@ -276,6 +298,6 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   return {
-    data, ready, noteShown, syncedAt, fresh, failed, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars,
+    data, ready, noteShown, syncedAt, fresh, failed, sessionPerson, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars,
   };
 });

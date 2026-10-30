@@ -19,6 +19,10 @@ TypeScript types live in one shared module (`server/src/api/types.ts`, copied or
   re-reads the latest task list, applies the operation, and writes back with the fresh etag (retrying up to 3 times on
   a provider-side 412), so concurrent ticks from Google and the app merge.
 - **Unknown fields** in request bodies → `400 VALIDATION_ERROR`.
+- **Idempotency (ADR 0031)**: every write (`POST`, `PATCH`, `DELETE`, item operations) may carry `Idempotency-Key: <opaque,
+  at most 64 characters>`, made by the app per outbox entry. The server keeps the answer of a key for 24 hours per
+  person (in the person's `idempotency.json`, so a server restart does not forget it); a resend with the same key answers the first result (status and body) and changes nothing again. Only successful answers are kept. A key reused
+  for a different method or path → `422 IDEMPOTENCY_KEY_REUSED`. Without the header a write behaves as before.
 
 ## Error format
 
@@ -919,6 +923,7 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `GET` | `/api/__test/remote/lookups` | – | How many change lookups the server has made against the mock Google since reset (live sync). `200 { count }` |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
+| `POST` | `/api/__test/refuse-next-write` | `{ status?: 400 \| 404 }` (default 400) | The next event or task list write request (`POST`, `PATCH`, `DELETE` on `/api/events` or `/api/tasklists`, incl. items), answers that status (`400 VALIDATION_ERROR` or `404 NOT_FOUND`) without changing anything; later writes are normal ("the server refuses the next change as invalid", feature offline-changes). Cleared by reset. `200 { status }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |
 | `POST` | `/api/__test/places` | `{ places: { name, address, lat, lon }[] }` | The places the stand-in place search knows (feature event-location), in order; cleared by reset. `200 { places }` |
 | `GET` | `/api/__test/photon?q&lang&limit` | – | Photon's GeoJSON answer (`FeatureCollection` of `Point` features with `name`, `street`, `housenumber`, `postcode`, `city`): the known places whose name or address contains every word of `q` (case-insensitive), in order, at most `min(limit, 5)`. `200` |

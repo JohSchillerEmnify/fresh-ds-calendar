@@ -119,10 +119,7 @@ export default {
   dialog: {
     editTitle: 'Edit task list',
     newTitle: 'New task list',
-    loadLatest: 'Load latest version',
-    conflict: 'This task list was changed elsewhere. Reload it and try again.',
     failed: 'Something went wrong. Try again.',
-    reloadFailed: 'Could not reload.',
     title: 'Title',
     date: 'Date',
     time: 'Time (optional)',

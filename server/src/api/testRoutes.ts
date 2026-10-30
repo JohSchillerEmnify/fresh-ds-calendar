@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import { mockSub, parseEmails, userDir } from '../auth/people.js';
 import { noteId, MAX_RELEASE_NOTES } from '../services/releaseNotes.js';
 import { newestFirst } from '../services/backup.js';
-import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
+import { parse, clockSchema, outageSchema, rateLimitSchema, resetSchema, testConfigSchema, testMotivationSchema, testVersionSchema, testSlowSchema, refuseNextWriteSchema, testApkSchema, testReleaseNotesSchema } from '../lib/validation.js';
 import type { GoogleEventInput, GoogleEventPatch, ProviderCalendar } from '../providers/CalendarProvider.js';
 
 async function body(c: Context): Promise<unknown> {
@@ -39,6 +39,7 @@ export function testRoutes(ctx: Ctx): Hono {
     ctx.mockDrive?.reset();
     ctx.canvas.reset();
     ctx.templates.reset();
+    ctx.idempotency.reset();
     ctx.people.reset();
     ctx.shared.reset();
     const settings = ctx.settings.reset();
@@ -85,6 +86,12 @@ export function testRoutes(ctx: Ctx): Hono {
   t.post('/slow', async (c) => {
     ctx.overrides.slowMs = parse(testSlowSchema, await body(c)).ms;
     return c.json({ ms: ctx.overrides.slowMs });
+  });
+
+  // "The server refuses the next change": the next event or task list write answers 400 or 404 (cleared by reset).
+  t.post('/refuse-next-write', async (c) => {
+    ctx.overrides.refuseNextWrite = parse(refuseNextWriteSchema, await optBody(c)).status ?? 400;
+    return c.json({ status: ctx.overrides.refuseNextWrite });
   });
 
   // "A new version of the app is deployed": /api/config reports this build version from now on.

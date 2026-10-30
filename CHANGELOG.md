@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-30
+- Changes you make without a connection are now kept on your device and sent automatically once you are back online, so nothing is undone any more. If nothing could be synced for 5 minutes, a red cloud icon in the top bar shows what is still waiting. If the server turns a change down, a notice offers "Edit again". Signing out asks first when changes have not been sent yet.
+
 ## 2026-10-26
 - Streak: Settings › Focus & motivation now has one "Streak" choice, Off, Flame or Plant, instead of the two switches "Streak flame" and "Plant". It is your own setting and follows you to every device. It starts as Off for everyone, so the top bar is quieter; pick Flame or Plant to bring one back. Your check-ins and your plant keep counting whatever you choose, and the "Checked in, day N" message always shows.
 - The sync icon in the top bar now shows only while syncing fails. To see it all the time, turn on "Sync indicator" in Settings › Calendar.
