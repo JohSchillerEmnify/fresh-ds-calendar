@@ -32,6 +32,8 @@ Given('the app is open on a second device', async function (this: World) {
   // the Canvas is a tab of the Tasks view, not an address of its own
   if (await this.page.getByTestId('tasks-canvas').isVisible()) await second.getByTestId('tasks-tab-canvas').click();
   await ready(second);
+  // the worker controls the page only then are the lazy chunks (dialogs) kept for a later offline use, like on the first device
+  await expect.poll(() => second!.evaluate(() => !!navigator.serviceWorker?.controller), { timeout: 15_000 }).toBe(true);
 });
 
 /** The page of the first device while "I switch to the second device" has made the other one current. */
