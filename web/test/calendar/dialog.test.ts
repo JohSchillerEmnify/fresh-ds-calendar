@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import EventDialog from '@/features/calendar/EventDialog.vue';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { apiError, config, freshPinia, mockFetch, settingsFixture } from '../helpers';
@@ -12,7 +13,7 @@ const tid = (id: string) => `[data-testid="${id}"]`;
 const cals = { calendars: [{ id: 'primary', name: 'Personal', color: '#039be5', primary: true, writable: true, own: true }, { id: 'work', name: 'Work', color: '#0b8043', primary: false, writable: true, own: true }] };
 const dentist = ev('dentist', t('2026-10-14', '09:00'), t('2026-10-14', '10:00'), { title: 'Dentist' });
 
-async function open(props: Record<string, unknown>, routes: Record<string, () => unknown> = {}) {
+async function open(props: Record<string, unknown>, routes: Record<string, (r: { headers: Record<string, string> }) => unknown> = {}) {
   const pinia = freshPinia();
   const m = mockFetch({ 'GET /api/config': () => config(), 'GET /api/calendars': () => cals, ...routes } as never);
   await useClockStore().load();
@@ -91,27 +92,31 @@ describe('event dialog', () => {
     expect(items.all.map((i) => i.id).sort()).toEqual(['dentist', 'srv1']);
   });
 
-  it('a failing create keeps the dialog open with the error and rolls back', async () => {
+  it('a create that cannot be sent closes the dialog, shows the event and keeps it for later', async () => {
     const { w, items } = await open({ mode: 'create', date: '2026-10-14', time: '09:00' }, { 'POST /api/events': () => apiError(503, 'PROVIDER_UNAVAILABLE') });
     await fill(w, 'event-title', 'Lunch');
     await w.get(tid('event-save')).trigger('submit');
     await flushPromises();
-    expect(w.get(tid('event-error')).text()).toBe('Could not save: Google Calendar is unavailable');
-    expect(w.emitted('close')).toBeUndefined();
-    expect(items.all.map((i) => i.id)).toEqual(['dentist']);
+    expect(w.find(tid('event-error')).exists()).toBe(false);
+    expect(w.emitted('close')).toHaveLength(1);
+    expect(items.all.map((i) => i.title).sort()).toEqual(['Dentist', 'Lunch']);
+    expect(useOutboxStore().count).toBe(1);
   });
 
-  it('edit sends only changes with If-Match and shows the conflict message', async () => {
-    const { w, m, items } = await open({ id: 'dentist' }, { 'PATCH /api/events/dentist': () => apiError(412, 'PRECONDITION_FAILED', 'stale') });
+  it('edit sends only changes with If-Match; a 412 is answered by sending them on the newest version', async () => {
+    let stale = true;
+    const { w, m, items } = await open({ id: 'dentist' }, {
+      'PATCH /api/events/dentist': ({ headers }) => (stale && headers['If-Match'] === dentist.etag ? apiError(412, 'PRECONDITION_FAILED', 'stale') : { ...dentist, title: 'Dentist (moved)', etag: 'etag-3' }),
+      'GET /api/events/dentist': () => { stale = false; return { ...dentist, etag: 'etag-2' }; },
+    });
     expect((w.get(tid('event-title')).element as HTMLInputElement).value).toBe('Dentist');
     await fill(w, 'event-title', 'Dentist (moved)');
     await w.get(tid('event-save')).trigger('submit');
     await flushPromises();
-    const patch = m.calls.find((c) => c.method === 'PATCH')!;
-    expect(patch.body).toEqual({ title: 'Dentist (moved)' });
-    expect(patch.headers['If-Match']).toBe(dentist.etag);
-    expect(w.get(tid('event-error')).text()).toBe('This event was changed elsewhere. Reload it and try again.');
-    expect(items.get('dentist')!.title).toBe('Dentist');
+    const patches = m.calls.filter((c) => c.method === 'PATCH');
+    expect(patches.map((c) => c.body)).toEqual([{ title: 'Dentist (moved)' }, { title: 'Dentist (moved)' }]);
+    expect(patches.map((c) => c.headers['If-Match'])).toEqual([dentist.etag, 'etag-2']);
+    expect(items.get('dentist')!.title).toBe('Dentist (moved)');
   });
 
   it('delete removes at once without asking; the request goes out when the undo time is over', async () => {

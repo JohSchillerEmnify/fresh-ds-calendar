@@ -12,6 +12,7 @@ import { neutralName, type Segment } from '@/lib/items';
 import { minutesToTime } from '@/lib/dates';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore, type ResizingEntry } from '@/stores/ui';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
 import { t } from '@/i18n';
@@ -87,7 +88,7 @@ export async function commitResize(seg: Segment, plan: ResizePlan): Promise<void
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;
   try {
-    await items.optimisticItemPatch(item, plan.next, plan.patch, etag);
+    useOutboxStore().changeItem(item, plan.next, plan.patch, etag);
     resizePreview.value = null;
   } catch (e) {
     const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');

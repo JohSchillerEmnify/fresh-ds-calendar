@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
-import { api, ApiError, type RequestOptions } from '@/api/client';
+import { api, ApiError } from '@/api/client';
 import type {
-  CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, DaySummary, LocalDate, TaskItem, TaskList,
-  UpdateEventInput, UpdateTaskListInput,
+  CalendarItem, DaySummary, LocalDate, TaskItem, TaskList,
 } from '@/api/types';
 import { covers, itemsIn, summaryOf } from '@/lib/deviceData';
+import { ports } from '@/lib/outboxPorts';
 import { toIsoDate } from '@/lib/dates';
 import { itemSegments, segmentsByDate, type Segment } from '@/lib/items';
 import { addDays } from 'date-fns';
@@ -29,7 +29,7 @@ interface RangeEntry {
  *   With `withToday`, today is fetched (and refreshed) in the same request (`also`) when outside `[from, to)` (Now card)
  *   and cached as its own range.
  * - A refresh replaces the range; items with a pending mutation keep their optimistic state.
- * - Mutations: events/task list details are not optimistic (`createEvent`...), item ops use `optimistic()`.
+ * - Writes of events, task lists and their items go through the outbox (`stores/outbox.ts`), which shows them at once.
  */
 export const useItemsStore = defineStore('items', () => {
   const byId = shallowRef<Record<string, CalendarItem>>({});
@@ -292,98 +292,14 @@ export const useItemsStore = defineStore('items', () => {
     throw e;
   }
 
-  async function createEvent(input: CreateEventInput): Promise<CalendarEvent> {
-    try {
-      const ev = await api.createEvent(input);
-      upsert(ev);
-      return ev;
-    } catch (e) { return report(e); }
-  }
-  /** Sends `If-Match: <etag>` from the cached item (or `etag` when given). 412 → ApiError.isConflict. */
-  async function updateEvent(id: string, patch: UpdateEventInput, etag?: string): Promise<CalendarEvent> {
-    const cur = byId.value[id];
-    try {
-      const ev = await api.updateEvent(id, patch, { ifMatch: etag ?? cur?.etag });
-      upsert(ev);
-      return ev;
-    } catch (e) { return report(e); }
-  }
-  async function deleteEvent(id: string, etag?: string, o: RequestOptions = {}): Promise<void> {
-    const was = byId.value[id];
-    try {
-      await api.deleteEvent(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
-      deleted.add(id);
-      remove(id);
-      useDeviceStore().drop(id, was?.kind === 'event' ? was.calendarId : undefined);
-    } catch (e) { report(e); }
-  }
-  async function createTaskList(input: CreateTaskListInput): Promise<TaskList> {
-    try {
-      const tl = await api.createTaskList(input);
-      if (tl.seriesId) createdSeries.set(tl.id, tl.seriesId);
-      upsert(tl);
-      // a repeating list is many occurrences: the device takes in all of them
-      if (tl.recurrence || tl.seriesId) void useSyncStore().resyncAfterWrite();
-      return tl;
-    } catch (e) { return report(e); }
-  }
-  /** `scope` `following`: the title for this and all later occurrences of a repeating list (no If-Match: the server writes each afresh); the views read again. */
-  async function updateTaskList(id: string, patch: UpdateTaskListInput, etag?: string, scope?: ChangeScope): Promise<TaskList> {
-    try {
-      const tl = scope === 'following'
-        ? await api.updateTaskList(id, patch, {}, 'following')
-        : await api.updateTaskList(id, patch, { ifMatch: etag ?? byId.value[id]?.etag });
-      upsert(tl);
-      if (scope === 'following') void useSyncStore().resyncAfterWrite();
-      return tl;
-    } catch (e) { return report(e); }
-  }
-  async function deleteTaskList(id: string, etag?: string, o: RequestOptions = {}): Promise<void> {
-    const series = createdSeries.get(id);
-    try {
-      if (series) {
-        // a repeating list deleted (or its undo time over) right after it was created goes as a whole: no If-Match, the etag is its first week's
-        await api.deleteTaskList(series, o);
-        // every cached occurrence of the list, also of parts split off by a "this and following" change (same seriesKey)
-        for (const it of Object.values(byId.value)) if (it.kind === 'tasklist' && (it.seriesKey ?? it.seriesId) === series) { deleted.add(it.id); remove(it.id); useDeviceStore().drop(it.id); }
-        createdSeries.delete(id);
-        // occurrences the cache never held go too
-        void useSyncStore().resyncAfterWrite();
-      } else {
-        await api.deleteTaskList(id, { ...o, ifMatch: etag ?? byId.value[id]?.etag });
-      }
-      deleted.add(id);
-      remove(id);
-      useDeviceStore().drop(id);
-    } catch (e) { report(e); }
-  }
+  /** A repeating list the outbox created: deleting it deletes the series. */
+  const noteSeries = (firstId: string, seriesId: string): void => { createdSeries.set(firstId, seriesId); };
+  const seriesOf = (id: string): string | undefined => createdSeries.get(id);
+  const forgetSeries = (id: string): void => { createdSeries.delete(id); };
 
   /**
-   * Optimistic task list item operation: `apply` mutates a copy locally, `call` performs the API request
-   * (item ops need no etag). On success the returned TaskList replaces the item; on failure it is rolled back
-   * and the error goes to the sync banner. Polls never undo it while in flight.
-   */
-  async function optimistic(id: string, apply: (tl: TaskList) => TaskList, call: () => Promise<TaskList>): Promise<TaskList | null> {
-    const before = byId.value[id] as TaskList | undefined;
-    if (!before || before.kind !== 'tasklist') return null;
-    pending.add(id);
-    byId.value = { ...byId.value, [id]: apply(structuredClone(before)) };
-    try {
-      const fresh = await call();
-      pending.delete(id);
-      upsert(fresh);
-      return fresh;
-    } catch (e) {
-      pending.delete(id);
-      byId.value = { ...byId.value, [id]: before };
-      return report(e);
-    }
-  }
-
-  /**
-   * Optimistic replacement of any item (event move, edit): shows `next` at once, calls the API, swaps in the response.
-   * On failure the previous item is restored (a create with no previous item is removed) and the error is reported/rethrown.
-   * Polls never undo it while in flight.
+   * Optimistic replacement of an item that is not kept in the outbox (a birthday, whose series the server patches): shows `next`,
+   * calls the API, swaps in the response. On failure the previous item is restored and the error is reported/rethrown.
    */
   async function optimisticItem<T extends CalendarItem>(id: string, next: CalendarItem | null, call: () => Promise<T | void>): Promise<T | undefined> {
     const before = byId.value[id];
@@ -404,13 +320,6 @@ export const useItemsStore = defineStore('items', () => {
       else remove(id);
       return report(e);
     }
-  }
-
-  /** `optimisticItem` for a PATCH of an event or task list (move, resize): shows `next`, sends `patch` with `If-Match: etag`. */
-  function optimisticItemPatch(item: CalendarItem, next: CalendarItem, patch: UpdateEventInput | UpdateTaskListInput, etag: string | undefined) {
-    return optimisticItem<CalendarItem>(item.id, next, () => (item.kind === 'event'
-      ? api.updateEvent(item.id, patch as UpdateEventInput, { ifMatch: etag })
-      : api.updateTaskList(item.id, patch as UpdateTaskListInput, { ifMatch: etag }) as Promise<TaskList>));
   }
 
   // --- year view / month picker summaries --------------------------------------------
@@ -488,10 +397,14 @@ export const useItemsStore = defineStore('items', () => {
     summary.value = {};
   }
 
+  ports.items = {
+    get, all: () => all.value, upsert, remove, hide, unhide, beginPending, endPending, noteSeries, seriesOf, forgetSeries,
+  };
+
   return {
     byId, ranges, visible, loading, all, byDate, segmentsOf, get, summary,
     isDeleted, hide, unhide, hideTaskItem, unhideTaskItem, setVisible, refreshVisible, fetchRange, prefetch, applyResponse, refreshFromDevice, dropDevice, upsert, remove, beginPending, endPending, setCarried, setKept,
-    createEvent, updateEvent, deleteEvent, createTaskList, updateTaskList, deleteTaskList, optimistic, optimisticItem, optimisticItemPatch,
+    noteSeries, seriesOf, forgetSeries, optimisticItem,
     loadSummary, refreshSummaries, $reset,
   };
 });

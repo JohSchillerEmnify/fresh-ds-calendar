@@ -6,6 +6,7 @@ import { removeItem } from '@/features/tasklists/ops';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { useItemsStore } from './items';
+import { useOutboxStore } from './outbox';
 import { useSyncStore } from './sync';
 import { useThemeStore } from './theme';
 import { useUiStore } from './ui';
@@ -103,11 +104,12 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
 
   function deleteEvent(ev: CalendarEvent): void {
     const items = useItemsStore();
+    const outbox = useOutboxStore();
     start({
       title: ev.title,
       restore: () => items.unhide(ev),
-      send: async (keepalive) => {
-        await items.deleteEvent(ev.id, ev.etag, { keepalive });
+      send: async () => {
+        outbox.deleteEvent(ev);
         // a birthday goes with every year: reload what the views show
         if (ev.special) void useSyncStore().resyncAfterWrite();
       },
@@ -116,10 +118,11 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
 
   function deleteTaskList(tl: TaskList): void {
     const items = useItemsStore();
+    const outbox = useOutboxStore();
     start({
       title: tl.title || t('tasks.list.fallbackLabel'),
       restore: () => items.unhide(tl),
-      send: (keepalive) => items.deleteTaskList(tl.id, tl.etag, { keepalive }),
+      send: async () => { outbox.deleteList(tl); },
     }, () => items.hide(tl.id));
   }
 
@@ -149,9 +152,7 @@ export const usePendingDeletesStore = defineStore('pendingDeletes', () => {
       title: item.title,
       listId,
       restore: () => items.unhideTaskItem(listId, item, index),
-      send: (keepalive) => new Promise<void>((resolve, reject) => {
-        removeItem(listId, item.id, { keepalive }, (err) => (err === undefined ? resolve() : reject(err)), scope);
-      }),
+      send: () => new Promise<void>((resolve) => { removeItem(listId, item.id, item.title, resolve, scope); }),
     }, () => items.hideTaskItem(listId, item.id));
   }
 

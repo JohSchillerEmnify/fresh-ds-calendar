@@ -5,6 +5,7 @@ import EventItem from '@/features/calendar/EventItem.vue';
 import { dragPreview, planMove } from '@/features/calendar/dnd';
 import { itemSegments } from '@/lib/items';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
 import { apiError, config, freshPinia, mockFetch } from '../helpers';
 import { flush, installWaapi, pe, removeWaapi } from '../motion/helpers';
@@ -96,15 +97,27 @@ describe('drag and drop persistence', () => {
     expect(dragPreview.value).toBeNull();
   });
 
-  it('a failed save rolls the store back, notifies and keeps the card', async () => {
+  it('a move the server refuses is rolled back and the person is told', async () => {
+    freshPinia();
+    mockFetch({ 'GET /api/config': () => config(), 'PATCH /api/events/dentist': () => apiError(400, 'VALIDATION_ERROR'), 'GET /api/events/dentist': () => dentist });
+    const items = useItemsStore();
+    items.upsert(dentist);
+    const { card } = await mountGrid();
+    await dragTo(card, 494, 14 * 48 + 8);
+    await vi.waitFor(() => expect(useUiStore().snackbars.some((s) => s.testid === 'outbox-notice')).toBe(true));
+    expect((items.get('dentist') as typeof dentist).start).toBe(dentist.start);
+  });
+
+  it('a move that cannot be sent stays shown and is kept for later', async () => {
     freshPinia();
     mockFetch({ 'GET /api/config': () => config(), 'PATCH /api/events/dentist': () => apiError(503, 'PROVIDER_UNAVAILABLE') });
     const items = useItemsStore();
     items.upsert(dentist);
     const { card } = await mountGrid();
     await dragTo(card, 494, 14 * 48 + 8);
-    expect((items.get('dentist') as typeof dentist).start).toBe(dentist.start);
-    expect(useUiStore().snackbars.some((s) => s.testid === 'move-failed')).toBe(true);
+    await flushPromises();
+    expect((items.get('dentist') as typeof dentist).start).toBe('2026-10-16T14:00:00+02:00');
+    expect(useOutboxStore().count).toBe(1);
   });
 
   it('releasing without moving changes nothing and does not PATCH', async () => {

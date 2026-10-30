@@ -93,7 +93,6 @@
    "no-circular|web/src/features/tasklists/canvasStore.ts|web/src/stores/sync.ts > web/src/stores/device.ts > web/src/features/tasklists/canvasStore.ts": 1,
    "no-circular|web/src/features/tasklists/categories.ts|web/src/stores/prefs.ts > web/src/stores/device.ts > web/src/stores/items.ts > web/src/stores/sync.ts > web/src/native/widgetBridge.ts > web/src/native/widgetSnapshot.ts > web/src/features/tasklists/categories.ts": 1,
    "no-circular|web/src/features/tasklists/ops.ts|web/src/stores/items.ts > web/src/stores/device.ts > web/src/features/tasklists/templatesStore.ts > web/src/stores/pendingDeletes.ts > web/src/features/tasklists/ops.ts": 1,
-   "no-circular|web/src/features/tasklists/ops.ts|web/src/stores/sync.ts > web/src/stores/device.ts > web/src/features/tasklists/templatesStore.ts > web/src/stores/pendingDeletes.ts > web/src/features/tasklists/ops.ts": 1,
    "no-circular|web/src/features/tasklists/templatesStore.ts|web/src/stores/device.ts > web/src/features/tasklists/templatesStore.ts": 1,
    "no-circular|web/src/features/tasklists/templatesStore.ts|web/src/stores/pendingDeletes.ts > web/src/features/tasklists/templatesStore.ts": 1,
    "no-circular|web/src/native/widgetBridge.ts|web/src/stores/calendars.ts > web/src/stores/device.ts > web/src/stores/items.ts > web/src/stores/sync.ts > web/src/native/widgetBridge.ts": 1,
@@ -134,7 +133,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.572
+   "duplicated-percent": 0.569
   },
   "types": {
    "AnimationLevel": 1,
@@ -251,7 +250,7 @@
    "@typescript-eslint/no-unused-vars|web/src/features/motivation/MotionLab.vue": 1,
    "@typescript-eslint/no-unused-vars|web/src/features/tasklists/ExpandedCard.vue": 1,
    "@typescript-eslint/no-unused-vars|web/src/features/tasklists/ExpandedTaskList.vue": 4,
-   "@typescript-eslint/no-unused-vars|web/src/features/tasklists/TaskListView.vue": 2,
+   "@typescript-eslint/no-unused-vars|web/src/features/tasklists/TaskListView.vue": 1,
    "@typescript-eslint/no-unused-vars|web/src/features/tasklists/TasksCanvas.vue": 1,
    "@typescript-eslint/no-unused-vars|web/src/features/tasklists/TasksView.vue": 1,
    "@typescript-eslint/no-unused-vars|web/src/features/tasklists/canvas.ts": 1,
@@ -288,7 +287,6 @@
    "max-lines|server/src/providers/mock/MockGoogleProvider.ts": 1,
    "max-lines|server/src/services/calendar.ts": 1,
    "max-lines|web/src/motion/drag.ts": 1,
-   "max-lines|web/src/stores/items.ts": 1,
    "no-control-regex|scripts/verify.mjs": 1,
    "no-regex-spaces|web/test/theme.test.ts": 3,
    "no-useless-assignment|scripts/e2e-affected.mjs": 1,
@@ -315,7 +313,6 @@
    "sonarjs/cognitive-complexity|web/src/features/calendar/transitionWarning.ts": 2,
    "sonarjs/cognitive-complexity|web/src/features/motivation/drawnScene.ts": 1,
    "sonarjs/cognitive-complexity|web/src/features/tasklists/TaskListDialog.vue": 1,
-   "sonarjs/cognitive-complexity|web/src/features/tasklists/ops.ts": 1,
    "sonarjs/cognitive-complexity|web/src/features/tasklists/useCanvasPointer.ts": 2,
    "sonarjs/cognitive-complexity|web/src/lib/deviceData.ts": 1,
    "sonarjs/cognitive-complexity|web/src/lib/items.ts": 1,
@@ -542,7 +539,7 @@
    "long|web/src/features/tasklists/expand.ts": 4,
    "long|web/src/features/tasklists/index.ts": 1,
    "long|web/src/features/tasklists/layout.ts": 4,
-   "long|web/src/features/tasklists/ops.ts": 4,
+   "long|web/src/features/tasklists/ops.ts": 1,
    "long|web/src/features/tasklists/reorder.ts": 4,
    "long|web/src/features/tasklists/repeatScope.ts": 1,
    "long|web/src/features/tasklists/section.ts": 1,
@@ -605,7 +602,7 @@
    "long|web/src/stores/backup.ts": 1,
    "long|web/src/stores/clock.ts": 1,
    "long|web/src/stores/device.ts": 2,
-   "long|web/src/stores/items.ts": 5,
+   "long|web/src/stores/items.ts": 4,
    "long|web/src/stores/pendingDeletes.ts": 2,
    "long|web/src/stores/prefs.ts": 1,
    "long|web/src/stores/sync.ts": 3,
@@ -795,7 +792,6 @@
    "exports|web/src/features/tasklists/index.ts|TaskListCard": 1,
    "exports|web/src/features/tasklists/index.ts|useTaskListsStore": 1,
    "exports|web/src/features/tasklists/layout.ts|INLINE_BELOW_PX": 1,
-   "exports|web/src/features/tasklists/ops.ts|hasPending": 1,
    "exports|web/src/features/tasklists/tasksView.ts|TIME_GROUPS": 1,
    "exports|web/src/features/tasklists/tasksView.ts|comparator": 1,
    "exports|web/src/features/tasklists/tasksView.ts|timeGroupTitle": 1,

@@ -4,7 +4,7 @@
  * Birthday mode (kind 'birthday', or an existing birthday in a calendar the person can write): the same sheet with a name,
  * a date and a colour only (feature birthdays); a birthday that is read-only opens as plain details.
  * Saves optimistically (the item shows at once, rolls back on failure) but stays open with the error until Google
- * confirmed (feature background-sync). Props `draft` / `error` restore a form after a failed attempt.
+ * confirmed (feature background-sync). Props `draft` / `draftEvent` / `error` restore a form after a failed attempt ("Edit again").
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { api, ApiError } from '@/api/client';
@@ -22,6 +22,7 @@ import { isPhone } from '@/composables/useViewport';
 import { pop } from '@/motion';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { useSyncStore } from '@/stores/sync';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
@@ -37,9 +38,10 @@ import { specialMarker } from '@/lib/items';
 import { fromWallMinutes, wallMinutes } from './zone';
 import { t, type MessageKey } from '@/i18n';
 
-const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; minutes?: number; draft?: EventForm; error?: string }>();
+const props = defineProps<{ mode?: 'create'; birthday?: boolean; id?: string; date?: string; time?: string | null; minutes?: number; draft?: EventForm; draftEvent?: CalendarEvent; error?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
+const outbox = useOutboxStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
 const ui = useUiStore();
@@ -77,7 +79,8 @@ function blank(): EventForm {
   const ctx = createContext(props.date, props.time);
   return newForm(ctx.date, ctx.time, 'primary', settings.settings.defaultEventColorId, props.minutes);
 }
-const form = ref<EventForm>(props.draft ? { ...props.draft } : blank());
+const hasDraft = !!(props.draft || props.draftEvent);
+const form = ref<EventForm>(props.draft ? { ...props.draft } : props.draftEvent ? formFromEvent(props.draftEvent) : blank());
 const initial = ref<string>(JSON.stringify(form.value));
 /** Time carried to the task list form on switching: a tapped slot's or one the person changed, never the default. */
 const startShown = form.value.startTime;
@@ -108,7 +111,7 @@ async function loadExisting() {
   if (ev && ev.kind === 'event') {
     original.value = ev;
     locationUp.value = !!ev.location;
-    if (!props.draft) {
+    if (!hasDraft) {
       form.value = formFromEvent(ev);
       initial.value = JSON.stringify(form.value);
     }
@@ -118,7 +121,7 @@ async function loadExisting() {
 onMounted(async () => {
   void loadCalendars().then(() => {
     // new events use the primary calendar
-    if (!isEdit.value && !props.draft) {
+    if (!isEdit.value && !hasDraft) {
       const primary = calendars.value.find((c) => c.primary) ?? calendars.value[0];
       if (primary && form.value.calendarId === 'primary') { form.value.calendarId = primary.id; initial.value = JSON.stringify(form.value); }
     }
@@ -209,10 +212,9 @@ async function save() {
       const ev = original.value;
       const patch = diffInput(input, ev);
       if (Object.keys(patch).length === 0) { emit('close'); return; }
-      await items.optimisticItem(ev.id, buildEvent(ev.id, input), () => api.updateEvent(ev.id, patch, { ifMatch: items.get(ev.id)?.etag ?? ev.etag }));
+      outbox.saveEvent(buildEvent(ev.id, input), patch, false);
     } else {
-      const tmp = `tmp-${Date.now().toString(36)}`;
-      await items.optimisticItem(tmp, buildEvent(tmp, input), () => api.createEvent(input));
+      outbox.saveEvent(buildEvent('new', input), input, true);
     }
     emit('close');
   } catch (e) {
@@ -230,8 +232,8 @@ async function saveReadOnlyReminders(reminders: Reminders) {
   saving.value = true;
   const shown = { useDefault: reminders.useDefault, minutes: reminders.useDefault ? readOnlyDefaults.value : reminders.minutes };
   try {
-    const fresh = await items.optimisticItem(ev.id, { ...ev, reminders: shown }, () => api.updateEvent(ev.id, { reminders }));
-    original.value = (fresh as CalendarEvent | undefined) ?? { ...ev, reminders: shown };
+    outbox.saveEvent({ ...ev, reminders: shown }, { reminders }, false);
+    original.value = { ...ev, reminders: shown };
   } catch (e) {
     fail(e, `“${ev.title}”`);
   } finally {

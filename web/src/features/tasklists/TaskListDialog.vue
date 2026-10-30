@@ -16,6 +16,7 @@ import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { enterNext } from '@/composables/useEnterNext';
@@ -32,9 +33,10 @@ import TemplatePill from './TemplatePill.vue';
 import { fillFromTemplate, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
-const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number }>();
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; draftList?: TaskList }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
+const outbox = useOutboxStore();
 const device = useDeviceStore();
 const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
@@ -83,6 +85,7 @@ function fill(src: TaskList) {
 onMounted(async () => {
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
+    if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => i.title).join('\n'); }
     original = JSON.stringify(form);
     // the names already taken, for "Also save as template"
     templates.load().catch(() => undefined);
@@ -90,7 +93,7 @@ onMounted(async () => {
   }
   device.read('people', () => api.people()).then((r) => { people.value = r.people; }).catch(() => undefined);
   const cur = items.get(props.id!);
-  if (cur?.kind === 'tasklist') return fill(cur);
+  if (cur?.kind === 'tasklist') { fill(cur); if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
   try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
@@ -134,6 +137,13 @@ function templateProblem(): string {
   return templateNameProblem(templates.list, form.title);
 }
 
+/** Only the fields the person changed: a change sent later must not undo another field changed elsewhere (ADR 0031). */
+function changedFields<T extends Record<string, unknown>>(body: T, current: unknown): Partial<T> {
+  const cur = (current ?? {}) as Record<string, unknown>;
+  const same = (k: string) => k in cur && JSON.stringify(cur[k] ?? null) === JSON.stringify(body[k] ?? null);
+  return Object.fromEntries(Object.entries(body).filter(([k]) => !same(k))) as Partial<T>;
+}
+
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
   error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form)) ?? templateProblem();
@@ -157,15 +167,13 @@ async function save() {
       const { title, ...rest } = body;
       const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' });
       if (othersChanged) {
-        const saved = await items.updateTaskList(props.id!, rest, etag);
-        // saved: a retry after a failed title request sends only the title (with the new version)
-        etag = saved.etag;
+        outbox.updateList(props.id!, rest, undefined, etag);
         original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
       }
-      await items.updateTaskList(props.id!, { title }, undefined, 'following');
-    } else if (editing.value) await items.updateTaskList(props.id!, body, etag);
+      outbox.updateList(props.id!, { title }, 'following');
+    } else if (editing.value) outbox.updateList(props.id!, changedFields(body, current), undefined, etag);
     else {
-      await items.createTaskList({
+      outbox.createList({
         ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: (form.date && form.repeat) || null,
       });
       // the list is saved; a template that fails now is only reported, the list stays

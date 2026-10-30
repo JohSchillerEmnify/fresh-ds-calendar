@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import type { CalendarEvent, TaskList } from '@/api/types';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { UNDO_MS, usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
@@ -73,24 +74,37 @@ describe('pending deletes (delete with undo)', () => {
     expect(useUiStore().snackbars.filter((s) => s.testid === 'undo-snackbar').map((s) => s.text)).toEqual(['Deleted: Task list']);
   });
 
-  it('pagehide and a hidden tab send the pending delete with keepalive', async () => {
+  it('pagehide and a hidden tab hand the pending delete to the outbox at once', async () => {
     const m = mockFetch({ 'DELETE /api/events/Dentist': () => ({ status: 204 }) });
     useItemsStore().upsert(ev);
     usePendingDeletesStore().deleteEvent(ev);
     window.dispatchEvent(new Event('pagehide'));
     await flushPromises();
     expect(deletes(m)).toEqual(['/api/events/Dentist']);
-    expect(m.fn.mock.calls[0][1]).toMatchObject({ keepalive: true });
   });
 
-  it('a failed delete brings the entry back and shows the sync error banner', async () => {
+  it('a delete that cannot be sent stays in the outbox, hidden, without the sync banner', async () => {
     mockFetch({ 'DELETE /api/events/Dentist': () => apiError(503, 'GOOGLE_UNAVAILABLE') });
     const items = useItemsStore();
     items.upsert(ev);
     usePendingDeletesStore().deleteEvent(ev);
     await usePendingDeletesStore().flush();
-    expect(items.get('Dentist')).toEqual(ev);
-    expect(useSyncStore().error).not.toBeNull();
+    await flushPromises();
+    expect(items.get('Dentist')).toBeUndefined();
+    expect(useOutboxStore().count).toBe(1);
+    expect(useSyncStore().error).toBeNull();
+  });
+
+  it('a delete the server refuses brings the entry back and tells the person', async () => {
+    mockFetch({ 'DELETE /api/events/Dentist': () => apiError(400, 'VALIDATION_ERROR'), 'GET /api/events/Dentist': () => ev });
+    const items = useItemsStore();
+    items.upsert(ev);
+    usePendingDeletesStore().deleteEvent(ev);
+    await usePendingDeletesStore().flush();
+    await flushPromises();
+    expect(items.get('Dentist')).toMatchObject({ id: 'Dentist' });
+    expect(useOutboxStore().count).toBe(0);
+    expect(useUiStore().snackbars.some((s) => s.testid === 'outbox-notice')).toBe(true);
   });
 
   it('an entry already gone on the server stays gone', async () => {

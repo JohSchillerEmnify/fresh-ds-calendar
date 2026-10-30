@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushPromises } from '@vue/test-utils';
 import { ApiError } from '@/api/client';
+import type { CalendarEvent } from '@/api/types';
 import { RETURN_KEY, useAuthStore } from '@/stores/auth';
 import { memoryKv, setDeviceDb } from '@/lib/deviceDb';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
@@ -177,7 +180,7 @@ describe('clock store', () => {
 });
 
 describe('auth store', () => {
-  beforeEach(() => freshPinia());
+  beforeEach(() => { freshPinia(); useAuthStore().status = 'unknown'; });
   it('is signed out when the session is refused', async () => {
     mockFetch({ 'GET /api/auth/me': () => apiError(401, 'UNAUTHENTICATED') });
     const a = useAuthStore();
@@ -348,46 +351,28 @@ describe('items store', () => {
     expect(s.all).toHaveLength(6);
   });
 
-  it('sends the cached etag as If-Match and surfaces a 412 conflict', async () => {
+  it('sends the cached etag as If-Match and, on a 412, sends the same change again on the newest version', async () => {
+    let stale = true;
+    let onServer = eventFixture('a', '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00');
     const { calls } = mockFetch({
-      'GET /api/items': () => resp([eventFixture('a', '2026-10-14T09:00:00+02:00', '2026-10-14T10:00:00+02:00')]),
-      'PATCH /api/events/a': () => apiError(412, 'PRECONDITION_FAILED'),
+      'GET /api/items': () => resp([onServer]),
+      'PATCH /api/events/a': ({ headers }) => {
+        if (stale && headers['If-Match'] === 'etag-a') return apiError(412, 'PRECONDITION_FAILED');
+        onServer = { ...onServer, title: 'X', etag: 'etag-3' };
+        return onServer;
+      },
+      'GET /api/events/a': () => { stale = false; return { ...eventFixture('a', '2026-10-14T11:00:00+02:00', '2026-10-14T12:00:00+02:00'), etag: 'etag-2' }; },
     });
     const s = useItemsStore();
     await s.setVisible('2026-10-12', '2026-10-19');
-    const err = await s.updateEvent('a', { title: 'X' }).catch((e) => e);
-    expect(calls.find((c) => c.method === 'PATCH')!.headers['If-Match']).toBe('etag-a');
-    expect(err.isConflict).toBe(true);
-    expect(s.get('a').title).toBe('a'); // nothing applied
-  });
-
-  it('item operations are optimistic, roll back on failure and a poll never undoes them in flight', async () => {
-    const tl = { kind: 'tasklist', id: 't', calendarId: 'primary', title: 'G', date: '2026-10-14', time: null, items: [{ id: 'i1', title: 'Milk', done: false }],
-      doneCount: 0, totalCount: 1, estimateMinutes: null, categoryId: null, tags: [], color: '#000000', etag: 'e', updated: '' };
-    let fail = true;
-    let gate: Promise<void> = Promise.resolve();
-    mockFetch({
-      'GET /api/items': () => resp([tl]),
-      'PATCH /api/tasklists/t/items/i1': async () => { await gate; return fail ? apiError(503, 'PROVIDER_UNAVAILABLE') : { ...tl, items: [{ id: 'i1', title: 'Milk', done: true }], doneCount: 1 }; },
-    });
-    const s = useItemsStore();
-    await s.setVisible('2026-10-12', '2026-10-19');
-    const tick = (l: typeof tl) => ({ ...l, items: l.items.map((i) => ({ ...i, done: true })), doneCount: 1 });
-    const { api } = await import('@/api/client');
-    let release!: () => void;
-    gate = new Promise((r) => { release = r; });
-    const p = s.optimistic('t', tick as never, () => api.updateTaskItem('t', 'i1', { done: true })).catch((e) => e);
-    expect((s.get('t') as typeof tl).doneCount).toBe(1); // applied at once
-    await s.refreshVisible(); // poll while pending: optimistic state kept
-    expect((s.get('t') as typeof tl).doneCount).toBe(1);
-    release();
-    const e = await p;
-    expect(e).toBeInstanceOf(ApiError);
-    expect((s.get('t') as typeof tl).doneCount).toBe(0); // rolled back
-    fail = false;
-    gate = Promise.resolve();
-    await s.optimistic('t', tick as never, () => api.updateTaskItem('t', 'i1', { done: true }));
-    expect((s.get('t') as typeof tl).doneCount).toBe(1);
+    useOutboxStore().saveEvent({ ...(s.get('a') as CalendarEvent), title: 'X' }, { title: 'X' }, false);
+    await flushPromises();
+    const patches = calls.filter((c) => c.method === 'PATCH');
+    expect(patches.map((c) => c.headers['If-Match'])).toEqual(['etag-a', 'etag-2']);
+    expect(patches.map((c) => c.body)).toEqual([{ title: 'X' }, { title: 'X' }]);
+    expect(patches[0].headers['Idempotency-Key']).toBeTruthy();
+    expect(s.get('a')).toMatchObject({ title: 'X', etag: 'etag-3' });
+    expect(useOutboxStore().count).toBe(0);
   });
 
   it('keeps today loaded in the same request (also) when today is outside the visible range', async () => {
@@ -570,7 +555,8 @@ describe('deleted items', () => {
     const list = { kind: 'tasklist', id: 'g', title: 'G', date: '2026-10-14', time: null, items: [], doneCount: 0, totalCount: 0, categoryId: null, tags: [], color: '#000', etag: 'x' } as never;
     items.upsert(list);
     mockFetch({ 'DELETE /api/tasklists/g': () => ({}) });
-    await items.deleteTaskList('g');
+    useOutboxStore().deleteList(list);
+    await flushPromises();
     items.applyResponse('2026-10-01', '2026-11-01', [list], 's');
     expect(items.get('g')).toBeUndefined();
   });
@@ -583,9 +569,12 @@ describe('deleted items', () => {
       freshPinia();
       const items = useItemsStore();
       const m = mockFetch({ 'POST /api/tasklists': () => week('m_20261014', '2026-10-14'), 'DELETE /api/tasklists/m': () => ({}) });
-      const created = await items.createTaskList({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly' } as never);
+      const created = useOutboxStore().createList({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly' } as never);
+      await flushPromises();
       items.upsert(week('m_20261021', '2026-10-21'));
-      await items.deleteTaskList(created.id, created.etag);
+      useOutboxStore().deleteList(items.get('m_20261014') as never);
+      await flushPromises();
+      expect(created.id).toMatch(/^dev-/);
       expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m']);
       expect(items.get('m_20261014')).toBeUndefined();
       expect(items.get('m_20261021')).toBeUndefined();
@@ -597,9 +586,11 @@ describe('deleted items', () => {
       freshPinia();
       const items = useItemsStore();
       const m = mockFetch({ 'POST /api/tasklists': () => week('m_20261014', '2026-10-14'), 'DELETE /api/tasklists/m': () => ({}) });
-      const created = await items.createTaskList({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly' } as never);
+      useOutboxStore().createList({ title: 'Clean', date: '2026-10-14', recurrence: 'weekly' } as never);
+      await flushPromises();
       items.upsert({ ...(week('n_20261028', '2026-10-28') as object), seriesId: 'n', seriesKey: 'm' } as never);
-      await items.deleteTaskList(created.id, created.etag);
+      useOutboxStore().deleteList(items.get('m_20261014') as never);
+      await flushPromises();
       expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m']);
       expect(items.get('n_20261028')).toBeUndefined();
     });
@@ -610,7 +601,8 @@ describe('deleted items', () => {
       items.upsert(week('m_20261014', '2026-10-14'));
       items.upsert(week('m_20261021', '2026-10-21'));
       const m = mockFetch({ 'DELETE /api/tasklists/m_20261014': () => ({}) });
-      await items.deleteTaskList('m_20261014');
+      useOutboxStore().deleteList(items.get('m_20261014') as never);
+      await flushPromises();
       expect(m.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/tasklists/m_20261014']);
       expect(items.get('m_20261021')).toBeDefined();
     });

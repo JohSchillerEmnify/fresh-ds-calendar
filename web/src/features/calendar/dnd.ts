@@ -22,6 +22,7 @@ import { createCellGrid, createSlotGrid, haptic, useDraggable, type DragContext,
 import { useCalendarStore } from '@/stores/calendar';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { useUiStore } from '@/stores/ui';
 import { EDGE_HOLD_MS, edgeLabel, edgeSide } from './edgeTurn';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
@@ -92,7 +93,7 @@ export async function applyMove(seg: Segment, target: MoveTarget): Promise<void>
   const { item } = seg;
   const etag = items.get(item.id)?.etag ?? item.etag;
   try {
-    await items.optimisticItemPatch(item, plan.next, plan.patch, etag);
+    useOutboxStore().changeItem(item, plan.next, plan.patch, etag);
   } catch (e) {
     const msg = e instanceof Error && 'userMessage' in e ? String((e as { userMessage: string }).userMessage) : t('calendar.event.genericError');
     useUiStore().notify(t('calendar.drag.moveFailed', { title: neutralName(item), reason: msg }), { testid: 'move-failed' });

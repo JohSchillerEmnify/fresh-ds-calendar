@@ -3,9 +3,11 @@ import { computed, ref } from 'vue';
 import { api, ApiError, type SyncErrorBeacon } from '@/api/client';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
 import { startLiveSync } from '@/lib/liveSync';
+import { ports } from '@/lib/outboxPorts';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
 import { useItemsStore } from './items';
+import { useOutboxStore } from './outbox';
 import { checkServerVersion, checkVersion } from '@/pwa/update';
 import { t } from '@/i18n';
 
@@ -126,6 +128,8 @@ export const useSyncStore = defineStore('sync', () => {
       await clock.load().catch(() => undefined);
       void checkVersion(clock.config.version, clock.config.apk);
     }
+    // what was changed without a connection goes first, so the sync below reads it back from the server
+    await useOutboxStore().flush(false);
     // the device store comes first: everything else reads what it took in (the version check runs beside it, it never fails)
     const device = await Promise.allSettled([useDeviceStore().sync(), withConfig ? undefined : checkServerVersion()]).then((r) => r.slice(0, 1));
     const list: [string, () => Promise<unknown>][] = [['device', () => Promise.resolve()], ...builtinTasks(), ...tasks.entries()];
@@ -184,6 +188,8 @@ export const useSyncStore = defineStore('sync', () => {
   function resyncAfterWrite(): Promise<void> {
     return syncNow('changed').catch(() => undefined);
   }
+
+  ports.resync = () => { void resyncAfterWrite(); };
 
   /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
   function markSynced(): void {
