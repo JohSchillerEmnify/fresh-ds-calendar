@@ -1,6 +1,7 @@
 /** Writing on the open list (feature handwritten-lists): a draft line becomes an item after a pause; all writes go to the outbox, with undo. */
 import { computed, onBeforeUnmount, ref, type Ref } from 'vue';
 import type { InkStroke } from '@/api/types';
+import { inkKey } from '@calendar/shared/ink';
 import { INK_LIST_MAX_BYTES, inkListBytes } from '@calendar/shared/limits';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { t } from '@/i18n';
@@ -11,6 +12,8 @@ import { usePenDoubleTap } from './usePenDoubleTap';
 
 /** Idle time after the last stroke on the empty line before it becomes an item. */
 const DRAFT_MS = 1200;
+/** Room left for what other devices wrote meanwhile (the server measures the merged item). */
+const INK_MARGIN_BYTES = INK_LIST_MAX_BYTES / 10;
 
 /** One thing to take back: a stroke added to `itemId` (`null` = the draft), or the strokes an erase removed. */
 type Step = { itemId: string | null; before?: InkStroke[] };
@@ -28,7 +31,8 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
   function room(itemId: string | null, strokes: InkStroke[]): boolean {
     const others = inkIds().filter((id) => id !== itemId).map((id) => ink.strokes(id)).filter((s) => s.length);
     const draftItem = itemId === null ? [] : draft.value.length ? [draft.value] : [];
-    if (inkListBytes([...others, ...draftItem, strokes]) <= INK_LIST_MAX_BYTES) return true;
+    // below the server's limit by a margin: strokes another device added meanwhile count there too
+    if (inkListBytes([...others, ...draftItem, strokes]) <= INK_LIST_MAX_BYTES - INK_MARGIN_BYTES) return true;
     ui.notify(t('ink.full'));
     return false;
   }
@@ -56,7 +60,7 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
     const before = ink.strokes(itemId);
     if (strokes.length > before.length && !room(itemId, strokes)) return;
     history.value.push(strokes.length > before.length ? { itemId } : { itemId, before });
-    outbox.setInk(listId(), itemId, strokes);
+    outbox.setInk(listId(), itemId, strokes, before);
   }
   function undo(): void {
     const step = history.value.pop();
@@ -66,9 +70,11 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
       return;
     }
     const now = ink.strokes(step.itemId);
-    const next = step.before ?? now.slice(0, -1);
+    const known = new Set(now.map(inkKey));
+    // a stroke that comes back is drawn again as far as the server is concerned: a fresh time keeps an earlier erase from dropping it
+    const next = (step.before ?? now.slice(0, -1)).map((s) => (known.has(inkKey(s)) ? s : { ...s, t: Date.now() }));
     if (!next.length && created.has(step.itemId)) outbox.deleteItem(listId(), step.itemId, '');
-    else outbox.setInk(listId(), step.itemId, next);
+    else outbox.setInk(listId(), step.itemId, next, now);
   }
 
   usePenDoubleTap(undo, () => active.value);

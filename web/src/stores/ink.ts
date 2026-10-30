@@ -1,4 +1,5 @@
 /** Handwritten lists on the device: the person's ink (server copy plus unsent writes), writing mode, colour and pen, per device. */
+import { visibleInk } from '@calendar/shared/ink';
 import { defineStore } from 'pinia';
 import { ref, shallowRef, watch } from 'vue';
 import type { CalendarItem, InkDoc, InkStroke, TaskList } from '@/api/types';
@@ -51,11 +52,14 @@ export const useInkStore = defineStore('ink', () => {
       server.value = Object.fromEntries(Object.entries(server.value).filter(([id]) => !gone.has(id)));
       return;
     }
-    server.value = withPendingInk(server.value, [{ change: c } as OutboxEntry]);
+    // the server's answer to an ink write holds the merged strokes of the item
+    const merged = (fresh as { ink?: InkDoc['items'] } | undefined)?.ink;
+    server.value = c.op === 'item.ink' && merged?.[c.itemId] ? { ...server.value, ...merged } : withPendingInk(server.value, [{ change: c } as OutboxEntry]);
+    lists.value = withPendingInk(server.value, outbox.entries);
   }
   /** The strokes of one ink item. */
   function strokes(itemId: string): InkStroke[] {
-    return lists.value[itemId] ?? [];
+    return visibleInk(lists.value[itemId] ?? []);
   }
   function setMode(m: 'ink' | 'text'): void { mode.value = m; write(MODE_KEY, m); }
   function setColour(c: string | null): void { colour.value = c; write(COLOUR_KEY, c); }

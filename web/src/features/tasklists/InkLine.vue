@@ -75,6 +75,8 @@ function scroller(): HTMLElement | null {
   return null;
 }
 
+/** The pointer that owns the stroke going on: a palm or a second pointer must not add to it. */
+let activeId = -1;
 let moved = false;
 function down(e: PointerEvent): void {
   if (e.pointerType === 'pen') { ink.notePen(); penAt = Date.now(); }
@@ -86,7 +88,10 @@ function down(e: PointerEvent): void {
   }
   const role = penRole(e, prefs.labsDrawWithFinger);
   if (role === 'ignore' || isPalm(e)) return;
+  // a stroke is going on: the other pointer is a palm or a second hand and must not capture it
+  if (live.value) return;
   try { svg.value?.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer cannot be captured */ }
+  activeId = e.pointerId;
   const erase = role === 'erase' || ink.eraser;
   const first = point(e);
   live.value = { points: [first], colour: ink.colour, erase };
@@ -103,7 +108,7 @@ function move(e: PointerEvent): void {
     return;
   }
   const l = live.value;
-  if (!l) return;
+  if (!l || e.pointerId !== activeId) return;
   moved = true;
   const coalesced = e.getCoalescedEvents?.() ?? [];
   for (const c of coalesced.length ? coalesced : [e]) {
@@ -115,6 +120,7 @@ function move(e: PointerEvent): void {
 function up(e: PointerEvent): void {
   fingers.delete(e.pointerId);
   if (e.pointerType === 'pen') penAt = Date.now();
+  if (live.value && e.pointerId !== activeId) return;
   const l = live.value;
   live.value = null;
   if (!l) {
@@ -129,7 +135,7 @@ function up(e: PointerEvent): void {
     if (kept && kept.length !== props.strokes.length) emit('change', kept);
     return;
   }
-  emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}) }]);
+  emit('change', [...props.strokes, { p: l.points, ...(l.colour ? { c: l.colour } : {}), t: Date.now() }]);
 }
 function cancel(e?: PointerEvent): void {
   if (e) fingers.delete(e.pointerId);

@@ -9,6 +9,8 @@ export declare const LIST_ITEMS_MAX: number;
 /** Allowed task list estimate, in whole minutes. */
 export declare const ESTIMATE_MIN: number;
 export declare const ESTIMATE_MAX: number;
+/** Most strokes one ink item holds. */
+export declare const INK_STROKES_MAX: number;
 /** Most ink one list holds, in bytes of {@link inkListBytes}. */
 export declare const INK_LIST_MAX_BYTES: number;
 /** The size the server counts for a list's ink: the JSON of the strokes of each of its ink items. */

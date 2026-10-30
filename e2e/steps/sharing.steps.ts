@@ -29,7 +29,7 @@ async function session(world: World, email: string): Promise<APIRequestContext> 
   return context.request;
 }
 
-async function call<T = unknown>(world: World, email: string, method: string, url: string, data?: unknown): Promise<{ status: number; body: T }> {
+export async function call<T = unknown>(world: World, email: string, method: string, url: string, data?: unknown): Promise<{ status: number; body: T }> {
   const res = await (await session(world, email)).fetch(url, { method, data, failOnStatusCode: false });
   const text = await res.text();
   return { status: res.status(), body: (text ? JSON.parse(text) : null) as T };

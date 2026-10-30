@@ -18,6 +18,11 @@ export class InkService {
     return isSharedId(listId) ? this.shared.access(sub, listId).ink ?? {} : this.store.get(sub).items;
   }
 
+  /** The strokes of one item of a list, erase marks included. */
+  get(sub: string, listId: string, itemId: string): InkStroke[] {
+    return this.strokesOf(sub, listId)[itemId] ?? [];
+  }
+
   /** Whether `strokes` for `itemId` keep the list (whose ink items are `listItemIds`) within the limit. */
   fits(sub: string, listId: string, listItemIds: string[], itemId: string, strokes: InkStroke[]): boolean {
     const all = this.strokesOf(sub, listId);

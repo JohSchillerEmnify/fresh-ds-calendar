@@ -11,6 +11,8 @@ import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { nanoid } from '../lib/ids.js';
 import { MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
 import { parsePrefsPatch } from '@calendar/shared/prefs';
+import { mergeInk, visibleInk } from '@calendar/shared/ink';
+import { INK_STROKES_MAX } from '@calendar/shared/limits';
 import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
@@ -27,6 +29,8 @@ import { isSharedId } from '../services/sharedLists.js';
 const HEALTH_TTL_MS = 10_000;
 
 /** The ids of a list's handwritten items. */
+/** How far ahead of the server's clock a device's stroke time may be (ms); beyond it the time is cut back. */
+const INK_SKEW_MS = 5 * 60_000;
 const inkIds = (l: { items: { id: string; ink?: true }[] }): string[] => l.items.filter((i) => i.ink).map((i) => i.id);
 
 /** The list holds all the ink it may (decision Q3); the web app suggests a new list. */
@@ -355,16 +359,24 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json(list, 201);
   });
   r.put('/tasklists/:id/items/:itemId/ink', async (c) => {
-    const { strokes } = parse(inkSchema, await body(c));
+    const { strokes: sent, base, at } = parse(inkSchema, await body(c));
     const sub = person(c);
     const [listId, itemId] = [c.req.param('id'), c.req.param('itemId')];
     const list = await cal(c).getTaskList(listId);
     const item = list.items.find((i) => i.id === itemId);
     if (!item) throw notFound('Item not found');
     if (!item.ink) throw validation('Only a handwritten item holds ink', 'itemId');
-    if (!ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes as InkStroke[])) throw inkFull();
-    ctx.inks.set(sub, listId, itemId, strokes as InkStroke[]);
-    return c.json(await cal(c).getTaskList(listId));
+    // a change that says where it started from is merged with what other devices wrote meanwhile (decision G5)
+    // the wall clock, as the devices' own clocks are (the app clock of a test can stand still)
+    const nowMs = ctx.clock.real();
+    // a stroke time far ahead of the server's clock would make the stroke survive every erase: it counts as at most a little ahead
+    const drawn = (sent as InkStroke[]).map((s) => (s.t !== undefined && s.t > nowMs + INK_SKEW_MS ? { ...s, t: nowMs + INK_SKEW_MS } : s));
+    const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), drawn, base, Math.min(at ?? nowMs, nowMs)) : drawn;
+    // a merge can add to what the device saw: what one item holds stays within what a request may carry
+    if (visibleInk(strokes).length > INK_STROKES_MAX || !ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
+    ctx.inks.set(sub, listId, itemId, strokes);
+    // the answer carries what the item holds now: a merge may have added strokes the device has not seen
+    return c.json({ ...(await cal(c).getTaskList(listId)), ink: { [itemId]: strokes } });
   });
   r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
   r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)), scopeOf(c))));

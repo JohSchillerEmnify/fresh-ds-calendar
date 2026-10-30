@@ -35,6 +35,79 @@ describe('ink items', () => {
     expect((await t.json('GET', `/api/tasklists/${l.id}`)).body.items).toHaveLength(2);
   });
 
+  it('merges a change that names where it started from with what another device wrote meanwhile', async () => {
+    const l = await mk();
+    const first = { ...stroke(), t: 0 };
+    const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [first] })).body.items[1].id;
+    const url = `/api/tasklists/${l.id}/items/${id}/ink`;
+    const key = (s: { t?: number; p: number[][] }) => `${s.t ?? 0}|${s.p.length}|${s.p[0]!.join(',')}`;
+    // the other device erased the line at 300; this one drew at 200 while offline and arrives later
+    await t.json('PUT', url, { strokes: [], base: [key(first)], at: 300 });
+    const drawn = { ...stroke(2), t: 200 };
+    const merged = await t.json('PUT', url, { strokes: [first, drawn], base: [key(first)], at: 200 });
+    // the answer carries what the item holds now, for the device to adopt
+    expect(merged.body.ink[id]).toEqual([{ p: [], t: 300 }]);
+    expect((await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length)).toEqual([]);
+    // a stroke drawn after the erase stays
+    const later = { ...stroke(2), t: 400 };
+    await t.json('PUT', url, { strokes: [later], base: [], at: 400 });
+    expect((await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length)).toEqual([later]);
+  });
+
+  describe('times of a merged change', () => {
+    const NOW = Date.parse('2026-10-12T08:00:00+02:00');
+    const key = (s: { t?: number; p: number[][] }) => `${s.t ?? 0}|${s.p.length}|${s.p[0]!.join(',')}`;
+    const visible = async (id: string) => (await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length);
+    const setup = async () => {
+      const l = await mk();
+      const first = { ...stroke(), t: NOW - 5000 };
+      const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [first] })).body.items[1].id;
+      return { first, id, url: `/api/tasklists/${l.id}/items/${id}/ink` };
+    };
+
+    it('refuses a time that is not a whole non-negative number', async () => {
+      const { first, url } = await setup();
+      for (const at of [-1, 1.5]) expect((await t.json('PUT', url, { strokes: [], base: [key(first)], at })).status).toBe(400);
+      expect((await t.json('PUT', url, { strokes: [{ ...stroke(), t: 1.5 }], base: [] })).status).toBe(400);
+    });
+
+    it('takes an erase from a clock far in the future as happening now, so strokes drawn after it are kept', async () => {
+      const { first, id, url } = await setup();
+      await t.json('PUT', url, { strokes: [], base: [key(first)], at: 9e15 });
+      const later = { ...stroke(2), t: Date.now() + 60_000 };
+      await t.json('PUT', url, { strokes: [later], base: [] });
+      expect(await visible(id)).toEqual([later]);
+    });
+
+    it('cuts back a stroke time far ahead of the clock', async () => {
+      const { id, url } = await setup();
+      await t.json('PUT', url, { strokes: [{ ...stroke(2), t: 9e15 }] });
+      const kept = (await visible(id))[0].t;
+      expect(kept).toBeLessThanOrEqual(Date.now() + 5 * 60_000);
+      expect(kept).toBeGreaterThan(Date.now());
+    });
+
+    it('lets a device with a clock behind erase only what was drawn before its time', async () => {
+      const { first, id, url } = await setup();
+      const other = { ...stroke(2), t: NOW - 1000 };
+      await t.json('PUT', url, { strokes: [first, other] });
+      await t.json('PUT', url, { strokes: [], base: [key(first)], at: 1 });
+      expect(await visible(id)).toEqual([other]);
+    });
+  });
+
+  it('refuses a merge that would leave an item with more strokes than one item takes', async () => {
+    const l = await mk();
+    const mini = (i: number) => ({ p: [[i / 100, 0, 1]], t: i + 1 });
+    const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [mini(0)] })).body.items[1].id;
+    const url = `/api/tasklists/${l.id}/items/${id}/ink`;
+    expect((await t.json('PUT', url, { strokes: Array.from({ length: 500 }, (_, i) => mini(i)) })).status).toBe(200);
+    // another device started from the first stroke only and adds one more
+    const r = await t.json('PUT', url, { strokes: [mini(0), mini(900)], base: [`1|1|0`], at: 1000 });
+    expect(r.status).toBe(413);
+    expect((await t.json('GET', '/api/ink')).body.items[id]).toHaveLength(500);
+  });
+
   it('refuses ink for a text item and for an unknown item', async () => {
     const l = await mk();
     expect((await t.json('PUT', `/api/tasklists/${l.id}/items/${l.items[0].id}/ink`, { strokes: [stroke()] })).status).toBe(400);
@@ -169,6 +242,42 @@ describe('ink when a list is shared and shared no more', () => {
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
     await jo('DELETE', `/api/tasklists/${shared.id}/share`);
     expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([stroke()]);
+  });
+});
+
+describe('erase marks (strokes without points) travel with the ink', () => {
+  const key = (s: { t?: number; p: number[][] }) => `${s.t ?? 0}|${s.p.length}|${s.p[0]!.join(',')}`;
+  const NOW = Date.parse('2026-10-12T08:00:00+02:00');
+
+  it('are in the backup files and keep working after the list is shared and shared no more', async () => {
+    const JO = 'jo@example.com', ANNA = 'anna@example.com';
+    await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+    const cookie = await sessionCookie(t, JO);
+    const jo = (m: string, u: string, b?: unknown) => t.json(m, u, b, { cookie });
+    const first = { ...stroke(), t: NOW - 5000 };
+    const own = (await jo('POST', '/api/tasklists', { title: 'G', date: null, items: [{ title: '', strokes: [first] }] })).body;
+    const id = own.items[0].id;
+    // erased as a whole: the item holds an erase mark now
+    expect((await jo('PUT', `/api/tasklists/${own.id}/items/${id}/ink`, { strokes: [], base: [key(first)], at: NOW - 1000 })).status).toBe(200);
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
+    // an older stroke arriving now is still dropped, a newer one kept, in the shared store
+    const late = { ...stroke(2), t: NOW - 3000 }, fresh = { ...stroke(2), t: NOW - 500 };
+    await jo('PUT', `/api/tasklists/${shared.id}/items/${id}/ink`, { strokes: [late], base: [] });
+    await jo('PUT', `/api/tasklists/${shared.id}/items/${id}/ink`, { strokes: [fresh], base: [] });
+    await jo('DELETE', `/api/tasklists/${shared.id}/share`);
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }, fresh]);
+  });
+
+  it('are part of what a backup collects, and the file still loads', async () => {
+    const l = await mk();
+    const first = { ...stroke(), t: NOW - 5000 };
+    const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [first] })).body.items[1].id;
+    await t.json('PUT', `/api/tasklists/${l.id}/items/${id}/ink`, { strokes: [], base: [key(first)], at: NOW - 1000 });
+    const { files } = (await t.json('GET', '/api/__test/backup/collect')).body as { files: Record<string, string> };
+    const file = Object.entries(files).find(([name]) => name.endsWith('/ink.json'))![1];
+    expect(JSON.parse(file).items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
   });
 });
 

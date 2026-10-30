@@ -333,8 +333,8 @@ export class ApiClient {
   updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), patch, o);
   }
-  putItemInk(id: string, itemId: string, strokes: InkStroke[], o?: RequestOptions) {
-    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/${enc(itemId)}/ink`, { strokes }, o);
+  putItemInk(id: string, itemId: string, ink: { strokes: InkStroke[]; base: string[]; at: number }, o?: RequestOptions) {
+    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/${enc(itemId)}/ink`, ink, o);
   }
   deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);

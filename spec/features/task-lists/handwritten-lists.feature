@@ -82,6 +82,8 @@ Feature: Labs: handwritten lists
   ASSUMPTIONS (not yet confirmed by the owner)
   A7. The chosen ink colour is remembered per device, like the writing mode (A4).
   A8. Deleting an ink item or a whole list removes its ink from the server (not kept as an orphan).
+  A10. In TEXT mode the item fields are ruled on every device (the person chose that mode); the dialog's size and the ink
+       lines still depend on pen support (R4).
   A9. For G5, "erased" means the strokes of the line are removed (the item stays); a seeded ink item holds one stroke.
 
   Background:
@@ -124,12 +126,10 @@ Feature: Labs: handwritten lists
       Then the item number 2 is ticked
       And the task list "Groceries" shows the done count "1/3"
 
-    @backlog
     Scenario: An ink item is reordered by dragging its handle
       When I drag the item number 3 above the item number 1
       Then the ink items are in the order "Bread, Milk, Eggs"
 
-    @backlog
     Scenario: An ink item is removed
       When I delete the item number 2
       Then the task list "Groceries" shows the done count "0/2"
@@ -140,31 +140,28 @@ Feature: Labs: handwritten lists
       Given the Labs switch "Handwritten lists" is on
       And the expanded task list "Notes" has more ink items than fit the screen
 
-    @backlog
     Scenario: A pen draws with the pressure of the stroke
       When I draw a stroke with the pen
       Then the stroke is drawn on the line, thicker where I pressed harder
 
-    @desktop @backlog
+@desktop
     Scenario: The mouse never draws, it clicks, selects and drags
       When I drag with the mouse over the writing area
       Then nothing is drawn
       When I click the ink item number 1 with the mouse
       Then the item number 1 is ticked
 
-    @mobile @backlog
+@mobile
     Scenario: A finger scrolls the list instead of drawing when "Draw with finger" is off
       Given the Labs setting "Draw with finger" is off
       When I swipe up on the writing area with a finger
       Then the list scrolls
       And nothing is drawn
 
-    @backlog
     Scenario: A resting palm does not draw while the pen writes
       When I rest my palm on the writing area and draw a stroke with the pen
       Then only the pen stroke is drawn
 
-    @backlog
     Scenario: A tap with a finger on an ink item still ticks it
       When I tap the ink item number 1 with a finger
       Then the item number 1 is ticked and nothing is drawn
@@ -180,14 +177,14 @@ Feature: Labs: handwritten lists
       Then the dialog is larger than without the feature
       And the dialog shows ruled lines to write on
 
-    @tablet @backlog
+@tablet
     Scenario: An Android tablet with a stylus gets the larger ruled dialog (decision T1)
       Given the device is an Android tablet that reports pen support
       When I open the new task list form
       Then the dialog shows ruled lines to write on
       And the dialog is larger than without the feature
 
-    @desktop @backlog
+@desktop
     Scenario: A desktop that reports pen support gets the larger ruled dialog
       Given the device reports pen support
       When I open the new task list form
@@ -221,14 +218,12 @@ Feature: Labs: handwritten lists
     Background:
       Given the Labs switch "Handwritten lists" is on
 
-    @backlog
     Scenario: Text mode shows ruled plain text fields
       Given the writing mode is "text"
       When I open the new task list form
       Then the item fields are ruled, ordinary text fields
       And the form has no button that turns ink into text
 
-    @backlog
     Scenario: Text written with the device's recognition is saved as items
       Given the writing mode is "text"
       And I open the new task list form
@@ -262,20 +257,17 @@ Feature: Labs: handwritten lists
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
 
-    @backlog
     Scenario: Ink is shown without a connection
       Given I have seen the day view for 2026-10-14
       When the network connection is lost
       And I open the app again
       Then the card of "Groceries" shows 2 ink items, scaled down
 
-    @backlog
     Scenario: Ink follows me to another device
       When I switch to another device
       And I open the day view for 2026-10-14
       Then the card of "Groceries" shows 2 ink items, scaled down
 
-    @backlog
     Scenario: Google Calendar only gets a placeholder title for an ink item
       Then the Google event for the task list "Groceries" has the description:
         """
@@ -283,14 +275,12 @@ Feature: Labs: handwritten lists
         ☐ Handwritten item
         """
 
-    @backlog
     Scenario: The ink is in the backup with the server files
       When the backup to Drive runs
       Then the backup holds the ink of the task list "Groceries"
 
   Rule: A shared list shares its ink with the other person
 
-    @backlog
     Scenario: The other person sees the ink
       Given the Labs switch "Handwritten lists" is on
       And "jo@example.com" has an undated task list "Groceries" with the ink items "Milk, Eggs"
@@ -301,7 +291,6 @@ Feature: Labs: handwritten lists
 
   Rule: Switching handwriting off keeps what I wrote (assumption A2)
 
-    @backlog
     Scenario: Ink items stay visible, read-only, when the feature is off
       Given the Labs switch "Handwritten lists" is off
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
@@ -315,19 +304,18 @@ Feature: Labs: handwritten lists
     Background:
       Given the Labs switch "Handwritten lists" is on
 
-    @backlog
     Scenario: "Draw with finger" is off until switched on
       When I open the settings
       Then the Labs setting "Draw with finger" is off
 
-    @mobile @backlog
+@mobile
     Scenario: With the setting on a finger draws on the writing area
       Given the Labs setting "Draw with finger" is on
       And the expanded task list "Notes" has more ink items than fit the screen
       When I draw a stroke with a finger
       Then the stroke is drawn on the line
 
-    @mobile @backlog
+@mobile
     Scenario: With the setting on two fingers scroll the writing area
       Given the Labs setting "Draw with finger" is on
       And the expanded task list "Notes" has more ink items than fit the screen
@@ -335,7 +323,7 @@ Feature: Labs: handwritten lists
       Then the list scrolls
       And nothing is drawn
 
-    @mobile @backlog
+@mobile
     Scenario: With the setting on a resting palm still does not draw
       Given the Labs setting "Draw with finger" is on
       And the expanded task list "Notes" has more ink items than fit the screen
@@ -425,7 +413,6 @@ Feature: Labs: handwritten lists
 
   Rule: One list can mix ink and text items (decision Q5)
 
-    @backlog
     Scenario: The writing mode decides how the next item is written
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Mixed" on 2026-10-14 with the ink items "Milk"
@@ -438,7 +425,6 @@ Feature: Labs: handwritten lists
 
   Rule: Typing always works, also in ink mode (decision R2)
 
-    @backlog
     Scenario: Clicking the next empty line and typing creates a text item in the same list
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
@@ -456,31 +442,28 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs, Bread"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: The pen on the handle moves an ink item
       When I drag the grip handle of the item number 3 above the item number 1 with the pen
       Then the ink items are in the order "Bread, Milk, Eggs"
       And nothing is drawn
 
-    @backlog
     Scenario: The pen elsewhere on the line writes
       When I draw a stroke with the pen on the ink item number 2
       Then the ink item number 2 has one more stroke
       And the ink items are in the order "Milk, Eggs, Bread"
 
-    @desktop @backlog
+@desktop
     Scenario: A long press with the mouse still moves an item
       When I long-press the item number 3 with the mouse and drag it above the item number 1
       Then the ink items are in the order "Bread, Milk, Eggs"
 
-    @mobile @backlog
+@mobile
     Scenario: A long press with a finger still moves an item
       When I long-press the item number 3 with a finger and drag it above the item number 1
       Then the ink items are in the order "Bread, Milk, Eggs"
 
   Rule: The pen on an ink item keeps writing on that line (decision Q6)
 
-    @backlog
     Scenario: A pen stroke on an existing ink item adds to it
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
@@ -494,13 +477,11 @@ Feature: Labs: handwritten lists
     Background:
       Given the Labs switch "Handwritten lists" is on
 
-    @backlog
     Scenario: A list made from a template has the template's ink items
       Given the template "Weekly shop" has the ink items "Milk, Eggs"
       When I create a task list from the template "Weekly shop"
       Then the new task list shows 2 ink items, scaled down
 
-    @backlog
     Scenario: The next occurrence of a repeating list has the ink items
       Given the calendar contains a repeating task list "Groceries" with the ink items "Milk, Eggs"
       When the next occurrence of the task list "Groceries" is created
@@ -513,7 +494,6 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: Ink written offline is visible at once and reaches another device after reconnecting
       Given the network connection is lost
       When I write an ink item with the pen
@@ -570,7 +550,6 @@ Feature: Labs: handwritten lists
 
   Rule: The list title always stays text (decision G4)
 
-    @backlog
     Scenario: In ink mode the title is still an ordinary text field
       Given the Labs switch "Handwritten lists" is on
       And the writing mode is "ink"
@@ -585,7 +564,6 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
       And two devices have the task list "Groceries" open
 
-    @backlog
     Scenario: New items and new strokes from both devices are kept
       When the first device writes an ink item while offline
       And the second device draws a stroke on the ink item number 1 while offline
@@ -593,14 +571,12 @@ Feature: Labs: handwritten lists
       Then both devices show 3 items in the task list "Groceries"
       And both devices show the ink item number 1 with 2 strokes
 
-    @backlog
     Scenario: A line erased on one device and extended later on the other keeps the later change
       When the first device erases the ink item number 1 while offline
       And the second device draws a stroke on the ink item number 1 while offline
       And both devices reconnect
       Then both devices show the ink item number 1 with 1 stroke
 
-    @backlog
     Scenario: A line extended on one device and erased later on the other keeps the later change
       When the second device draws a stroke on the ink item number 1 while offline
       And the first device erases the ink item number 1 while offline
@@ -609,7 +585,6 @@ Feature: Labs: handwritten lists
 
   Rule: A ticked ink item is struck through and faded like a text item (decision G6)
 
-    @backlog
     Scenario: A ticked ink item has the strike line of a text item and is faded to about half
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Mixed" on 2026-10-14 with the ink items "Milk"
@@ -622,9 +597,10 @@ Feature: Labs: handwritten lists
 
   Rule: Left-handed mode mirrors the writing tools (decision G7)
 
-    @backlog
+    @mobile
     Scenario: The mode switch, undo, eraser and colour buttons swap sides
       Given the Labs switch "Handwritten lists" is on
+      And the device reports pen support
       And I open the new task list form
       And I note where the writing tools are
       When I turn on left-handed mode
@@ -633,7 +609,6 @@ Feature: Labs: handwritten lists
 
   Rule: Ink is scaled to the line on every screen (decision G8)
 
-    @backlog
     Scenario Outline: The same ink looks the same on every screen size
       Given the Labs switch "Handwritten lists" is on
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
@@ -654,18 +629,17 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: Deleting an ink item removes its ink
       When I delete the item number 2
       Then the server holds 1 ink item for the task list "Groceries"
 
-    @backlog
     Scenario: Deleting the list removes all its ink
       When I delete the task list "Groceries"
       Then the server holds no ink for the task list "Groceries"
 
-  @mobile @backlog
+  @mobile
   Scenario: The add button never covers the writing area
     Given the Labs switch "Handwritten lists" is on
+    And the device reports pen support
     When I open the new task list form
     Then the add button covers no control of the "writing area"
