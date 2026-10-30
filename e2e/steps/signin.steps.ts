@@ -4,7 +4,7 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { expect, type APIRequestContext } from '@playwright/test';
-import { Given, Then, When } from './fixtures.js';
+import { Given, Step, Then, When } from './fixtures.js';
 import { addDays, berlinIso } from './support/dates.js';
 import { tid, type World } from './support/world.js';
 
@@ -28,8 +28,13 @@ export async function signIn(world: World, email: string, date = '2026-10-12', d
 
 const onSignIn = (world: World) => expect(world.page.getByTestId('signin-page')).toBeVisible();
 
-Given('{string} and {string} may use the calendar', async function (this: World, a: string, b: string) {
-  await this.api.setAuth([a, b]);
+/** The allow-list the scenario has set, so "may no longer use the calendar" can take one address off it. */
+const allowed = new WeakMap<World, string[]>();
+const allow = async (w: World, emails: string[]) => { allowed.set(w, emails); await w.api.setAuth(emails); };
+
+Given('{string} and {string} may use the calendar', async function (this: World, a: string, b: string) { await allow(this, [a, b]); });
+Step('{string} may no longer use the calendar', async function (this: World, a: string) {
+  await allow(this, (allowed.get(this) ?? []).filter((e) => e !== a));
 });
 
 Given(

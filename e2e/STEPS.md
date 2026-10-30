@@ -3153,8 +3153,8 @@ the top bar's widgets are in reverse order
 
 ## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, door-board, shared-lists)
 
-These scenarios describe behaviour that is already built; their steps are specified here and still to be implemented
-in `e2e/steps/`. Two groups:
+These scenarios describe behaviour that is already built. Two groups (the HTTP steps are in `e2e/steps/security.steps.ts` and
+`door.steps.ts`):
 
 - **HTTP steps (the scenarios without `@unit`)**: run against the TEST_MODE server through Playwright `request`
   (no browser), keeping the last response like `I request {string}`.
@@ -3211,7 +3211,8 @@ it is told the door's person is not available
   `POST /api/__test/door { token, person: P }` with the fixed test key. "may no longer use the calendar" then changes the
   allowed addresses to the other person, as in feature signin. "it is told the door's person is not available" = status 503.
 - "asks for its reminders N times within a minute": N sequential `GET /api/door` calls with the key, all inside one clock
-  minute (the step waits for the next minute if fewer than 5 s of the current one are left); the statuses are kept.
+  minute (the step first waits for a fresh minute if this one already had door asks or fewer than 5 s are left, and afterwards waits for the next
+  minute so later scenarios start with an unused budget; this makes the scenario take about two minutes); the statuses are kept.
   "the first N are answered" = those calls answered 200; "the next one is told ..." = the call after them answered 429.
 
 ```
