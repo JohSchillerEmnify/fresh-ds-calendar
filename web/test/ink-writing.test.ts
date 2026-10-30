@@ -44,4 +44,12 @@ describe('useInkWriting', () => {
     expect(undone!.strokes[0]!.t).toBeGreaterThanOrEqual(erase!.at);
     expect(undone!.strokes[0]!.t).not.toBe(100);
   });
+  it('keeps a margin below the server limit for what other devices may have added', () => {
+    // about 189 KB: the server would still take a small stroke, but a merge with unseen strokes might not
+    useInkStore().fromDevice({ version: 1, items: { a: [stroke(4750), stroke(4750)], b: [stroke(4000)] } });
+    const w = useInkWriting(() => 'L', ref(true), () => ['a', 'b']);
+    w.changeDraft([stroke(10)]);
+    expect(w.draft.value).toEqual([]);
+    expect(useUiStore().snackbars.length).toBe(1);
+  });
 });

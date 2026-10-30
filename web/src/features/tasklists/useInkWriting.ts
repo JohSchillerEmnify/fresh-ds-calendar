@@ -12,6 +12,8 @@ import { usePenDoubleTap } from './usePenDoubleTap';
 
 /** Idle time after the last stroke on the empty line before it becomes an item. */
 const DRAFT_MS = 1200;
+/** Room left for what other devices wrote meanwhile (the server measures the merged item). */
+const INK_MARGIN_BYTES = INK_LIST_MAX_BYTES / 10;
 
 /** One thing to take back: a stroke added to `itemId` (`null` = the draft), or the strokes an erase removed. */
 type Step = { itemId: string | null; before?: InkStroke[] };
@@ -29,7 +31,8 @@ export function useInkWriting(listId: () => string, active: Ref<boolean>, inkIds
   function room(itemId: string | null, strokes: InkStroke[]): boolean {
     const others = inkIds().filter((id) => id !== itemId).map((id) => ink.strokes(id)).filter((s) => s.length);
     const draftItem = itemId === null ? [] : draft.value.length ? [draft.value] : [];
-    if (inkListBytes([...others, ...draftItem, strokes]) <= INK_LIST_MAX_BYTES) return true;
+    // below the server's limit by a margin: strokes another device added meanwhile count there too
+    if (inkListBytes([...others, ...draftItem, strokes]) <= INK_LIST_MAX_BYTES - INK_MARGIN_BYTES) return true;
     ui.notify(t('ink.full'));
     return false;
   }
