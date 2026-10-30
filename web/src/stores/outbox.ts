@@ -7,7 +7,7 @@ import { add, flush, load, setEntries, writes, type OutboxState } from '@/lib/ou
 /** The outbox of unsent changes (ADR 0031): shown on the device at once, kept per person, sent in order (`lib/outboxEngine.ts`). */
 export const useOutboxStore = defineStore('outbox', () => {
   const entries = shallowRef<OutboxEntry[]>([]);
-  const lastSent = ref<number | null>(null);
+  const lastSent = ref<{ wall: number; app: number } | null>(null);
   const s: OutboxState = { entries, lastSent, seq: 0, running: false, backoff: 0, retry: null, loaded: null };
 
   onDeviceWipe((keep) => {

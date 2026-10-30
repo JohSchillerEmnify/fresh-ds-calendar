@@ -24,8 +24,8 @@ type Outcome = 'sent' | 'retry' | 'refused';
 /** The state one outbox store keeps. */
 export interface OutboxState {
   entries: ShallowRef<OutboxEntry[]>;
-  /** App-clock time of the last successful send. */
-  lastSent: Ref<number | null>;
+  /** The last successful send: device time and app-clock time. */
+  lastSent: Ref<{ wall: number; app: number } | null>;
   seq: number;
   running: boolean;
   backoff: number;
@@ -173,7 +173,7 @@ function sent(s: OutboxState, e: OutboxEntry, fresh: unknown): void {
     if (series) dropSeries(series, id);
   } else if (result) showAnswer(s, c, id, result);
   void save(s);
-  s.lastSent.value = useClockStore().nowMs();
+  s.lastSent.value = { wall: Date.now(), app: useClockStore().nowMs() };
 }
 
 /** The device copy goes back to what the server has (with the entries still unsent on top); false when it could not be read. */

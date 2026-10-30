@@ -133,7 +133,7 @@
    "store-not-to-service|server/src/services/prefsStore.ts|server/src/services/reminderOverrides.ts": 1
   },
   "dedup": {
-   "duplicated-percent": 0.569
+   "duplicated-percent": 0.567
   },
   "types": {
    "AnimationLevel": 1,
@@ -812,7 +812,6 @@
    "exports|web/src/lib/items.ts|TASKLIST_BLOCK_MINUTES": 1,
    "exports|web/src/lib/items.ts|compareSegments": 1,
    "exports|web/src/lib/items.ts|daySortKey": 1,
-   "exports|web/src/lib/timers.ts|appInterval": 1,
    "exports|web/src/lib/timers.ts|autoDispose": 1,
    "exports|web/src/motion/animate.ts|pressRelease": 1,
    "exports|web/src/motion/drag.ts|GESTURE_CLAIM_EVENT": 1,

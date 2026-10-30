@@ -4,7 +4,7 @@
  * Renders nothing while closed (v-if), so no DOM or references are retained. Escape / Cancel close;
  * the scrim closes only when `dismissOnScrim` (feature dialogs pass `!dirty`).
  */
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { isPhone, acquireViewport } from '@/composables/useViewport';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { createVelocityTracker } from '@/motion/spring';
@@ -15,9 +15,15 @@ const props = withDefaults(defineProps<{
   open: boolean; label: string; dismissOnScrim?: boolean; testid?: string;
   /** Extra attributes for the panel (data-*), inline style, desktop popover anchor, and opt-out of the built-in Escape handler. */
   panelAttrs?: Record<string, string>; panelStyle?: Record<string, string>; anchor?: { left: number; top: number; maxH: number } | null; escape?: boolean;
+  /** With an `anchor`, the phone shows the same popover instead of a bottom sheet. */
+  anchoredOnPhone?: boolean;
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 useOverlayHistory(() => props.open, () => emit('close'));
+/** Shown as a card at the anchor: on wide screens, and on phones when asked to. */
+const popover = computed(() => !!props.anchor && (!isPhone.value || props.anchoredOnPhone));
+/** Shown as a bottom sheet. */
+const sheet = computed(() => isPhone.value && !popover.value);
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
 const release = acquireViewport();
@@ -61,7 +67,7 @@ function startsAtTop(t: HTMLElement): boolean {
   return true;
 }
 function ts(e: TouchEvent) {
-  if (!isPhone.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
+  if (!sheet.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
   const t = e.target as HTMLElement;
   const inTop = e.touches[0].clientY - panel.value.getBoundingClientRect().top < TOP_ZONE;
   if (t.closest?.(NO_DRAG) || !(inTop || startsAtTop(t))) { phase = 'ignore'; return; }
@@ -115,14 +121,14 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="[isPhone ? 'phone' : 'desk', { anchored: !isPhone && !!anchor }]">
+  <div v-if="open" class="layer" :class="[sheet ? 'phone' : 'desk', { anchored: popover }]">
     <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="isPhone ? 'sheet' : anchor ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !isPhone && !!anchor }"
-      :style="[panelStyle, !isPhone && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
+      :data-presentation="sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: popover }"
+      :style="[panelStyle, popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
-      <div v-if="isPhone" class="handle" aria-hidden="true"><span /></div>
+      <div v-if="sheet" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>
     </section>
   </div>

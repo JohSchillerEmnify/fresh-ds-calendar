@@ -39,6 +39,8 @@ const RESUME_WINDOW_MS = 5000;
 export const useSyncStore = defineStore('sync', () => {
   const state = ref<SyncState>('idle');
   const lastSync = ref<string | null>(null);
+  /** The last successful sync: device time (the 5 minute rule) and app-clock time (what the person is told). */
+  const lastOk = ref<{ wall: number; app: number }>({ wall: Date.now(), app: useDeviceStore().syncedAt ?? useClockStore().nowMs() });
   const error = ref<ApiError | null>(null);
   const running = ref(false);
   /** The server is rate limited by Google but the screen still has data: no banner, only this flag (and `data-rate-limited`). */
@@ -145,6 +147,7 @@ export const useSyncStore = defineStore('sync', () => {
       error.value = null;
       state.value = 'idle';
       lastSync.value = new Date().toISOString();
+      lastOk.value = { wall: Date.now(), app: clock.nowMs() };
       pushWidget();
       if (pending) {
         const p = pending;
@@ -193,7 +196,9 @@ export const useSyncStore = defineStore('sync', () => {
 
   /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
   function markSynced(): void {
-    if (state.value !== 'error') lastSync.value = new Date().toISOString();
+    if (state.value === 'error') return;
+    lastSync.value = new Date().toISOString();
+    lastOk.value = { wall: Date.now(), app: useClockStore().nowMs() };
   }
 
   function retry(): Promise<void> {
@@ -272,5 +277,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, resyncAfterWrite, retry, start, stop, schedule };
+  return { state, lastSync, lastOk, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, resyncAfterWrite, retry, start, stop, schedule };
 });
