@@ -114,6 +114,19 @@ Then('the task list {string} shows no progress ring', async function (this: Worl
   await expect(this.taskCard(title).getByTestId('tasklist-progress-ring')).toHaveCount(0);
 });
 
+Then('the task list {string} shows no progress bar', async function (this: World, title: string) {
+  await expect(this.taskCard(title)).toBeVisible();
+  await expect(this.taskCard(title).getByTestId('tasklist-card-bar')).toHaveCount(0);
+});
+
+Then('the task list {string} shows the progress bar', async function (this: World, title: string) {
+  await expect(this.taskCard(title).getByTestId('tasklist-card-bar')).toHaveCount(1);
+});
+
+Then('the task list {string} is announced as {string}', async function (this: World, title: string, label: string) {
+  await expect(this.taskCard(title)).toHaveAttribute('aria-label', label);
+});
+
 Then('the collapsed task list {string} lists the items {string}', async function (this: World, title: string, items: string) {
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(items));
 });

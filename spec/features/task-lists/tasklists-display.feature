@@ -2,7 +2,7 @@
 Feature: Task lists in the calendar views
   A task list is placed on a date, optionally at a time. Collapsed it shows its title,
   its open item titles, as many as there is room for (no fixed limit; untimed lists show them all), and a
-  done count like "1/3" with a progress ring (a list with just one item shows neither, open or ticked; its opened list does). A timed task list's place in the time
+  done count like "1/3" with a progress ring (a list with just one item shows neither, nor the thin progress bar, open or ticked; its opened list keeps count and ring). A timed task list's place in the time
   grid tells its time; a short block does not repeat it as text.
   On phones, the month view shows only compact chips; tapping the day opens the day view.
   A timed task list in the grid shows its items next to the title only where the column is wide enough;
@@ -93,10 +93,47 @@ Feature: Task lists in the calendar views
       | week  | 2026-10-12 |
       | day   | 2026-10-14 |
 
+  Scenario Outline: A task list with one item shows no thin progress bar
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done   |
+      | Tickets | <done> |
+    When I open the <view> view for <period>
+    Then I see the task list "Bahn" on 2026-10-14
+    And the task list "Bahn" shows no progress bar
+
+    Examples:
+      | done | view  | period     |
+      | no   | month | 2026-10    |
+      | yes  | month | 2026-10    |
+      | no   | week  | 2026-10-12 |
+      | yes  | day   | 2026-10-14 |
+
+  # Owner 2026-10-30: a screen reader needs only "done" or "not done" for one item, not "1 of 1".
+  Scenario Outline: A task list with one item is announced as done or not done
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done   |
+      | Tickets | <done> |
+    When I open the day view for 2026-10-14
+    Then the task list "Bahn" is announced as "<label>"
+
+    Examples:
+      | done | label          |
+      | no   | Bahn, not done |
+      | yes  | Bahn, done     |
+
   Scenario: A task list with two items still shows its done count and progress ring
     When I open the day view for 2026-10-14
     Then the task list "Groceries" shows the done count "1/3"
     And the task list "Groceries" shows the progress ring
+    And the task list "Groceries" shows the progress bar
+
+  Scenario: A task list with several items is announced with its count
+    Given the calendar contains a task list "Packing" on 2026-10-14 with items:
+      | item     | done |
+      | Passport | yes  |
+      | Tickets  | no   |
+    When I open the day view for 2026-10-14
+    Then the task list "Packing" is announced as "Packing, 1 of 2 done"
 
   Scenario: The opened list of a one-item task list keeps its count and progress ring
     Given the calendar contains a task list "Bahn" on 2026-10-14 with items:

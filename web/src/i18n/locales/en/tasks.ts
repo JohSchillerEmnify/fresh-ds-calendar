@@ -77,6 +77,10 @@ export default {
   card: {
     label: '{title}, {done} of {total} done',
     labelUntitled: 'Task list, {done} of {total} done',
+    labelDone: '{title}, done',
+    labelOpen: '{title}, not done',
+    labelUntitledDone: 'Task list, done',
+    labelUntitledOpen: 'Task list, not done',
     noItems: 'No items',
     from: 'From {date}',
     fromEarlier: 'From earlier',

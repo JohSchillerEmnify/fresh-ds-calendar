@@ -75,6 +75,10 @@ export default {
   card: {
     label: '{title}, {done} von {total} erledigt',
     labelUntitled: 'Aufgabenliste, {done} von {total} erledigt',
+    labelDone: '{title}, erledigt',
+    labelOpen: '{title}, nicht erledigt',
+    labelUntitledDone: 'Aufgabenliste, erledigt',
+    labelUntitledOpen: 'Aufgabenliste, nicht erledigt',
     noItems: 'Keine Einträge',
     from: 'Von {date}',
     fromEarlier: 'Von früher',
