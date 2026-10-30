@@ -37,6 +37,9 @@ Feature: Labs: handwritten lists
       (A6, unchanged). On a desktop without a pen nothing changes: the dialog keeps its size, and typing and the mouse
       work as before.
   A6. "Large device" = a viewport as wide as an iPad (768 px or more) or a desktop that reports pen support.
+  T1. Android tablets count like iPads (owner, 2026-10-30): an Android tablet with a stylus (e.g. S Pen), in the Android
+      app or the browser, gets the same larger ruled dialog and the same rules; the stylus draws with pressure, its side
+      button or eraser end erases where the device reports it (best effort, like the Apple Pencil double tap).
   Q1. Undo: an undo button next to the mode switch undoes the last stroke while the dialog is open; Apple Pencil double
       tap = undo as well, best effort where the device passes it to the browser.
   Q2. Eraser: the pen's eraser end (e.g. Surface pen, pointer eraser button) erases the strokes it touches; an eraser
@@ -177,6 +180,13 @@ Feature: Labs: handwritten lists
       When I open the new task list form on a screen 1024 pixels wide
       Then the dialog is larger than without the feature
       And the dialog shows ruled lines to write on
+
+    @tablet @backlog
+    Scenario: An Android tablet with a stylus gets the larger ruled dialog (decision T1)
+      Given the device is an Android tablet that reports pen support
+      When I open the new task list form
+      Then the dialog shows ruled lines to write on
+      And the dialog is larger than without the feature
 
     @desktop @backlog
     Scenario: A desktop that reports pen support gets the larger ruled dialog

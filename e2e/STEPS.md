@@ -3158,6 +3158,7 @@ the Labs switch {string} is on
 the Labs switch {string} is off
 the device reports pen support
 the device reports no pen support
+the device is an Android tablet that reports pen support
 the writing mode is {string}
 the calendar contains a task list {string} on {date} with the ink items {string}
 "jo@example.com" has an undated task list {string} with the ink items {string}
@@ -3314,3 +3315,4 @@ the server holds no ink for the task list {string}
 - Scale (G8): the ink's bounding box divided by its line height is compared with the 1280 px run (tolerance 2 %); "not cut
   off" = the ink's box lies inside the line's box.
 - Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.
+
