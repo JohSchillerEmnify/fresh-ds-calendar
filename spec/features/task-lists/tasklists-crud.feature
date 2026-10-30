@@ -11,7 +11,7 @@ Feature: Creating, editing and deleting task lists
     Given the calendar is empty
     And today is 2026-10-12
 
-  @smoke
+  @ci
   Scenario: Create a task list on a date
     When I open the week view for 2026-10-12
     And I start creating a task list

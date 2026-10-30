@@ -31,7 +31,7 @@ jobs:
       - run: pnpm audit --prod
         continue-on-error: true
 
-  # The @smoke scenarios (mobile project) against a TEST_MODE server built from this commit.
+  # The @smoke and @ci scenarios (mobile project) against a TEST_MODE server built from this commit.
   e2e-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -46,7 +46,7 @@ jobs:
       - run: pnpm run build:e2e
       # Browser matching the exact @playwright/test version locked for the e2e package.
       - run: pnpm -F @calendar/e2e exec playwright install --with-deps chromium
-      - name: Run @smoke on the mobile project
+      - name: Run @smoke and @ci on the mobile project
         env:
           E2E_BASE_URL: http://localhost:3000
         run: |
@@ -59,7 +59,7 @@ jobs:
           curl --retry 60 --retry-delay 1 --retry-connrefused -fsS "$E2E_BASE_URL/api/health"
           cd e2e
           pnpm exec bddgen
-          pnpm exec playwright test --project=mobile --grep @smoke --workers=1
+          pnpm exec playwright test --project=mobile --grep "@smoke|@ci" --workers=1
       - name: Upload the report on failure
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

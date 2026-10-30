@@ -12,7 +12,7 @@ pnpm verify    # tsc, unit tests, i18n, step contract, duplication, lint
 ```
 
 `pnpm verify` and the CI gates (`.github/workflows/ci.yml`, CodeQL) must pass before merge.
-CI runs on every PR and push to main: `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
+CI runs on every PR and push to main: `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` and `@ci` e2e scenarios (`@ci` marks CI-only ones that need test endpoints, so `@smoke` stays safe against the deployment) and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
 The rest of the Playwright e2e suite (`pnpm e2e`, `pnpm e2e:affected`) is not run in CI; run the relevant scenarios locally.
 
 ## Spec-driven workflow
