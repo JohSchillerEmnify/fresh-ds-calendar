@@ -3274,3 +3274,92 @@ the stored preferences of {string} are damaged
 {string} has the default preferences plus the change
 the damaged file is kept as {string} with its old content
 ```
+
+## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0031)
+
+TO IMPLEMENT: every step below is new and not yet in `e2e/steps/`; its scenarios are `@backlog`. Pref names are open for the
+builder (suggested: `bottomBarSize` `expressive|compact`, default `compact` on phones; the existing `headerLayout` keeps its
+values `two-rows` = "Expressive", `one-row` = "Compact", default `one-row` on phones and `two-rows` on tablets and desktop;
+`navPhone` gains `drawer` = "Side menu"). Desktop and tablets keep one rail size.
+
+```
+the surface has one filled {string}
+every other button of the surface is tonal, outlined or text
+the dialog has one filled {string}
+every other button of the dialog is tonal, outlined or text
+no button of the settings screen is filled
+the {string} is an icon with the label {string}
+every icon-only button of the screen has an accessible label
+I open the overflow menu of the task list {string}
+the overflow menu lists {string}
+the task list {string} shows one overflow button and no other action button
+the button group shows {string} as one connected group
+exactly one of them is selected
+I press {string} in the button group
+the {string} button of the group is selected
+a component outside {string} contains a raw button element
+the lint gate runs
+the lint gate fails and names that component
+a button element inside {string} passes the lint gate
+the theme is {string}
+the bottom bar, the top bar and every button are drawn with fully round corners
+the bottom bar size is set to {string}
+I choose {string} as the bottom bar size
+the bottom bar size {string} is the default
+the bottom bar floats above the calendar
+the bottom bar is {int} pixels tall
+every item of the bottom bar shows an icon and a label
+only the open view of the bottom bar shows a label
+the create button is beside the bottom bar
+the settings offer no rail size
+I scroll the calendar down by {int} pixels
+I scroll the calendar up by {int} pixels
+the bottom bar is hidden
+the bottom bar is shown
+the create button is shown
+the add button covers no hour of the time grid
+the menu button is on the {string} side of the top bar
+I open the side menu
+I close the side menu
+the side menu lists {string}
+the side menu has the {string} entry at its bottom
+I choose {string} in the side menu
+the side menu is closed
+the side menu shows the calendars {string} with a colour checkbox each
+I untick the calendar {string} in the side menu
+the top bar has no filter button and no settings button
+the top bar has no filter button
+the top bar size is set to {string}
+I choose {string} as the top bar size
+the top bar size {string} is selected
+the top bar size {string} is the default
+the top bar scene is drawn at its full {int} pixels height
+the Today button is the only filled button of the top bar
+the top bar icons have no see-through background
+I tap the period title
+the support cat is fully visible in the top bar scene
+every large element of the top bar scene is fully visible
+no control covers any part of the top bar scene's large elements
+the Mordor eye and tower sit between the period title and the top bar's icons
+the floating toolbar offers {string}
+the floating toolbar is beside the create button
+the tools of the floating toolbar are tonal icon buttons with labels
+I press {string} in the floating toolbar
+I choose {string} as the sort order
+the Tasks view lists {string} in that order
+the floating toolbar is hidden
+the floating toolbar is shown
+```
+
+- Meaning, for the builder: "filled" = a solid primary-coloured container (M3 filled button, FAB); "tonal" = secondary
+  container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
+  shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
+  the viewport (`data-hidden="true"`), "shown" = fully inside it. "the surface" is the visible screen without an open dialog.
+- "no raw buttons outside m3": the lint gate (to be added to `pnpm verify`; name it in the lint rule's message as
+  "no raw buttons outside m3") rejects a bare `<button>` in `web/src/**` outside `web/src/components/m3`. Proven by a unit
+  test; the scenario is `@unit` and skipped by e2e.
+- "the Mordor eye and tower sit between ...": the `data-part` boxes `mordor-eye` and `mordor-tower` lie horizontally between
+  the right edge of `period-title` and the left edge of the first icon.
+- Side menu hooks: `menu-button`, `side-menu` (`data-open`), `side-menu-view-<year|month|week|day|tasks>`,
+  `side-menu-calendar` (`data-name`, checkbox), `side-menu-settings`; floating toolbar `list-toolbar` with
+  `list-tool-filter|sort|fold`; overflow `card-overflow`; group `tasks-mode-group`.
