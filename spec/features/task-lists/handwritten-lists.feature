@@ -1,7 +1,7 @@
 @tasklists @labs @handwriting @id:handwritten-lists
 Feature: Labs: handwritten lists
   Experimental (Labs, off by default, its own switch in Settings > Labs). I can write the items of a task list by hand
-  with a pen (or the mouse). A small switch beside the writing area changes between two ways of writing:
+  with a pen. The mouse never draws (R1). A small switch beside the writing area changes between two ways of writing:
   INK keeps my handwriting as it is, as a picture; TEXT shows ruled ordinary text fields, where the device's own
   handwriting recognition (iPad Scribble, Windows 11 pen input) turns the writing into text on the device. The app has
   no recognition of its own and no button that turns ink into text.
@@ -9,8 +9,9 @@ Feature: Labs: handwritten lists
   removing and the done count work as for any item. Writing happens in the open list (sheet or expanded card), in the new
   list form and on Canvas notes; everywhere else (calendar cards, the tray, the Tasks view) ink items are shown
   read-only and scaled down.
-  Pen (Apple Pencil, Windows pen, Android stylus, with pressure) and mouse draw; by default a finger keeps scrolling and
-  tapping (the Labs setting "Draw with finger" changes that); a resting palm never draws. Ink is stored on our server per
+  Only a pen draws (Apple Pencil, Windows pen, Android stylus, with pressure); the mouse never does: it clicks, selects
+  and drags. By default a finger keeps scrolling and tapping (the Labs setting "Draw with finger" changes that); a
+  resting palm never draws. Typing always works, also in ink mode (R2). Ink is stored on our server per
   person with a copy on the device (readable offline), is backed up with the server's files to Drive, and Google Calendar
   only gets a placeholder title for an ink item. A list shared with another person shares its ink like its items.
   Undo: a small undo button beside the writing mode switch takes back the last stroke while the dialog is open; the Apple
@@ -22,6 +23,19 @@ Feature: Labs: handwritten lists
   A3. An ink item has no title, so Google shows the placeholder "Handwritten item" for it (wording to confirm).
   A4. The writing mode is remembered per device, not per list.
   A5. Items written in TEXT mode are ordinary items; nothing marks them as written by hand.
+  R1. (owner, after the mockup, 2026-10-30; "how is drag&drop gonna work on pc when mouse draws? ... not sure if it makes
+      sense to have mouse writing. Only pen should write on desktop.") The MOUSE NEVER DRAWS. Only a pen draws, plus a
+      finger only with the Labs setting "Draw with finger" (Q8). The mouse clicks, selects and drags; a mouse drag over
+      the writing area draws nothing.
+  R2. (owner, same date; "I want it to be possible as well to write with keyboard") Typing always works, also in ink
+      mode: clicking or tapping the next empty line and typing creates a text item in the same list (mixing is allowed,
+      Q5).
+  R3. (owner, same date) Reordering: each line has a grip handle at its edge; mouse, finger or pen on the handle moves
+      the item; the pen anywhere else on the line writes. Today's long press keeps working for mouse and finger exactly
+      as now (tasklists-items.feature), so the pen's writing never competes with moving.
+  R4. (owner, same date) The larger ruled dialog stays for iPad-sized screens and desktops that report pen support
+      (A6, unchanged). On a desktop without a pen nothing changes: the dialog keeps its size, and typing and the mouse
+      work as before.
   A6. "Large device" = a viewport as wide as an iPad (768 px or more) or a desktop that reports pen support.
   Q1. Undo: an undo button next to the mode switch undoes the last stroke while the dialog is open; Apple Pencil double
       tap = undo as well, best effort where the device passes it to the browser.
@@ -116,7 +130,7 @@ Feature: Labs: handwritten lists
       When I delete the item number 2
       Then the task list "Groceries" shows the done count "0/2"
 
-  Rule: Pen and mouse draw, a finger and a resting palm do not (a finger draws only with the setting "Draw with finger")
+  Rule: Only a pen draws, the mouse never does, a finger and a resting palm do not (a finger draws only with the setting "Draw with finger"; decision R1)
 
     Background:
       Given the Labs switch "Handwritten lists" is on
@@ -128,9 +142,11 @@ Feature: Labs: handwritten lists
       Then the stroke is drawn on the line, thicker where I pressed harder
 
     @desktop @backlog
-    Scenario: The mouse draws on a desktop
-      When I draw a stroke with the mouse
-      Then the stroke is drawn on the line
+    Scenario: The mouse never draws, it clicks, selects and drags
+      When I drag with the mouse over the writing area
+      Then nothing is drawn
+      When I click the ink item number 1 with the mouse
+      Then the item number 1 is ticked
 
     @mobile @backlog
     Scenario: A finger scrolls the list instead of drawing when "Draw with finger" is off
@@ -167,10 +183,12 @@ Feature: Labs: handwritten lists
       Then the dialog shows ruled lines to write on
 
     @desktop @backlog
-    Scenario: A desktop without pen support keeps the dialog as it is
+    Scenario: A desktop without pen support keeps the dialog as it is (decision R4)
       Given the device reports no pen support
       When I open the new task list form
       Then the dialog is as large as without the feature
+      And the dialog shows no ruled lines to write on
+      And typing in the item field works as without the feature
       And the new list form shows the writing mode switch with the pen icon
 
     @mobile @backlog
@@ -415,6 +433,48 @@ Feature: Labs: handwritten lists
       Then the expanded task list has 2 items
       And the item number 1 is an ink item
       And the item number 2 is a text item
+
+  Rule: Typing always works, also in ink mode (decision R2)
+
+    @backlog
+    Scenario: Clicking the next empty line and typing creates a text item in the same list
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And I expand the task list "Groceries"
+      And the writing mode is "ink"
+      When I click the next empty line and type "Bread"
+      Then the expanded task list has 3 items
+      And the item number 1 is an ink item
+      And the item number 3 is a text item
+
+  Rule: Each line has a grip handle; the pen on the handle moves the item, the pen elsewhere writes (decision R3)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs, Bread"
+      And I expand the task list "Groceries"
+
+    @backlog
+    Scenario: The pen on the handle moves an ink item
+      When I drag the grip handle of the item number 3 above the item number 1 with the pen
+      Then the ink items are in the order "Bread, Milk, Eggs"
+      And nothing is drawn
+
+    @backlog
+    Scenario: The pen elsewhere on the line writes
+      When I draw a stroke with the pen on the ink item number 2
+      Then the ink item number 2 has one more stroke
+      And the ink items are in the order "Milk, Eggs, Bread"
+
+    @desktop @backlog
+    Scenario: A long press with the mouse still moves an item
+      When I long-press the item number 3 with the mouse and drag it above the item number 1
+      Then the ink items are in the order "Bread, Milk, Eggs"
+
+    @mobile @backlog
+    Scenario: A long press with a finger still moves an item
+      When I long-press the item number 3 with a finger and drag it above the item number 1
+      Then the ink items are in the order "Bread, Milk, Eggs"
 
   Rule: The pen on an ink item keeps writing on that line (decision Q6)
 

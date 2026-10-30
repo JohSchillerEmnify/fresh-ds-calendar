@@ -3173,7 +3173,14 @@ the item writing area offers no writing mode switch
 I write an ink item with the pen
 I write an ink item on the note {string} with the pen
 I draw a stroke with the pen
-I draw a stroke with the mouse
+I drag with the mouse over the writing area
+I click the ink item number {int} with the mouse
+I click the next empty line and type {string}
+I drag the grip handle of the item number {int} above the item number {int} with the pen
+I long-press the item number {int} with the mouse and drag it above the item number {int}
+I long-press the item number {int} with a finger and drag it above the item number {int}
+the dialog shows no ruled lines to write on
+typing in the item field works as without the feature
 I swipe up on the writing area with a finger
 I rest my palm on the writing area and draw a stroke with the pen
 I tap the ink item number {int} with a finger
@@ -3273,7 +3280,7 @@ the server holds no ink for the task list {string}
 - Ink items are created through the public API with a stroke list per item (`{ strokes: [[x, y, pressure]…] }`); the
   Google description of an ink item is `☐/☑ Handwritten item` (assumption A3 of the feature).
 - "the Labs switch X is on/off": the switch `settings-labs-handwriting` in Settings > Labs (pref `labsHandwriting`).
-- Pen, mouse and finger strokes are dispatched as Pointer Events with the matching `pointerType`; "pen support" is the
+- Pen and finger strokes are dispatched as Pointer Events with the matching `pointerType`; a mouse drag (`pointerType` mouse) over the writing area must leave the ink unchanged (decision R1); the grip handle is the item's drag handle (`Drag <item> to reorder`), a pen drag on it moves the item, a pen drag elsewhere on the line draws (R3); "pen support" is the
   `maxTouchPoints`/`PointerEvent` pen capability the device reports; "palm" is a simultaneous `touch` pointer.
 - "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
   (the n-th ink item of the creating step is named by the n-th word).
