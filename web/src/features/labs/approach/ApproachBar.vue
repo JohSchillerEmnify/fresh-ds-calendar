@@ -77,7 +77,8 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
 </template>
 
 <style scoped>
-.approach { position: relative; flex: none; min-width: 0; overflow: hidden; }
+/* isolation: the bars' z-index order stays inside the track, so it never outranks pop-ups from the top bar or notices */
+.approach { position: relative; isolation: isolate; flex: none; min-width: 0; overflow: hidden; }
 .tick { position: absolute; top: 0; transform: translateX(-50%); font-size: 10px; line-height: 12px; opacity: 0.7; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
 .line { position: absolute; left: 0; right: 0; top: 21px; height: 2px; border-radius: 1px; background: color-mix(in srgb, currentColor 30%, transparent); }
 .now { position: absolute; left: 0; top: 17px; width: 10px; height: 10px; border-radius: 50%; background: var(--md-sys-color-primary); z-index: 1; }

@@ -1483,6 +1483,7 @@ the approach bar shows {string} at its end
 the approach bar is on with a window of {int} hours
 the approach bar shows {string} and {string}
 the approach bar shows its entries in {int} rows
+no bar of the approach track lies on top of the month picker
 the approach bar shows {int} entries
 on the approach bar {string} is {int} times as long as {string}
 the title of {string} is shown next to its block
@@ -1663,6 +1664,8 @@ I note the height of {string} on the runway
 - Labs switches: `settings-labs` (master), `settings-labs-view-<id>` per registry view (`clock`, `clock-rings`,
   `timeline`, `strip`, `zoom`, `horizontal`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
   `zoom`, `horizontal`, `now`). The view switcher's Labs tabs are `view-switch-<id>` with `data-experimental="true"`.
+  "no bar of the approach track lies on top of the month picker": every `approach-block` whose centre lies inside the open
+  `month-picker` box must hit-test (`elementFromPoint`) to the picker (at least one `approach-item` is shown).
   "the approach bar shows its entries in N rows": the `approach-item` chips occupy exactly N distinct vertical
   positions. "on the timeline A and B are side by side": the two `timeline-item`s overlap vertically and not
   horizontally.

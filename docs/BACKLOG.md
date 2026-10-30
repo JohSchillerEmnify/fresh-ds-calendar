@@ -8,12 +8,6 @@ Tracked here so it survives across sessions. Newest first within each section. M
   theme-scenes "The visitor flies across the top bar scene" fails on mobile: at 20 % of the flight the visitor's top edge
   is 1.8 px above the bar (`Expected >= 0, Received -1.76`). Root-cause first (header/scene layout changes since 10-26?).
 
-- **Approaching card track overlaps other items, e.g. the "signed in" and streak notices** (owner, 2026-10-30, live
-  0.23.0+8952b21, seen on the phone; maybe elsewhere too). SOME bars of the track — the ones further back — lie on top
-  of the notices (signed-in note, streak note, others). Expected: notices are always above every bar of the track,
-  readable and tappable. Likely the same stacking cause as the back-to-back title bug below. Reproducing test first,
-  then fix.
-
 - **Approaching card: back-to-back entries cover the titles of the ones before them** (owner, 2026-10-26, screenshot,
   phone, live 0.23.0+14aeaaf). Four entries in quick succession in two lanes (Bachata Sensual → HipHop, Pauke
   Retournieren → Hellbreakers): the two in front have their titles behind the bars that follow, so "Bachata Sensual"
