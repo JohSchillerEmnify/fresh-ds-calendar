@@ -2,9 +2,9 @@
  * Time zone helpers built on Intl only (no date library). All "local" values are wall-clock values in a named IANA
  * zone (default Europe/Berlin). DST-safe: offsets are looked up per instant.
  */
+import { TIME_RE } from '@calendar/shared/limits';
 
 const LOCAL_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const LOCAL_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 /** RFC 3339 date-time with mandatory offset or Z. */
 const DATETIME_RE = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d)(?:\.\d{1,9})?)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i;
 
@@ -20,7 +20,7 @@ export function isLocalDate(s: unknown): s is string {
 }
 
 export function isLocalTime(s: unknown): s is string {
-  return typeof s === 'string' && LOCAL_TIME_RE.test(s);
+  return typeof s === 'string' && TIME_RE.test(s);
 }
 
 export function isDateTime(s: unknown): s is string {

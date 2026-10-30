@@ -7,6 +7,7 @@
     ".": { "types": "./index.d.ts", "default": "./index.js" },
     "./api": { "types": "./api.d.ts" },
     "./colors": { "types": "./colors.d.ts", "default": "./colors.js" },
+    "./limits": { "types": "./limits.d.ts", "default": "./limits.js" },
     "./prefs": { "types": "./prefs.d.ts", "default": "./prefs.js" },
     "./theme.schema.json": "./theme.schema.json"
   }

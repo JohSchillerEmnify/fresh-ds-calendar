@@ -1,4 +1,5 @@
 /** Pure form model of the event dialog: defaults, duration-keeping edits, validation and API conversion. */
+import { TIME_RE, TITLE_MAX } from '@calendar/shared/limits';
 import { parseIsoDate, toIsoDate, addDays } from '@/lib/dates';
 import type { CalendarEvent, CreateBirthdayInput, CreateEventInput, Reminders, UpdateEventInput } from '@/api/types';
 import { fromWallMinutes, localToIso, wallMinutes } from './zone';
@@ -36,8 +37,6 @@ const msg = {
   locLong: () => t('calendar.event.validation.locationLong'),
   tooLong: () => t('calendar.event.validation.tooLong'),
 };
-
-const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** New event: start at `time` (default 09:00) on `date`, `minutes` long (default one hour; a drawn block gives its own). */
 export function newForm(date: string, time: string | null, calendarId: string, colorId: string | null, minutes = 60): EventForm {
@@ -85,7 +84,7 @@ export function withStart(f: EventForm, startDate: string, startTime: string): E
     next.endDate = fromWallMinutes(wallMinutes(f.endDate, '00:00') + delta).date;
     return next;
   }
-  if (!validDate(f.startDate) || !validDate(startDate) || !validDate(f.endDate) || !TIME.test(f.startTime) || !TIME.test(startTime) || !TIME.test(f.endTime)) return next;
+  if (!validDate(f.startDate) || !validDate(startDate) || !validDate(f.endDate) || !TIME_RE.test(f.startTime) || !TIME_RE.test(startTime) || !TIME_RE.test(f.endTime)) return next;
   const delta = wallMinutes(startDate, startTime) - wallMinutes(f.startDate, f.startTime);
   const e = fromWallMinutes(wallMinutes(f.endDate, f.endTime) + delta);
   next.endDate = e.date;
@@ -97,12 +96,12 @@ export function withStart(f: EventForm, startDate: string, startTime: string): E
 export function validate(f: EventForm): { field: string; message: string } | null {
   const title = f.title.trim();
   if (!title) return { field: 'title', message: msg.titleRequired() };
-  if (title.length > 200) return { field: 'title', message: msg.titleLong() };
+  if (title.length > TITLE_MAX) return { field: 'title', message: msg.titleLong() };
   if (!validDate(f.startDate)) return { field: 'startDate', message: msg.date() };
   if (!validDate(f.endDate)) return { field: 'endDate', message: msg.date() };
   if (!f.allDay) {
-    if (!TIME.test(f.startTime)) return { field: 'startTime', message: msg.time() };
-    if (!TIME.test(f.endTime)) return { field: 'endTime', message: msg.time() };
+    if (!TIME_RE.test(f.startTime)) return { field: 'startTime', message: msg.time() };
+    if (!TIME_RE.test(f.endTime)) return { field: 'endTime', message: msg.time() };
   }
   const s = f.allDay ? wallMinutes(f.startDate, '00:00') : wallMinutes(f.startDate, f.startTime);
   const e = f.allDay ? wallMinutes(f.endDate, '00:00') : wallMinutes(f.endDate, f.endTime);
@@ -160,7 +159,7 @@ export function diffInput(next: CreateEventInput, ev: CalendarEvent): Partial<Cr
 export function validateBirthday(f: EventForm): { field: string; message: string } | null {
   const title = f.title.trim();
   if (!title) return { field: 'title', message: msg.titleRequired() };
-  if (title.length > 200) return { field: 'title', message: msg.titleLong() };
+  if (title.length > TITLE_MAX) return { field: 'title', message: msg.titleLong() };
   if (!validDate(f.startDate)) return { field: 'startDate', message: msg.date() };
   return null;
 }

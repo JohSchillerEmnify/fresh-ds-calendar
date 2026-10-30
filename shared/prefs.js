@@ -1,6 +1,6 @@
 /** The per-person preferences (`GET/PATCH /api/prefs`) as one table of defaults and validation that server and web derive from; adding one is an entry here plus its line in `prefs.d.ts`. */
 
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+import { TIME_RE } from './limits.js';
 
 /** The languages the app is translated into (`en` is the default; the two `de-x-*` ones are fun dialects). */
 export const LANGUAGE_VALUES = ['en', 'de', 'de-x-mainfr', 'de-x-coldmirror'];
