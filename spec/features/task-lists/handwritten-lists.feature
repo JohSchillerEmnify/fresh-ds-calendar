@@ -37,6 +37,8 @@ Feature: Labs: handwritten lists
       (A6, unchanged). On a desktop without a pen nothing changes: the dialog keeps its size, and typing and the mouse
       work as before.
   A6. "Large device" = a viewport as wide as an iPad (768 px or more) or a desktop that reports pen support.
+  M3. Cards with ink (owner, 2026-10-30): the text lines of such a card grow to the ink line height (about 24 px), so
+      text and ink sit evenly. R1–R4 scenarios approved by the owner, incl. a mouse click on an ink item ticks it.
   M2. In ink mode on a tablet or desktop the opened list (popover) is wider, so a line is long enough to write on
       (owner, mockup); text, row height, tap targets and controls stay as today. The phone sheet stays as it is.
   T1. Android tablets count like iPads (owner, 2026-10-30): an Android tablet with a stylus (e.g. S Pen), in the Android
