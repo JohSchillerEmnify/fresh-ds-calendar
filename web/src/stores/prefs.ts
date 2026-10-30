@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, type Ref } from 'vue';
-import { defaultPrefs, mergePref, PREF_KEYS } from '@calendar/shared/prefs';
+import { defaultPrefs, mergePref, PREFS, PREF_KEYS } from '@calendar/shared/prefs';
 import { api } from '@/api/client';
 import { useDeviceStore } from './device';
 import { cachedLanguagePref } from '@/i18n';
@@ -16,6 +16,8 @@ export const usePrefsStore = defineStore('prefs', () => {
   function apply(p: Partial<Prefs>): void {
     for (const k of PREF_KEYS) {
       if (p[k] == null) continue;
+      // a value this client does not know (a newer server) keeps the current one instead of breaking the app
+      if (!('value' in PREFS[k].parse(p[k], k))) continue;
       (prefs[k] as Ref<unknown>).value = mergePref(k, prefs[k].value, p[k]);
     }
   }

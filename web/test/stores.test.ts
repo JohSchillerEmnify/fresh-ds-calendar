@@ -616,3 +616,15 @@ describe('deleted items', () => {
     });
   });
 });
+
+describe('prefs store with values from a newer server', () => {
+  beforeEach(() => freshPinia());
+  it('keeps the current value for an unknown one instead of taking it', () => {
+    const p = usePrefsStore();
+    p.fromDevice({ navPhone: 'floating' as never, bottomBarSize: 'huge' as never, headerLayout: 'three-rows' as never, streak: 'flame' });
+    expect(p.navPhone).toBe('bottom');
+    expect(p.bottomBarSize).toBe('auto');
+    expect(p.headerLayout).toBe('auto');
+    expect(p.streak).toBe('flame');
+  });
+});

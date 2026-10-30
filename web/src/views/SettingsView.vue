@@ -12,9 +12,9 @@ import { IconArrowBack as IconBack, IconKeyboardArrowUp as IconUp, IconKeyboardA
 import { api, ApiError } from '@/api/client';
 import { EVENT_COLOR_OPTIONS } from '@/api/colors';
 import { NAV_POSITIONS } from '@/lib/navPosition';
-import { resolveBarSize, topBarSizeOf } from '@/composables/useBarSize';
+import { bottomBarSizeOf, topBarSizeOf } from '@/composables/useBarSize';
 import { isPhone } from '@/composables/useViewport';
-import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
+import type { AnimationLevel, ApproachWindowHours, BedtimeMode, DaySideBySide, MinEventMinutes, WeekSideBySide, BedtimePrefs, Category, NotifyPrefs, Motivation, NavPosition, NavPhonePosition, Prefs, StreakChoice, SunflowersMode, SupportCatSetting, TaskOpen, UndatedDone, ViewName } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import Select from '@/components/m3/Select.vue';
@@ -170,7 +170,7 @@ const reminderOptions = computed(() => withCurrent([0, 5, 10, 15, 30, 45, 60], b
 const barSizes = computed(() => (['expressive', 'compact'] as const).map((v) => ({ value: v, label: t(`settings.calendar.barSize.${v}`), testid: `settings-bar-size-${v}` })));
 /** The size choice as shown: `auto` shows what it resolves to on this screen. */
 const topBarSize = computed(() => topBarSizeOf(labs.headerLayout, isPhone.value));
-const bottomBarSize = computed(() => resolveBarSize(labs.bottomBarSize, isPhone.value));
+const bottomBarSize = computed(() => bottomBarSizeOf(labs.bottomBarSize, isPhone.value));
 const streakOptions = computed(() => (['off', 'flame', 'plant'] as const).map((v) => ({ value: v, label: t(`settings.motivation.streak.${v}`) })));
 const supportCats = computed(() => [{ value: 'off', label: t('common.off') }, { value: 'sometimes', label: t('settings.motivation.supportSometimes') }, { value: 'always', label: t('settings.motivation.supportAlways') }]);
 
@@ -268,8 +268,8 @@ async function resetDemo() {
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.syncIndicator.label') }}</span><span class="sub">{{ t('settings.calendar.syncIndicator.hint') }}</span></div><Switch :model-value="labs.syncIndicator" :label="t('settings.calendar.syncIndicator.label')" data-testid="settings-sync-indicator" @update:model-value="savePrefs({ syncIndicator: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.calendar.tasksCalendar.label') }}</span><span class="sub">{{ t('settings.calendar.tasksCalendar.hint') }}</span></div><Switch :model-value="labs.tasksCalendarVisible" :label="t('settings.calendar.tasksCalendar.label')" data-testid="settings-tasks-calendar-visible" @update:model-value="savePrefs({ tasksCalendarVisible: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.leftHanded.label') }}</span><span class="sub">{{ t('settings.leftHanded.hint') }}</span></div><Switch :model-value="labs.leftHanded" :label="t('settings.leftHanded.label')" data-testid="settings-left-handed" @update:model-value="savePrefs({ leftHanded: $event })" /></div>
-          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><SegmentedButton :model-value="labs.navPhone" :options="navOptions('phone')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.phone')}`" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPosition })" /></div>
-          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.desktop') }}</span><SegmentedButton :model-value="labs.navDesktop" :options="navOptions('desktop')" :label="`${t('settings.navPosition.label')} · ${t('settings.navPosition.desktop')}`" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.phone') }}</span><span class="sub">{{ t('settings.navPosition.hint') }}</span><Select :model-value="labs.navPhone" :options="navOptions('phone')" :label="t('settings.navPosition.phone')" data-testid="settings-nav-phone" @update:model-value="savePrefs({ navPhone: $event as NavPhonePosition })" /></div>
+          <div class="row col"><span class="lab">{{ t('settings.navPosition.label') }} · {{ t('settings.navPosition.desktop') }}</span><Select :model-value="labs.navDesktop" :options="navOptions('desktop')" :label="t('settings.navPosition.desktop')" data-testid="settings-nav-desktop" @update:model-value="savePrefs({ navDesktop: $event as NavPosition })" /></div>
         </section>
 
         <section id="s-tasklists" class="card" data-testid="settings-section" data-section="tasklists" aria-labelledby="h-cats">
