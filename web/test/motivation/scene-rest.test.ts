@@ -112,6 +112,21 @@ describe('seasonal scenes rest after ten seconds', () => {
     enableTimerCounting(false);
   });
 
+  it('with no scene no timer runs, and choosing a scene starts the ten seconds', async () => {
+    enableTimerCounting();
+    scene.value = 'none';
+    const before = window.__appTimers ?? 0;
+    const w = mount(Shell);
+    expect(window.__appTimers).toBe(before);
+    expect(html()).toBe('still');
+    scene.value = 'halloween';
+    await nextTick();
+    expect(window.__appTimers).toBe(before + 1);
+    expect(html()).toBe('moving');
+    w.unmount();
+    enableTimerCounting(false);
+  });
+
   it('at Reduced no timer runs, not even after a hidden/visible round trip', async () => {
     enableTimerCounting();
     setAnimationSetting('reduced');
