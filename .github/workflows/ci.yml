@@ -25,7 +25,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # tsc + unit + i18n + steps + dedup + lint
+      # tsc + unit + i18n + steps + quality gates (arch, dedup, types, lint, comments, knip)
       - run: pnpm verify
       # Advisory only: a dev/transitive advisory must not fail CI.
       - run: pnpm audit --prod

@@ -5,6 +5,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
 import sonarjs from 'eslint-plugin-sonarjs';
+import commentStyle from './scripts/quality/comment-style.mjs';
 
 export default tseslint.config(
   {
@@ -43,6 +44,16 @@ export default tseslint.config(
       'no-control-regex': 'warn',
       'vue/multi-word-component-names': 'off', // m3 primitives (Button, Chip, ...) are deliberately single-word
       'no-undef': 'off', // TypeScript already checks undefined identifiers (tsc runs in verify)
+    },
+  },
+  {
+    // Size and comment gates for source code only; today's offenders are ratcheted by `pnpm quality` (scripts/quality.mjs).
+    files: ['web/src/**/*.{ts,vue}', 'server/src/**/*.ts', 'shared/**/*.{js,ts}'],
+    plugins: { local: { rules: { 'comment-style': commentStyle } } },
+    rules: {
+      'max-lines': ['warn', { max: 400, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],
+      'local/comment-style': 'warn',
     },
   },
 );

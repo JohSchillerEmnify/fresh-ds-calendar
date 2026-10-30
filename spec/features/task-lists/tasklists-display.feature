@@ -2,7 +2,7 @@
 Feature: Task lists in the calendar views
   A task list is placed on a date, optionally at a time. Collapsed it shows its title,
   its open item titles, as many as there is room for (no fixed limit; untimed lists show them all), and a
-  done count like "1/3". A timed task list's place in the time
+  done count like "1/3" with a progress ring (a list with just one item shows neither, nor the thin progress bar, open or ticked; its opened list keeps count and ring). A timed task list's place in the time
   grid tells its time; a short block does not repeat it as text.
   On phones, the month view shows only compact chips; tapping the day opens the day view.
   A timed task list in the grid shows its items next to the title only where the column is wide enough;
@@ -62,6 +62,88 @@ Feature: Task lists in the calendar views
       | week | 2026-10-12 |
       | day  | 2026-10-15 |
 
+  # Owner 2026-10-30: one tick item needs neither "1/1" nor the circle, open or ticked, everywhere the list is drawn collapsed.
+  Scenario Outline: A task list with one open item shows no count and no progress ring
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done |
+      | Tickets | no   |
+    When I open the <view> view for <period>
+    Then I see the task list "Bahn" on 2026-10-14
+    And the task list "Bahn" shows no done count
+    And the task list "Bahn" shows no progress ring
+
+    Examples:
+      | view  | period     |
+      | month | 2026-10    |
+      | week  | 2026-10-12 |
+      | day   | 2026-10-14 |
+
+  Scenario Outline: A ticked task list with one item stays struck through and shows no count and no progress ring
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done |
+      | Tickets | yes  |
+    When I open the <view> view for <period>
+    Then the title of the task list "Bahn" is struck through
+    And the task list "Bahn" shows no done count
+    And the task list "Bahn" shows no progress ring
+
+    Examples:
+      | view  | period     |
+      | month | 2026-10    |
+      | week  | 2026-10-12 |
+      | day   | 2026-10-14 |
+
+  Scenario Outline: A task list with one item shows no thin progress bar
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done   |
+      | Tickets | <done> |
+    When I open the <view> view for <period>
+    Then I see the task list "Bahn" on 2026-10-14
+    And the task list "Bahn" shows no progress bar
+
+    Examples:
+      | done | view  | period     |
+      | no   | month | 2026-10    |
+      | yes  | month | 2026-10    |
+      | no   | week  | 2026-10-12 |
+      | yes  | day   | 2026-10-14 |
+
+  # Owner 2026-10-30: a screen reader needs only "done" or "not done" for one item, not "1 of 1".
+  Scenario Outline: A task list with one item is announced as done or not done
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done   |
+      | Tickets | <done> |
+    When I open the day view for 2026-10-14
+    Then the task list "Bahn" is announced as "<label>"
+
+    Examples:
+      | done | label          |
+      | no   | Bahn, not done |
+      | yes  | Bahn, done     |
+
+  Scenario: A task list with two items still shows its done count and progress ring
+    When I open the day view for 2026-10-14
+    Then the task list "Groceries" shows the done count "1/3"
+    And the task list "Groceries" shows the progress ring
+    And the task list "Groceries" shows the progress bar
+
+  Scenario: A task list with several items is announced with its count
+    Given the calendar contains a task list "Packing" on 2026-10-14 with items:
+      | item     | done |
+      | Passport | yes  |
+      | Tickets  | no   |
+    When I open the day view for 2026-10-14
+    Then the task list "Packing" is announced as "Packing, 1 of 2 done"
+
+  Scenario: The opened list of a one-item task list keeps its count and progress ring
+    Given the calendar contains a task list "Bahn" on 2026-10-14 with items:
+      | item    | done |
+      | Tickets | no   |
+    When I open the day view for 2026-10-14
+    And I expand the task list "Bahn"
+    Then the task list "Bahn" shows the done count "0/1"
+    And the progress ring of the task list "Bahn" shows 0 percent
+
   @mobile @week
   Scenario: A short timed task list in a narrow week column shows its items below the title
     Given the calendar contains a task list "Einkaufen" on 2026-10-14 at 14:45 for 45 minutes with items:
@@ -79,7 +161,7 @@ Feature: Task lists in the calendar views
       | Ask about Sunday | no   |
     When I open the week view for 2026-10-12
     Then the task list "Call mum" shows the item "Ask about Sunday" below its title
-    And the task list "Call mum" shows the done count "0/1"
+    And the task list "Call mum" shows no done count
 
   @day
   Scenario: A done timed task list in the day view shows its title without overlap

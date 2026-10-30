@@ -8,7 +8,7 @@ Node >= 24.11 and pnpm (see `packageManager` in `package.json`).
 
 ```sh
 pnpm install
-pnpm verify    # tsc, unit tests, i18n, step contract, duplication, lint
+pnpm verify    # tsc, unit tests, i18n, step contract, quality gates
 ```
 
 `pnpm verify` and the CI gates (`.github/workflows/ci.yml`, CodeQL) must pass before merge.
@@ -37,6 +37,8 @@ Terse output on purpose (one line on success, only failures otherwise); every co
 - New overlays, dialogs and sheets use the shared `AdaptiveSheet`; do not hand-roll a new one.
 - New user preferences are registered in one place only; extend the existing mechanism instead of adding parallel settings code.
 - Run `pnpm dedup` (jscpd) and do not add duplication; prefer extending an existing helper.
+- **Quality gates** (`pnpm quality`, part of `pnpm verify` and CI): dependency-cruiser (layers routes -> services -> stores/providers, no web/server imports except via `shared/`, features only through their `index.ts`, no cycles, no orphans), jscpd duplication, exported type/const names declared in both web and server, ESLint file/function size and complexity plus all warnings, comment style (blocks over 3 lines, dates, owner quotes) and knip (unused files, exports, dependencies).
+- **Ratchet:** `quality-baseline.json` holds today's numbers; any increase fails, decreases pass. After you lower a number, run `pnpm quality:ratchet` and commit the new baseline (it refuses to raise anything). A justified increase needs `pnpm quality:ratchet --allow-increase "<reason>"`; the reason is recorded in the file.
 - Add or update i18n strings for every locale (`pnpm i18n:check`).
 
 ## Commits and PRs

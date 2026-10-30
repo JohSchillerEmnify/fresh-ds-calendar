@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from '@/features/tasklists/categories';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
+import { showProgress } from '@/features/tasklists';
 import { t } from '@/i18n';
 
 const props = defineProps<ItemRendererProps>();
@@ -48,7 +49,7 @@ const timeText = computed(() => {
     <span class="head">
       <span v-if="icon" class="icon" data-testid="tasklist-card-icon">{{ icon }}</span>
       <span v-if="displayTitle(it)" class="title" data-testid="tasklist-card-title">{{ displayTitle(it) }}</span>
-      <span class="count" data-testid="tasklist-card-count">{{ it.doneCount }}/{{ it.totalCount }}</span>
+      <span v-if="showProgress(it)" class="count" data-testid="tasklist-card-count">{{ it.doneCount }}/{{ it.totalCount }}</span>
     </span>
     <span v-if="variant === 'block'" class="items" data-testid="tasklist-card-items">{{ items }}</span>
     <span v-if="variant === 'block' && it.time" class="time" data-testid="tasklist-card-time">{{ it.time }}</span>

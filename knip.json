@@ -1,0 +1,31 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreWorkspaces": [
+    "e2e"
+  ],
+  "ignoreDependencies": [
+    "dependency-cruiser"
+  ],
+  "ignoreBinaries": [
+    "bddgen",
+    "playwright"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/*.mjs"
+      ],
+      "ignore": [
+        "docs/architecture/likec4.config.mjs",
+        "android/**"
+      ]
+    },
+    "web": {
+      "entry": [
+        "goldens/*.ts",
+        "vitest.goldens.config.ts",
+        "scripts/*.{mjs,ts}"
+      ]
+    }
+  }
+}

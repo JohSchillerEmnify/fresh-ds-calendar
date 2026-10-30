@@ -22,6 +22,8 @@ export const firstOpenItem = (tl: TaskList) => tl.items.find((i) => !i.done) ?? 
 
 /** All items ticked (an empty list is not "done"). */
 export const isComplete = (tl: Pick<TaskList, 'totalCount' | 'doneCount'>): boolean => tl.totalCount > 0 && tl.doneCount >= tl.totalCount;
+/** The count and ring are only worth showing for more than one item (a single tick item is its own progress). */
+export const showProgress = (tl: Pick<TaskList, 'totalCount'>): boolean => tl.totalCount !== 1;
 /** Class for one item name in the card: struck through when ticked. */
 export const itemClass = (done: boolean): string => (done ? 'it done' : 'it');
 

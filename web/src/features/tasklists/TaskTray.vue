@@ -13,6 +13,7 @@ import { isPhone } from '@/composables/useViewport';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle, neutralName } from '@/lib/items';
+import { showProgress } from './format';
 import { useUiStore } from '@/stores/ui';
 import { compareOpen, useTaskListsStore } from './store';
 import { useTaskCategories } from './categories';
@@ -111,7 +112,7 @@ function toggleFold(id: string) {
       >
         <div v-if="r.fin" class="head">
           <span v-if="displayTitle(r.list)" class="t" data-testid="task-tray-title">{{ displayTitle(r.list) }}</span>
-          <span class="c">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
+          <span v-if="showProgress(r.list)" class="c" data-testid="task-tray-row-count">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
           <button
             v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
             :aria-label="unfolded.has(r.list.id) ? t('tasks.tray.fold', { title: neutralName(r.list) }) : t('tasks.tray.showItems', { title: neutralName(r.list) })" @click="toggleFold(r.list.id)"

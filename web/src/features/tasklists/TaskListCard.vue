@@ -30,7 +30,7 @@ import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useTaskCategories } from './categories';
 import { useUiStore } from '@/stores/ui';
-import { carriedLabel, checkState, formatEstimate, isComplete, itemClass } from './format';
+import { carriedLabel, checkState, formatEstimate, isComplete, itemClass, showProgress } from './format';
 import { cardLayout } from './layout';
 import { sectionKey } from './section';
 import StrikeLine from './StrikeLine.vue';
@@ -94,11 +94,18 @@ const calm = computed(() => settings.settings.calmMode);
 const prefs = usePrefsStore();
 /** Carried over to today and labelled so (Settings → Task lists can hide where it came from). */
 const carried = computed(() => !!props.segment.carriedFrom && prefs.showCarriedFrom);
+const progress = computed(() => showProgress(tl.value));
 const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const title = computed(() => displayTitle(tl.value));
-const label = computed(() => t(title.value ? 'tasks.card.label' : 'tasks.card.labelUntitled', { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount }));
+const label = computed(() => {
+  const titled = !!title.value;
+  const params = { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount };
+  // one item is just done or not done: the count and ring are dropped for it too
+  if (!progress.value) return complete.value ? t(titled ? 'tasks.card.labelDone' : 'tasks.card.labelUntitledDone', params) : t(titled ? 'tasks.card.labelOpen' : 'tasks.card.labelUntitledOpen', params);
+  return t(titled ? 'tasks.card.label' : 'tasks.card.labelUntitled', params);
+});
 /** Narrow cards (phone month, phone week columns) switch to 9 px mini rows. Unmeasured (0) counts as roomy. */
 const mini = computed(() => width.value > 0 && width.value < MINI_BELOW_PX);
 /** Overview shows open items only (ticked ones live in the expanded view), as many as there is room for: no fixed limit. */
@@ -145,11 +152,11 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
       <span class="meta">
-        <span :key="tl.doneCount" class="count" data-testid="tasklist-card-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
-        <ProgressRing class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
+        <span v-if="progress" :key="tl.doneCount" class="count" data-testid="tasklist-card-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
+        <ProgressRing v-if="progress" class="ring" :done="tl.doneCount" :total="tl.totalCount" :size="variant === 'block' || variant === 'allday' ? 18 : 12" :stroke="variant === 'chip' ? 2.2 : 2.8" />
       </span>
     </span>
-    <span class="pbar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
+    <span v-if="progress" class="pbar" data-testid="tasklist-card-bar" aria-hidden="true" :style="{ '--p': pct + '%' }" />
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm">

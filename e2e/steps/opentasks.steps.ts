@@ -95,6 +95,12 @@ Then('the task list {string} in the open tasks tray is struck through and shows 
   await expect(row.getByTestId('task-tray-title')).toHaveCSS('text-decoration-line', 'line-through');
 });
 
+Then('the task list {string} in the open tasks tray shows no done count', async function (this: World, title: string) {
+  await openTray(this);
+  await expect(trayRow(this, title)).toBeVisible();
+  await expect(trayRow(this, title).getByTestId('task-tray-row-count')).toHaveCount(0);
+});
+
 When('I unfold the task list {string} in the open tasks tray', async function (this: World, title: string) {
   await openTray(this);
   await trayRow(this, title).getByTestId('task-tray-unfold').click();

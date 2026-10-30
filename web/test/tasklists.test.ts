@@ -115,6 +115,23 @@ describe('collapsed card', () => {
     await flushPromises();
     expect(document.querySelector(tid('tasklist-expanded-title'))).toBeNull();
   });
+  it('a one-item list has no thin bar and is announced as done / not done; two items keep bar and count wording', async () => {
+    const { pinia } = await setup();
+    const card = (o: Parameters<typeof tl>[1]) => mountIn(TaskListCard, { segment: seg(tl('Bahn', o)), variant: 'chip' }, pinia);
+    const open = card({ done: [false] });
+    expect(open.find(tid('tasklist-card-bar')).exists()).toBe(false);
+    expect(open.get(tid('tasklist-card')).attributes('aria-label')).toBe('Bahn, not done');
+    open.unmount();
+    const done = card({ done: [true] });
+    expect(done.get(tid('tasklist-card')).attributes('aria-label')).toBe('Bahn, done');
+    done.unmount();
+    const untitled = card({ done: [false], title: '' });
+    expect(untitled.get(tid('tasklist-card')).attributes('aria-label')).toBe('Task list, not done');
+    untitled.unmount();
+    const two = card({ done: [true, false] });
+    expect(two.find(tid('tasklist-card-bar')).exists()).toBe(true);
+    expect(two.get(tid('tasklist-card')).attributes('aria-label')).toBe('Bahn, 1 of 2 done');
+  });
   it('says "No items" for an empty list and exposes the root element for drag and drop', async () => {
     const { pinia } = await setup();
     const w = mountIn(TaskListCard, { segment: seg(tl('Ideas', { done: [] })), variant: 'chip' }, pinia);

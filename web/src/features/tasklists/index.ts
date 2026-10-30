@@ -9,6 +9,7 @@ import { useTemplatesStore } from './templatesStore';
 
 export { useTaskListsStore } from './store';
 export { default as TaskListCard } from './TaskListCard.vue';
+export { showProgress } from './format';
 
 const Tray = defineAsyncComponent(() => import('./TaskTray.vue'));
 
