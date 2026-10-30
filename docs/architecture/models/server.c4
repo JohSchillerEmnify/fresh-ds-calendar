@@ -93,7 +93,64 @@ model {
       description 'Each browser\'s push subscription and its reminder plan of the next 7 days'
     }
 
+    motivation = component 'Motivation' {
+      description 'Points, streak and plant state per person; every change bumps the X-Motivation-Changed header'
+    }
+    placeCodec = library 'Place codec' {
+      description 'Maps an event\'s place to and from private Google event properties'
+    }
+    birthdayRules = library 'Birthday rules' {
+      description 'Yearly birthday rule (29 Feb included), validation and whether the date is locked'
+    }
+    ownership = library 'Ownership rules' {
+      description 'Why an event or calendar is look-only: an invitation or someone else\'s calendar'
+    }
+    calendarsApi = component 'Calendars API' {
+      description 'Lists the person\'s calendars and sets one hidden or shown'
+    }
+    pushApi = component 'Push API' {
+      description 'Serves the VAPID public key, takes subscriptions and the reminder plan'
+    }
+    backupApi = component 'Backup API' {
+      description 'Lists, creates and restores Drive backups on request'
+    }
+    backupCollectors = component 'Backup collectors' {
+      description 'Add the server-wide files to a backup, keeping only the person\'s own entries'
+    }
+    driveClient = component 'Drive client' {
+      description 'The Drive interface with a Google and a mock implementation'
+    }
+    peopleStore = store 'People store' {
+      description 'The person records on disk'
+    }
+    secretBox = library 'Secret box' {
+      description 'AES-256-GCM seal and open with TOKEN_ENC_KEY (ADR 0026)'
+    }
+    securityHeaders = component 'Security headers' {
+      description 'The CSP, which allows only the Photon and tile origins, and the other security headers'
+    }
+    apkDownload = component 'APK download' {
+      description 'Serves the Android app and its version, sha256 and certificate fingerprint'
+    }
+
     prefsApi -> prefsStore 'reads and writes'
+    calendarService -> placeCodec 'keeps an event\'s place with'
+    calendarService -> birthdayRules 'applies to birthdays'
+    calendarService -> ownership 'marks look-only events and calendars with'
+    calendarsApi -> calendarService 'lists the calendars through'
+    calendarsApi -> prefsStore 'reads and saves the hidden flag in'
+    pushApi -> webPush 'stores the subscription and the reminder plan in'
+    backupApi -> backup 'creates and restores on request'
+    backupCollectors -> backup 'registers the server-wide files with'
+    backupCollectors -> peopleStore 'collects and restores'
+    backupCollectors -> motivation 'collects and restores'
+    backupCollectors -> settingsApi 'collects and restores the settings'
+    backup -> driveClient 'uploads and reads versions through'
+    driveClient -> google 'talks to Drive, or to a mock on disk'
+    auth -> peopleStore 'looks up the allowed people in'
+    auth -> secretBox 'seals each person\'s Google refresh token with'
+    securityHeaders -> photon 'allows the origin in the CSP'
+    securityHeaders -> osmTiles 'allows the origin in the CSP'
     itemsApi -> calendarService 'reads the range'
     calendarService -> tasksCalendar 'keeps task lists in'
     calendarService -> taskCodec 'encodes and decodes task lists with'
@@ -157,4 +214,9 @@ model {
   calendar.web.listForm -> calendar.server.templatesApi 'reads templates to start a list from, saves a list as one'
   calendar.web.settings -> calendar.server.templatesApi 'lists, renames, changes and deletes templates'
   calendar.web.reminderPlan -> calendar.server.webPush 'sends the next 7 days\' plan, in a subscribed browser'
+  calendar.web.calendarsStore -> calendar.server.calendarsApi 'reads the calendars, saves the hidden flag'
+  calendar.web.pushClient -> calendar.server.pushApi 'sends the subscription, reads the VAPID key'
+  calendar.web.backupStore -> calendar.server.backupApi 'lists, creates and restores backups'
+  calendar.web.motivationUi -> calendar.server.motivation 'reads the state; re-reads it on X-Motivation-Changed'
+  calendar.web.apkHint -> calendar.server.apkDownload 'offers the newer app version for download'
 }

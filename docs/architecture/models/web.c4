@@ -273,4 +273,40 @@ model {
     reminderPlan -> prefs 'reads which reminders reach the lock screen'
     reminderPlan -> snackbar 'rings each reminder while the app is open'
   }
+
+  // Location, map, push, backup, motivation, calendars
+  extend calendar.web {
+    location = component 'Location and map' {
+      description 'The place search box and the event map; place suggestions and tiles come straight from Photon and OSM'
+    }
+    tileCache = component 'Map tile cache' {
+      description 'Service-worker cache of map tiles, network first, kept up to 7 days for offline use'
+    }
+    pushClient = component 'Push opt-in' {
+      description 'Subscribes the browser to Web Push with the server\'s VAPID key'
+    }
+    backupStore = store 'Backup store' {
+      description 'The backup list and the create and restore actions of the settings'
+    }
+    motivationUi = component 'Motivation' {
+      description 'The streak toast and plant card, refetched when the server says motivation changed'
+    }
+    calendarsStore = store 'Calendars store' {
+      description 'The person\'s calendars with their hidden flag'
+    }
+    apkHint = component 'APK hint' {
+      description 'Offers the newer Android app version to download, dismissible'
+    }
+
+    location -> photon 'asks for place suggestions straight from the browser'
+    location -> tileCache 'shows map tiles through, offline too'
+    location -> osmTiles 'loads map tiles straight from the browser'
+    serviceWorker -> tileCache 'answers tile requests from'
+    tileCache -> osmTiles 'fetches tiles from'
+    pushClient -> webPushServices 'subscribes the browser at'
+    reminderPlan -> pushClient 'sends the plan only in a subscribed browser'
+    settings -> backupStore 'lists, creates and restores backups'
+    settings -> calendarsStore 'hides and shows calendars'
+    updateCheck -> apkHint 'offers the app update'
+  }
 }

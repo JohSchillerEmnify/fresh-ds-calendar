@@ -70,6 +70,16 @@ model {
     description 'The browsers\' push services that deliver a Web Push to a closed browser'
   }
 
+  osmTiles = system 'OpenStreetMap tiles' {
+    #external
+    description 'The map tile server (MAP_TILE_URL) the browser loads event map pictures from'
+  }
+
+  photon = system 'Photon place search' {
+    #external
+    description 'The geocoder (PLACE_SEARCH_URL) the browser asks for place suggestions'
+  }
+
   doorBoard = system 'Door board' {
     #external
     description 'The e-ink screen inside the front door and its renderer on the home server; shows reminders before leaving'
@@ -82,5 +92,7 @@ model {
   calendar.widget -> calendar.server 'reads the week and the preferences with the app session'
   owner -> calendar.androidApp 'uses the calendar on the phone'
   owner -> aiChat 'asks for a theme with the copied prompt, pastes the answer back'
+  calendar.web -> photon 'asks for place suggestions straight from the browser'
+  calendar.web -> osmTiles 'loads map tiles straight from the browser'
   doorBoard -> calendar.server 'reads reminders and today\'s events with its key'
 }
