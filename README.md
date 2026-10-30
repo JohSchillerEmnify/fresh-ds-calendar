@@ -8,6 +8,8 @@ installable as a PWA, plus an Android shell with home-screen widgets. Self-hoste
 It syncs with Google Calendar through a provider abstraction. A mock Google backend is the default
 (`PROVIDER=mock`); real Google (`PROVIDER=google`) needs your own OAuth credentials (see `docs/DEPLOYMENT.md` "Going live with Google").
 
+> **Vibe-coded.** Most of this code was written by AI agents under one person's direction: spec- and test-driven, reviewed and audited, but not line-by-line reviewed by experienced humans. Use at your own risk.
+
 **Before you run or deploy it, read [`docs/DEVELOPER-GUIDE.md`](docs/DEVELOPER-GUIDE.md)** (disclaimers, what the admin can read, deploy steps, working with or without an AI agent).
 
 Spec-driven: `spec/features/*.feature` is the single source of truth and runs directly as the e2e suite.
