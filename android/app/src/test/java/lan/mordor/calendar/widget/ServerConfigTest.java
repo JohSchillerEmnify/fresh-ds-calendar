@@ -1,6 +1,5 @@
 package lan.mordor.calendar.widget;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -20,8 +19,8 @@ public class ServerConfigTest {
     private final Context ctx = ApplicationProvider.getApplicationContext();
 
     @Test
-    public void theServerIsThePublicInstance() {
-        assertEquals("https://cal.example.org", ServerConfig.BASE_URL);
+    public void theServerIsTheConfiguredHttpsInstance() {
+        assertTrue(ServerConfig.BASE_URL.matches("https://[^/]+"));
     }
 
     @Test

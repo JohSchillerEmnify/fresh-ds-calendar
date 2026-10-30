@@ -1,4 +1,5 @@
-cal.example.org {
+# The public host name comes from CAL_DOMAIN (compose.yml passes it from /opt/calendar/.env); never written here.
+{$CAL_DOMAIN} {
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000"

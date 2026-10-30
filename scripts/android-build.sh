@@ -10,6 +10,7 @@
 # network, read-only, nothing but apksigner, the unsigned APK and the keystore) signs it; then the APK is copied into the data dir.
 # The APK's signing certificate must be the one pinned in android/release-cert.sha256 (scripts/apk-cert.sh), else nothing is published.
 # Needs: docker, node 24 + pnpm (see README "Android app").
+# The server the app loads is not in the source: set CAL_DOMAIN (e.g. cal.example.org) or CAL_SERVER_URL (https://...).
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -37,6 +38,9 @@ if [[ ! -f "$KEY_DIR/keystore.properties" ]]; then
 fi
 
 cd "$REPO"
+CAL_SERVER_URL="${CAL_SERVER_URL:-${CAL_DOMAIN:+https://$CAL_DOMAIN}}"
+[[ -n "$CAL_SERVER_URL" ]] || { echo "set CAL_DOMAIN=cal.example.org (or CAL_SERVER_URL=https://cal.example.org): the app's server is not in the source" >&2; exit 2; }
+export CAL_SERVER_URL
 # every build gets a higher versionCode than the one before (commit count); the sidecar tells the server what it offers
 VERSION_CODE="$(git rev-list --count HEAD)"
 VERSION_NAME="1.1.$VERSION_CODE"
@@ -52,7 +56,7 @@ mkdir -p "$HOME/.cache/calendar-gradle"
 echo "==> gradle assembleRelease (unsigned, in $IMAGE, no keystore)"
 docker run --rm --name cal-apk-build --memory=4g --memory-swap=4g --cpus=3 --cpu-shares=256 \
   -u "$(id -u):$(id -g)" -e HOME=/tmp/h -e GRADLE_USER_HOME=/gradle \
-  -e VERSION_CODE -e VERSION_NAME -v "$REPO:$REPO" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
+  -e VERSION_CODE -e VERSION_NAME -e CAL_SERVER_URL -v "$REPO:$REPO" -v "$HOME/.cache/calendar-gradle:/gradle" -w "$REPO/android" "$IMAGE" \
   bash -c 'mkdir -p /tmp/h && ./gradlew --no-daemon --max-workers=3 -Dorg.gradle.jvmargs=-Xmx2g -PappVersionCode=$VERSION_CODE -PappVersionName=$VERSION_NAME assembleRelease testDebugUnitTest'
 
 OUT="$REPO/android/app/build/outputs/apk/release"
