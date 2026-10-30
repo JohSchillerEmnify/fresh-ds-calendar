@@ -121,7 +121,7 @@ const open = (s: Segment) => openItem(s.item);
 .deck { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; background: var(--md-sys-color-surface); }
 .col {
   /* bottom: room for the create button, so it never covers the Later card */
-  box-sizing: border-box; min-height: 100%; max-width: 560px; margin: 0 auto; padding: 12px 16px 88px;
+  box-sizing: border-box; min-height: 100%; max-width: 560px; margin: 0 auto; padding: 12px 16px var(--scroll-end);
   display: flex; flex-direction: column; gap: 12px;
 }
 .card {

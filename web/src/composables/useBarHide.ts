@@ -17,6 +17,22 @@ export function nextBarHidden(hidden: boolean, delta: number, run: number, top: 
   return { hidden, run: total };
 }
 
+/** The scrolling element of a scroll event's target (a Document scrolls its scrolling element), or null for anything else. */
+export function scrollerOf(target: EventTarget | null): Element | null {
+  if (target instanceof Document) return target.scrollingElement;
+  return target instanceof Element ? target : null;
+}
+
+/** Only the main view's scrollers move the bar, not a dialog, the open tasks tray or other chrome. */
+export function countsForBar(el: Element | null): boolean {
+  return !!el && !!el.closest('main, [data-scroll-area]') && !el.closest('[role="dialog"], [data-testid="task-tray"]');
+}
+
+/** The keys that scroll a view; other keys are not scrolling input. */
+export function isScrollKey(key: string): boolean {
+  return ['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '].includes(key);
+}
+
 /** Whether the bottom bar is slid away: down while the person scrolls a view down, back on the first scroll up or at the top (feature nav-expressive). */
 export function useBarHide() {
   const hidden = ref(false);
@@ -24,15 +40,18 @@ export function useBarHide() {
   let run = 0;
   let inputUntil = 0;
   let touching = false;
+  let last: Element | null = null;
   const bump = () => { inputUntil = Date.now() + INPUT_GRACE_MS; };
   const onTouchStart = () => { touching = true; };
   const onTouchEnd = () => { touching = false; bump(); };
   function onScroll(e: Event) {
-    const el = e.target;
-    if (!(el instanceof Element) || el.closest('[role="dialog"]')) return;
-    const top = el.scrollTop;
-    const before = tops.get(el) ?? top;
-    tops.set(el, top);
+    const el = scrollerOf(e.target);
+    if (!countsForBar(el) && !(el && el === document.scrollingElement)) return;
+    // a change of scroller starts a new run
+    if (el !== last) { last = el; run = 0; }
+    const top = el!.scrollTop;
+    const before = tops.get(el!) ?? top;
+    tops.set(el!, top);
     if (!touching && Date.now() > inputUntil) return;
     const next = nextBarHidden(hidden.value, top - before, run, top);
     hidden.value = next.hidden;
@@ -44,6 +63,8 @@ export function useBarHide() {
   useListener(document, 'touchstart', onTouchStart, opts);
   useListener(document, 'touchend', onTouchEnd, opts);
   useListener(document, 'touchcancel', onTouchEnd, opts);
-  useListener(document, 'keydown', bump, opts);
+  // scroll keys are scrolling input; Tab brings the bar back so a keyboard user always reaches it
+  useListener(document, 'keydown', (e) => { const key = (e as KeyboardEvent).key; if (isScrollKey(key)) bump(); else if (key === 'Tab') { hidden.value = false; run = 0; } }, opts);
+  useListener(document, 'focusin', (e) => { if ((e.target as Element | null)?.closest?.('[data-testid="bottom-bar"], [data-testid="create-button"]')) { hidden.value = false; run = 0; } }, opts);
   return { hidden, show: () => { hidden.value = false; run = 0; } };
 }

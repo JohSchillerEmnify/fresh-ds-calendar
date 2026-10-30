@@ -158,7 +158,7 @@ function toggleFold(id: string) {
 @media (max-width: 767.98px) {
   html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); }
   /* the bottom bar floats over the calendar: the tray stands clear of it (feature nav-expressive) */
-  html[data-nav-pos='bottom'] .tray.phone { margin-bottom: var(--navbar-h); }
+  html[data-nav-pos='bottom'] .tray.phone { margin-bottom: calc(var(--navbar-h) + var(--safe-bottom)); }
 }
 @media (min-width: 768px) {
   .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; transition: width 200ms var(--md-sys-motion-spring); }

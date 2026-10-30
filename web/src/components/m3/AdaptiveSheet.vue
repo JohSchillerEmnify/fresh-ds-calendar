@@ -38,7 +38,18 @@ watch(() => props.open, async (o) => {
   opener = document.activeElement as HTMLElement | null;
   await nextTick();
   panel.value?.focus({ preventScroll: true });
-  stops.push(listen(document, 'keydown', (e) => { if (e.key === 'Escape' && props.escape) emit('close'); }));
+  stops.push(listen(document, 'keydown', (e) => {
+    if (e.key === 'Escape' && props.escape) emit('close');
+    // a modal drawer keeps Tab inside itself
+    if (e.key === 'Tab' && props.side && panel.value) {
+      const items = [...panel.value.querySelectorAll<HTMLElement>('button, input, [href], [tabindex]:not([tabindex="-1"])')].filter((n) => !n.hasAttribute('disabled'));
+      if (!items.length) return;
+      const at = items.indexOf(document.activeElement as HTMLElement);
+      const next = e.shiftKey ? (at <= 0 ? items.length - 1 : at - 1) : (at === items.length - 1 ? 0 : at + 1);
+      e.preventDefault();
+      items[next].focus();
+    }
+  }));
 }, { immediate: true });
 
 onBeforeUnmount(() => { stops.forEach((s) => s()); release(); });

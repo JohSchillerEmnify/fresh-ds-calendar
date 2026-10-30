@@ -59,7 +59,7 @@ const leftHand = useLeftHand();
 const barSize = useBarSize();
 const barHide = useBarHide();
 /** The bottom bar is slid away: only while the view switcher is the bottom bar. */
-const barHidden = computed(() => barHide.hidden.value && navPosition.value === 'bottom');
+const barHidden = computed(() => barHide.hidden.value && navPosition.value === 'bottom' && isPhone.value);
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
 // the season and holiday scenes move for ten seconds after opening (and after coming back), then rest
 useSceneRest(() => settings.effectiveScene);
@@ -90,6 +90,8 @@ const filterShown = computed(() => hasShell.value && !route.meta.tasks && (ui.fi
 const dialogComp = computed(() => (ui.dialog ? dialogs[ui.dialog.kind] : undefined));
 
 /** Swipe navigation is off while a drag, picker, dialog or resize owns the screen, outside the calendar, and on views that pan sideways themselves. */
+/** Views that do not scroll (month, the fit week, the Labs views but Now) leave room for the bottom bar, which cannot slide away there. */
+const fixedView = computed(() => (cal.view === 'month' && !!route.meta.view) || (cal.view === 'week' && !!route.meta.view && labs.weekTwoRow) || (!!route.meta.lab && route.meta.lab !== 'now'));
 const swipeDisabled = () => !!route.meta.noSwipe || isGestureClaimed() || ui.pickerOpen || !!ui.dialog || !!ui.resizing || !isCalendar.value;
 let undo: Array<() => void> = [];
 onMounted(() => {
@@ -113,7 +115,7 @@ onBeforeUnmount(() => {
   clock.stopTicker();
 });
 // CSS (FAB, tray, snackbar) follows the position through one attribute on <html>
-watch(navPosition, (p) => { document.documentElement.dataset.navPos = p; }, { immediate: true });
+watch(navPosition, (p) => { document.documentElement.dataset.navPos = p; if (p !== 'drawer') ui.sideMenuOpen = false; }, { immediate: true });
 watch(barSize.bottom, (v) => { document.documentElement.dataset.barSize = v; }, { immediate: true });
 watch(barHidden, (v) => { document.documentElement.dataset.barHidden = String(v); }, { immediate: true });
 // System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
@@ -138,7 +140,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
     <div class="body" :class="{ 'edge-pad': edgePad }">
       <NavigationRail v-if="hasShell && navPosition === 'rail'" :items="items" :model-value="activeView" :phone="isPhone" :side="railSide" @update:model-value="switchTo" />
       <div class="col">
-        <SwipeCarousel :disabled="swipeDisabled">
+        <SwipeCarousel :disabled="swipeDisabled" :class="{ 'reserve-end': fixedView }">
           <template v-if="route.meta.view"><template v-for="(h, i) in calendarHeaders" :key="i"><component :is="h.component" v-if="h.shown()" /></template></template>
         </SwipeCarousel>
         <component :is="t" v-for="(t, i) in trayComponents" :key="i" />
@@ -157,6 +159,7 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
 <style scoped>
 .shell { height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: clip; } /* the app never scrolls as a whole: overlays (month picker scrim) must not extend the document */
 .body { flex: 1; min-height: 0; display: flex; }
+.reserve-end { padding-bottom: var(--bar-reserve); }
 .body.edge-pad { padding-bottom: var(--safe-bottom); }
 .col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Desktop: the open tasks tray is a right-hand side panel. */

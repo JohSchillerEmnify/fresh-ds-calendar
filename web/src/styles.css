@@ -37,6 +37,8 @@
   --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --topbar-h: 64px;
   --navbar-h: 72px; /* the floating bottom bar's height plus its 8 px gap above the safe area; 0 while it is slid away */
+  --bar-full: 72px; /* the bar's height plus gap, whether or not it is slid away */
+  --bar-reserve: 0px; /* room a view that does not scroll leaves for the bottom bar */
   --scroll-end: 96px; /* room at the end of a scrolling view so the + button never hides its last row */
   --rail-w: 80px;
   --hour-height: 44px;
@@ -45,8 +47,10 @@
   :root { --hour-height: 48px; }
 }
 /* Phone without a bottom bar (view switcher at the top or in a rail): no bar height anywhere (feature nav-position); the rail is slimmer. */
-html[data-bar-size='compact'] { --navbar-h: 60px; }
+html[data-bar-size='compact'] { --navbar-h: 60px; --bar-full: 60px; }
+html[data-nav-pos='bottom'] { --bar-reserve: calc(var(--bar-full) + var(--safe-bottom)); }
 html[data-bar-hidden='true'] { --navbar-h: 0px; }
+@media (min-width: 768px) { html[data-nav-pos='bottom'] { --bar-reserve: 0px; } } /* docked there, in the layout */
 @media (max-width: 767.98px) {
   html:not([data-nav-pos='bottom']) { --navbar-h: 0px; }
   /* the + button: above the Expressive bar (72 + 12 + 64), beside the Compact one (60) */

@@ -21,3 +21,24 @@ describe('nextBarHidden', () => {
     expect(nextBarHidden(s.hidden, -5, s.run, 195).run).toBe(-5);
   });
 });
+
+describe('scroll sources', () => {
+  it('only the main view scrollers count, not dialogs or the task tray', async () => {
+    const { countsForBar } = await import('@/composables/useBarHide');
+    document.body.innerHTML = '<main><div id="a"></div></main><aside data-testid="task-tray"><ul id="b"></ul></aside><div role="dialog"><div id="c"></div></div><div id="d"></div>';
+    expect(countsForBar(document.getElementById('a'))).toBe(true);
+    expect(countsForBar(document.getElementById('b'))).toBe(false);
+    expect(countsForBar(document.getElementById('c'))).toBe(false);
+    expect(countsForBar(document.getElementById('d'))).toBe(false);
+  });
+  it('a document scroll resolves to the page scroller', async () => {
+    const { scrollerOf } = await import('@/composables/useBarHide');
+    expect(scrollerOf(document)).toBe(document.scrollingElement);
+    expect(scrollerOf(window as unknown as EventTarget)).toBeNull();
+  });
+  it('only scroll keys count as scrolling input', async () => {
+    const { isScrollKey } = await import('@/composables/useBarHide');
+    for (const k of ['PageUp', 'PageDown', 'ArrowDown', 'ArrowUp', 'Home', 'End', ' ']) expect(isScrollKey(k)).toBe(true);
+    for (const k of ['a', 'Enter', 'Tab', 'Escape']) expect(isScrollKey(k)).toBe(false);
+  });
+});

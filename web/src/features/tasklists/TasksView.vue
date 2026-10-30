@@ -134,7 +134,7 @@ onBeforeUnmount(() => stop?.());
 .search { flex: 1 1 240px; max-width: 480px; }
 .archive { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .archive .list { max-width: 760px; margin: 0 auto; }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 12px calc(96px + var(--safe-bottom)); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 12px var(--scroll-end); }
 .group { max-width: 760px; margin: 0 auto 8px; }
 .gt { margin: 12px 4px 8px; font: var(--md-sys-typescale-title-small); color: var(--md-sys-color-on-surface-variant); }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
