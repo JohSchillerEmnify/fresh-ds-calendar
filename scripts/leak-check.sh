@@ -39,7 +39,7 @@ load_denylist() {
 run_gitleaks() {
   local common gitdir rel
   if command -v gitleaks >/dev/null 2>&1; then
-    gitleaks "$@" --config "$CONFIG" --redact --no-banner .
+    gitleaks "$@" --config "$CONFIG" --redact --no-banner . 2> >(grep -v "skipping finding links" >&2)
     return
   fi
   command -v docker >/dev/null 2>&1 || { echo "leak-check: need gitleaks or docker" >&2; return 2; }
@@ -49,7 +49,8 @@ run_gitleaks() {
   docker run --rm -v "$root:/repo:ro" -v "$common:/gitcommon:ro" \
     -e "GIT_DIR=/gitcommon$rel" -e GIT_WORK_TREE=/repo \
     -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*' \
-    "$IMAGE" "$@" --config /repo/$CONFIG --redact --no-banner /repo
+    "$IMAGE" "$@" --config /repo/$CONFIG --redact --no-banner /repo \
+    2> >(grep -v "skipping finding links" >&2)  # gitleaks cannot parse a scp-style origin (host:path) for links; harmless noise
 }
 
 # kind=diff: a patch stream ("COMMIT_MARK <sha>" separates commits; file hunks are numbered, names never printed).
