@@ -1,6 +1,6 @@
 # 0030 — Open apps hear about changes through Server-Sent Events
 
-- Status: proposed (owner decision 2026-10-30: "an event-based system where each instance subscribes to the events
+- Status: accepted (2026-10-30) (owner decision 2026-10-30: "an event-based system where each instance subscribes to the events
   from the server, and the server can publish an event on edit"); refines 0025
 - Views shaped: `web`, `syncingTheDeviceStore`, `liveSync`
 
