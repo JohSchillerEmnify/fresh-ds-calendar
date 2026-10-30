@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type {
   Calendar, CalendarEvent, CalendarItem, Category, CategoryInfo, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, Reminders, SummaryDay, TaskItem, TaskList, Person,
   UpdateEventInput, UpdateTaskListInput,
@@ -24,6 +25,7 @@ import { TasksCalendar } from './tasksCalendar.js';
 import { birthdayCreateBody, birthdayDateLocked, birthdayPatch } from './birthday.js';
 import { placeLeads, placeOf, placeProps } from './place.js';
 import { hasWriteRole, isOwnCalendar, readOnlyReason } from './ownership.js';
+import { CalendarChanges, type EventChanges, type FeedState, type TaskListChanges } from './changeFeed.js';
 import { isSharedId, SHARED_CALENDAR, SHARED_PREFIX, type SharedListDoc, type SharedListService } from './sharedLists.js';
 
 const DAY = 86_400_000;
@@ -983,6 +985,36 @@ export class CalendarService {
     return shared.rulesOf(this.sub);
   }
 
+  // ---------- changes since (ADR 0025) ----------
+  /**
+   * What changed in this person's events and task lists since `prev` (null = nothing known: everything in full), for
+   * `GET /api/changes`: Google through sync tokens, shared lists by comparing each list's version stamp with the one the
+   * device last got. `forced` names event calendars to answer in full anyway.
+   */
+  async changesSince(prev: ChangeState | null, today: string, forced: ReadonlySet<string>): Promise<{ events: EventChanges; taskLists: TaskListChanges; state: ChangeState }> {
+    const tasksId = await this.tasks.id();
+    const color = await this.calendarColor(tasksId);
+    const cats = this.settings.categories();
+    const feed = new CalendarChanges(this.provider, this.tz, {
+      eventCalendars: () => this.eventCalendars(), tasksId,
+      toEvent: (e, c) => this.toEvent(e, c.backgroundColor, c.defaultReminders), toTaskList: (e) => this.toTaskList(e, color, cats),
+    }, today);
+    const g = await feed.since(prev, forced);
+    const stamps: Record<string, string> = {};
+    const upserts: TaskList[] = [];
+    for (const l of this.sharedTaskLists(color)) {
+      const stamp = changeStamp(l);
+      stamps[l.id] = stamp;
+      if (prev?.shared[l.id] !== stamp) upserts.push(l);
+    }
+    const removed = Object.keys(prev?.shared ?? {}).filter((id) => !(id in stamps));
+    return {
+      events: g.events,
+      taskLists: { ...g.taskLists, removed: [...g.taskLists.removed, ...removed], upserts: [...g.taskLists.upserts, ...upserts] },
+      state: { ...g.state, shared: stamps },
+    };
+  }
+
   // ---------- open lists and summary ----------
   /** Open lists and lists finished today, both dated in `[today - days, today]`, in tray order (API.md). */
   async openTaskLists(today: string, days: number): Promise<{ items: TaskList[]; finishedToday: TaskList[] }> {
@@ -1065,6 +1097,12 @@ export class CalendarService {
   /** Cheap helper for tests/clients: local time label of an instant. */
   localTime(ms: number): string { return localTimeOf(ms, this.tz); }
 }
+
+/** What the cursor keeps of the calendar side: Google's tokens and the version stamp of every shared list the device holds. */
+export interface ChangeState extends FeedState { shared: Record<string, string> }
+
+/** A version stamp of a shared list as shown to this person: it also moves when a member or the owner's category look changes. */
+const changeStamp = (l: TaskList): string => createHash('sha1').update(JSON.stringify(l)).digest('base64url').slice(0, 16);
 
 /** True when an update changes nothing but the reminders. */
 const onlyReminders = (input: UpdateEventInput): boolean => {

@@ -329,6 +329,60 @@ Per person (`local` while sign-in is off); all `204` unless noted. Why: feature 
   once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription. Every send has a
   10 s timeout and each browser is served on its own, so one endpoint that never answers holds back nobody.
 
+### `GET /api/changes[?cursor=<opaque>][&today=YYYY-MM-DD]` → 200 (device sync, ADR 0025)
+
+What changed for the signed-in person since the device's cursor. Without a cursor, or with one that is not ours or is
+unreadable, everything the device keeps is answered in full (`full: true`). `today` defaults to the app clock's today.
+The cursor is opaque to the app: send back the `cursor` of the last answer you applied. It is per device (it holds the
+state of that device's last answer; two devices of one person sync independently) and is only a position, never a
+secret. Apply an answer in this order: `calendars`, then per kind the `replace` / `series` / `removed` drops, then
+`upserts`, then `files`.
+
+```json
+{
+  "full": false,
+  "cursor": "eyJ2IjoxLi4u",
+  "window": { "from": "2025-10-12", "to": "2027-10-13" },
+  "calendars": [ /* every event calendar, as GET /api/calendars (with `hidden`); always in full */ ],
+  "events": {
+    "calendars": ["primary", "work"],
+    "replace": ["work"],
+    "series": [{ "calendarId": "primary", "seriesId": "abc" }],
+    "removed": [{ "calendarId": "primary", "id": "def" }],
+    "upserts": [ /* CalendarEvent, as GET /api/items */ ]
+  },
+  "taskLists": { "replace": false, "series": ["abc"], "removed": ["def", "shared:x1"], "upserts": [ /* TaskList */ ] },
+  "files": { "prefs": { }, "settings": { } }
+}
+```
+
+- `window`: events a device keeps are those overlapping `[from, to)` (today minus a year to today plus a year, end
+  exclusive). Events outside it are never in `upserts`; one that moved out is in `removed`. As days pass, the events
+  entering the window arrive in `upserts` of the next answer (up to 31 days behind; further behind, the calendar is
+  answered as `replace`).
+- `events.calendars`: the event calendars that exist now. The device drops the events of any other calendar.
+- `events.replace`: calendars answered in full (first sync, an expired Google sync token (410), a calendar new to the
+  device, or the person's own reminders on read-only events changed). The device drops that calendar's events first. An
+  expired token is never an error.
+- `events.series` / `taskLists.series`: repeating events whose stored instances the device drops before applying
+  `upserts` (their current instances inside the window are in `upserts`).
+- `events.removed`: deleted or moved away (the same id may come back in `upserts` for the new calendar, so apply drops first).
+- `taskLists`: all of the person's task lists, of any date and undated ones included, plus shared lists. `replace` is
+  true when the tasks calendar was answered in full: the device drops all its own (non-`shared:`) lists first; shared
+  lists are always compared one by one. `removed` holds ids, shared lists that were deleted, left or unshared included.
+  A repeating list contributes its instances inside the window.
+- `files`: per-person data, each part present only when its version (a hash of what the app would show) moved since the
+  cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
+  (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `canvas`
+  (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
+  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`).
+- A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
+- Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
+  repeating event; a first or `replace` answer costs two list calls per calendar. The rate guard applies: while Google
+  rate-limits, the answer is `503 RATE_LIMITED` with `Retry-After`, as for `GET /api/items`; the device keeps its data
+  and shows no banner.
+- Errors: `400` for a bad `today`.
+
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 
 Returns every event and task list overlapping `[from 00:00, to 00:00)` local time (`to` exclusive), from all calendars
