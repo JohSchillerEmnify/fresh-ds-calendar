@@ -74,7 +74,7 @@ Feature: Labs: experimental views and the 24-hour clock
     When I open the clock view for 2026-10-14
     Then the task list "Einkaufsliste" is an arc from 17:00 to 17:15
     And the arc of "Einkaufsliste" is not covered by the arc of "Abend zu zweit"
-    And the arc of "Einkaufsliste" is labelled "Einkaufsliste 0/1"
+    And the arc of "Einkaufsliste" is labelled "Einkaufsliste"
 
   Scenario: Overlapping events are drawn on separate rings and never cover each other
     Given the calendar contains an event "Review" on 2026-10-14 from 09:30 to 11:00
@@ -139,7 +139,7 @@ Feature: Labs: experimental views and the 24-hour clock
       | item | done |
       | Milk | no   |
     When I open the clock view for 2026-10-14
-    Then the clock lists "Groceries 0/1" without a time
+    Then the clock lists "Groceries" without a time
 
   Scenario: The clock uses the space it is given
     When I open the clock view for 2026-10-14

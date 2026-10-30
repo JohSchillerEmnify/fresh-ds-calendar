@@ -67,6 +67,13 @@ Feature: Open tasks stay in sight
     Then the open tasks tray shows the count "2 open"
     And the task list "Groceries" in the open tasks tray is struck through and shows only its title
 
+  Scenario: A finished one-item task list in the tray shows no done count
+    When I open the week view for 2026-10-12
+    And I open the open tasks tray
+    And I tick the item "Milk" in the open tasks tray
+    Then the task list "Groceries" in the open tasks tray is struck through and shows only its title
+    And the task list "Groceries" in the open tasks tray shows no done count
+
   Scenario: A task list finished earlier today stays in the tray, struck through
     Given the item "Fold" of the task list "Laundry" was ticked on 2026-10-12
     When I open the week view for 2026-10-12

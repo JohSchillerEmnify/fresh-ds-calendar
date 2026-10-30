@@ -4,6 +4,7 @@
  */
 import { addDays, minutesToTime, parseIsoDate, toIsoDate } from '@/lib/dates';
 import { displayTitle, neutralName, type Segment } from '@/lib/items';
+import { showProgress } from '@/features/tasklists/format';
 import { formatDuration } from '@/features/calendar/timeline';
 import { localToIso } from '@/features/calendar/zone';
 import { t } from '@/i18n';
@@ -120,7 +121,7 @@ export function focusWedge(
   return { from: nowMin, to: running ? f.seg.endMin : f.seg.startMin, color: colorOf(f.seg), running };
 }
 
-/** The text a clock entry is named with: the title, for task lists followed by "done/total". */
+/** The text a clock entry is named with: the title, for task lists followed by "done/total" (not for a one-item list). */
 export function clockText(item: Segment['item']): string {
-  return item.kind === 'tasklist' ? `${neutralName(item)} ${item.doneCount}/${item.totalCount}` : displayTitle(item);
+  return item.kind === 'tasklist' ? (showProgress(item) ? `${neutralName(item)} ${item.doneCount}/${item.totalCount}` : neutralName(item)) : displayTitle(item);
 }
