@@ -824,6 +824,14 @@ the path is `404 NOT_FOUND` and `/api/config` and `/api/health` do not list `doo
 client, the door board: `Authorization: Bearer <DOOR_API_TOKEN>`, compared in constant time; missing or wrong →
 `401 UNAUTHENTICATED` with no data; more than 60 calls a minute → `429 RATE_LIMITED`. No browser session.
 
+`DOOR_API_TOKEN` must be at least 32 characters: a shorter key keeps the door off (the server logs `door_key_too_short` and
+warns on the console). The 60 calls a minute are counted per client, and a client is identified by the socket's address.
+With `TRUST_PROXY=1` (a reverse proxy that appends the caller's address to `X-Forwarded-For`) it is the LAST
+`X-Forwarded-For` entry, the one the proxy itself added; without it the header is client-supplied and ignored. At most 1000
+clients are counted at once: expired counters are dropped first, further newcomers share one counter, so a flood of
+made-up clients never resets the counter of one that is over its limit. Asking for the door's person after they were taken
+off `ALLOWED_EMAILS` (or before they have signed in) answers `503 PROVIDER_UNAVAILABLE`.
+
 ```ts
 {
   reminders: { title: string; list: string; date: LocalDate | null; time?: LocalTime }[];
@@ -837,6 +845,11 @@ repeating list once, with its latest due occurrence; oldest date first, undated 
 today's events of the visible calendars, in the API's `start`/`end` form (an all-day `end` is exclusive). Nothing else.
 
 `GET /api/config` and `GET /api/health` carry `plugins: string[]`, the enabled plugins by name.
+
+### `POST /api/demo/reset` → 200 `{ ok: true }` (demo mode only)
+
+Mock provider only (`PROVIDER=mock`; with Google the path is `404 NOT_FOUND`): forgets the demo calendar and the motivation
+state, then seeds the demo data again. It is the "Reset demo" action; like every write it needs an allowed `Origin`.
 
 ## Test-only endpoints (`TEST_MODE=true`)
 
@@ -875,6 +888,13 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/backup/wipe` | `{ owner: string }` | Deletes everything under `users/<sub>/` of that Google address and ends its sessions (a new server). The mock Drive stays. `204` |
 | `GET` | `/api/__test/backup/drive?owner=<email>` | – | The files in that person's mock appDataFolder, newest first. `200 { files: { id, name, createdTime }[] }` |
 | `POST` | `/api/__test/tasklists` | `{ owner: string; title: string; items?: string[]; category?: string; date?: LocalDate; tags?: string[] }` | Creates a task list in the mock Google account of `owner` (an email), undated unless `date` is given; `category` is a category name; `tags` as stored. `201` `TaskList` |
+| `POST` | `/api/__test/calendars` | `{ owner: string; calendars: { id, name, color?, primary?, shared?, ownerEmail?, accessRole? }[] }` | Test-only: sets the calendar list of one person's mock account (`shared` calendars are read-only and not primary). `200 { ok }` |
+| `GET` | `/api/__test/remote/calendars?owner` | – | Test-only: the raw calendar list of one account (the shared one without `owner`), hidden entries included. `200 { calendars }` |
+| `GET` | `/api/__test/tasks-calendar?owner` | – | Test-only: the id of that person's tasks calendar, found or created as on first use. `200 { id }` |
+| `POST` | `/api/__test/auth` | `{ allowedEmails: string[] }` | Test-only: turns sign-in on with this allow-list; the addresses count as people who signed in once. `200 { on, allowedEmails }` |
+| `GET` | `/api/__test/oauth/consent?state` | – | Test-only: the fake Google consent screen; 302 to the callback with a code for the account chosen by `/api/__test/oauth/account`. |
+| `POST` | `/api/__test/oauth/calendar-access` | `{ granted: boolean }` | Test-only: the fake consent leaves the "Google Calendar" checkbox unticked (`false`) or ticked. `200 { granted }` |
+| `POST` | `/api/__test/oauth/revoke` | `{ email: string }` | Test-only: Google answers that person's token refresh with `invalid_grant` from now on. `200 { revoked }` |
 | `GET` | `/api/__test/memory?gc=true` | – | With `gc=true` runs `global.gc()` twice first (server started with `--expose-gc` in test mode). `200 { rss: number; heapUsed: number; heapTotal: number; external: number }` (bytes, from `process.memoryUsage()`) |
 
 ```ts

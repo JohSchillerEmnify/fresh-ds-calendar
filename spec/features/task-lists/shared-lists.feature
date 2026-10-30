@@ -109,3 +109,34 @@ Feature: Sharing task lists with another person
     And "jo@example.com" is signed in
     When I open "Share with" for the task list "Groceries"
     Then I can share only with "anna@example.com"
+
+  # The next scenarios describe built behaviour about files on the server, which the browser suite cannot reach, so they
+  # are tagged @backlog (the repo has no tag for "built, covered by a unit test"; proposed: @unit) and name their unit test.
+
+  # Unit test: server/test/hardening-shared.test.ts, "skips (and logs) invalid files so every other list still loads"
+  @backlog
+  Scenario Outline: A damaged shared list file is skipped and the other lists still load
+    Given "jo@example.com" shares the task list "Groceries" with "anna@example.com"
+    And a second shared list file on the server is damaged because <damage>
+    When the server starts
+    Then "anna@example.com" sees the task lists "Groceries"
+    And "jo@example.com" sees the task lists "Groceries"
+    And the damaged file is left out and noted in the server log
+
+    Examples:
+      | damage                                   |
+      | "its list of members is missing"         |
+      | "its list of members holds a non-name"   |
+      | "it has no owner"                        |
+      | "its version number is not a number"     |
+      | "its content is missing"                 |
+      | "its items are not a list"               |
+      | "it is of an unknown format version"     |
+
+  # Unit test: server/test/hardening-shared.test.ts, "writes a valid list and skips (and logs) invalid ones"
+  @backlog
+  Scenario: A restore from Drive skips shared lists that are not valid
+    Given the Drive backup of "jo@example.com" holds the shared list "Groceries" and one damaged shared list
+    When "jo@example.com" restores from the Drive backup
+    Then the shared list "Groceries" is back
+    And the damaged shared list is left out and noted in the server log
