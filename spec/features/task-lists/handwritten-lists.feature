@@ -64,7 +64,8 @@ Feature: Labs: handwritten lists
   G6. A ticked ink item is struck through with the same strike line as text items and faded to about half.
   G7. Left-handed mode mirrors only the tool row (mode switch, undo, eraser, colour) to the other side; the list rows
       stay as in today's task list (checkbox left, ink and text left-aligned, grip where it is today), because today's
-      task list does not mirror either (owner, 2026-10-30).
+      task list does not mirror either (owner, 2026-10-30). To revisit with a left-handed tester: if writing on the
+      rows turns out harder that way, mirror the rows too.
   G8. Ink is stored relative to the line height and scaled to the line on every screen, so the same ink looks the same
       on phone, tablet and desktop (smaller on a smaller line, never cut off).
   M1. Calendar cards (owner, mockup review): an ink item shows on a card only where the card shows item lines today
