@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { ApiClient, setApi } from '@/api/client';
 import type { Settings } from '@/api/types';
+import { useAuthStore } from '@/stores/auth';
 import { DEFAULT_SETTINGS } from '@/stores/settings';
 
 export type Handler = (req: { url: URL; method: string; body: any; headers: Record<string, string> }) => { status?: number; body?: unknown; headers?: Record<string, string> } | unknown;
@@ -26,9 +27,11 @@ export function mockFetch(routes: Record<string, Handler>) {
   return { fn, calls };
 }
 
+/** A new pinia; sign-in is off unless a test says otherwise (the outbox only sends for a known person). */
 export function freshPinia() {
   const p = createPinia();
   setActivePinia(p);
+  useAuthStore().status = 'off';
   return p;
 }
 

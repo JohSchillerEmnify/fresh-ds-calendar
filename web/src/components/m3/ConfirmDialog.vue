@@ -4,7 +4,7 @@ import Button from './Button.vue';
 import { t } from '@/i18n';
 
 /** Delete / discard confirmation (confirm-dialog, confirm-ok, confirm-cancel). */
-defineProps<{ open: boolean; title: string; message?: string; okLabel?: string }>();
+defineProps<{ open: boolean; title: string; message?: string; okLabel?: string; cancelLabel?: string }>();
 defineEmits<{ ok: []; cancel: [] }>();
 </script>
 
@@ -13,7 +13,7 @@ defineEmits<{ ok: []; cancel: [] }>();
     <h2 class="t">{{ title }}</h2>
     <p v-if="message" class="m">{{ message }}</p>
     <div class="actions">
-      <Button variant="text" data-testid="confirm-cancel" @click="$emit('cancel')">{{ t('calendar.actions.cancel') }}</Button>
+      <Button variant="text" data-testid="confirm-cancel" @click="$emit('cancel')">{{ cancelLabel ?? t('calendar.actions.cancel') }}</Button>
       <Button data-testid="confirm-ok" @click="$emit('ok')">{{ okLabel ?? t('calendar.actions.delete') }}</Button>
     </div>
   </AdaptiveSheet>

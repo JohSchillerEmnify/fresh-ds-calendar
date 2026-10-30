@@ -117,10 +117,7 @@ export default {
   dialog: {
     editTitle: 'Aufgabenliste bearbeiten',
     newTitle: 'Neue Aufgabenliste',
-    loadLatest: 'Neueste Version laden',
-    conflict: 'Diese Aufgabenliste wurde woanders geändert. Lade sie neu und versuche es noch einmal.',
     failed: 'Etwas ist schiefgegangen. Versuche es noch einmal.',
-    reloadFailed: 'Neu laden war nicht möglich.',
     title: 'Titel',
     date: 'Datum',
     time: 'Uhrzeit (optional)',

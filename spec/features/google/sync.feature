@@ -127,7 +127,7 @@ Feature: Background sync with Google Calendar
     And I see the sync error banner
 
   @offline
-  Scenario: Saving an event while Google is unavailable keeps the dialog open with an error
+  Scenario: Saving an event while Google is unavailable closes the dialog, shows it, and sends it when Google is back
     When I open the week view for 2026-10-12
     And Google becomes unavailable
     And I start creating an event
@@ -137,23 +137,25 @@ Feature: Background sync with Google Calendar
       | start time | 12:00      |
       | end time   | 13:00      |
     And I save the event
-    Then the event dialog shows the error "Could not save: Google Calendar is unavailable"
-    And the event dialog is open
-    And I see the sync error banner
-    When Google becomes available again
-    And I save the event
     Then the event dialog is closed
     And I see the event "Lunch" on 2026-10-13
+    When Google becomes available again
+    And I wait until the changes are sent
+    Then I see the event "Lunch" on 2026-10-13
+    And this device keeps no unsent changes
 
   @offline
-  Scenario: Ticking an item while Google is unavailable is rolled back
+  Scenario: Ticking an item while Google is unavailable keeps the tick and sends it later
     When I open the day view for 2026-10-14
     And I expand the task list "Groceries"
     And Google becomes unavailable
     And I tick the item "Milk"
-    Then I see the sync error banner
-    And the item "Milk" is not ticked
-    And the task list "Groceries" shows the done count "0/2"
+    Then the item "Milk" is ticked
+    And the task list "Groceries" shows the done count "1/2"
+    When Google becomes available again
+    And I wait until the changes are sent
+    Then the item "Milk" is ticked
+    And this device keeps no unsent changes
 
   @offline
   Scenario: Losing the network connection shows the banner, regaining it recovers
@@ -163,20 +165,6 @@ Feature: Background sync with Google Calendar
     Then I see the sync error banner
     When the network connection is restored
     Then I do not see the sync error banner
-
-  @conflict
-  Scenario: Editing an event that was changed in Google in the meantime
-    Given automatic sync is disabled
-    When I open the week view for 2026-10-12
-    And Google renames the event "Dentist" to "Orthodontist"
-    And I open the event "Dentist"
-    And I fill in the event form with:
-      | title | Dentist (moved) |
-    And I save the event
-    Then the event dialog shows the error "This event was changed elsewhere. Reload it and try again."
-    When I cancel the event dialog
-    And the app regains focus
-    Then I see the event "Orthodontist" on 2026-10-14
 
   Rule: When Google asks the app to slow down, the calendar stays as it was, without an error, and catches up afterwards
 

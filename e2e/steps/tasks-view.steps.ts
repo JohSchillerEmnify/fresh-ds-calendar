@@ -116,9 +116,13 @@ When('I tick the item {string} of the task list {string} in the Tasks view', asy
   await openTasksView(this);
   const row = item(this, title).getByTestId('tasklist-item').and(this.page.locator(attr('data-title', itemTitle)));
   await expect(row).toHaveAttribute('data-done', 'false');
-  const saved = this.page.waitForResponse(isTasklistWrite('PATCH', '/items/[^/]+'));
+  const saved = this.page.waitForResponse(isTasklistWrite('PATCH', '/items/[^/]+'), { timeout: 3000 }).catch(() => null);
   await row.getByTestId('tasklist-item-checkbox').click();
-  expect((await saved).status(), 'tick saved').toBe(200);
+  const res = await saved;
+  // without a connection or a session the change waits in the outbox instead (feature offline-changes)
+  if (res?.status() === 401) return; // the page leaves for the sign-in page: "this device keeps ..." checks the outbox there
+  if (res) expect(res.status(), 'tick saved').toBe(200);
+  else await expect.poll(() => this.page.evaluate(() => Number(document.documentElement.dataset.unsynced)), { message: 'tick kept for later' }).toBeGreaterThan(0);
 });
 
 Then('the Tasks view lists {string} under {string}', async function (this: World, title: string, group: string) {

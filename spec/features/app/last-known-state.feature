@@ -14,8 +14,8 @@ Feature: Everything I see is kept on this device and synced with the server
   Open apps also hear from the server at once when something changed (rule "Live sync", ADR 0030).
   While what I see has not been confirmed by the server since the app opened, or the last sync failed, a small note
   says when it was last updated.
-  This slice changes only reading: without a connection nothing can be changed yet, saving still fails with the sync
-  banner (writing to the device first and sending later comes with the next slice).
+  This feature covers reading. Changes made without a connection are kept on the device and sent later (feature
+  offline-changes).
   Everything is kept separately for each signed-in person: signing out, or someone else signing in, removes it.
 
   Background:
@@ -186,19 +186,6 @@ Feature: Everything I see is kept on this device and synced with the server
     When the network connection is restored
     Then I do not see the sync error banner
     And I am not told when the calendar was last updated
-
-  @backlog
-  Scenario: Without a connection a change is not saved yet
-    Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
-      | item | done |
-      | Milk | no   |
-    And I have seen the day view for 2026-10-12
-    And the network connection is lost
-    When I open the app again
-    And I expand the task list "Groceries"
-    And I tick the item "Milk"
-    Then I see the sync error banner
-    And the item "Milk" is not ticked
 
   @signin
   Scenario: Signing out removes the stored calendar from the device
