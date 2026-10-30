@@ -37,7 +37,9 @@ Given('{string} and {string} may use the calendar', async function (this: World,
 });
 
 Given('{string} may no longer use the calendar', async function (this: World, email: string) {
-  const rest = (allowed.get(this) ?? []).filter((e) => e !== email);
+  const before = allowed.get(this);
+  if (!before) throw new Error('"may no longer use the calendar" needs an earlier "and ... may use the calendar" step');
+  const rest = before.filter((e) => e !== email);
   allowed.set(this, rest);
   await this.api.setAuth(rest);
 });
@@ -71,7 +73,10 @@ When('someone opens the week view for {date} without signing in', async function
 });
 
 When('they sign out in the settings', async function (this: World) {
-  await this.page.getByTestId('settings-button').click();
+  // a settings sub-page (the reminders) goes back inside the app, so the page keeps its push subscription
+  const button = this.page.getByTestId('settings-button');
+  if (await button.isVisible()) await button.click();
+  else if (!(await this.page.getByTestId('settings-signout').isVisible())) await this.page.getByRole('button', { name: 'Back' }).click();
   await this.page.getByTestId('settings-signout').click();
 });
 

@@ -2442,6 +2442,7 @@ a day passes on the server
 the Drive holds {int} backup(s) of {string}
 I back up now
 I back up now {int} times
+{string} has signed in but not opened the calendar yet
 I chose the theme {string} and backed it up
 {string} is signed in with the theme {string} backed up
 I restore from the backup and confirm
@@ -2472,6 +2473,9 @@ there is no button to back up now
 - "the quiet period of the backup has passed": `POST /api/__test/backup/flush` (the debounce timer fires now, as if two
   quiet minutes had passed) and waits for it to finish. "a day passes on the server": sets the test clock 24 hours later
   (frozen) and calls `POST /api/__test/backup/tick` (the daily check, once).
+- "P has signed in but not opened the calendar yet": the OAuth round trip as P (`GET /api/auth/google/start` in the page's own
+  session) without loading the app, which would save P's prefs. Only files under `users/<sub>/` make a person "have data of their
+  own"; the server-wide files (settings, people, motivation) do not count.
 - "the Drive holds N backups of P": `GET /api/__test/backup/drive?owner=P` has N entries (`backup(s)` is optional text).
 - "I back up now": opens the settings when they are not open, clicks `settings-backup-now` and waits until the
   `POST /api/backup` response has arrived. "the last backup is from D at T": `settings-backup-status` has

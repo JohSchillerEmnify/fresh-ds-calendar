@@ -100,6 +100,13 @@ Then('there is no button to back up now', async function (this: World) {
   await expect(this.page.getByTestId('settings-backup-restore')).toHaveCount(0);
 });
 
+Given('{string} has signed in but not opened the calendar yet', async function (this: World, email: string) {
+  // the sign-in round trip alone, in the page's own session (opening the calendar would save the person's prefs)
+  await this.api.chooseGoogleAccount(email);
+  await this.page.request.get('/api/auth/google/start');
+  expect((await this.page.request.get('/api/auth/me', { failOnStatusCode: false })).status()).toBe(200);
+});
+
 When('I back up now {int} times', async function (this: World, n: number) {
   await settings(this);
   for (let i = 0; i < n; i++) {

@@ -80,9 +80,9 @@ Feature: Backup to Google Drive
     When I back up now 8 times
     Then the Drive holds 7 backups of "jo@example.com"
 
-  @backlog
   Scenario: Someone with nothing of their own on the server is not backed up
-    Given "anna@example.com" is signed in
+    Only what is kept for the person alone counts; the files shared by everyone do not. Opening the calendar already saves the person's own settings.
+    Given "anna@example.com" has signed in but not opened the calendar yet
     When a day passes on the server
     Then the Drive holds 0 backups of "anna@example.com"
 
