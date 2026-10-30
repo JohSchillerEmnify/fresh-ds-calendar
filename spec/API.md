@@ -865,13 +865,13 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
 
 ### Live updates (`GET /api/events/stream`, ADR 0030; name settled at build) → 200 `text/event-stream`
 
-Needs a session (`401` without). One connection per open app. The server sends the event `changed` with no data
-(a content-free nudge) whenever something changes through the server for that person (events, task lists, settings,
+Needs a session (`401` without). One connection per open app. The server sends the event `changed` whose only data is
+the kind of data (`events`, `taskLists`, ...; a content-free nudge, and an event without data would never reach the browser) whenever something changes through the server for that person (events, task lists, settings,
 prefs, theme, own themes, templates, Canvas, motivation) or for any member of a shared list, plus a comment line every
 25 s to keep proxies from closing it. The app answers a nudge with a changes-since request (`/api/changes`); it
 reconnects by itself (`EventSource`) and syncs once after every reconnect. While at least one connection of a person is
 open the server asks Google for changes every 20 s and sends `changed` when there are any. Sign-out closes the
-person's connections.
+person's connections. More than 10 open streams of one person: `429` (the browser then stops retrying; its poll still syncs).
 
 ### Diagnostics (`POST /api/diag/sync-error`) → 204
 

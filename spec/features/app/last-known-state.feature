@@ -239,7 +239,6 @@ Feature: Everything I see is kept on this device and synced with the server
     And I open the templates in the settings
     Then the templates page says "No templates yet. Save a task list as a template to reuse it."
 
-  @backlog
   Rule: Live sync: a change made on one device shows on every other open app within about a second
 
     Every open app keeps one live connection to the server. Whenever something changes through the server (events, task
@@ -251,7 +250,6 @@ Feature: Everything I see is kept on this device and synced with the server
     net. A hidden app neither polls nor holds the connection and catches up at once when it is shown again (owner,
     2026-10-30: "I do something in the browser and it's synced after 5 minutes - that is unacceptable").
 
-    @backlog
     Scenario: A change made on one device shows on the other open app within a second
       Given automatic sync is disabled
       And I open the week view for 2026-10-12
@@ -263,7 +261,6 @@ Feature: Everything I see is kept on this device and synced with the server
       And I save the event
       Then within a second the second device shows the event "Dentist" on 2026-10-13
 
-    @backlog
     Scenario: A setting changed on one device reaches the other open app within a second
       Given automatic sync is disabled
       And I open the week view for 2026-10-12
@@ -273,7 +270,6 @@ Feature: Everything I see is kept on this device and synced with the server
       And I choose the theme mode "Dark"
       Then within a second the second device uses the dark theme
 
-    @backlog
     Scenario: An area made on the Canvas shows on the other open app within a second
       Given automatic sync is disabled
       And I open the Canvas
@@ -282,7 +278,7 @@ Feature: Everything I see is kept on this device and synced with the server
       When I create the area "Haus" on the Canvas
       Then within a second the second device shows the Canvas area "Haus"
 
-    @signin @backlog
+    @signin
     Scenario: A ticked item of a shared list shows on the other person's open app within a second
       Given "jo@example.com" and "anna@example.com" may use the calendar
       And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
@@ -293,7 +289,6 @@ Feature: Everything I see is kept on this device and synced with the server
       When "jo@example.com" ticks the item "Milk" of the shared task list "Groceries"
       Then within a second the item "Milk" of the task list "Groceries" in the Tasks view is ticked
 
-    @backlog
     Scenario: A change made in Google Calendar itself shows within 20 seconds while the app is open
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -304,7 +299,6 @@ Feature: Everything I see is kept on this device and synced with the server
       Then within 20 seconds I see the event "Flight" on 2026-10-14
       And I do not see the event "Dentist"
 
-    @backlog
     Scenario: Google is asked for changes only while an app is open
       Given the server asks Google for changes every 2 seconds
       And automatic sync is disabled
@@ -312,7 +306,6 @@ Feature: Everything I see is kept on this device and synced with the server
       When I open the week view for 2026-10-12
       Then Google is asked for changes within 3 seconds
 
-    @backlog
     Scenario: Changes missed while the connection was down arrive at once when it returns
       Given automatic sync is disabled
       And I open the week view for 2026-10-12
@@ -322,7 +315,6 @@ Feature: Everything I see is kept on this device and synced with the server
       When the network connection is restored
       Then within a second I see the event "Flight" on 2026-10-14
 
-    @backlog
     Scenario: Without the live connection the poll still brings the change
       Given the live connection is blocked
       And automatic sync runs every 2 seconds
@@ -332,7 +324,6 @@ Feature: Everything I see is kept on this device and synced with the server
       And I wait for the automatic sync
       Then I see the event "Flight" on 2026-10-14
 
-    @backlog
     Scenario: A hidden app fetches nothing and catches up at once when it is shown again
       Given automatic sync runs every 2 seconds
       And I open the week view for 2026-10-12
@@ -344,7 +335,7 @@ Feature: Everything I see is kept on this device and synced with the server
       When the app regains focus
       Then within a second I see the event "Flight" on 2026-10-14
 
-    @signin @backlog
+    @signin
     Scenario: Nothing is pushed to a device that is signed out
       Given "jo@example.com" and "anna@example.com" may use the calendar
       And "jo@example.com" is signed in
@@ -357,7 +348,7 @@ Feature: Everything I see is kept on this device and synced with the server
       And at most 0 requests to "/api/changes" were counted
       And this device keeps no last known calendar
 
-    @signin @backlog
+    @signin
     Scenario: Nothing is pushed to the app of another person
       Given "jo@example.com" and "anna@example.com" may use the calendar
       And automatic sync is disabled

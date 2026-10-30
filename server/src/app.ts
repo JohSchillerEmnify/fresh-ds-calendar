@@ -15,6 +15,7 @@ import { createContext, type Ctx } from './context.js';
 import type { AppConfig } from './config.js';
 import type { Clock } from './lib/clock.js';
 import type { DriveClient } from './providers/DriveClient.js';
+import { liveRoutes } from './api/liveRoutes.js';
 import { pushRoutes } from './api/pushRoutes.js';
 import { backupRoutes } from './api/backupRoutes.js';
 import { downloadRoutes } from './routes/download.js';
@@ -88,6 +89,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   const api = new Hono();
   api.route('/', backupRoutes(ctx));
   api.route('/', pushRoutes(ctx));
+  api.route('/', liveRoutes(ctx)); // before apiRoutes: `/events/stream` must not be read as an event id
   api.route('/', apiRoutes(ctx));
   if (config.testMode && ctx.mock) api.route('/', testRoutes(ctx));
   api.route('/', authRoutes(ctx));

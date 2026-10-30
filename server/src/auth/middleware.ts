@@ -29,6 +29,7 @@ export function sessionMiddleware(ctx: Ctx): MiddlewareHandler<AuthEnv> {
     // a person taken off ALLOWED_EMAILS loses every session at their next request, not after 90 days
     if (hit && !ctx.auth.allows(hit.session.email)) {
       ctx.auth.sessions.deleteSub(hit.session.sub);
+      ctx.live.endPerson(hit.session.sub);
       ctx.forgetPerson(hit.session.sub);
       hit = null;
     }

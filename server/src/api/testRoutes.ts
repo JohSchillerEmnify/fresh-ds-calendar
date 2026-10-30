@@ -23,6 +23,7 @@ export function testRoutes(ctx: Ctx): Hono {
 
   t.post('/reset', async (c) => {
     const input = parse(resetSchema, await optBody(c));
+    ctx.live.closeAll();
     mock.reset();
     ctx.clock.set(null);
     ctx.overrides = {};
@@ -76,6 +77,7 @@ export function testRoutes(ctx: Ctx): Hono {
   t.post('/config', async (c) => {
     const b = parse(testConfigSchema, await body(c));
     if (b.pollIntervalMs !== undefined) ctx.overrides.pollIntervalMs = b.pollIntervalMs;
+    if (b.googlePollMs !== undefined) ctx.overrides.googlePollMs = b.googlePollMs;
     return c.json(configResponse(ctx));
   });
 
@@ -135,6 +137,9 @@ export function testRoutes(ctx: Ctx): Hono {
   });
 
   // The raw calendar list of one account, hidden entries included.
+  // How many change lookups the server made against the mock Google since reset (live sync).
+  t.get('/remote/lookups', (c) => c.json({ count: mock.lookups }));
+
   t.get('/remote/calendars', (c) => c.json({ calendars: store(c.req.query('owner')).remote.calendars() }));
 
   // Adds a calendar to one account's list as another Google client would (e.g. an existing tasks calendar).

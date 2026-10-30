@@ -73,4 +73,6 @@ Given('{string} hid the calendar {string}', async function (this: World, email: 
 When('{string} opens the week view for {date} on another device', async function (this: World, email: string, date: string) {
   await this.switchDevice();
   await signIn(this, email, date);
+  // the app's own first sync is over, so a later request is a new one (live sync scenarios count them)
+  await expect(this.page.locator('html')).toHaveAttribute('data-device-store', 'synced', { timeout: 15_000 });
 });

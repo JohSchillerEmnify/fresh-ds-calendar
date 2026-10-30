@@ -70,7 +70,7 @@ export class Api {
   setMotivation(body: { checkIns?: string[]; plant?: { growth: number; lastWatered: string | null; todayPoints?: number } }) {
     return this.setup('/api/__test/motivation', body);
   }
-  setConfig(cfg: { pollIntervalMs?: number }) { return this.setup('/api/__test/config', cfg); }
+  setConfig(cfg: { pollIntervalMs?: number; googlePollMs?: number }) { return this.setup('/api/__test/config', cfg); }
   /** A task list in one person's mock calendar (undated unless `date` is given), as a fixture. */
   createOwnedList(body: { owner: string; title: string; items?: string[]; category?: string; date?: string; tags?: string[] }) {
     return this.setup('/api/__test/tasklists', body);

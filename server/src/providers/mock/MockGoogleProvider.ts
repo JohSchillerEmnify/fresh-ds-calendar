@@ -114,6 +114,7 @@ export class MockGoogleProvider implements CalendarProvider {
     this.calendars = MOCK_CALENDARS.map((c) => ({ ...c }));
     this.outage = null;
     this.guard = newGuard();
+    this.lookups = 0;
     this.rateLimitNext = null;
     this.scheduleFlush();
   }
@@ -275,7 +276,11 @@ export class MockGoogleProvider implements CalendarProvider {
     return clone(cur);
   }
 
+  /** How many change lookups (`listChanges`) were made since the last reset (test hook). */
+  lookups = 0;
+
   async listChanges(calendarId: string, syncToken: string): Promise<ListEventsResult> {
+    this.lookups++;
     this.check();
     this.requireCalendar(calendarId);
     const m = /^sync-([a-z0-9]+)-(\d+)$/.exec(syncToken);
