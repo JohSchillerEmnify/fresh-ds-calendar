@@ -711,6 +711,27 @@ A non-boolean switch or a `morningTime` that is not `HH:MM` answers `400` (`fiel
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
 `tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `tasksFilter: { categories: string[]; when: 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week' }` (default `{ categories: [], when: 'all' }`) is the Tasks view's filter (feature tasks-filter); `categories` holds at most 50 unique strings of 1-64 characters (category ids, or `none`), the whole object is replaced by a `PATCH`, any other shape or value is `400` (field `tasksFilter`). `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (feature tasks-archive); any other value is `400`.
 
+### Ink (handwritten items; feature handwritten-lists)
+
+An **ink item** is a task item with `ink: true` and an empty `title`; its strokes are not in Google (30 KB limit for
+private properties) but in one JSON document per person, `DATA_DIR/users/<sub>/ink.json` (`InkDoc`:
+`{ version: 1, lists: { <listId>: { <itemId>: InkStroke[] } } }`), which the Drive backup takes with the person's other
+files. A stroke is a list of `[x, y, pressure]`: x and y in line heights from the line's left and top (so the ink scales to
+any line, decision G8), pressure 0..1; at most 5000 points per stroke and 500 strokes per request. Google gets the
+description line `☐ Handwritten item` for the item (decision A3). The two prefs `labsHandwriting` and
+`labsDrawWithFinger` (boolean, default `false`) are the Labs switches.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/ink` | – | `200` `InkDoc` |
+| `POST` | `/api/tasklists/:id/items` | `{ strokes, id?, index? }` (instead of `title`) | `201` the list, with a new ink item |
+| `PUT` | `/api/tasklists/:id/items/:itemId/ink` | `{ strokes: InkStroke[] }` | `200` the list; replaces the item's strokes (`[]` clears them, the item stays) |
+
+A text item given strokes, or an ink item given a title → `400`; unknown item → `404`; a list holds at most about
+200 KB of ink (the JSON of its strokes) → `413 PAYLOAD_TOO_LARGE` (key `tasklist.inkFull`). Deleting an item or a list
+deletes its ink. `GET /api/changes` carries the document as the file `ink` when its version moved. A shared list's ink
+and templates' ink are not yet stored (open point).
+
 ### Canvas (`/api/canvas`)
 
 The person's **areas** on the Tasks view's Canvas (feature tasks-canvas), one JSON document per person in

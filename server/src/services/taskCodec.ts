@@ -58,13 +58,16 @@ export function isTaskListEvent(ev: GoogleEvent): boolean {
   return ev.extendedProperties?.private?.kind === 'tasklist';
 }
 
+/** What Google shows for an ink item (decision A3). */
+const INK_PLACEHOLDER = 'Handwritten item';
+
 export function mirror(items: TaskItem[]): string {
-  return items.map((i) => `${i.done ? '☑' : '☐'} ${i.title}`).join('\n');
+  return items.map((i) => `${i.done ? '☑' : '☐'} ${i.ink ? INK_PLACEHOLDER : i.title}`).join('\n');
 }
 
 /** Serialises items into `items`, `items_1..` + `itemsChunks`. Absent keys are `null` (to delete when patching). */
 export function encodeItems(items: TaskItem[]): Record<string, string | null> {
-  const json = JSON.stringify(items.map((i) => ({ id: i.id, t: i.title, d: i.done ? 1 : 0 })));
+  const json = JSON.stringify(items.map((i) => ({ id: i.id, t: i.title, d: i.done ? 1 : 0, ...(i.ink ? { k: 1 } : {}) })));
   const out: Record<string, string | null> = {};
   if (json.length <= SINGLE_MAX) {
     out.items = json;
@@ -198,9 +201,9 @@ export function readItems(ev: GoogleEvent): TaskItem[] {
   const n = Number(p.itemsChunks ?? 1);
   if (n > 1) for (let i = 1; i < n; i++) json += p[`items_${i}`] ?? '';
   try {
-    const arr = JSON.parse(json) as { id: string; t: string; d: number }[];
+    const arr = JSON.parse(json) as { id: string; t: string; d: number; k?: number }[];
     if (!Array.isArray(arr)) throw new Error('bad');
-    return arr.map((x) => ({ id: String(x.id), title: String(x.t), done: x.d === 1 }));
+    return arr.map((x) => ({ id: String(x.id), title: String(x.t), done: x.d === 1, ...(x.k === 1 ? { ink: true as const } : {}) }));
   } catch {
     return parseDescription(ev.description);
   }

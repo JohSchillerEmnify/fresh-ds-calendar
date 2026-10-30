@@ -840,10 +840,10 @@ export class CalendarService {
   }
 
   /** `input.id` (optional, from the client) makes a repeated add idempotent: a list that holds that id already stays as it is. */
-  async addItem(id: string, input: { id?: string; title: string; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
+  async addItem(id: string, input: { id?: string; title: string; ink?: boolean; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
     if (scope === 'following') {
       // one id in every list, unticked; a list that has it already (a repeated write) is left as it is
-      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: false };
+      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: false, ...(input.ink ? { ink: true as const } : {}) };
       return this.forFollowing(id, (d) => {
         if (d.items.some((i) => i.id === item.id)) return d;
         const items = [...d.items];
@@ -854,7 +854,7 @@ export class CalendarService {
     return this.modify(id, (d) => {
       if (input.id && d.items.some((i) => i.id === input.id)) return d;
       const items = [...d.items];
-      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: !!input.done };
+      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: !!input.done, ...(input.ink ? { ink: true as const } : {}) };
       const at = input.index === undefined ? items.length : Math.min(input.index, items.length);
       items.splice(at, 0, item);
       return { ...d, items };

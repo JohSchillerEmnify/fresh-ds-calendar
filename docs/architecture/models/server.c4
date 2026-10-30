@@ -80,6 +80,9 @@ model {
     canvasStore = store 'Canvas areas' {
       description 'Each person\'s Canvas areas document on disk, not in Google'
     }
+    inkStore = store 'Handwritten items' {
+      description 'Each person\'s ink strokes per list and item on disk, not in Google (too big for its private properties)'
+    }
     templatesApi = component 'Templates API' {
       description 'Lists, saves, changes and deletes one person\'s task list templates'
     }
@@ -170,6 +173,7 @@ model {
     changesApi -> themeFiles 'reads the own themes when their version moved'
     changesApi -> templateStore 'reads the templates when their version moved'
     changesApi -> canvasStore 'reads the Canvas areas when their version moved'
+    changesApi -> inkStore 'reads the ink when its version moved'
     calendarService -> placeCodec 'keeps an event\'s place with'
     calendarService -> birthdayRules 'applies to birthdays'
     calendarService -> ownership 'marks look-only events and calendars with'
@@ -211,6 +215,8 @@ model {
     backup -> themeFiles 'collects and restores, re-checking each theme like an import'
     canvasApi -> canvasStore 'reads and writes atomically'
     backup -> canvasStore 'collects and restores with the person\'s files'
+    backup -> inkStore 'collects and restores with the person\'s files'
+    tasksApi -> inkStore 'writes the strokes of an ink item, deletes them with the item or list'
     templatesApi -> templateStore 'reads and writes atomically'
     backup -> templateStore 'collects and restores with the person\'s files'
     calendarService -> reminderOverrides 'keeps and applies the reminders of events of read-only calendars (never asked at Google)'
