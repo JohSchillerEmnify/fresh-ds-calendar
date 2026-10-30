@@ -60,7 +60,17 @@ async function look(w: World, view: string, date: string) {
         });
         await w.page.waitForTimeout(30);
       }
-      return expect(grid).toBeVisible();
+      await expect(grid).toBeVisible();
+      // the zoom about the cell's middle can leave the day's first blocks above the viewport: pan (plain wheel) until they are in view
+      await w.page.waitForTimeout(300);
+      await grid.evaluate(async (el) => {
+        const port = el.closest('.port')!;
+        const blocks = [...el.querySelectorAll('.blk')].map((b) => b.getBoundingClientRect());
+        const pr = port.getBoundingClientRect();
+        const mid = (Math.min(...blocks.map((r) => r.top)) + Math.max(...blocks.map((r) => r.bottom))) / 2;
+        port.dispatchEvent(new WheelEvent('wheel', { deltaY: mid - (pr.top + pr.height / 2), bubbles: true, cancelable: true }));
+      });
+      return w.page.waitForTimeout(300);
     }
     case 'Labs horizontal view': return at(`/horizontal/${date}`, w.page.getByTestId('htime-row'));
     default: throw new Error(`no way to look at the ${view} from a browser`);

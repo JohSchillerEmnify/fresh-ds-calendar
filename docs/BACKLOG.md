@@ -20,6 +20,10 @@ Tracked here so it survives across sessions. Newest first within each section. M
   and "Pauke Retournieren" cannot be read; only HipHop and Hellbreakers show. Expected: every bar's title readable
   (or clipped to its own bar), never covered by the next bar. Reproducing test first, then fix.
 
+- **Labs Timeline: no way back to today after scrolling** (owner, 2026-10-26). After scrolling a while there is no
+  Today button to jump back. The date-less Labs views (Now, Timeline) hide the top bar's date/prev/next/Today since
+  2026-10-23; the Timeline needs a Today control again (spec + canvas mockup first: where it sits, maybe only once today
+  is out of view).
 
 - **Left-handed tablet: the + button covers the open tray** (2026-10-23, owner to decide). In left-handed mode on a
   tablet the add button sits over the open task tray. Moving it right of the tray puts it past the middle of an 820 px
