@@ -1,4 +1,4 @@
-# 0031 — Material 3 Expressive is the one action vocabulary
+# 0032 — Material 3 Expressive is the one action vocabulary
 
 - Status: accepted (owner, 2026-10-30); refines 0020
 - Views shaped: `web`

@@ -1,6 +1,6 @@
 @ui-expressive @id:ui-expressive
 Feature: One action vocabulary in Material 3 Expressive (design "E")
-  Owner decision 2026-10-30: the whole app speaks one action vocabulary (ADR 0031, design E). Every surface has at most
+  Owner decision 2026-10-30: the whole app speaks one action vocabulary (ADR 0032, design E). Every surface has at most
   one filled primary action (the + button, Save, Today); everything else is tonal or text. Actions in headers and
   toolbars are icon-only and carry an accessible label (their name for screen readers and as a tooltip). A card keeps
   its secondary actions behind one overflow button (three dots, "More"). Open, Canvas and Archive are one connected

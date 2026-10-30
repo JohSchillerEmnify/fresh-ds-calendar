@@ -1,6 +1,6 @@
 @tasklists @tasks-toolbar @id:tasks-toolbar
 Feature: The Tasks view's list tools float next to the + button
-  Owner decision 2026-10-30 (design E, ADR 0031). In the Tasks view the list tools (filter, sort, fold) sit in a
+  Owner decision 2026-10-30 (design E, ADR 0032). In the Tasks view the list tools (filter, sort, fold) sit in a
   floating toolbar next to the + button instead of in the top bar. The tools are icon-only with accessible labels and
   tonal; the + button is the one filled primary. The toolbar slides away with the bottom bar while scrolling down and
   returns on scroll up. Approved to build: scenarios stay `@backlog` until implemented.

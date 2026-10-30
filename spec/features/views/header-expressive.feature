@@ -1,6 +1,6 @@
 @header-expressive @id:header-expressive
 Feature: The top bar in Expressive and Compact, a month-only week title and scenes that stay whole
-  Owner decision 2026-10-30 (design E, ADR 0031). The two header layouts of feature header-layout become two sizes in
+  Owner decision 2026-10-30 (design E, ADR 0032). The two header layouts of feature header-layout become two sizes in
   the E style, kept in the same personal setting: "Expressive" (the former two rows: the full 84 px scene, the title
   over its top, the day row below it, nothing of the scene covered) and "Compact" (the former one row, 52 px, with the
   one-row scene). Defaults: Compact on phones, Expressive on tablets and desktop. Icons in the bar are plain, with no

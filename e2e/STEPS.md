@@ -3275,7 +3275,7 @@ the stored preferences of {string} are damaged
 the damaged file is kept as {string} with its old content
 ```
 
-## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0031)
+## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
 TO IMPLEMENT: every step below is new and not yet in `e2e/steps/`; its scenarios are `@backlog`. Pref names are open for the
 builder (suggested: `bottomBarSize` `expressive|compact`, default `compact` on phones; the existing `headerLayout` keeps its
