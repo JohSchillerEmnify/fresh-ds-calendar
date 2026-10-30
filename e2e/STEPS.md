@@ -526,6 +526,41 @@ this device keeps no last known calendar
   (or does not exist), localStorage has no `cal.lastKnownPerson` and no cached theme of a person (`cal.theme`).
 - Device store window (ADR 0025): events from today - 1 year to today + 1 year; every task list regardless of date.
 
+### Live sync (`@last-known-state`, rule "Live sync", ADR 0030)
+
+```
+the app is open on a second device
+within a second the second device shows the event {string} on {date}
+within a second the second device uses the dark theme
+within a second the second device shows the Canvas area {string}
+within a second I see the event {string} on {date}
+within {int} seconds I see the event {string} on {date}
+within a second the item {string} of the task list {string} in the Tasks view is ticked
+the server asks Google for changes every {int} seconds
+Google is not asked for changes during the next {int} seconds
+Google is asked for changes within {int} seconds
+the live connection is blocked
+```
+
+- "the app is open on a second device": a second browser context (no shared storage, as "I switch to another device")
+  signed in as the same person (or the single owner when sign-in is off), opened on the view the first page shows
+  (also the Canvas), waited until it has synced; the first page stays the current one. Steps with "the second device"
+  read that page.
+- "within a second ...": the same check as the plain step but polled for at most 1 s (the poll interval is off in these
+  scenarios, so only the live connection can explain it); "within N seconds" polls for at most N s. The shown change
+  must come without a reload and without a focus event.
+- "the app is open on a second device" does not move "the current page"; "{string} opens ... on another device" (as
+  today) does, so in the shared-list and other-person scenarios the other person's page is the one read.
+- "the server asks Google for changes every N seconds": `POST /api/__test/config { "googlePollMs": N*1000 }`; the
+  default without it is 20 s (unit-tested). Reset clears it.
+- "Google is not asked for changes during the next N seconds": waits N s, then asks `GET /api/__test/remote/lookups`
+  (the mock's counter of change lookups) and expects it unchanged. "Google is asked for changes within N seconds":
+  waits until the counter has grown, at most N s.
+- "the live connection is blocked": the page's request to the live-updates endpoint is aborted
+  (`context.route`), so the app has to rely on its polling.
+- Counting requests (section "Performance") is used with `/api/changes` to show that a device fetched nothing; the
+  endpoint name follows the build (REQUIREMENTS "Live sync").
+
 ## Mobile
 
 ```

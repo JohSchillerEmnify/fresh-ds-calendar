@@ -134,6 +134,19 @@ views {
     calendar.web.lastKnown -> calendar.web.items 'the views show the change'
   }
 
+  dynamic view liveSync {
+    title 'A change on one device reaches the other open apps within a second'
+
+    calendar.web.items -> calendar.server.tasksApi 'saves the change'
+    calendar.server.tasksApi -> calendar.server.publisher 'publishes after it was saved'
+    calendar.server.publisher -> calendar.server.liveApi 'changed, to every open app of the person and of each list member'
+    calendar.server.liveApi -> calendar.web.liveSubscriber 'a content-free changed nudge'
+    calendar.web.liveSubscriber -> calendar.web.sync 'asks for a sync at once'
+    calendar.web.sync -> calendar.server.changesApi 'asks for the changes since the cursor'
+    calendar.server.googlePoller -> google 'every 20 seconds while an app is open: changes made in Google Calendar'
+    calendar.server.googlePoller -> calendar.server.publisher 'publishes when Google reported changes'
+  }
+
   dynamic view firstTaskList {
     title 'A person\'s first task list'
 

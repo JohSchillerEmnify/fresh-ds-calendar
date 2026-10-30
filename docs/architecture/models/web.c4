@@ -45,6 +45,9 @@ model {
     lastKnown = store 'Device store' {
       description 'Every kind of the signed-in person\'s data in IndexedDB (ADR 0025): events ±1 year, all task lists, settings, prefs, calendars, themes, templates, Canvas areas, reminder defaults, people, streak and plant, enabled plugins, plus the sync cursor; the app always reads from it; wiped on sign-out or another person'
     }
+    liveSubscriber = component 'Live subscriber' {
+      description 'Keeps one EventSource to the server while the app is visible, drops it when hidden, and asks Sync for a sync on every changed nudge, reconnect and return to visible; the 60 second poll stays as the safety net'
+    }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }
@@ -56,6 +59,7 @@ model {
     lastKnown -> tasksView 'feeds every open and finished list, computed on the device'
     lastKnown -> themeState 'feeds the chosen theme and the own themes'
     lastKnown -> sync 'shows the last update time while nothing fresh came since opening or the last sync failed'
+    liveSubscriber -> sync 'asks for a sync at once on every changed nudge, reconnect and return to visible'
     sync -> lastKnown 'takes in the changes since its cursor on open, focus, reconnect and the poll timer'
     items -> lastKnown 'loads days outside the window from the server when opened, without keeping them'
     signin -> lastKnown 'wipes it on sign-out, on the sign-in page and when another person signs in'
