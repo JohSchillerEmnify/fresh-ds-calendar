@@ -1,9 +1,10 @@
 /**
- * Where the device store lives on this device (ADR 0025): a tiny key-value store over one IndexedDB object store, no
- * dependency. It holds one person's data in a few records (see `stores/device.ts`); the person is remembered in
+ * Where the device store lives on this device (ADR 0025): a tiny key-value store over one IndexedDB object store, opened
+ * with the `idb` library. It holds one person's data in a few records (see `stores/device.ts`); the person is remembered in
  * `localStorage` so the page knows whose store to read before it has asked the server. `setDeviceDb` swaps in another
  * implementation (unit tests use `memoryKv`, jsdom has no IndexedDB).
  */
+import { openDB, type IDBPDatabase } from 'idb';
 
 /** The calls the device store needs. */
 export interface KvStore {
@@ -18,40 +19,20 @@ const STORE = 'kv';
 /** localStorage key of the person whose data the device keeps (a `cal.*` key: `clearPersonalStorage` removes it on sign-out). */
 export const PERSON_KEY = 'cal.devicePerson';
 
-const done = (r: IDBRequest | IDBTransaction): Promise<void> => new Promise((resolve, reject) => {
-  if (r instanceof IDBTransaction) {
-    r.oncomplete = () => resolve();
-    r.onerror = r.onabort = () => reject(r.error);
-  } else {
-    r.onsuccess = () => resolve();
-    r.onerror = () => reject(r.error);
-  }
-});
-
-/** The IndexedDB store; the database is opened on first use (and created then). */
+/** The IndexedDB store (library `idb`); the database is opened on first use (and created then). */
 export function idbKv(dbName = DB_NAME): KvStore {
-  let db: Promise<IDBDatabase> | null = null;
-  const open = (): Promise<IDBDatabase> => (db ??= new Promise((resolve, reject) => {
-    const req = indexedDB.open(dbName, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => { db = null; reject(req.error); };
-  }));
+  let db: Promise<IDBPDatabase> | null = null;
+  const open = (): Promise<IDBPDatabase> => (db ??= openDB(dbName, 1, { upgrade: (d) => { d.createObjectStore(STORE); } }).catch((e) => { db = null; throw e; }));
   return {
     async get<T>(key: string) {
-      const req = (await open()).transaction(STORE).objectStore(STORE).get(key);
-      await done(req);
-      return req.result as T | undefined;
+      return (await open()).get(STORE, key) as Promise<T | undefined>;
     },
     async putMany(entries) {
       const tx = (await open()).transaction(STORE, 'readwrite');
-      for (const [k, v] of Object.entries(entries)) tx.objectStore(STORE).put(v, k);
-      await done(tx);
+      await Promise.all([...Object.entries(entries).map(([k, v]) => tx.store.put(v, k)), tx.done]);
     },
     async clear() {
-      const tx = (await open()).transaction(STORE, 'readwrite');
-      tx.objectStore(STORE).clear();
-      await done(tx);
+      await (await open()).clear(STORE);
     },
   };
 }

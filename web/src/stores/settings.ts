@@ -85,7 +85,8 @@ export const useSettingsStore = defineStore('settings', () => {
   async function categoryOp(fn: () => Promise<Settings>): Promise<Settings> {
     const next = keep(await fn());
     s.value = next;
-    // the lists carry their category's colour: the device takes in the lists the server recoloured
+    // the lists carry their category's colour: the device reads them all again
+    useDeviceStore().requestFull();
     void useSyncStore().resyncAfterWrite();
     return next;
   }

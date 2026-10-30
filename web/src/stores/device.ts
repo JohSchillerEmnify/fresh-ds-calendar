@@ -57,6 +57,11 @@ export const useDeviceStore = defineStore('device', () => {
   let stops: Array<() => void> = [];
   /** Counts wipes: an answer that was on its way when the data was wiped belongs to the wiped person and is dropped. */
   let epoch = 0;
+  /**
+   * The next sync asks for everything: a task list carries its category's colour, which changes with the category and not
+   * with the list, so the server's change stream does not report the recoloured lists.
+   */
+  let needFull = false;
   onDeviceWipe(() => {
     epoch++;
     pending?.();
@@ -159,12 +164,21 @@ export const useDeviceStore = defineStore('device', () => {
     void save();
   }
 
+  /** The next sync reads everything again (after a change of the categories). */
+  function requestFull(): void {
+    needFull = true;
+  }
+
   /** Takes in an answer of `/api/changes`: applies it, keeps it and hands it on. Exposed for tests; `sync` is the entry point. */
   function take(res: ChangeSet): void {
     const clock = useClockStore();
     const base = res.full || !data.value ? emptyData(person ?? '') : data.value;
     const complete = res.events.failed.length === 0 && !res.taskLists.failed;
     const quiet = !!data.value && isQuiet(data.value, res);
+    const before = data.value?.files.settings as { categories?: unknown } | undefined;
+    const after = res.files.settings as { categories?: unknown } | undefined;
+    if (res.full) needFull = false;
+    else if (after && JSON.stringify(before?.categories) !== JSON.stringify(after.categories)) needFull = true;
     // an answer that changes nothing keeps the very same lists (so they are not rewritten) and is not handed on again
     const next = quiet ? { ...base, cursor: res.cursor, files: base.files } : applyChanges(base, res);
     // the clock's config (zone, frozen time, polling, plugins) goes with the data so a start without a connection has it
@@ -180,20 +194,19 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   /** One round of the device sync: asks the server what changed since the cursor and takes it in. Throws on failure (the caller reports it). */
-  async function sync(): Promise<void> {
+  async function sync(again = true): Promise<void> {
     const clock = useClockStore();
     const auth = useAuthStore();
-    // who is asking must be known before the device's answer may be used: another person's store is wiped by the watcher
-    if (auth.status === 'unknown') await auth.check();
-    const asking = sessionPerson();
-    if (asking && person !== null && asking !== person) return;
     const mine = epoch;
     try {
-      const res = await api.changes(data.value?.cursor ?? null, clock.today);
+      // who is asking must be known before the answer may be used (it is asked beside the request, which costs no time)
+      const [res] = await Promise.all([api.changes(needFull ? null : data.value?.cursor ?? null, clock.today), auth.status === 'unknown' ? auth.check() : undefined]);
       // wiped or another person signed in while the answer was on its way: it is not this device's data
       const now = sessionPerson();
-      if (mine !== epoch || (now && asking && now !== asking) || (now && person !== null && now !== person)) return;
+      if (mine !== epoch || (now && person !== null && now !== person)) return;
       take(res);
+      // a category changed elsewhere: the lists are read again in full at once
+      if (needFull && again) await sync(false);
     } catch (e) {
       failed.value = true;
       throw e;
@@ -259,6 +272,6 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   return {
-    data, ready, noteShown, syncedAt, fresh, failed, file, read, restore, sync, take, install, stop, put, drop, putFile, putCalendars,
+    data, ready, noteShown, syncedAt, fresh, failed, file, read, restore, sync, take, requestFull, install, stop, put, drop, putFile, putCalendars,
   };
 });

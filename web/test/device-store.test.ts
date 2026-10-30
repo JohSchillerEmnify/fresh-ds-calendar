@@ -16,7 +16,7 @@ import { useItemsStore } from '@/stores/items';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
-import { config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
+import { changesFixture, config, eventFixture, freshPinia, mockFetch, settingsFixture } from './helpers';
 
 const ev = (id: string, date: string, from = '10:00', to = '11:00'): CalendarEvent =>
   eventFixture(id, `${date}T${from}:00+02:00`, `${date}T${to}:00+02:00`) as unknown as CalendarEvent;
@@ -264,7 +264,7 @@ describe('the device store', () => {
     expect(items.get('Dentist')!.etag).toBe('etag-2');
   });
 
-  it('a sync waits for the session to be known and skips when it is another person than the stored one', async () => {
+  it('an answer is not used when the session turns out to be another person than the stored one', async () => {
     server();
     await session();
     freshPinia();
@@ -275,9 +275,10 @@ describe('the device store', () => {
     });
     const device = useDeviceStore();
     await device.restore('/week/2026-10-12');
+    const before = device.data;
     await expect(device.sync()).resolves.toBeUndefined();
     expect(m.calls.map((c) => c.path)).toContain('/api/auth/me');
-    expect(m.calls.map((c) => c.path)).not.toContain('/api/changes');
+    expect(device.data).toBe(before);
   });
 
   it('drops an answer that was on its way when the device was wiped', async () => {
@@ -395,5 +396,26 @@ describe('the "Last updated" note', () => {
     await w.vm.$nextTick();
     expect(w.find('[data-testid="last-updated-note"]').exists()).toBe(true);
     w.unmount();
+  });
+});
+
+describe('categories', () => {
+  it('a change of the categories on another device makes the next sync a full one', async () => {
+    freshPinia();
+    vi.useFakeTimers();
+    setDeviceDb(memoryKv());
+    const full = { ...changesFixture({ cursor: 'c1' }), files: { settings: settingsFixture() } };
+    const m = mockFetch({ 'GET /api/changes': () => full, 'GET /api/auth/me': () => ({ email: null, name: null }) });
+    const device = useDeviceStore();
+    await device.sync();
+    full.full = false;
+    (full.files as { settings: unknown }).settings = settingsFixture({ categories: [{ id: 'x', name: 'X', color: '#111111', icon: null, googleColorId: '1' }] });
+    full.cursor = 'c2';
+    await device.sync();
+    const urls = m.calls.filter((c) => c.path === '/api/changes').map((c) => c.url.search);
+    expect(urls[1]).toContain('cursor=c1');
+    expect(urls[2]).not.toContain('cursor');
+    vi.useRealTimers();
+    setDeviceDb(null);
   });
 });
