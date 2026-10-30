@@ -10,6 +10,7 @@ import { GoogleDrive, MULTIPART_LIMIT } from '../src/providers/google/GoogleDriv
 import {
   BACKUP_KEEP, BackupFormatError, backupName, bundle, contentHash, debounceDelay, isRestorable, selectExpired, unbundle,
 } from '../src/services/backup.js';
+import { ALL_KINDS } from '../src/services/changeBus.js';
 import { makeApp, type TestApp } from './helpers.js';
 
 const SUB = 'abc-1';
@@ -296,6 +297,20 @@ describe('backups over HTTP (TEST_MODE, MockDrive)', () => {
       await t.json('POST', '/api/__test/backup/drive-down', { down: false });
       await t.json('POST', '/api/__test/backup/flush');
       expect((await drive(t)).length).toBe(2);
+    } finally { t.cleanup(); }
+  });
+
+  it('reports a restore on the change bus as a change of every kind', async () => {
+    const t = await setup();
+    try {
+      const h = { cookie: await signIn(t, JO) };
+      await t.json('PATCH', '/api/prefs/theme', { preset: 'Neon' }, h);
+      await t.json('POST', '/api/backup', undefined, h);
+      const seen: { subs: string[]; kind: string }[] = [];
+      t.app.ctx.changes.on((e) => seen.push(e));
+      expect((await t.json('POST', '/api/backup/restore', undefined, h)).status).toBe(200);
+      expect(seen.map((e) => e.kind).sort()).toEqual([...ALL_KINDS].sort());
+      expect(seen.every((e) => e.subs.join() === mockSub(JO))).toBe(true);
     } finally { t.cleanup(); }
   });
 

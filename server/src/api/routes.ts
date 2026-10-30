@@ -21,6 +21,9 @@ import {
 } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 import type { Scope } from '../services/calendar.js';
+import { registerChanges } from './changesRoutes.js';
+import { kindsOfPath } from '../services/changeBus.js';
+import { isSharedId } from '../services/sharedLists.js';
 
 const HEALTH_TTL_MS = 10_000;
 
@@ -106,6 +109,32 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.use('*', async (c, next) => {
     await next();
     if (c.req.method === 'GET' && c.res.status === 200 && cal(c).stale()) c.header('X-Stale', '1');
+  });
+
+  // Every successful write is reported once on the change bus (who is affected, which kind of data); a publisher listens there.
+  const sharedPeople = (sub: string, id: string | undefined): string[] => {
+    if (!id || !isSharedId(id)) return [];
+    try {
+      const d = ctx.shared.access(sub, id);
+      return [d.owner, ...d.members];
+    } catch {
+      return [];
+    }
+  };
+  r.use('*', async (c, next) => {
+    const path = c.req.path.replace(/^\/api/, '');
+    const kinds = c.req.method === 'GET' ? [] : kindsOfPath(path);
+    const listId = /^\/tasklists\/([^/]+)/.exec(path)?.[1];
+    const me = person(c);
+    // the members are read before the write too: a delete or a leave removes the list they are found by
+    const rulePeople = () => (path.startsWith('/categories') ? Object.values(ctx.shared.rulesOf(me)).map((p) => p.sub) : []);
+    const before = kinds.length ? [...sharedPeople(me, listId), ...rulePeople()] : [];
+    await next();
+    if (!kinds.length || c.res.status >= 400) return;
+    const shown = (await c.res.clone().json().catch(() => null)) as { id?: unknown } | null;
+    const own = [me, ...before, ...sharedPeople(me, listId), ...sharedPeople(me, typeof shown?.id === 'string' ? shown.id : undefined),
+      ...rulePeople()];
+    for (const k of kinds) ctx.changes.emit(k === 'settings' ? [...own, ...ctx.people.all().map((p) => p.sub)] : own, k);
   });
 
   // ---- health / config ----
@@ -250,15 +279,17 @@ export function apiRoutes(ctx: Ctx): Hono {
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });
   // ---- per-person theme ----
-  r.get('/prefs/theme', (c) => {
-    ctx.prefs.migrateScene(person(c), settings.legacyTopBarScene());
-    ctx.prefs.migrateGarden(person(c), settings.legacyGarden());
-    return c.json(ctx.prefs.theme(person(c)));
-  });
+  const themeOf = (sub: string) => {
+    ctx.prefs.migrateScene(sub, settings.legacyTopBarScene());
+    ctx.prefs.migrateGarden(sub, settings.legacyGarden());
+    return ctx.prefs.theme(sub);
+  };
+  const themesOf = (sub: string) => ({ themes: ctx.themes.list(sub).map(({ id, doc, picture }) => ({ id, doc, ...(picture ? { picture } : {}) })) });
+  r.get('/prefs/theme', (c) => c.json(themeOf(person(c))));
   r.patch('/prefs/theme', async (c) => c.json(ctx.prefs.setTheme(person(c), parse(themePatchSchema, await body(c)))));
 
   // ---- imported themes ----
-  r.get('/themes', (c) => c.json({ themes: ctx.themes.list(person(c)).map(({ id, doc, picture }) => ({ id, doc, ...(picture ? { picture } : {}) })) }));
+  r.get('/themes', (c) => c.json(themesOf(person(c))));
   r.post('/themes', async (c) => {
     const b = await body(c);
     const fail = (errors: string[]) => new ApiException('VALIDATION_ERROR', 400, errors[0]!, errors.map((issue) => ({ issue })));
@@ -300,6 +331,8 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!ctx.templates.remove(person(c), c.req.param('id'))) throw templateNotFound();
     return c.body(null, 204);
   });
+
+  registerChanges(r, ctx, { person, cal, theme: themeOf, themes: themesOf });
 
   // ---- items ----
   r.get('/items', async (c) => {
@@ -449,6 +482,7 @@ export function apiRoutes(ctx: Ctx): Hono {
     ctx.calendar.invalidate();
     motivation.reset();
     await ctx.seed();
+    ctx.changes.emitAll([...new Set([person(c), ...ctx.people.all().map((p) => p.sub)])]);
     return c.json({ ok: true });
   });
 

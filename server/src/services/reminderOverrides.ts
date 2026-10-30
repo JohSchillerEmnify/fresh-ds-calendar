@@ -55,6 +55,11 @@ export class ReminderOverrideStore {
     return this.read(sub).events[calendarId]?.[eventId];
   }
 
+  /** Every override of the person, `calendar id -> event id -> reminders`. */
+  all(sub: string): Record<string, Record<string, Reminders>> {
+    return this.read(sub).events;
+  }
+
   /** Keeps the reminders of an event as the app's own. */
   set(sub: string, calendarId: string, eventId: string, reminders: Reminders): void {
     const d = structuredClone(this.read(sub));

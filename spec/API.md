@@ -329,6 +329,73 @@ Per person (`local` while sign-in is off); all `204` unless noted. Why: feature 
   once per `key`, from one timer loop on the app clock; a `404`/`410` from the push service removes the subscription. Every send has a
   10 s timeout and each browser is served on its own, so one endpoint that never answers holds back nobody.
 
+### `GET /api/changes[?cursor=<opaque>][&today=YYYY-MM-DD]` → 200 (device sync, ADR 0025)
+
+What changed for the signed-in person since the device's cursor. Without a cursor, or with one that is not ours or is
+unreadable, everything the device keeps is answered in full (`full: true`). `today` is the device's date; it defaults to the
+app clock's today and is ignored (the server's today is used) when it is more than 3 days away from it.
+The cursor is opaque to the app: send back the `cursor` of the last answer you applied. It is per device (it holds the
+state of that device's last answer; two devices of one person sync independently) and is only a position, never a
+secret. Apply an answer in this order: `calendars`, then per kind the `replace` / `series` / `removed` drops, then
+`upserts`, then `files`.
+
+```json
+{
+  "full": false,
+  "cursor": "eyJ2IjoxLi4u",
+  "window": { "from": "2025-10-12", "to": "2027-10-13" },
+  "calendars": [ /* every event calendar, as GET /api/calendars (with `hidden`); always in full */ ],
+  "events": {
+    "calendars": ["primary", "work"],
+    "replace": ["work"],
+    "series": [{ "calendarId": "primary", "seriesId": "abc" }],
+    "removed": [{ "calendarId": "primary", "id": "def" }],
+    "upserts": [ /* CalendarEvent, as GET /api/items */ ],
+    "failed": []
+  },
+  "taskLists": { "replace": false, "series": ["abc"], "removed": ["def", "shared:x1"], "upserts": [ /* TaskList */ ], "failed": false },
+  "files": { "prefs": { }, "settings": { } }
+}
+```
+
+- `window`: events a device keeps are those overlapping `[from, to)` (today minus a year to today plus a year, end
+  exclusive). Events outside it are never in `upserts`; one that moved out is in `removed`. As days pass, the events
+  entering the window arrive in `upserts` of the next answer (up to 31 days behind; further behind, the calendar is
+  answered as `replace`).
+- `events.calendars`: the event calendars that exist now. The device drops the events of any other calendar.
+- `events.replace`: calendars answered in full (first sync, an expired Google sync token (410), a calendar new to the
+  device, or the person's own reminders on read-only events changed). The device drops that calendar's events first. An
+  expired token is never an error.
+- `events.series` / `taskLists.series`: repeating events whose stored instances the device drops before applying
+  `upserts` (their current instances inside the window are in `upserts`).
+- `events.failed` / `taskLists.failed`: calendars (the tasks calendar) that could not be read this time. The device keeps
+  its copy of them, their position in the cursor is unchanged, and the next call tries again; the rest of the answer is
+  complete. While a calendar failed, the cursor keeps its old window end and reminder version, so the missed days and relist
+  are retried. Person-wide failures (rate limit, sign-in again, missing calendar permission) and unexpected errors (bugs)
+  still fail the whole call.
+- A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
+  event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
+  answered as `replace` instead of one Google call per series.
+- `events.removed`: deleted or moved away (the same id may come back in `upserts` for the new calendar, so apply drops first).
+- `taskLists`: all of the person's task lists, of any date and undated ones included, plus shared lists. `replace` is
+  true when the tasks calendar was answered in full: the device drops all its own (non-`shared:`) lists first; shared
+  lists are always compared one by one. `removed` holds ids, shared lists that were deleted, left or unshared included.
+  A repeating list contributes its instances inside the window.
+- `files`: per-person data, each part present only when its version (a hash of what the app would show) moved since the
+  cursor, and then in full. Names: `settings` (as `GET /api/settings`), `prefs` (`GET /api/prefs`), `theme`
+  (`GET /api/prefs/theme`), `themes` (`GET /api/themes`), `templates` (`GET /api/templates`), `canvas`
+  (`GET /api/canvas`), `motivation` (`GET /api/motivation`), `categoryShares` (`GET /api/categories/shares`), `people`
+  (`GET /api/people`), `tasksCalendarReminders` (`GET /api/reminders/tasks-calendar`).
+- A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
+- Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
+  repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token
+  of an event calendar comes from a token-only walk of its pages (no time range or filters, which Google refuses together
+  with a sync token; at most 200 pages). A calendar too large for that is answered as `failed` and not tried again for
+  10 minutes. The rate guard applies: while Google
+  rate-limits, the answer is `503 RATE_LIMITED` with `Retry-After`, as for `GET /api/items`; the device keeps its data
+  and shows no banner.
+- Errors: `400` for a bad `today`.
+
 ### `GET /api/items?from=YYYY-MM-DD&to=YYYY-MM-DD[&calendarIds=a,b]` → 200
 
 Returns every event and task list overlapping `[from 00:00, to 00:00)` local time (`to` exclusive), from all calendars
@@ -796,6 +863,16 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   responses carry the header `X-Motivation-Changed: 1` when points were awarded, and the web app then refetches
   `/api/motivation`.
 
+### Live updates (`GET /api/events/stream`, ADR 0030; name settled at build) → 200 `text/event-stream`
+
+Needs a session (`401` without). One connection per open app. The server sends the event `changed` with no data
+(a content-free nudge) whenever something changes through the server for that person (events, task lists, settings,
+prefs, theme, own themes, templates, Canvas, motivation) or for any member of a shared list, plus a comment line every
+25 s to keep proxies from closing it. The app answers a nudge with a changes-since request (`/api/changes`); it
+reconnects by itself (`EventSource`) and syncs once after every reconnect. While at least one connection of a person is
+open the server asks Google for changes every 20 s and sends `changed` when there are any. Sign-out closes the
+person's connections.
+
 ### Diagnostics (`POST /api/diag/sync-error`) → 204
 
 The web app sends this once when it enters the "Can't reach Google Calendar" state. The server only logs it
@@ -838,7 +915,8 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories) and an empty motivation state; then seeds or loads the fixture. `200 { calendars, items, settings }` |
 | `POST` | `/api/__test/clock` | `{ now: string \| null; frozen?: boolean }` | Sets the clock (`now` ISO with offset or `Z`); `frozen` (default `true`) keeps it constant, `false` lets it run from `now` in real time. `null` clears it. `200 { now, clockFrozen }` |
 | `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
-| `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
+| `POST` | `/api/__test/config` | `{ pollIntervalMs?: number; googlePollMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling) and the interval of the server's Google change lookup for live sync (default 20000). `200` config |
+| `GET` | `/api/__test/remote/lookups` | – | How many change lookups the server has made against the mock Google since reset (live sync). `200 { count }` |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |

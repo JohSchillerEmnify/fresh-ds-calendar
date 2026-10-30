@@ -5,7 +5,7 @@ import { addDays, addMonthsClamp, dayNumber, daysInMonth, formatInZone, localDat
 import type { Clock } from '../../lib/clock.js';
 import { RateGuard } from '../google/RateGuard.js';
 import {
-  NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError,
+  NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError, ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError,
   type CalendarProvider, type GoogleEvent, type GoogleReminder, type GoogleEventInput, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
@@ -32,6 +32,12 @@ export class MockGoogleProvider implements CalendarProvider {
   readonly name = 'mock' as const;
   private events = new Map<string, GoogleEvent>();
   private seq = 0;
+  /** Sync tokens carry this: a restart, a reset or {@link expireSyncTokens} makes older tokens answer 410 like Google's expired ones. */
+  private epoch = newEpoch();
+  /** Change counter at the last write of each event (what a sync token is compared with). */
+  private changedAt = new Map<string, number>();
+  /** Events that left a calendar (moved away), which a sync reports as cancelled there. */
+  private gone: { calendarId: string; id: string; seq: number }[] = [];
   private outage: { status: 500 | 503 } | null = null;
   /** The real provider's rate guard (ADR 0007), without a fresh-cache window: every read still reaches the store. */
   private guard = newGuard();
@@ -79,6 +85,10 @@ export class MockGoogleProvider implements CalendarProvider {
   cooldownMs(): number {
     return this.guard.cooldownMs();
   }
+  /** Makes every sync token handed out so far answer 410 Gone, as when Google expires them. */
+  expireSyncTokens(): void {
+    this.epoch = newEpoch();
+  }
   /** Simulates Google answering this person's token refresh with `invalid_grant`. */
   /** Simulates Google refusing calls because the calendar scope was not granted. */
   setCalendarMissing(missing: boolean): void {
@@ -98,6 +108,9 @@ export class MockGoogleProvider implements CalendarProvider {
   }
   reset(): void {
     this.events.clear();
+    this.changedAt.clear();
+    this.gone = [];
+    this.epoch = newEpoch();
     this.calendars = MOCK_CALENDARS.map((c) => ({ ...c }));
     this.outage = null;
     this.guard = newGuard();
@@ -177,6 +190,10 @@ export class MockGoogleProvider implements CalendarProvider {
 
   private readEvents(p: ListEventsParams): ListEventsResult {
     this.check();
+    return this.collect(p);
+  }
+
+  private collect(p: ListEventsParams): ListEventsResult {
     this.requireCalendar(p.calendarId);
     const min = p.timeMin ? Date.parse(p.timeMin) : -Infinity;
     const max = p.timeMax ? Date.parse(p.timeMax) : Infinity;
@@ -203,7 +220,11 @@ export class MockGoogleProvider implements CalendarProvider {
         out.push(clone(shown));
       }
     }
-    return { items: out, nextSyncToken: `sync-${this.seq}` };
+    return { items: out, nextSyncToken: this.syncToken() };
+  }
+
+  private syncToken(): string {
+    return `sync-${this.epoch}-${this.seq}`;
   }
 
   async getEvent(calendarId: string, eventId: string): Promise<GoogleEvent> {
@@ -245,16 +266,43 @@ export class MockGoogleProvider implements CalendarProvider {
     if (cur.status === 'cancelled') throw new NotFoundError('Not Found');
     if (cur.eventType === 'birthday') throw new ProviderError('Google 400: a birthday cannot be moved to another calendar');
     this.events.delete(key(calendarId, eventId));
+    this.changedAt.delete(key(calendarId, eventId));
     cur.calendarId = destinationCalendarId;
     this.touch(cur);
+    this.gone.push({ calendarId, id: eventId, seq: this.seq });
     this.events.set(key(destinationCalendarId, eventId), cur);
     this.scheduleFlush();
     return clone(cur);
   }
 
-  async listChanges(calendarId: string, _syncToken: string): Promise<ListEventsResult> {
+  async listChanges(calendarId: string, syncToken: string): Promise<ListEventsResult> {
     this.check();
-    return { items: this.remote.list(calendarId, true), nextSyncToken: `sync-${this.seq}` };
+    this.requireCalendar(calendarId);
+    const m = /^sync-([a-z0-9]+)-(\d+)$/.exec(syncToken);
+    if (!m || m[1] !== this.epoch) throw new SyncTokenExpiredError('Sync token expired');
+    const since = Number(m[2]);
+    const items: GoogleEvent[] = [];
+    for (const [k, e] of this.events) {
+      if (e.calendarId !== calendarId || (this.changedAt.get(k) ?? 0) <= since) continue;
+      items.push(clone(e.status === 'cancelled' && e.recurringEventId ? cancelledShape(e) : e));
+    }
+    for (const g of this.gone) {
+      if (g.calendarId === calendarId && g.seq > since) items.push({ id: g.id, calendarId, etag: '', status: 'cancelled', start: {}, end: {}, created: '', updated: '' });
+    }
+    return { items, nextSyncToken: this.syncToken() };
+  }
+
+  async listSyncToken(calendarId: string): Promise<string | undefined> {
+    this.check();
+    this.requireCalendar(calendarId);
+    return this.syncToken();
+  }
+
+  async listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {
+    this.check();
+    const master = this.events.get(key(calendarId, seriesId));
+    if (!master?.recurrence || master.status === 'cancelled') return [];
+    return this.collect({ calendarId, timeMin, timeMax }).items.filter((e) => e.id === seriesId || e.recurringEventId === seriesId);
   }
 
   // ---- internals ----
@@ -396,6 +444,7 @@ export class MockGoogleProvider implements CalendarProvider {
     e.updated = new Date(this.clock.real()).toISOString();
     e.sequence = (e.sequence ?? 0) + 1;
     e.etag = `"${this.seq.toString(36)}${Math.floor(this.clock.real() / 1000).toString(36)}"`;
+    this.changedAt.set(key(e.calendarId, e.id), this.seq);
   }
 
   private doInsert(calendarId: string, ev: GoogleEventInput & { id?: string }): GoogleEvent {
@@ -461,6 +510,7 @@ export class MockGoogleProvider implements CalendarProvider {
   }
 }
 
+const newEpoch = (): string => Math.random().toString(36).slice(2, 10) || 'e0';
 const key = (cal: string, id: string) => `${cal}\u0000${id}`;
 const clone = <T>(x: T): T => structuredClone(x);
 const etagEq = (a: string, b: string) => a.replace(/^W\//, '').replaceAll('"', '') === b.replace(/^W\//, '').replaceAll('"', '');

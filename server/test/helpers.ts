@@ -40,3 +40,13 @@ export function makeApp(env: Record<string, string> = {}): TestApp {
 export async function freeze(t: TestApp, now = '2026-10-12T08:00:00+02:00') {
   await t.req('POST', '/api/__test/clock', { now });
 }
+
+/** Signs `email` in through the stand-in OAuth flow (sign-in must be on) and returns the session cookie. */
+export async function sessionCookie(t: TestApp, email: string): Promise<string> {
+  await t.json('POST', '/api/__test/oauth/account', { email });
+  const start = await t.req('GET', '/api/auth/google/start');
+  const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
+  const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
+  const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
+  return cb.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!;
+}

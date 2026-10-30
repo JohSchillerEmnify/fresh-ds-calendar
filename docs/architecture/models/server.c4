@@ -86,6 +86,21 @@ model {
     templateStore = store 'Task list templates' {
       description 'Each person\'s task list templates on disk (name, items, estimate, category), not in Google'
     }
+    changesApi = component 'Changes API' {
+      description 'Answers what changed for one person since the device\'s opaque cursor, per kind: events through Google sync tokens (a full window on the first call or after 410 Gone), shared lists through their change stamps, per-person files through their versions'
+    }
+    liveApi = component 'Live updates API' {
+      description 'Holds one Server-Sent Events connection per open app (session required) and sends a content-free changed nudge on it, with a keep-alive comment every 25 seconds'
+    }
+    changeFeed = component 'Change feed' {
+      description 'Reads one person\'s events and task lists through one Google sync token per calendar; an expired token (410), a calendar new to the device or too many changed series give that calendar in full; one failing calendar leaves the others answered'
+    }
+    publisher = component 'Change publisher' {
+      description 'The change bus: in-memory publish and subscribe, fed by one middleware that reports every successful write (and a restore or demo reset as every kind) to the person and to every member of a shared list; several server instances would need a shared broker (ADR 0030)'
+    }
+    googlePoller = component 'Google poller' {
+      description 'While at least one app of a person is connected, asks Google for changes every 20 seconds through the sync tokens and publishes when there are any'
+    }
     webPush = component 'Web Push' {
       description 'Each browser\'s push subscription and its reminder plan of the next 7 days'
     }
@@ -131,6 +146,30 @@ model {
     }
 
     prefsApi -> prefsStore 'reads and writes'
+    calendarService -> changeFeed 'reads the changes of events and task lists through it'
+    changeFeed -> googleProvider 'lists each calendar by its sync token and a changed series by its instances'
+    changesApi -> calendarService 'asks for the events changed since each calendar\'s sync token, limited to ±1 year, and every task list'
+    calendarService -> googleProvider 'lists changes with a sync token per calendar; on 410 Gone lists the calendar again in full'
+    liveApi -> publisher 'subscribes each open app to its person\'s nudges'
+    liveApi -> sessions 'checks the session before opening the stream'
+    publisher -> liveApi 'publishes changed to every open app of the person and of each list member'
+    prefsApi -> publisher 'publishes after a saved change'
+    tasksApi -> publisher 'publishes after a saved change'
+    templatesApi -> publisher 'publishes after a saved change'
+    canvasApi -> publisher 'publishes after a saved change'
+    settingsApi -> publisher 'publishes after a saved change'
+    themesApi -> publisher 'publishes after a saved change'
+    eventsApi -> publisher 'publishes after a saved change'
+    sharedLists -> publisher 'publishes to every member after a change'
+    motivation -> publisher 'publishes after the streak or plant changed'
+    googlePoller -> publisher 'publishes when Google reports changes'
+    googlePoller -> calendarService 'asks for the events changed since each calendar\'s sync token'
+    publisher -> googlePoller 'tells it which people have an app open'
+    changesApi -> sharedLists 'reads the shared lists changed since the cursor'
+    changesApi -> prefsStore 'reads prefs and the theme choice when their version moved'
+    changesApi -> themeFiles 'reads the own themes when their version moved'
+    changesApi -> templateStore 'reads the templates when their version moved'
+    changesApi -> canvasStore 'reads the Canvas areas when their version moved'
     calendarService -> placeCodec 'keeps an event\'s place with'
     calendarService -> birthdayRules 'applies to birthdays'
     calendarService -> ownership 'marks look-only events and calendars with'
@@ -188,7 +227,10 @@ model {
   calendar.web.sync -> calendar.server.diag 'sends one beacon when the error banner appears'
 
   calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
-  calendar.web.items -> calendar.server.itemsApi 'fetches the visible range'
+  calendar.web.items -> calendar.server.itemsApi 'fetches a range outside the device window when it is opened'
+  calendar.web.liveSubscriber -> calendar.server.liveApi 'subscribes with one Server-Sent Events connection'
+  calendar.server.googlePoller -> google 'asks for the changes made in Google Calendar itself, every 20 seconds while an app is open'
+  calendar.web.sync -> calendar.server.changesApi 'asks for the changes since the device\'s cursor'
   calendar.web.items -> calendar.server.tasksApi 'saves item changes, applied optimistically'
   calendar.web.listForm -> calendar.server.tasksApi 'saves the list'
   calendar.web.pluginUi -> calendar.server.plugins 'reads the enabled plugins from the health answer'

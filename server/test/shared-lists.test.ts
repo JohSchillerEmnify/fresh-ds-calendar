@@ -6,7 +6,7 @@ import { mockSub } from '../src/auth/people.js';
 import { PeopleStore } from '../src/auth/peopleStore.js';
 import { Clock } from '../src/lib/clock.js';
 import { SharedListService } from '../src/services/sharedLists.js';
-import { makeApp } from './helpers.js';
+import { makeApp, sessionCookie } from './helpers.js';
 
 const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com';
 
@@ -14,16 +14,8 @@ const JO = 'jo@example.com', ANNA = 'anna@example.com', BOB = 'bob@example.com';
 async function setup() {
   const t = makeApp();
   await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA, BOB] });
-  const session = async (email: string) => {
-    await t.json('POST', '/api/__test/oauth/account', { email });
-    const start = await t.req('GET', '/api/auth/google/start');
-    const cookie = start.headers.getSetCookie().map((c) => c.split(';')[0]!).join('; ');
-    const consent = await t.req('GET', start.headers.get('location')!, undefined, { cookie });
-    const cb = await t.req('GET', consent.headers.get('location')!, undefined, { cookie });
-    return cb.headers.getSetCookie().find((c) => c.startsWith('cal_session='))!.split(';')[0]!;
-  };
   const as = async (email: string) => {
-    const cookie = await session(email);
+    const cookie = await sessionCookie(t, email);
     return (method: string, url: string, body?: unknown, headers: Record<string, string> = {}) => t.json(method, url, body, { cookie, ...headers });
   };
   return { t, jo: await as(JO), anna: await as(ANNA), bob: await as(BOB) };

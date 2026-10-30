@@ -8,6 +8,7 @@ import { TemplateStore } from './services/templateStore.js';
 import { CalendarService } from './services/calendar.js';
 import { MotivationService } from './services/motivation.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
+import { ChangeBus } from './services/changeBus.js';
 import { SettingsStore } from './services/settingsStore.js';
 import { SharedListService } from './services/sharedLists.js';
 import { ThemeStore, vetRestoredFile } from './services/themeStore.js';
@@ -40,6 +41,8 @@ export interface Ctx {
   templates: TemplateStore;
   /** Backups of every person's server data to their hidden Drive app folder (feature drive-backup). */
   backup: BackupService;
+  /** Every successful write of the API is reported here (ADR 0025); the live "changed" publisher listens. */
+  changes: ChangeBus;
   /** Web Push reminders: subscriptions, plans and the send loop (feature reminders). */
   push: PushService;
   /** TEST_MODE push recorder in place of the push services; null otherwise. */
@@ -107,7 +110,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const mocks = new Map<string, MockGoogleProvider>();
   const calendars = new Map<string, CalendarService>();
   const ctx: Ctx = {
-    config, clock, provider: prov, mock, settings, prefs, themes, canvas, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
+    config, clock, changes: new ChangeBus(), provider: prov, mock, settings, prefs, themes, canvas, templates, backup, push, pushRecorder, mockDrive, people, shared, motivation, calendar, overrides: {}, releaseNotes: loadReleaseNotes(config.changelogPath), health: null, personProvider, auth,
     mockFor(sub) {
       let m = mocks.get(sub);
       if (!m) mocks.set(sub, (m = new MockGoogleProvider({ dataDir: null, tz: config.tz, clock })));
