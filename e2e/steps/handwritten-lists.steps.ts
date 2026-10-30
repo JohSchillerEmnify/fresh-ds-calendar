@@ -153,3 +153,14 @@ When('I click the ink item number {int} with the mouse', async function (this: W
 Then('the item number {int} is an ink item', async function (this: World, n: number) {
   await expect(rows(this).nth(n - 1).getByTestId('ink-line')).toBeVisible();
 });
+
+Then('the checkbox of the item number {int} is right of its grip handle', async function (this: World, n: number) {
+  const row = rows(this).nth(n - 1);
+  const [c, g] = [await box(row.getByTestId('tasklist-item-checkbox')), await box(row.getByTestId('tasklist-item-grip'))];
+  expect(c.x).toBeGreaterThan(g.x);
+});
+Then('the writing of the item number {int} starts at least {int} pixels right of its grip handle', async function (this: World, n: number, gap: number) {
+  const row = rows(this).nth(n - 1);
+  const [w, g] = [await box(row.getByTestId('ink-line')), await box(row.getByTestId('tasklist-item-grip'))];
+  expect(w.x - (g.x + g.width)).toBeGreaterThanOrEqual(gap);
+});

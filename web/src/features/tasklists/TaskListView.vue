@@ -258,7 +258,7 @@ defineExpose({ root, busy });
   <section
     v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
     :style="{ '--c': cats.color(tl) }"
-    :data-collapsed="collapsed ? 'true' : 'false'" :class="{ ruled: writing && inkMode.ruled.value }"
+    :data-collapsed="collapsed ? 'true' : 'false'" :class="{ ruled: writing && inkMode.ruled.value, mirror: writing }"
   >
     <header class="head">
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
@@ -396,6 +396,10 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .ticked .inkcell::after { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1.6px; background: currentColor; }
 .nextline { padding-left: 44px; }
 /* where a pen is used the lines are ruled and a little taller, so a word fits on one */
+/* left-handed: checkbox on the right, grip on the left and a free strip before the writing, so the palm rests on the screen (decision G7) */
+html[data-hand='left'][data-touch] .mirror .row { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .mirror .inkcell { margin-left: 40px; }
+html[data-hand='left'][data-touch] .mirror .nextline { padding-left: 40px; padding-right: 44px; }
 .ruled { --ink-h: 52px; }
 .ruled .row { min-height: 52px; border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
 .inktools { margin-top: 4px; }

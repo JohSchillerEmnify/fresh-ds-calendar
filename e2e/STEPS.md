@@ -3351,6 +3351,8 @@ the damaged file is kept as {string} with its old content
 
 ```
 the Labs switch {string} is on
+the checkbox of the item number {int} is right of its grip handle
+the writing of the item number {int} starts at least {int} pixels right of its grip handle
 the Labs switch {string} is off
 the device reports pen support
 the device reports no pen support

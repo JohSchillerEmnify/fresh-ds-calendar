@@ -50,5 +50,5 @@ function pick(e: Event): void {
 .custom.on { background: var(--dot); }
 .custom input { opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
 /* left-handed: the tool row is mirrored (decision G7) */
-:global(html[data-hand='left'][data-touch]) .tools { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .tools { flex-direction: row-reverse; }
 </style>
