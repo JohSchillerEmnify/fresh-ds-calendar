@@ -100,6 +100,20 @@ Then('the task list {string} shows the done count {string}', async function (thi
   await expect(target).toHaveText(exactText(count));
 });
 
+Then('the task list {string} shows no done count', async function (this: World, title: string) {
+  await expect(this.taskCard(title)).toBeVisible();
+  await expect(this.taskCard(title).getByTestId('tasklist-card-count')).toHaveCount(0);
+});
+
+Then('the task list {string} shows the progress ring', async function (this: World, title: string) {
+  await expect(this.taskCard(title).getByTestId('tasklist-progress-ring')).toHaveCount(1);
+});
+
+Then('the task list {string} shows no progress ring', async function (this: World, title: string) {
+  await expect(this.taskCard(title)).toBeVisible();
+  await expect(this.taskCard(title).getByTestId('tasklist-progress-ring')).toHaveCount(0);
+});
+
 Then('the collapsed task list {string} lists the items {string}', async function (this: World, title: string, items: string) {
   await expect(this.taskCard(title).getByTestId('tasklist-card-items')).toHaveText(exactText(items));
 });
