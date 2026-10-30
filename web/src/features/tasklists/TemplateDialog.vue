@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ESTIMATE_MAX, ESTIMATE_MIN, LIST_ITEMS_MAX, TITLE_MAX } from '@calendar/shared/limits';
 /**
  * The template sheet of Settings › Task lists › Templates (feature tasklist-templates): "New template" (empty) or
  * "Edit template" with the name (required, free), the items one per line (so adding, removing, reordering and
@@ -46,11 +47,11 @@ function problem(): string {
   if (named) return named;
   if (form.estimate.trim()) {
     const n = Number(form.estimate);
-    if (!Number.isInteger(n) || n < 5 || n > 720) return t('tasks.validation.estimateRange');
+    if (!Number.isInteger(n) || n < ESTIMATE_MIN || n > ESTIMATE_MAX) return t('tasks.validation.estimateRange');
   }
   const lines = parseItems(form.items);
-  if (lines.length > 200) return t('tasks.validation.tooManyItems');
-  if (lines.some((l) => l.length > 200)) return t('tasks.validation.itemTooLong');
+  if (lines.length > LIST_ITEMS_MAX) return t('tasks.validation.tooManyItems');
+  if (lines.some((l) => l.length > TITLE_MAX)) return t('tasks.validation.itemTooLong');
   return '';
 }
 
@@ -84,7 +85,7 @@ async function save(): Promise<void> {
       <p v-if="error" class="err" role="alert" data-testid="template-error">{{ error }}</p>
       <TextField v-model="form.name" :label="t('tasks.templates.name')" maxlength="80" autocomplete="off" data-testid="template-name" />
       <TextField v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="5" data-testid="template-items" />
-      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" data-testid="template-estimate" />
+      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" :min="ESTIMATE_MIN" :max="ESTIMATE_MAX" step="5" data-testid="template-estimate" />
       <Select v-if="cats.on.value" v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" data-testid="template-category" />
       <div class="actions">
         <Button variant="text" data-testid="template-cancel" @click="emit('close')">{{ t('tasks.dialog.cancel') }}</Button>

@@ -27,7 +27,8 @@ defineProps<{ drift: 'float' | 'fade'; x: number }>();
 <style scoped>
 .ghost {
   --ghost: color-mix(in oklab, #fff 90%, var(--md-sys-color-primary, #e8650c));
-  position: absolute; left: 0; top: 4cqh; width: min(46cqh, 30px);
+  /* top is a fraction of what the bar shows (--d is what it clips above the 96 px layer) */
+  position: absolute; left: 0; top: calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.04); width: min(46cqh, 30px);
   /* longhands: the build's minifier turns a shorthand without a name into `animation: none` (the ghost would not float) */
   animation-duration: 8s; animation-timing-function: ease-in-out; animation-fill-mode: both;
 }

@@ -11,7 +11,7 @@ import { useUiStore } from '@/stores/ui';
 import { apiError, eventFixture, freshPinia, mockFetch } from './helpers';
 
 const list = (o: Partial<TaskList> = {}): TaskList => ({
-  kind: 'tasklist', id: 'G', calendarId: 'tasks', title: 'Groceries', date: '2026-10-12', time: null, estimateMinutes: null, categoryId: null, tags: [], color: '#000', etag: 'e1', updated: '',
+  kind: 'tasklist', id: 'G', calendarId: 'tasks', title: 'Groceries', date: '2026-10-12', time: null, estimateMinutes: null, recurrence: null, calendarColor: '#000', completedOn: null, canvas: null, categoryId: null, tags: [], color: '#000', etag: 'e1', updated: '',
   items: [{ id: 'm', title: 'Milk', done: false }, { id: 'e', title: 'Eggs', done: false }], doneCount: 0, totalCount: 2, ...o,
 });
 const tick = (l: TaskList, id: string): TaskList => ({ ...l, items: l.items.map((i) => (i.id === id ? { ...i, done: true } : i)), doneCount: 1 });

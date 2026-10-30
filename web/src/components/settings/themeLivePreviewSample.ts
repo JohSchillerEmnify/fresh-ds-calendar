@@ -41,7 +41,7 @@ export function sampleSegment(e: SampleEvent, title: string): Segment {
   const date = SAMPLE_DAYS[e.day];
   const item: CalendarEvent = {
     kind: 'event', id: e.id, calendarId: 'sample', title, description: '', location: '', allDay: false,
-    start: `${date}T${e.start}:00+00:00`, end: `${date}T${e.end}:00+00:00`, colorId: null, color: e.color, etag: '', updated: `${date}T00:00:00+00:00`,
+    start: `${date}T${e.start}:00+00:00`, end: `${date}T${e.end}:00+00:00`, colorId: null, color: e.color, etag: '', updated: `${date}T00:00:00+00:00`, reminders: { useDefault: true, minutes: [] },
   };
   return { item, date, allDay: false, startTime: e.start, endTime: e.end, startMin: minutes(e.start), endMin: minutes(e.end), first: true, last: true };
 }

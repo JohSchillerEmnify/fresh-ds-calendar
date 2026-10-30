@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Clock } from '../src/lib/clock.js';
-import { deltaE76, nearestGoogleColorId, GOOGLE_COLORS } from '../src/lib/colors.js';
+import { deltaE76, nearestGoogleColorId, GOOGLE_COLORS } from '@calendar/shared/colors';
 import { addDays, addMonthsClamp, formatInZone, isDateTime, isLocalDate, localDateOf, offsetMinutes, startOfLocalDay, zonedToUtc } from '../src/lib/time.js';
 import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 import { NotFoundError, PreconditionFailedError, ProviderError, ProviderUnavailableError } from '../src/providers/CalendarProvider.js';

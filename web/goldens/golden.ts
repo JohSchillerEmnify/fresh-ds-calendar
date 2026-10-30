@@ -56,7 +56,7 @@ export function list(o: Partial<Omit<TaskList, 'items'>> & { items?: [string, bo
   const items: TaskItem[] = pairs.map(([title, done], n) => ({ id: `i${n}`, title, done }));
   return {
     kind: 'tasklist', id: 'l1', calendarId: 'primary', title: 'Groceries', date: DAY, time: null, items, doneCount: items.filter((i) => i.done).length,
-    totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', etag: 'e', updated: '2030-01-01T00:00:00Z', ...rest,
+    totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: 'e', updated: '2030-01-01T00:00:00Z', ...rest,
   };
 }
 
@@ -72,7 +72,7 @@ export function list(o: Partial<Omit<TaskList, 'items'>> & { items?: [string, bo
 export function event(o: Partial<CalendarEvent> = {}): CalendarEvent {
   return {
     kind: 'event', id: 'e1', calendarId: 'primary', title: 'Team standup', description: '', location: '', allDay: false,
-    start: `${DAY}T09:00:00`, end: `${DAY}T10:30:00`, colorId: null, color: '#33b679', etag: 'e', updated: '2030-01-01T00:00:00Z', ...o,
+    start: `${DAY}T09:00:00`, end: `${DAY}T10:30:00`, colorId: null, color: '#33b679', reminders: { useDefault: true, minutes: [] }, etag: 'e', updated: '2030-01-01T00:00:00Z', ...o,
   };
 }
 

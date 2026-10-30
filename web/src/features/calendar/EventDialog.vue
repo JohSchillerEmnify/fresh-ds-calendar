@@ -176,7 +176,7 @@ function buildEvent(id: string, input: ReturnType<typeof toInput>): CalendarEven
     kind: 'event', id, calendarId: input.calendarId ?? 'primary', title: input.title, description: input.description ?? '', location: input.location ?? '', ...(input.place ? { place: input.place } : {}),
     allDay: input.allDay, start: input.start, end: input.end, colorId: input.colorId ?? null,
     color: googleColor(input.colorId)?.hex ?? calColor.value, etag: b?.etag ?? '', updated: b?.updated ?? '',
-    reminders: input.reminders ? { useDefault: input.reminders.useDefault, minutes: input.reminders.useDefault ? calDefaults.value : input.reminders.minutes } : b?.reminders,
+    reminders: input.reminders ? { useDefault: input.reminders.useDefault, minutes: input.reminders.useDefault ? calDefaults.value : input.reminders.minutes } : b?.reminders ?? { useDefault: true, minutes: calDefaults.value },
   };
 }
 
@@ -186,7 +186,7 @@ function birthdayEvent(id: string, base: CalendarEvent | null): CalendarEvent {
   return {
     kind: 'event', id, calendarId: base?.calendarId ?? f.calendarId, title: f.title.trim(), description: '', location: '', allDay: true, start: f.startDate,
     end: fromWallMinutes(wallMinutes(f.startDate, '00:00') + 1440).date, colorId: f.colorId || null, color: googleColor(f.colorId || null)?.hex ?? base?.color ?? calColor.value,
-    special: base?.special ?? 'birthday', ...(base?.dateLocked ? { dateLocked: true as const } : {}), etag: base?.etag ?? '', updated: base?.updated ?? '', reminders: base?.reminders,
+    special: base?.special ?? 'birthday', ...(base?.dateLocked ? { dateLocked: true as const } : {}), etag: base?.etag ?? '', updated: base?.updated ?? '', reminders: base?.reminders ?? { useDefault: true, minutes: calDefaults.value },
   };
 }
 

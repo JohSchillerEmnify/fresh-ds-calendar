@@ -265,6 +265,21 @@ describe('the device store', () => {
     expect(items.get('Dentist')!.etag).toBe('etag-2');
   });
 
+  it('a category change survives a restart before its full re-read: the restored device still asks for everything', async () => {
+    server();
+    const { device } = await session();
+    device.requestFull();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(stored('meta')!.needFull).toBe(true);
+    freshPinia();
+    const m = server();
+    const restored = useDeviceStore();
+    await restored.restore('/week/2026-10-12');
+    await restored.sync();
+    expect(m.calls.filter((c) => c.path === '/api/changes').map((c) => c.url.searchParams.has('cursor'))).toEqual([false]);
+    expect(restored.data!.needFull).toBeUndefined();
+  });
+
   it('an answer is not used when the session turns out to be another person than the stored one', async () => {
     server();
     await session();

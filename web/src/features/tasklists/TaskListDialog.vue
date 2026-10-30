@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ESTIMATE_MAX, ESTIMATE_MIN, TITLE_MAX } from '@calendar/shared/limits';
 /** Create / edit task list ('tasklist' dialog, props `{ mode: 'create', date (null = undated), time? }` or `{ mode: 'edit', id }`). */
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -212,7 +213,7 @@ function remove() {
         <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
       </div>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
-      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" maxlength="200" autocomplete="off" enterkeyhint="next" />
+      <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" :maxlength="TITLE_MAX" autocomplete="off" enterkeyhint="next" />
       <div class="two" :class="{ dated: !!form.date }">
         <div class="datecell">
           <TextField v-model="form.date" :label="t('tasks.dialog.date')" type="date" class="grow" data-testid="tasklist-date" />
@@ -220,7 +221,7 @@ function remove() {
         </div>
         <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" data-testid="tasklist-time" />
       </div>
-      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
+      <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" :min="ESTIMATE_MIN" :max="ESTIMATE_MAX" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
       <div v-if="cats.on.value" class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" />

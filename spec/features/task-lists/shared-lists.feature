@@ -60,6 +60,7 @@ Feature: Sharing task lists with another person
   @conflict
   Scenario: Editing a shared list that the other person changed in the meantime
     Given automatic sync is disabled
+    And the live connection is blocked
     And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
     And "jo@example.com" is signed in
     And I share the task list "Groceries" with "anna@example.com"

@@ -5,7 +5,7 @@ import { applyEntry, kindOf, localTaskList, renameId, renameItems, withPending, 
 
 const entry = (change: Change, extra: Partial<OutboxEntry> = {}): OutboxEntry => ({ key: 'k', person: 'p', seq: 1, change, title: 't', ...extra });
 const list = (): TaskList => ({
-  kind: 'tasklist', id: 'L', calendarId: 'c', title: 'Groceries', date: '2026-10-12', time: null, doneCount: 0, totalCount: 2, estimateMinutes: null, categoryId: null, tags: [],
+  kind: 'tasklist', id: 'L', calendarId: 'c', title: 'Groceries', date: '2026-10-12', time: null, doneCount: 0, totalCount: 2, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], calendarColor: '#000', completedOn: null, canvas: null,
   color: '#000', etag: 'e1', updated: '', items: [{ id: 'm', title: 'Milk', done: false }, { id: 'e', title: 'Eggs', done: false }],
 });
 

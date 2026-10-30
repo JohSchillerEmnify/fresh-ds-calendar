@@ -2,7 +2,7 @@ import path from 'node:path';
 import type { Category, Settings } from '../api/types.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import type { Clock } from '../lib/clock.js';
-import { nearestGoogleColorId } from '../lib/colors.js';
+import { nearestGoogleColorId } from '@calendar/shared/colors';
 import { formatInZone } from '../lib/time.js';
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'googleColorId'>[] = [

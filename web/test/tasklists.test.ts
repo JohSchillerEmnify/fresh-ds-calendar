@@ -34,7 +34,7 @@ function tl(id: string, o: Partial<TaskList> & { done?: boolean[] } = {}): TaskL
   const { done: _d, ...rest } = o;
   return {
     kind: 'tasklist', id, calendarId: 'primary', title: id, date: '2026-10-12', time: null, items, doneCount: items.filter((i) => i.done).length,
-    totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', etag: `"e-${id}"`, updated: 'x', ...rest,
+    totalCount: items.length, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: `"e-${id}"`, updated: 'x', ...rest,
   };
 }
 const seg = (item: TaskList, today = '2026-10-12') => itemSegments(item, today)[0];
@@ -601,7 +601,7 @@ describe('filters', () => {
     items.upsert(tl('A', { date: '2026-10-14', categoryId: 'work', tags: ['Urgent'] }));
     items.upsert(tl('B', { date: '2026-10-14', categoryId: 'work', tags: [] }));
     items.upsert(tl('C', { date: '2026-10-14', categoryId: 'home', tags: ['urgent'] }));
-    items.upsert({ kind: 'event', id: 'E', calendarId: 'p', title: 'E', description: '', location: '', allDay: true, start: '2026-10-14', end: '2026-10-15', colorId: null, color: '#000', etag: 'e', updated: 'x' });
+    items.upsert({ kind: 'event', id: 'E', calendarId: 'p', title: 'E', description: '', location: '', allDay: true, start: '2026-10-14', end: '2026-10-15', colorId: null, color: '#000', reminders: { useDefault: true, minutes: [] }, etag: 'e', updated: 'x' });
     let out: string[] = [];
     wrapper = mount(defineComponent({ setup() { const segs = useDaySegments(); return () => { out = segs('2026-10-14').map((s) => s.item.id); return h('div'); }; } }), { global: { plugins: [pinia, router] } });
     await flushPromises();
@@ -612,7 +612,7 @@ describe('filters', () => {
   });
   it('a multi-day event is a bar in the views, but on each of its days where there is no bar row (withSpans)', async () => {
     const { pinia } = await setup();
-    useItemsStore().upsert({ kind: 'event', id: 'M', calendarId: 'p', title: 'M', description: '', location: '', allDay: true, start: '2026-10-13', end: '2026-10-16', colorId: null, color: '#000', etag: 'e', updated: 'x' });
+    useItemsStore().upsert({ kind: 'event', id: 'M', calendarId: 'p', title: 'M', description: '', location: '', allDay: true, start: '2026-10-13', end: '2026-10-16', colorId: null, color: '#000', reminders: { useDefault: true, minutes: [] }, etag: 'e', updated: 'x' });
     let bars: string[] = [];
     let spans: string[] = [];
     wrapper = mount(defineComponent({ setup() {

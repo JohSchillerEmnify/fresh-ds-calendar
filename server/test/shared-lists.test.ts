@@ -89,6 +89,17 @@ describe('sharing a list', () => {
     } finally { t.cleanup(); }
   });
 
+  it('offers a person whose session predates the people list, once they use the app', async () => {
+    const { t, jo, anna } = await setup();
+    try {
+      // a session made before people.json existed (or whose entry was lost): the sign-in callback never recorded it
+      t.app.ctx.people.reset();
+      expect((await jo('GET', '/api/people')).body.people).toEqual([]);
+      await anna('GET', '/api/people');
+      expect((await jo('GET', '/api/people')).body.people.map((p: { email: string }) => p.email)).toEqual([ANNA]);
+    } finally { t.cleanup(); }
+  });
+
   it('offers the allowed people who signed in, without yourself', async () => {
     const { t, jo } = await setup();
     try {

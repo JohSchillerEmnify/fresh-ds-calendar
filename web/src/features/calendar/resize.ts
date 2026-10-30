@@ -6,6 +6,7 @@
  * leniency, so a drag that lands a pixel or two past a slot line does not jump a whole slot). Keeps at least 15 minutes
  * between start and end; a task list stops at 720 minutes (the server's `estimateMinutes` range), events at the day's end.
  */
+import { ESTIMATE_MAX } from '@calendar/shared/limits';
 import { shallowRef } from 'vue';
 import type { CalendarEvent, CalendarItem, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import type { Segment } from '@/lib/items';
@@ -20,7 +21,7 @@ export type ResizeEdge = 'top' | 'bottom';
 
 export const RESIZE_STEP = 15;
 export const RESIZE_MIN = 15;
-export const TASKLIST_MAX_MINUTES = 720;
+export const TASKLIST_MAX_MINUTES = ESTIMATE_MAX;
 /** Minutes a drag may fall short of a slot line and still snap to it. */
 const LENIENCY = 2;
 

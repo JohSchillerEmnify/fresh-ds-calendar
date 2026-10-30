@@ -35,6 +35,8 @@ export function sessionMiddleware(ctx: Ctx): MiddlewareHandler<AuthEnv> {
     }
     if (hit) {
       c.set('person', hit.session);
+      // a session from before the people list (or a lost entry) would otherwise never be offered in "Share with"
+      ctx.people.record(hit.session.sub, hit.session.email, hit.session.name);
       if (hit.extended) setSessionCookie(ctx, c, id!);
     }
     const path = c.req.path;

@@ -9,7 +9,7 @@ import { apiError, mockFetch } from './helpers';
 const person = (name: string): Person => ({ sub: name.toLowerCase(), name, email: `${name.toLowerCase()}@example.com`, initial: name[0]! });
 const list = (id: string, shared?: TaskList['shared']): TaskList => ({
   kind: 'tasklist', id, calendarId: shared ? 'shared' : 'tasks', title: 'Groceries', date: null, time: null, items: [], doneCount: 0, totalCount: 0,
-  estimateMinutes: null, categoryId: null, tags: [], color: '#039be5', etag: '"1"', updated: '2026-10-12T08:00:00+02:00', ...(shared ? { shared } : {}),
+  estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: '"1"', updated: '2026-10-12T08:00:00+02:00', ...(shared ? { shared } : {}),
 });
 
 describe('sharing helpers', () => {
