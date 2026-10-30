@@ -11,6 +11,7 @@ Feature: The Tasks view lists every open task list
     Given the calendar is empty
     And today is 2026-10-12
 
+  @ci
   Scenario: A task list made in the Tasks view has no date and stays out of the calendar and the tray
     When I create the task list "Taxes" in the Tasks view
     Then the Tasks view lists "Taxes" under "No date"

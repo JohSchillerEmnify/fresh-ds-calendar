@@ -9,6 +9,7 @@ Feature: Creating, editing and deleting events
     Given the calendar is empty
     And today is 2026-10-12
 
+  @ci
   Scenario: Create a timed event with the add button
     When I open the week view for 2026-10-12
     And I start creating an event

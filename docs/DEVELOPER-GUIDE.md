@@ -120,6 +120,8 @@ In practice:
    slow and only needed before a release.
 5. **Commit.** Use conventional commits (`feat:`, `fix:`, `docs:` …). They also drive the version number.
 
+CI checks every PR (and every push to main): `pnpm verify`, `pnpm audit`, CodeQL, the `@smoke` e2e scenarios and the Android unit tests. PRs from forks wait for the owner's approval before CI runs.
+
 Where things are:
 - `web/`: the Vue PWA.
 - `server/`: the Hono API.

@@ -1,7 +1,7 @@
 # e2e: executable Gherkin suite
 
-Runs `spec/features/**/*.feature` directly with `@playwright/test` 1.64.0 + `playwright-bdd` 9.2.1
-(Chromium, inside `mcr.microsoft.com/playwright:v1.64.0-noble`; versions must match). Lighthouse 13.5.0 is used by the
+Runs `spec/features/**/*.feature` directly with `@playwright/test` 1.64.1 + `playwright-bdd` 9.2.1
+(Chromium, inside `mcr.microsoft.com/playwright:v1.64.1-noble`; versions must match). Lighthouse 13.5.0 is used by the
 `@perf` audit step. Workspace package `@calendar/e2e`; not part of the app image (the Dockerfile installs with
 `--filter @calendar/server --filter @calendar/web`, and `e2e` is in `.dockerignore`).
 
@@ -21,7 +21,7 @@ pnpm -F @calendar/e2e check    # bddgen (fails on undefined steps) + tsc
 port (with `--expose-gc`), runs `bddgen && playwright test` in docker with `--network host`, writes the HTML report to
 `e2e/playwright-report/`, JSON to `e2e/results.json`, the server log to `e2e/server.log`, and stops the server.
 Env: `E2E_SPEC_DIR`, `E2E_SKIP_BUILD=1`, `E2E_SKIP_INSTALL=1`, `E2E_HOST_IP`, `E2E_SOFT_TEST_API=1` (diagnostics: a
-failing test-endpoint setup call warns instead of failing). Fallback if the 1.64.0 image is missing: pull
+failing test-endpoint setup call warns instead of failing). Fallback if the 1.64.1 image is missing: pull
 `v1.63.0-noble` and pin both `@playwright/test` and the image to 1.63.0.
 
 Projects: `mobile` (default, 375x812 touch, everything except `@desktop`), `desktop` (1280x800, everything except
