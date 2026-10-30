@@ -382,7 +382,7 @@ describe('M7 fail closed', () => {
     expect(() => assertSafeToStart(cfg({}), { NODE_ENV: 'production', ALLOW_INSECURE_MOCK: '1' })).not.toThrow();
     expect(() => assertSafeToStart(cfg({ PUBLIC_URL: 'http://localhost:3000' }), {})).not.toThrow();
     expect(() => assertSafeToStart(cfg({}), {})).not.toThrow();
-    expect(() => assertSafeToStart(cfg({ PROVIDER: 'google', PUBLIC_URL: 'https://cal.example' }), { NODE_ENV: 'production' })).not.toThrow();
+    expect(() => assertSafeToStart(cfg({ PROVIDER: 'google', PUBLIC_URL: 'https://cal.example' }), { NODE_ENV: 'production', TOKEN_ENC_KEY: Buffer.alloc(32, 1).toString('base64') })).not.toThrow();
   });
 });
 

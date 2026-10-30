@@ -16,6 +16,7 @@ services:
     environment:
       PROVIDER: google
       SEED: "false"
+      TOKEN_ENC_KEY: ${TOKEN_ENC_KEY:?set TOKEN_ENC_KEY in .env (scripts/vps.sh deploy adds it)}
       # Caddy sits in front and sets X-Forwarded-For: the door rate limit counts its last entry
       TRUST_PROXY: "1"
     volumes:

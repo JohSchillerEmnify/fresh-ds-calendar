@@ -65,15 +65,24 @@ REMOTE
     read -rp "GOOGLE_CLIENT_ID: " id
     read -rsp "GOOGLE_CLIENT_SECRET: " secret; echo
     read -rp "ALLOWED_EMAILS (comma-separated): " emails
+    # a rewrite keeps the existing token key: a new one would make everyone reconnect Google
+    keyline=$(on_vps "grep '^TOKEN_ENC_KEY=.' /opt/calendar/.env 2>/dev/null || true")
     printf 'CAL_DOMAIN=%s\nPUBLIC_URL=https://%s\nGOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nALLOWED_EMAILS=%s\nTZ=Europe/Berlin\n' \
       "$CAL_DOMAIN" "$CAL_DOMAIN" "$id" "$secret" "$emails" | on_vps 'mkdir -p /opt/calendar && umask 077 && cat > /opt/calendar/.env'
+    # the key that encrypts the stored Google tokens is made on the VPS and never leaves it
+    if [ -n "$keyline" ]; then printf '%s\n' "$keyline" | on_vps 'cat >> /opt/calendar/.env'
+    else on_vps 'echo "TOKEN_ENC_KEY=$(openssl rand -base64 32)" >> /opt/calendar/.env'; fi
     echo "written /opt/calendar/.env"
     ;;
   deploy)
     : "${CAL_DOMAIN:?set CAL_DOMAIN to the public host name, e.g. CAL_DOMAIN=cal.example.org scripts/vps.sh deploy}"
     on_vps 'test -f /opt/calendar/.env' || { echo "no /opt/calendar/.env yet: run scripts/vps.sh env" >&2; exit 1; }
+    # a hand-edited .env without a final newline would glue an appended line onto its last one
+    on_vps "sed -i -e '\$a\\' /opt/calendar/.env"
     # an .env from before CAL_DOMAIN existed gets the line (Caddy and compose need it)
     on_vps "grep -q '^CAL_DOMAIN=.' /opt/calendar/.env || echo 'CAL_DOMAIN=$CAL_DOMAIN' >> /opt/calendar/.env"
+    # an .env from before token encryption gets a key (made on the VPS; losing it only means signing in again)
+    on_vps "grep -q '^TOKEN_ENC_KEY=.' /opt/calendar/.env || echo \"TOKEN_ENC_KEY=\$(openssl rand -base64 32)\" >> /opt/calendar/.env"
     scp "${OPTS[@]}" -q "$here/deploy/vps/compose.yml" "$here/deploy/vps/Caddyfile" "$HOST:/opt/calendar/"
     version="$("$here/scripts/version.sh")+$(git -C "$here" rev-parse --short HEAD)"
     docker build -q -t calendar:latest --build-arg "APP_VERSION=$version" "$here"

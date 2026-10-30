@@ -1,9 +1,10 @@
 /** Pre-public hardening (PENTEST F1): inherited object keys in a session cookie are never a session. */
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { SessionStore } from '../src/auth/sessions.js';
+import { SESSION_ABSOLUTE_MAX_MS, SESSION_TTL_MS, SessionStore } from '../src/auth/sessions.js';
 import { makeApp, type TestApp } from './helpers.js';
 
 const KEYS = ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf'];
@@ -17,19 +18,47 @@ describe('F1 session store: prototype keys', () => {
     }
   });
 
-  it('keeps the file format: a plain id -> session object, read back after a restart', () => {
+  it('stores only sha256(id) as the key, read back after a restart', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-sess-'));
     try {
       const file = path.join(dir, 'sessions.json');
       const a = new SessionStore(file, () => 1000);
       const id = a.create({ sub: 'u1', email: 'a@example.com' });
       const onDisk = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, { sub: string; expiresAt: number }>;
-      expect(Object.keys(onDisk)).toEqual([id]);
-      expect(onDisk[id]!.sub).toBe('u1');
+      const h = createHash('sha256').update(id).digest('hex');
+      expect(Object.keys(onDisk)).toEqual([h]);
+      expect(fs.readFileSync(file, 'utf8')).not.toContain(id);
+      expect(onDisk[h]!.sub).toBe('u1');
       expect(new SessionStore(file, () => 2000).get(id)?.session.sub).toBe('u1');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('session ids at rest', () => {
+  it('hashes legacy raw-id entries in place, so nobody is signed out', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cal-sess-'));
+    try {
+      const file = path.join(dir, 'sessions.json');
+      fs.writeFileSync(file, JSON.stringify({ rawIdValue: { sub: 'u1', email: 'a@example.com', expiresAt: 5000 } }));
+      const s = new SessionStore(file, () => 1000);
+      expect(s.get('rawIdValue')?.session.sub).toBe('u1');
+      const onDisk = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, unknown>;
+      expect(Object.keys(onDisk)).toEqual([createHash('sha256').update('rawIdValue').digest('hex')]);
+      expect(new SessionStore(file, () => 1000).get('rawIdValue')?.session.sub).toBe('u1');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('ends a session at the absolute cap even when it is used every day', () => {
+    let now = 0;
+    const s = new SessionStore(null, () => now);
+    const id = s.create({ sub: 'u1', email: 'a@example.com' });
+    for (now = 0; now < SESSION_ABSOLUTE_MAX_MS; now += SESSION_TTL_MS / 2) expect(s.get(id)).not.toBeNull();
+    now = SESSION_ABSOLUTE_MAX_MS + 1;
+    expect(s.get(id)).toBeNull();
   });
 });
 

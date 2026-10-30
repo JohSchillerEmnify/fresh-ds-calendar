@@ -76,7 +76,7 @@ once per place it is used:
 
 The VPS compose file (`deploy/vps/compose.yml`) reads `.env` (mode 600, not in git) and sets `PROVIDER=google` and
 `SEED=false` itself. `scripts/vps.sh env` writes `CAL_DOMAIN`, `PUBLIC_URL=https://$CAL_DOMAIN`, the Google client,
-`ALLOWED_EMAILS` and `TZ`; edit other values on the VPS, then deploy again (or `docker compose up -d` in
+`ALLOWED_EMAILS` and `TZ`, plus a freshly generated `TOKEN_ENC_KEY` (`deploy` adds one to an older `.env` that lacks it); edit other values on the VPS, then deploy again (or `docker compose up -d` in
 `/opt/calendar`).
 
 | Variable | Meaning |
@@ -85,6 +85,7 @@ The VPS compose file (`deploy/vps/compose.yml`) reads `.env` (mode 600, not in g
 | `PUBLIC_URL` | external base URL, e.g. `https://cal.home.example.com` (OAuth redirect, cookie `Secure`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth client (type *Web application*) |
 | `ALLOWED_EMAILS` | comma-separated Google accounts allowed to sign in |
+| `TOKEN_ENC_KEY` | AES-256-GCM key (32 bytes, base64) for the stored Google refresh tokens (ADR 0026); generated on the VPS by `env`/`deploy`, never leaves it. The server refuses to start with `PROVIDER=google` without it. Losing or changing it only means everyone signs in again |
 | `DOOR_API_TOKEN`, `DOOR_PERSON` | optional door plugin (ADR 0004, `server/src/plugins/door/README.md`): the board's bearer key and the person it sees; empty = no door |
 
 All variables (defaults from `server/src/config.ts`):
@@ -113,6 +114,7 @@ All variables (defaults from `server/src/config.ts`):
 | `MAP_TILE_URL` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | map picture template the device loads directly (https only, needs `{z}` `{x}` `{y}`). Its origin is added to the CSP `img-src` and `connect-src` (the service worker keeps shown pictures for offline use); on the VPS also change the Caddyfile CSP |
 | `ALLOW_INSECURE_MOCK` | – | `1` lets the mock (no sign-in) start on a public HTTPS address or in production |
 | `CHANGELOG_PATH` | `CHANGELOG.md` | source of the in-app release notes |
+| `TOKEN_ENC_KEY` | – | key for the stored refresh tokens (see above); required with `PROVIDER=google` unless `TEST_MODE=1` |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | – | Web Push keys; without them the server generates a pair on first start into `DATA_DIR/vapid.json` |
 | `WEB_DIST` | `web/dist` | the built web app the server serves |
 
