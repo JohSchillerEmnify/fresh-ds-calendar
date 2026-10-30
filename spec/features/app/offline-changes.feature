@@ -1,28 +1,32 @@
 @offline @offline-changes @id:offline-changes
 Feature: Changes I make without a connection are kept on this device and sent later
-  The device store comes first for writing too (ADR 0025): a change is applied on this device at once, marked as not
-  synced yet, and put in an outbox that is sent to the server in order as soon as there is a connection. The server
-  writes to Google and answers with the stored version, which replaces the device copy and takes the mark away.
-  This feature covers events, task lists and their items; settings, preferences, themes, templates and the Canvas
-  follow in a later slice (open question). Reading offline is feature last-known-state.
+  The device store comes first for writing too (ADR 0025): a change is applied on this device at once, written to
+  the outbox, and sent to the server in order as soon as there is a connection. The server writes to Google and
+  answers with the stored version, which replaces the device copy. Nothing marks a change as unsent and nothing
+  counts them (ADR 0031); the person simply sees what they did.
+  Only when no send or sync has succeeded for 5 minutes does a "sync failed" icon appear in the top bar, beside the
+  sync status; tapping it shows when the last sync succeeded and which changes are not synced yet. The next
+  successful send or sync takes the icon away. The sync error banner is not shown for a send that fails.
+  This feature covers events, task lists and their items; settings, preferences, themes, templates, the Canvas and
+  sharing follow in slice 3. Reading offline is feature last-known-state.
   The outbox is sent when the app opens, regains focus or the connection, at the polling interval, and once a change
   reaches the server every other open app takes it in within about a second (feature last-known-state, rule "Live sync").
   A failed send because of the network, an unreachable Google or an expired session never loses the change: it stays
-  in the outbox. A change the server refuses is undone on this device and the person is told.
-  If the same thing was changed elsewhere meanwhile, the last change wins (ADR 0025): the change that reaches the
-  server last is applied on top of whatever is there, and only the fields it touches change.
-  The outbox belongs to the person who made the changes: it is never sent under another person.
-  The look and place of the "not synced yet" mark come from a design canvas mockup first; the scenarios name only
-  that an entry is marked, and a count of unsent changes.
+  in the outbox. A change the server refuses is undone on this device, and a persistent notice tells the person
+  with "Edit again", which reopens the form with what they typed.
+  If the same thing was changed elsewhere meanwhile, the last change wins (ADR 0031): the change that reaches the
+  server last is applied on top of whatever is there, and only the fields it touches change; the other side is not
+  told.
+  The outbox belongs to the person who made the changes and is never sent under another person.
 
   Background:
     Given the calendar is empty
     And the time is 2026-10-12 08:12
 
-  Rule: A change made offline shows at once, is marked, and is sent when the connection is back
+  Rule: A change made offline shows at once and is sent when the connection is back
 
     @backlog
-    Scenario: Ticking an item offline shows it ticked at once, marked, and sends it later
+    Scenario: Ticking an item offline shows it ticked at once and sends it later
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
         | Milk | no   |
@@ -33,9 +37,9 @@ Feature: Changes I make without a connection are kept on this device and sent la
       When I expand the task list "Groceries"
       And I tick the item "Milk"
       Then the item "Milk" is ticked
-      And the item "Milk" is marked as not synced yet
-      And the app counts 1 unsent change
+      And this device keeps 1 unsent change
       And I do not see the sync error banner
+      And I do not see the sync failed icon
       And the server has the task list "Groceries" with items:
         | item | done |
         | Milk | no   |
@@ -43,8 +47,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       When the network connection is restored
       And I wait until the changes are sent
       Then the item "Milk" is ticked
-      And the item "Milk" is not marked as not synced yet
-      And the app counts no unsent changes
+      And this device keeps no unsent changes
       And the server has the task list "Groceries" with items:
         | item | done |
         | Milk | yes  |
@@ -65,7 +68,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I rename the item "Milk" to "Oat milk"
       And I delete the item "Eggs"
       And the undo time is over
-      Then the app counts 4 unsent changes
+      Then this device keeps 4 unsent changes
       And the expanded task list items are "Oat milk, Butter"
       When the network connection is restored
       And I wait until the changes are sent
@@ -73,7 +76,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | item     | done |
         | Oat milk | no   |
         | Butter   | yes  |
-      And the app counts no unsent changes
+      And this device keeps no unsent changes
 
     @backlog
     Scenario: Creating an event offline shows it at once and keeps its place when it is sent
@@ -87,12 +90,10 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | end time   | 11:00   |
       And I save the event
       Then the event "Dentist" is positioned on 2026-10-13 from 10:00 to 11:00
-      And the event "Dentist" is marked as not synced yet
       And the server has no event "Dentist"
       When the network connection is restored
       And I wait until the changes are sent
       Then the event "Dentist" is positioned on 2026-10-13 from 10:00 to 11:00
-      And the event "Dentist" is not marked as not synced yet
       And the server has the event "Dentist" on 2026-10-13 from 10:00 to 11:00
 
     @backlog
@@ -108,12 +109,10 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | end time   | 15:00         |
       And I save the event
       Then the event "Dentist Meyer" is positioned on 2026-10-13 from 14:00 to 15:00
-      And the event "Dentist Meyer" is marked as not synced yet
       And the server has the event "Dentist" on 2026-10-13 from 10:00 to 11:00
       When the network connection is restored
       And I wait until the changes are sent
-      Then the event "Dentist Meyer" is not marked as not synced yet
-      And the server has the event "Dentist Meyer" on 2026-10-13 from 14:00 to 15:00
+      Then the server has the event "Dentist Meyer" on 2026-10-13 from 14:00 to 15:00
       And the server has no event "Dentist"
 
     @backlog
@@ -126,7 +125,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I delete the event
       And the undo time is over
       Then I do not see the event "Dentist"
-      And the app counts 1 unsent change
+      And this device keeps 1 unsent change
       And the server has the event "Dentist" on 2026-10-13 from 10:00 to 11:00
       When the network connection is restored
       And I wait until the changes are sent
@@ -143,7 +142,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I delete the event
       And I undo the deletion
       Then I see the event "Dentist" on 2026-10-13
-      And the app counts no unsent changes
+      And this device keeps no unsent changes
 
     @backlog
     Scenario: A task list created offline can be changed before it was ever sent and keeps its place
@@ -157,16 +156,14 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | items | Passport; Sunscreen  |
       And I save the task list
       Then I see the task list "Packing" on 2026-10-14
-      And the task list "Packing" is marked as not synced yet
       When I expand the task list "Packing"
       And I tick the item "Passport"
-      Then the app counts 2 unsent changes
+      Then this device keeps 2 unsent changes
       And the server has no task list "Packing"
       When the network connection is restored
       And I wait until the changes are sent
       Then the task list "Packing" is expanded
       And the item "Passport" is ticked
-      And the task list "Packing" is not marked as not synced yet
       And the server has the task list "Packing" with items:
         | item      | done |
         | Passport  | yes  |
@@ -186,11 +183,9 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | title | Weekend groceries |
       And I save the task list
       Then I see the task list "Weekend groceries" on 2026-10-12
-      And the task list "Weekend groceries" is marked as not synced yet
       When the network connection is restored
       And I wait until the changes are sent
-      Then the task list "Weekend groceries" is not marked as not synced yet
-      And the server has the task list "Weekend groceries" with items:
+      Then the server has the task list "Weekend groceries" with items:
         | item | done |
         | Milk | no   |
       And the server has no task list "Groceries"
@@ -207,13 +202,13 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I delete the task list
       And the undo time is over
       Then I do not see the task list "Groceries"
-      And the app counts 1 unsent change
+      And this device keeps 1 unsent change
       When the network connection is restored
       And I wait until the changes are sent
       Then the server has no task list "Groceries"
 
     @backlog
-    Scenario: A change made offline is still there, and still marked, after the app opens again offline
+    Scenario: A change made offline is still there after the app opens again offline
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
         | Milk | no   |
@@ -225,8 +220,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       When I open the app again
       And I expand the task list "Groceries"
       Then the item "Milk" is ticked
-      And the item "Milk" is marked as not synced yet
-      And the app counts 1 unsent change
+      And this device keeps 1 unsent change
 
     @backlog
     Scenario: The app closed before the changes were sent sends them the next time it opens
@@ -242,7 +236,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And the network connection is restored
       And I open the app
       And I wait until the changes are sent
-      Then the app counts no unsent changes
+      Then this device keeps no unsent changes
       And the server has the task list "Groceries" with items:
         | item | done |
         | Milk | yes  |
@@ -258,13 +252,60 @@ Feature: Changes I make without a connection are kept on this device and sent la
       When I expand the task list "Groceries"
       And I tick the item "Milk"
       Then the item "Milk" is ticked
-      And the item "Milk" is marked as not synced yet
       When Google becomes available again
       And I wait until the changes are sent
-      Then the item "Milk" is not marked as not synced yet
+      Then the server has the task list "Groceries" with items:
+        | item | done |
+        | Milk | yes  |
+
+    @backlog
+    Scenario: After 5 minutes without a successful sync the sync failed icon shows what is not synced
+      Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
+        | item | done |
+        | Milk | no   |
+      And automatic sync is disabled
+      And I have seen the day view for 2026-10-12
+      And the network connection is lost
+      And I expand the task list "Groceries"
+      And I tick the item "Milk"
+      When 4 minutes pass
+      Then I do not see the sync failed icon
+      When 1 minute passes
+      Then I see the sync failed icon
+      And I do not see the sync error banner
+      When I tap the sync failed icon
+      Then I am told the last successful sync was at "08:12"
+      And the unsent changes list shows "Milk ticked"
+      When the network connection is restored
+      And I wait until the changes are sent
+      Then I do not see the sync failed icon
       And the server has the task list "Groceries" with items:
         | item | done |
         | Milk | yes  |
+
+    @backlog
+    Scenario: An unreachable Google for 5 minutes shows the sync failed icon too
+      Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
+      And automatic sync runs every 30 seconds
+      And I have seen the week view for 2026-10-12
+      And Google becomes unavailable
+      When 5 minutes pass
+      Then I see the sync failed icon
+      When Google becomes available again
+      And I wait for the automatic sync
+      Then I do not see the sync failed icon
+
+    @backlog
+    Scenario: With nothing to send the icon still shows after 5 minutes of failing syncs and says so
+      Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
+      And automatic sync runs every 30 seconds
+      And I have seen the week view for 2026-10-12
+      And the network connection is lost
+      When 5 minutes pass
+      Then I see the sync failed icon
+      When I tap the sync failed icon
+      Then I am told the last successful sync was at "08:12"
+      And the unsent changes list is empty
 
   Rule: When the same thing was changed elsewhere meanwhile, the last change wins and nothing is lost silently
 
@@ -352,9 +393,30 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I wait until the changes are sent
       Then I am told that the change to "Dentist Meyer" was not saved because it was deleted elsewhere
       And I do not see the event "Dentist Meyer"
-      And the app counts no unsent changes
-      When I dismiss the notice
+      And this device keeps no unsent changes
+      When I press Edit again in the notice
+      Then the event form shows:
+        | title | Dentist Meyer |
+      When I cancel the event dialog
+      And I dismiss the notice
       Then I am not told that a change was not saved
+
+    @backlog
+    Scenario: A tick in a task list deleted elsewhere is not saved and I am told
+      Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
+        | item | done |
+        | Milk | no   |
+      And automatic sync is disabled
+      And I have seen the day view for 2026-10-12
+      And the network connection is lost
+      And I expand the task list "Groceries"
+      And I tick the item "Milk"
+      And Google deletes the task list "Groceries"
+      When the network connection is restored
+      And I wait until the changes are sent
+      Then I am told that the change to "Milk" was not saved because it was deleted elsewhere
+      And the notice offers no Edit again
+      And I do not see the task list "Groceries"
 
     @backlog
     Scenario: A deletion wins over a change made elsewhere
@@ -388,7 +450,10 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then I am told that the change to "Dentist Meyer" was not saved because the server refused it
       And the event "Dentist" is positioned on 2026-10-13 from 10:00 to 11:00
       And I do not see the event "Dentist Meyer"
-      And the app counts no unsent changes
+      And this device keeps no unsent changes
+      When I press Edit again in the notice
+      Then the event form shows:
+        | title | Dentist Meyer |
 
     @backlog
     Scenario: A refused change does not hold back the changes after it
@@ -406,6 +471,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       When the network connection is restored
       And I wait until the changes are sent
       Then I am told that the change to "Milk" was not saved because the server refused it
+      And the notice offers no Edit again
       And the item "Milk" is not ticked
       And the item "Eggs" is ticked
       And the server has the task list "Groceries" with items:
@@ -425,57 +491,12 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And the app has synced this device
       And their session expires
       When I tick the item "Milk" of the task list "Groceries" in the Tasks view
-      Then the item "Milk" is marked as not synced yet
-      And they are asked to sign in with Google again
+      Then they are asked to sign in with Google again
       And this device keeps 1 unsent change
       When they sign in with Google again
       And I wait until the changes are sent
       Then the item "Milk" of the task list "Groceries" in the Tasks view is ticked
-      And the item "Milk" is not marked as not synced yet
       And the server has the task list "Groceries" with items:
-        | item | done |
-        | Milk | yes  |
-        | Eggs | no   |
-
-    @signin @backlog
-    Scenario: Another person signing in does not send my changes under their name and is asked about them
-      Given "jo@example.com" and "anna@example.com" may use the calendar
-      And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
-      And "jo@example.com" is signed in
-      And automatic sync is disabled
-      And I open the Tasks view
-      And the app has synced this device
-      And their session expires
-      And I tick the item "Milk" of the task list "Groceries" in the Tasks view
-      And they are asked to sign in with Google again
-      When "anna@example.com" signs in with Google
-      Then they are asked whether to delete 1 unsent change of "jo@example.com"
-      And the server has the task list "Groceries" with items:
-        | item | done |
-        | Milk | no   |
-        | Eggs | no   |
-      When they choose to delete the unsent changes
-      Then this device keeps no unsent changes
-      And "anna@example.com" has no task list "Groceries"
-
-    @signin @backlog
-    Scenario: Going back from that question keeps the changes for the person they belong to
-      Given "jo@example.com" and "anna@example.com" may use the calendar
-      And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
-      And "jo@example.com" is signed in
-      And automatic sync is disabled
-      And I open the Tasks view
-      And the app has synced this device
-      And their session expires
-      And I tick the item "Milk" of the task list "Groceries" in the Tasks view
-      And "anna@example.com" signs in with Google
-      And they are asked whether to delete 1 unsent change of "jo@example.com"
-      When they choose to go back
-      Then they see the sign-in page
-      And this device keeps 1 unsent change
-      When "jo@example.com" signs in with Google
-      And I wait until the changes are sent
-      Then the server has the task list "Groceries" with items:
         | item | done |
         | Milk | yes  |
         | Eggs | no   |
@@ -493,7 +514,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
       When they ask to sign out in the settings
       Then they are asked whether to sign out and lose 1 unsent change
       When they choose to stay signed in
-      Then the app counts 1 unsent change
+      Then this device keeps 1 unsent change
       When they ask to sign out in the settings
       And they sign out anyway
       Then they see the sign-in page
