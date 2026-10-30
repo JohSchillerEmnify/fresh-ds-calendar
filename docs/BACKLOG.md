@@ -8,10 +8,6 @@ Tracked here so it survives across sessions. Newest first within each section. M
   device store): red once in a `@last-known-state|@sync|@crud` run, green 2/2 alone. Likely state left by the scenario
   before it; find the leak (falsify) and fix the test or the wipe.
 
-- **Scene visitor leaves the top bar at the top edge** (2026-10-30, red on main 0b65029 and on the clock fix):
-  theme-scenes "The visitor flies across the top bar scene" fails on mobile: at 20 % of the flight the visitor's top edge
-  is 1.8 px above the bar (`Expected >= 0, Received -1.76`). Root-cause first (header/scene layout changes since 10-26?).
-
 - **Approaching card: back-to-back entries cover the titles of the ones before them** (owner, 2026-10-26, screenshot,
   phone, live 0.23.0+14aeaaf). Four entries in quick succession in two lanes (Bachata Sensual → HipHop, Pauke
   Retournieren → Hellbreakers): the two in front have their titles behind the bars that follow, so "Bachata Sensual"
