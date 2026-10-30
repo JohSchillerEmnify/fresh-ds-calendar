@@ -9,31 +9,38 @@ Feature: Labs: handwritten lists
   removing and the done count work as for any item. Writing happens in the open list (sheet or expanded card), in the new
   list form and on Canvas notes; everywhere else (calendar cards, the tray, the Tasks view) ink items are shown
   read-only and scaled down.
-  Pen (Apple Pencil, Windows pen, Android stylus, with pressure) and mouse draw; a finger keeps scrolling and tapping; a
-  resting palm never draws. Ink is stored on our server per person with a copy on the device (readable offline), is
-  backed up with the server's files to Drive, and Google Calendar only gets a placeholder title for an ink item.
-  A list shared with another person shares its ink like its items.
+  Pen (Apple Pencil, Windows pen, Android stylus, with pressure) and mouse draw; by default a finger keeps scrolling and
+  tapping (the Labs setting "Draw with finger" changes that); a resting palm never draws. Ink is stored on our server per
+  person with a copy on the device (readable offline), is backed up with the server's files to Drive, and Google Calendar
+  only gets a placeholder title for an ink item. A list shared with another person shares its ink like its items.
+  Undo: a small undo button beside the writing mode switch takes back the last stroke while the dialog is open; the Apple
+  Pencil double tap does the same where the device passes it on to the browser (best effort, not guaranteed).
 
-  ASSUMPTIONS (the owner has not confirmed them; each is tagged in the scenarios where it matters)
+  Decisions (owner, 2026-10-30)
   A1. "Per item": every ink item is one line of ink drawn on its own ruled line (not one page of ink per list).
   A2. Switching the feature off leaves existing ink items visible, read-only and still tickable; they are not deleted.
   A3. An ink item has no title, so Google shows the placeholder "Handwritten item" for it (wording to confirm).
   A4. The writing mode is remembered per device, not per list.
   A5. Items written in TEXT mode are ordinary items; nothing marks them as written by hand.
   A6. "Large device" = a viewport as wide as an iPad (768 px or more) or a desktop that reports pen support.
+  Q1. Undo: an undo button next to the mode switch undoes the last stroke while the dialog is open; Apple Pencil double
+      tap = undo as well, best effort where the device passes it to the browser.
+  Q2. Eraser: the pen's eraser end (e.g. Surface pen, pointer eraser button) erases the strokes it touches; an eraser
+      button toggles erase mode (for the Apple Pencil, which has no eraser end).
+  Q3. Limit: about 200 KB of ink per list; when reached the app says the list is full and suggests a new list; no more
+      strokes are taken.
+  Q4. Colour: default is the theme's text colour; a few fixed presets plus "custom" (colour picker) can be chosen; every
+      colour is adjusted so it stays readable in light and dark. The line width follows the pen pressure.
+  Q5. One list can mix ink and text items; the writing mode decides how the NEXT item is written.
+  Q6. The pen on an existing ink item keeps writing on that line (adds strokes); it does not replace the line.
+  Q7. Lists from templates and repeating lists copy their ink items.
+  Q8. A Labs setting "Draw with finger", off by default. When on, a finger draws in the writing area and scrolling there
+      takes two fingers. A resting palm never draws in either case.
+  Q9. A phone where a stylus is used or reported gets the same ruled writing dialog as the tablet (one component), sized
+      to fit the phone window. A phone without a pen keeps the unchanged dialog.
 
-  OPEN QUESTIONS (no scenario until answered)
-  Q1. Undo of the last stroke: wanted? How (a button, a pen double tap, a two-finger tap)? Does it survive closing the
-      dialog? Meanwhile the way to correct ink is to remove the ink item and write it again.
-  Q2. Eraser: is the pen's eraser end (Apple Pencil has none; Surface pen does) or an eraser button wanted?
-  Q3. Does an ink item have a size limit (strokes or bytes), and what is said when it is reached?
-  Q4. Ink colour and line width: fixed (follows the theme, dark mode inverts) or chosen?
-  Q5. Can one list mix ink items and text items? (assumed yes: the mode decides how the NEXT item is written.)
-  Q6. Rename: tapping an ink item rewrites it (replace) or adds strokes (extend)?
-  Q7. Lists from templates and repeating lists: do they copy ink items? (assumed yes.)
-  Q8. Palm rejection: pen hovering/touching makes touches in the same moment ignored; a finger alone on the writing
-      area never draws. Is a finger drawing ever wanted (a switch)? Assumed never.
-  Q9. Android phones with a stylus: the dialog stays as on a phone; is that right for a large stylus phone?
+  ASSUMPTIONS (not yet confirmed by the owner)
+  A7. The chosen ink colour is remembered per device, like the writing mode (A4).
 
   Background:
     Given the calendar is empty
@@ -90,7 +97,7 @@ Feature: Labs: handwritten lists
       When I delete the item number 2
       Then the task list "Groceries" shows the done count "0/2"
 
-  Rule: Pen and mouse draw, a finger and a resting palm do not
+  Rule: Pen and mouse draw, a finger and a resting palm do not (a finger draws only with the setting "Draw with finger")
 
     Background:
       Given the Labs switch "Handwritten lists" is on
@@ -107,7 +114,8 @@ Feature: Labs: handwritten lists
       Then the stroke is drawn on the line
 
     @mobile @backlog
-    Scenario: A finger scrolls the list instead of drawing
+    Scenario: A finger scrolls the list instead of drawing when "Draw with finger" is off
+      Given the Labs setting "Draw with finger" is off
       When I swipe up on the writing area with a finger
       Then the list scrolls
       And nothing is drawn
@@ -122,7 +130,7 @@ Feature: Labs: handwritten lists
       When I tap the ink item number 1 with a finger
       Then the item number 1 is ticked and nothing is drawn
 
-  Rule: On large devices the list dialog is larger and ruled; on a phone it stays as it is
+  Rule: The list dialog is larger and ruled where a pen is used, sized to the window; a phone without a pen keeps it as it is
 
     Background:
       Given the Labs switch "Handwritten lists" is on
@@ -147,10 +155,18 @@ Feature: Labs: handwritten lists
       And the new list form shows the writing mode switch with the pen icon
 
     @mobile @backlog
-    Scenario: On a phone the dialog is unchanged and the switch is still there
+    Scenario: On a phone without a pen the dialog is unchanged and the switch is still there
+      Given the device reports no pen support
       When I open the new task list form
       Then the dialog is as large as without the feature
       And the new list form shows the writing mode switch with the pen icon
+
+    @mobile @backlog
+    Scenario: On a phone where a pen is used the same ruled dialog fits the window
+      Given the device reports pen support
+      When I open the new task list form
+      Then the dialog shows ruled lines to write on
+      And the dialog fits the window
 
   Rule: In text mode the fields are ordinary text fields the device can recognise writing in
 
@@ -248,6 +264,166 @@ Feature: Labs: handwritten lists
       Then the task list "Groceries" shows 2 ink items, scaled down
       And the item writing area offers no writing mode switch
       And I can still tick the item number 1
+
+  Rule: A finger draws only when the Labs setting "Draw with finger" is on (decision Q8)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+
+    @backlog
+    Scenario: "Draw with finger" is off until switched on
+      When I open the settings
+      Then the Labs setting "Draw with finger" is off
+
+    @mobile @backlog
+    Scenario: With the setting on a finger draws on the writing area
+      Given the Labs setting "Draw with finger" is on
+      And the expanded task list "Notes" has more ink items than fit the screen
+      When I draw a stroke with a finger
+      Then the stroke is drawn on the line
+
+    @mobile @backlog
+    Scenario: With the setting on two fingers scroll the writing area
+      Given the Labs setting "Draw with finger" is on
+      And the expanded task list "Notes" has more ink items than fit the screen
+      When I swipe up on the writing area with two fingers
+      Then the list scrolls
+      And nothing is drawn
+
+    @mobile @backlog
+    Scenario: With the setting on a resting palm still does not draw
+      Given the Labs setting "Draw with finger" is on
+      And the expanded task list "Notes" has more ink items than fit the screen
+      When I rest my palm on the writing area and draw a stroke with the pen
+      Then only the pen stroke is drawn
+
+  Rule: Undo takes back the last stroke while the dialog is open (decision Q1)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And I open the new task list form
+
+    @backlog
+    Scenario: The undo button removes the last stroke
+      When I draw 2 strokes with the pen
+      And I press the undo button
+      Then the writing area shows 1 stroke
+
+    @backlog
+    Scenario: The Apple Pencil double tap undoes the last stroke where the device passes it on
+      Given the device passes the pen double tap on
+      When I draw 2 strokes with the pen
+      And I double tap the pen
+      Then the writing area shows 1 stroke
+
+  Rule: The eraser removes strokes (decision Q2)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And I open the new task list form
+
+    @backlog
+    Scenario: The eraser end of the pen erases the strokes it touches
+      Given I have drawn 2 strokes with the pen
+      When I touch the first stroke with the eraser end of the pen
+      Then the writing area shows 1 stroke
+
+    @backlog
+    Scenario: The eraser button switches to erase mode for a pen without an eraser end
+      Given I have drawn 2 strokes with the pen
+      When I press the eraser button
+      And I touch the first stroke with the pen
+      Then the writing area shows 1 stroke
+      When I press the eraser button
+      And I draw a stroke with the pen
+      Then the writing area shows 2 strokes
+
+  Rule: A list holds about 200 KB of ink (decision Q3)
+
+    @backlog
+    Scenario: A full list says so and takes no more strokes
+      Given the Labs switch "Handwritten lists" is on
+      And the task list "Notes" holds about 200 KB of ink
+      When I draw a stroke with the pen
+      Then the app says the list is full and suggests starting a new list
+      And nothing is drawn
+
+  Rule: Ink colour and width (decision Q4, assumption A7)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And I open the new task list form
+
+    @backlog
+    Scenario: The default ink colour is the theme's text colour
+      When I draw a stroke with the pen
+      Then the stroke has the theme's text colour
+
+    @backlog
+    Scenario: A preset colour can be chosen
+      When I choose the ink colour preset "red"
+      And I draw a stroke with the pen
+      Then the stroke is red
+
+    @backlog
+    Scenario: A custom colour can be chosen with the colour picker
+      When I choose the custom ink colour "#12AB56" in the colour picker
+      And I draw a stroke with the pen
+      Then the stroke has the colour "#12AB56"
+
+    @backlog
+    Scenario: A chosen colour stays readable in light and dark
+      Given I choose the custom ink colour "#000000"
+      When the theme is dark
+      Then the stroke is adjusted so it is readable on the dark background
+
+    @backlog
+    Scenario: The chosen colour is remembered on the device
+      Given I choose the ink colour preset "red"
+      When I open the app again
+      And I open the new task list form
+      Then the chosen ink colour is "red"
+
+  Rule: One list can mix ink and text items (decision Q5)
+
+    @backlog
+    Scenario: The writing mode decides how the next item is written
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Mixed" on 2026-10-14 with the ink items "Milk"
+      And I expand the task list "Mixed"
+      When I press the writing mode switch
+      And I add the text item "Eggs"
+      Then the expanded task list has 2 items
+      And the item number 1 is an ink item
+      And the item number 2 is a text item
+
+  Rule: The pen on an ink item keeps writing on that line (decision Q6)
+
+    @backlog
+    Scenario: A pen stroke on an existing ink item adds to it
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And I expand the task list "Groceries"
+      When I draw a stroke with the pen on the ink item number 1
+      Then the expanded task list has 2 items
+      And the ink item number 1 has one more stroke
+
+  Rule: Templates and repeating lists copy ink items (decision Q7)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+
+    @backlog
+    Scenario: A list made from a template has the template's ink items
+      Given the template "Weekly shop" has the ink items "Milk, Eggs"
+      When I create a task list from the template "Weekly shop"
+      Then the new task list shows 2 ink items, scaled down
+
+    @backlog
+    Scenario: The next occurrence of a repeating list has the ink items
+      Given the calendar contains a repeating task list "Groceries" with the ink items "Milk, Eggs"
+      When the next occurrence of the task list "Groceries" is created
+      Then the next occurrence shows 2 ink items, scaled down
 
   @mobile @backlog
   Scenario: The add button never covers the writing area

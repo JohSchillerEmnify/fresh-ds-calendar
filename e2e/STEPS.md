@@ -3203,6 +3203,42 @@ the device's handwriting recognition enters the text {string} in the item field
 the collapsed task list shows the items {string}
 the backup to Drive runs
 the backup holds the ink of the task list {string}
+the Labs setting {string} is on
+the Labs setting {string} is off
+the dialog fits the window
+I draw a stroke with a finger
+I swipe up on the writing area with two fingers
+I draw {int} stroke(s) with the pen
+I have drawn {int} stroke(s) with the pen
+I press the undo button
+the writing area shows {int} stroke(s)
+the device passes the pen double tap on
+I double tap the pen
+I touch the first stroke with the eraser end of the pen
+I touch the first stroke with the pen
+I press the eraser button
+the task list {string} holds about 200 KB of ink
+the app says the list is full and suggests starting a new list
+the stroke has the theme's text colour
+I choose the ink colour preset {string}
+the stroke is red
+I choose the custom ink colour {string} in the colour picker
+I choose the custom ink colour {string}
+the stroke has the colour {string}
+the theme is dark
+the stroke is adjusted so it is readable on the dark background
+the chosen ink colour is {string}
+I add the text item {string}
+the item number {int} is an ink item
+the item number {int} is a text item
+I draw a stroke with the pen on the ink item number {int}
+the ink item number {int} has one more stroke
+the template {string} has the ink items {string}
+I create a task list from the template {string}
+the new task list shows {int} ink items, scaled down
+the calendar contains a repeating task list {string} with the ink items {string}
+the next occurrence of the task list {string} is created
+the next occurrence shows {int} ink items, scaled down
 ```
 
 - Ink items are created through the public API with a stroke list per item (`{ strokes: [[x, y, pressure]…] }`); the
@@ -3213,4 +3249,11 @@ the backup holds the ink of the task list {string}
 - "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
   (the n-th ink item of the creating step is named by the n-th word).
 - "the add button covers no control of the writing area" is an added panel name of the existing step.
+- "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
+  finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
+  is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
+- Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
+  "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
+  the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
+- "holds about 200 KB of ink" creates strokes through the API until the list is just under the 200 KB limit.
 - "the dialog … without the feature": compared with the dialog size measured with the switch off.
