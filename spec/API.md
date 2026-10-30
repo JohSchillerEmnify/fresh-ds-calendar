@@ -796,6 +796,16 @@ visible on a new local day. If the last check-in was yesterday, `current + 1`; i
   responses carry the header `X-Motivation-Changed: 1` when points were awarded, and the web app then refetches
   `/api/motivation`.
 
+### Live updates (`GET /api/events/stream`, ADR 0030; name settled at build) → 200 `text/event-stream`
+
+Needs a session (`401` without). One connection per open app. The server sends the event `changed` with no data
+(a content-free nudge) whenever something changes through the server for that person (events, task lists, settings,
+prefs, theme, own themes, templates, Canvas, motivation) or for any member of a shared list, plus a comment line every
+25 s to keep proxies from closing it. The app answers a nudge with a changes-since request (`/api/changes`); it
+reconnects by itself (`EventSource`) and syncs once after every reconnect. While at least one connection of a person is
+open the server asks Google for changes every 20 s and sends `changed` when there are any. Sign-out closes the
+person's connections.
+
 ### Diagnostics (`POST /api/diag/sync-error`) → 204
 
 The web app sends this once when it enters the "Can't reach Google Calendar" state. The server only logs it
@@ -862,7 +872,8 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/clock` | `{ now: string \| null; frozen?: boolean }` | Sets the clock (`now` ISO with offset or `Z`); `frozen` (default `true`) keeps it constant, `false` lets it run from `now` in real time. `null` clears it. `200 { now, clockFrozen }` |
 | `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
 | `POST` | `/api/__test/door` | `{ token: string; person: string }` or `{ off: true }` | The door plugin's key and person from now on, in place of the config's; `off` takes the door away (404). Reset clears it. `200 AppConfig` |
-| `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
+| `POST` | `/api/__test/config` | `{ pollIntervalMs?: number; googlePollMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling) and the interval of the server's Google change lookup for live sync (default 20000). `200` config |
+| `GET` | `/api/__test/remote/lookups` | – | How many change lookups the server has made against the mock Google since reset (live sync). `200 { count }` |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |
 | `POST` | `/api/__test/slow` | `{ ms: number }` (integer 0–60000) | Every later `/api` answer except `/api/__test/*` waits `ms` before it is handled ("the server answers only after N seconds", feature last-known-state); `0` or reset ends it. `200 { ms }` |

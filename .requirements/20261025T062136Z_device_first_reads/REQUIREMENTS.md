@@ -90,6 +90,18 @@ in the same device store and is synced like the other per-person files. The two 
 - R8 Robustness: a hanging or blocked IndexedDB never keeps the app from starting (as 0023: then it reads from the
   server as before); a quota error keeps the app working without the device store.
 
+- R9 Live sync (ADR 0030, owner 2026-10-30): every open, visible app keeps one Server-Sent Events connection. On every
+  change that goes through the server (events, task lists, settings, prefs, theme, own themes, templates, Canvas,
+  shared lists, motivation) the server publishes a content-free `changed` nudge to every open app of the affected
+  person and of every member of a shared list; the app then syncs (R3). Target: under about 1 s between devices.
+- R10 Google-side changes: while at least one app of a person is connected the server asks Google for changes every 20 s
+  (sync tokens, S2) and publishes a nudge when there are any; with no app connected it does not ask.
+- R11 Safety net: sync on open, focus, reconnect and a 60 s poll while visible stay; the connection reconnects by
+  itself and the app syncs once after every reconnect; a hidden app neither polls nor holds the connection and syncs at
+  once when shown.
+- R12 Privacy: the stream needs a session; sign-out and another person's sign-in end the person's connections; a nudge
+  carries no data and reaches only that person's (or the list members') connections.
+
 ### Server needs for "changes since" (requirements, no code yet)
 
 Verified against the Google Calendar API docs (Events: list, "Synchronize resources efficiently", 2026-10-25):
@@ -126,6 +138,13 @@ store and do a full sync without a token; disallowed parameters answer 400.
   Google calls per poll must not grow. Rate-limited: the device keeps its data, no banner (as today).
 - S10 Mock provider: `listChanges` must honour the token (changes after it, deletions, a way to expire it for a 410
   test) so the e2e can run against it.
+- S12 Live updates endpoint (`GET /api/events/stream`, name settled at build, API.md): `text/event-stream`, event
+  `changed` without data, keep-alive comment every 25 s, `401` without a session. In-memory publisher keyed by person;
+  shared-list writes publish to each member. The Google poller runs per person while the person has at least one
+  connection, its interval `googlePoll` (default 20 s, test override). One server instance: no shared broker
+  (ADR 0030).
+- S13 The deployment's reverse proxy must pass `text/event-stream` unbuffered and with a long read timeout
+  (`docs/DEPLOYMENT.md`, Caddy `flush_interval -1`).
 - S11 Idempotent writes are slice 2 (outbox), not needed here.
 
 ## Acceptance Criteria
@@ -144,6 +163,17 @@ store and do a full sync without a token; disallowed parameters answer 400.
 - R8: unit tests (as for 0023's restore timeout).
 - S1–S10: server integration tests with the mock (token, pages, deletions, 410 → replace, window filter, versions).
 
+- R9: "A change made on one device shows on the other open app within a second", "A setting changed …", "An area made
+  on the Canvas …", "A ticked item of a shared list shows on the other person's open app within a second".
+- R10: "A change made in Google Calendar itself shows within 20 seconds while the app is open", "Google is asked for
+  changes only while an app is open"; unit test: the default interval is 20 s.
+- R11: "Changes missed while the connection was down arrive at once when it returns", "Without the live connection the
+  poll still brings the change", "A hidden app fetches nothing and catches up at once when it is shown again".
+- R12: "Nothing is pushed to a device that is signed out", "Nothing is pushed to the app of another person"; server
+  integration test: `401` without a session, no event to a connection of another person.
+- S12, S13: server integration tests (publish reaches only the right connections, keep-alive, closing on sign-out,
+  poller starts with the first connection and stops with the last); `docs/DEPLOYMENT.md` note.
+
 ## Testing Plan
 
 - Unit (web): device store wrapper (per-person keys, wipe, quota/hang), window pruning and sliding, applying a change
@@ -151,6 +181,9 @@ store and do a full sync without a token; disallowed parameters answer 400.
 - Unit/integration (server): `/api/changes` with the mock — first call full, second call only changes, deletion,
   move out of the window, page following, 410 → full `replace`, per-file versions, per-device cursors independent.
 - e2e: the scenarios above, targeted with `--grep`, desktop + mobile where layout matters (Tasks view, Canvas).
+- Live sync: unit (web) EventSource lifecycle (open when visible, close when hidden, nudge → one sync, reconnect → one
+  sync, coalescing of nudges that arrive during a running sync); unit (server) publisher, poller; e2e the "Live sync"
+  rule, each with the poll interval off so only the stream can explain the result.
 - Existing `@offline`, `@last-known-state`, `@templates`, sync and sign-in scenarios must stay green.
 
 ## Implementation Plan (after the owner's OK on the scenarios)
@@ -166,6 +199,16 @@ store and do a full sync without a token; disallowed parameters answer 400.
    the task list/Canvas scenario. Templates folded in after `fix/templates-on-device` is merged. — **PR boundary 2
    (web).**
 
+7. Server: in-memory publisher and `GET /api/events/stream` (keep-alive, session check, close on sign-out); every
+   write path (events, task lists, settings, prefs, theme, own themes, templates, Canvas, shared lists, motivation)
+   publishes after it is saved. → server integration tests; deploy note for the proxy (S13).
+8. Server: Google poller per person with a connection (20 s, `googlePoll` test override, mock lookup counter
+   `/api/__test/remote/lookups`). → test: change in the mock Google yields a nudge within the interval; none without a
+   connection.
+9. Web: live subscriber (`EventSource` while visible, nudge/reconnect/visible → sync, nothing while hidden); the 60 s
+   poll stays. → e2e of the "Live sync" rule. **PR boundary 3 (live sync, after PR boundaries 1 and 2: it needs
+   `/api/changes` and the sync engine; mergeable alone only on top of them).**
+
 ## Assumptions (to confirm with the owner)
 
 - A1 Days outside the window are shown when opened online but not kept (ADR 0025 "days further out load from the server
@@ -175,3 +218,8 @@ store and do a full sync without a token; disallowed parameters answer 400.
 - A3 The note also shows after a failed sync while the app is open (today it only shows after a restore).
 - A4 The old open list "Visa" (2025-06-02) shows under "Overdue" in the Tasks view, as any open list dated before
   today does today (`tasks-view.feature`).
+- A5 (live sync) A hidden app drops its connection instead of keeping it, so Google is asked only while an app is
+  visible; the cost is one reconnect plus one sync when shown. Alternative: keep the connection while hidden and
+  ignore nudges (more load, nothing gained).
+- A6 (live sync) The e2e uses the default 20 s for the Google scenario and a short test interval elsewhere.
+- A7 (live sync) The sync fetch endpoint keeps its working name `/api/changes` in the scenarios' request-count steps.

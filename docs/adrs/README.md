@@ -33,3 +33,4 @@ One short ADR per cross-cutting decision: the decision, the alternatives, why it
 | [0027](0027-door-limits-and-trusted-proxy.md) | Door limits and trusted proxy | accepted | The door key has 32+ characters; 60 asks a minute per client, counted by the trusted proxy's address only when `TRUST_PROXY` is set |
 | [0028](0028-origin-protection-and-security-headers.md) | Origin protection and security headers | accepted | Writes need an allowed `Origin`, JSON and at most 256 KB; every answer carries a CSP and the other security headers |
 | [0029](0029-public-host-name-from-configuration.md) | Public host name from configuration | accepted | `CAL_DOMAIN` / `CAL_SERVER_URL` are required; the repo names no real host |
+| [0030](0030-live-sync-with-server-sent-events.md) | Live sync with Server-Sent Events | proposed | Open apps keep one SSE connection; the server publishes a content-free nudge on every change and asks Google every 20 s while an app is open |

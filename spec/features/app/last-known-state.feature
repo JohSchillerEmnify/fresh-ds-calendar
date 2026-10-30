@@ -11,6 +11,7 @@ Feature: Everything I see is kept on this device and synced with the server
   open them and are not kept.
   The device takes in what changed on the server (made on another device, or in Google Calendar itself) when the app
   opens, when it regains focus or the connection, and at the polling interval, also for days I never opened.
+  Open apps also hear from the server at once when something changed (rule "Live sync", ADR 0030).
   While what I see has not been confirmed by the server since the app opened, or the last sync failed, a small note
   says when it was last updated.
   This slice changes only reading: without a connection nothing can be changed yet, saving still fails with the sync
@@ -228,3 +229,122 @@ Feature: Everything I see is kept on this device and synced with the server
     And I open the app again
     And I open the templates in the settings
     Then the templates page says "No templates yet. Save a task list as a template to reuse it."
+
+  Rule: Live sync: a change made on one device shows on every other open app within about a second
+
+    Every open app keeps one live connection to the server. Whenever something changes through the server (events, task
+    lists, settings, preferences, theme, own themes, templates, the Canvas, shared lists, the streak and plant), the
+    server tells every open app of the affected person, and of every member of a shared list, that something changed;
+    the apps then fetch what changed. While at least one app of a person is open, the server also asks Google for
+    changes made in Google Calendar itself every 20 seconds. The connection comes back by itself; opening the app,
+    regaining focus, regaining the connection and a poll every 60 seconds while the app is visible stay as the safety
+    net. A hidden app neither polls nor holds the connection and catches up at once when it is shown again (owner,
+    2026-10-30: "I do something in the browser and it's synced after 5 minutes - that is unacceptable").
+
+    Scenario: A change made on one device shows on the other open app within a second
+      Given automatic sync is disabled
+      And I open the week view for 2026-10-12
+      And the app has synced this device
+      And the app is open on a second device
+      When I click the time slot 10:00 on 2026-10-13
+      And I fill in the event form with:
+        | title | Dentist |
+      And I save the event
+      Then within a second the second device shows the event "Dentist" on 2026-10-13
+
+    Scenario: A setting changed on one device reaches the other open app within a second
+      Given automatic sync is disabled
+      And I open the week view for 2026-10-12
+      And the app has synced this device
+      And the app is open on a second device
+      When I open the settings
+      And I choose the theme mode "Dark"
+      Then within a second the second device uses the dark theme
+
+    Scenario: An area made on the Canvas shows on the other open app within a second
+      Given automatic sync is disabled
+      And I open the Canvas
+      And the app has synced this device
+      And the app is open on a second device
+      When I create the area "Haus" on the Canvas
+      Then within a second the second device shows the Canvas area "Haus"
+
+    @signin
+    Scenario: A ticked item of a shared list shows on the other person's open app within a second
+      Given "jo@example.com" and "anna@example.com" may use the calendar
+      And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
+      And "jo@example.com" is signed in
+      And I share the task list "Groceries" with "anna@example.com"
+      And automatic sync is disabled
+      And "anna@example.com" opens the Tasks view on another device
+      When "jo@example.com" ticks the item "Milk" of the shared task list "Groceries"
+      Then within a second the item "Milk" of the task list "Groceries" in the Tasks view is ticked
+
+    Scenario: A change made in Google Calendar itself shows within 20 seconds while the app is open
+      Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
+      And automatic sync is disabled
+      And I open the week view for 2026-10-12
+      And the app has synced this device
+      When Google adds an event "Flight" on 2026-10-14 from 07:00 to 09:00
+      And Google deletes the event "Dentist"
+      Then within 20 seconds I see the event "Flight" on 2026-10-14
+      And I do not see the event "Dentist"
+
+    Scenario: Google is asked for changes only while an app is open
+      Given the server asks Google for changes every 2 seconds
+      And automatic sync is disabled
+      And Google is not asked for changes during the next 6 seconds
+      When I open the week view for 2026-10-12
+      Then Google is asked for changes within 3 seconds
+
+    Scenario: Changes missed while the connection was down arrive at once when it returns
+      Given automatic sync is disabled
+      And I open the week view for 2026-10-12
+      And the app has synced this device
+      And the network connection is lost
+      And Google adds an event "Flight" on 2026-10-14 from 07:00 to 09:00
+      When the network connection is restored
+      Then within a second I see the event "Flight" on 2026-10-14
+
+    Scenario: Without the live connection the poll still brings the change
+      Given the live connection is blocked
+      And automatic sync runs every 2 seconds
+      And I open the week view for 2026-10-12
+      And the app has synced this device
+      When Google adds an event "Flight" on 2026-10-14 from 07:00 to 09:00
+      And I wait for the automatic sync
+      Then I see the event "Flight" on 2026-10-14
+
+    Scenario: A hidden app fetches nothing and catches up at once when it is shown again
+      Given automatic sync runs every 2 seconds
+      And I open the week view for 2026-10-12
+      And the app has synced this device
+      And the app is hidden
+      And Google adds an event "Flight" on 2026-10-14 from 07:00 to 09:00
+      When I count requests to "/api/changes" for 5 seconds
+      Then at most 0 requests to "/api/changes" were counted
+      When the app regains focus
+      Then within a second I see the event "Flight" on 2026-10-14
+
+    @signin
+    Scenario: Nothing is pushed to a device that is signed out
+      Given "jo@example.com" and "anna@example.com" may use the calendar
+      And "jo@example.com" is signed in
+      And automatic sync is disabled
+      And I have seen the week view for 2026-10-12
+      When they sign out in the settings
+      And "jo@example.com" has an event "Dentist" on 2026-10-13 from 10:00 to 11:00
+      And I count requests to "/api/changes" for 3 seconds
+      Then they see the sign-in page
+      And at most 0 requests to "/api/changes" were counted
+      And this device keeps no last known calendar
+
+    @signin
+    Scenario: Nothing is pushed to the app of another person
+      Given "jo@example.com" and "anna@example.com" may use the calendar
+      And automatic sync is disabled
+      And "anna@example.com" opens the week view for 2026-10-12 on another device
+      When "jo@example.com" has an event "Dentist" on 2026-10-13 from 10:00 to 11:00
+      And I count requests to "/api/changes" for 3 seconds
+      Then at most 0 requests to "/api/changes" were counted
+      And I do not see the event "Dentist"
