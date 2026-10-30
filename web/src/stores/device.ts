@@ -18,7 +18,7 @@ import { usePrefsStore } from './prefs';
 import { useSettingsStore } from './settings';
 import { useThemeStore } from './theme';
 
-const SAVE_DEBOUNCE_MS = 300;
+const SAVE_DEBOUNCE_MS = 50;
 const RESTORE_TIMEOUT_MS = 1000;
 /** The records the data is stored in: the bulky lists apart from the rest, so a small change does not rewrite them. */
 const RECORDS = ['meta', 'events', 'lists'] as const;

@@ -10,6 +10,7 @@ import { tid, type World } from './support/world.js';
 
 /** Open the week, get sent to the sign-in page, and press "Sign in with Google" as this person. */
 export async function signIn(world: World, email: string, date = '2026-10-12', driveScope = true) {
+  const already = world.person === email;
   world.person = email;
   await world.api.chooseGoogleAccount(email, driveScope);
   // signed out, the app may leave the deep link for /signin with a full page load before it has loaded: that is the
@@ -20,7 +21,14 @@ export async function signIn(world: World, email: string, date = '2026-10-12', d
     if (!/interrupted by another navigation to "[^"]*\/signin"|net::ERR_ABORTED at \S*\/week\//.test(e.message)) throw e;
     await world.page.waitForURL((u) => u.pathname === '/signin', { timeout: 5000 });
   });
-  await world.page.getByTestId('signin-google').click();
+  const button = world.page.getByTestId('signin-google');
+  // the same person is still signed in from an earlier step (a fixture step signs in to reach the API): nothing to do
+  if (already) {
+    const shown = await world.page.waitForFunction(() => (document.querySelector('[data-testid="signin-google"]') ? 'signin'
+      : document.querySelector('[data-testid="week-view"], [data-testid="month-view"], [data-testid="day-view"], [data-testid="year-view"]') ? 'calendar' : false)).then((h) => h.jsonValue());
+    if (shown === 'calendar') return;
+  }
+  await button.click();
   // leaves /signin through the round trip and lands on the calendar (or back on /signin?error=private)
   await world.page.waitForURL((u) => u.pathname !== '/signin' || u.searchParams.has('error'));
   if (!world.page.url().includes('error=')) await world.calendarShown();

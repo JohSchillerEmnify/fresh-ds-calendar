@@ -33,6 +33,9 @@ Given('the calendar contains an undated task list {string} with items:', async f
 
 When('I open the Tasks view', async function (this: World) {
   await openTasksView(this);
+  // opening the view shows its Open tab, also from the Canvas tab of the same page
+  const open = this.page.getByTestId('tasks-tab-open');
+  if ((await open.isVisible()) && (await open.getAttribute('aria-pressed')) === 'false') await open.click();
 });
 
 When('I create the task list {string} in the Tasks view', async function (this: World, title: string) {

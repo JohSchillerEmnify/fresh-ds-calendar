@@ -206,6 +206,8 @@ Then('the note {string} is in the area {string}', async function (this: World, t
 });
 
 Then('the Canvas shows the area {string}', async function (this: World, name: string) {
+  // a reopened app starts on the Open tab: the person opens the Canvas tab first
+  if (!(await this.page.getByTestId('tasks-canvas').isVisible())) await openCanvas(this);
   await expect(area(this, name)).toBeVisible();
 });
 
