@@ -241,6 +241,42 @@ describe('ink when a list is shared and shared no more', () => {
   });
 });
 
+describe('erase marks (strokes without points) travel with the ink', () => {
+  const key = (s: { t?: number; p: number[][] }) => `${s.t ?? 0}|${s.p.length}|${s.p[0]!.join(',')}`;
+  const NOW = Date.parse('2026-10-12T08:00:00+02:00');
+
+  it('are in the backup files and keep working after the list is shared and shared no more', async () => {
+    const JO = 'jo@example.com', ANNA = 'anna@example.com';
+    await t.json('POST', '/api/__test/auth', { allowedEmails: [JO, ANNA] });
+    const cookie = await sessionCookie(t, JO);
+    const jo = (m: string, u: string, b?: unknown) => t.json(m, u, b, { cookie });
+    const first = { ...stroke(), t: NOW - 5000 };
+    const own = (await jo('POST', '/api/tasklists', { title: 'G', date: null, items: [{ title: '', strokes: [first] }] })).body;
+    const id = own.items[0].id;
+    // erased as a whole: the item holds an erase mark now
+    expect((await jo('PUT', `/api/tasklists/${own.id}/items/${id}/ink`, { strokes: [], base: [key(first)], at: NOW - 1000 })).status).toBe(200);
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
+    const shared = (await jo('POST', `/api/tasklists/${own.id}/share`, { person: mockSub(ANNA) })).body;
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
+    // an older stroke arriving now is still dropped, a newer one kept, in the shared store
+    const late = { ...stroke(2), t: NOW - 3000 }, fresh = { ...stroke(2), t: NOW - 500 };
+    await jo('PUT', `/api/tasklists/${shared.id}/items/${id}/ink`, { strokes: [late], base: [] });
+    await jo('PUT', `/api/tasklists/${shared.id}/items/${id}/ink`, { strokes: [fresh], base: [] });
+    await jo('DELETE', `/api/tasklists/${shared.id}/share`);
+    expect((await jo('GET', '/api/ink')).body.items[id]).toEqual([{ p: [], t: NOW - 1000 }, fresh]);
+  });
+
+  it('are part of what a backup collects, and the file still loads', async () => {
+    const l = await mk();
+    const first = { ...stroke(), t: NOW - 5000 };
+    const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [first] })).body.items[1].id;
+    await t.json('PUT', `/api/tasklists/${l.id}/items/${id}/ink`, { strokes: [], base: [key(first)], at: NOW - 1000 });
+    const { files } = (await t.json('GET', '/api/__test/backup/collect')).body as { files: Record<string, string> };
+    const file = Object.entries(files).find(([name]) => name.endsWith('/ink.json'))![1];
+    expect(JSON.parse(file).items[id]).toEqual([{ p: [], t: NOW - 1000 }]);
+  });
+});
+
 describe('ink in templates', () => {
   it('keeps the strokes of an ink item in a template and returns them', async () => {
     const r = await t.json('POST', '/api/templates', { name: 'Weekly shop', items: [{ title: 'Text' }, { title: '', strokes: [stroke()] }, { title: ' ' }] });
