@@ -570,6 +570,77 @@ the live connection is blocked
 - Counting requests (section "Performance") is used with `/api/changes` to show that a device fetched nothing; the
   endpoint name follows the build (REQUIREMENTS "Live sync").
 
+## Offline changes (`@offline-changes`, ADR 0025 slice 2)
+
+```
+the item {string} is marked as not synced yet
+the item {string} is not marked as not synced yet
+the event {string} is marked as not synced yet
+the event {string} is not marked as not synced yet
+the task list {string} is marked as not synced yet
+the task list {string} is not marked as not synced yet
+the app counts {int} unsent change(s)
+the app counts no unsent changes
+this device keeps {int} unsent change(s)
+this device keeps no unsent changes
+I wait until the changes are sent
+I close the app
+I switch to the second device
+I switch back to the first device
+the second device does not show the event {string}
+the server has the event {string} on {date} from {time} to {time}
+the server has no event {string}
+the server has the task list {string} with items:
+the server has no task list {string}
+{string} has no task list {string}
+the server refuses the next change as invalid
+I am told that the change to {string} was not saved because it was deleted elsewhere
+I am told that the change to {string} was not saved because the server refused it
+I am not told that a change was not saved
+I dismiss the notice
+they ask to sign out in the settings
+they are asked whether to sign out and lose {int} unsent change(s)
+they choose to stay signed in
+they sign out anyway
+they are asked whether to delete {int} unsent change(s) of {string}
+they choose to delete the unsent changes
+they choose to go back
+```
+
+- Hooks (names are proposals until the mockup is agreed): the mark is `data-testid="unsynced-mark"` inside the item
+  chip, task list card or item row (found by `data-title`, as for the other item steps); the count is
+  `unsynced-note` (`data-count`), absent at 0; `<html data-unsynced="N">` carries the outbox size for the waits.
+- "the item/event/task list X is marked as not synced yet": the entry named X is visible and holds `unsynced-mark`;
+  "is not marked ...": the entry is visible and holds none.
+- "the app counts N unsent change(s)": the outbox of the signed-in person holds N entries (`data-unsynced`) and
+  `unsynced-note` shows N; "counts no unsent changes": `data-unsynced` is `0` and the note is absent. "this device
+  keeps N unsent change(s)": the device store (IndexedDB) holds N outbox entries, also while signed out or on the
+  sign-in page; "keeps no unsent changes": it holds none.
+- "I wait until the changes are sent": waits until `data-unsynced` is `0` (at most the poll interval + 5 s; the
+  send is also started by `online`, focus and open).
+- "I close the app": navigates the page to `about:blank` (the page unloads, the device store stays);
+  "I open the app" (above) then loads it again. Deleting an item or entry enters the outbox when its undo time is
+  over ("the undo time is over" is reused), never before.
+- "I switch to the second device" / "I switch back to the first device": makes the page of "the app is open on a
+  second device" (or the first page) the current one without reloading; the network steps act on the current page's
+  context, so each device is offline on its own. "the second device does not show the event X": the second page
+  holds no chip for X (read without reload or focus).
+- Server checks ("the server has ..."): read through the test API (`GET /api/__test/remote/*`) for the signed-in
+  person (or the single owner), never through the page; an item table compares `item`/`done` in order. "the server
+  has the task list T with items" finds the list by title, dated or not. "P has no task list T" is the same for
+  person P.
+- "the server refuses the next change as invalid": `POST /api/__test/refuse-next-write { status: 400 }` (to be added
+  to API.md with the build); the next write request the server receives answers `400 VALIDATION_ERROR`, later ones are
+  normal.
+- Notices: a persistent notice (`save-failed-notice`, not a snackbar that fades) naming the entry as the person last saw
+  it on this device; "I dismiss the notice" presses its `save-failed-dismiss`; "not told that a change was not saved":
+  no `save-failed-notice` is visible.
+- Sign out and sign in with unsent changes: "they ask to sign out in the settings" presses `settings-signout`
+  (Account) and stops at the question (`unsent-changes-dialog`); "stay signed in" presses its Cancel, "sign out
+  anyway" its confirm. After "{P} signs in with Google" as another person than the one the device holds changes of,
+  the same dialog asks about deleting them: "choose to delete" confirms (the app then shows P's calendar), "go back"
+  cancels (the app returns to the sign-in page, the outbox stays).
+
 ## Mobile
 
 ```

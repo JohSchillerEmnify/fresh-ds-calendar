@@ -48,6 +48,12 @@ model {
     liveSubscriber = component 'Live subscriber' {
       description 'Keeps one EventSource to the server while the app is visible, drops it when hidden, and asks Sync for a sync on every changed nudge, reconnect and return to visible; the 60 second poll stays as the safety net'
     }
+    outbox = store 'Outbox' {
+      description 'The person\'s changes made on this device and not yet confirmed by the server (ADR 0025), in IndexedDB beside the device store: each entry carries the change, the version it was based on and a key that makes a resend harmless; kept across restarts and an expired session, wiped with the device store'
+    }
+    outboxSender = component 'Outbox sender' {
+      description 'Sends the outbox to the server one entry at a time in order when there is a connection; replaces the device copy (real id, version) with each answer; keeps the entry on a network, Google or session failure, resends on a stale version so the last change wins, and undoes and reports a change the server refuses'
+    }
     pluginUi = component 'Plugin UI' {
       description 'The UI bits of optional plugins (web/src/plugins/<name>), shown only when the server lists the plugin as enabled'
     }
@@ -59,6 +65,13 @@ model {
     lastKnown -> tasksView 'feeds every open and finished list, computed on the device'
     lastKnown -> themeState 'feeds the chosen theme and the own themes'
     lastKnown -> sync 'shows the last update time while nothing fresh came since opening or the last sync failed'
+    items -> lastKnown 'applies a change on the device at once, marked as not synced yet'
+    items -> outbox 'appends the change with the version it was based on'
+    sync -> outboxSender 'asks it to send first, on open, focus, reconnect and the poll timer'
+    outboxSender -> outbox 'takes the oldest entry and removes it once the server has answered'
+    outboxSender -> lastKnown 'replaces the device copy with the answer and takes the mark away'
+    outboxSender -> snackbar 'reports a change the server refused, which it undid on the device'
+    signin -> outbox 'asks before sign-out or another person wipes unsent changes; keeps them for the same person after an expired session'
     liveSubscriber -> sync 'asks for a sync at once on every changed nudge, reconnect and return to visible'
     sync -> lastKnown 'takes in the changes since its cursor on open, focus, reconnect and the poll timer'
     items -> lastKnown 'loads days outside the window from the server when opened, without keeping them'

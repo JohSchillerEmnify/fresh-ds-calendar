@@ -136,6 +136,21 @@ views {
     calendar.server.googlePoller -> calendar.server.publisher 'publishes when Google reported changes'
   }
 
+  dynamic view sendingOfflineChanges {
+    title 'A change made offline is kept and sent later'
+
+    owner -> calendar.web.items 'ticks "Milk" without a connection'
+    calendar.web.items -> calendar.web.lastKnown 'shows it at once, marked not synced yet'
+    calendar.web.items -> calendar.web.outbox 'appends the change with the version it was based on'
+    calendar.web.sync -> calendar.web.outboxSender 'the connection is back: send first'
+    calendar.web.outboxSender -> calendar.web.outbox 'takes the oldest entry'
+    calendar.web.outboxSender -> calendar.server.tasksApi 'sends it with its key; on a stale version again with the newest one'
+    calendar.server.tasksApi -> calendar.web.outboxSender 'answers with the stored version, or refuses'
+    calendar.web.outboxSender -> calendar.web.lastKnown 'replaces the copy with the answer, mark gone'
+    calendar.web.outboxSender -> calendar.web.snackbar 'a refused change is undone and reported'
+    calendar.server.tasksApi -> calendar.server.publisher 'publishes after it was saved: other open apps take it in'
+  }
+
   dynamic view firstTaskList {
     title 'A person\'s first task list'
 
