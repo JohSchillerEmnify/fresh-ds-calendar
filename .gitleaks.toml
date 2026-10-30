@@ -1,0 +1,96 @@
+title = "calendar leak guards"
+
+# Default gitleaks rules (cloud keys, tokens, private keys ...) plus the project rules below.
+[extend]
+useDefault = true
+
+# Only the one known fake door key (e2e/steps/door.steps.ts, server/test/hardening-door.test.ts) is skipped, by exact value.
+# gitleaks 8.24 ignores `condition = "AND"` on the global allowlist, so a path filter would widen it instead of narrowing it.
+[allowlist]
+description = "fake door API key used by the door tests"
+regexes = ['''door-test-key-0123456789abcdef0123456789abcdef''']
+
+[[rules]]
+id = "public-ipv4"
+description = "Public IPv4 address (private, loopback, link-local and documentation ranges are fine)"
+regex = '''(?:^|[^0-9A-Za-z._/@:-])((?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})(?:$|[^0-9A-Za-z._/@:-]|\.(?:$|[^0-9A-Za-z]))'''
+secretGroup = 1
+tags = ["network", "private"]
+  [[rules.allowlists]]
+  description = "private, loopback, unspecified, link-local, documentation and multicast ranges"
+  regexTarget = "secret"
+  regexes = [
+    '''^10\.''',
+    '''^172\.(?:1[6-9]|2[0-9]|3[01])\.''',
+    '''^192\.168\.''',
+    '''^127\.''',
+    '''^0\.''',
+    '''^169\.254\.''',
+    '''^192\.0\.2\.''',
+    '''^198\.51\.100\.''',
+    '''^203\.0\.113\.''',
+    '''^2(?:2[4-9]|3[0-9]|[45][0-9])\.''',
+    '''^255\.255\.255\.255$''',
+    '''^1\.2\.3\.4$''',
+  ]
+
+[[rules]]
+id = "email-address"
+description = "E-mail address outside the placeholder domains"
+regex = '''(?i)\b[a-z0-9._%+-]+@((?:[a-z0-9-]+\.)+[a-z]{2,})\b'''
+secretGroup = 1
+tags = ["pii", "private"]
+  [[rules.allowlists]]
+  description = "placeholder, noreply and Google calendar domains"
+  regexTarget = "secret"
+  regexes = [
+    '''(?i)^(?:[a-z0-9-]+\.)*example\.(?:com|org|net)$''',
+    '''(?i)\.(?:test|example|invalid|localhost|local|lan)$''',
+    '''(?i)^users\.noreply\.github\.com$''',
+    '''(?i)^noreply\.github\.com$''',
+    '''(?i)^(?:[a-z0-9-]+\.)*calendar\.google\.com$''',
+    '''(?i)^group\.v\.calendar\.google\.com$''',
+  ]
+  [[rules.allowlists]]
+  description = "exact fake or non-mailbox strings found in tests and docs (ssh clone URL, Google calendar id fixtures, URL userinfo)"
+  regexTarget = "match"
+  regexes = [
+    '''^git@github\.com$''',
+    '''^me@gmail\.com$''',
+    '''^other@x\.com$''',
+    '''^pw@fcm\.googleapis\.com$''',
+  ]
+
+[[rules]]
+id = "base64-32-byte-key"
+description = "Base64 encoded 32-byte key (the shape of TOKEN_ENC_KEY)"
+regex = '''(?:^|[^A-Za-z0-9+/=_-])([A-Za-z0-9+/]{43}=)(?:$|[^A-Za-z0-9+/=_-])'''
+secretGroup = 1
+entropy = 4.0
+tags = ["key"]
+
+[[rules]]
+id = "pem-private-key-header"
+description = "PEM private key block"
+regex = '''-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----'''
+tags = ["key"]
+
+[[rules]]
+id = "google-oauth-client-secret"
+description = "Google OAuth client secret"
+regex = '''GOCSPX-[A-Za-z0-9_-]{10,}'''
+tags = ["google", "oauth"]
+
+[[rules]]
+id = "google-oauth-refresh-token"
+description = "Google OAuth refresh token"
+regex = '''(?:^|[^A-Za-z0-9_/-])(1//[A-Za-z0-9_-]{20,})'''
+secretGroup = 1
+tags = ["google", "oauth"]
+
+[[rules]]
+id = "vapid-private-key"
+description = "Web push VAPID private key"
+regex = '''(?i)vapid[a-z_]*private[a-z_]*["']?\s*[:=]\s*["']?([A-Za-z0-9_-]{43})(?:$|[^A-Za-z0-9_-])'''
+secretGroup = 1
+tags = ["key", "push"]
