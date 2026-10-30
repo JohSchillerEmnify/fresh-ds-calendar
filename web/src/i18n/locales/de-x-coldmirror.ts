@@ -7,6 +7,7 @@ import outboxDe from './de/outbox.ts';
 import calendarColdmirror from './de-x-coldmirror/calendar.ts';
 import backupColdmirror from './de-x-coldmirror/backup.ts';
 import canvasColdmirror from './de-x-coldmirror/canvas.ts';
+import inkColdmirror from './de-x-coldmirror/ink.ts';
 import bedtimeColdmirror from './de-x-coldmirror/bedtime.ts';
 
 import sharingColdmirror from './de-x-coldmirror/sharing.ts';
@@ -18,6 +19,7 @@ export default {
   outbox: outboxDe,
   backup: backupColdmirror,
   canvas: canvasColdmirror,
+  ink: inkColdmirror,
   bedtime: bedtimeColdmirror,
   sharing: sharingColdmirror,
   tasks: tasksColdmirror,

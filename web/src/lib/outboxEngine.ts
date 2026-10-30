@@ -1,7 +1,7 @@
 /** The outbox's work (ADR 0031): keeping entries, showing them on the device, sending them in order, answering refusals. */
 import type { Ref, ShallowRef } from 'vue';
 import { ApiError } from '@/api/client';
-import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, InkStroke, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import { t } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
@@ -119,6 +119,18 @@ export function add(s: OutboxState, change: Change, o: { title: string; shown?: 
   if (!s.retry) void flush(s);
 }
 
+/** A newer rewrite of an item's ink replaces an unsent one (or the strokes of its unsent add); false when none is waiting. The entry being sent is left alone. */
+function foldInk(s: OutboxState, listId: string, itemId: string, strokes: InkStroke[]): boolean {
+  const mine = (e: OutboxEntry) => e.change.id === listId && 'itemId' in e.change && e.change.itemId === itemId;
+  let at = -1;
+  s.entries.value.forEach((e, i) => { if (mine(e) && (e.change.op === 'item.ink' || (e.change.op === 'item.add' && !!e.change.strokes))) at = i; });
+  if (at < 0 || (s.running && at === 0)) return false;
+  // a later delete or order of the item leaves nothing to fold into
+  if (s.entries.value.slice(at + 1).some((e) => e.change.id === listId && e.change.op === 'item.delete' && e.change.itemId === itemId)) return false;
+  commit(s, s.entries.value.map((e, i) => (i === at ? { ...e, change: { ...e.change, strokes } as Change } : e)));
+  return true;
+}
+
 /** The writes the views make; each is shown on the device at once. */
 export function writes(s: OutboxState) {
   const title = (listId: string, itemId: string): string => {
@@ -150,6 +162,16 @@ export function writes(s: OutboxState) {
     },
     deleteList: (tl: TaskList): void => add(s, { op: 'list.delete', id: tl.id }, { title: tl.title, etag: tl.etag }),
     addItem: (listId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.add', id: listId, itemId: newItemId(), title: text, ...scoped(scope) }, { title: text }),
+    /** A handwritten item at the end of the list; returns its id. */
+    addInkItem(listId: string, strokes: InkStroke[]): string {
+      const itemId = newItemId();
+      add(s, { op: 'item.add', id: listId, itemId, title: '', strokes }, { title: '' });
+      return itemId;
+    },
+    /** The new strokes of a handwritten item (all of them, replacing the old). */
+    setInk(listId: string, itemId: string, strokes: InkStroke[]): void {
+      if (!foldInk(s, listId, itemId, strokes)) add(s, { op: 'item.ink', id: listId, itemId, strokes }, { title: items().get(listId)?.title ?? '' });
+    },
     patchItem: (listId: string, itemId: string, patch: { title?: string; done?: boolean }, scope?: ChangeScope): void =>
       add(s, { op: 'item.patch', id: listId, itemId, patch, ...scoped(scope) }, { title: patch.title ?? title(listId, itemId) }),
     deleteItem: (listId: string, itemId: string, text: string, scope?: ChangeScope): void => add(s, { op: 'item.delete', id: listId, itemId, ...scoped(scope) }, { title: text }),
@@ -191,6 +213,7 @@ function showAnswer(s: OutboxState, c: Change, id: string, result: CalendarItem)
 function sent(s: OutboxState, e: OutboxEntry, fresh: unknown): void {
   const c = e.change;
   const result = fresh as CalendarItem | undefined;
+  ports.adoptInk?.(c, result);
   setEntries(s, s.entries.value.filter((x) => x.key !== e.key));
   if (isCreate(c) && result) replaceId(s, c.id, result);
   const id = isCreate(c) && result ? result.id : c.id;

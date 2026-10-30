@@ -64,10 +64,13 @@ export const canvasDocSchema = v.pipe(
   v.check((d) => new Set(d.areas.map((a) => a.id)).size === d.areas.length, 'Area ids must be unique'),
 );
 
+/** One pen point: x and y in line heights, pressure 0..1 (feature handwritten-lists). */
+const inkPoint = v.tuple([v.pipe(v.number(), v.minValue(-5), v.maxValue(500)), v.pipe(v.number(), v.minValue(-5), v.maxValue(20)), v.pipe(v.number(), v.minValue(0), v.maxValue(1))]);
+const strokes = v.pipe(v.array(so({ p: v.pipe(v.array(inkPoint), v.minLength(1), v.maxLength(5000)), c: v.optional(hex) })), v.maxLength(500));
 /** `POST /api/templates`, `PUT /api/templates/:id` (feature tasklist-templates): a name, item titles, estimate, category. */
 export const templateSchema = so({
   name: v.pipe(v.string('Name is required'), v.trim(), v.minLength(1, 'Name is required'), v.maxLength(80, 'Name must be at most 80 characters')),
-  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG)),
+  items: v.pipe(v.array(so({ title: v.pipe(v.string('Item title must be text'), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG)),
   estimateMinutes: v.optional(estimate),
   categoryId: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(64)))),
 });
@@ -128,7 +131,7 @@ export const createTaskListSchema = so({
   title: listTitle,
   date: v.nullable(localDate),
   time: v.optional(v.nullable(localTime)),
-  items: v.optional(v.pipe(v.array(so({ title: v.pipe(v.string(), v.trim(), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), done: v.optional(v.boolean()) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG))),
+  items: v.optional(v.pipe(v.array(so({ title: v.pipe(v.string(), v.trim(), v.maxLength(TITLE_MAX, ITEM_TITLE_MAX_MSG)), done: v.optional(v.boolean()), strokes: v.optional(strokes) })), v.maxLength(LIST_ITEMS_MAX, ITEMS_MAX_MSG))),
   categoryId: v.optional(v.nullable(v.string())),
   tags: v.optional(tags),
   estimateMinutes: v.optional(estimate),
@@ -146,7 +149,8 @@ export const updateTaskListSchema = so({
   canvas: v.optional(canvasPlace),
   reminders: v.optional(reminders),
 });
-export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: itemTitle, done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
+export const inkSchema = so({ strokes });
+export const addItemSchema = so({ id: v.optional(v.pipe(v.string('id must be text'), v.regex(/^[A-Za-z0-9_-]{8,21}$/, 'id must be 8-21 letters, digits, - or _'))), title: v.optional(itemTitle), strokes: v.optional(strokes), done: v.optional(v.boolean()), index: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))) });
 export const patchItemSchema = so({ title: v.optional(itemTitle), done: v.optional(v.boolean()) });
 /** `POST /api/tasklists/:id/share`: the person (their `sub`) to add. */
 export const shareSchema = so({ person: v.pipe(v.string('person is required'), v.minLength(1, 'person is required'), v.maxLength(64, 'person is too long')) });

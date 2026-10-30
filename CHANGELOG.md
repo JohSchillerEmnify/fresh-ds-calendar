@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-10-30
+- Labs: handwritten lists. Turn on Settings › Labs › "Handwritten lists" to write list items with a pen (Apple Pencil, Android or Windows stylus). On tablets and pen devices the opened list gets wider and ruled; the pen draws, mouse and finger tick as before ("Draw with finger" lets a finger write). Ink has pressure, colours, an eraser and undo, and syncs and works offline like everything else.
 - Changes you make without a connection are now kept on your device and sent automatically once you are back online, so nothing is undone any more. If nothing could be synced for 5 minutes, a red cloud icon in the top bar shows what is still waiting. If the server turns a change down, a notice offers "Edit again". Signing out asks first when changes have not been sent yet.
 
 ## 2026-10-26

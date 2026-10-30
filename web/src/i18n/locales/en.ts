@@ -11,6 +11,7 @@ import calendarEn from './en/calendar.ts';
 import outboxEn from './en/outbox.ts';
 import backupEn from './en/backup.ts';
 import canvasEn from './en/canvas.ts';
+import inkEn from './en/ink.ts';
 import bedtimeEn from './en/bedtime.ts';
 import sharingEn from './en/sharing.ts';
 import tasksEn from './en/tasks.ts';
@@ -21,6 +22,7 @@ export default {
   outbox: outboxEn,
   backup: backupEn,
   canvas: canvasEn,
+  ink: inkEn,
   bedtime: bedtimeEn,
   sharing: sharingEn,
   tasks: tasksEn,

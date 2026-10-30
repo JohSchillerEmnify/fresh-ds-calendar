@@ -485,7 +485,7 @@ export class CalendarService {
     const calendarId = await this.tasks.id();
     const d: TaskListData = {
       title: input.title, date: input.date, time: input.date === null ? null : input.time ?? null,
-      items: (input.items ?? []).filter((i) => i.title.trim()).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done })),
+      items: (input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...(i.strokes ? { ink: true as const } : {}) })),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
       canvas: null,
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it
@@ -811,7 +811,10 @@ export class CalendarService {
       if (input.estimateMinutes !== undefined) next.estimateMinutes = input.estimateMinutes;
       if (input.canvas !== undefined) next.canvas = input.canvas;
       if (input.items !== undefined) {
-        next.items = input.items.filter((i) => i.title.trim()).map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done }));
+        // an ink item (empty title) sent back with its id stays what it is
+        const inked = new Set(d.items.filter((i) => i.ink).map((i) => i.id));
+        next.items = input.items.filter((i) => i.title.trim() || (i.id && inked.has(i.id)))
+          .map((i) => ({ id: i.id ?? nanoid(), title: i.title.trim(), done: i.done, ...(i.id && inked.has(i.id) ? { ink: true as const } : {}) }));
       }
       return next;
     }, ifMatch, input.reminders);
@@ -840,10 +843,10 @@ export class CalendarService {
   }
 
   /** `input.id` (optional, from the client) makes a repeated add idempotent: a list that holds that id already stays as it is. */
-  async addItem(id: string, input: { id?: string; title: string; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
+  async addItem(id: string, input: { id?: string; title: string; ink?: boolean; done?: boolean; index?: number }, scope?: Scope): Promise<TaskList> {
     if (scope === 'following') {
       // one id in every list, unticked; a list that has it already (a repeated write) is left as it is
-      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: false };
+      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: false, ...(input.ink ? { ink: true as const } : {}) };
       return this.forFollowing(id, (d) => {
         if (d.items.some((i) => i.id === item.id)) return d;
         const items = [...d.items];
@@ -854,7 +857,7 @@ export class CalendarService {
     return this.modify(id, (d) => {
       if (input.id && d.items.some((i) => i.id === input.id)) return d;
       const items = [...d.items];
-      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: !!input.done };
+      const item: TaskItem = { id: input.id ?? nanoid(), title: input.title, done: !!input.done, ...(input.ink ? { ink: true as const } : {}) };
       const at = input.index === undefined ? items.length : Math.min(input.index, items.length);
       items.splice(at, 0, item);
       return { ...d, items };
@@ -874,6 +877,7 @@ export class CalendarService {
       const idx = d.items.findIndex((i) => i.id === itemId);
       if (idx < 0) throw notFound('Item not found');
       const cur = d.items[idx]!;
+      if (cur.ink && input.title !== undefined) throw validation('An ink item has no title', 'title');
       if (input.done === true && !cur.done) ticked = true;
       const items = [...d.items];
       items[idx] = { ...cur, title: input.title ?? cur.title, done: input.done ?? cur.done };
@@ -946,6 +950,7 @@ export class CalendarService {
     if (d.categoryId !== null && !this.settings.categories().some((c) => c.id === d.categoryId)) d.categoryId = null;
     const calendarId = await this.tasks.id();
     const ev = await this.provider.insertEvent(calendarId, encodeTaskList(d, this.tz, this.colorFor(d)));
+    this.shared!.releaseInk(doc);
     this.shared!.remove(doc);
     return this.toTaskList(ev, await this.calendarColor(calendarId), this.settings.categories());
   }

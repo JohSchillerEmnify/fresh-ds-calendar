@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef, watch } from 'vue';
 import { api } from '@/api/client';
-import type { AppConfig, CalendarItem } from '@/api/types';
+import type { AppConfig, CalendarItem, InkDoc } from '@/api/types';
 import { useTemplatesStore } from '@/features/tasklists/templatesStore';
 import { useCanvasStore } from '@/features/tasklists/canvasStore';
+import { useInkStore } from '@/stores/ink';
 import { useMotivationStore } from '@/features/motivation/store';
 import {
   applyChanges, dropItem, emptyData, isQuiet, putItem, type ChangeSet, type DeviceData, type DeviceFileName,
@@ -97,6 +98,7 @@ export const useDeviceStore = defineStore('device', () => {
     if (templates) useTemplatesStore().fromDevice(templates.templates);
     const canvas = file<{ areas: never[] }>('canvas');
     if (canvas) useCanvasStore().fromDevice(canvas.areas);
+    useInkStore().fromDevice(file<InkDoc>('ink'));
     const motivation = file<never>('motivation');
     if (motivation) useMotivationStore().fromDevice(motivation);
     useItemsStore().refreshFromDevice();

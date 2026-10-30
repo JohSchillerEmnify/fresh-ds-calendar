@@ -27,7 +27,8 @@ export function perform(e: OutboxEntry): Promise<unknown> {
       const series = e.series;
       return series ? api.deleteTaskList(series, plain) : api.deleteTaskList(c.id, o);
     }
-    case 'item.add': return api.addTaskItem(c.id, { id: c.itemId, title: c.title }, plain, c.scope);
+    case 'item.add': return api.addTaskItem(c.id, { id: c.itemId, ...(c.strokes ? { strokes: c.strokes } : { title: c.title }) }, plain, c.scope);
+    case 'item.ink': return api.putItemInk(c.id, c.itemId, c.strokes, plain);
     case 'item.patch': return api.updateTaskItem(c.id, c.itemId, c.patch, plain, c.scope);
     case 'item.delete': return api.deleteTaskItem(c.id, c.itemId, plain, c.scope);
     case 'item.order': return api.reorderTaskItems(c.id, c.itemIds, plain);

@@ -62,6 +62,21 @@ export interface TaskItem {
   id: string;
   title: string;
   done: boolean;
+  /** An item written by hand (feature handwritten-lists): `title` is empty, the strokes are in the {@link InkDoc}. */
+  ink?: true;
+}
+
+/** One point of a stroke: x and y in line heights from the line's left and top, and the pen pressure 0..1. */
+export type InkPoint = [x: number, y: number, pressure: number];
+/** One pen stroke: its points and its colour (`#rrggbb`; absent = the theme's text colour). */
+export interface InkStroke {
+  p: InkPoint[];
+  c?: string;
+}
+/** The ink a person sees: the strokes of every ink item by item id (item ids are unique, so a repeating list's occurrences share them). */
+export interface InkDoc {
+  version: 1;
+  items: Record<string, InkStroke[]>;
 }
 
 /** A note's top-left corner on the Canvas (feature tasks-canvas). */
@@ -193,7 +208,8 @@ export interface CreateTaskListInput {
   /** Null creates an undated list (no time, no recurrence). */
   date: LocalDate | null;
   time?: LocalTime | null;
-  items?: { title: string; done?: boolean }[];
+  /** An item with `strokes` is a handwritten one (its `title` is ''; feature handwritten-lists). */
+  items?: { title: string; done?: boolean; strokes?: InkStroke[] }[];
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;
@@ -219,7 +235,8 @@ export interface UpdateTaskListInput {
 export interface TaskTemplate {
   id: string;
   name: string;
-  items: { title: string }[];
+  /** An ink item has an empty `title` and its `strokes` (feature handwritten-lists). */
+  items: { title: string; strokes?: InkStroke[] }[];
   estimateMinutes: number | null;
   categoryId: string | null;
 }
@@ -227,7 +244,7 @@ export interface TaskTemplate {
 /** `POST /api/templates` and `PUT /api/templates/:id` body. */
 export interface TaskTemplateInput {
   name: string;
-  items: { title: string }[];
+  items: { title: string; strokes?: InkStroke[] }[];
   estimateMinutes?: number | null;
   categoryId?: string | null;
 }

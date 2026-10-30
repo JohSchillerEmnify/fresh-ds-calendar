@@ -117,6 +117,10 @@ export interface Prefs {
   weekTwoRowTop: 3 | 4;
   /** Labs: a tap on a task-list card grows it in place (the grown card); off, a tap opens the list sheet. */
   labsGrowCards: boolean;
+  /** Labs: items of a task list can be written by hand with a pen (feature handwritten-lists); off, existing ink stays visible and tickable. */
+  labsHandwriting: boolean;
+  /** Labs: a finger draws in the writing area too (two fingers scroll); off, only a pen draws. */
+  labsDrawWithFinger: boolean;
   /** Minimum event length (min): a shorter timed entry is laid out as this long; 0 = off (feature min-event-length). */
   minEventMinutes: MinEventMinutes;
   /** Overlapping events side by side in the day view before they cascade (default 4). */

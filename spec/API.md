@@ -711,6 +711,34 @@ A non-boolean switch or a `morningTime` that is not `HH:MM` answers `400` (`fiel
 `GET/PATCH /api/prefs` also carry `tasksGroupBy: 'time' | 'category' | 'none'` (default `time`) and
 `tasksSortBy: 'date' | 'name' | 'category' | 'changed' | 'progress'` (default `date`); `tasksSortDir: 'default' | 'reversed'` (default `default`, relative to the sort key's own direction); any other value is `400`. `tasksFilter: { categories: string[]; when: 'all' | 'nodate' | 'dated' | 'overdue' | 'today' | 'tomorrow' | 'week' }` (default `{ categories: [], when: 'all' }`) is the Tasks view's filter (feature tasks-filter); `categories` holds at most 50 unique strings of 1-64 characters (category ids, or `none`), the whole object is replaced by a `PATCH`, any other shape or value is `400` (field `tasksFilter`). `undatedDone: 'calendar' | 'archive'` (default `calendar`) decides what finishing an undated list does (feature tasks-archive); any other value is `400`.
 
+### Ink (handwritten items; feature handwritten-lists)
+
+An **ink item** is a task item with `ink: true` and an empty `title` (a rename is a `400`); its strokes are not in Google
+(30 KB limit for private properties). They are stored by item id (ids are unique, so the occurrences of a repeating list
+that hold the item share its ink): for a personal list in `DATA_DIR/users/<sub>/ink.json` (taken by the Drive backup), for a
+shared list in the list's own document (`ink`), so every member sees and edits the same ink; sharing a list moves its ink
+into the list and stopping to share moves it back. `InkDoc` = `{ version: 1, items: { <itemId>: InkStroke[] } }`: the
+person's own ink plus that of every shared list they are on. A stroke is `{ p: [x, y, pressure][], c?: '#rrggbb' }` (no `c`
+= the theme's text colour); x and y are in line heights from the line's left and top (so the ink scales to any line,
+decision G8), pressure 0..1; at most 5000 points per stroke and 500 strokes per request. Google gets the description line
+`☐ Handwritten item` (decision A3). The prefs `labsHandwriting` and `labsDrawWithFinger` (boolean, default `false`) are the
+Labs switches.
+
+| Method | Path | Body | Success |
+|---|---|---|---|
+| `GET` | `/api/ink` | – | `200` `InkDoc` |
+| `POST` | `/api/tasklists` | items may be `{ title: '', strokes }` (ink items; a list of ink items alone needs no title) | `201` the list |
+| `POST` | `/api/tasklists/:id/items[?scope=following]` | `{ strokes, id?, index? }` (instead of `title`) | `201` the list, with a new ink item (in every following list with `scope=following`) |
+| `PUT` | `/api/tasklists/:id/items/:itemId/ink` | `{ strokes: InkStroke[] }` | `200` the list; replaces the item's strokes (`[]` clears them, the item stays) |
+
+A text item given strokes, or an ink item given a title → `400`; unknown item → `404`; a list holds at most about 200 KB
+of ink (`INK_LIST_MAX_BYTES` in `shared/limits`, measured by `inkListBytes` as the JSON of the strokes of each ink item;
+the web app uses the same helper) → `413 PAYLOAD_TOO_LARGE` (key `tasklist.inkFull`). A repeated `POST` with the same item
+`id` stores the ink once. Deleting an item deletes its ink (not for `scope=this` on one occurrence of a repeating list, which
+leaves the item and its ink to the others), deleting a list deletes the ink of its items (an occurrence of a repeating list
+leaves it). `GET /api/changes` carries the document as the file `ink` when its version moved. Templates' ink is not yet stored
+(open point).
+
 ### Canvas (`/api/canvas`)
 
 The person's **areas** on the Tasks view's Canvas (feature tasks-canvas), one JSON document per person in

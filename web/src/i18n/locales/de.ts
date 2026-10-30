@@ -4,6 +4,7 @@ import calendarDe from './de/calendar.ts';
 import outboxDe from './de/outbox.ts';
 import backupDe from './de/backup.ts';
 import canvasDe from './de/canvas.ts';
+import inkDe from './de/ink.ts';
 import bedtimeDe from './de/bedtime.ts';
 
 import sharingDe from './de/sharing.ts';
@@ -15,6 +16,7 @@ export default {
   outbox: outboxDe,
   backup: backupDe,
   canvas: canvasDe,
+  ink: inkDe,
   bedtime: bedtimeDe,
   sharing: sharingDe,
   tasks: tasksDe,

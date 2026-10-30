@@ -3,7 +3,7 @@
  * form, how a template fills the new list form, its details line in the picker and the name check. No store or DOM
  * access, so they are unit-tested with fixed data.
  */
-import type { TaskList, TaskTemplate, TaskTemplateInput } from '@/api/types';
+import type { InkStroke, TaskList, TaskTemplate, TaskTemplateInput } from '@/api/types';
 import { t } from '@/i18n';
 import { parseItems, type TaskListForm } from './validate';
 
@@ -14,20 +14,20 @@ export const NAME_MAX = 80;
  * What a list keeps as a template: its item titles in order (never a tick), estimate and category; never a date,
  * time, repeat, reminders, tags or sharing (owner, 2026-10-25).
  */
-export function templateFromList(l: Pick<TaskList, 'items' | 'estimateMinutes' | 'categoryId'>, name: string, categoriesOn: boolean): TaskTemplateInput {
+export function templateFromList(l: Pick<TaskList, 'items' | 'estimateMinutes' | 'categoryId'>, name: string, categoriesOn: boolean, strokesOf: (itemId: string) => InkStroke[] = () => []): TaskTemplateInput {
   return {
     name: name.trim(),
-    items: l.items.map((i) => ({ title: i.title })),
+    items: l.items.map((i) => (i.ink ? { title: '', strokes: strokesOf(i.id) } : { title: i.title })),
     estimateMinutes: l.estimateMinutes ?? null,
     categoryId: categoriesOn ? l.categoryId ?? null : null,
   };
 }
 
 /** What a new list's form keeps as a template ("Also save as template"): named by the list's title. */
-export function templateFromForm(f: TaskListForm, categoriesOn: boolean): TaskTemplateInput {
+export function templateFromForm(f: TaskListForm, categoriesOn: boolean, ink: InkStroke[][] = []): TaskTemplateInput {
   return {
     name: f.title.trim(),
-    items: parseItems(f.items).map((title) => ({ title })),
+    items: [...parseItems(f.items).map((title) => ({ title })), ...ink.map((strokes) => ({ title: '', strokes }))],
     estimateMinutes: f.estimate.trim() ? Number(f.estimate) : null,
     categoryId: categoriesOn && f.categoryId !== 'none' ? f.categoryId : null,
   };
@@ -41,11 +41,14 @@ export function fillFromTemplate(f: TaskListForm, tpl: TaskTemplate, categoryExi
   return {
     ...f,
     title: tpl.name,
-    items: tpl.items.map((i) => i.title).join('\n'),
+    items: tpl.items.filter((i) => !i.strokes).map((i) => i.title).join('\n'),
     estimate: tpl.estimateMinutes ? String(tpl.estimateMinutes) : '',
     categoryId: tpl.categoryId && categoryExists(tpl.categoryId) ? tpl.categoryId : 'none',
   };
 }
+
+/** The ink lines a template brings (one per ink item). */
+export const inkLinesOf = (tpl: TaskTemplate): InkStroke[][] => tpl.items.flatMap((i) => (i.strokes ? [i.strokes] : []));
 
 /** The picker's line under a template's name: "2 items · ~45 min · Home" (estimate and category only when set). */
 export function templateDetails(

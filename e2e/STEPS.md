@@ -3347,3 +3347,170 @@ the stored preferences of {string} are damaged
 {string} has the default preferences plus the change
 the damaged file is kept as {string} with its old content
 ```
+## Handwritten lists (`@id:handwritten-lists`, Labs; all `@backlog`, not built yet)
+
+```
+the Labs switch {string} is on
+the checkbox of the item number {int} is right of its grip handle
+the writing of the item number {int} starts at least {int} pixels right of its grip handle
+the Labs switch {string} is off
+the device reports pen support
+the device reports no pen support
+the device is an Android tablet that reports pen support
+the writing mode is {string}
+the calendar contains a task list {string} on {date} with the ink items {string}
+"jo@example.com" has an undated task list {string} with the ink items {string}
+the expanded task list {string} has more ink items than fit the screen
+I open the new task list form
+I open the new task list form on a screen {int} pixels wide
+I press the writing mode switch
+the new list form has no writing mode switch
+the new list form shows the writing mode switch with the pen icon
+the writing mode is {string} and the switch shows the pen icon
+the writing mode is {string} and the switch shows the keyboard icon
+the item writing area offers no writing mode switch
+I write an ink item with the pen
+I write an ink item on the note {string} with the pen
+I draw a stroke with the pen
+I drag with the mouse over the writing area
+I click the ink item number {int} with the mouse
+I click the next empty line and type {string}
+I drag the grip handle of the item number {int} above the item number {int} with the pen
+I long-press the item number {int} with the mouse and drag it above the item number {int}
+I long-press the item number {int} with a finger and drag it above the item number {int}
+the dialog shows no ruled lines to write on
+typing in the item field works as without the feature
+I swipe up on the writing area with a finger
+I rest my palm on the writing area and draw a stroke with the pen
+I tap the ink item number {int} with a finger
+the stroke is drawn on the line
+the stroke is drawn on the line, thicker where I pressed harder
+only the pen stroke is drawn
+nothing is drawn
+the list scrolls
+a pen stroke on the card draws nothing
+the expanded task list has {int} items
+I tick the item number {int}
+the item number {int} is ticked
+the item number {int} is ticked and nothing is drawn
+I can still tick the item number {int}
+I drag the item number {int} above the item number {int}
+I delete the item number {int}
+the ink items are in the order {string}
+the card of {string} shows {int} ink items, scaled down
+the task list {string} shows {int} ink items, scaled down
+the note {string} shows {int} ink items
+the dialog is larger than without the feature
+the dialog is as large as without the feature
+the dialog shows ruled lines to write on
+the item fields are ruled, ordinary text fields
+the form has no button that turns ink into text
+the device's handwriting recognition enters the text {string} in the item field
+the collapsed task list shows the items {string}
+the backup to Drive runs
+the backup holds the ink of the task list {string}
+the Labs setting {string} is on
+the Labs setting {string} is off
+the dialog fits the window
+I draw a stroke with a finger
+I swipe up on the writing area with two fingers
+I draw {int} stroke(s) with the pen
+I have drawn {int} stroke(s) with the pen
+I press the undo button
+the writing area shows {int} stroke(s)
+the device passes the pen double tap on
+I double tap the pen
+I touch the first stroke with the eraser end of the pen
+I touch the first stroke with the pen
+I press the eraser button
+the task list {string} holds about 200 KB of ink
+the app says the list is full and suggests starting a new list
+the stroke has the theme's text colour
+I choose the ink colour preset {string}
+the stroke is red
+I choose the custom ink colour {string} in the colour picker
+I choose the custom ink colour {string}
+the stroke has the colour {string}
+the theme is dark
+the stroke is adjusted so it is readable on the dark background
+the chosen ink colour is {string}
+I add the text item {string}
+the item number {int} is an ink item
+the item number {int} is a text item
+I draw a stroke with the pen on the ink item number {int}
+the ink item number {int} has one more stroke
+the template {string} has the ink items {string}
+I create a task list from the template {string}
+the new task list shows {int} ink items, scaled down
+the calendar contains a repeating task list {string} with the ink items {string}
+the next occurrence of the task list {string} is created
+the next occurrence shows {int} ink items, scaled down
+the home-screen widget lists the task list {string}
+the widget shows {int} small ink pictures for the task list {string}
+the door board shows the task list {string}
+the door board shows {int} small ink pictures for the task list {string}
+the notification for the task list {string} is shown
+the notification text mentions {string}
+a screen reader reads the item number {int} as {string}
+I filter the Tasks view by {string}
+the Tasks view shows the task list {string}
+the Tasks view does not show the task list {string}
+the title field is an ordinary text field
+the title field is not a writing area
+two devices have the task list {string} open
+the first device writes an ink item while offline
+the first device erases the ink item number {int} while offline
+the second device draws a stroke on the ink item number {int} while offline
+both devices reconnect
+both devices show {int} items in the task list {string}
+both devices show the ink item number {int} with {int} stroke(s)
+the ink item number {int} has the same strike line as the text item number {int}
+the ink item number {int} is faded to about half
+I note where the writing tools are
+every writing tool is at the mirror image of where it was, within {int} pixel
+I expand the task list {string} on a screen {int} pixels wide
+the ink of the item number {int} has the same proportions to its line as on a {int} pixel wide screen
+the ink of the item number {int} is not cut off
+I delete the task list {string}
+the server holds {int} ink item(s) for the task list {string}
+the server holds no ink for the task list {string}
+```
+
+- Ink items are created through the public API with a stroke list per item (`{ strokes: [[x, y, pressure]…] }`); the
+  Google description of an ink item is `☐/☑ Handwritten item` (assumption A3 of the feature).
+- "the Labs switch X is on/off": the switch `settings-labs-handwriting` in Settings > Labs (pref `labsHandwriting`).
+- Pen and finger strokes are dispatched as Pointer Events with the matching `pointerType`; a mouse drag (`pointerType` mouse) over the writing area must leave the ink unchanged (decision R1); the grip handle is the item's drag handle (`Drag <item> to reorder`), a pen drag on it moves the item, a pen drag elsewhere on the line draws (R3); "pen support" is the
+  `maxTouchPoints`/`PointerEvent` pen capability the device reports; "palm" is a simultaneous `touch` pointer.
+- "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
+  (the n-th ink item of the creating step is named by the n-th word).
+- "the add button covers no control of the writing area" is an added panel name of the existing step.
+- "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
+  finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
+  is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
+- Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
+  "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
+  the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
+- "holds about 200 KB of ink" creates strokes through the API until the list is just under the 200 KB limit.
+- "the dialog … without the feature": compared with the dialog size measured with the switch off.
+- Offline / sync (G1): "the network connection is lost / restored" are the existing steps; the ink is written into the
+  device outbox and pushed on reconnect. "two devices" = two browser contexts of the same person; "the first / second
+  device ... while offline" sets that context offline, acts, and keeps it offline until "both devices reconnect", which
+  restores both in the order first, second and waits for both to have synced. Steps are applied in the order written, so
+  "later" means the later step. A seeded ink item holds one stroke (A9); "erases the ink item" removes all its strokes.
+- Widget / door board / notification (G2): the widget picture is checked on the widget's render endpoint, the door board
+  on `door-board` (`ink-picture` elements per ink item), the notification on the payload the push or reminder carries
+  (the text "Handwritten item" for an ink item).
+- Screen reader (G3): "a screen reader reads the item number N as T" = the accessible name of the Nth item (`aria-label`)
+  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. "I filter the Tasks view by T" types T into the
+  Tasks view filter field; "shows / does not show the task list" looks for the list card by its title.
+- Title (G4): "an ordinary text field" = the title `input` is a text input without an ink canvas; "not a writing area" = no
+  `ink-writing-area` inside the title field's row.
+- Strike and fade (G6): "the same strike line" = the computed `text-decoration-line`/colour/thickness of the ink item's
+  strike layer equals the text item's; "faded to about half" = computed opacity between 0.4 and 0.6.
+- Left-handed writing tools (G7): "I note where the writing tools are" records the boxes of the mode switch, `ink-undo`,
+  `ink-eraser` and the colour control relative to the writing dialog; the mirror check works like the top bar's, with
+  the dialog's width W.
+- Scale (G8): the ink's bounding box divided by its line height is compared with the 1280 px run (tolerance 2 %); "not cut
+  off" = the ink's box lies inside the line's box.
+- Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.
+

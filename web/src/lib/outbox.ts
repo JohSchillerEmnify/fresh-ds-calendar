@@ -1,6 +1,6 @@
 /** The pure parts of the outbox (ADR 0031): kinds of change, how an unsent change shows, id replacement, names. */
 import type {
-  CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
+  CalendarEvent, CalendarItem, ChangeScope, InkStroke, CreateEventInput, CreateTaskListInput, TaskItem, TaskList, UpdateEventInput, UpdateTaskListInput,
 } from '@/api/types';
 
 /** One change of an event, a task list or one of its items; `id` is the event or the list (a device id until its create was sent). */
@@ -11,7 +11,8 @@ export type Change =
   | { op: 'list.create'; id: string; input: CreateTaskListInput }
   | { op: 'list.update'; id: string; patch: UpdateTaskListInput; scope?: ChangeScope }
   | { op: 'list.delete'; id: string }
-  | { op: 'item.add'; id: string; itemId: string; title: string; scope?: ChangeScope }
+  | { op: 'item.add'; id: string; itemId: string; title: string; scope?: ChangeScope; strokes?: InkStroke[] }
+  | { op: 'item.ink'; id: string; itemId: string; strokes: InkStroke[] }
   | { op: 'item.patch'; id: string; itemId: string; patch: { title?: string; done?: boolean }; scope?: ChangeScope }
   | { op: 'item.delete'; id: string; itemId: string; scope?: ChangeScope }
   | { op: 'item.order'; id: string; itemIds: string[] };
@@ -51,11 +52,16 @@ export function kindOf(c: Change): ChangeKind {
 /** Whether an entry has something to correct in a form (not a tick, a delete or a reorder). */
 export const editable = (c: Change): boolean => c.op === 'event.create' || c.op === 'event.update' || c.op === 'list.create' || c.op === 'list.update';
 
+/** The items of a new list the server keeps: an empty line is no item (it drops them, so positions must be counted after this). */
+export function keptItems<T extends { title: string; strokes?: unknown }>(items: T[] | undefined): T[] {
+  return (items ?? []).filter((i) => i.title.trim() || i.strokes);
+}
+
 const recount = (tl: TaskList, items: TaskItem[]): TaskList => ({ ...tl, items, doneCount: items.filter((i) => i.done).length, totalCount: items.length });
 
 /** A new task list as the device shows it before the server has answered. */
 export function localTaskList(id: string, input: CreateTaskListInput): TaskList {
-  const items = (input.items ?? []).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false }));
+  const items = keptItems(input.items).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false, ...(i.strokes ? { ink: true as const } : {}) }));
   return recount({
     kind: 'tasklist', id, calendarId: '', title: input.title, date: input.date, time: input.date ? input.time ?? null : null, items, doneCount: 0, totalCount: 0,
     estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null, categoryId: input.categoryId ?? null, tags: input.tags ?? [],
@@ -78,9 +84,13 @@ export function applyEntry(cur: CalendarItem | null | undefined, e: OutboxEntry)
     }
     default: break;
   }
-  if (cur?.kind !== 'tasklist') return cur;
+  return cur?.kind === 'tasklist' ? applyItemOp(cur, c) : cur;
+}
+
+/** One unsent item change on top of a task list. */
+function applyItemOp(cur: TaskList, c: Change): TaskList {
   switch (c.op) {
-    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: false }]);
+    case 'item.add': return cur.items.some((i) => i.id === c.itemId) ? cur : recount(cur, [...cur.items, { id: c.itemId, title: c.title, done: false, ...(c.strokes ? { ink: true as const } : {}) }]);
     case 'item.patch': return recount(cur, cur.items.map((i) => (i.id === c.itemId ? { ...i, ...c.patch } : i)));
     case 'item.delete': return recount(cur, cur.items.filter((i) => i.id !== c.itemId));
     case 'item.order': {
@@ -114,7 +124,7 @@ export function renameItems(entries: OutboxEntry[], listId: string, from: string
   return entries.map((e) => {
     const c = e.change;
     if (c.id !== listId) return e;
-    if (c.op === 'item.patch' || c.op === 'item.delete') return { ...e, change: { ...c, itemId: real(c.itemId) } };
+    if (c.op === 'item.patch' || c.op === 'item.delete' || c.op === 'item.ink') return { ...e, change: { ...c, itemId: real(c.itemId) } };
     if (c.op === 'item.order') return { ...e, change: { ...c, itemIds: c.itemIds.map(real) } };
     return e;
   });
