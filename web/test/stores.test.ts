@@ -363,7 +363,7 @@ describe('items store', () => {
 
   it('item operations are optimistic, roll back on failure and a poll never undoes them in flight', async () => {
     const tl = { kind: 'tasklist', id: 't', calendarId: 'primary', title: 'G', date: '2026-10-14', time: null, items: [{ id: 'i1', title: 'Milk', done: false }],
-      doneCount: 0, totalCount: 1, estimateMinutes: null, categoryId: null, tags: [], color: '#000000', etag: 'e', updated: '' };
+      doneCount: 0, totalCount: 1, estimateMinutes: null, recurrence: null, categoryId: null, tags: [] as string[], color: '#000000', calendarColor: '#000000', completedOn: null, canvas: null, etag: 'e', updated: '' };
     let fail = true;
     let gate: Promise<void> = Promise.resolve();
     mockFetch({

@@ -50,7 +50,7 @@ export const useCalendarsStore = defineStore('calendars', () => {
       list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: saved.defaultReminders ?? minutes } : c));
       useDeviceStore().putCalendars(list.value);
     } catch (e) {
-      list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders } : c));
+      list.value = list.value.map((c) => (c.id === id ? { ...c, defaultReminders: before.find((x) => x.id === id)?.defaultReminders ?? [] } : c));
       throw e;
     } finally {
       saving--;

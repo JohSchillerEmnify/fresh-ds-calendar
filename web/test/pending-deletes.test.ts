@@ -11,7 +11,7 @@ const ev = eventFixture('Dentist', '2026-10-14T09:00:00+02:00', '2026-10-14T10:0
 const list = (): TaskList => ({
   kind: 'tasklist', id: 'G', calendarId: 'primary', title: 'Groceries', date: '2026-10-14', time: null,
   items: [{ id: 'm', title: 'Milk', done: false }, { id: 'e', title: 'Eggs', done: true }, { id: 'b', title: 'Bread', done: false }],
-  doneCount: 1, totalCount: 3, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', etag: '"e-G"', updated: 'x',
+  doneCount: 1, totalCount: 3, estimateMinutes: null, recurrence: null, categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: '"e-G"', updated: 'x',
 });
 const deletes = (m: ReturnType<typeof mockFetch>) => m.calls.filter((c) => c.method === 'DELETE').map((c) => c.path);
 const snack = () => useUiStore().snackbars.find((s) => s.testid === 'undo-snackbar');

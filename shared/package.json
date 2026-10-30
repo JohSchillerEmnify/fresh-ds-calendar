@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.js" },
+    "./api": { "types": "./api.d.ts" },
     "./theme.schema.json": "./theme.schema.json"
   }
 }

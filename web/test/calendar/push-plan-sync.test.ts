@@ -125,7 +125,7 @@ describe('the Web Push plan (feature reminders)', () => {
     await bootAt(`${D}T20:00:00+02:00`, [trip, work]);
     expect(kinds('summary')[0]!.body).toBe('2 appointments · no lists · first: Standup 09:00');
     const cals = useCalendarsStore();
-    cals.list = [{ id: 'work', name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true }];
+    cals.list = [{ id: 'work', name: 'Work', color: '#1a73e8', primary: false, writable: true, own: true, hidden: true, defaultReminders: [] }];
     await flushPromises();
     expect(kinds('summary')[0]!.body).toBe('1 appointment · no lists · first: Trip 12:00');
   });

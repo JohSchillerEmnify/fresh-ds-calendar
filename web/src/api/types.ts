@@ -1,33 +1,10 @@
+import type { ApiError, ConfigResponse, DateTime, HealthResponse, LocalDate, SummaryDay } from '@calendar/shared/api';
 import type { LanguagePref } from '@/i18n/language';
 
-/**
- * REST contract types (spec/API.md). Kept in sync by hand with `server/src/api/types.ts`.
- * If the server package exports the same module later, replace this file with a re-export.
- */
-export type LocalDate = string; // 'YYYY-MM-DD'
-export type LocalTime = string; // 'HH:mm'
-export type DateTime = string; // RFC 3339 with offset
+/** REST contract types (spec/API.md) live in `shared/api.d.ts`; this file re-exports them plus the web-only ones below. */
+export type * from '@calendar/shared/api';
 
-export type ErrorCode =
-  | 'VALIDATION_ERROR'
-  | 'NOT_FOUND'
-  | 'UNAUTHENTICATED'
-  | 'FORBIDDEN'
-  | 'GOOGLE_REAUTH'
-  | 'CALENDAR_PERMISSION_MISSING'
-  | 'PRECONDITION_FAILED'
-  | 'CONFLICT'
-  | 'PROVIDER_ERROR'
-  | 'PROVIDER_UNAVAILABLE'
-  | 'DRIVE_PERMISSION_REQUIRED'
-  | 'NO_BACKUP'
-  | 'BACKUP_FAILED'
-  | 'RATE_LIMITED'
-  | 'INTERNAL';
-
-export interface ApiErrorBody {
-  error: { code: ErrorCode; message: string; key?: string; details?: { field?: string; issue?: string }[] };
-}
+export type ApiErrorBody = ApiError;
 
 /** `GET /api/backup` (API.md "Backups"). */
 export interface BackupStatus {
@@ -45,147 +22,8 @@ export interface Me {
   name: string | null;
 }
 
-export interface Calendar {
-  id: string;
-  name: string;
-  color: string;
-  primary: boolean;
-  writable: boolean;
-  /** True for the person's own calendars: events go only there (feature events-readonly). */
-  own: boolean;
-  /** The person's choice (GET /api/calendars). */
-  hidden?: boolean;
-  /** Popup reminder leads of Google's calendar default, minutes, Google's order. */
-  defaultReminders?: number[];
-}
-
-/**
- * An item's reminders: `minutes` is the popup lead list in effect (the calendar default while `useDefault`, else the
- * item's own list; feature reminders).
- */
-export interface Reminders {
-  useDefault: boolean;
-  minutes: number[];
-}
-
-/** A place picked from the place search (feature event-location): its name and position (WGS 84 degrees). */
-export interface Place {
-  name: string;
-  lat: number;
-  lon: number;
-}
-
-export interface CalendarEvent {
-  kind: 'event';
-  id: string;
-  calendarId: string;
-  title: string;
-  description: string;
-  location: string;
-  /** The place picked for the location; absent for typed text (the location then shows no map). */
-  place?: Place;
-  allDay: boolean;
-  start: DateTime | LocalDate;
-  end: DateTime | LocalDate;
-  colorId: string | null;
-  color: string;
-  /** Set only on Google birthday entries: `anniversary` for a contact's anniversary, `birthday` for every other special date. */
-  special?: 'birthday' | 'anniversary';
-  /** True when the app cannot edit or delete it: not in an own calendar, an invitation, or a birthday of the contacts calendar. */
-  readOnly?: true;
-  /** Why `readOnly` is set (an invitation from `by`, or an event in the calendar of `by`); absent for the contacts Birthdays calendar. */
-  readOnlyReason?: { kind: 'invitation' | 'calendar'; by: string };
-  /** Birthdays only: true when Google keeps the date (linked to a contact, or the person's own birthday); name and colour stay editable. */
-  dateLocked?: true;
-  reminders?: Reminders;
-  etag: string;
-  updated: DateTime;
-}
-
-export interface TaskItem {
-  id: string;
-  title: string;
-  done: boolean;
-}
-
-export type Recurrence = 'daily' | 'weekly' | 'monthly';
-
 /** Which occurrences of a repeating task list a change is for (feature tasklist-repeating): the shown one, or it and all later ones. */
 export type ChangeScope = 'this' | 'following';
-
-export interface TaskList {
-  kind: 'tasklist';
-  id: string;
-  calendarId: string;
-  title: string;
-  /** Null = undated: the list shows only in the Tasks view, in no calendar view or tray. */
-  date: LocalDate | null;
-  time: LocalTime | null;
-  items: TaskItem[];
-  doneCount: number;
-  totalCount: number;
-  estimateMinutes: number | null;
-  recurrence?: Recurrence | null;
-  /** On an occurrence of a repeating list: the id of its series (Google `recurringEventId`); absent otherwise. */
-  seriesId?: string;
-  /** On an occurrence: the same for every part of a list split by a "this and following" change. */
-  seriesKey?: string;
-  categoryId: string | null;
-  tags: string[];
-  color: string;
-  /** Colour of the tasks calendar: what an uncategorised list shows (used while task categories are switched off). */
-  calendarColor?: string;
-  /** Date the last open item was ticked (server, app clock); null/absent while an item is open. */
-  completedOn?: LocalDate | null;
-  /** Place on the Tasks view's Canvas (canvas units); null/absent = no place yet (Unsorted). */
-  canvas?: CanvasPlace | null;
-  /** Present on shared lists only (API.md "Shared task lists"). */
-  shared?: SharedInfo;
-  /** The owner's category look carried on a shared list (the requester's own categories may differ). */
-  categoryInfo?: { name: string; color: string; icon: string | null } | null;
-  /** Absent on shared lists (they live outside Google). */
-  reminders?: Reminders;
-  etag: string;
-  updated: DateTime;
-}
-
-/** A person as the sharing controls show them. */
-export interface Person {
-  sub: string;
-  name: string;
-  email: string;
-  initial: string;
-}
-
-/** Who a shared list is shared with, seen by the requester. */
-export interface SharedInfo {
-  owned: boolean;
-  owner: Person;
-  /** Everyone but the requester. */
-  with: Person[];
-}
-
-/** A note's top-left corner on the Canvas, in canvas units (feature tasks-canvas). */
-export interface CanvasPlace {
-  x: number;
-  y: number;
-}
-
-export type CalendarItem = CalendarEvent | TaskList;
-
-export interface Category {
-  id: string;
-  name: string;
-  color: string;
-  icon: string | null;
-  googleColorId: string;
-}
-
-export type ThemeMode = 'system' | 'light' | 'dark';
-export type ViewName = 'month' | 'week' | 'day';
-export type AnimationLevel = 'full' | 'reduced' | 'off';
-/** How many flowers the Sunflower field scene shows: one per 40 growth points, or a fixed full field. */
-export type SunflowersMode = 'grow' | 'full';
 /** How often the emotional support cat comes by when a task list is finished (per person, `GET/PATCH /api/prefs`). */
 export type SupportCatSetting = 'off' | 'sometimes' | 'always';
 
@@ -312,42 +150,9 @@ export interface NotifyPrefs {
   morningTime: string;
 }
 
-export interface Settings {
-  themeMode: ThemeMode;
-  seedColor: string;
-  defaultView: ViewName;
-  defaultEventColorId: string | null;
-  animationLevel: AnimationLevel;
-  sounds: boolean;
-  calmMode: boolean;
-  ignoreSystemMotion: boolean;
-  sunflowers: SunflowersMode;
-  categories: Category[];
-  updated: DateTime;
-  version: number;
-}
+export type Health = HealthResponse;
 
-export type SettingsPatch = Partial<Omit<Settings, 'categories' | 'updated' | 'version'>>;
-
-export interface Health {
-  status: 'ok';
-  provider: 'mock' | 'google';
-  providerStatus: 'ok' | 'unavailable';
-  version: string;
-  time: DateTime;
-  testMode: boolean;
-}
-
-export interface AppConfig {
-  now: string;
-  clockFrozen: boolean;
-  timeZone: string;
-  weekStartsOn: 1;
-  pollIntervalMs: number;
-  provider: 'mock' | 'google';
-  testMode: boolean;
-  publicUrl: string | null;
-  version: string;
+export interface AppConfig extends ConfigResponse {
   /** The APK the server offers (`scripts/android-build.sh`), or null. */
   apk: { versionCode: number; versionName: string; certSha256?: string } | null;
   /** Names of the optional plugins this deployment turned on (ADR 0004), e.g. `door`. */
@@ -365,131 +170,8 @@ export interface ReleaseNote {
   text: string;
 }
 
-export interface ItemsResponse {
-  items: CalendarItem[];
-  from: LocalDate;
-  to: LocalDate;
-  /** Echo of the optional `also` range whose items are merged into `items`. */
-  also?: { from: LocalDate; to: LocalDate };
-  syncedAt: DateTime;
-  /** Set while Google's rate limit is in force: the items come from the server's cache and may be older than the last poll. */
-  stale?: true;
-}
-
-export interface CreateEventInput {
-  calendarId?: string;
-  title: string;
-  description?: string;
-  location?: string;
-  /** The picked place; null drops it, absent keeps it (update). */
-  place?: Place | null;
-  allDay: boolean;
-  start: DateTime | LocalDate;
-  end: DateTime | LocalDate;
-  colorId?: string | null;
-  reminders?: Reminders;
-}
-export type UpdateEventInput = Partial<CreateEventInput>;
-
-/** `POST /api/events` with `kind: 'birthday'`: a yearly birthday in the person's primary calendar, like Google's "Birthday" create menu. */
-export interface CreateBirthdayInput {
-  kind: 'birthday';
-  title: string;
-  date: LocalDate;
-  colorId?: string | null;
-}
-
-export interface CreateTaskListInput {
-  title: string;
-  /** Null creates an undated list. */
-  date: LocalDate | null;
-  time?: LocalTime | null;
-  items?: { title: string; done?: boolean }[];
-  categoryId?: string | null;
-  tags?: string[];
-  estimateMinutes?: number | null;
-  recurrence?: Recurrence | null;
-  reminders?: Reminders;
-}
-export interface UpdateTaskListInput {
-  title?: string;
-  /** A date dates the list; null makes it undated (and drops its time). */
-  date?: LocalDate | null;
-  time?: LocalTime | null;
-  items?: { id?: string; title: string; done: boolean }[];
-  categoryId?: string | null;
-  tags?: string[];
-  estimateMinutes?: number | null;
-  /** Integers 0-10000; null clears the place. */
-  canvas?: CanvasPlace | null;
-  reminders?: Reminders;
-}
-
-/** A saved task list template (API.md "Templates", feature tasklist-templates): never dated or ticked. */
-export interface TaskTemplate {
-  id: string;
-  name: string;
-  items: { title: string }[];
-  estimateMinutes: number | null;
-  categoryId: string | null;
-}
-
-/** `POST /api/templates` and `PUT /api/templates/:id` body. */
-export interface TaskTemplateInput {
-  name: string;
-  items: { title: string }[];
-  estimateMinutes?: number | null;
-  categoryId?: string | null;
-}
-
-/** One labelled rectangle on the Canvas (API.md "Canvas"). */
-export interface CanvasArea {
-  id: string;
-  name: string;
-  color: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-/** A person's Canvas document (`GET/PUT /api/canvas`). */
-export interface CanvasDoc {
-  version: 1;
-  areas: CanvasArea[];
-}
-
-export type Density = 0 | 1 | 2 | 3;
-export interface DaySummary {
-  events: number;
-  tasklists: number;
-  openTasklists: number;
-  density: Density;
-}
+export type Density = SummaryDay['density'];
+export type DaySummary = SummaryDay;
 export interface SummaryResponse {
   days: Record<LocalDate, DaySummary>;
-}
-
-export interface Motivation {
-  streak: { current: number; best: number; lastCheckIn: LocalDate | null; checkedInToday: boolean };
-  plant: {
-    growth: number;
-    stage: 'Seed' | 'Sprout' | 'Small plant' | 'Leafy' | 'Flowering';
-    stageIndex: 0 | 1 | 2 | 3 | 4;
-    nextStageAt: number | null;
-    todayPoints: number;
-    lastWatered: LocalDate | null;
-    flowers: number;
-    vitality: 100 | 75 | 50 | 25;
-    mood: 'happy' | 'thirsty' | 'dry' | 'droopy';
-    message: string;
-  };
-}
-
-export interface CheckInResponse {
-  current: number;
-  best: number;
-  checkedInToday: true;
-  newToday: boolean;
-  motivation: Motivation;
 }

@@ -25,7 +25,7 @@ function week(o: Partial<TaskList> = {}): TaskList {
   const items = [{ id: 'i0', title: 'Sink', done: false }, { id: 'i1', title: 'Floor', done: false }];
   return {
     kind: 'tasklist', id: 'W_20261019', calendarId: 'tasks', title: 'Clean', date: '2026-10-19', time: null, items, doneCount: 0, totalCount: 2,
-    estimateMinutes: null, recurrence: 'weekly', seriesId: 'W', categoryId: null, tags: [], color: '#039be5', etag: '"e1"', updated: 'x', ...o,
+    estimateMinutes: null, recurrence: 'weekly', seriesId: 'W', categoryId: null, tags: [], color: '#039be5', calendarColor: '#039be5', completedOn: null, canvas: null, etag: '"e1"', updated: 'x', ...o,
   };
 }
 const answer = (l: TaskList) => () => l;

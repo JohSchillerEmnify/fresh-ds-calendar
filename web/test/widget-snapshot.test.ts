@@ -8,11 +8,11 @@ const theme: WidgetTheme = {
 };
 
 const ev = (id: string, title: string, start: string, end: string, allDay = false): CalendarEvent => ({
-  kind: 'event', id, calendarId: 'primary', title, description: '', location: '', allDay, start, end, colorId: null, color: '#1a73e8', etag: 'e', updated: start,
+  kind: 'event', id, calendarId: 'primary', title, description: '', location: '', allDay, start, end, colorId: null, color: '#1a73e8', reminders: { useDefault: true, minutes: [] }, etag: 'e', updated: start,
 });
 const list = (title: string, date: string | null, done: number, total: number): TaskList => ({
   kind: 'tasklist', id: title, calendarId: 'tasks', title, date, time: null, items: [], doneCount: done, totalCount: total, estimateMinutes: null,
-  recurrence: null, categoryId: null, tags: [], color: '#0b8043', completedOn: null, canvas: null, etag: 'e', updated: '2026-10-14T00:00:00+02:00',
+  recurrence: null, categoryId: null, tags: [], color: '#0b8043', calendarColor: '#0b8043', completedOn: null, canvas: null, etag: 'e', updated: '2026-10-14T00:00:00+02:00',
 });
 
 // 2026-10-14 is a Wednesday; its week is Mon 2026-10-12 .. Sun 2026-10-18
