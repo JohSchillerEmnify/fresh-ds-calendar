@@ -396,7 +396,7 @@ describe('M10 restore and backup hygiene', () => {
     registerSharedListsBackup({ registerSource: (s: never) => { src = s; } } as never, { reload() { /* not needed */ } } as never, dir);
     return src!;
   };
-  const list = (id: string, owner: string) => JSON.stringify({ version: 1, id, rev: 1, owner, members: [], data: {} });
+  const list = (id: string, owner: string) => JSON.stringify({ version: 1, id, rev: 1, owner, members: [], updated: '2026-10-12T08:00:00+02:00', data: { items: [] } });
   const file = (id: string) => path.join(dir, 'shared', 'lists', `${id}.json`);
 
   it('restore refuses a foreign-owned list and keeps the existing one', () => {

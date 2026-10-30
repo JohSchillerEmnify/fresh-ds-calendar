@@ -4,6 +4,7 @@ import type { CategoryInfo, Person, SharedInfo } from '../api/types.js';
 import type { PeopleStore } from '../auth/peopleStore.js';
 import { readJson, writeJsonAtomic } from '../lib/atomicJson.js';
 import type { Clock } from '../lib/clock.js';
+import { logEvent } from '../lib/diag.js';
 import { forbidden, notFound, validation } from '../lib/errors.js';
 import { nanoid } from '../lib/ids.js';
 import { formatInZone } from '../lib/time.js';
@@ -31,6 +32,18 @@ export interface SharedListDoc {
   data: TaskListData;
   /** The owner's category as it looked when last written, so members see its name, colour and icon. */
   category: CategoryInfo | null;
+}
+
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** True when a parsed file has the shape the store relies on (a corrupt or crafted file must not break other people's lists). */
+export function isSharedListDoc(v: unknown): v is SharedListDoc {
+  return isObject(v) && v.version === 1 && typeof v.id === 'string' && ID_RE.test(v.id)
+    && typeof v.rev === 'number' && Number.isFinite(v.rev)
+    && typeof v.owner === 'string' && v.owner !== ''
+    && Array.isArray(v.members) && v.members.every((m) => typeof m === 'string')
+    && typeof v.updated === 'string'
+    && isObject(v.data) && Array.isArray(v.data.items);
 }
 
 /** Who may be added to a list: the allow-list check, or null while sign-in is off. */
@@ -70,8 +83,10 @@ export class SharedListService {
     this.rules = readJson<Record<string, Record<string, string>>>(this.rulesFile) ?? {};
     if (!fs.existsSync(this.dir)) return;
     for (const f of fs.readdirSync(this.dir)) {
-      const doc = f.endsWith('.json') ? readJson<SharedListDoc>(path.join(this.dir, f)) : null;
-      if (doc && ID_RE.test(doc.id)) this.docs.set(doc.id, doc);
+      if (!f.endsWith('.json')) continue;
+      const doc = readJson<unknown>(path.join(this.dir, f));
+      if (isSharedListDoc(doc)) this.docs.set(doc.id, doc);
+      else logEvent('shared_list_skipped', { file: f });
     }
   }
 

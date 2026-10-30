@@ -8,7 +8,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { BackupService } from './backupService.js';
-import type { SharedListService } from './sharedLists.js';
+import { logEvent } from '../lib/diag.js';
+import { isSharedListDoc, type SharedListService } from './sharedLists.js';
 
 interface ListFile { owner?: unknown; members?: unknown }
 
@@ -47,8 +48,10 @@ export function registerSharedListsBackup(backup: BackupService, shared: SharedL
         const m = /^shared\/lists\/([A-Za-z0-9_-]{1,32})\.json$/.exec(rel);
         if (!m) continue;
         // only lists the restoring person owns come back, and the file name must be the list's own id
-        let doc: ListFile & { id?: unknown };
-        try { doc = JSON.parse(text) as ListFile & { id?: unknown }; } catch { continue; }
+        let doc: unknown;
+        try { doc = JSON.parse(text); } catch { continue; }
+        // the same shape check the store applies on load, so a restore cannot plant a file that breaks other people's lists
+        if (!isSharedListDoc(doc)) { logEvent('shared_list_restore_skipped', { file: rel, reason: 'invalid' }); continue; }
         if (doc.owner !== sub || doc.id !== m[1]) continue;
         const abs = path.join(dataDir, ...rel.split('/'));
         // a list that exists now and belongs to somebody else is never overwritten
