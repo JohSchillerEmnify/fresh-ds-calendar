@@ -61,6 +61,8 @@ export const useTasksViewStore = defineStore('tasksView', () => {
   async function setTab(next: TasksTab): Promise<void> {
     if (tab.value === next) return;
     tab.value = next;
+    // a list finished on one tab does not stay struck through on the other
+    finishedHere.clear();
     served.value = new Set();
     await refresh();
   }

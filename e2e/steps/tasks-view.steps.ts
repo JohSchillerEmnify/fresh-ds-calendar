@@ -144,10 +144,8 @@ Then('the calendar shows the task list {string} on {date}', async function (this
 });
 
 Then('neither the calendar on {date} nor the open tasks tray shows the task list {string}', async function (this: World, date: string, title: string) {
-  // the tray's own fetch must have finished, or "not listed" would pass on an empty tray
-  const trayLoaded = this.page.waitForResponse((r) => new URL(r.url()).pathname === '/api/tasklists/open');
+  // the tray is worked out from the device store, which the settled sync has filled: "not listed" cannot pass on an empty tray
   await this.page.goto(`/day/${date}`);
-  await trayLoaded;
   await this.settled();
   await expect(this.taskCards(title).locator('visible=true')).toHaveCount(0);
   const rows = this.page.getByTestId('task-tray-item');

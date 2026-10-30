@@ -29,7 +29,7 @@ When('the app is hidden', async function (this: World) {
 });
 
 /**
- * Waits for the next completed sync attempt after this step started: a finished `/api/items` response or a change of
+ * Waits for the next completed sync attempt after this step started: a finished `/api/items` or `/api/changes` response or a change of
  * `data-last-sync` (whichever comes first), then for `sync-status` to leave `syncing`. Bounded by poll interval + 5 s.
  */
 When('I wait for the automatic sync', async function (this: World) {
@@ -38,7 +38,7 @@ When('I wait for the automatic sync', async function (this: World) {
   const timeout = (this.pollIntervalMs || 30_000) + 5_000;
   this.extendTimeout(timeout);
   const response = this.page
-    .waitForResponse((r) => new URL(r.url()).pathname === '/api/items', { timeout })
+    .waitForResponse((r) => ['/api/items', '/api/changes'].includes(new URL(r.url()).pathname), { timeout })
     .then(() => 'response', () => null);
   const changed = expect
     .poll(() => status.getAttribute('data-last-sync').catch(() => null), { timeout })
