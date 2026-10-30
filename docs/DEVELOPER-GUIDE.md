@@ -120,7 +120,7 @@ In practice:
    - A bigger decision also gets a short ADR in `docs/adrs/`.
 2. **Build it test-first.** Write the failing test (a unit test, or the scenario as an e2e test), then the code.
 3. **Before every merge,** run `pnpm verify`. It runs the type checks, unit tests, i18n, the step contract,
-   duplication and lint, in about a minute.
+   duplication and lint, in about a minute. The quality gates (`pnpm quality`) are a ratchet: numbers in `quality-baseline.json` may only go down (`pnpm quality:ratchet`).
 4. **Run only the e2e scenarios you touched.** `pnpm e2e:affected` prints the `--grep` for them. The full suite is
    slow and only needed before a release.
 5. **Commit.** Use conventional commits (`feat:`, `fix:`, `docs:` …). They also drive the version number.
