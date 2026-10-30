@@ -32,7 +32,7 @@ export function halloweenVisitor(forced: boolean): 'bat' | 'ghost' {
 
 /**
  * Runs the moving window in the shell: opens it now, when the app becomes visible again, when `scene` changes and when
- * the animation level becomes Full; rests while the app is hidden and below Full. One timer at most, and only at Full
+ * the animation level becomes Full; rests while the app is hidden, below Full and when there is no scene. One timer at most, and only at Full
  * while visible; none once the scene is still.
  *
  * @param scene - The effective top bar scene; a change plays the new scene's ten seconds.
@@ -54,8 +54,8 @@ export function useSceneRest(scene: () => unknown): void {
     timer = appTimeout(rest, SCENE_AWAKE_MS);
   };
 
-  // a hidden app or a level below Full never starts the window (and so never a timer)
-  const open = () => (document.hidden || motionLevel.value !== 'full' ? rest() : wake());
+  // a hidden app, a level below Full or no scene at all never starts the window (and so never a timer)
+  const open = () => (document.hidden || motionLevel.value !== 'full' || scene() === 'none' ? rest() : wake());
 
   open();
   // a phone app "opens" again when it comes back from the background
