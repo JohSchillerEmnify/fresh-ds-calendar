@@ -134,3 +134,15 @@ Feature: The Approaching card and its track
     And the calendar contains an event "Pills" on 2026-10-14 from 09:00 to 09:15
     When I open the week view for 2026-10-12
     Then the approach bar shows its entries in 2 rows
+
+  Scenario: Pop-ups from the top bar stay above every bar of the Approaching track
+    Given the time is 2026-10-14 08:00
+    And the approach bar is on with a window of 6 hours
+    And the calendar contains an event "Call" on 2026-10-14 from 08:30 to 08:45
+    And the calendar contains an event "Pills" on 2026-10-14 from 08:30 to 08:40
+    And the calendar contains an event "Gym" on 2026-10-14 from 11:00 to 12:00
+    And the calendar contains an event "Lunch" on 2026-10-14 from 12:30 to 13:00
+    And the calendar contains an event "Dinner" on 2026-10-14 from 13:30 to 14:00
+    When I open the week view for 2026-10-12
+    And I open the month picker
+    Then no bar of the approach track lies on top of the month picker

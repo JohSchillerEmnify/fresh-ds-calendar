@@ -121,6 +121,28 @@ Then('the approach bar shows {int} entries', async function (this: World, n: num
   await expect(items(this)).toHaveCount(n);
 });
 
+Then('no bar of the approach track lies on top of the month picker', async function (this: World) {
+  const picker = this.page.getByTestId('month-picker');
+  await expect(picker).toBeVisible();
+  await expect(items(this).first()).toBeVisible();
+  // a bar centre inside the picker's box must hit-test to the picker; bars outside the box do not count
+  await expect.poll(() => this.page.evaluate(() => {
+    const p = document.querySelector('[data-testid="month-picker"]')!.getBoundingClientRect();
+    const covering: string[] = [];
+    let inside = 0;
+    for (const b of document.querySelectorAll('[data-testid="approach-block"]')) {
+      const r = b.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      if (x < p.left || x > p.right || y < p.top || y > p.bottom) continue;
+      inside++;
+      const hit = document.elementFromPoint(x, y);
+      if (hit && !hit.closest('[data-testid="month-picker"]')) covering.push(b.getAttribute('aria-label') ?? '?');
+    }
+    return { inside, covering };
+  })).toEqual({ inside: expect.any(Number), covering: [] });
+});
+
 Then('the approach bar shows its entries in {int} rows', async function (this: World, rows: number) {
   await expect(this.page.getByTestId('now-card').getByTestId('approach-now')).toBeVisible();
   // rows = distinct vertical positions of the chips
