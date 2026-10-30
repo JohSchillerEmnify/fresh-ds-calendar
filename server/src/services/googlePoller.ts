@@ -1,12 +1,11 @@
-/**
- * Asks Google for changes made in Google Calendar itself while at least one app of a person is connected (ADR 0030) and
- * publishes a nudge when there are any. It keeps its own sync tokens per person, apart from every device's cursor.
- */
+/** Asks Google for changes while a person has an app open (ADR 0030) and publishes a nudge when there are any; keeps its own sync tokens. */
 import type { ChangeKind } from './changeBus.js';
 import type { CalendarService, ChangeState } from './calendar.js';
+import { logEvent } from '../lib/diag.js';
+import { RateLimitedError } from '../providers/CalendarProvider.js';
 
-/** How often Google is asked while an app is open, unless configured otherwise. */
-export const DEFAULT_GOOGLE_POLL_MS = 20_000;
+/** The longest wait between two looks while Google keeps failing. */
+const MAX_BACKOFF_MS = 5 * 60_000;
 
 export interface GooglePollerDeps {
   /** The person's calendar service. */
@@ -16,7 +15,7 @@ export interface GooglePollerDeps {
   publish(subs: string[], kind: ChangeKind): void;
 }
 
-interface Watch { timer: ReturnType<typeof setTimeout> | null; state: ChangeState | null; busy: boolean; stopped: boolean }
+interface Watch { timer: ReturnType<typeof setTimeout> | null; state: ChangeState | null; busy: boolean; stopped: boolean; failures: number; retryAfterMs: number }
 
 export class GooglePoller {
   private readonly watches = new Map<string, Watch>();
@@ -26,7 +25,7 @@ export class GooglePoller {
   /** Starts asking for this person (idempotent). */
   start(sub: string): void {
     if (this.watches.has(sub)) return;
-    const w: Watch = { timer: null, state: null, busy: false, stopped: false };
+    const w: Watch = { timer: null, state: null, busy: false, stopped: false, failures: 0, retryAfterMs: 0 };
     this.watches.set(sub, w);
     // the first look only takes the baseline tokens, so it is done at once and never nudges
     void this.look(sub, w, false).finally(() => this.arm(sub, w));
@@ -46,11 +45,17 @@ export class GooglePoller {
     return [...this.watches.keys()];
   }
 
+  /** The wait before the next look: the interval, doubled per failure in a row (at most 5 min), and never less than Google's `Retry-After`. */
+  private waitMs(w: Watch): number {
+    const interval = Math.max(this.deps.intervalMs(), 50);
+    return Math.max(Math.min(interval * 2 ** w.failures, Math.max(MAX_BACKOFF_MS, interval)), w.retryAfterMs);
+  }
+
   private arm(sub: string, w: Watch): void {
     if (w.stopped) return;
     w.timer = setTimeout(() => {
       void this.look(sub, w, true).finally(() => this.arm(sub, w));
-    }, Math.max(this.deps.intervalMs(), 50));
+    }, this.waitMs(w));
     w.timer.unref?.();
   }
 
@@ -61,19 +66,32 @@ export class GooglePoller {
     const known = w.state !== null;
     try {
       const g = await this.deps.calendarFor(sub).changesSince(w.state, this.deps.today(), new Set());
-      const e = g.events, t = g.taskLists;
-      const events = e.replace.length || e.series.length || e.removed.length || e.upserts.length;
-      const tasks = t.replace || t.series.length || t.removed.length || t.upserts.length;
-      // a failed calendar keeps its old token, so the next look retries it
       w.state = g.state;
-      if (nudge && known && !w.stopped) {
-        if (events) this.deps.publish([sub], 'events');
-        if (tasks) this.deps.publish([sub], 'taskLists');
-      }
-    } catch {
-      // Google unavailable or rate limited: the next look tries again, the apps' own sync is the safety net
+      this.succeeded(w);
+      if (nudge && known && !w.stopped) this.nudgeFor(sub, g);
+    } catch (e) {
+      this.failed(w, e);
     } finally {
       w.busy = false;
     }
+  }
+
+  private nudgeFor(sub: string, g: { events: { replace: unknown[]; series: unknown[]; removed: unknown[]; upserts: unknown[] }; taskLists: { replace: boolean; series: unknown[]; removed: unknown[]; upserts: unknown[] } }): void {
+    const e = g.events, t = g.taskLists;
+    if (e.replace.length || e.series.length || e.removed.length || e.upserts.length) this.deps.publish([sub], 'events');
+    if (t.replace || t.series.length || t.removed.length || t.upserts.length) this.deps.publish([sub], 'taskLists');
+  }
+
+  private succeeded(w: Watch): void {
+    if (w.failures > 0) logEvent('live_google_poll', { ok: true });
+    w.failures = 0;
+    w.retryAfterMs = 0;
+  }
+
+  /** Google unavailable or rate limited: look again later and less often; the apps' own sync is the safety net. */
+  private failed(w: Watch, e: unknown): void {
+    if (w.failures === 0) logEvent('live_google_poll', { ok: false, cause: e instanceof Error ? e.constructor.name : 'error' });
+    w.failures++;
+    w.retryAfterMs = e instanceof RateLimitedError ? e.retryAfterSec * 1000 : 0;
   }
 }

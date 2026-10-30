@@ -21,6 +21,8 @@ export interface AppConfig {
   seed: boolean;
   testMode: boolean;
   pollIntervalMs: number;
+  /** How often Google is asked for changes while an app is open (live sync, ADR 0030). */
+  googlePollMs: number;
   publicUrl: string | null;
   allowedOrigins: string[];
   /** Google addresses that may sign in (auth is on with PROVIDER=google). */
@@ -82,6 +84,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const publicUrl = env.PUBLIC_URL?.replace(/\/+$/, '') || null;
   const tz = env.TZ && isValidTimeZone(env.TZ) ? env.TZ : 'Europe/Berlin';
   const poll = Number(env.POLL_INTERVAL_MS ?? 30000);
+  const googlePoll = Number(env.LIVE_GOOGLE_POLL_MS ?? 20000);
   const testMode = bool(env.TEST_MODE, false);
   return {
     port: Number(env.PORT ?? 3000),
@@ -94,6 +97,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     seed: bool(env.SEED, true) && !testMode,
     testMode,
     pollIntervalMs: Number.isFinite(poll) && poll >= 0 ? poll : 30000,
+    googlePollMs: Number.isFinite(googlePoll) && googlePoll >= 1000 ? googlePoll : 20000,
     publicUrl,
     allowedOrigins: [...new Set([...(publicUrl ? [publicUrl] : []), ...list(env.ALLOWED_ORIGINS)])],
     allowedEmails: parseEmails(env.ALLOWED_EMAILS),

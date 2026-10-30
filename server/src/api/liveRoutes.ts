@@ -1,7 +1,4 @@
-/**
- * `GET /api/events/stream` (ADR 0030): one Server-Sent Events connection per open app. The only event is the content-free
- * `changed` nudge (the data is just the kind of what changed); the app answers it with `GET /api/changes`.
- */
+/** `GET /api/events/stream` (ADR 0030): one SSE connection per open app; its only event is the content-free `changed` nudge. */
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { streamSSE, type SSEStreamingApi } from 'hono/streaming';
@@ -15,6 +12,10 @@ export const HEARTBEAT_MS = 25_000;
 
 export function liveRoutes(ctx: Ctx): Hono {
   const r = new Hono();
+  const sessionAlive = (id: string): boolean => {
+    const hit = ctx.auth.sessions.get(id);
+    return !!hit && ctx.auth.allows(hit.session.email);
+  };
   r.get('/events/stream', (c) => {
     const person = c.get('person' as never) as { sub: string } | undefined;
     const sub = ctx.auth.on ? person?.sub : LOCAL_PERSON;
@@ -37,10 +38,13 @@ export function liveRoutes(ctx: Ctx): Hono {
       let open = true;
       void ended.then(() => { open = false; remove(); });
       // the first comment flushes the headers, so the browser's `open` fires at once
-      await s.write('retry: 1000\n: connected\n\n');
+      await s.write(`retry: ${1000 + Math.floor(Math.random() * 500)}\n: connected\n\n`);
       while (open) {
-        await Promise.race([ended, s.sleep(HEARTBEAT_MS)]);
-        if (open) await s.write(': keep-alive\n\n');
+        await Promise.race([ended, s.sleep(ctx.overrides.liveHeartbeatMs ?? HEARTBEAT_MS)]);
+        if (!open) break;
+        // a stream must not outlive the session or the allow-list entry it was opened with
+        if (session && !sessionAlive(session)) { finish(); break; }
+        await s.write(': keep-alive\n\n');
       }
     });
   });

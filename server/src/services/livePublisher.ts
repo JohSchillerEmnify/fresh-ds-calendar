@@ -1,7 +1,4 @@
-/**
- * The live "changed" publisher (ADR 0030): keeps the open Server-Sent Events connections of every person in memory and
- * forwards each {@link ChangeBus} event to the connections of the people it names. A nudge carries only the kind of data.
- */
+/** The live "changed" publisher (ADR 0030): holds the open streams per person and forwards each change-bus event to the people it names. */
 import type { ChangeBus, ChangeKind } from './changeBus.js';
 
 /** One open stream of one app. */

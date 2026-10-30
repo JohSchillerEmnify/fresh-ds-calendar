@@ -100,6 +100,7 @@ All variables (defaults from `server/src/config.ts`):
 | `DATA_DIR` | `./data` | the app's own files per person, the mock store, sessions and tokens |
 | `SEED` | `true` | seed demo data into an empty mock store |
 | `TEST_MODE` | `false` | enables `/api/__test/*`; never true in production |
+| `LIVE_GOOGLE_POLL_MS` | `20000` | how often the server asks Google for changes made in Google Calendar while an app is open (live sync, at least 1000; longer after failures) |
 | `POLL_INTERVAL_MS` | `30000` | web polling interval; while the live connection is up the app polls at most once a minute |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | – | OAuth client (PROVIDER=google) |
 | `GOOGLE_REFRESH_TOKEN` | – | legacy single-account token, used only if Google returns none at the first sign-in |

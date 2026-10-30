@@ -10,7 +10,7 @@ import { MotivationService } from './services/motivation.js';
 import { LOCAL_PERSON, PrefsStore } from './services/prefsStore.js';
 import { ChangeBus } from './services/changeBus.js';
 import { LivePublisher } from './services/livePublisher.js';
-import { DEFAULT_GOOGLE_POLL_MS, GooglePoller } from './services/googlePoller.js';
+import { GooglePoller } from './services/googlePoller.js';
 import { SettingsStore } from './services/settingsStore.js';
 import { SharedListService } from './services/sharedLists.js';
 import { ThemeStore, vetRestoredFile } from './services/themeStore.js';
@@ -47,7 +47,7 @@ export interface Ctx {
   changes: ChangeBus;
   /** The open live streams per person (ADR 0030). */
   live: LivePublisher;
-  /** Asks Google for changes while a person has an app open. */
+  /** Asks Google for changes while a person has an app open; exposed so tests can see whom it watches. */
   googlePoller: GooglePoller;
   /** Web Push reminders: subscriptions, plans and the send loop (feature reminders). */
   push: PushService;
@@ -65,7 +65,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
+  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;
@@ -118,7 +118,7 @@ export function createContext(config: AppConfig, provider?: CalendarProvider, cl
   const changes = new ChangeBus();
   const poller = new GooglePoller({
     calendarFor: (sub) => ctx.calendarFor(sub === LOCAL_PERSON ? null : sub), today: () => motivation.today(),
-    intervalMs: () => ctx.overrides.googlePollMs ?? DEFAULT_GOOGLE_POLL_MS, publish: (subs, kind) => changes.emit(subs, kind),
+    intervalMs: () => ctx.overrides.googlePollMs ?? config.googlePollMs, publish: (subs, kind) => changes.emit(subs, kind),
   });
   const live = new LivePublisher(changes, { maxPerPerson: 10, onFirst: (sub) => poller.start(sub), onLast: (sub) => poller.stop(sub) });
   const ctx: Ctx = {

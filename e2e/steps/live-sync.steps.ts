@@ -1,7 +1,7 @@
 /** Live sync steps (STEPS.md "Live sync", feature last-known-state rule "Live sync", ADR 0030). */
 import { expect, type Locator, type Page } from '@playwright/test';
-import { Given, Then, When } from './fixtures.js';
-import { attr, exactText, type World } from './support/world.js';
+import { Given, Then } from './fixtures.js';
+import { attr, type World } from './support/world.js';
 
 /** "Within a second" in the scenarios: the 1 s target plus the tolerance of the assumption A7. */
 const WITHIN_A_SECOND_MS = 2000;

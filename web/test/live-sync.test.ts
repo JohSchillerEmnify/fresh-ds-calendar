@@ -53,6 +53,34 @@ describe('the live subscriber', () => {
     expect(s.live).toHaveLength(0);
   });
 
+  it('reopens with growing waits after the browser gave up (the server restarted), and stops when signed out', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async () => ({ status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const stop = startLiveSync({ changed: vi.fn(), connected: vi.fn() });
+    const first = FakeSource.all[0]!;
+    first.onopen!();
+    first.readyState = FakeSource.CLOSED;
+    first.onerror!(); // CLOSED for good: a 502 from the proxy
+    await vi.advanceTimersByTimeAsync(1_900);
+    expect(FakeSource.all).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(1_200); // 2 s + up to 50 % jitter
+    expect(FakeSource.all).toHaveLength(2);
+    FakeSource.all[1]!.readyState = FakeSource.CLOSED;
+    FakeSource.all[1]!.onerror!();
+    await vi.advanceTimersByTimeAsync(3_900);
+    expect(FakeSource.all).toHaveLength(2); // the second wait is 4 s at least
+    await vi.advanceTimersByTimeAsync(2_200);
+    expect(FakeSource.all).toHaveLength(3);
+    fetchMock.mockResolvedValue({ status: 401 });
+    FakeSource.all[2]!.readyState = FakeSource.CLOSED;
+    FakeSource.all[2]!.onerror!();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(FakeSource.all).toHaveLength(3); // signed out: no loop
+    stop();
+    vi.useRealTimers();
+  });
+
   it('does not open a stream while hidden at the start, and survives a browser without EventSource', () => {
     setHidden(true);
     const stop = startLiveSync({ changed: vi.fn(), connected: vi.fn() });

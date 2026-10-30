@@ -1,7 +1,9 @@
 /** Live updates (ADR 0030): the stream, who it reaches, and the Google poller that runs while an app is open. */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mockSub } from '../src/auth/people.js';
-import { DEFAULT_GOOGLE_POLL_MS } from '../src/services/googlePoller.js';
+import { GooglePoller } from '../src/services/googlePoller.js';
+import { loadConfig } from '../src/config.js';
+import { RateLimitedError } from '../src/providers/CalendarProvider.js';
 import { HEARTBEAT_MS } from '../src/api/liveRoutes.js';
 import { LOCAL_PERSON } from '../src/services/prefsStore.js';
 import { makeApp, sessionCookie, type TestApp } from './helpers.js';
@@ -72,13 +74,52 @@ describe('GET /api/events/stream', () => {
   });
 });
 
+describe('a stream and the session', () => {
+  it('ends when the person is taken off the allow-list, and the poller stops', async () => {
+    const t = makeApp();
+    try {
+      await t.json('POST', '/api/__test/auth', { allowedEmails: ['jo@example.com'] });
+      const jo = await sessionCookie(t, 'jo@example.com');
+      t.app.ctx.overrides.liveHeartbeatMs = 30;
+      const s = await open(t, jo);
+      expect(t.app.ctx.googlePoller.watching()).toEqual([mockSub('jo@example.com')]);
+      t.app.ctx.auth.allowedEmails = ['anna@example.com'];
+      await s.until!(() => s.ended());
+      expect(s.ended()).toBe(true);
+      expect(t.app.ctx.googlePoller.watching()).toEqual([]);
+    } finally { t.cleanup(); }
+  });
+});
+
 describe('the Google poller', () => {
   let t: TestApp;
   beforeEach(() => { t = makeApp(); });
   afterEach(() => t.cleanup());
 
-  it('asks every 20 seconds by default', () => {
-    expect(DEFAULT_GOOGLE_POLL_MS).toBe(20_000);
+  it('asks every 20 seconds by default and takes LIVE_GOOGLE_POLL_MS from the environment', () => {
+    expect(loadConfig({}).googlePollMs).toBe(20_000);
+    expect(loadConfig({ LIVE_GOOGLE_POLL_MS: '5000' }).googlePollMs).toBe(5_000);
+    expect(loadConfig({ LIVE_GOOGLE_POLL_MS: 'x' }).googlePollMs).toBe(20_000);
+  });
+
+  it('waits longer after each failure, honours Retry-After and starts over after a good look', async () => {
+    let fail: Error | null = new Error('down');
+    let looks = 0;
+    const poller = new GooglePoller({
+      calendarFor: () => ({ changesSince: async () => { looks++; if (fail) throw fail; return { events: { replace: [], series: [], removed: [], upserts: [], calendars: [], failed: [] }, taskLists: { replace: false, series: [], removed: [], upserts: [], failed: false }, state: { to: '', tokens: {}, shared: {} } }; } }) as never,
+      today: () => '2026-10-12', intervalMs: () => 100, publish: () => undefined,
+    });
+    poller.start('a');
+    await new Promise((r) => setTimeout(r, 750));
+    // 100 ms steps would be ~7 looks; doubling gives the first look, then +200, +400
+    expect(looks).toBeLessThanOrEqual(4);
+    poller.stop('a');
+    fail = new RateLimitedError(1);
+    looks = 0;
+    poller.start('a');
+    await new Promise((r) => setTimeout(r, 600));
+    expect(looks).toBe(1); // Retry-After of 1 s outweighs the 100 ms interval
+    poller.stop('a');
   });
 
   it('runs while an app is connected, nudges when Google changed, and stops with the last connection', async () => {
