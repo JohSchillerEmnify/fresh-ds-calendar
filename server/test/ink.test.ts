@@ -74,7 +74,7 @@ describe('ink items', () => {
     it('takes an erase from a clock far in the future as happening now, so strokes drawn after it are kept', async () => {
       const { first, id, url } = await setup();
       await t.json('PUT', url, { strokes: [], base: [key(first)], at: 9e15 });
-      const later = { ...stroke(2), t: NOW + 1000 };
+      const later = { ...stroke(2), t: Date.now() + 60_000 };
       await t.json('PUT', url, { strokes: [later], base: [] });
       expect(await visible(id)).toEqual([later]);
     });
@@ -82,7 +82,9 @@ describe('ink items', () => {
     it('cuts back a stroke time far ahead of the clock', async () => {
       const { id, url } = await setup();
       await t.json('PUT', url, { strokes: [{ ...stroke(2), t: 9e15 }] });
-      expect((await visible(id))[0].t).toBe(NOW + 5 * 60_000);
+      const kept = (await visible(id))[0].t;
+      expect(kept).toBeLessThanOrEqual(Date.now() + 5 * 60_000);
+      expect(kept).toBeGreaterThan(Date.now());
     });
 
     it('lets a device with a clock behind erase only what was drawn before its time', async () => {

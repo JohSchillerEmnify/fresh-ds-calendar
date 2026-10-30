@@ -367,10 +367,11 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!item) throw notFound('Item not found');
     if (!item.ink) throw validation('Only a handwritten item holds ink', 'itemId');
     // a change that says where it started from is merged with what other devices wrote meanwhile (decision G5)
-    const nowMs = ctx.clock.now().getTime();
+    // the wall clock, as the devices' own clocks are (the app clock of a test can stand still)
+    const nowMs = ctx.clock.real();
     // a stroke time far ahead of the server's clock would make the stroke survive every erase: it counts as at most a little ahead
     const drawn = (sent as InkStroke[]).map((s) => (s.t !== undefined && s.t > nowMs + INK_SKEW_MS ? { ...s, t: nowMs + INK_SKEW_MS } : s));
-    const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), drawn, base, Math.min(at ?? Number.MAX_SAFE_INTEGER, nowMs)) : drawn;
+    const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), drawn, base, Math.min(at ?? nowMs, nowMs)) : drawn;
     // a merge can add to what the device saw: what one item holds stays within what a request may carry
     if (visibleInk(strokes).length > INK_STROKES_MAX || !ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
     ctx.inks.set(sub, listId, itemId, strokes);
