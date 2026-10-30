@@ -27,6 +27,8 @@ export interface DeviceData {
   events: CalendarEvent[];
   taskLists: TaskList[];
   files: Partial<Record<DeviceFileName, unknown>>;
+  /** The next sync reads everything again (a category changed, which the change stream does not report on the lists). */
+  needFull?: true;
 }
 
 /** The answer of `GET /api/changes` (API.md). */

@@ -57,11 +57,6 @@ export const useDeviceStore = defineStore('device', () => {
   let stops: Array<() => void> = [];
   /** Counts wipes: an answer that was on its way when the data was wiped belongs to the wiped person and is dropped. */
   let epoch = 0;
-  /**
-   * The next sync asks for everything: a task list carries its category's colour, which changes with the category and not
-   * with the list, so the server's change stream does not report the recoloured lists.
-   */
-  let needFull = false;
   onDeviceWipe(() => {
     epoch++;
     pending?.();
@@ -164,9 +159,15 @@ export const useDeviceStore = defineStore('device', () => {
     void save();
   }
 
-  /** The next sync reads everything again (after a change of the categories). */
+  /**
+   * The next sync reads everything again (after a change of the categories). A task list carries its category's colour, which
+   * changes with the category and not with the list, so the change stream does not report the recoloured lists. The wish is
+   * part of the stored data: a page closed before that sync lands must still ask for it after the restart.
+   */
   function requestFull(): void {
-    needFull = true;
+    if (!data.value) return;
+    data.value = { ...data.value, needFull: true };
+    scheduleSave();
   }
 
   /** Takes in an answer of `/api/changes`: applies it, keeps it and hands it on. Exposed for tests; `sync` is the entry point. */
@@ -180,10 +181,10 @@ export const useDeviceStore = defineStore('device', () => {
     const quiet = !!data.value && isQuiet(data.value, res);
     const before = data.value?.files.settings as { categories?: unknown } | undefined;
     const after = res.files.settings as { categories?: unknown } | undefined;
-    if (res.full) needFull = false;
-    else if (after && JSON.stringify(before?.categories) !== JSON.stringify(after.categories)) needFull = true;
+    const wantFull = !res.full && (data.value?.needFull === true || (!!after && JSON.stringify(before?.categories) !== JSON.stringify(after.categories)));
     // an answer that changes nothing keeps the very same lists (so they are not rewritten) and is not handed on again
-    const next = quiet ? { ...base, cursor: res.cursor, files: base.files } : applyChanges(base, res);
+    const applied = quiet ? { ...base, cursor: res.cursor, files: base.files } : applyChanges(base, res);
+    const next: DeviceData = { ...applied, needFull: wantFull || undefined };
     // the clock's config (zone, frozen time, polling, plugins) goes with the data so a start without a connection has it
     const config = clock.loaded ? clock.config as AppConfig : next.config;
     data.value = complete ? { ...next, config, syncedAt: clock.nowMs() } : { ...next, config };
@@ -203,13 +204,13 @@ export const useDeviceStore = defineStore('device', () => {
     const mine = epoch;
     try {
       // who is asking must be known before the answer may be used (it is asked beside the request, which costs no time)
-      const [res] = await Promise.all([api.changes(needFull ? null : data.value?.cursor ?? null, clock.today), auth.status === 'unknown' ? auth.check() : undefined]);
+      const [res] = await Promise.all([api.changes(data.value?.needFull ? null : data.value?.cursor ?? null, clock.today), auth.status === 'unknown' ? auth.check() : undefined]);
       // wiped or another person signed in while the answer was on its way: it is not this device's data
       const now = sessionPerson();
       if (mine !== epoch || (person !== null && (!now || now !== person))) return;
       take(res);
       // a category changed elsewhere: the lists are read again in full at once
-      if (needFull && again) await sync(false);
+      if (data.value?.needFull && again) await sync(false);
     } catch (e) {
       failed.value = true;
       throw e;
