@@ -304,7 +304,15 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!isLocalDate(today)) throw validation('today must be a date (YYYY-MM-DD)', 'today');
     return c.json(await cal(c).archivedTaskLists(today));
   });
-  r.post('/tasklists', async (c) => c.json(await cal(c).createTaskList(parse(createTaskListSchema, await body(c))), 201));
+  r.post('/tasklists', async (c) => {
+    const input = parse(createTaskListSchema, await body(c));
+    if (!ctx.ink.fits(person(c), '', '', (input.items ?? []).flatMap((i) => i.strokes ?? []) as InkStroke[])) throw inkFull();
+    const list = await cal(c).createTaskList(input);
+    // ink items keep their strokes in the ink store, under the ids the list gave them (same order as the input)
+    const inked = (input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => i.strokes);
+    list.items.forEach((item, n) => { const s = inked[n]; if (s) ctx.ink.setItem(person(c), list.id, item.id, s as InkStroke[]); });
+    return c.json(list, 201);
+  });
   r.get('/tasklists/:id', async (c) => c.json(await cal(c).getTaskList(c.req.param('id'))));
   r.patch('/tasklists/:id', async (c) => c.json(await cal(c).updateTaskList(c.req.param('id'), parse(updateTaskListSchema, await body(c)), c.req.header('If-Match'), scopeOf(c))));
   r.delete('/tasklists/:id', async (c) => {

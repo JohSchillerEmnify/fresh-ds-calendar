@@ -258,7 +258,7 @@ defineExpose({ root, busy });
   <section
     v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
     :style="{ '--c': cats.color(tl) }"
-    :data-collapsed="collapsed ? 'true' : 'false'"
+    :data-collapsed="collapsed ? 'true' : 'false'" :class="{ ruled: writing && inkMode.ruled.value }"
   >
     <header class="head">
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
@@ -395,6 +395,9 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .inkcell { padding: 0; min-height: 0; position: relative; }
 .ticked .inkcell::after { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1.6px; background: currentColor; }
 .nextline { padding-left: 44px; }
+/* where a pen is used the lines are ruled and a little taller, so a word fits on one */
+.ruled { --ink-h: 52px; }
+.ruled .row { min-height: 52px; border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
 .inktools { margin-top: 4px; }
 /* the tonal pill sits between "Add item" and Edit/Delete; compact so the footer stays one row on a phone */
 .foot .tpl { padding: 0 14px; }

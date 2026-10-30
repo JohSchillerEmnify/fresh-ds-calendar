@@ -1,7 +1,7 @@
 /** The outbox's work (ADR 0031): keeping entries, showing them on the device, sending them in order, answering refusals. */
 import type { Ref, ShallowRef } from 'vue';
 import { ApiError } from '@/api/client';
-import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, InkStroke, CreateTaskListInput, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
+import type { CalendarEvent, CalendarItem, ChangeScope, CreateEventInput, CreateTaskListInput, InkStroke, TaskList, UpdateEventInput, UpdateTaskListInput } from '@/api/types';
 import { t } from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useClockStore } from '@/stores/clock';
@@ -199,6 +199,7 @@ function showAnswer(s: OutboxState, c: Change, id: string, result: CalendarItem)
 function sent(s: OutboxState, e: OutboxEntry, fresh: unknown): void {
   const c = e.change;
   const result = fresh as CalendarItem | undefined;
+  ports.adoptInk?.(c, result);
   setEntries(s, s.entries.value.filter((x) => x.key !== e.key));
   if (isCreate(c) && result) replaceId(s, c.id, result);
   const id = isCreate(c) && result ? result.id : c.id;

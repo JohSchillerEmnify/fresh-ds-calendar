@@ -72,3 +72,15 @@ describe('ink items', () => {
     expect(ch.files.ink.lists[l.id]).toBeDefined();
   });
 });
+
+describe('ink items in a new list', () => {
+  it('creates a list from ink items alone and stores the strokes under the new ids', async () => {
+    const r = await t.json('POST', '/api/tasklists', { title: '', date: null, items: [{ title: '', strokes: [stroke()] }, { title: 'Text' }, { title: '', strokes: [stroke(4)] }] });
+    expect(r.status).toBe(201);
+    expect(r.body.items.map((i: { ink?: true; title: string }) => [i.ink ?? false, i.title])).toEqual([[true, ''], [false, 'Text'], [true, '']]);
+    const doc = (await t.json('GET', '/api/ink')).body.lists[r.body.id];
+    expect(doc[r.body.items[0].id]).toEqual([stroke()]);
+    expect(doc[r.body.items[2].id]).toEqual([stroke(4)]);
+    expect(doc[r.body.items[1].id]).toBeUndefined();
+  });
+});

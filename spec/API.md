@@ -724,6 +724,7 @@ description line `☐ Handwritten item` for the item (decision A3). The two pref
 | Method | Path | Body | Success |
 |---|---|---|---|
 | `GET` | `/api/ink` | – | `200` `InkDoc` |
+| `POST` | `/api/tasklists` | items may be `{ title: '', strokes }` (ink items; a list of ink items alone needs no title) | `201` the list |
 | `POST` | `/api/tasklists/:id/items` | `{ strokes, id?, index? }` (instead of `title`) | `201` the list, with a new ink item |
 | `PUT` | `/api/tasklists/:id/items/:itemId/ink` | `{ strokes: InkStroke[] }` | `200` the list; replaces the item's strokes (`[]` clears them, the item stays) |
 

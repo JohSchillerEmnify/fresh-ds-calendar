@@ -1,5 +1,6 @@
 /** What the outbox needs from the stores that show and keep the data; they register here, so the outbox imports none of them. */
 import type { CalendarItem } from '@/api/types';
+import type { Change } from './outbox';
 
 /** The screen's copy of events and lists (the items store). */
 interface ItemsPort {
@@ -28,6 +29,8 @@ interface DevicePort {
 export interface OutboxPorts {
   items?: ItemsPort;
   device?: DevicePort;
+  /** An ink write reached the server (the ink store keeps its copy). */
+  adoptInk?: (change: Change, fresh?: CalendarItem) => void;
   /** Takes the server's state in again (the live sync of ADR 0030 tells the other apps). */
   resync?: () => void;
 }

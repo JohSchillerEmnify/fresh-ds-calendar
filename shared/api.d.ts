@@ -208,7 +208,8 @@ export interface CreateTaskListInput {
   /** Null creates an undated list (no time, no recurrence). */
   date: LocalDate | null;
   time?: LocalTime | null;
-  items?: { title: string; done?: boolean }[];
+  /** An item with `strokes` is a handwritten one (its `title` is ''; feature handwritten-lists). */
+  items?: { title: string; done?: boolean; strokes?: InkStroke[] }[];
   categoryId?: string | null;
   tags?: string[];
   estimateMinutes?: number | null;

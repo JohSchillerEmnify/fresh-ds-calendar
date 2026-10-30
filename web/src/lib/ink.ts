@@ -23,13 +23,17 @@ export function toLineUnits(e: { clientX: number; clientY: number; pressure: num
 const avg = (a: number[], b: number[]): [number, number] => [(a[0]! + b[0]!) / 2, (a[1]! + b[1]!) / 2];
 const r2 = (n: number): string => n.toFixed(3);
 
+/** perfect-freehand thinks in pixels; the stroke is scaled to a 24 px line and back so its tuning holds for line-height units. */
+const PX = 24;
+
 /** SVG path data of a stroke in line-height units; the width follows the pressure (decision Q4). */
 export function strokePath(points: InkPoint[]): string {
-  const outline = getStroke(points, { size: 0.12, thinning: 0.6, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true });
+  const outline = getStroke(points.map(([x, y, p]) => [x * PX, y * PX, p]), { size: 3, thinning: 0.6, smoothing: 0.5, streamline: 0.4, simulatePressure: false, last: true })
+    .map(([x, y]) => [x! / PX, y! / PX] as [number, number]);
   if (outline.length < 4) return '';
   let [a, b] = [outline[0]!, outline[1]!];
   const c = outline[2]!;
-  let d = `M${r2(a[0]!)},${r2(a[1]!)} Q${r2(b[0]!)},${r2(b[1]!)} ${avg(b, c).map(r2).join(',')} T`;
+  let d = `M${r2(a[0])},${r2(a[1])} Q${r2(b[0])},${r2(b[1])} ${avg(b, c).map(r2).join(',')} T`;
   for (let i = 2; i < outline.length - 1; i++) {
     a = outline[i]!;
     b = outline[i + 1]!;
@@ -78,6 +82,10 @@ export function readableInk(hex: string, dark: boolean): string {
 export function withPendingInk(lists: InkDoc['lists'], entries: OutboxEntry[]): InkDoc['lists'] {
   let out = lists;
   for (const { change: c } of entries) {
+    if (c.op === 'list.create') {
+      const made = Object.fromEntries((c.input.items ?? []).flatMap((i, n) => (i.strokes ? [[`${c.id}-${n}`, i.strokes]] : [])));
+      if (Object.keys(made).length) out = { ...out, [c.id]: { ...out[c.id], ...made } };
+    }
     if ((c.op === 'item.add' && c.strokes) || c.op === 'item.ink') {
       out = { ...out, [c.id]: { ...out[c.id], [c.itemId]: c.strokes ?? [] } };
     }

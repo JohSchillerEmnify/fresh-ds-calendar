@@ -5,7 +5,7 @@ import IconButton from '@/components/m3/IconButton.vue';
 import { t } from '@/i18n';
 import { useInkStore } from '@/stores/ink';
 
-defineProps<{ canUndo?: boolean }>();
+withDefaults(defineProps<{ canUndo?: boolean; /** Undo, eraser and colours too (a writing area is there); else only the mode switch. */ tools?: boolean }>(), { tools: true });
 const emit = defineEmits<{ undo: [] }>();
 const ink = useInkStore();
 /** The colour presets; `null` is the theme's text colour. */
@@ -24,7 +24,7 @@ function pick(e: Event): void {
       :label="t(ink.mode === 'ink' ? 'ink.mode.ink' : 'ink.mode.text')" data-testid="ink-mode" :data-mode="ink.mode"
       @click="ink.setMode(ink.mode === 'ink' ? 'text' : 'ink')"
     ><IconDraw v-if="ink.mode === 'ink'" data-testid="ink-mode-icon-pen" /><IconKeyboard v-else data-testid="ink-mode-icon-keyboard" /></IconButton>
-    <template v-if="ink.mode === 'ink'">
+    <template v-if="tools && ink.mode === 'ink'">
       <IconButton :label="t('ink.undo')" :disabled="!canUndo" data-testid="ink-undo" @click="emit('undo')"><IconUndo /></IconButton>
       <IconButton :label="t('ink.eraser')" :aria-pressed="ink.eraser" :class="{ on: ink.eraser }" data-testid="ink-eraser" @click="ink.eraser = !ink.eraser"><IconInkEraser /></IconButton>
       <span class="colours" role="group" :aria-label="t('ink.colour.label')">

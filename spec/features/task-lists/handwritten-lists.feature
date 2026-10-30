@@ -88,20 +88,17 @@ Feature: Labs: handwritten lists
     Given the calendar is empty
     And today is 2026-10-12
 
-  @backlog
   Scenario: Handwriting is off until switched on in the Labs
     When I open the settings
     Then the Labs switch "Handwritten lists" is off
     When I open the new task list form
     Then the new list form has no writing mode switch
 
-  @backlog
   Scenario: Switching handwriting on shows the writing mode switch
     Given the Labs switch "Handwritten lists" is on
     When I open the new task list form
     Then the new list form shows the writing mode switch with the pen icon
 
-  @backlog
   Scenario: The switch changes between ink and text writing
     Given the Labs switch "Handwritten lists" is on
     And I open the new task list form
@@ -117,13 +114,11 @@ Feature: Labs: handwritten lists
       And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs, Bread"
       And I expand the task list "Groceries"
 
-    @backlog
     Scenario: A pen stroke on a ruled line becomes an ink item
       When I write an ink item with the pen
       Then the expanded task list has 4 items
       And the task list "Groceries" shows the done count "0/4"
 
-    @backlog
     Scenario: An ink item is ticked off like any item
       When I tick the item number 2
       Then the item number 2 is ticked
@@ -179,7 +174,7 @@ Feature: Labs: handwritten lists
     Background:
       Given the Labs switch "Handwritten lists" is on
 
-    @tablet @backlog
+    @tablet
     Scenario: On a tablet the list dialog is larger and shows ruled lines
       When I open the new task list form on a screen 1024 pixels wide
       Then the dialog is larger than without the feature
@@ -198,7 +193,7 @@ Feature: Labs: handwritten lists
       When I open the new task list form
       Then the dialog shows ruled lines to write on
 
-    @desktop @backlog
+    @desktop
     Scenario: A desktop without pen support keeps the dialog as it is (decision R4)
       Given the device reports no pen support
       When I open the new task list form
@@ -207,14 +202,14 @@ Feature: Labs: handwritten lists
       And typing in the item field works as without the feature
       And the new list form shows the writing mode switch with the pen icon
 
-    @mobile @backlog
+    @mobile
     Scenario: On a phone without a pen the dialog is unchanged and the switch is still there
       Given the device reports no pen support
       When I open the new task list form
       Then the dialog is as large as without the feature
       And the new list form shows the writing mode switch with the pen icon
 
-    @mobile @backlog
+    @mobile
     Scenario: On a phone where a pen is used the same ruled dialog fits the window
       Given the device reports pen support
       When I open the new task list form

@@ -23,6 +23,8 @@ import { cardClick, useCalendarDrag } from '@/features/calendar/dnd';
 import { inPreview } from '@/composables/usePreview';
 import { vRipple } from '@/lib/ripple';
 import { displayTitle } from '@/lib/items';
+import { useInkStore } from '@/stores/ink';
+import InkLine from './InkLine.vue';
 import ResizeHandles from '@/features/calendar/ResizeHandles.vue';
 import { showsHandles } from '@/features/calendar/resize';
 import { ProgressRing } from '@/motion';
@@ -99,6 +101,9 @@ const complete = computed(() => isComplete(tl.value));
 const check = computed(() => checkState(tl.value.doneCount, tl.value.totalCount));
 const pct = computed(() => (tl.value.totalCount ? Math.round((tl.value.doneCount / tl.value.totalCount) * 100) : 0));
 const title = computed(() => displayTitle(tl.value));
+/** An ink item on the card: the text lines grow to the ink line height so text and ink sit evenly (decision M3). */
+const inked = computed(() => tl.value.items.some((i) => i.ink));
+const ink = useInkStore();
 const label = computed(() => {
   const titled = !!title.value;
   const params = { title: title.value, done: tl.value.doneCount, total: tl.value.totalCount };
@@ -136,7 +141,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
 
 <template>
   <button
-    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !title, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
+    ref="el" v-ripple class="tl skin" :class="[variant, { untitled: !title, inked, carried, complete, mini, collapsed, titles, resizing, grown, flat, up: grown && growDir === 'up' }]" type="button" :data-testid="grown ? 'tasklist-card-grown' : 'tasklist-card'" :data-draggable="grown ? undefined : 'tasklist'" :data-tight="tight ? 'true' : undefined"
     :data-fit="fit.inline ? 'inline' : fit.more ? 'more' : 'all'" :data-tier="mini ? 'mini' : 'full'"
     :data-tasklist-id="tl.id" :data-title="title" :data-untitled="title ? undefined : 'true'" :data-date="segment.date" :data-time="tl.time ?? ''" :data-color="color"
     :data-category-id="cats.categoryId(tl) ?? ''" :aria-label="label" :aria-expanded="expanded" :style="{ '--c': color, '--on-solid': onColor(color), '--fill': check.fill + '%' }" @click="grown ? onGrownTap($event) : cardClick($event, toggle)"
@@ -147,7 +152,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
       <span class="cb" :data-state="check.state" data-testid="tasklist-card-check" aria-hidden="true" />
       <span v-if="icon" class="emoji" data-testid="tasklist-card-icon" aria-hidden="true">{{ icon }}</span>
       <span v-if="title" class="title" data-testid="tasklist-card-title" :data-struck="complete ? 'true' : undefined"><span class="tx">{{ title }}<StrikeLine v-if="complete" /></span></span>
-      <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done">{{ lead.title }}</span>
+      <span v-else-if="lead" :class="[itemClass(lead.done), 'lead']" data-testid="tasklist-card-lead" :data-title="lead.title" :data-done="lead.done"><InkLine v-if="lead.ink" class="inkitem" :strokes="ink.strokes(tl.id, lead.id)" :label="t('ink.placeholder')" /><template v-else>{{ lead.title }}</template></span>
       <span v-if="badge && !mini" class="shbadge" data-testid="tasklist-shared-badge" aria-hidden="true">{{ badge }}</span>
       <span v-if="tl.estimateMinutes" class="est" data-testid="tasklist-card-estimate">{{ formatEstimate(tl.estimateMinutes) }}</span>
       <span v-if="carried" class="from" data-testid="tasklist-card-overdue" :aria-label="mini ? carriedLabel(segment.carriedFrom!) : undefined" :title="mini ? carriedLabel(segment.carriedFrom!) : undefined">{{ mini ? '↶' : carriedLabel(segment.carriedFrom!) }}</span>
@@ -160,7 +165,7 @@ const showSep = (id: string) => fit.value.inline && (rank.value.get(id) ?? Infin
     <span class="extbox">
     <span v-if="grown && !flat" class="gl ext" data-testid="tasklist-grown-ext" aria-hidden="true" />
     <template v-if="!calm">
-      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done">{{ i.title }}</span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
+      <span class="items" data-testid="tasklist-card-items" :data-fade="fit.more > 0 && !fit.inline ? 'true' : undefined"><template v-if="tl.items.length"><template v-for="(i, n) in tl.items" :key="i.id"><span :class="[itemClass(i.done), { over: hideItem(i.id) }]" data-testid="tasklist-card-item" :data-title="i.title" :data-done="i.done" :data-ink="i.ink ? 'true' : undefined"><InkLine v-if="i.ink" class="inkitem" :strokes="ink.strokes(tl.id, i.id)" :label="t('ink.item', { n: n + 1, total: tl.items.length })" /><template v-else>{{ i.title }}</template></span><span v-if="n < tl.items.length - 1" class="sep" :class="{ nosep: !showSep(i.id) }">{{ ', ' }}</span></template></template><template v-else>{{ t('tasks.card.noItems') }}</template></span>
     </template>
     <span v-if="fit.foot" class="foot">
       <span v-if="tl.time && variant === 'block'" class="time" data-testid="tasklist-card-time">{{ tl.time }}</span>
@@ -210,6 +215,9 @@ html:not([data-motion='off']) .count { animation: bump 380ms var(--md-sys-motion
 .cb[data-state='done'] { background: var(--on); }
 .cb[data-state='done']::after { content: ''; position: absolute; left: 2.5px; top: 0; width: 3px; height: 6px; border: solid var(--e-mark, var(--c)); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
 
+/* an ink item is a small picture of its line; with ink on the card every text line is as tall (about 24 px) */
+.inkitem { --ink-h: 24px; display: inline-block; width: 100%; vertical-align: middle; }
+.inked .items, .inked .items > span { line-height: 24px; }
 /* item names: one per line, ellipsised, tiny checkbox glyph each; surplus hidden (.over), the last row fades out */
 .items, .est, .from, .time { font-size: 11px; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--on); }
 .items { display: flex; flex-direction: column; min-width: 0; }

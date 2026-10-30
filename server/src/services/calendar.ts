@@ -485,7 +485,7 @@ export class CalendarService {
     const calendarId = await this.tasks.id();
     const d: TaskListData = {
       title: input.title, date: input.date, time: input.date === null ? null : input.time ?? null,
-      items: (input.items ?? []).filter((i) => i.title.trim()).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done })),
+      items: (input.items ?? []).filter((i) => i.title.trim() || i.strokes).map((i) => ({ id: nanoid(), title: i.title.trim(), done: !!i.done, ...(i.strokes ? { ink: true as const } : {}) })),
       categoryId: input.categoryId ?? null, tags: input.tags ?? [], estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null,
       canvas: null,
       completedOn: null, // created complete is not "finished": only a later write that ticks the last open item sets it

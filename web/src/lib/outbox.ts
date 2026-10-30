@@ -56,7 +56,7 @@ const recount = (tl: TaskList, items: TaskItem[]): TaskList => ({ ...tl, items, 
 
 /** A new task list as the device shows it before the server has answered. */
 export function localTaskList(id: string, input: CreateTaskListInput): TaskList {
-  const items = (input.items ?? []).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false }));
+  const items = (input.items ?? []).map((i, n) => ({ id: `${id}-${n}`, title: i.title, done: i.done ?? false, ...(i.strokes ? { ink: true as const } : {}) }));
   return recount({
     kind: 'tasklist', id, calendarId: '', title: input.title, date: input.date, time: input.date ? input.time ?? null : null, items, doneCount: 0, totalCount: 0,
     estimateMinutes: input.estimateMinutes ?? null, recurrence: input.recurrence ?? null, categoryId: input.categoryId ?? null, tags: input.tags ?? [],

@@ -17,6 +17,8 @@ const props = withDefaults(defineProps<{
   panelAttrs?: Record<string, string>; panelStyle?: Record<string, string>; anchor?: { left: number; top: number; maxH: number } | null; escape?: boolean;
   /** With an `anchor`, the phone shows the same popover instead of a bottom sheet. */
   anchoredOnPhone?: boolean;
+  /** A wider panel for a writing area (handwritten lists); a phone keeps its sheet. */
+  wide?: boolean;
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 useOverlayHistory(() => props.open, () => emit('close'));
@@ -125,7 +127,7 @@ onBeforeUnmount(() => stopTimer?.());
     <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: popover }"
+      :data-presentation="sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: popover, wide }"
       :style="[panelStyle, popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
       <div v-if="sheet" class="handle" aria-hidden="true"><span /></div>
@@ -148,8 +150,10 @@ onBeforeUnmount(() => stopTimer?.());
 }
 .desk.anchored .scrim { background: rgb(0 0 0 / 0.12); }
 .desk .panel.anchored { position: fixed; width: min(380px, calc(100vw - 16px)); transform-origin: left top; }
+.desk .panel.anchored.wide { width: min(640px, calc(100vw - 16px)); }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
+.desk .panel.wide:not(.anchored) { width: min(760px, calc(100vw - 32px)); }
 .handle { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: -12px 0; touch-action: none; cursor: grab; flex: none; }
 .handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.4; }
 .body { border-radius: inherit; /* clips the scrollbar to the panel's rounding */ overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; min-height: 0; }
