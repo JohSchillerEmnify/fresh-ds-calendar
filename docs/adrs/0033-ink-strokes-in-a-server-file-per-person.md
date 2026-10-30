@@ -34,3 +34,11 @@ kept, strokes taken away are gone, and a line cleared as a whole removes everyth
 mark (a stroke without points) so an older stroke that arrives later cannot bring the line back. Alternatives: whole-item
 last-write-wins (an extension on one device would undo an erase on the other, or lose its strokes), and a CRDT per line
 (more than one line of ink per item needs). Clocks of the devices are trusted to a few seconds.
+
+### Clock skew
+
+`t` and `at` must be whole, non-negative numbers. The server takes `at` as at most its own now (an erase never
+happens in the future), and cuts a stroke's `t` back to at most 5 minutes ahead of its clock, so a wrong clock cannot make
+a line unerasable or erase everything drawn later. A device whose clock runs behind erases only what was drawn before
+its (earlier) time, and a device ahead has its strokes survive other devices' erases for up to that difference (at most 5
+minutes). A stroke that comes back through undo gets a fresh `t`.

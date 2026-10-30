@@ -28,6 +28,8 @@ import { isSharedId } from '../services/sharedLists.js';
 const HEALTH_TTL_MS = 10_000;
 
 /** The ids of a list's handwritten items. */
+/** How far ahead of the server's clock a device's stroke time may be (ms); beyond it the time is cut back. */
+const INK_SKEW_MS = 5 * 60_000;
 const inkIds = (l: { items: { id: string; ink?: true }[] }): string[] => l.items.filter((i) => i.ink).map((i) => i.id);
 
 /** The list holds all the ink it may (decision Q3); the web app suggests a new list. */
@@ -364,7 +366,10 @@ export function apiRoutes(ctx: Ctx): Hono {
     if (!item) throw notFound('Item not found');
     if (!item.ink) throw validation('Only a handwritten item holds ink', 'itemId');
     // a change that says where it started from is merged with what other devices wrote meanwhile (decision G5)
-    const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), sent as InkStroke[], base, at ?? Date.now()) : (sent as InkStroke[]);
+    const nowMs = ctx.clock.now().getTime();
+    // a stroke time far ahead of the server's clock would make the stroke survive every erase: it counts as at most a little ahead
+    const drawn = (sent as InkStroke[]).map((s) => (s.t !== undefined && s.t > nowMs + INK_SKEW_MS ? { ...s, t: nowMs + INK_SKEW_MS } : s));
+    const strokes = base ? mergeInk(ctx.inks.get(sub, listId, itemId), drawn, base, Math.min(at ?? Number.MAX_SAFE_INTEGER, nowMs)) : drawn;
     if (!ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
     ctx.inks.set(sub, listId, itemId, strokes);
     return c.json(await cal(c).getTaskList(listId));

@@ -52,6 +52,46 @@ describe('ink items', () => {
     expect((await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length)).toEqual([later]);
   });
 
+  describe('times of a merged change', () => {
+    const NOW = Date.parse('2026-10-12T08:00:00+02:00');
+    const key = (s: { t?: number; p: number[][] }) => `${s.t ?? 0}|${s.p.length}|${s.p[0]!.join(',')}`;
+    const visible = async (id: string) => (await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length);
+    const setup = async () => {
+      const l = await mk();
+      const first = { ...stroke(), t: NOW - 5000 };
+      const id = (await t.json('POST', `/api/tasklists/${l.id}/items`, { strokes: [first] })).body.items[1].id;
+      return { first, id, url: `/api/tasklists/${l.id}/items/${id}/ink` };
+    };
+
+    it('refuses a time that is not a whole non-negative number', async () => {
+      const { first, url } = await setup();
+      for (const at of [-1, 1.5]) expect((await t.json('PUT', url, { strokes: [], base: [key(first)], at })).status).toBe(400);
+      expect((await t.json('PUT', url, { strokes: [{ ...stroke(), t: 1.5 }], base: [] })).status).toBe(400);
+    });
+
+    it('takes an erase from a clock far in the future as happening now, so strokes drawn after it are kept', async () => {
+      const { first, id, url } = await setup();
+      await t.json('PUT', url, { strokes: [], base: [key(first)], at: 9e15 });
+      const later = { ...stroke(2), t: NOW + 1000 };
+      await t.json('PUT', url, { strokes: [later], base: [] });
+      expect(await visible(id)).toEqual([later]);
+    });
+
+    it('cuts back a stroke time far ahead of the clock', async () => {
+      const { id, url } = await setup();
+      await t.json('PUT', url, { strokes: [{ ...stroke(2), t: 9e15 }] });
+      expect((await visible(id))[0].t).toBe(NOW + 5 * 60_000);
+    });
+
+    it('lets a device with a clock behind erase only what was drawn before its time', async () => {
+      const { first, id, url } = await setup();
+      const other = { ...stroke(2), t: NOW - 1000 };
+      await t.json('PUT', url, { strokes: [first, other] });
+      await t.json('PUT', url, { strokes: [], base: [key(first)], at: 1 });
+      expect(await visible(id)).toEqual([other]);
+    });
+  });
+
   it('refuses ink for a text item and for an unknown item', async () => {
     const l = await mk();
     expect((await t.json('PUT', `/api/tasklists/${l.id}/items/${l.items[0].id}/ink`, { strokes: [stroke()] })).status).toBe(400);
