@@ -8,7 +8,6 @@ Docker volume mounted as `DATA_DIR` (`/data`). Background: ADR 0026.
 - [ ] Rotate `GOOGLE_CLIENT_SECRET` in the Google Cloud Console. This alone makes every stored refresh token unusable.
 - [ ] Rotate `TOKEN_ENC_KEY`: replace the line with `openssl rand -base64 32`, redeploy. Old token files no longer
       decrypt, so everyone signs in again.
-- [ ] Rotate `DOOR_API_TOKEN` (at least 32 characters) and update the door board.
 - [ ] Rotate the VAPID keys (delete `vapid.json` or set new `VAPID_*`); people re-enable notifications.
 - [ ] Wipe sessions (below).
 - [ ] Check `ls -l /opt/calendar/.env`: mode `600`, owned by root.

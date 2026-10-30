@@ -16,10 +16,7 @@ model {
       description 'Reads and writes one person\'s events and task lists through the calendar provider'
     }
     plugins = component 'Plugin registry' {
-      description 'Mounts each optional plugin only when its configuration enables it, and lists the enabled ones in the health answer'
-    }
-    doorPlugin = component 'Door plugin' {
-      description 'Optional, off by default: the read-only door answer for one machine client — open items of door-tagged lists and today\'s events of the key\'s person, titles and times only'
+      description 'Mounts each optional plugin only when its configuration enables it, and lists the enabled ones in the health answer; ships with none'
     }
 
     itemsApi = component 'Items API' {
@@ -181,8 +178,6 @@ model {
     backup -> reminderOverrides 'collects and restores with the person\'s files'
     calendarService -> prefsStore 'reads what finishing an undated list does, on every completing write'
     calendarService -> googleProvider 'reads undated and finished lists by their private markers, without a date range'
-    plugins -> doorPlugin 'mounts under /api/door when DOOR_API_TOKEN is set'
-    doorPlugin -> calendarService 'reads the key\'s person\'s lists and events'
   }
 
   calendar.server.googleProvider -> google 'lists, inserts, patches and deletes events and calendars'
@@ -195,8 +190,7 @@ model {
   calendar.web.prefs -> calendar.server.prefsApi 'patches preferences'
   calendar.web.items -> calendar.server.itemsApi 'fetches the visible range'
   calendar.web.items -> calendar.server.tasksApi 'saves item changes, applied optimistically'
-  calendar.web.listForm -> calendar.server.tasksApi 'saves the list, Show on door as the door tag'
-  calendar.web.listSheet -> calendar.server.tasksApi 'flips the door tag'
+  calendar.web.listForm -> calendar.server.tasksApi 'saves the list'
   calendar.web.pluginUi -> calendar.server.plugins 'reads the enabled plugins from the health answer'
 
   calendar.web.items -> calendar.server.eventsApi 'saves event changes, applied optimistically'

@@ -25,10 +25,10 @@ model {
       description 'Builds the week snapshot and hands it to the phone widget after each sync'
     }
     listForm = component 'Task list form' {
-      description 'Creates and edits a task list; carries the Show on door switch'
+      description 'Creates and edits a task list'
     }
     listSheet = component 'List sheet' {
-      description 'The bottom sheet a tap opens on a task list; carries the Show on door switch too'
+      description 'The bottom sheet a tap opens on a task list'
     }
     items = store 'Items store' {
       description 'The events and task lists of the visible range, with item changes applied before the server confirms them'
@@ -55,9 +55,6 @@ model {
     signin -> lastKnown 'wipes it on sign-out and on the sign-in page'
     sync -> items 're-fetches on route change, timer, focus and network return'
     timegrid -> items 'shows'
-
-    listForm -> pluginUi 'offers the door plugin\'s Show on door switch'
-    listSheet -> pluginUi 'offers the door plugin\'s Show on door switch'
 
     settings -> prefs 'changes the overview and split prefs'
     week -> prefs 'reads the overview and split prefs'

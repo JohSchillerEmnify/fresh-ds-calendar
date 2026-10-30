@@ -817,34 +817,11 @@ interface SyncErrorBeacon {
 At most one beacon per client (session) per minute: a second one → `429 RATE_LIMITED`. The web app ignores every
 failure of this call.
 
-### `GET /api/door` → 200 (door plugin, off by default)
+### Plugins (ADR 0004)
 
-Exists only when the deployment set `DOOR_API_TOKEN` (ADR 0003/0004, `server/src/plugins/door/README.md`); otherwise
-the path is `404 NOT_FOUND` and `/api/config` and `/api/health` do not list `door` in `plugins`. For one machine
-client, the door board: `Authorization: Bearer <DOOR_API_TOKEN>`, compared in constant time; missing or wrong →
-`401 UNAUTHENTICATED` with no data; more than 60 calls a minute → `429 RATE_LIMITED`. No browser session.
-
-`DOOR_API_TOKEN` must be at least 32 characters: a shorter key keeps the door off (the server logs `door_key_too_short` and
-warns on the console). The 60 calls a minute are counted per client, and a client is identified by the socket's address.
-With `TRUST_PROXY=1` (a reverse proxy that appends the caller's address to `X-Forwarded-For`) it is the LAST
-`X-Forwarded-For` entry, the one the proxy itself added; without it the header is client-supplied and ignored. At most 1000
-clients are counted at once: expired counters are dropped first, further newcomers share one counter, so a flood of
-made-up clients never resets the counter of one that is over its limit. Asking for the door's person after they were taken
-off `ALLOWED_EMAILS` (or before they have signed in) answers `503 PROVIDER_UNAVAILABLE`.
-
-```ts
-{
-  reminders: { title: string; list: string; date: LocalDate | null; time?: LocalTime }[];
-  events:    { title: string; start: string; end: string; allDay: boolean }[];
-}
-```
-
-The person is `DOOR_PERSON` (their calendar and hidden-calendar prefs; the local calendar while sign-in is off).
-`reminders`: the open items of task lists tagged `door` that are due — dated today or earlier, or undated — a
-repeating list once, with its latest due occurrence; oldest date first, undated last, items in list order. `events`:
-today's events of the visible calendars, in the API's `start`/`end` form (an all-day `end` is exclusive). Nothing else.
-
-`GET /api/config` and `GET /api/health` carry `plugins: string[]`, the enabled plugins by name.
+Optional integrations mount under `/api/<name>` only while the deployment enables them; a disabled plugin's paths are
+`404 NOT_FOUND`. The core ships none (the door board lives in its own repository). `GET /api/config` and `GET /api/health`
+carry `plugins: string[]`, the enabled plugins by name (an empty list when none).
 
 ### `POST /api/demo/reset` → 200 `{ ok: true }` (demo mode only)
 
@@ -861,7 +838,6 @@ false in the production compose file. They require `PROVIDER=mock`.
 | `POST` | `/api/__test/reset` | `ResetInput?` | Clears all mock data, clock, outage and config overrides, and restores default settings (incl. the four default categories) and an empty motivation state; then seeds or loads the fixture. `200 { calendars, items, settings }` |
 | `POST` | `/api/__test/clock` | `{ now: string \| null; frozen?: boolean }` | Sets the clock (`now` ISO with offset or `Z`); `frozen` (default `true`) keeps it constant, `false` lets it run from `now` in real time. `null` clears it. `200 { now, clockFrozen }` |
 | `POST` | `/api/__test/motivation` | `{ checkIns?: LocalDate[]; plant?: { growth: number; lastWatered: LocalDate \| null; todayPoints?: number } }` | Replaces the check-in history (streak and best are recomputed) and/or the plant state. `200 Motivation` |
-| `POST` | `/api/__test/door` | `{ token: string; person: string }` or `{ off: true }` | The door plugin's key and person from now on, in place of the config's; `off` takes the door away (404). Reset clears it. `200 AppConfig` |
 | `POST` | `/api/__test/config` | `{ pollIntervalMs?: number }` | Overrides values returned by `/api/config` (`0` disables polling). `200` config |
 | `POST` | `/api/__test/outage` | `{ down: boolean; status?: 500 \| 503 }` | While `down`, every provider call throws (`503` → `PROVIDER_UNAVAILABLE`, `500` → `PROVIDER_ERROR`). Non-test `/api` routes that touch the provider fail; `/api/health` reports `providerStatus: 'unavailable'`. `200 { down }` |
 | `POST` | `/api/__test/rate-limit` | `{ retryAfterSec: number }` (integer 1–600) | The next provider call answers "rate limited" with this `Retry-After`: the mock's rate guard (ADR 0007, the same one as Google's) starts its cooldown, so reads answer from its cache with `X-Stale: 1` and writes fail `503 RATE_LIMITED` until it ends. Cleared by reset. Reaches only the shared mock calendar (it takes no `owner`). `200 { retryAfterSec }` |

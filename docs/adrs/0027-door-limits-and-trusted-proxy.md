@@ -1,6 +1,6 @@
 # 0027 — Door limits and the trusted proxy
 
-- Status: accepted (owner, 2026-10-30); hardens ADR 0003
+- Status: Moved to the door repository 2026-10-30 (accepted, owner, 2026-10-30); hardens ADR 0003. The door limits and the `TRUST_PROXY` switch left the calendar with the plugin.
 - Views shaped: `server`
 
 ## Decision
