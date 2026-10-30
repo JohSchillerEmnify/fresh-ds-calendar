@@ -10,15 +10,14 @@ import { isLocalDate, formatInZone, dayNumber } from '../lib/time.js';
 import { nearestGoogleColorId } from '../lib/colors.js';
 import { nanoid } from '../lib/ids.js';
 import { MAX_THEME_BYTES, sanitizePicture, validatePicture, validateTheme, type ThemePicture } from '@calendar/shared';
+import { parsePrefsPatch } from '@calendar/shared/prefs';
 import { themeFitsSize } from '../services/themeStore.js';
 import { loadSvgSanitizer } from '../lib/svg.js';
 import {
   addItemSchema, canvasDocSchema, defaultRemindersSchema, categoryCreateSchema, categoryOrderSchema, categoryPatchSchema, createBirthdaySchema, createEventSchema, createTaskListSchema, orderSchema,
   categoryShareSchema, parse, patchItemSchema, shareSchema, settingsPatchSchema, parseTemplate, themePatchSchema, updateEventSchema, updateTaskListSchema,
 } from '../lib/validation.js';
-import {
-  isApproachWindow, isMinEventMinutes, isDaySideBySide, isWeekSideBySide, isLanguagePref, toLabsViews, LOCAL_PERSON, NAV_POSITION_VALUES, STREAK_VALUES, HEADER_LAYOUT_VALUES, parseBedtimePatch, parseNotifyPatch, toTasksFilter, SUPPORT_CAT_VALUES, TASKS_GROUP_BY_VALUES, TASKS_SORT_BY_VALUES, TASKS_SORT_DIR_VALUES, UNDATED_DONE_VALUES, TASK_OPEN_VALUES, type TaskOpen, type NavPosition, type Prefs, type StreakChoice, type HeaderLayout, type SupportCat, type TasksGroupBy, type TasksSortBy, type TasksSortDir, type UndatedDone,
-} from '../services/prefsStore.js';
+import { LOCAL_PERSON } from '../services/prefsStore.js';
 import { withGoogleColor } from '../services/settingsStore.js';
 import type { Scope } from '../services/calendar.js';
 import { registerChanges } from './changesRoutes.js';
@@ -187,95 +186,11 @@ export function apiRoutes(ctx: Ctx): Hono {
   r.patch('/prefs', async (c) => {
     const b = ((await body(c)) ?? {}) as Record<string, unknown>;
     // validate every field first, so a bad value changes neither Google nor the stored prefs
-    const patch: Partial<Omit<Prefs, 'tasksCalendarVisible'>> = {};
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'tasksCalendarVisible', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards', 'syncIndicator', 'approachTimeLeft'] as const) {
-      if (b[k] !== undefined && typeof b[k] !== 'boolean') throw validation(`${k} must be a boolean`, k);
-    }
-    for (const k of ['labs', 'approachBar', 'approachingCard', 'taskCategories', 'versionInCorner', 'labsOwnThemes', 'leftHanded', 'showCarriedFrom', 'weekTwoRow', 'labsGrowCards', 'syncIndicator', 'approachTimeLeft'] as const) if (b[k] !== undefined) patch[k] = b[k] as boolean;
-    if (b.labsViews !== undefined) {
-      const v = toLabsViews(b.labsViews);
-      if (!v) throw validation('labsViews must map view ids to booleans', 'labsViews');
-      // merge per id, so a switch changed on one device keeps the others
-      patch.labsViews = { ...ctx.prefs.labsPrefs(person(c)).labsViews, ...v };
-    }
-    if (b.approachWindowHours !== undefined) {
-      if (!isApproachWindow(b.approachWindowHours)) throw validation('approachWindowHours must be a whole number from 1 to 24', 'approachWindowHours');
-      patch.approachWindowHours = b.approachWindowHours;
-    }
-    if (b.supportCat !== undefined) {
-      if (!SUPPORT_CAT_VALUES.includes(b.supportCat as SupportCat)) throw validation('Invalid support cat setting', 'supportCat');
-      patch.supportCat = b.supportCat as SupportCat;
-    }
-    for (const k of ['navPhone', 'navDesktop'] as const) {
-      if (b[k] === undefined) continue;
-      if (!NAV_POSITION_VALUES.includes(b[k] as NavPosition)) throw validation(`Invalid ${k}`, k);
-      patch[k] = b[k] as NavPosition;
-    }
-    if (b.streak !== undefined) {
-      if (!STREAK_VALUES.includes(b.streak as StreakChoice)) throw validation('streak must be off, flame or plant', 'streak');
-      patch.streak = b.streak as StreakChoice;
-    }
-    if (b.headerLayout !== undefined) {
-      if (!HEADER_LAYOUT_VALUES.includes(b.headerLayout as HeaderLayout)) throw validation('headerLayout must be two-rows or one-row', 'headerLayout');
-      patch.headerLayout = b.headerLayout as HeaderLayout;
-    }
-    if (b.minEventMinutes !== undefined) {
-      if (!isMinEventMinutes(b.minEventMinutes)) throw validation('minEventMinutes must be 0, 15 or 30', 'minEventMinutes');
-      patch.minEventMinutes = b.minEventMinutes;
-    }
-    if (b.daySideBySide !== undefined) {
-      if (!isDaySideBySide(b.daySideBySide)) throw validation('daySideBySide must be 2, 3 or 4', 'daySideBySide');
-      patch.daySideBySide = b.daySideBySide;
-    }
-    if (b.weekSideBySide !== undefined) {
-      if (!isWeekSideBySide(b.weekSideBySide)) throw validation('weekSideBySide must be 2 or 3', 'weekSideBySide');
-      patch.weekSideBySide = b.weekSideBySide;
-    }
-    if (b.weekTwoRowTop !== undefined) {
-      if (b.weekTwoRowTop !== 3 && b.weekTwoRowTop !== 4) throw validation('weekTwoRowTop must be 3 or 4', 'weekTwoRowTop');
-      patch.weekTwoRowTop = b.weekTwoRowTop;
-    }
-    if (b.tasksGroupBy !== undefined) {
-      if (!TASKS_GROUP_BY_VALUES.includes(b.tasksGroupBy as TasksGroupBy)) throw validation('Invalid tasksGroupBy', 'tasksGroupBy');
-      patch.tasksGroupBy = b.tasksGroupBy as TasksGroupBy;
-    }
-    if (b.tasksSortBy !== undefined) {
-      if (!TASKS_SORT_BY_VALUES.includes(b.tasksSortBy as TasksSortBy)) throw validation('Invalid tasksSortBy', 'tasksSortBy');
-      patch.tasksSortBy = b.tasksSortBy as TasksSortBy;
-    }
-    if (b.tasksSortDir !== undefined) {
-      if (!TASKS_SORT_DIR_VALUES.includes(b.tasksSortDir as TasksSortDir)) throw validation('Invalid tasksSortDir', 'tasksSortDir');
-      patch.tasksSortDir = b.tasksSortDir as TasksSortDir;
-    }
-    if (b.undatedDone !== undefined) {
-      if (!UNDATED_DONE_VALUES.includes(b.undatedDone as UndatedDone)) throw validation('Invalid undatedDone', 'undatedDone');
-      patch.undatedDone = b.undatedDone as UndatedDone;
-    }
-    if (b.taskOpen !== undefined) {
-      if (!TASK_OPEN_VALUES.includes(b.taskOpen as TaskOpen)) throw validation('Invalid taskOpen', 'taskOpen');
-      patch.taskOpen = b.taskOpen as TaskOpen;
-    }
-    if (b.tasksFilter !== undefined) {
-      const f = toTasksFilter(b.tasksFilter);
-      if (!f) throw validation('Invalid tasksFilter', 'tasksFilter');
-      patch.tasksFilter = f;
-    }
-    if (b.language !== undefined) {
-      if (!isLanguagePref(b.language)) throw validation('Invalid language', 'language');
-      patch.language = b.language;
-    }
-    if (b.bedtime !== undefined) {
-      const parsed = parseBedtimePatch(b.bedtime);
-      if (typeof parsed === 'string') throw validation(parsed, 'bedtime');
-      patch.bedtime = { ...ctx.prefs.labsPrefs(person(c)).bedtime, ...parsed };
-    }
-    if (b.notify !== undefined) {
-      const parsed = parseNotifyPatch(b.notify);
-      if (typeof parsed === 'string') throw validation(parsed, 'notify');
-      patch.notify = { ...ctx.prefs.labsPrefs(person(c)).notify, ...parsed };
-    }
+    const parsed = parsePrefsPatch(b, ctx.prefs.labsPrefs(person(c)));
+    if ('error' in parsed) throw validation(parsed.error, parsed.field);
     // "Show tasks calendar in Google" changes Google's calendar list first, so a failure stores nothing
-    if (b.tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(b.tasksCalendarVisible as boolean);
+    const { tasksCalendarVisible, ...patch } = parsed.patch;
+    if (tasksCalendarVisible !== undefined) await cal(c).tasks.setVisible(tasksCalendarVisible);
     return c.json(ctx.prefs.setLabs(person(c), patch));
   });
   // ---- per-person theme ----

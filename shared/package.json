@@ -6,6 +6,7 @@
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.js" },
     "./api": { "types": "./api.d.ts" },
+    "./prefs": { "types": "./prefs.d.ts", "default": "./prefs.js" },
     "./theme.schema.json": "./theme.schema.json"
   }
 }

@@ -9,11 +9,7 @@
 import type { BedtimePrefs } from '@/api/types';
 import type { Segment } from '@/lib/items';
 
-/** The preference of a person who never touched the settings: bedtime mode is off. */
-export const DEFAULT_BEDTIME: BedtimePrefs = {
-  enabled: false, mode: 'fixed', bedtime: '23:00', wake: '07:00', weekendDifferent: false, weekendBedtime: '00:00', weekendWake: '09:00',
-  sleepMinutes: 480, leadMinutes: 60, reminderMinutes: 30,
-};
+export { DEFAULT_BEDTIME } from '@calendar/shared/prefs';
 
 /** Anything that answers "the segments of a date" (the items store's `byDate` map, or a filtered view of it). */
 export interface SegmentSource { get(date: string): readonly Segment[] | undefined }
