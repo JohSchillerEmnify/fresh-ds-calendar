@@ -22,6 +22,7 @@ import { downloadRoutes } from './routes/download.js';
 import { staticRoutes } from './routes/static.js';
 import { securityHeaders } from './lib/securityHeaders.js';
 import { pluginRoutes } from './plugins/registry.js';
+import { idempotency, refuseNextWrite } from './api/idempotency.js';
 
 export type App = Hono & { ctx: Ctx; close(): void };
 
@@ -46,7 +47,7 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   app.use('*', securityHeaders(config.webDist, config.places)); // CSP, X-Frame-Options, Permissions-Policy, Referrer-Policy on every answer
 
   if (config.allowedOrigins.length) {
-    app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match'], exposeHeaders: ['X-Motivation-Changed', 'X-Stale', 'Retry-After'] }));
+    app.use('/api/*', cors({ origin: (o) => (config.allowedOrigins.includes(o) ? o : null), allowHeaders: ['Content-Type', 'If-Match', 'Idempotency-Key'], exposeHeaders: ['X-Motivation-Changed', 'X-Stale', 'Retry-After'] }));
   }
 
   // Diagnostics: every API answer with status >= 500 leaves one line, with the cause the error handler noted.
@@ -74,6 +75,8 @@ export function buildApp(config: AppConfig, opts: BuildOptions = {}): App {
   app.route('/api', pluginRoutes(ctx));
 
   app.use('/api/*', sessionMiddleware(ctx));
+  if (config.testMode) app.use('/api/*', refuseNextWrite(ctx));
+  app.use('/api/*', idempotency(ctx));
 
   // A successful write by a signed-in person may have changed their server data: schedule their backup. One place for
   // every store, so a new per-person store needs no call (it is "a change" like any other write).

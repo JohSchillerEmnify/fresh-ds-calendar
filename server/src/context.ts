@@ -65,7 +65,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
+  overrides: { pollIntervalMs?: number; /** Test mode: how often Google is asked for changes while an app is open (ms). */ googlePollMs?: number; /** Test mode: the live stream's keep-alive and session check interval (ms). */ liveHeartbeatMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; /** Test mode: the next event or task list write answers this status and changes nothing. */ refuseNextWrite?: 400 | 404; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;
