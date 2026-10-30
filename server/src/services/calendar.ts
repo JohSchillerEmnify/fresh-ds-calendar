@@ -50,6 +50,8 @@ const inContactsCalendar = (ev: GoogleEvent) => ev.calendarId.startsWith(BIRTHDA
 
 export class CalendarService {
   private calCache: { at: number; cals: ProviderCalendar[] } | null = null;
+  /** Calendars too large to walk for a sync token, and until when they are left alone (see {@link CalendarChanges}). */
+  private readonly noTokenUntil = new Map<string, number>();
   /** Test/seed hook: insert with a caller-chosen event id (mock only). */
   rawInsert?: (calendarId: string, ev: GoogleEventInput & { id: string }) => Promise<GoogleEvent>;
   /** The person's hidden "Calendar app: tasks" calendar: the only place task lists are read and written. */
@@ -998,6 +1000,7 @@ export class CalendarService {
     const feed = new CalendarChanges(this.provider, this.tz, {
       eventCalendars: () => this.eventCalendars(), tasksId,
       toEvent: (e, c) => this.toEvent(e, c.backgroundColor, c.defaultReminders), toTaskList: (e) => this.toTaskList(e, color, cats),
+      noTokenUntil: this.noTokenUntil, nowMs: () => this.clock.real(),
     }, today);
     const g = await feed.since(prev, forced);
     const stamps: Record<string, string> = {};

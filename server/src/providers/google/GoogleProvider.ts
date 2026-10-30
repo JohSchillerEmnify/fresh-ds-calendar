@@ -3,7 +3,7 @@ import type { OAuth2Client } from 'google-auth-library';
 import type { AppConfig } from '../../config.js';
 import {
   NotFoundError, PreconditionFailedError, ProviderError, ProviderForbiddenError, ProviderUnavailableError,
-  ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
+  ReauthRequiredError, CalendarPermissionMissingError, SyncTokenExpiredError, SyncTokenTooLargeError, type CalendarProvider, type GoogleEvent, type GoogleEventInput, type GoogleReminder, type GoogleEventPatch, type ListEventsParams,
   type ListEventsResult, type ProviderCalendar, type WriteOptions,
 } from '../CalendarProvider.js';
 import { GOOGLE_TIMEOUT_MS, calendarScopeMissing, getUserClient, hasUserToken } from './auth.js';
@@ -26,6 +26,8 @@ export interface GoogleProviderOptions {
 /** Most events one list read collects before it gives up, and most pages of instances read for one series. */
 const MAX_ITEMS = 10_000;
 const MAX_INSTANCE_PAGES = 40;
+/** Most pages walked for a sync token (2500 entries each). */
+const MAX_TOKEN_PAGES = 200;
 
 interface GoogleErrorBody { status?: string; errors?: { reason?: string }[]; details?: { reason?: string }[] }
 
@@ -164,7 +166,9 @@ export class GoogleProvider implements CalendarProvider {
       for (const e of res.data.items ?? []) items.push(fromApi(e, p.calendarId));
       pageToken = res.data.nextPageToken ?? undefined;
       nextSyncToken = res.data.nextSyncToken ?? undefined;
-    } while (pageToken && items.length < 10_000);
+    } while (pageToken && items.length < MAX_ITEMS);
+    // a read that stops early must fail, not pass as the whole answer
+    if (pageToken) throw new ProviderError('Too many events in one read');
     return { items, nextSyncToken };
   }
 
@@ -225,6 +229,20 @@ export class GoogleProvider implements CalendarProvider {
     // a stream we could not read to its end gives no new token: keeping the old one would repeat this forever, so list again in full
     if (pageToken || !nextSyncToken) throw new SyncTokenExpiredError('Change stream too large or without a new token');
     return { items, nextSyncToken };
+  }
+
+  async listSyncToken(calendarId: string): Promise<string | undefined> {
+    let pageToken: string | undefined;
+    let nextSyncToken: string | undefined;
+    let pages = 0;
+    do {
+      const res = await this.call('events.list', () => this.o.api.events.list({ calendarId, singleEvents: false, showDeleted: true, maxResults: 2500, pageToken }));
+      pageToken = res.data.nextPageToken ?? undefined;
+      nextSyncToken = res.data.nextSyncToken ?? undefined;
+      pages++;
+    } while (pageToken && pages < MAX_TOKEN_PAGES);
+    if (pageToken) throw new SyncTokenTooLargeError('Calendar too large to walk for a sync token');
+    return nextSyncToken;
   }
 
   async listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {

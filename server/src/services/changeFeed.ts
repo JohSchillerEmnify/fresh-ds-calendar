@@ -7,12 +7,14 @@
 import type { CalendarEvent, TaskList } from '../api/types.js';
 import { addDays, dayNumber, startOfLocalDay, formatInZone } from '../lib/time.js';
 import {
-  CalendarPermissionMissingError, NotFoundError, RateLimitedError, ReauthRequiredError, SyncTokenExpiredError, type CalendarProvider, type GoogleEvent, type ProviderCalendar,
+  NotFoundError, ProviderError, ProviderUnavailableError, RateLimitedError, SyncTokenExpiredError, SyncTokenTooLargeError, type CalendarProvider, type GoogleEvent, type ProviderCalendar,
 } from '../providers/CalendarProvider.js';
 import { isTaskListEvent } from './taskCodec.js';
 
 /** Days of window end the device may be behind before a calendar is simply listed again. */
 const MAX_GAP_DAYS = 31;
+/** How long a calendar that was too large to walk for a sync token is left alone. */
+const NO_TOKEN_BACKOFF_MS = 10 * 60_000;
 /** More changed repeating events than this in one calendar and poll: list the calendar in full instead of one `events.instances` call each. */
 const MAX_SERIES_CALLS = 20;
 const YEAR_BACK = 365;
@@ -63,6 +65,9 @@ export interface FeedDeps {
   tasksId: string;
   toEvent(e: GoogleEvent, cal: ProviderCalendar): CalendarEvent;
   toTaskList(e: GoogleEvent): TaskList;
+  /** Per calendar, the time before which no sync token is asked for again (kept by the person's calendar service). */
+  noTokenUntil: Map<string, number>;
+  nowMs(): number;
 }
 
 /** The events window kept on a device: today minus a year up to today plus a year (end exclusive). */
@@ -105,7 +110,8 @@ export class CalendarChanges {
     return {
       events,
       taskLists: { replace: tasks.replace, series: tasks.series, removed: tasks.removed, upserts: tasks.upserts, failed: !!tasks.failed },
-      state: { to: windowOf(this.today).to, tokens },
+      // a calendar that failed keeps the old window end, so the gap it missed is read next time
+      state: { to: prev && (events.failed.length || tasks.failed) ? prev.to : windowOf(this.today).to, tokens },
     };
   }
 
@@ -119,15 +125,27 @@ export class CalendarChanges {
       map: (e) => this.deps.toEvent(e, cal),
       full: async () => {
         // the token comes from a read without the parameters Google refuses together with a sync token (time range, filters); the window read below has them
-        const base = await p.listEvents({ calendarId: cal.id, singleEvents: false, showDeleted: true });
+        const token = await this.tokenFor(cal.id);
         const win = await p.listEvents({ calendarId: cal.id, timeMin, timeMax });
-        return { upserts: win.items.filter((e) => e.status !== 'cancelled' && mine(e)).map((e) => this.deps.toEvent(e, cal)), token: base.nextSyncToken };
+        return { upserts: win.items.filter((e) => e.status !== 'cancelled' && mine(e)).map((e) => this.deps.toEvent(e, cal)), token };
       },
       gap: async (fromDate) => {
         const win = await p.listEvents({ calendarId: cal.id, timeMin: formatInZone(startOfLocalDay(fromDate, this.tz), this.tz), timeMax });
         return win.items.filter((e) => e.status !== 'cancelled' && mine(e)).map((e) => this.deps.toEvent(e, cal));
       },
     };
+  }
+
+  /** A fresh sync token by a token-only page walk; a calendar too large to walk is left alone for a while (its answer is `failed`). */
+  private async tokenFor(calendarId: string): Promise<string | undefined> {
+    const until = this.deps.noTokenUntil.get(calendarId);
+    if (until !== undefined && until > this.deps.nowMs()) throw new ProviderError('Backing off: calendar too large for a sync token');
+    try {
+      return await this.provider.listSyncToken(calendarId);
+    } catch (e) {
+      if (e instanceof SyncTokenTooLargeError) this.deps.noTokenUntil.set(calendarId, this.deps.nowMs() + NO_TOKEN_BACKOFF_MS);
+      throw e;
+    }
   }
 
   private taskSpec(): Spec<TaskList> {
@@ -160,7 +178,8 @@ export class CalendarChanges {
       return await this.readOrThrow(calendarId, prev, forced, spec);
     } catch (e) {
       // the person-wide failures stop the whole answer; one calendar's failure leaves that calendar as the device has it
-      if (e instanceof RateLimitedError || e instanceof ReauthRequiredError || e instanceof CalendarPermissionMissingError) throw e;
+      // only the provider's own failures degrade; a rate limit, a sign-in problem or a bug (a TypeError) fails the request
+      if (e instanceof RateLimitedError || !(e instanceof ProviderError || e instanceof ProviderUnavailableError || e instanceof NotFoundError)) throw e;
       return { failed: true, replace: false, series: [], removed: [], upserts: [], token: prev?.tokens[calendarId] };
     }
   }

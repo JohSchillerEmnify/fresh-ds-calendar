@@ -94,6 +94,11 @@ export interface CalendarProvider {
    * is no longer usable (Google 410): the caller lists the calendar in full again.
    */
   listChanges(calendarId: string, syncToken: string): Promise<ListEventsResult>;
+  /**
+   * A fresh sync token for a calendar, taken by walking every page of an unfiltered read (`singleEvents: false`,
+   * `showDeleted: true`) and keeping no items. Throws {@link SyncTokenTooLargeError} when the calendar is too large to walk.
+   */
+  listSyncToken(calendarId: string): Promise<string | undefined>;
   /** The instances of one repeating event (`events.instances`) in `[timeMin, timeMax)`, exceptions applied, cancelled ones left out. */
   listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]>;
   /** Milliseconds left of a rate-limit cooldown (no Google calls are made meanwhile); 0 or absent when not cooling down. */
@@ -116,5 +121,7 @@ export class CalendarPermissionMissingError extends Error {}
 /** A sync token was refused (Google 410 Gone): drop what was kept for that calendar and list it again without a token. */
 export class SyncTokenExpiredError extends Error {}
 export class ProviderError extends Error {}
+/** A calendar has too many events to walk for a sync token; the caller backs off before trying again. */
+export class SyncTokenTooLargeError extends ProviderError {}
 export class NotFoundError extends Error {}
 export class PreconditionFailedError extends Error {}

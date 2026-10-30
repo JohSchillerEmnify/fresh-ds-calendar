@@ -1,7 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import { describe, expect, it } from 'vitest';
 import { Clock } from '../src/lib/clock.js';
-import { SyncTokenExpiredError } from '../src/providers/CalendarProvider.js';
+import { ProviderError, SyncTokenExpiredError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
 import { GoogleProvider, makeApi } from '../src/providers/google/GoogleProvider.js';
 import { MockGoogleProvider } from '../src/providers/mock/MockGoogleProvider.js';
 
@@ -135,5 +135,34 @@ describe('GoogleProvider truncated reads (mocked HTTP)', () => {
     expect(calls).toHaveLength(2);
     const endless = google(() => ({ json: { items: [gev()], nextPageToken: 'again' } }));
     await expect(endless.provider.listInstances('primary', 'm', 'a', 'b')).rejects.toThrow();
+  });
+});
+
+describe('token-only walk and loud truncation', () => {
+  it('walks every page for the last page\'s token and keeps no items', async () => {
+    const { provider, calls } = google((c) => (c.url.searchParams.get('pageToken') === 'p2' ? { json: { items: [gev()], nextSyncToken: 'T9' } } : { json: { items: [gev()], nextPageToken: 'p2' } }));
+    expect(await provider.listSyncToken('primary')).toBe('T9');
+    expect(calls).toHaveLength(2);
+    for (const c of calls) {
+      expect(c.url.searchParams.get('singleEvents')).toBe('false');
+      expect(c.url.searchParams.get('showDeleted')).toBe('true');
+      expect(c.url.searchParams.has('timeMin')).toBe(false);
+    }
+  });
+
+  it('gives up on a calendar of more than 200 pages', async () => {
+    const { provider, calls } = google(() => ({ json: { items: [], nextPageToken: 'more' } }));
+    await expect(provider.listSyncToken('primary')).rejects.toBeInstanceOf(SyncTokenTooLargeError);
+    expect(calls).toHaveLength(200);
+  });
+
+  it('fails a list read that would stop at 10,000 events instead of returning part of them', async () => {
+    const page = Array.from({ length: 2500 }, (_, i) => gev({ id: `e${i}` }));
+    const { provider } = google(() => ({ json: { items: page, nextPageToken: 'more' } }));
+    await expect(provider.listEvents({ calendarId: 'primary', timeMin: 'a', timeMax: 'b' })).rejects.toBeInstanceOf(ProviderError);
+  });
+
+  it('the mock hands out a token without items', async () => {
+    expect(await mock().listSyncToken('primary')).toMatch(/^sync-/);
   });
 });

@@ -370,7 +370,9 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
   `upserts` (their current instances inside the window are in `upserts`).
 - `events.failed` / `taskLists.failed`: calendars (the tasks calendar) that could not be read this time. The device keeps
   its copy of them, their position in the cursor is unchanged, and the next call tries again; the rest of the answer is
-  complete. Person-wide failures (rate limit, sign-in again, missing calendar permission) still fail the whole call.
+  complete. While a calendar failed, the cursor keeps its old window end and reminder version, so the missed days and relist
+  are retried. Person-wide failures (rate limit, sign-in again, missing calendar permission) and unexpected errors (bugs)
+  still fail the whole call.
 - A repeating event that became a plain one is listed in `series` (the device drops its old instances) and its plain
   event is in `upserts`. When more than 20 repeating events of one calendar changed in one call, that calendar is
   answered as `replace` instead of one Google call per series.
@@ -387,7 +389,9 @@ secret. Apply an answer in this order: `calendars`, then per kind the `replace` 
 - A repeated call with the cursor of its own answer, with nothing changed, answers empty parts.
 - Google cost: one list call per calendar per call (the sync token), plus one `events.instances` call per changed
   repeating event (at most 20 per calendar); a first or `replace` answer costs two list calls per calendar. The token
-  comes from a read without time range or filters (Google refuses those together with a sync token). The rate guard applies: while Google
+  of an event calendar comes from a token-only walk of its pages (no time range or filters, which Google refuses together
+  with a sync token; at most 200 pages). A calendar too large for that is answered as `failed` and not tried again for
+  10 minutes. The rate guard applies: while Google
   rate-limits, the answer is `503 RATE_LIMITED` with `Retry-After`, as for `GET /api/items`; the device keeps its data
   and shows no banner.
 - Errors: `400` for a bad `today`.

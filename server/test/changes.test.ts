@@ -1,6 +1,7 @@
 /** `GET /api/changes` (ADR 0025, spec/API.md): the device's "changes since" read, against the mock provider. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProviderError } from '../src/providers/CalendarProvider.js';
+import { decodeCursor } from '../src/api/changesRoutes.js';
+import { ProviderError, SyncTokenTooLargeError } from '../src/providers/CalendarProvider.js';
 import { mockSub } from '../src/auth/people.js';
 import { freeze, makeApp, sessionCookie, type TestApp } from './helpers.js';
 
@@ -211,14 +212,60 @@ describe('shared lists', () => {
 });
 
 describe('robustness', () => {
-  it('takes the sync token from a read without a time range or filter, which Google refuses together with a token', async () => {
-    const spy = vi.spyOn(t.app.ctx.mock!, 'listEvents');
+  it('takes the sync token of an event calendar from a token-only walk, and of the tasks calendar from an unfiltered read', async () => {
+    const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken');
+    const list = vi.spyOn(t.app.ctx.mock!, 'listEvents');
     await changes();
-    const tokenReads = spy.mock.calls.map((c) => c[0]).filter((p) => p.singleEvents === false);
-    expect(tokenReads.length).toBeGreaterThanOrEqual(3);
-    for (const p of tokenReads) expect(p).not.toHaveProperty('timeMin');
-    for (const p of tokenReads) expect(p).not.toHaveProperty('timeMax');
-    for (const p of tokenReads) expect(p).not.toHaveProperty('privateExtendedProperty');
+    expect(walk.mock.calls.map((c) => c[0]).sort()).toEqual(['primary', 'work']);
+    const unexpanded = list.mock.calls.map((c) => c[0]).filter((p) => p.singleEvents === false);
+    expect(unexpanded).toHaveLength(1);
+    for (const k of ['timeMin', 'timeMax', 'privateExtendedProperty']) expect(unexpanded[0]).not.toHaveProperty(k);
+  });
+
+  it('answers a calendar too large for a sync token as failed, and leaves it alone for a while', async () => {
+    await ev('Home');
+    const walk = vi.spyOn(t.app.ctx.mock!, 'listSyncToken').mockImplementation(async (id) => {
+      if (id === 'work') throw new SyncTokenTooLargeError('big');
+      return 'sync-x';
+    });
+    const first = (await changes()).events;
+    expect(first.failed).toEqual(['work']);
+    expect(first.replace).toEqual(['primary']);
+    const calls = walk.mock.calls.filter((c) => c[0] === 'work').length;
+    const second = (await changes()).events;
+    expect(second.failed).toEqual(['work']);
+    expect(walk.mock.calls.filter((c) => c[0] === 'work')).toHaveLength(calls);
+  });
+
+  it('keeps the old window end and reminder version in the cursor while a calendar failed, so the retry happens', async () => {
+    const cal = (await t.json('POST', '/api/__test/remote/calendars', { summary: 'Anna', id: 'anna@example.org', accessRole: 'reader', ownerEmail: 'anna@example.org' })).body;
+    const e = (await t.json('POST', '/api/__test/remote/events', { summary: 'Yoga', calendarId: cal.id, start: { dateTime: '2026-10-14T07:00:00+02:00' }, end: { dateTime: '2026-10-14T08:00:00+02:00' } })).body;
+    await ev('In two years', '2027-10-20');
+    const c0 = (await changes()).cursor;
+    await t.json('PATCH', `/api/events/${e.id}`, { reminders: { useDefault: false, minutes: [30] } });
+    await freeze(t, '2026-10-20T08:00:00+02:00');
+    const real = t.app.ctx.mock!.listChanges.bind(t.app.ctx.mock!);
+    const spy = vi.spyOn(t.app.ctx.mock!, 'listChanges').mockImplementation(async (id, tok) => {
+      if (id === 'work') throw new ProviderError('boom');
+      return real(id, tok);
+    });
+    const failed = await t.json('GET', `/api/changes?today=2026-10-20&cursor=${c0}`);
+    expect(failed.body.events.failed).toEqual(['work']);
+    const before = decodeCursor(c0)!, after = decodeCursor(failed.body.cursor)!;
+    expect(after.to).toBe(before.to);
+    expect(after.files.reminderOverrides).toBe(before.files.reminderOverrides);
+    spy.mockRestore();
+    const retry = await t.json('GET', `/api/changes?today=2026-10-20&cursor=${failed.body.cursor}`);
+    expect(retry.body.events.failed).toEqual([]);
+    expect(retry.body.events.replace).toEqual(['anna@example.org']);
+    expect(decodeCursor(retry.body.cursor)!.to).toBe('2027-10-21');
+  });
+
+  it('does not swallow a bug into "failed": an unexpected error fails the request', async () => {
+    vi.spyOn(t.app.ctx.mock!, 'listChanges').mockRejectedValue(new TypeError('bug'));
+    const c0 = (await changes()).cursor;
+    const res = await t.json('GET', url(c0));
+    expect(res.status).toBe(500);
   });
 
   it('ignores a date of the device that is far from the server\'s: the window stays around the server\'s today', async () => {

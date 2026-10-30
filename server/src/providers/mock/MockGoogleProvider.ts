@@ -292,6 +292,12 @@ export class MockGoogleProvider implements CalendarProvider {
     return { items, nextSyncToken: this.syncToken() };
   }
 
+  async listSyncToken(calendarId: string): Promise<string | undefined> {
+    this.check();
+    this.requireCalendar(calendarId);
+    return this.syncToken();
+  }
+
   async listInstances(calendarId: string, seriesId: string, timeMin: string, timeMax: string): Promise<GoogleEvent[]> {
     this.check();
     const master = this.events.get(key(calendarId, seriesId));

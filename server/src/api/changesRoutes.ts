@@ -78,6 +78,8 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     const forced = new Set(prev && versions.reminderOverrides !== prev.files.reminderOverrides ? Object.keys(overrides) : []);
 
     const g = await cal.changesSince(prev, today, forced);
+    // a calendar that failed is retried next time, including the relist its reminder overrides asked for
+    if ((g.events.failed.length || g.taskLists.failed) && prev?.files.reminderOverrides !== undefined) versions.reminderOverrides = prev.files.reminderOverrides;
     const cursor: Cursor = { v: 1, ...g.state, files: versions };
     return c.json({ full: prev === null, cursor: encodeCursor(cursor), window: windowOf(today), calendars, events: g.events, taskLists: g.taskLists, files });
   });
