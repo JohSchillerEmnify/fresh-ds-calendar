@@ -7,6 +7,7 @@ import { createAppRouter, warmView } from './router';
 import { enableTimerCounting } from './lib/timers';
 import { useAuthStore } from './stores/auth';
 import { useClockStore } from './stores/clock';
+import { useItemsStore } from './stores/items';
 import { useOutboxStore } from './stores/outbox';
 import { useDeviceStore } from './stores/device';
 import { useSettingsStore } from './stores/settings';
@@ -34,7 +35,11 @@ async function bootstrap() {
   const device = useDeviceStore();
   const shown = await device.restore(location.pathname);
   // the changes made without a connection show again and are sent when sync runs
-  if (location.pathname !== '/signin') await useOutboxStore().load();
+  if (location.pathname !== '/signin') {
+    // the stores the outbox shows its changes through register with it when they are created
+    useItemsStore();
+    await useOutboxStore().load();
+  }
   const budget = shown ? undefined : AbortSignal.timeout(4000);
   // the router guard asks the same question (once) right after; asking now saves a round trip
   const session = location.pathname === '/signin' ? undefined : useAuthStore().check();

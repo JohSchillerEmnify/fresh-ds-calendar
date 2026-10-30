@@ -69,6 +69,7 @@ function showOnDevice(e: OutboxEntry): void {
 export function load(s: OutboxState): Promise<void> {
   s.loaded ??= (async () => {
     const kept = await deviceDb()?.get<OutboxEntry[]>(OUTBOX_KEY).catch(() => undefined);
+    setEntries(s, s.entries.value);
     if (!kept?.length) return;
     s.seq = Math.max(...kept.map((e) => e.seq));
     setEntries(s, [...kept, ...s.entries.value]);
@@ -208,7 +209,7 @@ function editAgain(e: OutboxEntry): void {
 function tell(d: OutboxEntry, err: ApiError): void {
   // a change the person must sort out first (409, e.g. a list shown twice) says what to do
   const text = err.status === 409 ? err.userMessage : t(err.status === 404 ? 'outbox.gone' : 'outbox.refused', { title: d.title });
-  const action = editable(d.change) ? { action: { label: t('outbox.editAgain'), testid: 'outbox-edit-again', run: () => editAgain(d) } } : {};
+  const action = editable(d.change) ? { action: { label: t('outbox.editAgain'), testid: 'outbox-edit-again', keep: true, run: () => editAgain(d) } } : {};
   useUiStore().notify(text, { duration: 0, testid: 'outbox-notice', ...action });
 }
 

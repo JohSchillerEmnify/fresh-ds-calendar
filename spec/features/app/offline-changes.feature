@@ -25,7 +25,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
 
   Rule: A change made offline shows at once and is sent when the connection is back
 
-    @backlog
     Scenario: Ticking an item offline shows it ticked at once and sends it later
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -53,7 +52,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | Milk | yes  |
         | Eggs | no   |
 
-    @backlog
     Scenario: Several changes made offline are sent in the order they were made
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -78,7 +76,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | Butter   | yes  |
       And this device keeps no unsent changes
 
-    @backlog
     Scenario: Creating an event offline shows it at once and keeps its place when it is sent
       Given automatic sync is disabled
       And I have seen the week view for 2026-10-12
@@ -96,7 +93,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then the event "Dentist" is positioned on 2026-10-13 from 10:00 to 11:00
       And the server has the event "Dentist" on 2026-10-13 from 10:00 to 11:00
 
-    @backlog
     Scenario: Editing an event offline
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -115,7 +111,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then the server has the event "Dentist Meyer" on 2026-10-13 from 14:00 to 15:00
       And the server has no event "Dentist"
 
-    @backlog
     Scenario: Deleting an event offline hides it at once and removes it when the connection is back
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -132,7 +127,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then I do not see the event "Dentist"
       And the server has no event "Dentist"
 
-    @backlog
     Scenario: A deletion undone within the undo time is never sent
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -144,7 +138,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then I see the event "Dentist" on 2026-10-13
       And this device keeps no unsent changes
 
-    @backlog
     Scenario: A task list created offline can be changed before it was ever sent and keeps its place
       Given automatic sync is disabled
       And I have seen the week view for 2026-10-12
@@ -169,7 +162,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | Passport  | yes  |
         | Sunscreen | no   |
 
-    @backlog
     Scenario: Editing a task list offline
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -190,7 +182,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | Milk | no   |
       And the server has no task list "Groceries"
 
-    @backlog
     Scenario: Deleting a task list offline
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -207,7 +198,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I wait until the changes are sent
       Then the server has no task list "Groceries"
 
-    @backlog
     Scenario: A change made offline is still there after the app opens again offline
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -222,7 +212,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then the item "Milk" is ticked
       And this device keeps 1 unsent change
 
-    @backlog
     Scenario: The app closed before the changes were sent sends them the next time it opens
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -241,7 +230,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | item | done |
         | Milk | yes  |
 
-    @backlog
     Scenario: An unreachable Google keeps the change and it is sent when Google is back
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -258,7 +246,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | item | done |
         | Milk | yes  |
 
-    @backlog
     Scenario: After 5 minutes without a successful sync the sync failed icon shows what is not synced
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -283,7 +270,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | item | done |
         | Milk | yes  |
 
-    @backlog
     Scenario: An unreachable Google for 5 minutes shows the sync failed icon too
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync runs every 30 seconds
@@ -295,7 +281,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I wait for the automatic sync
       Then I do not see the sync failed icon
 
-    @backlog
     Scenario: With nothing to send the icon still shows after 5 minutes of failing syncs and says so
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync runs every 30 seconds
@@ -309,7 +294,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
 
   Rule: When the same thing was changed elsewhere meanwhile, the last change wins and nothing is lost silently
 
-    @backlog
     Scenario: A change to one field is applied on top of a change to another field made elsewhere
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -326,7 +310,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And the server has the event "Dentist Meyer" on 2026-10-13 from 11:00 to 12:00
       And I am not told that a change was not saved
 
-    @backlog
     Scenario: Ticks of different items made on two sides are both kept
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -347,7 +330,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | Milk | yes  |
         | Eggs | yes  |
 
-    @backlog
     Scenario: The same field changed on two devices offline: the change sent last wins on both
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -378,7 +360,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I do not see the event "Dentist A"
       And I am not told that a change was not saved
 
-    @backlog
     Scenario: A change to something deleted elsewhere is not saved and I am told
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -401,7 +382,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And I dismiss the notice
       Then I am not told that a change was not saved
 
-    @backlog
     Scenario: A tick in a task list deleted elsewhere is not saved and I am told
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -418,7 +398,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And the notice offers no Edit again
       And I do not see the task list "Groceries"
 
-    @backlog
     Scenario: A deletion wins over a change made elsewhere
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -434,7 +413,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       And the server has no event "Dentist Meyer"
       And I am not told that a change was not saved
 
-    @backlog
     Scenario: A change the server refuses is undone on this device and I am told
       Given the calendar contains an event "Dentist" on 2026-10-13 from 10:00 to 11:00
       And automatic sync is disabled
@@ -455,7 +433,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
       Then the event form shows:
         | title | Dentist Meyer |
 
-    @backlog
     Scenario: A refused change does not hold back the changes after it
       Given the calendar contains a task list "Groceries" on 2026-10-12 with items:
         | item | done |
@@ -481,7 +458,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
 
   Rule: The outbox belongs to the person who made the changes and survives an expired session
 
-    @signin @backlog
+    @signin
     Scenario: An expired session keeps the changes and sends them after the same person signs in again
       Given "jo@example.com" may use the calendar
       And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
@@ -501,7 +478,7 @@ Feature: Changes I make without a connection are kept on this device and sent la
         | Milk | yes  |
         | Eggs | no   |
 
-    @signin @backlog
+    @signin
     Scenario: Signing out asks first while changes are not synced yet
       Given "jo@example.com" may use the calendar
       And "jo@example.com" has an undated task list "Groceries" with the items "Milk, Eggs"
@@ -523,7 +500,6 @@ Feature: Changes I make without a connection are kept on this device and sent la
 
   Rule: Other open apps take in a change as soon as it has been sent
 
-    @backlog
     Scenario: A change made offline shows on the other open app within a second of being sent
       Given automatic sync is disabled
       And I have seen the week view for 2026-10-12

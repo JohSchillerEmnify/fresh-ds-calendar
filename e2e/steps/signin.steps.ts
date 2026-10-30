@@ -165,9 +165,10 @@ Then('the calendar data cannot be read without signing in', async function (this
 });
 
 Then('they are asked to sign in with Google again', async function (this: World) {
+  // Google no longer accepts the access: the banner; the session itself expired: the sign-in page
   const banner = this.page.getByTestId('reauth-banner');
-  await expect(banner).toBeVisible();
-  await expect(banner.getByRole('button')).toBeVisible();
+  await expect(banner.or(this.page.getByTestId('signin-page'))).toBeVisible();
+  if (await banner.isVisible()) await expect(banner.getByRole('button')).toBeVisible();
 });
 
 Given("Google's consent screen is answered without calendar access", async function (this: World) {

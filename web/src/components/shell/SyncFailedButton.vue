@@ -21,12 +21,13 @@ const sync = useSyncStore();
 const outbox = useOutboxStore();
 const clock = useClockStore();
 const now = ref(Date.now());
-const stop = appInterval(() => { now.value = Date.now(); }, 5000);
+const stop = appInterval(() => { now.value = Date.now(); }, 2000);
 onBeforeUnmount(stop);
 
 /** The newest success of a send or a sync. */
 const lastOk = computed(() => (outbox.lastSent && outbox.lastSent.wall > sync.lastOk.wall ? outbox.lastSent : sync.lastOk));
-const failed = computed(() => now.value - lastOk.value.wall >= FAILED_AFTER_MS);
+/** A sync that is running may be about to succeed (the app just became visible again): no icon meanwhile. */
+const failed = computed(() => sync.state !== 'syncing' && now.value - lastOk.value.wall >= FAILED_AFTER_MS);
 
 const open = ref(false);
 const button = ref<{ $el: HTMLElement } | null>(null);

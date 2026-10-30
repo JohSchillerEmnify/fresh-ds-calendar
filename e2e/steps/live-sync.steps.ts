@@ -1,6 +1,6 @@
 /** Live sync steps (STEPS.md "Live sync", feature last-known-state rule "Live sync", ADR 0030). */
 import { expect, type Locator, type Page } from '@playwright/test';
-import { Given, Then } from './fixtures.js';
+import { Given, Then, When } from './fixtures.js';
 import { attr, type World } from './support/world.js';
 
 /** "Within a second" in the scenarios: the 1 s target plus the tolerance of the assumption A7. */
@@ -32,6 +32,25 @@ Given('the app is open on a second device', async function (this: World) {
   // the Canvas is a tab of the Tasks view, not an address of its own
   if (await this.page.getByTestId('tasks-canvas').isVisible()) await second.getByTestId('tasks-tab-canvas').click();
   await ready(second);
+});
+
+/** The page of the first device while "I switch to the second device" has made the other one current. */
+let first: Page | null = null;
+
+When('I switch to the second device', async function (this: World) {
+  first ??= this.page;
+  this.page = secondPage();
+  this.context = this.page.context();
+});
+
+When('I switch back to the first device', async function (this: World) {
+  if (!first) throw new Error('No "I switch to the second device" step before');
+  this.page = first;
+  this.context = first.context();
+});
+
+Then('the second device does not show the event {string}', async function (this: World, title: string) {
+  await expect(secondPage().locator(`[data-testid="event-chip"]${attr('data-title', title)}`)).toHaveCount(0);
 });
 
 Then('within a second the second device shows the event {string} on {date}', async function (this: World, title: string, date: string) {

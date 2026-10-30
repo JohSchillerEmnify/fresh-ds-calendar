@@ -605,13 +605,15 @@ they choose to stay signed in
 they sign out anyway
 ```
 
-- Hooks (names are proposals): `<html data-unsynced="N">` carries the outbox size for the waits; the icon is
-  `sync-failed-icon` (top bar, beside `sync-status`), its sheet `sync-failed-sheet` with the time
-  (`sync-failed-last`) and one `sync-failed-change` per unsent change. There is no per-item mark and no counter.
+- Hooks: `<html data-unsynced="N">` carries the outbox size for the waits; the icon is `sync-failed-icon` (top bar, beside
+  `sync-status`), its popover `sync-failed-popover` with the time (`sync-failed-last`), one `sync-failed-change` per unsent change
+  and `sync-failed-empty`. A refused change is a persistent snackbar `outbox-notice` (`outbox-notice-dismiss`,
+  `outbox-edit-again`). There is no per-item mark and no counter.
 - "this device keeps N unsent change(s)": the device store (IndexedDB) holds N outbox entries of the person, also while
   signed out or on the sign-in page; "keeps no unsent changes": it holds none.
-- "N minutes pass" (existing, timeline) and "1 minute passes": the page's clock (Playwright `page.clock`) and the server-side test clock move on by N minutes;
-  timers (the 5 minute rule, the poll) run as they would.
+- "N minutes pass" (existing, timeline) and "1 minute passes": with "the clock is running" the page's clock (Playwright `page.clock`) and the
+  server-side test clock move on by N minutes; with the server's time frozen (the offline scenarios) only the page's own `Date.now` jumps
+  (the app counts device time for the 5 minute rule); timers run in real time.
 - "I see/do not see the sync failed icon": `sync-failed-icon` is visible / not in the page. It shows when no send or sync
   has succeeded for 5 minutes and goes at the next successful send or sync. "I tap the sync failed icon" opens its sheet.
   "told the last successful sync was at T": `sync-failed-last` ends with T. "the unsent changes list shows X": one

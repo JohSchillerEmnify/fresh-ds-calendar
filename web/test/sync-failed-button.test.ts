@@ -16,6 +16,7 @@ function mountButton() {
   useClockStore().config.timeZone = 'Europe/Berlin';
   const sync = useSyncStore();
   sync.lastOk = { wall: Date.now(), app: T0 };
+  sync.state = 'error';
   return { sync, w: mount(SyncFailedButton, { global: { plugins: [pinia] }, attachTo: document.body }) };
 }
 
@@ -30,7 +31,14 @@ describe('sync failed icon', () => {
     await vi.advanceTimersByTimeAsync(60_000);
     expect(w.find(tid('sync-failed-icon')).exists()).toBe(true);
     sync.lastOk = { wall: Date.now(), app: T0 + 5 * 60_000 };
-    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(w.find(tid('sync-failed-icon')).exists()).toBe(false);
+  });
+
+  it('waits for a sync that is running', async () => {
+    const { sync, w } = mountButton();
+    sync.state = 'syncing';
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
     expect(w.find(tid('sync-failed-icon')).exists()).toBe(false);
   });
 

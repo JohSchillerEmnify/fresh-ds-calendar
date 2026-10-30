@@ -253,6 +253,8 @@ Then('no task list is expanded', async function (this: World) {
 // --- items (act on the expanded list) -------------------------------------------------------------------------
 
 When('I tick the item {string}', async function (this: World, title: string) {
+  // an open add field closes on blur and the sheet shrinks under the tap: let it close first
+  await this.page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   const item = await itemById(this, title);
   await expect(item).not.toHaveAttribute('data-done', 'true');
   await item.getByTestId('tasklist-item-checkbox').click();
