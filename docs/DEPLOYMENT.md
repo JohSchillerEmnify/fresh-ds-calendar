@@ -57,7 +57,7 @@ certificate for `cal.example.org` itself.
 ### Rollback
 
 `deploy` tags the image `calendar:<version>` (the `+` of the version becomes `-`) and `calendar:latest`, and keeps what ran
-before as `calendar:previous` and the last three versions on the VPS. After `docker compose up -d` it waits up to 60 s
+before as `calendar:previous` and the last three versions on the VPS. After `docker compose up -d` it waits up to 120 s
 (`HEALTH_TIMEOUT`) for `/api/health` to say `ok`; if it does not, it runs `calendar:previous` again and exits non-zero.
 By hand: `scripts/vps.sh rollback` (the previous image) or `scripts/vps.sh rollback 0.18.0+94da588` (a kept version).
 Then revert the bad merge on `main` (`git revert -m 1 <merge-sha>`) and push. A version older than the last three needs a

@@ -26,7 +26,7 @@ on_vps() {
   fi
   ssh "${OPTS[@]}" "$HOST" "$@"
 }
-HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-60}
+HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-120}
 HEALTH_INTERVAL=${HEALTH_INTERVAL:-3}
 here=$(cd "$(dirname "$0")/.." && pwd)
 

@@ -29,8 +29,10 @@ export class PersonJsonStore<T> {
     let text: string;
     try {
       text = fs.readFileSync(file, 'utf8');
-    } catch {
-      return this.empty();
+    } catch (e) {
+      // only a missing file is "empty"; any other read error must not lead to defaults being written over the file
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') return this.empty();
+      throw e;
     }
     let doc: T | null = null;
     try {
