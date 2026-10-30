@@ -374,7 +374,8 @@ export function apiRoutes(ctx: Ctx): Hono {
     // a merge can add to what the device saw: what one item holds stays within what a request may carry
     if (visibleInk(strokes).length > INK_STROKES_MAX || !ctx.inks.fits(sub, listId, inkIds(list), itemId, strokes)) throw inkFull();
     ctx.inks.set(sub, listId, itemId, strokes);
-    return c.json(await cal(c).getTaskList(listId));
+    // the answer carries what the item holds now: a merge may have added strokes the device has not seen
+    return c.json({ ...(await cal(c).getTaskList(listId)), ink: { [itemId]: strokes } });
   });
   r.put('/tasklists/:id/items/order', async (c) => c.json(await cal(c).reorder(c.req.param('id'), parse(orderSchema, await body(c)).itemIds)));
   r.patch('/tasklists/:id/items/:itemId', async (c) => c.json(await cal(c).patchItem(c.req.param('id'), c.req.param('itemId'), parse(patchItemSchema, await body(c)), scopeOf(c))));

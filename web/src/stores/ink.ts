@@ -52,7 +52,10 @@ export const useInkStore = defineStore('ink', () => {
       server.value = Object.fromEntries(Object.entries(server.value).filter(([id]) => !gone.has(id)));
       return;
     }
-    server.value = withPendingInk(server.value, [{ change: c } as OutboxEntry]);
+    // the server's answer to an ink write holds the merged strokes of the item
+    const merged = (fresh as { ink?: InkDoc['items'] } | undefined)?.ink;
+    server.value = c.op === 'item.ink' && merged?.[c.itemId] ? { ...server.value, ...merged } : withPendingInk(server.value, [{ change: c } as OutboxEntry]);
+    lists.value = withPendingInk(server.value, outbox.entries);
   }
   /** The strokes of one ink item. */
   function strokes(itemId: string): InkStroke[] {

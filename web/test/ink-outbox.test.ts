@@ -4,6 +4,8 @@ import { memoryKv, setDeviceDb } from '@/lib/deviceDb';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
 import { useOutboxStore } from '@/stores/outbox';
+import { useInkStore } from '@/stores/ink';
+import { ports } from '@/lib/outboxPorts';
 import { freshPinia, mockFetch } from './helpers';
 
 const s = (n: number) => ({ p: [[n, 0, 1]] as [number, number, number][] });
@@ -34,5 +36,14 @@ describe('outbox ink', () => {
     out.setInk('L', id, [s(1), s(2)], [s(1)]);
     expect(out.entries).toHaveLength(2);
     expect((out.entries[0]!.change as { strokes: unknown[] }).strokes).toHaveLength(1);
+  });
+
+  it('takes the merged strokes of the server\'s answer, erase marks left out', () => {
+    useOutboxStore();
+    const store = useInkStore();
+    const mine = [s(1)];
+    const merged = [{ p: [], t: 5 }, s(1), s(2)];
+    ports.adoptInk!({ op: 'item.ink', id: 'L', itemId: 'a', strokes: mine, base: [], at: 9 }, { ink: { a: merged } } as never);
+    expect(store.strokes('a')).toEqual([s(1), s(2)]);
   });
 });

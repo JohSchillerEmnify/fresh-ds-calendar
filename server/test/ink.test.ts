@@ -44,7 +44,9 @@ describe('ink items', () => {
     // the other device erased the line at 300; this one drew at 200 while offline and arrives later
     await t.json('PUT', url, { strokes: [], base: [key(first)], at: 300 });
     const drawn = { ...stroke(2), t: 200 };
-    await t.json('PUT', url, { strokes: [first, drawn], base: [key(first)], at: 200 });
+    const merged = await t.json('PUT', url, { strokes: [first, drawn], base: [key(first)], at: 200 });
+    // the answer carries what the item holds now, for the device to adopt
+    expect(merged.body.ink[id]).toEqual([{ p: [], t: 300 }]);
     expect((await t.json('GET', '/api/ink')).body.items[id].filter((x: { p: unknown[] }) => x.p.length)).toEqual([]);
     // a stroke drawn after the erase stays
     const later = { ...stroke(2), t: 400 };
