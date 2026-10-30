@@ -13,10 +13,12 @@ jobs:
   leaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      # gitleaks rules over the whole history; the private denylist comes from the LEAK_DENYLIST secret (skipped with a warning when empty, e.g. on forks).
+      # gitleaks rules over the whole history plus the private denylist (LEAK_DENYLIST secret). A missing secret fails the run,
+      # except for fork PRs and Dependabot, which GitHub never gives secrets.
       - run: scripts/leak-check.sh all
         env:
           LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
+          LEAK_ALLOW_NO_DENYLIST: ${{ (github.event.pull_request.head.repo.fork == true || github.actor == 'dependabot[bot]') && '1' || '' }}

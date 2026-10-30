@@ -2,33 +2,40 @@
 # Leak guard: gitleaks (rules in .gitleaks.toml) plus a private denylist of literal values that must never reach git.
 #
 #   leak-check.sh staged                  pre-commit: the staged diff
-#   leak-check.sh push [remote] < refs    pre-push: the commits being pushed (git's pre-push stdin; without it HEAD vs remotes)
-#   leak-check.sh all                     CI and manual: full history, all refs, commit messages, author/committer, tags
+#   leak-check.sh push [remote] < refs    pre-push: the commits and tags being pushed (git's pre-push stdin; without it HEAD vs remotes)
+#   leak-check.sh all                     CI and manual: HEAD, all local branches and tags (diffs, messages, author/committer, tag objects)
 #
 # The denylist (domain, server IP, real e-mails ...) is NOT in the repo: one literal per line in
-# ~/.config/calendar/leak-denylist, or newline-separated in $LEAK_DENYLIST (CI secret). Matching is case-insensitive.
-# Findings name the file/commit and "denylist entry #N" (Nth non-empty, non-# line); the value itself is never printed.
+# ~/.config/calendar/leak-denylist, or newline-separated in $LEAK_DENYLIST (CI secret). Matching is ASCII case-insensitive.
+# Findings name the commit and "denylist entry #N" (Nth non-empty, non-# line) plus "file #K" or "commit message";
+# values and file names are never printed. A missing or empty denylist fails push and all unless LEAK_ALLOW_NO_DENYLIST=1.
+# No `set -e`: every step's status is collected and the run fails closed at the end, so one error cannot hide the others.
 set -uo pipefail
 
 mode="${1:-}"
 remote="${2:-}"
-root="$(git rev-parse --show-toplevel)"
+root="$(git rev-parse --show-toplevel)" || exit 2
 cd "$root" || exit 2
-IMAGE="zricethezav/gitleaks:v8.24.3"
+IMAGE="zricethezav/gitleaks@sha256:e1b35e12a8c6fa8901f060459cfb6b2fc4c484d3afbe3b029733a3bbfab07055" # v8.24.3
 CONFIG=".gitleaks.toml"
 ZERO="0000000000000000000000000000000000000000"
 failed=0
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/leak-check.XXXXXX")" || exit 2
+trap 'rm -rf "$tmp"' EXIT
+findings="$tmp/findings"; : > "$findings"
+G=(git -c core.quotepath=off)
 
-# Denylist: env var wins, else the private file. Comments and blank lines are dropped.
+# Denylist: env var wins, else the private file. BOM, CR, indentation, blank and # lines are dropped.
 load_denylist() {
   local raw=""
   if [ -n "${LEAK_DENYLIST:-}" ]; then raw="$LEAK_DENYLIST"
   elif [ -f "$HOME/.config/calendar/leak-denylist" ]; then raw="$(cat "$HOME/.config/calendar/leak-denylist")"
   fi
-  DENY="$(printf '%s\n' "$raw" | tr -d '\r' | grep -v -e '^[[:space:]]*$' -e '^#' || true)"
+  DENY="$(printf '%s\n' "$raw" | sed -e '1s/^\xEF\xBB\xBF//' -e 's/\r$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | grep -v -e '^$' -e '^#' || true)"
 }
 
 # gitleaks: local binary if installed, else the pinned docker image (worktree-safe: git dir mounted separately).
+# Without --verbose gitleaks prints no author, e-mail or message, and --redact hides the secret.
 run_gitleaks() {
   local common gitdir rel
   if command -v gitleaks >/dev/null 2>&1; then
@@ -45,73 +52,86 @@ run_gitleaks() {
     "$IMAGE" "$@" --config /repo/$CONFIG --redact --no-banner /repo
 }
 
-# Scans a stream of git output for denylist literals; prints findings without ever printing the literal.
-scan_stream() {
-  LC_ALL=C DENY="$DENY" awk '
-    BEGIN { n = split(tolower(ENVIRON["DENY"]), e, "\n"); zone = "diff"; commit = "staged"; file = "" }
-    function hit(i, where) { k = commit SUBSEP where SUBSEP i; if (!(k in seen)) { seen[k] = 1; print "denylist entry #" i " in " (commit == "staged" ? "staged changes" : "commit " substr(commit, 1, 12)) ": " where } }
-    function scan(line, where,   l, i) { l = tolower(line); for (i = 1; i <= n; i++) if (e[i] != "" && index(l, e[i])) hit(i, where) }
-    /^@@COMMIT / { commit = $2; zone = "msg"; file = ""; next }
-    zone == "msg" && /^diff (--git|--cc|--combined) / { zone = "diff" }
-    zone == "msg" { scan($0, "commit message, author, committer or tag"); next }
-    /^diff (--git|--cc|--combined) / || /^\+\+\+ / || /^rename (from|to) / { scan($0, "file name (hidden)"); if ($0 ~ /^\+\+\+ b\//) file = substr($0, 7); next }
-    /^-/ { next }
-    { scan($0, "file " (file == "" ? "(unknown)" : file)) }
-  '
+# kind=diff: a patch stream ("COMMIT_MARK <sha>" separates commits; file hunks are numbered, names never printed).
+# kind=obj:  one raw commit or tag object (headers up to the first blank line, then the message).
+AWK='
+BEGIN { n = split(tolower(ENVIRON["DENY"]), e, "\n"); commit = label; k = 0; hdr = 0; inmsg = 0 }
+function hit(i, where,   key) { key = commit SUBSEP where SUBSEP i; if (!(key in seen)) { seen[key] = 1; print "denylist entry #" i " in " commit ", " where } }
+function scan(line, where,   l, i) { l = tolower(line); for (i = 1; i <= n; i++) if (e[i] != "" && index(l, e[i])) hit(i, where) }
+kind == "obj" { if (!inmsg && $0 == "") { inmsg = 1; next } scan($0, inmsg ? "commit message" : "author, committer or headers"); next }
+/^COMMIT_MARK / { commit = "commit " substr($2, 1, 12); k = 0; hdr = 0; next }
+/^diff (--git|--cc|--combined) / { k++; hdr = 1; scan($0, "file #" k); next }
+hdr && /^@@/ { hdr = 0 }
+hdr { scan($0, "file #" k); next }
+/^-/ { next }
+{ scan($0, "file #" (k ? k : 1)) }
+'
+
+# Scans the file $2 as kind $1 under label $3; appends findings, fails closed on awk errors.
+scan_file() {
+  LC_ALL=C DENY="$DENY" awk -v kind="$1" -v label="$3" "$AWK" < "$2" >> "$findings" || { echo "leak-check: denylist scan failed" >&2; failed=1; }
 }
 
-# Reads a stream on stdin; reports denylist findings and returns 1 when there are any.
-denylist_report() {
-  local label="$1" out
-  out="$(scan_stream | head -"${LEAK_MAX_LINES:-50}")"
-  if [ -n "$out" ]; then
-    echo "leak-check: DENYLIST HIT in $label (values are never printed):" >&2
-    echo "$out" >&2
-    return 1
-  fi
+# Scans one commit or tag object by id.
+scan_object() {
+  if "${G[@]}" cat-file "$1" "$2" > "$tmp/obj" 2>/dev/null; then scan_file obj "$tmp/obj" "$3"
+  else echo "leak-check: cannot read object" >&2; failed=1; fi
 }
 
-history_stream() {
-  git log "$@" -p -U0 --text --cc --no-color --no-ext-diff \
-    --format='@@COMMIT %H%n%an%n%ae%n%cn%n%ce%n%B'
+# Denylist scan of everything the revs cover: diffs, then every commit object, then tag objects.
+scan_history() {
+  local sha i=0 ref t
+  "${G[@]}" log "$@" -p -U0 --text --cc --no-color --no-ext-diff --format='COMMIT_MARK %H' > "$tmp/diff" \
+    || { echo "leak-check: git log failed" >&2; failed=1; return; }
+  scan_file diff "$tmp/diff" ""
+  while read -r sha; do scan_object commit "$sha" "commit ${sha:0:12}"; done < "$tmp/list"
+  for ref in "${tagrefs[@]}"; do
+    i=$((i + 1))
+    t="$("${G[@]}" cat-file -t "$ref" 2>/dev/null)" || { failed=1; continue; }
+    [ "$t" = tag ] && scan_object tag "$ref" "tag #$i"
+    printf '%s\n' "${ref#refs/tags/}" > "$tmp/name"; scan_file obj "$tmp/name" "tag #$i name"
+  done
 }
 
 load_denylist
+tagrefs=()
 case "$mode" in
   staged)
     run_gitleaks git --pre-commit --staged || failed=1
     if [ -n "$DENY" ]; then
-      git diff --cached -U0 --text --no-color --no-ext-diff | denylist_report "the staged diff" || failed=1
+      "${G[@]}" diff --cached -U0 --text --no-color --no-ext-diff > "$tmp/diff" || { echo "leak-check: git diff failed" >&2; failed=1; }
+      scan_file diff "$tmp/diff" "staged changes"
     else echo "leak-check: WARNING no denylist found; only gitleaks rules ran" >&2; fi
     ;;
   push | all)
     if [ "$mode" = all ]; then
-      # own branches and tags only: remote-tracking refs of private mirrors may still hold the pre-scrub history
-      revs=(--branches --tags)
+      # own HEAD, branches and tags only: remote-tracking refs of private mirrors may hold pre-scrub history
+      revs=(HEAD --branches --tags)
+      while read -r ref; do tagrefs+=("$ref"); done < <(git for-each-ref refs/tags --format='%(refname)')
     else
-      positives=() ; newbranch=0
+      positives=(); newbranch=0
       if [ -t 0 ]; then newbranch=1; positives=(HEAD)
       else
-        while read -r _lref lsha _rref rsha; do
-          [ -z "${lsha:-}" ] || [ "$lsha" = "$ZERO" ] && continue
+        while read -r lref lsha _rref rsha || [ -n "${lref:-}" ]; do
+          if [ -z "${lsha:-}" ] || [ "$lsha" = "$ZERO" ]; then continue; fi
           positives+=("$lsha")
+          case "$lref" in refs/tags/*) tagrefs+=("$lsha") ;; esac
           if [ "$rsha" = "$ZERO" ] || ! git cat-file -e "${rsha}^{commit}" 2>/dev/null; then newbranch=1; else positives+=("^$rsha"); fi
         done
       fi
       [ "${#positives[@]}" -gt 0 ] || { echo "leak-check: nothing to push"; exit 0; }
       revs=("${positives[@]}")
       [ "$newbranch" = 1 ] && revs+=(--not "--remotes=${remote:-}")
-      if [ -z "$(git rev-list "${revs[@]}" | head -1)" ]; then echo "leak-check: no new commits"; exit 0; fi
+    fi
+    git rev-list "${revs[@]}" > "$tmp/list" || { echo "leak-check: git rev-list failed" >&2; exit 1; }
+    if [ ! -s "$tmp/list" ]; then
+      if [ "$mode" = all ]; then echo "leak-check: no commits to scan (fail closed)" >&2; exit 1; fi
+      echo "leak-check: no new commits"; exit 0
     fi
     run_gitleaks git "--log-opts=${revs[*]}" || failed=1
-    if [ -n "$DENY" ]; then
-      { history_stream "${revs[@]}"
-        [ "$mode" = all ] && git for-each-ref refs/tags --format='@@COMMIT tag:%(refname:short)%0a%(taggername)%0a%(taggeremail)%0a%(contents)'
-        true
-      } | denylist_report "the history" || failed=1
-    elif [ "$mode" = all ] && [ -n "${GITHUB_ACTIONS:-}" ]; then
-      echo "::warning::LEAK_DENYLIST is empty (fork or missing secret); only gitleaks rules ran"
-    else echo "leak-check: WARNING no denylist found; only gitleaks rules ran" >&2; fi
+    if [ -n "$DENY" ]; then scan_history "${revs[@]}"
+    elif [ "${LEAK_ALLOW_NO_DENYLIST:-}" = 1 ]; then echo "leak-check: WARNING denylist skipped (LEAK_ALLOW_NO_DENYLIST=1); only gitleaks rules ran" >&2
+    else echo "leak-check: no denylist (missing or empty). Create ~/.config/calendar/leak-denylist or set LEAK_DENYLIST; LEAK_ALLOW_NO_DENYLIST=1 skips this." >&2; failed=1; fi
     ;;
   *)
     echo "usage: leak-check.sh staged | push [remote] | all" >&2
@@ -119,6 +139,11 @@ case "$mode" in
     ;;
 esac
 
+if [ -s "$findings" ]; then
+  echo "leak-check: DENYLIST HIT (values and file names are never printed):" >&2
+  head -"${LEAK_MAX_LINES:-50}" "$findings" >&2
+  failed=1
+fi
 if [ "$failed" -ne 0 ]; then
   echo "leak-check: FAILED. Remove the value from the change (use placeholders like cal.example.org / example.test)." >&2
   echo "If it was already pushed, follow docs/SECURITY-RUNBOOK.md: rotate first, then rewrite." >&2

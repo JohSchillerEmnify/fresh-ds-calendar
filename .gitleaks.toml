@@ -13,7 +13,7 @@ regexes = ['''door-test-key-0123456789abcdef0123456789abcdef''']
 [[rules]]
 id = "public-ipv4"
 description = "Public IPv4 address (private, loopback, link-local and documentation ranges are fine)"
-regex = '''(?:^|[^0-9A-Za-z._/@:-])((?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})(?:$|[^0-9A-Za-z._/@:-]|\.(?:$|[^0-9A-Za-z]))'''
+regex = '''(?:^|[^0-9A-Za-z._/@-])((?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])){3})(?:$|[^0-9A-Za-z._/@-]|\.(?:$|[^0-9A-Za-z]))'''
 secretGroup = 1
 tags = ["network", "private"]
   [[rules.allowlists]]
