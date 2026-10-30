@@ -41,7 +41,7 @@ VPS_HOST=<ip> CAL_DOMAIN=cal.example.org VPS_USER=root scripts/vps.sh deploy
 `scripts/vps.sh` runs from the laptop checkout; the VPS (1 CPU, 1 GB) never builds. `deploy` builds the checked-out
 commit into the `calendar:latest` image here (`APP_VERSION` = `scripts/version.sh` + short sha), copies
 `deploy/vps/compose.yml` and `deploy/vps/Caddyfile` to `/opt/calendar/`, sends the image over SSH (`docker save | docker
-load`), runs `docker compose up -d`, and then ships the Android APK (below). Caddy gets and renews the Let's Encrypt
+load`), runs `docker compose up -d`, waits for `/api/health` (rolling back if it never says ok, see Rollback), and then ships the Android APK (below). Caddy gets and renews the Let's Encrypt
 certificate for `cal.example.org` itself.
 
 - `VPS_HOST` and `CAL_DOMAIN` are required (neither the address nor the public host name is in the repo; see
@@ -56,9 +56,13 @@ certificate for `cal.example.org` itself.
 
 ### Rollback
 
-Check out the last good commit on the laptop and deploy it again (`git checkout <sha>` then the deploy command), then
-revert the bad merge on `main` (`git revert -m 1 <merge-sha>`) and push. Data is not touched by deploys; the Drive
-backup (below) covers data.
+`deploy` tags the image `calendar:<version>` (the `+` of the version becomes `-`) and `calendar:latest`, and keeps what ran
+before as `calendar:previous` and the last three versions on the VPS. After `docker compose up -d` it waits up to 60 s
+(`HEALTH_TIMEOUT`) for `/api/health` to say `ok`; if it does not, it runs `calendar:previous` again and exits non-zero.
+By hand: `scripts/vps.sh rollback` (the previous image) or `scripts/vps.sh rollback 0.18.0+94da588` (a kept version).
+Then revert the bad merge on `main` (`git revert -m 1 <merge-sha>`) and push. A version older than the last three needs a
+checkout and a new deploy. Data is not touched by deploys; the Drive backup (below) covers data. `DRY_RUN=1` prints the
+remote commands instead of running them.
 
 ## Deployment settings (where the public host name comes from)
 
