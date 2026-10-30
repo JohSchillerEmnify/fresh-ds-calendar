@@ -25,7 +25,7 @@
   --e-fg: var(--md-sys-color-on-surface); --e-mark: var(--md-sys-color-surface);
 }
 
-[data-corners='square'] { --r-chip: 2px; --r-block: 2px; }
+[data-corners='square'] { --r-chip: 2px; --r-block: 0px; }
 [data-corners='round'] { --r-chip: 6px; --r-block: 8px; }
 [data-corners='pill'] { --r-chip: 999px; --r-block: 16px; }
 

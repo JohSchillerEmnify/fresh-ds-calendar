@@ -10,7 +10,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
   large scene-defining element are fully visible in every scene, both sizes and both colour schemes (scenes may be
   readjusted to make it so); in Mordor the eye and the tower sit in the gap between the date and the icons. This
   supersedes the week title "12 – 18 Oct 2026" of features navigation and header-layout and their "Two rows" / "One row"
-  wording when it is built. Approved to build: scenarios stay `@backlog` until implemented.
+  wording when it is built.
   The scenarios without a viewport tag run on the phone only (`@mobile`).
 
   Background:
@@ -31,7 +31,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       When I open the day view for 2026-10-12
       Then the top bar size "Expressive" is the default
 
-    @mobile @backlog
+    @mobile
     Scenario: Expressive keeps the full scene with the title over it and the day row below
       Given the top bar size is set to "Expressive"
       And the scene is "Spring"
@@ -59,7 +59,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       And I open the settings
       Then the top bar size "Compact" is selected
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Today is the only filled button and no pill shows through the scene
       Given the top bar size is set to "<size>"
       And the scene is "Halloween"

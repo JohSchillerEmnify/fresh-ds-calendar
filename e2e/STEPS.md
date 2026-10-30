@@ -3270,8 +3270,8 @@ the damaged file is kept as {string} with its old content
 
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
-Built so far: the bottom bar, side menu and top bar size steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`); the
-rest are `@backlog`. Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar) are `@backlog`. "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
 `auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
 Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
 pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.

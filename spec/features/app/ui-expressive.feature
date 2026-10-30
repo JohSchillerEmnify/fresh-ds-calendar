@@ -14,7 +14,7 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
 
   Rule: One filled primary action per surface
 
-    @mobile @backlog
+    @mobile
     Scenario: The week view has exactly one filled primary action besides Today
       When I open the week view for 2026-10-12
       Then the surface has one filled "create button"
@@ -36,7 +36,7 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
 
   Rule: Icon-only actions carry an accessible label
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Header and toolbar icons are icon-only and named
       When I open the week view for 2026-10-12
       Then the "<control>" is an icon with the label "<label>"
@@ -47,7 +47,7 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
         | filter button   | Filter   |
         | Today button    | Today    |
 
-    @mobile @backlog
+    @mobile
     Scenario: A screen reader finds every icon-only button by its name
       When I open the week view for 2026-10-12
       Then every icon-only button of the screen has an accessible label
@@ -97,7 +97,7 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
 
   Rule: Theme corners shape events and cards only
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Bars, pills and buttons stay round in every theme
       Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
       And the theme is "<theme>"
@@ -110,14 +110,14 @@ Feature: One action vocabulary in Material 3 Expressive (design "E")
         | Neon    |
         | Default |
 
-    @mobile @backlog
+    @mobile
     Scenario: Winter draws events and cards with square corners
       Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
       And the theme is "Winter"
       When I open the week view for 2026-10-12
       Then the event "Dentist" has a corner radius of 0 px
 
-    @mobile @backlog
+    @mobile
     Scenario: Neon draws events as pills while the bottom bar keeps its shape
       Given the calendar contains an event "Dentist" on 2026-10-12 from 10:40 to 11:30
       And the theme is "Neon"
