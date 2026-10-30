@@ -31,6 +31,16 @@ describe('first call (no cursor)', () => {
     expect(Object.keys(r.files).sort()).toEqual(['canvas', 'categoryShares', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
   });
 
+  it('answers each file in the shape of its own GET', async () => {
+    const f = (await changes()).files;
+    expect(f.templates).toEqual((await t.json('GET', '/api/templates')).body);
+    expect(f.people).toEqual((await t.json('GET', '/api/people')).body);
+    expect(f.categoryShares).toEqual((await t.json('GET', '/api/categories/shares')).body);
+    expect(f.tasksCalendarReminders).toEqual((await t.json('GET', '/api/reminders/tasks-calendar')).body);
+    expect(f.canvas).toEqual((await t.json('GET', '/api/canvas')).body);
+    expect(f.themes).toEqual((await t.json('GET', '/api/themes')).body);
+  });
+
   it('treats a cursor that is not ours as no cursor', async () => {
     expect((await changes('garbage')).full).toBe(true);
     expect((await changes(Buffer.from('{"v":2}').toString('base64url'))).full).toBe(true);

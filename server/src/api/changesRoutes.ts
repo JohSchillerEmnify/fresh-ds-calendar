@@ -58,8 +58,8 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
     // per-person files: a version each, the file itself only when the version moved
     const sources: Record<string, () => unknown> = {
       settings: () => ctx.settings.get(), prefs: () => ctx.prefs.labsPrefs(sub), theme: () => v.theme(sub), themes: () => v.themes(sub),
-      templates: () => ctx.templates.list(sub), canvas: () => ctx.canvas.get(sub), motivation: () => ctx.motivation.get(),
-      categoryShares: () => ctx.shared.rulesOf(sub), people: () => ctx.shared.candidates(sub),
+      templates: () => ({ templates: ctx.templates.list(sub) }), canvas: () => ctx.canvas.get(sub), motivation: () => ctx.motivation.get(),
+      categoryShares: () => ({ shares: ctx.shared.rulesOf(sub) }), people: () => ({ people: ctx.shared.candidates(sub) }),
     };
     const files: Record<string, unknown> = {};
     const versions: Record<string, string> = {};
@@ -68,7 +68,7 @@ export function registerChanges(r: Hono, ctx: Ctx, v: ChangesViews): void {
       versions[name] = versionOf(value);
       if (versions[name] !== prev?.files[name]) files[name] = value;
     }
-    const tasksReminders = await cal.tasksDefaultReminders();
+    const tasksReminders = { defaultReminders: await cal.tasksDefaultReminders() };
     versions.tasksCalendarReminders = versionOf(tasksReminders);
     if (versions.tasksCalendarReminders !== prev?.files.tasksCalendarReminders) files.tasksCalendarReminders = tasksReminders;
 
