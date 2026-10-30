@@ -13,6 +13,7 @@ import SyncErrorBanner from '@/components/shell/SyncErrorBanner.vue';
 import LastUpdatedNote from '@/components/shell/LastUpdatedNote.vue';
 import DragCat from '@/features/motivation/DragCat.vue';
 import VersionLabel from '@/components/shell/VersionLabel.vue';
+import SideMenu from '@/components/shell/SideMenu.vue';
 import NavigationBar from '@/components/m3/NavigationBar.vue';
 import NavigationRail from '@/components/m3/NavigationRail.vue';
 import NavigationTabs from '@/components/m3/NavigationTabs.vue';
@@ -22,6 +23,9 @@ import { applyLanguage, t } from '@/i18n';
 import { acquireViewport, isPhone } from '@/composables/useViewport';
 import { useNav } from '@/composables/useNav';
 import { useNavPosition } from '@/composables/useNavPosition';
+import { useBarSize } from '@/composables/useBarSize';
+import { useLeftHand } from '@/composables/useLeftHand';
+import { useBarHide } from '@/composables/useBarHide';
 import { calendarHeaders, dialogs, trayComponents } from '@/extensions/registry';
 import type { ViewKind } from '@/lib/dates';
 import { api } from '@/api/client';
@@ -51,6 +55,11 @@ const settings = useSettingsStore();
 const motivation = useMotivationStore();
 const { position: navPosition, side: railSide } = useNavPosition();
 const labs = usePrefsStore();
+const leftHand = useLeftHand();
+const barSize = useBarSize();
+const barHide = useBarHide();
+/** The bottom bar is slid away: only while the view switcher is the bottom bar. */
+const barHidden = computed(() => barHide.hidden.value && navPosition.value === 'bottom');
 useAnimationLevel(() => settings.settings.animationLevel, () => settings.settings.calmMode, () => settings.settings.ignoreSystemMotion);
 // the season and holiday scenes move for ten seconds after opening (and after coming back), then rest
 useSceneRest(() => settings.effectiveScene);
@@ -105,12 +114,14 @@ onBeforeUnmount(() => {
 });
 // CSS (FAB, tray, snackbar) follows the position through one attribute on <html>
 watch(navPosition, (p) => { document.documentElement.dataset.navPos = p; }, { immediate: true });
+watch(barSize.bottom, (v) => { document.documentElement.dataset.barSize = v; }, { immediate: true });
+watch(barHidden, (v) => { document.documentElement.dataset.barHidden = String(v); }, { immediate: true });
 // System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
 useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });
 useOverlayHistory(() => ui.filtersShown, () => { ui.filtersShown = false; });
 useOverlayHistory(() => ui.pickerOpen, () => { ui.pickerOpen = false; });
 // Close transient UI on navigation.
-watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; });
+watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; barHide.show(); });
 </script>
 
 <template>
@@ -134,7 +145,8 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; }
       </div>
     </div>
     <CreateFab v-if="hasShell" />
-    <NavigationBar v-if="hasShell && navPosition === 'bottom'" :items="items" :model-value="activeView" @update:model-value="switchTo" />
+    <NavigationBar v-if="hasShell && navPosition === 'bottom'" :items="items" :size="barSize.bottom.value" :hidden="barHidden" :model-value="activeView" @update:model-value="switchTo" />
+    <SideMenu v-if="hasShell && navPosition === 'drawer'" :items="items" :model-value="activeView" :side="leftHand ? 'right' : 'left'" @update:model-value="switchTo" />
     <component :is="dialogComp" v-if="dialogComp && ui.dialog" v-bind="ui.dialog.props" @close="ui.closeDialog()" />
     <VersionLabel v-if="hasShell && labs.versionInCorner" :raised="isPhone" />
     <Snackbar />

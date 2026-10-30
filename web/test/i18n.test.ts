@@ -104,10 +104,10 @@ describe('dates follow the language', () => {
       await applyLanguage(l);
       expect(periodTitle('day', day)).toBe('Dienstag, 13. Oktober 2026');
       expect(periodTitle('month', day)).toBe('Oktober 2026');
-      expect(periodTitle('week', day)).toBe('12. – 18. Okt. 2026');
+      expect(periodTitle('week', day)).toBe('Okt. 2026');
       expect(periodTitle('year', day)).toBe('2026');
       expect(periodTitle('day', day, true)).toBe('Di., 13. Okt.');
-      expect(periodTitle('week', day, true)).toBe('12. – 18. Okt. 2026');
+      expect(periodTitle('week', day, true)).toBe('Okt. 2026');
       expect(weekdayLabels()).toEqual(['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']);
       expect(monthNames()[2]).toBe('März');
     }

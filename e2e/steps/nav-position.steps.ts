@@ -5,7 +5,8 @@ import { box, chooseOption, viewport } from './support/ui.js';
 import type { World } from './support/world.js';
 
 Given('the view switcher on phones is set to {string}', async function (this: World, position: string) {
-  await this.api.patch('/api/prefs', { navPhone: position });
+  // the side menu is stored as `drawer`
+  await this.api.patch('/api/prefs', { navPhone: position === 'side menu' ? 'drawer' : position });
 });
 
 Given('the view switcher on desktop and tablets is set to {string}', async function (this: World, position: string) {

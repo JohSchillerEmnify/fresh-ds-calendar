@@ -18,14 +18,14 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
 
   Rule: The two sizes replace the two layouts
 
-    @mobile @backlog
+    @mobile
     Scenario: A phone starts with the Compact top bar
       When I open the day view for 2026-10-12
       Then the top bar size "Compact" is the default
       And the top bar is in one row
       And the top bar is at most 52 pixels tall
 
-    @desktop @backlog
+    @desktop
     Scenario: Desktop and tablets start with the Expressive top bar
       When I open the day view for 2026-10-12
       Then the top bar size "Expressive" is the default
@@ -40,7 +40,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       And the top bar scene is drawn at its full 84 pixels height
       And no control covers any part of the top bar scene's large elements
 
-    @mobile @backlog
+    @mobile
     Scenario: The size is chosen in the settings and follows the person
       When I open the day view for 2026-10-12
       And I open the settings
@@ -51,7 +51,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       And I open the day view for 2026-10-12
       Then the top bar is in two rows
 
-    @mobile @backlog
+    @mobile
     Scenario: The old header layout choice carries over
       Given the header layout is set to "One row"
       When I open the day view for 2026-10-12
@@ -71,7 +71,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
         | Expressive |
         | Compact    |
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Every top bar button keeps a 44 px hit area
       Given the top bar size is set to "<size>"
       When I open the week view for 2026-10-12
@@ -84,7 +84,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
 
   Rule: The week title shows only the month
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: The week title is the month and year in both sizes
       Given the top bar size is set to "<size>"
       When I open the week view for 2026-10-12
@@ -96,18 +96,18 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
         | Expressive |
         | Compact    |
 
-    @mobile @backlog
+    @mobile
     Scenario: A week across two months is titled by the month of its Thursday
       When I open the week view for 2026-10-26
       Then the period title is "Oct 2026"
 
-    @mobile @backlog
+    @mobile
     Scenario: The week title still opens the month picker
       When I open the week view for 2026-10-12
       And I tap the period title
       Then the month picker is open
 
-    @mobile @backlog
+    @mobile
     Scenario: German shows the month in German
       Given the browser language is "de-DE"
       When I open the week view for 2026-10-12

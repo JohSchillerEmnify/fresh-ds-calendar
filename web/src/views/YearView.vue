@@ -62,7 +62,7 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
 <style scoped>
 .year { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 /* the months scroll below the headers (Now card), which stay in view */
-.months { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 4px; padding: 8px 8px 16px; align-content: start; }
+.months { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 4px; padding: 8px 8px var(--scroll-end); align-content: start; }
 @media (min-width: 768px) { .months { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px; padding: 16px 24px; } }
 .ym { display: block; min-width: 0; padding: 6px 4px 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; transition: background 150ms, transform 250ms var(--md-sys-motion-spring); }
 /* touch screens: no hover state left behind after a tap */

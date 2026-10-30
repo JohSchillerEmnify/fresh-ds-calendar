@@ -46,6 +46,12 @@ html[data-hand='left'][data-touch] .fab-wrap { right: auto; align-items: flex-st
   html[data-hand='left'][data-touch][data-nav-pos='rail'] .fab-wrap { left: calc(var(--rail-w) + var(--safe-left) + 12px); }
   html[data-hand='left'][data-touch] .fab-wrap.away { transform: translateX(calc(-100% - 24px)); }
 }
+/* Compact bottom bar (feature nav-expressive): the button is as tall as the bar and stands beside it on the thumb side. */
+@media (max-width: 767.98px) {
+  html[data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap { bottom: calc(var(--safe-bottom) + 8px); right: calc(12px + var(--safe-right)); }
+  html[data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap :deep(.fab) { width: 52px; height: 52px; }
+  html[data-hand='left'][data-touch][data-nav-pos='bottom'][data-bar-size='compact'] .fab-wrap { left: calc(12px + var(--safe-left)); }
+}
 @media (min-width: 768px) {
   html[data-hand='left'][data-touch] .fab-wrap { left: calc(var(--tray-w, 0px) + 24px); }
   html[data-hand='left'][data-touch][data-nav-pos='rail'] .fab-wrap { left: calc(var(--rail-w) + var(--tray-w, 0px) + 24px); }

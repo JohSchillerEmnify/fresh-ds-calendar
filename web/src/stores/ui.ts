@@ -48,6 +48,8 @@ const FLASH_MS = 1000;
 export const useUiStore = defineStore('ui', () => {
   const pickerOpen = ref(false);
   const filtersShown = ref(false);
+  /** The side menu (view switcher position "Side menu") is open. */
+  const sideMenuOpen = ref(false);
   /** Phone open-tasks tray expanded; the FAB slides away meanwhile so it never covers the tray. */
   const trayExpanded = ref(false);
   /** Desktop side tray collapsed to its slim edge strip (persisted in this browser; default open). The phone has `trayExpanded`. */
@@ -111,5 +113,5 @@ export const useUiStore = defineStore('ui', () => {
     snackbars.value = snackbars.value.filter((s) => s.id !== id);
   }
 
-  return { pickerOpen, filtersShown, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, update, dismiss };
+  return { pickerOpen, filtersShown, sideMenuOpen, trayExpanded, trayCollapsedDesktop, trayListIds, flashId, revealTask, panelOpen, setPanel, dialog, resizing, expandedCard, snackbars, openDialog, closeDialog, expandCard, collapseCard, notify, update, dismiss };
 });

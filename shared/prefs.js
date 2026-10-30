@@ -77,7 +77,7 @@ export const PREFS = {
   labsOwnThemes: bool(false),
   leftHanded: bool(false),
   showCarriedFrom: bool(true),
-  navPhone: oneOf(['bottom', 'top', 'rail'], 'bottom'),
+  navPhone: oneOf(['bottom', 'top', 'rail', 'drawer'], 'bottom'),
   navDesktop: oneOf(['bottom', 'top', 'rail'], 'rail'),
   tasksGroupBy: oneOf(['time', 'category', 'none'], 'time'),
   tasksSortBy: oneOf(['date', 'name', 'category', 'changed', 'progress'], 'date'),
@@ -96,7 +96,8 @@ export const PREFS = {
   weekSideBySide: oneOf([2, 3], 2, 'weekSideBySide must be 2 or 3'),
   streak: oneOf(['off', 'flame', 'plant'], 'off', 'streak must be off, flame or plant'),
   syncIndicator: bool(false),
-  headerLayout: oneOf(['two-rows', 'one-row'], 'two-rows', 'headerLayout must be two-rows or one-row'),
+  headerLayout: oneOf(['auto', 'two-rows', 'one-row'], 'auto', 'headerLayout must be auto, two-rows or one-row'),
+  bottomBarSize: oneOf(['auto', 'expressive', 'compact'], 'auto', 'bottomBarSize must be auto, expressive or compact'),
 };
 
 /** The preference names, in table order. */

@@ -4,10 +4,14 @@
 export type SupportCat = 'off' | 'sometimes' | 'always';
 /** Where the view switcher sits (feature nav-position): bottom bar, tabs row under the top bar, or side rail. */
 export type NavPosition = 'bottom' | 'top' | 'rail';
+/** The phone's choices for the view switcher: the three positions or the side menu (drawer, feature nav-expressive). */
+export type NavPhonePosition = NavPosition | 'drawer';
+/** A bar size (feature nav-expressive, header-expressive): `auto` is Compact on phones, Expressive elsewhere. */
+export type BarSize = 'auto' | 'expressive' | 'compact';
 /** What the top bar shows of the check-in streak (feature plant-companion): nothing, the flame or the plant. */
 export type StreakChoice = 'off' | 'flame' | 'plant';
 /** The phone's top bar (feature header-layout): two rows (the default) or one row. A person pref, not theming. */
-export type HeaderLayout = 'two-rows' | 'one-row';
+export type HeaderLayout = 'auto' | 'two-rows' | 'one-row';
 /** How the Tasks view groups its lists (feature tasks-view). */
 export type TasksGroupBy = 'time' | 'category' | 'none';
 /** How the Tasks view sorts its lists. */
@@ -91,7 +95,7 @@ export interface Prefs {
   /** The "From Sat 10 Oct" label on task lists carried over to today (on by default). */
   showCarriedFrom: boolean;
   /** Where the view switcher sits on phones (default `bottom`) and on desktop and tablets (default `rail`). */
-  navPhone: NavPosition;
+  navPhone: NavPhonePosition;
   navDesktop: NavPosition;
   /** Tasks view grouping and sorting, remembered per person. */
   tasksGroupBy: TasksGroupBy;
@@ -127,8 +131,10 @@ export interface Prefs {
   streak: StreakChoice;
   /** The sync icon all the time (on) or only while syncing fails (off, the default; feature header-layout). */
   syncIndicator: boolean;
-  /** The phone's top bar: two rows (default) or one row (feature header-layout). */
+  /** The phone's top bar: Expressive (`two-rows`), Compact (`one-row`) or `auto` (the default: Compact on phones; features header-layout, header-expressive). */
   headerLayout: HeaderLayout;
+  /** The bottom bar's size: Expressive 64 px or Compact 52 px (`auto`: Compact on phones, Expressive elsewhere; feature nav-expressive). */
+  bottomBarSize: BarSize;
 }
 
 /** One preference of the table: its default and its validation (`{ value }`, or `{ error }` with the 400's message). */

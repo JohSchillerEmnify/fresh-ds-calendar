@@ -146,18 +146,15 @@ export function shiftPeriod(view: ViewKind, anchor: Date, dir: 1 | -1): Date {
 
 /**
  * Period title in the active language: en-GB for English, `Intl` de-DE otherwise (feature language). `short` shortens
- * only the day view's title ("Mon, 12 Oct"; the one-row header, feature header-layout).
+ * only the day view's title ("Mon, 12 Oct"; the one-row header, feature header-layout). A week is titled by the month of its Thursday ("Oct 2026", feature header-expressive).
  */
 export function periodTitle(view: ViewKind, anchor: Date, short = false): string {
   if (language.value !== 'en') return localizedPeriodTitle(view, anchor, short);
   if (view === 'year') return format(anchor, 'yyyy');
   if (view === 'month') return format(anchor, 'MMMM yyyy');
   if (view === 'day') return format(anchor, short ? 'EEE, d MMM' : 'EEEE, d MMMM yyyy');
-  const days = weekDays(anchor);
-  const [a, b] = [days[0], days[6]];
-  if (a.getFullYear() !== b.getFullYear()) return `${format(a, 'd MMM yyyy')} – ${format(b, 'd MMM yyyy')}`;
-  if (a.getMonth() !== b.getMonth()) return `${format(a, 'd MMM')} – ${format(b, 'd MMM yyyy')}`;
-  return `${format(a, 'd')} – ${format(b, 'd MMM yyyy')}`;
+  // a week is titled by the month of its Thursday; the day row shows the days
+  return format(weekDays(anchor)[3], 'MMM yyyy');
 }
 
 /** The period title through `Intl` (German and the fun languages). */
@@ -166,14 +163,7 @@ function localizedPeriodTitle(view: ViewKind, anchor: Date, short: boolean): str
   if (view === 'month') return intl({ month: 'long', year: 'numeric' }).format(anchor);
   if (view === 'day' && short) return intl({ weekday: 'short', day: 'numeric', month: 'short' }).format(anchor);
   if (view === 'day') return intl({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(anchor);
-  const days = weekDays(anchor);
-  const [a, b] = [days[0], days[6]];
-  const dayMonth = intl({ day: 'numeric', month: 'short' });
-  const full = intl({ day: 'numeric', month: 'short', year: 'numeric' });
-  if (a.getFullYear() !== b.getFullYear()) return `${full.format(a)} – ${full.format(b)}`;
-  if (a.getMonth() !== b.getMonth()) return `${dayMonth.format(a)} – ${full.format(b)}`;
-  // German writes the day number with a dot: 12. – 18. Okt. 2026
-  return `${a.getDate()}. – ${full.format(b)}`;
+  return intl({ month: 'short', year: 'numeric' }).format(weekDays(anchor)[3]);
 }
 
 /** First and last (inclusive) day of the period the view shows. */

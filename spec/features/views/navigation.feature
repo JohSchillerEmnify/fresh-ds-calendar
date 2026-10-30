@@ -37,7 +37,7 @@ Feature: Navigation and view switching
     When I open the week view for 2026-10-12
     Then the week view is shown
     And the week columns are "Mon 12, Tue 13, Wed 14, Thu 15, Fri 16, Sat 17, Sun 18"
-    And the period title is "12 – 18 Oct 2026"
+    And the period title is "Oct 2026"
 
   @week
   Scenario: A week URL with a non-Monday date is normalised to its Monday
@@ -52,16 +52,18 @@ Feature: Navigation and view switching
 
     Examples:
       | monday     | title                      |
-      | 2026-09-28 | 28 Sep – 4 Oct 2026        |
-      | 2026-12-28 | 28 Dec 2026 – 3 Jan 2027   |
+      | 2026-09-28 | Oct 2026                   |
+      | 2026-12-28 | Dec 2026                   |
 
   @day
   Scenario: Day view shows a single day
+    Given the header layout is set to "Two rows"
     When I open the day view for 2026-10-14
     Then the day view is shown
     And the period title is "Wednesday, 14 October 2026"
 
   Scenario Outline: Deep links open the right view directly
+    Given the header layout is set to "Two rows"
     When I open the path "<path>"
     Then the <view> view is shown
     And the period title is "<title>"
@@ -69,7 +71,7 @@ Feature: Navigation and view switching
     Examples:
       | path             | view  | title                   |
       | /month/2026-10   | month | October 2026            |
-      | /week/2026-10-12 | week  | 12 – 18 Oct 2026        |
+      | /week/2026-10-12 | week  | Oct 2026                |
       | /day/2026-10-12  | day   | Monday, 12 October 2026 |
       | /month/2027-02   | month | February 2027           |
 

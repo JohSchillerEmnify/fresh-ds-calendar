@@ -3047,8 +3047,6 @@ the clock widget says {string}
 
 ```
 the header layout is set to {string}
-I choose {string} as the header layout
-the header layout {string} is selected
 the top bar is in one row
 the top bar is in two rows
 the top bar is at most {int} pixels tall
@@ -3090,11 +3088,9 @@ the period title's text is aligned to the outer edge
 the top bar's widgets are in reverse order
 ```
 
-- Layout names are the settings labels: `Two rows` = pref `two-rows` (the default), `One row` = `one-row`. "the header
-  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened.
-  "I choose L as the header layout" picks the option labelled L in `settings-header-layout` (a segmented button) and
-  waits for the `PATCH /api/prefs` response (200); "the header layout L is selected" = that option has
-  `aria-pressed="true"`.
+- Layout names are the pref values' old names: `Two rows` = pref `two-rows` (Expressive), `One row` = `one-row` (Compact); the default is `auto`. "the header
+  layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened. The setting is
+  now chosen with "I choose S as the top bar size" (see "UI redesign E").
 - "the top bar is in one row": the visible `period-title`, `nav-today` and `settings-button` (and `nav-prev` / `nav-next`
   where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
 - "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
@@ -3277,10 +3273,11 @@ the damaged file is kept as {string} with its old content
 
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
-TO IMPLEMENT: every step below is new and not yet in `e2e/steps/`; its scenarios are `@backlog`. Pref names are open for the
-builder (suggested: `bottomBarSize` `expressive|compact`, default `compact` on phones; the existing `headerLayout` keeps its
-values `two-rows` = "Expressive", `one-row` = "Compact", default `one-row` on phones and `two-rows` on tablets and desktop;
-`navPhone` gains `drawer` = "Side menu"). Desktop and tablets keep one rail size.
+Built so far: the bottom bar, side menu and top bar size steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`); the
+rest are `@backlog`. Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+`auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
+Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
+pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
 
 ```
 the surface has one filled {string}

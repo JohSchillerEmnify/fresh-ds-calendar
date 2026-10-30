@@ -155,7 +155,11 @@ function toggleFold(id: string) {
 .empty { padding: 12px 16px; color: var(--md-sys-color-on-surface-variant); }
 .phone { border-top: 1px solid var(--md-sys-color-outline-variant); }
 /* Phone without a bottom bar: the tray is the bottom edge and pads the safe area itself. */
-@media (max-width: 767.98px) { html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); } }
+@media (max-width: 767.98px) {
+  html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); }
+  /* the bottom bar floats over the calendar: the tray stands clear of it (feature nav-expressive) */
+  html[data-nav-pos='bottom'] .tray.phone { margin-bottom: var(--navbar-h); }
+}
 @media (min-width: 768px) {
   .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; transition: width 200ms var(--md-sys-motion-spring); }
   .bar { padding-right: 12px; }

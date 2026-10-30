@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings, IconToday } from '@/components/icons';
+import { IconChevronLeft as IconPrev, IconChevronRight as IconNext, IconExpandMore as IconExpand, IconFilterList as IconFilter, IconSettingsOutline as IconSettings, IconToday, IconMenu } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import TopAppBar from '@/components/m3/TopAppBar.vue';
 import { useFilters } from '@/composables/useFilters';
 import { datelessLab } from '@/features/labs/labs';
+import { useNavPosition } from '@/composables/useNavPosition';
 import { useNav } from '@/composables/useNav';
+import { useBarSize } from '@/composables/useBarSize';
 import { inPeriod } from '@/lib/dates';
 import { isPhone, isSwipeScreen } from '@/composables/useViewport';
 import { topBarWidgets } from '@/extensions/registry';
@@ -28,12 +30,16 @@ const ui = useUiStore();
 const settings = useSettingsStore();
 const prefs = usePrefsStore();
 const nav = useNav();
+const { position: navPosition } = useNavPosition();
+/** The view switcher is the side menu: a menu button opens it and it replaces the filter and settings buttons (feature nav-expressive). */
+const drawer = computed(() => navPosition.value === 'drawer');
 const clock = useClockStore();
 const router = useRouter();
 const route = useRoute();
 const filters = useFilters();
 /** The header layout in force: the person's choice on a phone; desktop and tablets keep their own one row (feature header-layout). */
-const layout = computed(() => (isPhone.value ? prefs.headerLayout : 'wide'));
+const barSize = useBarSize();
+const layout = computed(() => (isPhone.value ? (barSize.top.value === 'expressive' ? 'two-rows' : 'one-row') : 'wide'));
 const oneRow = computed(() => layout.value === 'one-row');
 /** Today is in the period the title names: the Today button is the today mark, filled then, outlined otherwise (feature header-layout). */
 const todayShown = computed(() => inPeriod(cal.view, cal.anchor, clock.todayDate));
@@ -48,14 +54,17 @@ function toggleFilters() {
 </script>
 
 <template>
-  <TopAppBar :data-layout="layout">
+  <TopAppBar :data-layout="layout" :data-size="barSize.top.value">
     <template #background><TopBarScene :scene="settings.effectiveScene" :field-mode="settings.settings.sunflowers" /></template>
     <div class="grid">
+      <div class="lead">
+      <IconButton v-if="drawer" class="menu" :label="t('nav.menu')" data-testid="menu-button" aria-haspopup="dialog" @click="ui.sideMenuOpen = true"><IconMenu /></IconButton>
       <h1 v-if="route.meta.tasks" class="title" data-testid="tasks-title"><span class="t">{{ t('views.tasks') }}</span></h1>
       <h1 v-else-if="dateless" class="title" data-testid="view-title"><span class="t">{{ t(dateless.labelKey) }}</span></h1>
       <button v-else class="title" type="button" data-testid="period-title" aria-haspopup="dialog" :aria-expanded="ui.pickerOpen" @click="ui.pickerOpen = !ui.pickerOpen">
         <span class="t">{{ oneRow ? cal.shortTitle : cal.title }}</span><IconExpand class="chev" :class="{ up: ui.pickerOpen }" aria-hidden="true" />
       </button>
+      </div>
       <div v-if="!route.meta.tasks && !dateless" class="nav">
         <!-- touch screens move by swiping the calendar: the arrows stay for screen readers and keyboards, out of sight (owner, 2026-10-26) -->
         <IconButton :class="{ 'sr-only': isSwipeScreen }" :label="t('calendar.topBar.previous')" data-testid="nav-prev" @click="nav.prev()"><IconPrev /></IconButton>
@@ -72,11 +81,11 @@ function toggleFilters() {
         <InstallPrompts part="button" />
       </div>
       <div class="actions">
-        <span v-if="!route.meta.tasks" class="fwrap">
+        <span v-if="!route.meta.tasks && !drawer" class="fwrap">
           <IconButton :label="t('calendar.topBar.filters')" :pressed="filterOpen" data-testid="filter-button" @click="toggleFilters"><IconFilter /></IconButton>
           <b v-if="filters.count.value" class="badge" aria-hidden="true">{{ filters.count.value }}</b>
         </span>
-        <IconButton :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
+        <IconButton v-if="!drawer" :label="t('calendar.topBar.settings')" data-testid="settings-button" @click="router.push('/settings')"><IconSettings /></IconButton>
       </div>
     </div>
     <MonthPicker v-if="ui.pickerOpen && !route.meta.tasks && !dateless" />
@@ -88,7 +97,9 @@ function toggleFilters() {
   display: grid; align-items: center; column-gap: 4px; padding: 2px 4px 2px 8px;
   grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title actions' 'nav widgets';
 }
-.title { margin: 0; grid-area: title; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
+.lead { grid-area: title; min-width: 0; display: flex; align-items: center; }
+.lead .title { flex: 1; }
+.title { margin: 0; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: var(--md-sys-shape-corner-large); text-align: left; font: var(--md-sys-typescale-title-large); }
 .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chev { width: 24px; height: 24px; flex: none; transition: transform var(--md-sys-motion-duration-medium) var(--md-sys-motion-spring); }
 .chev.up { transform: rotate(180deg); }
@@ -147,6 +158,7 @@ function toggleFilters() {
 .pill { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
 /* Left-handed mode (phone, touch tablet): the settings group and the leading widgets sit at the left, title and navigation at the right. */
 html[data-hand='left'][data-touch] .actions { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .lead { flex-direction: row-reverse; }
 html[data-hand='left'][data-touch] .widgets { justify-content: flex-start; }
 /* On a phone the bar is the exact mirror of the right-handed one (owner, 2026-10-26), so a scene can simply be flipped:
    the title's text at the outer edge, the widgets in reverse order. */

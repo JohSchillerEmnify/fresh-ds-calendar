@@ -11,9 +11,10 @@ describe('period titles (en-GB)', () => {
   it.each([
     ['year', '2026-10-12', '2026'],
     ['month', '2026-10-12', 'October 2026'],
-    ['week', '2026-10-12', '12 – 18 Oct 2026'],
-    ['week', '2026-09-28', '28 Sep – 4 Oct 2026'],
-    ['week', '2026-12-28', '28 Dec 2026 – 3 Jan 2027'],
+    ['week', '2026-10-12', 'Oct 2026'],
+    ['week', '2026-09-28', 'Oct 2026'],
+    ['week', '2026-10-26', 'Oct 2026'],
+    ['week', '2026-12-28', 'Dec 2026'],
     ['day', '2026-10-14', 'Wednesday, 14 October 2026'],
   ] as const)('%s %s -> %s', (view, date, title) => {
     expect(periodTitle(view, d(date))).toBe(title);
@@ -24,7 +25,7 @@ describe('short period titles (the one-row header, feature header-layout)', () =
   it.each([
     ['day', '2026-10-12', 'Mon, 12 Oct'],
     ['day', '2026-10-14', 'Wed, 14 Oct'],
-    ['week', '2026-10-12', '12 – 18 Oct 2026'],
+    ['week', '2026-10-12', 'Oct 2026'],
     ['month', '2026-10-12', 'October 2026'],
     ['year', '2026-10-12', '2026'],
   ] as const)('%s %s -> %s (only the day is shortened)', (view, date, title) => {

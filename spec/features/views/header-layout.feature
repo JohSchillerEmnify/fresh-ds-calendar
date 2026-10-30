@@ -1,7 +1,7 @@
 @header-layout @id:header-layout
 Feature: A smaller header: two rows or one row
   The top bar took 96 px on a phone and the day view showed the date twice (owner, 2026-10-26). The person chooses
-  one of two header layouts in Settings › Calendar ("Header layout"): "Two rows" (the default) keeps the full date
+  one of two header layouts in Settings › Calendar ("Header layout"): "Two rows" (now called Expressive; the default only off phones, see feature header-expressive) keeps the full date
   ("Monday, 12 October 2026") in an 18 px title row and puts Today with the streak and the sync icon in a compact
   second row, 84 px in all; "One row" puts the short date ("Mon, 12 Oct") and a Today icon into one 52 px row with the
   streak, sync, filter and settings at its right. Touch screens have no ‹ › arrows: a swipe on the calendar moves to the
@@ -29,10 +29,11 @@ Feature: A smaller header: two rows or one row
     Given the calendar is empty
     And today is 2026-10-12
 
-  Rule: Two rows is the default, one row is the person's choice
+  Rule: Two rows is the person's choice, one row the phone's default (feature header-expressive: Expressive and Compact)
 
     @mobile
-    Scenario: A phone shows the two-row header by default
+    Scenario: The two-row header shows the full date
+      Given the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar is in two rows
       And the top bar is at most 84 pixels tall
@@ -61,7 +62,7 @@ Feature: A smaller header: two rows or one row
       Examples:
         | path             | title            |
         | /day/2026-10-14  | Wed, 14 Oct      |
-        | /week/2026-10-12 | 12 – 18 Oct 2026 |
+        | /week/2026-10-12 | Oct 2026         |
         | /month/2026-10   | October 2026     |
         | /year/2026       | 2026             |
 
@@ -90,13 +91,13 @@ Feature: A smaller header: two rows or one row
     Scenario: The choice is made in the settings and follows the person
       When I open the day view for 2026-10-12
       And I open the settings
-      Then the header layout "Two rows" is selected
-      When I choose "One row" as the header layout
+      Then the top bar size "Compact" is selected
+      When I choose "Expressive" as the top bar size
       And I leave the settings
-      Then the top bar is in one row
+      Then the top bar is in two rows
       When I switch to another device
       And I open the day view for 2026-10-12
-      Then the top bar is in one row
+      Then the top bar is in two rows
 
     # owner, 2026-10-26: with a streak on the row stays one row; only the plant is a button, its tap area 32 px wide
     @mobile
@@ -191,6 +192,7 @@ Feature: A smaller header: two rows or one row
   Rule: The date is shown once: the day view has no day header
 
     Scenario: The day view shows the date only in the title
+      Given the header layout is set to "Two rows"
       When I open the day view for 2026-10-14
       Then the day view shows no day header
       And the period title is "Wednesday, 14 October 2026"

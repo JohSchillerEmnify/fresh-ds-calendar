@@ -492,11 +492,11 @@ describe('prefs store streak and sync indicator', () => {
 
 describe('prefs store header layout', () => {
   beforeEach(() => freshPinia());
-  it('starts with two rows, applies the loaded layout, keeps it in the last known state and rolls back a refused change', async () => {
+  it('starts on auto, applies the loaded layout, keeps it in the last known state and rolls back a refused change', async () => {
     let fail = false;
     mockFetch({ 'GET /api/prefs': () => ({ headerLayout: 'one-row' }), 'PATCH /api/prefs': () => (fail ? apiError(400, 'VALIDATION') : {}) });
     const p = usePrefsStore();
-    expect(p.headerLayout).toBe('two-rows');
+    expect(p.headerLayout).toBe('auto');
     await p.load();
     expect(p.headerLayout).toBe('one-row');
     expect(p.current().headerLayout).toBe('one-row');

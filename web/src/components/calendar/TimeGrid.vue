@@ -242,7 +242,7 @@ const ids = { header: 'week-header', all: props.mode === 'week' ? 'week-allday-c
 .adcol { display: grid; grid-template-rows: subgrid; row-gap: 2px; align-content: start; min-width: 0; padding: 0 1px 4px; min-height: 6px; }
 /* an entry keeps its own height (18 px on phones) instead of stretching to the row's 20 px bar height */
 .adcol > * { align-self: start; }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: var(--scroll-end); }
 .grid { position: relative; display: grid; grid-template-columns: var(--gw) repeat(var(--n), minmax(0, 1fr)); height: calc(24 * var(--hh)); }
 .hours { display: flex; flex-direction: column; }
 .hl { height: var(--hh); font: var(--md-sys-typescale-label-small); font-size: 10px; color: var(--md-sys-color-on-surface-variant); text-align: right; padding-right: 4px; transform: translateY(-7px); }
@@ -261,7 +261,7 @@ html[data-motion='off'] .blk.settle { transition: none; }
 .day .head { flex-direction: row; min-height: 36px; gap: 8px; }
 .day.phone .head { min-height: 36px; }
 /* fit-to-height (two-row overview): the window fills the area, nothing scrolls, heads and band stay compact */
-.tg.fit .scroll { overflow: hidden; }
+.tg.fit .scroll { overflow: hidden; padding-bottom: 0; }
 .tg.fit .head { min-height: 30px; flex-direction: row; gap: 5px; }
 .tg.fit .dn { width: 22px; height: 22px; font: var(--md-sys-typescale-label-large); font-size: 12px; }
 .tg.fit .dow { font-size: 11px; }

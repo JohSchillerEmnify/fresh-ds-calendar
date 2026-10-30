@@ -39,7 +39,8 @@ Feature: Left-handed mode
 
   @mobile
   Scenario: The settings button and the navigation swap sides in the top bar
-    Given left-handed mode is on
+    Given the header layout is set to "Two rows"
+    And left-handed mode is on
     When I open the month view for 2026-10
     Then the "settings button" is on the "left" side of the screen
     And the "Today button" is on the "right" side of the screen

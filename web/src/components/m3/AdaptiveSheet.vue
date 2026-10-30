@@ -15,6 +15,8 @@ const props = withDefaults(defineProps<{
   open: boolean; label: string; dismissOnScrim?: boolean; testid?: string;
   /** Extra attributes for the panel (data-*), inline style, desktop popover anchor, and opt-out of the built-in Escape handler. */
   panelAttrs?: Record<string, string>; panelStyle?: Record<string, string>; anchor?: { left: number; top: number; maxH: number } | null; escape?: boolean;
+  /** A drawer from this screen edge, full height (the side menu), instead of a sheet or a modal. */
+  side?: 'left' | 'right';
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 useOverlayHistory(() => props.open, () => emit('close'));
@@ -61,7 +63,7 @@ function startsAtTop(t: HTMLElement): boolean {
   return true;
 }
 function ts(e: TouchEvent) {
-  if (!isPhone.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
+  if (props.side || !isPhone.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
   const t = e.target as HTMLElement;
   const inTop = e.touches[0].clientY - panel.value.getBoundingClientRect().top < TOP_ZONE;
   if (t.closest?.(NO_DRAG) || !(inTop || startsAtTop(t))) { phase = 'ignore'; return; }
@@ -115,14 +117,14 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="[isPhone ? 'phone' : 'desk', { anchored: !isPhone && !!anchor }]">
+  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : isPhone ? 'phone' : 'desk', { anchored: !side && !isPhone && !!anchor }]">
     <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="isPhone ? 'sheet' : anchor ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !isPhone && !!anchor }"
+      :data-presentation="side ? 'drawer' : isPhone ? 'sheet' : anchor ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && !isPhone && !!anchor }"
       :style="[panelStyle, !isPhone && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
-      <div v-if="isPhone" class="handle" aria-hidden="true"><span /></div>
+      <div v-if="isPhone && !side" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>
     </section>
   </div>
@@ -144,10 +146,18 @@ onBeforeUnmount(() => stopTimer?.());
 .desk .panel.anchored { position: fixed; width: min(380px, calc(100vw - 16px)); transform-origin: left top; }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
+.drawer { align-items: stretch; }
+.drawer.side-right { justify-content: flex-end; }
+.drawer .panel { width: min(320px, 86vw); max-height: none; padding: var(--safe-top) 0 var(--safe-bottom); box-shadow: var(--md-sys-elevation-3); }
+.drawer.side-left .panel { border-radius: 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0; padding-left: var(--safe-left); animation: from-left 280ms var(--md-sys-motion-emphasized) both; }
+.drawer.side-right .panel { border-radius: var(--md-sys-shape-corner-extra-large) 0 0 var(--md-sys-shape-corner-extra-large); padding-right: var(--safe-right); animation: from-right 280ms var(--md-sys-motion-emphasized) both; }
+.drawer .body { flex: 1; display: flex; flex-direction: column; padding: 12px; }
 .handle { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: -12px 0; touch-action: none; cursor: grab; flex: none; }
 .handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.4; }
 .body { border-radius: inherit; /* clips the scrollbar to the panel's rounding */ overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; min-height: 0; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes up { from { transform: translateY(100%); } }
+@keyframes from-left { from { transform: translateX(-100%); } }
+@keyframes from-right { from { transform: translateX(100%); } }
 @keyframes zoom { from { transform: scale(0.9); opacity: 0; } }
 </style>

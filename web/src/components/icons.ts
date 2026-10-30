@@ -43,6 +43,9 @@ import ChevronLeftS from '~icons/material-symbols/chevron-left-sharp';
 import ChevronRightO from '~icons/material-symbols/chevron-right';
 import ChevronRightR from '~icons/material-symbols/chevron-right-rounded';
 import ChevronRightS from '~icons/material-symbols/chevron-right-sharp';
+import MenuO from '~icons/material-symbols/menu';
+import MenuR from '~icons/material-symbols/menu-rounded';
+import MenuS from '~icons/material-symbols/menu-sharp';
 import CloseO from '~icons/material-symbols/close';
 import CloseR from '~icons/material-symbols/close-rounded';
 import CloseS from '~icons/material-symbols/close-sharp';
@@ -141,6 +144,7 @@ export const IconCalendarViewWeek = appIcon('IconCalendarViewWeek', { outlined: 
 export const IconCheck = appIcon('IconCheck', { outlined: CheckO, rounded: CheckR, sharp: CheckS });
 export const IconChevronLeft = appIcon('IconChevronLeft', { outlined: ChevronLeftO, rounded: ChevronLeftR, sharp: ChevronLeftS });
 export const IconChevronRight = appIcon('IconChevronRight', { outlined: ChevronRightO, rounded: ChevronRightR, sharp: ChevronRightS });
+export const IconMenu = appIcon('IconMenu', { outlined: MenuO, rounded: MenuR, sharp: MenuS });
 export const IconClose = appIcon('IconClose', { outlined: CloseO, rounded: CloseR, sharp: CloseS });
 export const IconCloudOff = appIcon('IconCloudOff', { outlined: CloudOffO, rounded: CloudOffR, sharp: CloudOffS });
 export const IconDeleteOutline = appIcon('IconDeleteOutline', { outlined: DeleteOutlineO, rounded: DeleteOutlineR, sharp: DeleteOutlineS });
