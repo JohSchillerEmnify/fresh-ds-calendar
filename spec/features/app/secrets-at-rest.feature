@@ -8,13 +8,12 @@ Feature: Secrets kept on the server are not readable from its files
   ADR 0026.
 
   # These scenarios describe behaviour that is built. They are about the server's files and its start, which the browser
-  # suite cannot reach, so each is tagged @backlog (the repo has no tag for "built, covered by a unit test"; proposed:
-  # @unit) and names the unit test that covers it.
+  # suite cannot reach, so each is tagged @unit and names the unit test that covers it.
 
   Rule: The stored Google connection is encrypted
 
-    # Unit test: server/test/secretBox.test.ts, "writes an envelope without the plaintext token when a key is set"
-    @backlog
+    # unit: server/test/secretBox.test.ts:writes an envelope without the plaintext token when a key is set
+    @unit
     Scenario: A person's Google connection is stored encrypted
       Given the server has a valid encryption key
       When "jo@example.com" signs in with Google
@@ -22,8 +21,8 @@ Feature: Secrets kept on the server are not readable from its files
       And the stored Google connection of "jo@example.com" can be read by the server's own user only
       And "jo@example.com" is connected to Google
 
-    # Unit test: server/test/secretBox.test.ts, "re-writes a legacy plaintext file encrypted on first read"
-    @backlog
+    # unit: server/test/secretBox.test.ts:re-writes a legacy plaintext file encrypted on first read
+    @unit
     Scenario: A connection stored unencrypted is converted without signing in again
       Given "jo@example.com" has a Google connection stored unencrypted from before
       And the server has a valid encryption key
@@ -32,9 +31,9 @@ Feature: Secrets kept on the server are not readable from its files
       And "jo@example.com" is connected to Google
       And "jo@example.com" is not asked to sign in again
 
-    # Unit test: server/test/secretBox.test.ts, "treats a wrong key or a tampered file as not connected, without throwing"
-    # and "an envelope without any key is not connected"
-    @backlog
+    # unit: server/test/secretBox.test.ts:treats a wrong key or a tampered file as not connected, without throwing
+    # unit: server/test/secretBox.test.ts:an envelope without any key is not connected
+    @unit
     Scenario Outline: A connection that cannot be read means signing in again, not a crash
       Given the server has a valid encryption key
       And "jo@example.com" has a Google connection stored encrypted
@@ -49,8 +48,8 @@ Feature: Secrets kept on the server are not readable from its files
         | "encrypted with another key"               |
         | "encrypted but the server has lost its key" |
 
-    # Unit test: server/test/secretBox.test.ts, "writes an envelope ..." (the new connection replaces the unreadable one)
-    @backlog
+    # unit: server/test/secretBox.test.ts:writes an envelope without the plaintext token when a key is set
+    @unit
     Scenario: Signing in again after an unreadable connection stores a fresh encrypted one
       Given the server has a valid encryption key
       And "jo@example.com" has a Google connection stored encrypted
@@ -61,8 +60,8 @@ Feature: Secrets kept on the server are not readable from its files
 
   Rule: A real Google server does not start without a valid key
 
-    # Unit test: server/test/secretBox.test.ts, "startup guard / refuses google without a valid key unless TEST_MODE"
-    @backlog
+    # unit: server/test/secretBox.test.ts:refuses google without a valid key unless TEST_MODE
+    @unit
     Scenario Outline: A server for real Google refuses to start without a valid key
       Given the server is set up for real Google sign-in
       And the encryption key is <key>
@@ -75,8 +74,8 @@ Feature: Secrets kept on the server are not readable from its files
         | "missing"                 |
         | "too short"               |
 
-    # Unit test: server/test/secretBox.test.ts, "startup guard"; server/test/security.test.ts, "M7 fail closed"
-    @backlog
+    # unit: server/test/secretBox.test.ts:refuses google without a valid key unless TEST_MODE
+    @unit
     Scenario: A server for real Google starts with a valid key
       Given the server is set up for real Google sign-in
       And the encryption key is "32 bytes in base64"
@@ -85,16 +84,16 @@ Feature: Secrets kept on the server are not readable from its files
 
   Rule: Sessions are stored only as fingerprints
 
-    # Unit test: server/test/hardening-sessions.test.ts, "stores only sha256(id) as the key, read back after a restart"
-    @backlog
+    # unit: server/test/hardening-sessions.test.ts:stores only sha256(id) as the key, read back after a restart
+    @unit
     Scenario: The stored sessions do not contain the cookie value
       Given "jo@example.com" is signed in
       Then the stored sessions hold a fingerprint of the sign-in cookie and not the cookie value itself
       When the server restarts
       Then "jo@example.com" is still signed in
 
-    # Unit test: server/test/hardening-sessions.test.ts, "hashes legacy raw-id entries in place, so nobody is signed out"
-    @backlog
+    # unit: server/test/hardening-sessions.test.ts:hashes legacy raw-id entries in place, so nobody is signed out
+    @unit
     Scenario: A session stored in the old readable form is converted without signing anybody out
       Given "jo@example.com" has a session stored in the old readable form
       When the server starts
@@ -103,9 +102,8 @@ Feature: Secrets kept on the server are not readable from its files
 
   Rule: A session ends after 90 days without use, and after 180 days at the latest
 
-    # Unit test: server/test/hardening-sessions.test.ts and server/test/auth.test.ts (SessionStore); lifetimes are the
-    # constants SESSION_TTL_MS (90 days) and SESSION_ABSOLUTE_MAX_MS (180 days) in server/src/auth/sessions.ts
-    @backlog
+    # unit: server/test/auth.test.ts:expires after 90 days and is deleted on sign-out
+    @unit
     Scenario: A session that is not used for 90 days ends
       Given the time is 2026-01-01 09:00
       And "jo@example.com" is signed in
@@ -113,7 +111,8 @@ Feature: Secrets kept on the server are not readable from its files
       And they open the week view for 2026-03-30
       Then they see the sign-in page
 
-    @backlog
+    # unit: server/test/auth.test.ts:extends on use at most once an hour
+    @unit
     Scenario: Using the calendar keeps a session going
       Given the time is 2026-01-01 09:00
       And "jo@example.com" is signed in
@@ -123,7 +122,8 @@ Feature: Secrets kept on the server are not readable from its files
       And they open the week view for 2026-06-15
       Then they see the week view for 2026-06-15
 
-    @backlog
+    # unit: server/test/hardening-sessions.test.ts:ends a session at the absolute cap even when it is used every day
+    @unit
     Scenario: A session that is used every month still ends after 180 days
       Given the time is 2026-01-01 09:00
       And "jo@example.com" is signed in

@@ -3156,9 +3156,9 @@ the top bar's widgets are in reverse order
 These scenarios describe behaviour that is already built; their steps are specified here and still to be implemented
 in `e2e/steps/`. Two groups:
 
-- **HTTP steps (the scenarios without `@backlog`)**: run against the TEST_MODE server through Playwright `request`
+- **HTTP steps (the scenarios without `@unit`)**: run against the TEST_MODE server through Playwright `request`
   (no browser), keeping the last response like `I request {string}`.
-- **Server-start and file steps (the scenarios tagged `@backlog`)**: they need a server started with other environment
+- **Server-start and file steps (the scenarios tagged `@unit`)**: they need a server started with other environment
   settings or a look into the data folder, which the e2e server cannot do. Each scenario names the unit test that
   covers it in a comment, so these steps have no e2e implementation. If e2e ever grows a "fresh server with these
   settings" helper (see "I request ... on a fresh server" under Performance), they can be built on it and lose the tag.
@@ -3273,7 +3273,7 @@ the damaged shared list is left out and noted in the server log
 ```
 
 - These steps are unit-level (see the unit test named above each scenario); they are not implemented in `e2e/steps/` and
-  their scenarios are skipped by the `@backlog` filter. Meaning of the setup phrases, for whoever builds them: "the server is set up
+  their scenarios are skipped by the `@unit` filter. Meaning of the setup phrases, for whoever builds them: "the server is set up
   for "an https public address" / "production mode" / "a local http address" / "development mode" / "no address at all""
   = `PUBLIC_URL=https://...` / `NODE_ENV=production` / `PUBLIC_URL=http://localhost:3000` / `NODE_ENV=development` / neither;
   "runs as the demo" = `PROVIDER=mock` (or unset); "allows running open on purpose" = `ALLOW_INSECURE_MOCK=1`; "the

@@ -131,17 +131,16 @@ Feature: Reminders and today's events for the door board
 
   Rule: The door key must be long enough to resist guessing
 
-    # Unit test: server/test/hardening-door.test.ts, "keeps the door off (and says so) for a key shorter than 32 characters"
-    # (the Background's key is a test override; this scenario is about the operator's configured key)
-    @backlog
+    # unit: server/test/hardening-door.test.ts:keeps the door off (and says so) for a key shorter than 32 characters
+    @unit
     Scenario: A key shorter than 32 characters keeps the door off
       Given the operator's door key is only 20 characters long
       When the server starts
       Then the door stays off
       And the operator is told the key must have at least 32 characters
 
-    # Unit test: server/test/hardening-door.test.ts, same test, second expectation
-    @backlog
+    # unit: server/test/hardening-door.test.ts:keeps the door off (and says so) for a key shorter than 32 characters
+    @unit
     Scenario: A key of 32 characters or more switches the door on
       Given the operator's door key is 40 characters long
       When the server starts
@@ -154,8 +153,8 @@ Feature: Reminders and today's events for the door board
       Then the first 60 are answered
       And the next one is told there are too many requests
 
-    # Unit test: server/test/hardening-door.test.ts, "a flood of distinct clients does not reset the counter of one that is over its limit"
-    @backlog
+    # unit: server/test/hardening-door.test.ts:a flood of distinct clients does not reset the counter of one that is over its limit
+    @unit
     Scenario: A flood of other clients does not free a client that is over its limit
       Given the server sits behind the trusted proxy
       And one client has used up its 60 asks of this minute
@@ -164,15 +163,15 @@ Feature: Reminders and today's events for the door board
 
   Rule: Clients are told apart by the trusted proxy's address only
 
-    # Unit test: server/test/hardening-door.test.ts, "ignores X-Forwarded-For unless the server sits behind a trusted proxy"
-    @backlog
+    # unit: server/test/hardening-door.test.ts:ignores X-Forwarded-For unless the server sits behind a trusted proxy
+    @unit
     Scenario: Without a trusted proxy a made-up forwarding header does not buy more asks
       Given the server does not sit behind a trusted proxy
       When one client asks 70 times, each time claiming to come from a different address
       Then 10 of the asks are told there are too many requests
 
-    # Unit test: server/test/hardening-door.test.ts, "behind a trusted proxy the last hop is the client, so rotating the first entry does not help"
-    @backlog
+    # unit: server/test/hardening-door.test.ts:behind a trusted proxy the last hop is the client, so rotating the first entry does not help
+    @unit
     Scenario: Behind a trusted proxy the client is the address the proxy saw
       Given the server sits behind the trusted proxy
       When one client asks 70 times, each time claiming a different first address but arriving through the same last hop

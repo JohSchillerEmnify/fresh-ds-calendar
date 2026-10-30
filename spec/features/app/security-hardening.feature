@@ -28,16 +28,15 @@ Feature: The server protects itself and its people from the web
       Then the response header "Content-Security-Policy" contains "script-src 'self'"
       And the Content-Security-Policy allows the inline script of the page by its fingerprint
 
-    # Unit test: server/test/security-headers.test.ts, "allows exactly the place search and the map picture hosts besides
-    # the app itself" and "builds the hosts from the configured addresses"
-    @backlog
+    # unit: server/test/security-headers.test.ts:allows exactly the place search and the map picture hosts besides the app itself
+    @unit
     Scenario: The page may reach only the app, the place search and the map pictures
       Given the server is set up with the default place search and map picture services
       When I request "GET /index.html"
       Then the Content-Security-Policy lets the page reach outside only the place search and the map picture services
 
-    # Unit test: server/test/places.test.ts (unsafe PLACE_SEARCH_URL / MAP_TILE_URL cases)
-    @backlog
+    # unit: server/test/places.test.ts:falls back to the default for
+    @unit
     Scenario Outline: An unsafe place or map address in the settings falls back to the public service
       Given the operator set the place search address to <address>
       When the server starts
@@ -68,8 +67,8 @@ Feature: The server protects itself and its people from the web
       When I send "GET /api/settings" with the header "origin" set to "http://evil.example"
       Then the response status is 200
 
-    # Unit test: server/test/security.test.ts, "a non-GET request without an allowed Origin gets 403"
-    @backlog
+    # unit: server/test/security.test.ts:a non-GET request without an allowed Origin gets 403
+    @unit
     Scenario: With a public address configured, only that address and the extra allowed ones may write
       Given the server is set up with a public address and one other allowed address
       Then a write from the public address is accepted
@@ -127,9 +126,9 @@ Feature: The server protects itself and its people from the web
 
   Rule: A server without sign-in does not start on a public address
 
-    # Unit test: server/test/security.test.ts, "M7 fail closed / mock mode refuses to start with an https PUBLIC_URL"
-    # and "mock mode refuses to start in production, and a missing PROVIDER counts as mock"
-    @backlog
+    # unit: server/test/security.test.ts:mock mode refuses to start with an https PUBLIC_URL
+    # unit: server/test/security.test.ts:mock mode refuses to start in production, and a missing PROVIDER counts as mock
+    @unit
     Scenario Outline: The demo refuses to start where everybody could reach it
       Given the server runs as the demo, without Google sign-in
       And the server is set up for <setup>
@@ -142,8 +141,8 @@ Feature: The server protects itself and its people from the web
         | "an https public address" |
         | "production mode"       |
 
-    # Unit test: server/test/security.test.ts, "starts when asked to, on http, in development, or with Google"
-    @backlog
+    # unit: server/test/security.test.ts:starts when asked to, on http, in development, or with Google
+    @unit
     Scenario: The demo starts when the operator allows it on purpose
       Given the server runs as the demo, without Google sign-in
       And the server is set up for "an https public address"
@@ -151,8 +150,8 @@ Feature: The server protects itself and its people from the web
       When the server starts
       Then it starts
 
-    # Unit test: server/test/security.test.ts, "starts when asked to, on http, in development, or with Google"
-    @backlog
+    # unit: server/test/security.test.ts:starts when asked to, on http, in development, or with Google
+    @unit
     Scenario Outline: The demo starts at home without any override
       Given the server runs as the demo, without Google sign-in
       And the server is set up for <setup>

@@ -9,6 +9,7 @@ The spec is the single source of truth. Code follows the spec, never the other w
    - Keep each scenario small and concrete: real dates and names, one behaviour each.
    - Describe what the user sees, not how it is built.
    - Tag not-yet-built scenarios `@backlog`.
+   - Tag scenarios that only a unit test can prove (server start, files on disk) `@unit` and name the test in a `# unit: <file>:<test name>` comment; `check-steps.py` verifies it and e2e skips them.
    - Configuration (host names, which server) never goes into scenarios.
 2. **Steps contract.** Every step sentence must exist in `e2e/STEPS.md` and be implemented in `e2e/steps/`. Check
    with `python3 e2e/scripts/check-steps.py`.

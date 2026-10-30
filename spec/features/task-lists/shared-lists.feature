@@ -111,10 +111,11 @@ Feature: Sharing task lists with another person
     Then I can share only with "anna@example.com"
 
   # The next scenarios describe built behaviour about files on the server, which the browser suite cannot reach, so they
-  # are tagged @backlog (the repo has no tag for "built, covered by a unit test"; proposed: @unit) and name their unit test.
+  # are tagged @unit and name their unit test.
 
-  # Unit test: server/test/hardening-shared.test.ts, "skips (and logs) invalid files so every other list still loads"
-  @backlog
+  # unit: server/test/hardening-shared.test.ts:skips (and logs) invalid files so every other list still loads
+  # unit: server/test/hardening-shared.test.ts:rejects %s
+  @unit
   Scenario Outline: A damaged shared list file is skipped and the other lists still load
     Given "jo@example.com" shares the task list "Groceries" with "anna@example.com"
     And a second shared list file on the server is damaged because <damage>
@@ -133,8 +134,8 @@ Feature: Sharing task lists with another person
       | "its items are not a list"               |
       | "it is of an unknown format version"     |
 
-  # Unit test: server/test/hardening-shared.test.ts, "writes a valid list and skips (and logs) invalid ones"
-  @backlog
+  # unit: server/test/hardening-shared.test.ts:writes a valid list and skips (and logs) invalid ones
+  @unit
   Scenario: A restore from Drive skips shared lists that are not valid
     Given the Drive backup of "jo@example.com" holds the shared list "Groceries" and one damaged shared list
     When "jo@example.com" restores from the Drive backup
