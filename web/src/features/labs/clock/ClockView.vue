@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, ref, useId, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { addDays, formatDate, toIsoDate, minutesToTime } from '@/lib/dates';
@@ -272,9 +273,9 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
     <div ref="layout" class="layout">
     <ul v-if="allDay.length" ref="topChips" class="chips allday-chips" data-testid="clock-allday-list">
       <li v-for="a in allDay" :key="a.key">
-        <button type="button" class="chip" :style="{ '--c': a.color }" data-testid="clock-allday" :data-title="a.title" @click="openItem(a.item)">
+        <Pressable type="button" class="chip" :style="{ '--c': a.color }" data-testid="clock-allday" :data-title="a.title" @click="openItem(a.item)">
           <span class="dot" />{{ a.title }}
-        </button>
+        </Pressable>
       </li>
     </ul>
     <div ref="area" class="area" :style="!wide && size > 0 ? { height: `${size}px` } : undefined">
@@ -364,14 +365,14 @@ const ticks = Array.from({ length: 24 }, (_, h) => ({ h, a: pointAt(h * 60, 178)
     </div>
     <ul v-if="untimed.length || overflow.length" ref="bottomChips" class="chips untimed-chips" data-testid="clock-untimed-list">
       <li v-for="o in overflow" :key="o.key">
-        <button type="button" class="chip" :style="{ '--c': o.color }" data-testid="clock-overflow" :data-title="o.title" @click="openItem(o.item)">
+        <Pressable type="button" class="chip" :style="{ '--c': o.color }" data-testid="clock-overflow" :data-title="o.title" @click="openItem(o.item)">
           <span class="dot" /><span class="txt">{{ o.text }}</span>
-        </button>
+        </Pressable>
       </li>
       <li v-for="u in untimed" :key="u.key">
-        <button type="button" class="chip list" :style="{ '--c': u.color }" data-testid="clock-untimed" @click="openItem(u.item)">
+        <Pressable type="button" class="chip list" :style="{ '--c': u.color }" data-testid="clock-untimed" @click="openItem(u.item)">
           <span class="dot" />{{ u.text }}
-        </button>
+        </Pressable>
       </li>
     </ul>
     </div>

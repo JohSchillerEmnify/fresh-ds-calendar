@@ -117,7 +117,7 @@ onBeforeUnmount(() => {
 // CSS (FAB, tray, snackbar) follows the position through one attribute on <html>
 watch(navPosition, (p) => { document.documentElement.dataset.navPos = p; if (p !== 'drawer') ui.sideMenuOpen = false; }, { immediate: true });
 watch(barSize.bottom, (v) => { document.documentElement.dataset.barSize = v; }, { immediate: true });
-watch(barHidden, (v) => { document.documentElement.dataset.barHidden = String(v); }, { immediate: true });
+watch(barHidden, (v) => { document.documentElement.dataset.barHidden = String(v); ui.barHidden = v; }, { immediate: true });
 // System back closes the shell overlays (dialogs/sheets register themselves in AdaptiveSheet).
 useOverlayHistory(() => ui.trayExpanded, () => { ui.trayExpanded = false; });
 useOverlayHistory(() => ui.filtersShown, () => { ui.filtersShown = false; });
@@ -161,6 +161,8 @@ watch(() => route.fullPath, () => { ui.pickerOpen = false; ui.resizing = null; b
 .body { flex: 1; min-height: 0; display: flex; }
 .reserve-end { padding-bottom: var(--bar-reserve); }
 .body.edge-pad { padding-bottom: var(--safe-bottom); }
+/* tablet and desktop: the floating bar never covers content */
+@media (min-width: 768px) { html[data-nav-pos='bottom'] .body { padding-bottom: var(--bar-reserve); } }
 .col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 /* Desktop: the open tasks tray is a right-hand side panel. */
 @media (min-width: 768px) { .col { flex-direction: row; } }

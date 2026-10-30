@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** The writing tools (feature handwritten-lists): ink or text switch, undo, eraser, colour; left-handed mode mirrors them. */
+import Pressable from '@/components/m3/Pressable.vue';
 import { IconDraw, IconKeyboard, IconUndo, IconInkEraser } from '@/components/icons';
 import IconButton from '@/components/m3/IconButton.vue';
 import { t } from '@/i18n';
@@ -28,7 +29,7 @@ function pick(e: Event): void {
       <IconButton :label="t('ink.undo')" :disabled="!canUndo" data-testid="ink-undo" @click="emit('undo')"><IconUndo /></IconButton>
       <IconButton :label="t('ink.eraser')" :aria-pressed="ink.eraser" :class="{ on: ink.eraser }" data-testid="ink-eraser" @click="ink.eraser = !ink.eraser"><IconInkEraser /></IconButton>
       <span class="colours" role="group" :aria-label="t('ink.colour.label')">
-        <button
+        <Pressable
           v-for="p in PRESETS" :key="p.id" type="button" class="dot" :class="{ on: ink.colour === p.hex }" :style="{ '--dot': p.hex ?? 'var(--md-sys-color-on-surface)' }"
           :aria-label="t(`ink.colour.preset.${p.id}`)" :aria-pressed="ink.colour === p.hex" :data-testid="`ink-color-${p.id}`" @click="ink.setColour(p.hex); ink.eraser = false"
         />

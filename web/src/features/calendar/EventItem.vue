@@ -4,6 +4,8 @@
  * Title first: narrow or short blocks drop the time line, titles wrap to 2 lines before clipping; room left over shows location, then description lines. Past events of
  * today are dimmed, the running one gets a ring. Draggable through `useCalendarDrag` (long press on touch).
  */
+import Pressable from '@/components/m3/Pressable.vue';
+import { elOf } from '@/lib/elOf';
 import { computed, ref } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { onColor } from '@/api/colors';
@@ -29,7 +31,9 @@ const emit = defineEmits<{ open: [] }>();
 const clock = useClockStore();
 const ui = useUiStore();
 const prefs = usePrefsStore();
-const root = ref<HTMLElement | null>(null);
+const rootRef = ref<unknown>(null);
+/** The root `Pressable`'s element (a template ref points at the component). */
+const root = computed(() => elOf(rootRef.value));
 const ev = computed(() => props.segment.item as CalendarEvent);
 // a preview copy (swipe neighbour) is inert: no drag handlers
 // birthdays and events that are not the person's own (invitations, other people's calendars) are read-only: they do not drag
@@ -76,8 +80,8 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
 </script>
 
 <template>
-  <button
-    ref="root" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing, narrow }]"
+  <Pressable
+    ref="rootRef" v-ripple class="ev skin" :class="[variant, { cont: !segment.first || !segment.last, nofirst: !segment.first, nolast: !segment.last, past, current, resizing, narrow }]"
     type="button" data-testid="event-chip" :data-event-id="ev.id" :data-title="ev.title" :data-date="segment.date" :data-all-day="ev.allDay"
     :data-start-time="segment.startTime ?? ''" :data-end-time="segment.endTime ?? ''" :data-color="ev.color" :data-special="ev.special" :data-past="past || undefined" :data-current="current || undefined"
     :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), '--lines': lines }" :aria-label="`${ev.special ? t(`calendar.item.${ev.special}`) + ': ' : ''}${ev.title}${segment.startTime ? ', ' + timeText : ''}`" @click="cardClick($event, () => emit('open'))"
@@ -96,7 +100,7 @@ const showChipTime = computed(() => props.variant === 'chip' && !isPhone.value &
       <span v-if="showChipTime" class="time" data-testid="event-chip-time">{{ timeText }}</span>
       <span class="title" data-testid="event-chip-title"><span v-if="marker" class="mark" data-testid="event-marker" aria-hidden="true">{{ marker }}</span>{{ ev.title }}</span>
     </template>
-  </button>
+  </Pressable>
 </template>
 
 <style scoped>

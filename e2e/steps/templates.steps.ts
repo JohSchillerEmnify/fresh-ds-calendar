@@ -4,7 +4,7 @@ import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import { field, fillField, readField, type FieldKind } from './support/forms.js';
 import { cellValue, formRows } from './support/tables.js';
-import { box, expectJoined, pathname } from './support/ui.js';
+import { box, chooseListAction, expectJoined, pathname } from './support/ui.js';
 import { Api } from './support/api.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 
@@ -66,23 +66,21 @@ Given(
 // --- saving a list as a template ---------------------------------------------------------------------------------
 
 When('I save the task list as a template', async function (this: World) {
-  await sheet(this).getByTestId('tasklist-save-template').click();
+  await chooseListAction(this.page, sheet(this), 'tasklist-save-template');
   await expect(saveDialog(this)).toBeVisible();
 });
 
 Then('the footer of the expanded task list shows {string}', async function (this: World, labels: string) {
-  const ids = ['tasklist-add', 'tasklist-save-template', 'tasklist-edit', 'tasklist-delete', 'tasklist-leave'];
-  const shown: { text: string; x: number; y: number }[] = [];
-  for (const id of ids) {
-    const b = sheet(this).getByTestId(id);
-    if (!(await b.isVisible())) continue;
-    const r = await box(b);
-    // a phone-wide footer shows Edit and Delete as icons: their words are the label
-    shown.push({ text: ((await b.getAttribute('aria-label')) ?? (await b.innerText())).trim(), x: r.x, y: Math.round(r.y + r.height / 2) });
-  }
-  // visual order: rows top to bottom (a wrapped footer), then left to right
-  shown.sort((a, b) => (Math.abs(a.y - b.y) > 8 ? a.y - b.y : a.x - b.x));
-  expect(shown.map((s) => s.text).join(', ')).toBe(labels);
+  const texts = (await sheet(this).locator('footer button').allInnerTexts()).map((t) => t.trim());
+  expect(texts.join(', ')).toBe(labels);
+});
+
+Then('the overflow menu of the expanded task list lists {string}', async function (this: World, labels: string) {
+  await sheet(this).getByTestId('tasklist-overflow').click();
+  const texts = (await this.page.getByRole('menu').getByRole('menuitem').allInnerTexts()).map((t) => t.trim());
+  expect(texts.join(', ')).toBe(labels);
+  await this.page.keyboard.press('Escape');
+  await expect(this.page.getByRole('menu')).toHaveCount(0);
 });
 
 Then('the template dialog previews the items {string}', async function (this: World, items: string) {

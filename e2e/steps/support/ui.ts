@@ -3,6 +3,12 @@ import { expect, type Locator, type Page } from '@playwright/test';
 
 export const pathname = (page: Page) => new URL(page.url()).pathname;
 
+/** Opens the overflow menu (three dots) of the list view inside `scope` and presses its item `id` (`tasklist-edit`, `tasklist-delete`, ...). */
+export async function chooseListAction(page: Page, scope: Locator, id: string): Promise<void> {
+  await scope.getByTestId('tasklist-overflow').first().click();
+  await page.getByRole('menu').getByTestId(id).click();
+}
+
 export interface Box { x: number; y: number; width: number; height: number }
 
 export async function box(loc: Locator): Promise<Box> {

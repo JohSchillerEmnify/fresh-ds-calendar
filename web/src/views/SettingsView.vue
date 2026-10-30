@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { isIos as detectIos, isStandalone } from '@/pwa/install';
 import IosInstallSheet from '@/components/settings/IosInstallSheet.vue';
 // iPhones and iPads cannot install the Android app, so the download row is hidden there; they get the Home Screen instructions instead
@@ -240,11 +241,11 @@ async function resetDemo() {
       <div class="content">
         <section id="s-appearance" class="card" data-testid="settings-section" data-section="appearance" aria-labelledby="h-appearance">
           <h2 id="h-appearance">{{ title('appearance') }}</h2>
-          <button type="button" class="row link" data-testid="settings-theme" @click="router.push('/settings/theme')">
+          <Pressable type="button" class="row link" data-testid="settings-theme" @click="router.push('/settings/theme')">
             <span class="grow"><span class="lab">{{ t('settings.theme.label') }}</span><span class="sub">{{ t('settings.theme.hint') }}</span></span>
             <span class="val" data-testid="settings-theme-name">{{ themeLabel }}</span>
             <IconNext aria-hidden="true" />
-          </button>
+          </Pressable>
           <div class="row"><Select class="fw" :model-value="labs.language" :options="languageOptions" :label="t('settings.language.label')" data-testid="settings-language" @update:model-value="savePrefs({ language: $event as LanguagePref })" /></div>
         </section>
 
@@ -277,19 +278,19 @@ async function resetDemo() {
           <span v-if="labs.taskCategories" class="lab sublab">{{ t('settings.tasklists.categories') }}</span>
           <ul v-if="labs.taskCategories" class="cats">
             <li v-for="(c, i) in settings.categories" :key="c.id" class="cat" data-testid="settings-category" :data-category-id="c.id" :data-name="c.name" :data-color="c.color">
-              <button class="catmain" type="button" :aria-label="t('settings.tasklists.editCategory', { name: c.name })" @click="editing = c">
+              <Pressable class="catmain" type="button" :aria-label="t('settings.tasklists.editCategory', { name: c.name })" @click="editing = c">
                 <i class="dot" :style="{ background: c.color }" /><span v-if="c.icon" class="em">{{ c.icon }}</span><span class="nm">{{ c.name }}</span>
-              </button>
+              </Pressable>
               <IconButton :label="t('settings.tasklists.moveUp', { name: c.name })" :disabled="i === 0" data-testid="settings-category-up" @click="move(c.id, -1)"><IconUp /></IconButton>
               <IconButton :label="t('settings.tasklists.moveDown', { name: c.name })" :disabled="i === settings.categories.length - 1" data-testid="settings-category-down" @click="move(c.id, 1)"><IconDown /></IconButton>
             </li>
           </ul>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.tasklists.carriedFrom.label') }}</span><span class="sub">{{ t('settings.tasklists.carriedFrom.hint') }}</span></div><Switch :model-value="labs.showCarriedFrom" :label="t('settings.tasklists.carriedFrom.label')" data-testid="settings-carried-from" @update:model-value="savePrefs({ showCarriedFrom: $event })" /></div>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.undatedDone.label') }}</span><SegmentedButton :model-value="labs.undatedDone" :options="undatedDoneOptions" :label="t('settings.tasklists.undatedDone.label')" data-testid="settings-undated-done" @update:model-value="savePrefs({ undatedDone: $event as UndatedDone })" /></div>
-          <button type="button" class="row link" data-testid="settings-templates" @click="router.push('/settings/templates')">
+          <Pressable type="button" class="row link" data-testid="settings-templates" @click="router.push('/settings/templates')">
             <span class="grow"><span class="lab">{{ t('tasks.templates.page') }}</span><span class="sub">{{ t('tasks.templates.pageHint') }}</span></span>
             <IconNext aria-hidden="true" />
-          </button>
+          </Pressable>
           <div class="row col"><span class="lab">{{ t('settings.tasklists.taskOpen.label') }}</span><SegmentedButton :model-value="labs.taskOpen" :options="taskOpenOptions" :label="t('settings.tasklists.taskOpen.label')" data-testid="settings-task-open" @update:model-value="savePrefs({ taskOpen: $event as TaskOpen })" /></div>
           <div v-if="labs.taskCategories" class="row"><Button variant="tonal" data-testid="settings-category-add" @click="adding = true"><template #icon><IconAdd /></template>{{ t('settings.tasklists.addCategory') }}</Button></div>
         </section>
@@ -337,10 +338,10 @@ async function resetDemo() {
 
         <section id="s-notifications" class="card" data-testid="settings-section" data-section="notifications" aria-labelledby="h-notifications">
           <h2 id="h-notifications">{{ title('notifications') }}</h2>
-          <button type="button" class="row link" data-testid="settings-reminders" @click="router.push('/settings/reminders')">
+          <Pressable type="button" class="row link" data-testid="settings-reminders" @click="router.push('/settings/reminders')">
             <span class="grow"><span class="lab">{{ t('settings.reminders.label') }}</span><span class="sub">{{ t('settings.reminders.hint') }}</span></span>
             <IconNext aria-hidden="true" />
-          </button>
+          </Pressable>
           <p class="sub note" data-testid="settings-notify-hint">{{ t('settings.notifications.hint') }}</p>
           <div class="row"><span class="lab grow">{{ t('settings.notifications.bedtime') }}</span><Switch :model-value="nt.bedtime" :label="t('settings.notifications.bedtime')" data-testid="settings-notify-bedtime" @update:model-value="saveNotify({ bedtime: $event })" /></div>
           <div class="row"><div class="grow"><span class="lab">{{ t('settings.notifications.events.label') }}</span><span class="sub">{{ t('settings.notifications.events.hint') }}</span></div><Switch :model-value="nt.events" :label="t('settings.notifications.events.label')" data-testid="settings-notify-events" @update:model-value="saveNotify({ events: $event })" /></div>

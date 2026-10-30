@@ -7,6 +7,7 @@
  * content is inert; only the handle below it is interactive and folds the preview to a thin top bar strip, remembered
  * per device.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { onColor } from '@/api/colors';
@@ -90,9 +91,9 @@ const ticked = computed(() => SAMPLE_TASKS.map((x) => x.done));
         </div>
       </div>
     </div>
-    <button class="handle" type="button" data-testid="theme-live-preview-toggle" :aria-expanded="!collapsed" :aria-label="collapsed ? t('themePreview.expand') : t('themePreview.collapse')" @click="collapsed = !collapsed">
+    <Pressable class="handle" type="button" data-testid="theme-live-preview-toggle" :aria-expanded="!collapsed" :aria-label="collapsed ? t('themePreview.expand') : t('themePreview.collapse')" @click="collapsed = !collapsed">
       <IconExpand class="chev" :class="{ up: !collapsed }" aria-hidden="true" />
-    </button>
+    </Pressable>
   </section>
 </template>
 

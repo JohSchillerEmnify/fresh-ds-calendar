@@ -5,6 +5,7 @@
  * Unsorted stack at the top left. The board is one layer moved with `transform` only; the pointer gestures are in
  * `useCanvasPointer.ts`, the pure geometry in `canvas.ts`, the state in `canvasStore.ts`.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { t } from '@/i18n';
 import type { CanvasArea as Area, TaskList } from '@/api/types';
@@ -243,7 +244,7 @@ onBeforeUnmount(() => {
         :aria-label="t('canvas.area.name')" @keydown.enter.prevent="finishEditing" @blur="commitName"
       />
       <div class="swatches" role="group" :aria-label="t('canvas.area.color')">
-        <button
+        <Pressable
           v-for="c in AREA_COLORS" :key="c.id" type="button" class="swatch" data-testid="canvas-area-color" :data-color="c.hex" :style="{ '--s': c.hex }"
           :aria-pressed="editArea.color === c.hex" :aria-label="t(`canvas.colors.${c.id}`)" @click="canvas.updateArea(editArea.id, { color: c.hex })"
         />
@@ -271,7 +272,7 @@ onBeforeUnmount(() => {
 .empty { position: absolute; left: 0; right: 0; top: 40%; margin: 0; padding: 0 24px; text-align: center; color: var(--md-sys-color-on-surface-variant); pointer-events: none; }
 .tools { position: absolute; top: 8px; right: 12px; }
 .editor {
-  position: absolute; left: 12px; right: 12px; bottom: calc(12px + var(--safe-bottom, 0px)); max-width: 420px; margin: 0 auto; padding: 12px; border-radius: 20px;
+  position: absolute; left: 12px; right: 12px; bottom: calc(12px + var(--navbar-h, 0px) + var(--safe-bottom, 0px)); max-width: 420px; margin: 0 auto; padding: 12px; border-radius: 20px;
   display: flex; flex-direction: column; gap: 12px; background: var(--md-sys-color-surface-container-high); box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
 }
 .name-in {

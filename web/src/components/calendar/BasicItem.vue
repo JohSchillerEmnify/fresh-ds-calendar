@@ -3,6 +3,7 @@
  * Default renderer of events and task lists (chip / all-day bar / time grid block). Replaced per kind by
  * `registerItemRenderer` once the event / task list UI exists; keeps the data-testid contract meanwhile.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed } from 'vue';
 import type { ItemRendererProps } from '@/extensions/registry';
 import { useSettingsStore } from '@/stores/settings';
@@ -34,15 +35,15 @@ const timeText = computed(() => {
 </script>
 
 <template>
-  <button
+  <Pressable
     v-if="it.kind === 'event'" v-ripple class="item event" :class="[variant, { cont: !segment.first || !segment.last }]" type="button" data-testid="event-chip"
     :data-event-id="it.id" :data-title="it.title" :data-date="segment.date" :data-all-day="it.allDay" :data-start-time="segment.startTime ?? ''"
     :data-end-time="segment.endTime ?? ''" :data-color="it.color" :style="{ '--c': it.color }" @click.stop="emit('open')"
   >
     <span class="title" data-testid="event-chip-title">{{ it.title }}</span>
     <span v-if="variant === 'block' && timeText" class="time" data-testid="event-chip-time">{{ timeText }}</span>
-  </button>
-  <button
+  </Pressable>
+  <Pressable
     v-else v-ripple class="item tasklist" :class="[variant, { done: it.totalCount > 0 && it.doneCount >= it.totalCount }]" type="button" data-testid="tasklist-card" :data-tasklist-id="it.id" :data-title="displayTitle(it)"
     :data-date="it.date" :data-time="it.time ?? ''" :data-color="cats.color(it)" :data-category-id="cats.categoryId(it) ?? ''" :style="{ '--c': cats.color(it) }" @click.stop="emit('open')"
   >
@@ -53,7 +54,7 @@ const timeText = computed(() => {
     </span>
     <span v-if="variant === 'block'" class="items" data-testid="tasklist-card-items">{{ items }}</span>
     <span v-if="variant === 'block' && it.time" class="time" data-testid="tasklist-card-time">{{ it.time }}</span>
-  </button>
+  </Pressable>
 </template>
 
 <style scoped>

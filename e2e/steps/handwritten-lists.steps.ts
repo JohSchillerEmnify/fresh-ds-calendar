@@ -3,7 +3,7 @@ import { expect, type BrowserContext, type Locator, type Page } from '@playwrigh
 import { Given, Step, Then, When } from './fixtures.js';
 import { call } from './sharing.steps.js';
 import { dragItem, expandTaskList } from './support/tasklist.js';
-import { box } from './support/ui.js';
+import { box, chooseListAction } from './support/ui.js';
 import type { World } from './support/world.js';
 
 const PREF: Record<string, string> = { 'Handwritten lists': 'labsHandwriting', 'Draw with finger': 'labsDrawWithFinger' };
@@ -500,7 +500,7 @@ Then('I can still tick the item number {int}', async function (this: World, n: n
 
 When('I delete the task list {string}', async function (this: World, title: string) {
   void title; // the list is the open one
-  await this.expanded.getByTestId('tasklist-delete').click();
+  await chooseListAction(this.page, this.expanded, 'tasklist-delete');
 });
 /** The ids of the seeded list that the server still holds ink for. */
 async function inkHeld(w: World): Promise<number> {

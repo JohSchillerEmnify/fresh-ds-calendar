@@ -113,6 +113,28 @@ Feature: A floating bottom bar in two sizes, and a side menu as the alternative
       And I scroll the time grid to the end of the day
       Then the add button covers no hour of the time grid
 
+  Rule: The room of a hidden bar is given back, and on wide screens the bar floats with its room reserved
+
+    @mobile
+    Scenario Outline: A hidden bar leaves no empty strip at the bottom
+      Given the bottom bar size is set to "<size>"
+      When I open the day view for 2026-10-12
+      And I scroll the calendar down by 300 pixels
+      Then the bottom bar is hidden
+      And nothing is reserved at the bottom of the screen
+
+      Examples:
+        | size       |
+        | Expressive |
+        | Compact    |
+
+    @desktop @tablet
+    Scenario: On wide screens the bar floats 16 px from the edges and never covers the calendar
+      Given the view switcher on desktop and tablets is set to "bottom"
+      When I open the week view for 2026-10-12
+      Then the bottom bar floats 16 pixels from the edges of the screen
+      And the calendar ends above the bottom bar
+
   Rule: The side menu replaces the bottom bar
 
     @mobile

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { addMonths, isSameDay, isSameMonth } from 'date-fns';
 import { IconChevronLeft as IconPrev, IconChevronRight as IconNext } from '@/components/icons';
@@ -82,7 +83,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
       <div ref="grid" class="grid">
         <span v-for="w in weekdayLabels()" :key="w" class="wd" aria-hidden="true">{{ w[0] }}</span>
         <template v-for="week in weeks" :key="toIsoDate(week[0])">
-          <button
+          <Pressable
             v-for="d in week" :key="toIsoDate(d)" type="button" class="day" data-testid="picker-day"
             :class="{ out: !isSameMonth(d, shown), sel: selected(d), today: toIsoDate(d) === clock.today }"
             :data-date="toIsoDate(d)" :aria-selected="selected(d)" :aria-label="formatDate(d, 'full')" :data-has-items="hasItems(d)"
@@ -90,7 +91,7 @@ onBeforeUnmount(() => stops.forEach((s) => s()));
           >
             <span class="n">{{ d.getDate() }}</span>
             <i v-if="hasItems(d)" class="dot" />
-          </button>
+          </Pressable>
         </template>
       </div>
     </section>

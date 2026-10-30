@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, watch } from 'vue';
 import { useNav } from '@/composables/useNav';
 import { providePreview } from '@/composables/usePreview';
@@ -37,7 +38,7 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
 <template>
   <section class="year" data-testid="year-view" :data-year="year">
     <div class="months">
-      <button
+      <Pressable
         v-for="m in months" :key="m.key" class="ym" type="button" data-testid="year-month" :data-month="m.key" :aria-label="`${m.name} ${year}`" @click="nav.go('month', m.first)"
       >
         <span class="name">{{ m.name }}</span>
@@ -54,7 +55,7 @@ const density = (date: string) => items.summary[date]?.density ?? 0;
             </template>
           </template>
         </span>
-      </button>
+      </Pressable>
     </div>
   </section>
 </template>

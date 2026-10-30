@@ -6,20 +6,18 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { t } from '@/i18n';
-import { ApiError } from '@/api/client';
 import type { TaskList } from '@/api/types';
 import Button from '@/components/m3/Button.vue';
 import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
-import { displayTitle, neutralName } from '@/lib/items';
+import { displayTitle } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
-import { useOutboxStore } from '@/stores/outbox';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
-import { useUiStore } from '@/stores/ui';
 import { isCollapsed, setAllCollapsed } from './collapse';
-import { copyOf, matchesSearch, sortArchive } from './archive';
+import { matchesSearch, sortArchive } from './archive';
+import { duplicateList } from './duplicate';
 import { useTasksViewStore, type TasksTab } from './tasksStore';
 import { groupLists, isOpen } from './tasksView';
 import TaskListView from './TaskListView.vue';
@@ -35,7 +33,6 @@ const prefs = usePrefsStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
 const sync = useSyncStore();
-const ui = useUiStore();
 
 /** The filter bar's choice (all three tabs, feature tasks-filter). */
 const passes = (l: TaskList): boolean => matchesTasksFilter(l, cats.filter.value, clock.today);
@@ -57,14 +54,7 @@ function chooseTab(next: TasksTab): void {
   tasks.setTab(next).catch((e) => sync.reportError(e));
 }
 /** "Copy": an open, undated copy appears in Open; the archived original stays. */
-async function copy(l: TaskList): Promise<void> {
-  try {
-    useOutboxStore().createList(copyOf(l, cats.on.value));
-    ui.notify(t('tasks.archive.copyCreated', { title: neutralName(l) }));
-  } catch (e) {
-    ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.copyFailed'));
-  }
-}
+const copy = (l: TaskList): void => duplicateList(l, cats.on.value);
 /** "Save as template" next to "Copy" (feature tasklist-templates): the finished list being saved, or null. */
 const savingTemplateOf = ref<TaskList | null>(null);
 
@@ -89,7 +79,7 @@ onBeforeUnmount(() => stop?.());
       <div class="controls">
         <TextField v-model="search" :label="t('tasks.archive.search')" type="search" class="search" data-testid="tasks-archive-search" />
       </div>
-      <div class="scroll">
+      <div class="scroll" data-scroll-area>
         <p v-if="!archive.length" class="empty" data-testid="tasks-archive-empty">{{ search.trim() ? t('tasks.archive.noMatch') : t('tasks.archive.empty') }}</p>
         <ul class="list group">
           <li
@@ -105,7 +95,7 @@ onBeforeUnmount(() => stop?.());
         </ul>
       </div>
     </div>
-    <div v-if="tasks.tab === 'open'" class="scroll">
+    <div v-if="tasks.tab === 'open'" class="scroll" data-scroll-area>
       <p v-if="!groups.length" class="empty" data-testid="tasks-empty">{{ t('tasks.view.empty') }}</p>
       <section v-for="g in groups" :key="g.key" class="group" data-testid="tasks-group" :data-group="g.key">
         <h2 v-if="g.title" class="gt" data-testid="tasks-group-title">{{ g.title }}</h2>

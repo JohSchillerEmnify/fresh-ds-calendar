@@ -5,6 +5,7 @@
  * expanded list; lists finished today fold to their struck-through title. Sets `--tray-h` on :root so the FAB floats
  * above it. Hidden outside calendar views.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, toRef, watch, nextTick, watchEffect } from 'vue';
 import { useRoute } from 'vue-router';
 import { t } from '@/i18n';
@@ -97,14 +98,14 @@ function toggleFold(id: string) {
 
 <template>
   <aside v-if="shown" ref="root" class="tray" :class="{ phone: isPhone, open: listShown, collapsed: !listShown && !isPhone }" data-testid="task-tray" :data-expanded="listShown">
-    <button
+    <Pressable
       v-ripple class="bar" type="button" data-testid="task-tray-toggle" :aria-expanded="listShown" aria-controls="task-tray-list"
       :aria-label="isPhone ? undefined : listShown ? t('tasks.tray.collapse') : t('tasks.tray.expand')" @click="toggle"
     >
       <span class="chip" :class="{ none: !lists.count }" data-testid="task-tray-count" :data-count="lists.count">{{ countText }}</span>
       <span v-if="lists.nextTask && !expanded && isPhone" class="peek">{{ t('tasks.tray.next', { title: lists.nextTask.item.title }) }}</span>
       <IconExpand class="chev" data-testid="task-tray-chevron" aria-hidden="true" />
-    </button>
+    </Pressable>
     <TransitionGroup v-show="listShown" id="task-tray-list" tag="ul" name="tl" class="list">
       <li
         v-for="r in rows" :key="r.list.id" class="row tl-surface" :class="{ fin: r.fin }" data-testid="task-tray-item" :data-title="displayTitle(r.list)" :data-list-id="r.list.id" :data-flash="ui.flashId === r.list.id ? 'true' : undefined"
@@ -113,10 +114,10 @@ function toggleFold(id: string) {
         <div v-if="r.fin" class="head">
           <span v-if="displayTitle(r.list)" class="t" data-testid="task-tray-title">{{ displayTitle(r.list) }}</span>
           <span v-if="showProgress(r.list)" class="c" data-testid="task-tray-row-count">{{ r.list.doneCount }}/{{ r.list.totalCount }}</span>
-          <button
+          <Pressable
             v-ripple class="mv" type="button" data-testid="task-tray-unfold" :aria-expanded="unfolded.has(r.list.id)"
             :aria-label="unfolded.has(r.list.id) ? t('tasks.tray.fold', { title: neutralName(r.list) }) : t('tasks.tray.showItems', { title: neutralName(r.list) })" @click="toggleFold(r.list.id)"
-          ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></button>
+          ><IconExpand class="fold" :class="{ up: unfolded.has(r.list.id) }" /></Pressable>
         </div>
         <TaskListView v-if="!r.fin || unfolded.has(r.list.id)" :id="r.list.id" :list="r.list" class="view" @completed="(catMs) => linger(r.list.id, catMs)" />
       </li>
@@ -159,6 +160,7 @@ function toggleFold(id: string) {
   html:not([data-nav-pos='bottom']) .tray.phone { padding-bottom: var(--safe-bottom); }
   /* the bottom bar floats over the calendar: the tray stands clear of it (feature nav-expressive) */
   html[data-nav-pos='bottom'] .tray.phone { margin-bottom: calc(var(--navbar-h) + var(--safe-bottom)); }
+  html[data-nav-pos='bottom'][data-bar-hidden='true'] .tray.phone { margin-bottom: 0; padding-bottom: var(--safe-bottom); }
 }
 @media (min-width: 768px) {
   .tray { width: 380px; border-left: 1px solid var(--md-sys-color-outline-variant); overflow: hidden; transition: width 200ms var(--md-sys-motion-spring); }

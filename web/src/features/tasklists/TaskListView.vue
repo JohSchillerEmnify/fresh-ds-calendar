@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { TITLE_MAX } from '@calendar/shared/limits';
 /**
  * One task list with everything that can be done to it (feature tasklist-items): head with the collapse chevron,
@@ -8,12 +9,13 @@ import { TITLE_MAX } from '@calendar/shared/limits';
  * (`StrikeLine`, `data-struck="true"`); when the support cat comes, the line draws itself in step with its paw swipe.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd } from '@/components/icons';
+import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd, IconContentCopyOutline as IconCopy, IconArchiveOutline as IconArchive } from '@/components/icons';
 import { ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
+import OverflowMenu from '@/components/m3/OverflowMenu.vue';
 import { appTimeout, type Disposer } from '@/lib/timers';
 import { useTaskCategories } from './categories';
 import SupportCat from '@/features/motivation/SupportCat.vue';
@@ -43,6 +45,7 @@ import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import SaveTemplateDialog from './SaveTemplateDialog.vue';
 import { useRepeatScope } from './repeatScope';
 import { useTaskList } from './useTaskList';
+import { duplicateList } from './duplicate';
 
 const props = defineProps<{
   id: string;
@@ -54,7 +57,7 @@ const props = defineProps<{
   titleOpensDialog?: boolean;
   /** A sticky note on the Canvas: head, celebration and the item rows only (no row buttons, add field or footer). */
   compact?: boolean;
-  /** No "Save as template" in the footer: the host shows it itself (the Archive, next to "Copy"). */
+  /** No "Save as template" in the overflow menu: the host shows it itself (the Archive, next to "Copy"). */
   noTemplate?: boolean;
 }>();
 const emit = defineEmits<{
@@ -230,6 +233,34 @@ async function leave() {
     ui.notify(e instanceof ApiError ? e.userMessage : t('sharing.leaveFailed'));
   }
 }
+/** The overflow menu: a list with ticks still open can be archived (all ticked at once), and a member can only leave. */
+const menuItems = computed(() => {
+  const l = tl.value;
+  if (!l) return [];
+  return [
+    { id: 'edit', label: t('tasks.list.edit'), icon: IconEdit, testid: 'tasklist-edit' },
+    { id: 'duplicate', label: t('tasks.list.duplicate'), icon: IconCopy, testid: 'tasklist-duplicate' },
+    ...(complete.value || !l.items.length ? [] : [{ id: 'archive', label: t('tasks.list.archive'), icon: IconArchive, testid: 'tasklist-archive' }]),
+    ...(noTemplateOffered.value ? [] : [{ id: 'template', label: t('tasks.templates.save'), testid: 'tasklist-save-template' }]),
+    isMemberOnly(l) ? { id: 'leave', label: t('sharing.leave'), icon: IconDelete, testid: 'tasklist-leave' } : { id: 'delete', label: t('tasks.list.delete'), icon: IconDelete, testid: 'tasklist-delete' },
+  ];
+});
+const noTemplateOffered = computed(() => !!props.noTemplate);
+/** Archiving finishes the list: every open item is ticked, so it moves to the Archive tab. */
+function archive() {
+  const l = tl.value;
+  if (!l) return;
+  l.items.filter((i) => !i.done).forEach((i) => patchItem(props.id, i.id, { done: true }));
+  lists.markFinished(props.id);
+}
+function onMenu(id: string) {
+  if (id === 'edit') edit();
+  else if (id === 'duplicate' && tl.value) duplicateList(tl.value, cats.on.value);
+  else if (id === 'archive') archive();
+  else if (id === 'template') savingTemplate.value = true;
+  else if (id === 'leave') void leave();
+  else if (id === 'delete') remove();
+}
 /** An item was dropped on place `to`: a pending item delete is sent first (the server needs every item id), then the move. */
 function move(itemId: string, to: number) {
   pendingDeletes.flushList(props.id);
@@ -267,15 +298,18 @@ defineExpose({ root, busy });
           v-if="renaming" v-model="nameDraft" class="name-in" data-testid="tasklist-expanded-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.titleLabel')"
           @keydown.enter.prevent="commitRename" @keydown.esc.stop.prevent="renaming = false" @blur="commitRename"
         />
-        <button v-else-if="displayTitle(tl)" class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
+        <Pressable v-else-if="displayTitle(tl)" class="name" type="button" data-testid="tasklist-expanded-title" :data-struck="complete ? 'true' : undefined" @click="titleOpensDialog ? edit() : startRename()">
           <span v-if="icon" class="emoji" aria-hidden="true">{{ icon }}</span><span class="tx">{{ displayTitle(tl) }}<StrikeLine v-if="complete" :draw="strikeDraw" /></span>
-        </button>
+        </Pressable>
         <p class="sub">
           <span :key="tl.doneCount" class="cnt" data-testid="tasklist-expanded-count">{{ tl.doneCount }}/{{ tl.totalCount }}</span>
           <span v-if="carried" class="from" data-testid="tasklist-card-overdue">{{ carriedLabel(tl.date) }}</span>
           <span v-if="badge" class="shared" data-testid="tasklist-shared-badge" :title="badgeText" :aria-label="badgeText">{{ badge }}</span>
         </p>
       </div>
+      <OverflowMenu
+        v-if="!compact" :label="t('tasks.list.more', { name: displayTitle(tl) })" :items="menuItems" :danger="['delete', 'leave']" testid="tasklist-overflow" @select="onMenu"
+      />
       <IconButton
         v-if="!closable" class="chev" :class="{ open: !collapsed }" :label="collapsed ? t('tasks.list.expand') : t('tasks.list.collapse')" :aria-expanded="!collapsed"
         data-testid="tasklist-collapse" @click="setCollapsed(id, !collapsed)"
@@ -300,7 +334,7 @@ defineExpose({ root, busy });
               v-else-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.itemTitle')"
               @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
             />
-            <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
+            <Pressable v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></Pressable>
             <span class="grip" data-item-grip data-testid="tasklist-item-grip" role="img" :aria-label="t('tasks.list.dragItem', { title: item.title })" :title="t('tasks.list.dragItem', { title: item.title })"><IconGrip /></span>
             <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
           </li>
@@ -320,12 +354,7 @@ defineExpose({ root, busy });
         <InkTools v-if="writing && !compact" class="inktools" :can-undo="inkWriting.canUndo.value" @undo="inkWriting.undo" />
 
         <footer v-if="!compact" class="foot">
-          <Button variant="text" class="squeeze" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
-          <Button v-if="!noTemplate" variant="tonal" class="tpl" data-testid="tasklist-save-template" @click="savingTemplate = true">{{ t('tasks.templates.save') }}</Button>
-          <span class="grow" />
-          <Button variant="text" class="squeeze" :aria-label="t('tasks.list.edit')" :title="t('tasks.list.edit')" data-testid="tasklist-edit" @click="edit"><template #icon><IconEdit /></template><span class="blab">{{ t('tasks.list.edit') }}</span></Button>
-          <Button v-if="isMemberOnly(tl)" variant="text" class="danger squeeze" :aria-label="t('sharing.leave')" :title="t('sharing.leave')" data-testid="tasklist-leave" @click="leave"><template #icon><IconDelete /></template><span class="blab">{{ t('sharing.leave') }}</span></Button>
-          <Button v-else variant="text" class="danger squeeze" :aria-label="t('tasks.list.delete')" :title="t('tasks.list.delete')" data-testid="tasklist-delete" @click="remove"><template #icon><IconDelete /></template><span class="blab">{{ t('tasks.list.delete') }}</span></Button>
+          <Button variant="tonal" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
         </footer>
       </div>
     </Transition>
@@ -382,15 +411,6 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
 .add { margin-top: 4px; }
 .new::placeholder { color: var(--md-sys-color-on-surface-variant); }
 .foot { display: flex; align-items: center; gap: 2px; margin-top: 4px; flex-wrap: wrap; container-type: inline-size; }
-/* a phone-wide footer keeps one row with "Save as template" in it: Edit and Delete show their icons only (the words
-   stay as their label and tooltip) */
-@container (max-width: 440px) {
-  .blab { display: none; }
-  .foot { gap: 0; }
-  .foot .squeeze { padding: 0 8px; }
-  .foot .tpl { padding: 0 10px; }
-}
-.grow { flex: 1; }
 /* an ink item: the line of ink takes the place of the title; a ticked one is struck through like a title and faded */
 .inkcell { padding: 0; min-height: 0; position: relative; }
 .ticked .inkcell::after { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1.6px; background: currentColor; }
@@ -403,9 +423,6 @@ html[data-hand='left'][data-touch] .mirror .nextline { padding-left: 40px; paddi
 .ruled { --ink-h: 52px; }
 .ruled .row { min-height: 52px; border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
 .inktools { margin-top: 4px; }
-/* the tonal pill sits between "Add item" and Edit/Delete; compact so the footer stays one row on a phone */
-.foot .tpl { padding: 0 14px; }
-.danger { color: var(--md-sys-color-error); }
 @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes bump { 0% { transform: scale(0.7); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 @keyframes tickflash { 0% { background: color-mix(in srgb, var(--c) 38%, transparent); } 100% { background: transparent; } }

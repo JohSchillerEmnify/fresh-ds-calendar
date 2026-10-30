@@ -7,6 +7,8 @@
  * as its content needs. Full motion scales it out of the pill's corner (transform and opacity only); Reduced fades;
  * Off just shows. Escape, a tap outside, the header pill or Tab leaving the panel close it.
  */
+import Pressable from '@/components/m3/Pressable.vue';
+import { elOf } from '@/lib/elOf';
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import type { TaskTemplate } from '@/api/types';
 import { t } from '@/i18n';
@@ -25,7 +27,9 @@ const settings = useSettingsStore();
 const cats = useTaskCategories();
 
 const open = ref(false);
-const pill = ref<HTMLButtonElement | null>(null);
+const pillRef = ref<unknown>(null);
+/** The `Pressable`'s element (a template ref points at the component). */
+const pill = computed(() => elOf(pillRef.value) as HTMLButtonElement | null);
 const panel = ref<HTMLElement | null>(null);
 let closing = false;
 const label = computed(() => props.picked ?? t('tasks.templates.fromTemplate'));
@@ -112,34 +116,34 @@ defineExpose({ open });
 
 <template>
   <div class="tp">
-    <button
-      ref="pill" v-ripple type="button" class="pill" :class="{ hidden: open }" aria-haspopup="true" :aria-expanded="open"
+    <Pressable
+      ref="pillRef" v-ripple type="button" class="pill" :class="{ hidden: open }" aria-haspopup="true" :aria-expanded="open"
       data-testid="tasklist-from-template" @click="show"
     >
       <span class="lab" data-testid="tasklist-from-template-label">{{ label }}</span>
       <IconDown class="caret" aria-hidden="true" />
-    </button>
+    </Pressable>
     <div
       v-if="open" ref="panel" class="menu" role="group" tabindex="-1" :aria-label="t('tasks.templates.menu')" data-testid="template-picker"
       @keydown.esc.stop.prevent="hide(true)" @focusout="focusOut"
     >
       <div class="head">
-        <button type="button" class="pill" aria-expanded="true" data-testid="template-picker-header" @click="hide(true)">
+        <Pressable type="button" class="pill" aria-expanded="true" data-testid="template-picker-header" @click="hide(true)">
           <span class="lab">{{ label }}</span>
           <IconUp class="caret" aria-hidden="true" />
-        </button>
+        </Pressable>
       </div>
       <div class="content">
-        <button
+        <Pressable
           v-for="r in rows" :key="r.tpl.id" type="button" class="item" data-testid="template-picker-item"
           :data-name="r.tpl.name" :data-count="r.tpl.items.length" @click="choose(r.tpl)"
         >
           <span class="name" data-testid="template-picker-name">{{ r.tpl.name }}</span>
           <span class="details" data-testid="template-picker-details">{{ r.details }}</span>
-        </button>
+        </Pressable>
         <p v-if="templates.loaded && !rows.length" class="empty" data-testid="template-picker-empty">{{ t('tasks.templates.empty') }}</p>
         <hr class="divider" data-testid="template-picker-divider" />
-        <button type="button" class="item manage" data-testid="template-picker-manage" @click="manage">{{ t('tasks.templates.manage') }}</button>
+        <Pressable type="button" class="item manage" data-testid="template-picker-manage" @click="manage">{{ t('tasks.templates.manage') }}</Pressable>
       </div>
     </div>
   </div>

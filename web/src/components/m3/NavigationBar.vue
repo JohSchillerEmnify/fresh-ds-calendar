@@ -24,9 +24,9 @@ defineEmits<{ 'update:modelValue': [id: string] }>();
 .nav-bar[data-size='expressive'] { --nb-h: 64px; }
 .nav-bar[data-size='compact'] { --nb-h: 52px; }
 .nav-bar[data-hidden='true'] { transform: translateY(calc(100% + var(--safe-bottom) + 16px)); }
-/* Tablet and desktop: docked under the calendar (never over its hours or the tasks panel), inset and round like the phone's bar */
+/* Tablet and desktop: the same floating bar, 16 px from the edges; the body reserves its room (App.vue) */
 @media (min-width: 768px) {
-  .nav-bar { position: relative; flex: none; left: auto; right: auto; bottom: auto; margin: 0 12px calc(var(--safe-bottom) + 8px); }
+  .nav-bar { left: 16px; right: 16px; bottom: calc(var(--safe-bottom) + 16px); }
 }
 /* Compact: the + button sits beside the bar, on the thumb side (feature nav-expressive). */
 .nav-bar[data-size='compact'] { right: calc(12px + 52px + 8px); }

@@ -4,6 +4,8 @@
  * The parent places it in a 7-column grid (`--c0`, `--c1`, `--lane`). Tap opens the event; dragging moves the whole
  * event by whole days (`chip`: month view, drawn like a chip of that cell, no continuation arrows): the shift is the drop cell minus the day cell the bar was grabbed on.
  */
+import Pressable from '@/components/m3/Pressable.vue';
+import { elOf } from '@/lib/elOf';
 import { computed, ref } from 'vue';
 import { onColor } from '@/api/colors';
 import { openItem } from '@/extensions/registry';
@@ -15,7 +17,9 @@ import { useCalendarDrag } from './dnd';
 import { t } from '@/i18n';
 
 const props = defineProps<{ bar: Bar; dates: string[]; chip?: boolean }>();
-const root = ref<HTMLElement | null>(null);
+const rootRef = ref<unknown>(null);
+/** The `Pressable`'s element (a template ref points at the component). */
+const root = computed(() => elOf(rootRef.value));
 const ev = computed(() => props.bar.item);
 let grab = props.bar.startDate;
 function onDown(e: PointerEvent) {
@@ -35,8 +39,8 @@ function onClick(e: MouseEvent) {
 </script>
 
 <template>
-  <button
-    ref="root" v-ripple class="bar skin" :class="{ from: bar.continuedFromPrev, next: bar.continuesToNext, chip }" type="button" data-testid="event-bar"
+  <Pressable
+    ref="rootRef" v-ripple class="bar skin" :class="{ from: bar.continuedFromPrev, next: bar.continuesToNext, chip }" type="button" data-testid="event-bar"
     :data-event-id="ev.id" :data-title="ev.title" :data-start="bar.startDate" :data-end="bar.endDate" :data-lane="bar.lane" :data-all-day="ev.allDay"
     :data-color="ev.color" :data-special="ev.special" :style="{ '--c': ev.color, '--on-solid': onColor(ev.color), gridColumn: `${bar.startCol + 1} / ${bar.endCol + 2}`, gridRow: bar.lane + 1 }"
     :aria-label="t('calendar.item.range', { title: ev.title, start: bar.startDate, end: bar.endDate })" @pointerdown.capture="onDown" @click="onClick"
@@ -44,7 +48,7 @@ function onClick(e: MouseEvent) {
     <span v-if="!chip && bar.continuedFromPrev" class="arr" aria-hidden="true">◂</span>
     <span class="title" data-testid="event-bar-title"><span v-if="marker" data-testid="event-marker" aria-hidden="true">{{ marker }} </span>{{ ev.title }}</span>
     <span v-if="!chip && bar.continuesToNext" class="arr" aria-hidden="true">▸</span>
-  </button>
+  </Pressable>
 </template>
 
 <style scoped>

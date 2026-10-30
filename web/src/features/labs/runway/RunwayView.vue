@@ -5,6 +5,7 @@
  * everywhere) and a line with the time until bed and the free time. It follows the app clock's minute tick; it has no
  * timer of its own. Without bedtime mode or during the night it shows one calm line instead.
  */
+import Pressable from '@/components/m3/Pressable.vue';
 import { computed, ref, watch } from 'vue';
 import { useElementSize } from '@vueuse/core';
 import { useRouter } from 'vue-router';
@@ -69,7 +70,7 @@ watch(() => clock.today, () => {
     <div v-else class="calm">
       <IconBedtime class="calm-icon" />
       <p class="message" data-testid="runway-message">{{ model.kind === 'off' ? t('bedtime.runway.off') : t('bedtime.runway.passed', { time: model.bedtime }) }}</p>
-      <button v-if="model.kind === 'off'" type="button" class="btn" data-testid="runway-settings" @click="router.push('/settings')">{{ t('bedtime.runway.openSettings') }}</button>
+      <Pressable v-if="model.kind === 'off'" type="button" class="btn" data-testid="runway-settings" @click="router.push('/settings')">{{ t('bedtime.runway.openSettings') }}</Pressable>
     </div>
   </section>
 </template>

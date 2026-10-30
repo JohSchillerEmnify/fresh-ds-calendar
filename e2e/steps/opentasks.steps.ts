@@ -4,7 +4,7 @@ import type { DataTable } from 'playwright-bdd';
 import { Given, Then, When } from './fixtures.js';
 import { berlinIso } from './support/dates.js';
 import { cssColorToRgba } from './support/color.js';
-import { expectJoined } from './support/ui.js';
+import { chooseListAction, expectJoined } from './support/ui.js';
 import { attr, exactText, type World } from './support/world.js';
 
 const trayItems = (w: World) => w.page.getByTestId('task-tray-item');
@@ -51,7 +51,7 @@ When('I add the item {string} to {string} in the open tasks tray', async functio
 
 When('I edit the details of {string} in the open tasks tray', async function (this: World, list: string) {
   await openTray(this);
-  await trayRow(this, list).getByTestId('tasklist-edit').click();
+  await chooseListAction(this.page, trayRow(this, list), 'tasklist-edit');
 });
 
 Then('the open tasks tray shows the message {string} for {string}', async function (this: World, text: string, list: string) {

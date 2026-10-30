@@ -6,7 +6,7 @@ import { field, fillField, readField, type FieldKind } from './support/forms.js'
 import { expectPositioned } from './support/grid.js';
 import { dragItem, expandTaskList, itemById } from './support/tasklist.js';
 import { cellValue, formRows } from './support/tables.js';
-import { box, expectInViewport, expectJoined } from './support/ui.js';
+import { box, chooseListAction, expectInViewport, expectJoined } from './support/ui.js';
 import { attr, exactText, tid, type World } from './support/world.js';
 
 const dialog = (w: World) => w.page.getByTestId('tasklist-dialog');
@@ -395,12 +395,12 @@ Then('the item {string} has the drag handle {string}', async function (this: Wor
 });
 
 When('I edit the task list details', async function (this: World) {
-  await this.expanded.getByTestId('tasklist-edit').click();
+  await chooseListAction(this.page, this.expanded, 'tasklist-edit');
   await expect(dialog(this)).toBeVisible();
 });
 
 When('I delete the task list', async function (this: World) {
-  await this.expanded.getByTestId('tasklist-delete').click();
+  await chooseListAction(this.page, this.expanded, 'tasklist-delete');
 });
 
 const cardOf = (w: World, title: string) => w.page.getByTestId('tasklist-card').filter({ has: w.page.getByTestId('tasklist-card-title').getByText(title, { exact: true }) }).first();

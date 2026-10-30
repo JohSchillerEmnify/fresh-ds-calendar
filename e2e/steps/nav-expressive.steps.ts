@@ -2,6 +2,7 @@
 import { expect, type Locator } from '@playwright/test';
 import { Given, Then, When } from './fixtures.js';
 import { box, chooseOption, viewport } from './support/ui.js';
+import { wheel } from './support/scroll.js';
 import type { World } from './support/world.js';
 
 const SIZES: Record<string, 'expressive' | 'compact'> = { Expressive: 'expressive', Compact: 'compact' };
@@ -88,18 +89,6 @@ Then('the settings offer no rail size', async function (this: World) {
 });
 
 // --- hiding on scroll -------------------------------------------------------------------------------------------------
-
-/** Turns the wheel over the calendar in steps, like a person's flick. */
-async function wheel(w: World, dy: number) {
-  const area = w.page.locator('[data-scroll-area]').first();
-  const b = await box(area);
-  await w.page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
-  const steps = Math.max(1, Math.ceil(Math.abs(dy) / 60));
-  for (let i = 0; i < steps; i++) {
-    await w.page.mouse.wheel(0, dy / steps);
-    await w.page.waitForTimeout(30);
-  }
-}
 
 When('I scroll the calendar down by {int} pixels', async function (this: World, px: number) {
   await wheel(this, px);
@@ -202,4 +191,26 @@ Then('the top bar has no filter button and no settings button', async function (
 Then('the top bar has no filter button', async function (this: World) {
   await expect(this.page.getByTestId('top-bar')).toBeVisible();
   await expect(this.page.getByTestId('filter-button')).toHaveCount(0);
+});
+
+// --- room of the bar --------------------------------------------------------------------------------------------------
+
+/** The bottoms of the visible calendar scroller(s) and the open tasks tray. */
+const contentBottoms = (w: World) => w.page.evaluate(() => [...document.querySelectorAll('[data-scroll-area], [data-testid="task-tray"]')]
+  .map((e) => e.getBoundingClientRect()).filter((r) => r.width > 1 && r.height > 1).map((r) => r.bottom));
+
+Then('the bottom bar floats {int} pixels from the edges of the screen', async function (this: World, px: number) {
+  const b = await box(bar(this));
+  const v = viewport(this.page);
+  expect([b.x, v.width - (b.x + b.width), v.height - (b.y + b.height)].map(Math.round)).toEqual([px, px, px]);
+});
+
+Then('the calendar ends above the bottom bar', async function (this: World) {
+  const top = (await box(bar(this))).y;
+  for (const bottom of await contentBottoms(this)) expect(bottom, 'content bottom').toBeLessThanOrEqual(top + 1);
+});
+
+Then('nothing is reserved at the bottom of the screen', async function (this: World) {
+  const v = viewport(this.page);
+  await expect.poll(async () => Math.max(...(await contentBottoms(this))), { message: 'lowest content reaches the screen bottom' }).toBeGreaterThanOrEqual(v.height - 1);
 });

@@ -2241,7 +2241,7 @@ the card of the task list {string} in the Tasks view shows no items
 the card of the task list {string} in the Tasks view shows the done count {string}
 I collapse all task lists in the Tasks view
 I expand all task lists in the Tasks view
-the Add item button of the task list {string} in the Tasks view shares a row with Edit and Delete
+the Add item button of the task list {string} in the Tasks view is the only button of the card footer
 the add field of the task list {string} in the Tasks view is hidden
 the add field of the task list {string} in the Tasks view is shown
 I tap Add item of the task list {string} in the Tasks view
@@ -2254,9 +2254,9 @@ neither the calendar on {date} nor the open tasks tray shows the task list {stri
   clicks its `tasklist-collapse` when its `aria-expanded` differs; "is collapsed / expanded" = `data-collapsed` on
   its `tasklist-view` is `true` / `false`; "shows no items" = no visible `tasklist-item`; "shows the items" = the
   visible `tasklist-item` `data-title`s joined by ", "; "shows the done count" = `tasklist-expanded-count`.
-  "collapse/expand all" clicks `tasks-collapse-all` until every card shows the wanted state. "shares a row with
-  Edit and Delete": `tasklist-add`, `tasklist-edit` and `tasklist-delete` have the same vertical centre (within
-  4 px). "the add field is hidden / shown" = `tasklist-new-item` not visible / visible; "I tap Add item" clicks
+  "collapse/expand all" clicks `tasks-collapse-all` until every card shows the wanted state. "is the only button of
+  the card footer": the card's `footer` holds exactly one button, `tasklist-add` (Edit, Delete and the rest are in the
+  overflow menu `tasklist-overflow`). "the add field is hidden / shown" = `tasklist-new-item` not visible / visible; "I tap Add item" clicks
   `tasklist-add`.
 - "undated task list" fixture: `POST /api/tasklists` with `date: null`; items table as usual.
 - "I create the task list T in the Tasks view": `create-button` (in the Tasks view it opens the task list dialog
@@ -2324,6 +2324,7 @@ I have the template {string} with the items {string}, the estimate {int} minutes
 the calendar contains a task list {string} in the category {string} on {date} at {time} for {int} minutes with items:
 I save the task list as a template
 the footer of the expanded task list shows {string}
+the overflow menu of the expanded task list lists {string}
 the template dialog previews the items {string}
 the task list {string} in the Archive offers {string} and {string}
 the template name field shows {string}
@@ -2368,14 +2369,13 @@ I have no templates
 - "the calendar contains a task list … in the category C on D at T for N minutes with items:": `POST /api/tasklists`
   with `categoryId`, `time`, `estimateMinutes` and the items table (ticks included).
 - "I save the task list as a template": in the open list sheet (`tasklist-expanded`; "I expand the task list" opens
-  it) clicks `tasklist-save-template` in the footer next to Edit and Delete; `template-save-dialog` opens with
+  it) opens the overflow menu `tasklist-overflow` and presses `tasklist-save-template`; `template-save-dialog` opens with
   `template-save-name` prefilled with the list's title. "the template name field shows N" = value of
   `template-save-name`; "I enter the template name N" replaces it; "I confirm the template" clicks
   `template-save-confirm` and, when no error shows, waits for the `POST /api/templates` response (201).
-  `tasklist-save-template` is a tonal pill. "the footer of the expanded task list shows "A, B"" = the visible buttons
-  in the footer of `tasklist-expanded` (`tasklist-add`, `tasklist-save-template`, `tasklist-edit`,
-  `tasklist-delete`/`tasklist-leave`) in visual order (left to right, then top to bottom), by their label (`aria-label`,
-  else their text: a phone-wide footer shows Edit and Delete as icons only).
+  "the footer of the expanded task list shows "A, B"" = the texts of the buttons in the `footer` of `tasklist-expanded`
+  (only Add item since the overflow menu, ADR 0032). "the overflow menu of the expanded task list lists "A, B"" opens
+  `tasklist-overflow`, joins the `menuitem` texts of the open `menu` and closes it with Escape.
   "the template dialog previews the items "A, B"" = the `template-save-item` texts in `template-save-dialog`, joined.
 - "the task list L in the Archive offers A and B": L's `tasks-archive-item` shows `tasks-archive-duplicate` with text
   A and `tasklist-save-template` with text B (the Archive keeps its one-off copy, renamed "Copy", owner 2026-10-25).
@@ -3344,7 +3344,7 @@ the damaged file is kept as {string} with its old content
 ## UI redesign E, Material 3 Expressive (`@id:ui-expressive`, `@id:nav-expressive`, `@id:header-expressive`, `@id:tasks-toolbar`; ADR 0032)
 
 Built so far: the bottom bar, side menu, top bar size and scene steps (`e2e/steps/nav-expressive.steps.ts`, `header-expressive.steps.ts`) and the
-filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar) are `@backlog`. "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
+filled-button, icon-label and theme-corner steps (`ui-expressive.steps.ts`); the rest (dialogs, settings, overflow, button group, lint gate, tasks toolbar). "filled" = the button's drawn background (the Today `.pill`) is the `--md-sys-color-primary` or `--md-sys-color-primary-container` colour; "fully round" is checked for the bottom bar and the icon and view buttons of both bars (not the date title, a text button, nor the + button, an M3 rounded square). Prefs: `bottomBarSize` `auto|expressive|compact` (auto = Compact on phones, Expressive elsewhere); `headerLayout`
 `auto|two-rows|one-row` (`two-rows` = Expressive, `one-row` = Compact, same auto rule); `navPhone` gains `drawer` = "Side menu".
 Desktop and tablets keep one rail size. "the bottom bar size S is the default" / "the top bar size S is the default" check that the
 pref is still `auto` and that `bottom-bar` / `top-bar` carry `data-size` S.
@@ -3374,6 +3374,9 @@ the bottom bar size is set to {string}
 I choose {string} as the bottom bar size
 the bottom bar size {string} is the default
 the bottom bar floats above the calendar
+the bottom bar floats {int} pixels from the edges of the screen
+the calendar ends above the bottom bar
+nothing is reserved at the bottom of the screen
 the bottom bar is {int} pixels tall
 every item of the bottom bar shows an icon and a label
 only the open view of the bottom bar shows a label
@@ -3419,6 +3422,11 @@ the floating toolbar is hidden
 the floating toolbar is shown
 ```
 
+- "the bottom bar floats N pixels from the edges of the screen": the `bottom-bar` box has N px left, right and below it (the
+  test viewport has no safe-area inset). "the calendar ends above the bottom bar": the bottom of every visible
+  `[data-scroll-area]` and of `task-tray` is at or above the top of the bar. "nothing is reserved at the bottom of the
+  screen": the lowest of the visible `[data-scroll-area]` and `task-tray` boxes ends within 1 px of `innerHeight` (the room
+  of a slid-away bar is given back).
 - Meaning, for the builder: "filled" = a solid primary-coloured container (M3 filled button, FAB); "tonal" = secondary
   container; icon-only buttons are judged by their `aria-label`. "fully round corners" = computed radius at least half the
   shorter side. "the bottom bar is N pixels tall" is the `bottom-bar` box without the safe-area inset. "hidden" = moved out of
@@ -3429,8 +3437,8 @@ the floating toolbar is shown
 - "the Mordor eye and tower sit between ...": the `data-part` boxes `mordor-eye` and `mordor-tower` lie horizontally between
   the right edge of `period-title` and the left edge of the first icon.
 - Side menu hooks: `menu-button`, `side-menu` (`data-open`), `side-menu-view-<year|month|week|day|tasks>`,
-  `side-menu-calendar` (`data-name`, checkbox), `side-menu-settings`; floating toolbar `list-toolbar` with
-  `list-tool-filter|sort|fold`; overflow `card-overflow`; group `tasks-mode-group`.
+  `side-menu-calendar` (`data-name`, checkbox), `side-menu-settings`; floating toolbar `tasks-floating-toolbar` with
+  `tasks-filter-open|tasks-sort-open|tasks-collapse-all`; overflow `tasklist-overflow` (menu items `tasklist-edit|duplicate|archive|save-template|delete`); group = the `role=group` named "Tasks".
 ## Handwritten lists (`@id:handwritten-lists`, Labs; the `@backlog` scenarios are not built yet)
 
 ```

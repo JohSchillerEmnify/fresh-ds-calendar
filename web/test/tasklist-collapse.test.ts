@@ -98,10 +98,11 @@ describe('collapsible task list card', () => {
 });
 
 describe('compact footer', () => {
-  it('puts Add item in the footer row with Edit and Delete; the field shows only while adding', async () => {
+  it('has Add item as the only footer button (Edit and Delete are in the overflow menu); the field shows only while adding', async () => {
     const w = await open('G');
     const foot = w.get('footer');
-    expect(foot.find(tid('tasklist-add')).exists() && foot.find(tid('tasklist-edit')).exists() && foot.find(tid('tasklist-delete')).exists()).toBe(true);
+    expect(foot.findAll('button')).toHaveLength(1);
+    expect(foot.find(tid('tasklist-add')).exists() && w.find(tid('tasklist-overflow')).exists()).toBe(true);
     expect(w.find(tid('tasklist-new-item')).exists()).toBe(false);
     await w.get(tid('tasklist-add')).trigger('click');
     expect(w.find(tid('tasklist-new-item')).exists()).toBe(true);

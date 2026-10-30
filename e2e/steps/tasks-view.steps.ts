@@ -213,14 +213,10 @@ When('I expand all task lists in the Tasks view', async function (this: World) {
   await setAllCollapsed(this, false);
 });
 
-Then('the Add item button of the task list {string} in the Tasks view shares a row with Edit and Delete', async function (this: World, title: string) {
-  const view = cardView(this, title);
-  const centres = await Promise.all(['tasklist-add', 'tasklist-edit', 'tasklist-delete'].map(async (id) => {
-    const box = await view.getByTestId(id).boundingBox();
-    expect(box, id).not.toBeNull();
-    return box!.y + box!.height / 2;
-  }));
-  expect(Math.max(...centres) - Math.min(...centres)).toBeLessThanOrEqual(4);
+Then('the Add item button of the task list {string} in the Tasks view is the only button of the card footer', async function (this: World, title: string) {
+  const buttons = cardView(this, title).locator('footer button');
+  await expect(buttons).toHaveCount(1);
+  await expect(buttons).toHaveAttribute('data-testid', 'tasklist-add');
 });
 
 Then('the add field of the task list {string} in the Tasks view is hidden', async function (this: World, title: string) {

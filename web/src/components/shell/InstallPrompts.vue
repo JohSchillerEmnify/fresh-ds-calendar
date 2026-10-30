@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Pressable from '@/components/m3/Pressable.vue';
 import { IconDownload, IconIosShare as IconShare } from '@/components/icons';
 import Button from '@/components/m3/Button.vue';
 
@@ -12,7 +13,7 @@ defineProps<{ part: 'button' | 'hint' }>();
   <div v-if="part === 'hint' && showIosHint" class="hint" role="note" data-testid="ios-install-hint">
     <IconShare class="ico" aria-hidden="true" />
     <span>{{ t('calendar.install.iosHint') }}</span>
-    <button type="button" class="x" :aria-label="t('calendar.actions.dismiss')" data-testid="ios-install-hint-dismiss" @click="dismissIosHint">✕</button>
+    <Pressable type="button" class="x" :aria-label="t('calendar.actions.dismiss')" data-testid="ios-install-hint-dismiss" @click="dismissIosHint">✕</Pressable>
   </div>
 </template>
 

@@ -19,6 +19,7 @@ import { t } from '@/i18n';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
+import { isPhone } from '@/composables/useViewport';
 import type { TasksTab } from './tasksStore';
 import { useTaskCategories } from './categories';
 import { filterActive, NO_FILTER, toggleCategory, WHEN_VALUES } from './tasksFilter';
@@ -31,6 +32,8 @@ const settings = useSettingsStore();
 const ui = useUiStore();
 
 const cats = useTaskCategories();
+/** Slides away with the bottom bar (a sheet open also takes it off the phone's screen). */
+const away = computed(() => ui.barHidden || (isPhone.value && ui.panelOpen));
 const filter = computed(() => cats.filter.value);
 const active = computed(() => filterActive(filter.value));
 const whenLabel = (w: TasksWhen): string => t(`tasks.filter.whenOption.${w}`);
@@ -79,14 +82,12 @@ const orderDisabled = computed(() => props.tab !== 'open');
 
 <template>
   <div class="tb" data-testid="tasks-toolbar">
-    <div class="row">
-      <button type="button" class="btn" :class="{ on: active }" data-testid="tasks-filter-open" aria-haspopup="dialog" @click="filterOpen = true">
-        <IconFilter aria-hidden="true" /><span class="lbl">{{ t('tasks.filter.label') }}</span>
-        <b v-if="active" class="badge" data-testid="tasks-filter-count">{{ chips.length }}</b>
-      </button>
-      <button type="button" class="btn grow" data-testid="tasks-sort-open" aria-haspopup="dialog" :disabled="orderDisabled" @click="sortOpen = true">
-        <IconSort aria-hidden="true" /><span class="lbl">{{ summary }}</span>
-      </button>
+    <p v-if="!orderDisabled" class="summary" data-testid="tasks-sort-summary">{{ summary }}</p>
+    <div class="ftb" :class="{ away }" role="toolbar" :aria-label="t('tasks.view.toolbar')" data-testid="tasks-floating-toolbar" :data-hidden="away ? 'true' : 'false'" :inert="away">
+      <IconButton :label="t('tasks.filter.label')" :pressed="active" data-testid="tasks-filter-open" aria-haspopup="dialog" @click="filterOpen = true">
+        <IconFilter /><b v-if="active" class="badge" data-testid="tasks-filter-count">{{ chips.length }}</b>
+      </IconButton>
+      <IconButton :label="t('tasks.view.sortLabel')" :disabled="orderDisabled" data-testid="tasks-sort-open" aria-haspopup="dialog" @click="sortOpen = true"><IconSort /></IconButton>
       <IconButton
         :label="allCollapsed ? t('tasks.view.expandAll') : t('tasks.view.collapseAll')" :pressed="allCollapsed" :disabled="!canCollapse" data-testid="tasks-collapse-all"
         @click="emit('collapse')"
@@ -153,16 +154,19 @@ const orderDisabled = computed(() => props.tab !== 'open');
 .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .row.active { overflow-x: auto; scrollbar-width: none; }
 .row.active::-webkit-scrollbar { display: none; }
-.btn {
-  position: relative; flex: none; min-height: 40px; max-width: 100%; padding: 0 14px; border-radius: var(--md-sys-shape-corner-full); display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-on-surface); font: var(--md-sys-typescale-label-large); min-width: 0;
+/* floats beside the + button, same height; only the + is filled (feature tasks-toolbar) */
+.summary { margin: 0; padding: 0 8px; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
+.ftb {
+  position: fixed; z-index: 30; left: calc(16px + var(--safe-left)); bottom: calc(var(--navbar-h) + var(--safe-bottom) + 12px); height: 64px; box-sizing: border-box; padding: 0 8px;
+  display: flex; align-items: center; gap: 4px; border-radius: var(--md-sys-shape-corner-full); background: var(--md-sys-color-surface-container-high); box-shadow: var(--md-sys-elevation-2);
+  transition: transform 220ms var(--md-sys-motion-spring), opacity 160ms linear;
 }
-.btn.grow { flex: 0 1 auto; }
-.btn.on { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
-.btn:disabled { opacity: 0.38; }
-.btn :deep(svg) { width: 20px; height: 20px; flex: none; }
-.lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge { min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px; font: var(--md-sys-typescale-label-small); display: inline-flex; align-items: center; justify-content: center; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.ftb.away { transform: translateY(calc(100% + 24px + var(--safe-bottom))); opacity: 0; pointer-events: none; }
+.ftb :deep(.icon-btn) { width: 48px; height: 48px; position: relative; }
+html[data-hand='left'][data-touch] .ftb { left: auto; right: calc(16px + var(--safe-right)); }
+html[data-nav-pos='rail'] .ftb { left: calc(var(--rail-w) + 16px + var(--safe-left)); }
+@media (min-width: 768px) { .ftb { bottom: calc(var(--navbar-h) + var(--safe-bottom) + 24px); } }
+.badge { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px; font: var(--md-sys-typescale-label-small); display: inline-flex; align-items: center; justify-content: center; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .x { width: 16px; height: 16px; margin-left: 4px; }
 .sheet { display: flex; flex-direction: column; gap: 12px; }
 .t { margin: 8px 0 0; font: var(--md-sys-typescale-title-large); }
