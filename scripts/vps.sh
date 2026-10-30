@@ -67,6 +67,8 @@ REMOTE
     read -rp "ALLOWED_EMAILS (comma-separated): " emails
     printf 'CAL_DOMAIN=%s\nPUBLIC_URL=https://%s\nGOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nALLOWED_EMAILS=%s\nTZ=Europe/Berlin\n' \
       "$CAL_DOMAIN" "$CAL_DOMAIN" "$id" "$secret" "$emails" | on_vps 'mkdir -p /opt/calendar && umask 077 && cat > /opt/calendar/.env'
+    # the key that encrypts the stored Google tokens is made on the VPS and never leaves it
+    on_vps 'echo "TOKEN_ENC_KEY=$(openssl rand -base64 32)" >> /opt/calendar/.env'
     echo "written /opt/calendar/.env"
     ;;
   deploy)
@@ -74,6 +76,8 @@ REMOTE
     on_vps 'test -f /opt/calendar/.env' || { echo "no /opt/calendar/.env yet: run scripts/vps.sh env" >&2; exit 1; }
     # an .env from before CAL_DOMAIN existed gets the line (Caddy and compose need it)
     on_vps "grep -q '^CAL_DOMAIN=.' /opt/calendar/.env || echo 'CAL_DOMAIN=$CAL_DOMAIN' >> /opt/calendar/.env"
+    # an .env from before token encryption gets a key (made on the VPS; losing it only means signing in again)
+    on_vps "grep -q '^TOKEN_ENC_KEY=.' /opt/calendar/.env || echo \"TOKEN_ENC_KEY=\$(openssl rand -base64 32)\" >> /opt/calendar/.env"
     scp "${OPTS[@]}" -q "$here/deploy/vps/compose.yml" "$here/deploy/vps/Caddyfile" "$HOST:/opt/calendar/"
     version="$("$here/scripts/version.sh")+$(git -C "$here" rev-parse --short HEAD)"
     docker build -q -t calendar:latest --build-arg "APP_VERSION=$version" "$here"
