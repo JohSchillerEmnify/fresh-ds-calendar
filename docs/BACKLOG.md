@@ -40,6 +40,9 @@ Tracked here so it survives across sessions. Newest first within each section. M
 
 ## Tech debt
 
+- **Handwritten lists, left-handed: test with a left-handed person** (owner, 2026-10-30). Today only the tool row (and
+  Save/Cancel) mirror; if writing on the rows is harder for a left-hander, mirror the rows too.
+
 - **Accessibility audit** (owner, 2026-10-26: "we anyway need an accessibility audit at some point"). Go through the app
   with screen readers (VoiceOver on iPhone, TalkBack on Android), keyboard only, 200–400 % zoom, reduced motion and
   high contrast: labels and roles, focus order and visible focus, tap target sizes (44 px is our comfort target, WCAG 2.2
