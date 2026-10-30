@@ -3068,8 +3068,6 @@ the all-day row is not shown
 the tasks section switch is shown
 the tasks section switch is not shown
 I pick up the task list {string}
-no character of the top bar scene is under a control
-the top bar scene's parts are drawn at their full size
 the top bar scene does not show the {string}
 the Approaching card is off
 I see the Approaching card
@@ -3092,7 +3090,7 @@ the top bar's widgets are in reverse order
   layout is set to L" (Given) sends `PATCH /api/prefs { headerLayout }` through the API before the page is opened. The setting is
   now chosen with "I choose S as the top bar size" (see "UI redesign E").
 - "the top bar is in one row": the visible `period-title`, `nav-today` and `settings-button` (and `nav-prev` / `nav-next`
-  where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows": `nav-today`'s top is at or below `period-title`'s bottom.
+  where shown: desktop with a mouse) have vertical centres within 6 px of each other. "in two rows" (Expressive): the `top-bar` is at least 80 px tall (one row of controls over the full scene, the scene's strip below).
 - "the top bar is at most N pixels tall": the `top-bar` box height minus the top safe-area padding is at most N (1 px slack).
 - "the period title is not cut short": the title text (`period-title .t`) has `scrollWidth <= clientWidth`. "the period
   title's font size is N pixels": the computed `font-size` of `period-title .t` is N px. "the period title's chevron is
@@ -3125,11 +3123,6 @@ the top bar's widgets are in reverse order
   in the first time grid (it shows only when task lists are in the all-day row).
 - "I pick up the task list X": scrolls X's card into view and presses and holds it (mouse press; on a phone a 500 ms
   long-press) until `data-dragging="true"`, then moves 10 px so the drag starts; the pointer stays down.
-- "no character of the top bar scene is under a control": for every visible scene character (`.tbs .cat`, `.tbs .hare`,
-  `.tbs .ghost`, Mordor's `.tbs [data-part=eye]`) its box does not intersect the box of any visible control glyph in `top-bar` (title text and chevron,
-  arrow, Today, flame, plant, sync, filter and settings icons: for an `svg` the box of its drawn `path`).
-- "the top bar scene's parts are drawn at their full size": every scene layer container (`.tbs .life`, `.tbs .mo`,
-  `.tbs .sl`) is 96 px tall (the as-built scene box), whatever the bar's height; the bar clips it at its bottom edge.
 - "the top bar scene does not show the X": no visible element for part X (`hare` = `.tbs .hare`) in the scene.
 - "the Approaching card is off"
   (Given): `PATCH /api/prefs { approachingCard: false }`. "I see the Approaching card": `now-card` is visible.
@@ -3155,7 +3148,11 @@ the top bar's widgets are in reverse order
   "the top bar's widgets are in reverse order": the visible widgets (`streak-flame` / `plant-button`, `sync-status`)
   are ordered right to left as they were left to right.
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
-  `scene-<scene>-<layout>-<scheme>`.
+  `expressive-<scene>-<size>-<scheme>` (feature header-expressive).
+- Scene hooks: heroes are the `data-part`s `cat`, `hare`, `mordor-eye`, `mordor-tower`, `moon`, `sun`, `sunrise`, `xmas-tree`, `snowman`,
+  `beach-umbrella` (always drawn, inside the bar within 2.5 px, never under a drawn control); the other large props `autumn-tree`,
+  `snowy-tree`, `bare-tree`, `sprouting-tree`, `jack-o-lantern`, `sledge`, `leaf-pile` are judged the same when drawn (a prop that would be under a
+  control is left out with `data-hidden`). A control's drawn box is its text, its icon's shapes or the Today `.pill`. The sunflower field has no cat.
 
 
 ## Security, secrets at rest and privacy (`@security`, `@secrets`, `@privacy`; features security-hardening, secrets-at-rest, privacy, shared-lists)

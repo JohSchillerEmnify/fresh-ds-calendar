@@ -143,6 +143,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: The Fall and Winter props stay when the scene rests
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       And 11 seconds pass
       Then the top bar scene is still
@@ -165,6 +166,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
 
     Scenario Outline: The Fall and Winter props sit clear of the controls at full size
       Given the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows the "<prop>"
       And the "<prop>" of the top bar scene is not under a control
@@ -250,6 +252,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: After the moving the leaves or snowflakes lie still where I can see them
       Given the scene is "<theme>"
       And the time is 2026-10-12 08:00 and the clock is running
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       And 11 seconds pass
       Then the top bar scene shows 9 "<particles>" at rest
@@ -265,6 +268,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: The resting leaves and snowflakes are spread over the whole bar
       Given the animation level is "Reduced"
       And the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows 9 "<particles>" at rest
       And the "<particles>" of the top bar scene are spread over the whole bar
@@ -278,6 +282,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario Outline: With fewer animations the scene shows the same still picture from the start
       Given the animation level is "<level>"
       And the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows 9 "<particles>" at rest
       And the "top bar" still looks like "scene-<theme>-still"
@@ -293,6 +298,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
       Given the device prefers a dark color scheme
       And the animation level is "Reduced"
       And the scene is "<theme>"
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar scene shows 9 "<particles>" at rest
       And the "top bar" still looks like "scene-<theme>-still-dark"
@@ -319,6 +325,7 @@ Feature: Season themes keep my light or dark choice and bring their own scene
     Scenario: When the moving ends the leaves glide to their spots within a second
       Given the scene is "Fall"
       And the time is 2026-10-12 08:00 and the clock is running
+      And the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       And 10 seconds pass
       Then the "leaves" of the top bar scene glide to their resting spots within 1 second

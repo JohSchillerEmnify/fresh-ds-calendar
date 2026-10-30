@@ -1,9 +1,10 @@
 @header-expressive @id:header-expressive
 Feature: The top bar in Expressive and Compact, a month-only week title and scenes that stay whole
   Owner decision 2026-10-30 (design E, ADR 0032). The two header layouts of feature header-layout become two sizes in
-  the E style, kept in the same personal setting: "Expressive" (the former two rows: the full 84 px scene, the title
-  over its top, the day row below it, nothing of the scene covered) and "Compact" (the former one row, 52 px, with the
-  one-row scene). Defaults: Compact on phones, Expressive on tablets and desktop. Icons in the bar are plain, with no
+  the E style, kept in the same personal setting: "Expressive" (the former two rows: the full 84 px scene with one row of
+  controls over its top and the scene's strip below, nothing of the scene covered; "two rows" in the steps means that
+  control row plus the scene row) and "Compact" (the former one row, 52 px, with the one-row scene). In both the controls
+  are one row as in the owner-approved mockups: the short date at the left, then Today (an icon), filter and settings. Defaults: Compact on phones, Expressive on tablets and desktop. Icons in the bar are plain, with no
   see-through or glass pill over a scene; Today is the one filled button. The week title shows only the month
   ("Oct 2026") and is still tappable to jump; the day range is gone because the day row shows it. The cat and every
   large scene-defining element are fully visible in every scene, both sizes and both colour schemes (scenes may be
@@ -115,7 +116,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
 
   Rule: Scenes keep every large element visible
 
-    @mobile @visual @backlog
+    @mobile @visual
     Scenario Outline: The cat and every large scene element are fully visible
       Given the device prefers a <scheme> color scheme
       And the scene is "<scene>"
@@ -153,7 +154,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
         | New Year        | Expressive | light  |
         | New Year        | Compact    | light  |
 
-    @mobile @backlog
+    @mobile
     Scenario: The Easter hare now fits in the Compact bar
       Given the scene is "Easter"
       And the top bar size is set to "Compact"
@@ -161,7 +162,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
       Then the top bar scene shows the "hare"
       And no control covers any part of the top bar scene's large elements
 
-    @mobile @backlog
+    @mobile
     Scenario Outline: Mordor puts the eye and the tower in the gap between date and icons
       Given the scene is "Mordor"
       And the top bar size is set to "<size>"
@@ -174,7 +175,7 @@ Feature: The top bar in Expressive and Compact, a month-only week title and scen
         | Expressive |
         | Compact    |
 
-    @mobile @backlog
+    @mobile
     Scenario: In left-handed mode the scene is still whole
       Given the scene is "Mordor"
       And left-handed mode is on

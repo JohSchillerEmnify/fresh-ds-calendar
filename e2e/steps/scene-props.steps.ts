@@ -25,7 +25,7 @@ const CONTROLS = [
 ];
 
 /** The full heights of the props (px), and the kite's. */
-const FULL: Record<string, number> = { 'autumn-tree': 43, 'snowy-tree': 43, snowman: 42, 'leaf-pile': 13, sledge: 13, kite: 20 };
+const FULL: Record<string, number> = { 'autumn-tree': 36, 'snowy-tree': 36, snowman: 42, 'leaf-pile': 13, sledge: 13, kite: 20 };
 
 /**
  * Every box of `targets` (a CSS selector; for an svg its drawn shapes, for the kite also points along its string),
@@ -152,29 +152,6 @@ Then('the top bar scene shows {int} {string} at rest', async function (this: Wor
   }
   await this.page.waitForTimeout(500);
   expect(await readParticles(this.page, kind), `${kind} still`).toEqual(first);
-});
-
-/** The scene's characters: the cat, the Easter hare, the Halloween ghost (a visitor, drawn only while it passes) and Mordor's eye. */
-const CHARACTERS = '[data-testid="top-bar-scene"] :is([data-part="cat"], [data-part="hare"], [data-part="ghost"], [data-part="eye"])';
-
-Then('no character of the top bar scene is under a control', async function (this: World) {
-  // the scene has drawn (the sunflower field has no character at all)
-  await expect(this.page.getByTestId('top-bar-scene').locator('[data-part]').first()).toBeAttached();
-  expect(await underControls(this.page, CHARACTERS), 'character under a control').toEqual([]);
-});
-
-Then("the top bar scene's parts are drawn at their full size", async function (this: World) {
-  const scene = this.page.getByTestId('top-bar-scene');
-  await expect(scene.locator('[data-part]').first()).toBeAttached();
-  // every layer is the as-built 96 px box whatever the bar's height (the bar clips it), so the parts keep their sizes
-  const layers = await scene.locator('.life, .mo, .sl').evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
-  expect(layers.length, 'scene layers').toBeGreaterThan(0);
-  for (const h of layers) expect(h, 'scene layer height').toBeGreaterThanOrEqual(95.5);
-  // a character never shrinks to fit a gap (the hare is left out instead)
-  for (const [part, full] of [['cat', 30], ['hare', 44]] as const) {
-    const hs = await scene.locator(`[data-part="${part}"] >> visible=true`).evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
-    for (const h of hs) expect(h, `${part} height`).toBeGreaterThanOrEqual(full - 0.5);
-  }
 });
 
 Then('the {string} of the top bar scene are spread over the whole bar', async function (this: World, kind: string) {

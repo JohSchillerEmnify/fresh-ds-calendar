@@ -35,12 +35,12 @@ describe('Fall and Winter spots', () => {
     }
   });
 
-  it('every prop and the kite stand inside the bar, the props at their full size', () => {
+  it('every prop and the kite stand inside the bar, the props at least as tall as the strip under the controls allows (36 px for trees)', () => {
     for (const scene of ['fall', 'winter'] as const) {
       for (const L of LAYOUTS) {
         for (const p of PROPS[scene][L]) {
           expect(p.x + propWidth(p), `${scene} ${L} ${p.kind}`).toBeLessThanOrEqual(BAR[L].w);
-          expect(p.h, `${scene} ${L} ${p.kind}`).toBeGreaterThanOrEqual(p.kind.endsWith('tree') ? 43 : 13);
+          expect(p.h, `${scene} ${L} ${p.kind}`).toBeGreaterThanOrEqual(p.kind.endsWith('tree') ? 36 : 13);
         }
       }
     }

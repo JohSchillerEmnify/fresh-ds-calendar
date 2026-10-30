@@ -32,12 +32,12 @@ Feature: A smaller header: two rows or one row
   Rule: Two rows is the person's choice, one row the phone's default (feature header-expressive: Expressive and Compact)
 
     @mobile
-    Scenario: The two-row header shows the full date
+    Scenario: The two-row header keeps the full scene below one row of controls
       Given the header layout is set to "Two rows"
       When I open the day view for 2026-10-12
       Then the top bar is in two rows
       And the top bar is at most 84 pixels tall
-      And the period title is "Monday, 12 October 2026"
+      And the period title is "Mon, 12 Oct"
       And the period title is not cut short
       And the period title's font size is 18 pixels
 
@@ -191,11 +191,11 @@ Feature: A smaller header: two rows or one row
 
   Rule: The date is shown once: the day view has no day header
 
+    @mobile
     Scenario: The day view shows the date only in the title
-      Given the header layout is set to "Two rows"
       When I open the day view for 2026-10-14
       Then the day view shows no day header
-      And the period title is "Wednesday, 14 October 2026"
+      And the period title is "Wed, 14 Oct"
 
     # owner, 2026-10-26: desktop drops the day header too; its top bar keeps one row with the full date
     @desktop
@@ -306,76 +306,7 @@ Feature: A smaller header: two rows or one row
       And I open the week view for 2026-10-12
       Then I see the sync icon
 
-  Rule: Every scene looks right in both layouts
-
-    @mobile @visual
-    Scenario Outline: No scene character sits under a control and every part keeps its size
-      Given the device prefers a <scheme> color scheme
-      And the scene is "<scene>"
-      And the header layout is set to "<layout>"
-      When I open the day view for 2026-10-12
-      Then no character of the top bar scene is under a control
-      And the top bar scene's parts are drawn at their full size
-      And the "top bar" still looks like "scene-<scene>-<layout>-<scheme>"
-
-      Examples:
-        | scene           | layout   | scheme |
-        | Halloween       | Two rows | dark   |
-        | Halloween       | One row  | dark   |
-        | Halloween       | Two rows | light  |
-        | Halloween       | One row  | light  |
-        | Sunflower field | Two rows | dark   |
-        | Sunflower field | One row  | dark   |
-        | Sunflower field | Two rows | light  |
-        | Sunflower field | One row  | light  |
-        | Mordor          | Two rows | dark   |
-        | Mordor          | One row  | dark   |
-        | Mordor          | Two rows | light  |
-        | Mordor          | One row  | light  |
-        | Spring          | Two rows | dark   |
-        | Spring          | One row  | dark   |
-        | Spring          | Two rows | light  |
-        | Spring          | One row  | light  |
-        | Summer          | Two rows | dark   |
-        | Summer          | One row  | dark   |
-        | Summer          | Two rows | light  |
-        | Summer          | One row  | light  |
-        | Fall            | Two rows | dark   |
-        | Fall            | One row  | dark   |
-        | Fall            | Two rows | light  |
-        | Fall            | One row  | light  |
-        | Winter          | Two rows | dark   |
-        | Winter          | One row  | dark   |
-        | Winter          | Two rows | light  |
-        | Winter          | One row  | light  |
-        | Easter          | Two rows | dark   |
-        | Easter          | One row  | dark   |
-        | Easter          | Two rows | light  |
-        | Easter          | One row  | light  |
-        | Summer holidays | Two rows | dark   |
-        | Summer holidays | One row  | dark   |
-        | Summer holidays | Two rows | light  |
-        | Summer holidays | One row  | light  |
-        | Christmas       | Two rows | dark   |
-        | Christmas       | One row  | dark   |
-        | Christmas       | Two rows | light  |
-        | Christmas       | One row  | light  |
-        | New Year's Eve  | Two rows | dark   |
-        | New Year's Eve  | One row  | dark   |
-        | New Year's Eve  | Two rows | light  |
-        | New Year's Eve  | One row  | light  |
-        | New Year        | Two rows | dark   |
-        | New Year        | One row  | dark   |
-        | New Year        | Two rows | light  |
-        | New Year        | One row  | light  |
-
-    @mobile
-    Scenario: The Easter hare is left out where it cannot sit clear of the controls
-      Given the scene is "Easter"
-      And the header layout is set to "One row"
-      When I open the day view for 2026-10-12
-      Then the top bar scene does not show the "hare"
-      And no character of the top bar scene is under a control
+  Rule: Scenes keep their look in both layouts (feature header-expressive: the cat and every large element stay whole)
 
     @mobile
     Scenario: With reduced motion the one-row scene is still from the start

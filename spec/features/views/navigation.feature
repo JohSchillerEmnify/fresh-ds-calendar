@@ -57,13 +57,20 @@ Feature: Navigation and view switching
 
   @day
   Scenario: Day view shows a single day
-    Given the header layout is set to "Two rows"
     When I open the day view for 2026-10-14
     Then the day view is shown
-    And the period title is "Wednesday, 14 October 2026"
+
+  @day @desktop
+  Scenario: The day view's title names the whole date on desktop
+    When I open the day view for 2026-10-14
+    Then the period title is "Wednesday, 14 October 2026"
+
+  @day @mobile
+  Scenario: The day view's title is the short date on a phone
+    When I open the day view for 2026-10-14
+    Then the period title is "Wed, 14 Oct"
 
   Scenario Outline: Deep links open the right view directly
-    Given the header layout is set to "Two rows"
     When I open the path "<path>"
     Then the <view> view is shown
     And the period title is "<title>"
@@ -72,7 +79,6 @@ Feature: Navigation and view switching
       | path             | view  | title                   |
       | /month/2026-10   | month | October 2026            |
       | /week/2026-10-12 | week  | Oct 2026                |
-      | /day/2026-10-12  | day   | Monday, 12 October 2026 |
       | /month/2027-02   | month | February 2027           |
 
   Scenario Outline: Invalid deep links redirect to the current month

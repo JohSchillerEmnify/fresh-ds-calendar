@@ -38,12 +38,12 @@ const bind = computed(() =>
 /* Phone layouts (feature header-layout, PR 3): every scene part keeps its as-built size. The scene's layer is the as-built
    96 px box with its ground line on the bar's bottom edge, the bar clips what rises above it; sky parts and tall props move
    down so they keep their place at the top. Fall and Winter keep their own spots (FallWinterScene) and their own sky: only the box. */
-/* One row: the 49 px hare is left out (owner-approved mockup, scenes.cjs; its only gap is the cat's) */
-[data-layout='one-row'] .tbs :deep(.hare) { display: none; }
-/* one row: Mordor's tower, with its eye, stands in the gap between the date's chevron and the Today pill, clear of every control */
-[data-layout='one-row'] .tbs :deep(.mo-tower) { right: auto; left: calc(43% - 39px); }
-html[data-hand='left'][data-touch] [data-layout='one-row'] .tbs :deep(.mo-tower) { left: calc(57% - 39px); }
-[data-layout='one-row'] .tbs { --d: 44px; --t60: 8px; --t58: 6px; --t56: 4px; }
+/* Mordor's tower, with its eye, stands in the gap between the date and the icons, clear of every control (feature header-expressive); the glow follows it */
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(.mo-tower) { right: auto; left: calc(55% - var(--tw) / 2); }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(.mo-glow) { background: radial-gradient(ellipse 60% 90% at 55% 100%, rgba(255, 90, 20, 0.32), transparent 70%); }
+html[data-hand='left'][data-touch] :is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(.mo-tower) { left: calc(45% - var(--tw) / 2); }
+html[data-hand='left'][data-touch] :is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(.mo-glow) { background: radial-gradient(ellipse 60% 90% at 45% 100%, rgba(255, 90, 20, 0.32), transparent 70%); }
+[data-layout='one-row'] .tbs { --d: 44px; --t60: 0px; --t58: 0px; --t56: 0px; }
 [data-layout='two-rows'] .tbs { --d: 12px; --t60: 0px; --t58: 0px; --t56: 0px; }
 :is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(:is(.life, .mo, .sl)) { inset: auto 0 0 0; height: 96px; overflow: visible; }
 :is([data-layout='one-row'], [data-layout='two-rows']) .tbs:not([data-scene='fall'], [data-scene='winter']) :deep(:is(.life :is(.sky, .at-sky, .sun, .fw), .mo-tower)) { translate: 0 var(--d); }
@@ -52,4 +52,20 @@ html[data-hand='left'][data-touch] [data-layout='one-row'] .tbs :deep(.mo-tower)
 :is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(.life .at.tall) { translate: 0 var(--t58); }
 :is([data-layout='one-row'], [data-layout='two-rows']) .tbs :deep(.life .at.tree) { translate: 0 var(--t56); }
 html[data-hand='left'][data-touch] .tbs:is([data-scene='fall'], [data-scene='winter']) { transform: scaleX(-1); }
+/* Every hero of a scene stands whole in the gap between the date and the icons, whose middle is about 50% of the bar (feature header-expressive); the heroes are centred at 50% */
+[data-layout='one-row'] .tbs { --bar-h: 52px; }
+[data-layout='two-rows'] .tbs { --bar-h: 84px; }
+/* the umbrella stands left of the sun's middle, the Christmas tree as tall as a Compact bar allows */
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='summerholidays'] :deep(.umbrella) { left: calc(50% - 58px); }
+[data-layout='one-row'] .tbs[data-scene='christmas'] :deep(.tree) { height: 46px; }
+/* the tower is as tall as the bar, so the whole of it and its eye show */
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='mordor'] :deep(.mo-tower) { height: var(--bar-h); translate: 0 0 !important; }
+[data-layout='one-row'] .tbs { --tw: 42px; }
+[data-layout='two-rows'] .tbs { --tw: 68px; }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='halloween'] :deep(.sky) { right: auto; left: calc(50% - 29px); top: 2px; }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='summer'] :deep(.at-sky) { right: auto; left: calc(50% - 20px); top: 2px; }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='summerholidays'] :deep(.sun) { right: auto; left: calc(50% - 19px); top: 2px; }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='newyear'] :deep(.sunrise) { left: calc(50% - 26px); }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='christmas'] :deep(.tree) { left: calc(50% - 18px); }
+:is([data-layout='one-row'], [data-layout='two-rows']) .tbs[data-scene='easter'] :deep(.hare) { left: calc(50% - 21px); }
 </style>

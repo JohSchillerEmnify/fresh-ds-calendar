@@ -40,7 +40,8 @@ const filters = useFilters();
 /** The header layout in force: the person's choice on a phone; desktop and tablets keep their own one row (feature header-layout). */
 const barSize = useBarSize();
 const layout = computed(() => (isPhone.value ? (barSize.top.value === 'expressive' ? 'two-rows' : 'one-row') : 'wide'));
-const oneRow = computed(() => layout.value === 'one-row');
+/** A phone's bar (Expressive or Compact): the short date and Today as an icon, one row of controls (feature header-expressive). */
+const oneRow = computed(() => layout.value !== 'wide');
 /** Today is in the period the title names: the Today button is the today mark, filled then, outlined otherwise (feature header-layout). */
 const todayShown = computed(() => inPeriod(cal.view, cal.anchor, clock.todayDate));
 const filterOpen = computed(() => ui.filtersShown || filters.active.value);
@@ -117,42 +118,32 @@ function toggleFilters() {
   .grid { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: 'title nav widgets actions'; padding: 6px 12px; column-gap: 12px; }
   .title { font-size: 24px; }
 }
-/* Phones (feature header-layout): the person's header layout. The visuals may be smaller than 44 px; the hit areas are not. */
+/* Phones (features header-layout, header-expressive): one row of controls in both sizes; Expressive keeps the full 84 px scene
+   below it, Compact is the 52 px row. The visuals may be smaller than 44 px; the hit areas are not. */
 @media (max-width: 767.98px) {
   .title { font-size: 18px; line-height: 24px; }
-  /* Two rows, 84 px: the 48 px title row and a compact 32 px nav row. */
-  [data-layout='two-rows'] .grid { grid-template-rows: 48px auto; }
-  /* Today: the drawn pill sits in the 32 px row; its button is 44 px tall and reaches invisibly 10 px below the bar (owner,
-     option a). The ripple would fill that invisible box, so the pill carries the pressed and focus feedback instead. */
-  .nav .today { padding: 0; background: transparent; }
+  .grid { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-rows: 48px; grid-template-areas: 'title nav widgets actions'; padding: 2px 2px 2px 0; column-gap: 0; align-content: start; }
+  [data-size='expressive'] .grid { min-height: 84px; padding-top: 4px; }
+  /* Expressive's plant keeps the full 44 px tap area; Compact's is 32 wide so the row stays one row */
+  [data-size='expressive'] .widgets :deep(.lw-btn) { min-width: 44px; width: 44px; }
+  .nav .today { padding: 0; background: transparent; width: 44px; }
   .nav .today :deep(.m3-layer), .nav .today :deep(.m3-ripple) { display: none; }
   .nav .today:focus-visible { outline: none; }
   .nav .today:focus-visible .pill { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
-  .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 12%, var(--md-sys-color-secondary-container)); }
-  .pill { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+  .nav .today:is(:active, [data-pressed='true']) .pill { background: color-mix(in srgb, var(--md-sys-color-on-primary-container) 12%, var(--md-sys-color-primary-container)); }
+  /* Today is the one filled button; off today's period it is outlined on a solid surface, so a scene never shows through */
+  .pill { width: 40px; height: 40px; border-radius: 20px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
   .nav .today.off { background: transparent; border: 0; }
   .today.off .pill { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); border: 1px solid var(--md-sys-color-outline); }
-  [data-layout='two-rows'] .nav { height: 32px; align-items: flex-start; }
-  [data-layout='two-rows'] .today { height: 44px; align-items: flex-start; }
-  [data-layout='two-rows'] .pill { height: 32px; padding: 0 12px; border-radius: 16px; font-size: 13px; }
-  /* the plant's button reaches 12 px down like Today, never up over the title row's buttons; the install pill is drawn 32 px tall */
-  [data-layout='two-rows'] .widgets { max-height: 32px; }
-  [data-layout='two-rows'] .widgets :deep([data-testid='install-app-button']) { min-height: 32px; height: 32px; }
-  [data-layout='two-rows'] .widgets :deep([data-testid='sync-status']) { height: 32px; }
-  [data-layout='two-rows'] .widgets :deep(.lw-btn) { height: 44px; min-height: 44px; min-width: 44px; padding: 0 0 12px; margin-bottom: -12px; }
-  /* One row, 52 px: date, the Today icon pill, then the widgets and actions; every button 44 x 44 except the plant (32 wide). */
-  [data-layout='one-row'] .grid { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-rows: 48px; grid-template-areas: 'title nav widgets actions'; padding: 2px 2px 2px 0; column-gap: 0; }
-  [data-layout='one-row'] .title { padding: 0 2px 0 8px; gap: 2px; }
-  [data-layout='one-row'] .chev { width: 20px; height: 20px; }
-  [data-layout='one-row'] .today { width: 44px; }
-  [data-layout='one-row'] .pill { width: 36px; height: 28px; border-radius: 14px; }
-  [data-layout='one-row'] .pill :deep(svg) { width: 18px; height: 18px; }
-  [data-layout='one-row'] .widgets { gap: 0; }
-  [data-layout='one-row'] .widgets :deep(.lw) { gap: 0; }
-  [data-layout='one-row'] .widgets :deep(.lw-btn) { min-width: 32px; width: 32px; min-height: 44px; padding: 0; }
-  [data-layout='one-row'] .widgets :deep([data-testid='streak-flame']) { width: 32px; justify-content: center; gap: 0; font-size: 14px; }
-  [data-layout='one-row'] .widgets :deep(.sf-flame) { width: 17px; height: 20px; }
-  [data-layout='one-row'] .widgets :deep([data-testid='sync-status']) { width: 24px; }
+  .pill :deep(svg) { width: 24px; height: 24px; }
+  .title { padding: 0 2px 0 8px; gap: 2px; }
+  .chev { width: 20px; height: 20px; }
+  .widgets { gap: 0; }
+  .widgets :deep(.lw) { gap: 0; }
+  .widgets :deep(.lw-btn) { min-width: 32px; width: 32px; min-height: 44px; padding: 0; }
+  .widgets :deep([data-testid='streak-flame']) { width: 32px; justify-content: center; gap: 0; font-size: 14px; }
+  .widgets :deep(.sf-flame) { width: 17px; height: 20px; }
+  .widgets :deep([data-testid='sync-status']) { width: 24px; }
 }
 /* Today's drawn shape: on wide screens the tonal button itself, on phones a pill inside a larger tap area. */
 .pill { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
@@ -163,14 +154,12 @@ html[data-hand='left'][data-touch] .widgets { justify-content: flex-start; }
 /* On a phone the bar is the exact mirror of the right-handed one (owner, 2026-10-26), so a scene can simply be flipped:
    the title's text at the outer edge, the widgets in reverse order. */
 @media (max-width: 767.98px) {
-  html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'actions title' 'widgets nav'; padding: 2px 8px 2px 4px; }
-  html[data-hand='left'][data-touch] .nav { justify-self: end; }
   html[data-hand='left'][data-touch] .title { flex-direction: row-reverse; }
   html[data-hand='left'][data-touch] .widgets { flex-direction: row-reverse; justify-content: flex-end; }
   html[data-hand='left'][data-touch] .widgets :deep(.lw) { flex-direction: row-reverse; }
   html[data-hand='left'][data-touch] .badge { right: auto; left: 2px; }
-  html[data-hand='left'][data-touch] [data-layout='one-row'] .grid { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: 'actions widgets nav title'; padding: 2px 0 2px 2px; }
-  html[data-hand='left'][data-touch] [data-layout='one-row'] .title { padding: 0 8px 0 2px; }
+  html[data-hand='left'][data-touch] .grid { grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-areas: 'actions widgets nav title'; padding-left: 2px; padding-right: 0; }
+  html[data-hand='left'][data-touch] .title { padding: 0 8px 0 2px; }
 }
 @media (min-width: 768px) { html[data-hand='left'][data-touch] .grid { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'actions widgets nav title'; } }
 </style>

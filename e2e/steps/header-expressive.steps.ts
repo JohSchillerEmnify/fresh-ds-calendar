@@ -37,3 +37,113 @@ Then('the top bar size {string} is the default', async function (this: World, la
 When('I tap the period title', async function (this: World) {
   await this.page.getByTestId('period-title').click();
 });
+
+// --- scenes keep every large element visible ------------------------------------------------------------------------------
+
+const SCENE = '[data-testid="top-bar-scene"]';
+/** The scene's heroes: the cat and the large part that defines each scene. They are always drawn, whole, and never under a control. */
+const HEROES = ['cat', 'hare', 'mordor-eye', 'mordor-tower', 'moon', 'sun', 'sunrise', 'xmas-tree', 'snowman', 'beach-umbrella'];
+/** The other large props: drawn whole when they fit between the controls, left out (`data-hidden`) where they would be under one. */
+const PROPS = ['autumn-tree', 'snowy-tree', 'bare-tree', 'sprouting-tree', 'jack-o-lantern', 'sledge', 'leaf-pile'];
+const LARGE_SEL = [...HEROES, ...PROPS].map((p) => `${SCENE} [data-part="${p}"]`).join(', ');
+/** The drawn controls of the bar (the Today pill, not its larger tap area). */
+const DRAWN = ['[data-testid=period-title] .t', '[data-testid=period-title] > svg', '[data-testid=menu-button] svg', '[data-testid=nav-prev] svg', '[data-testid=nav-next] svg', '[data-testid=nav-today] .pill',
+  '[data-testid=streak-flame]', '[data-testid=plant-button]', '[data-testid=sync-status] svg', '[data-testid=filter-button] svg', '[data-testid=settings-button] svg'];
+
+interface Rect { l: number; r: number; t: number; b: number }
+
+/** Boxes of the bar and of each matched part (an svg by its drawn shapes), and which parts are hidden. */
+async function partBoxes(w: World, selector: string) {
+  return w.page.evaluate(({ selector, scene }) => {
+    const bar = document.querySelector('[data-testid="top-bar"]')!.getBoundingClientRect();
+    const rect = (el: Element): { l: number; r: number; t: number; b: number } | null => {
+      const shapes = el.tagName.toLowerCase() === 'svg' ? [...el.querySelectorAll('path, circle, rect, ellipse')] : [...el.querySelectorAll('svg path, svg circle, svg rect, svg ellipse')];
+      const rs = (shapes.length ? shapes : [el]).map((s) => s.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
+      return rs.length ? { l: Math.min(...rs.map((r) => r.left)), r: Math.max(...rs.map((r) => r.right)), t: Math.min(...rs.map((r) => r.top)), b: Math.max(...rs.map((r) => r.bottom)) } : null;
+    };
+    const parts = [...document.querySelectorAll<HTMLElement>(selector)].map((el) => ({ name: el.dataset.part ?? el.className, hidden: el.hasAttribute('data-hidden') || getComputedStyle(el).visibility === 'hidden', box: rect(el) }));
+    return { bar: { l: bar.left, r: bar.right, t: bar.top, b: bar.bottom }, parts, hasScene: !!document.querySelector(scene) };
+  }, { selector, scene: SCENE });
+}
+
+/** Like `partBoxes`, measured once nothing moves: the Mordor eye's opening flare plays once and swells its glow. */
+async function stableBoxes(w: World, selector: string) {
+  let last = await partBoxes(w, selector);
+  for (let i = 0; i < 12; i++) {
+    await w.page.waitForTimeout(250);
+    const again = await partBoxes(w, selector);
+    const same = JSON.stringify(again.parts) === JSON.stringify(last.parts);
+    last = again;
+    if (same) break;
+  }
+  return last;
+}
+
+Then('the support cat is fully visible in the top bar scene', async function (this: World) {
+  // the app has settled and the scene (a lazy chunk) has drawn its parts, so a picture taken later is of the finished scene
+  await this.settled();
+  await expect(this.page.locator(`${SCENE} [data-part]`).first()).toBeAttached();
+  // a scene with a cat shows it whole; the sunflower field has none
+  const { bar, parts } = await partBoxes(this, `${SCENE} [data-part="cat"]`);
+  for (const p of parts) {
+    expect(p.hidden, 'the cat is left out').toBe(false);
+    expect(p.box, 'the cat has a box').not.toBeNull();
+    const c = p.box!;
+    expect(c.l >= bar.l - 0.5 && c.r <= bar.r + 0.5 && c.t >= bar.t - 0.5 && c.b <= bar.b + 2.5, `the cat ${JSON.stringify(c)} inside the bar ${JSON.stringify(bar)}`).toBe(true);
+  }
+});
+
+/** The large parts a scene really shows: every hero, and the props that were not left out. A part that is not drawn at all has no box. */
+async function shownLarge(w: World) {
+  const { bar, parts } = await stableBoxes(w, LARGE_SEL);
+  return { bar, parts: parts.filter((p) => HEROES.includes(p.name) || (!p.hidden && p.box)) };
+}
+
+Then('every large element of the top bar scene is fully visible', async function (this: World) {
+  await expect(this.page.locator(SCENE)).toBeAttached();
+  const { bar, parts } = await shownLarge(this);
+  // ground-standing parts may sink 2.5 px into the bar's bottom edge, trees may touch the side edges by 2 px
+  const bad = parts.filter((p) => p.hidden || !p.box || p.box.l < bar.l - 2 || p.box.r > bar.r + 2 || p.box.t < bar.t - 0.5 || p.box.b > bar.b + 2.5)
+    .map((p) => `${p.name} ${p.hidden ? 'left out' : JSON.stringify(p.box)}`);
+  expect(bad, `large elements cut or left out (bar ${JSON.stringify(bar)})`).toEqual([]);
+});
+
+/** Every drawn control box of the bar. */
+async function drawnControls(w: World): Promise<Rect[]> {
+  return w.page.evaluate((sels) => sels.flatMap((sel) => [...document.querySelectorAll(`[data-testid="top-bar"] ${sel}`)].flatMap((el) => {
+    if (getComputedStyle(el).visibility === 'hidden') return [];
+    const shapes = el.tagName.toLowerCase() === 'svg' ? [...el.querySelectorAll('path, circle, rect, ellipse')] : [el];
+    const rs = shapes.map((s) => s.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
+    return rs.length ? [{ l: Math.min(...rs.map((r) => r.left)), r: Math.max(...rs.map((r) => r.right)), t: Math.min(...rs.map((r) => r.top)), b: Math.max(...rs.map((r) => r.bottom)) }] : [];
+  })), DRAWN);
+}
+
+Then("no control covers any part of the top bar scene's large elements", async function (this: World) {
+  await expect(this.page.locator(SCENE)).toBeAttached();
+  const [controls, { parts }] = await Promise.all([drawnControls(this), shownLarge(this)]);
+  const hits = parts.filter((p) => p.box && controls.some((c) => Math.min(p.box!.r, c.r) - Math.max(p.box!.l, c.l) > 0 && Math.min(p.box!.b, c.b) - Math.max(p.box!.t, c.t) > 0)).map((p) => p.name);
+  expect(hits, 'large elements under a control').toEqual([]);
+});
+
+Then('the top bar scene is drawn at its full {int} pixels height', async function (this: World, px: number) {
+  const h = await this.page.locator(SCENE).evaluate((el) => el.getBoundingClientRect().height);
+  expect(Math.round(h), 'scene height').toBeGreaterThanOrEqual(px);
+});
+
+Then("the Mordor eye and tower sit between the period title and the top bar's icons", async function (this: World) {
+  // the title button stretches over the free room: its text and chevron are what the gap starts after
+  const title = await this.page.getByTestId('period-title').evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const right = Math.max(...[...el.querySelectorAll('.t, svg')].map((c) => c.getBoundingClientRect().right));
+    return { x: r.left, y: r.top, width: right - r.left, height: r.height };
+  });
+  const { parts } = await stableBoxes(this, `${SCENE} [data-part="mordor-eye"], ${SCENE} [data-part="mordor-tower"]`);
+  expect(parts.map((p) => p.name).sort(), 'eye and tower drawn').toEqual(['mordor-eye', 'mordor-tower']);
+  // the icons that share the title's row
+  const icons = (await drawnControls(this)).filter((c) => c.l > title!.x + title!.width && c.t < title!.y + title!.height && c.b > title!.y);
+  const left = Math.min(...icons.map((c) => c.l));
+  for (const p of parts) {
+    expect(p.box!.l, `${p.name} right of the title`).toBeGreaterThanOrEqual(title!.x + title!.width - 0.5);
+    expect(p.box!.r, `${p.name} left of the icons`).toBeLessThanOrEqual(left + 0.5);
+  }
+});

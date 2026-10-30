@@ -83,7 +83,7 @@ const catStyle = computed(() => {
 
 /** Fall and Winter have their own spots for every part (`FallWinterScene`); the other scenes' characters are kept clear here. */
 const ownSpots = () => props.scene === 'fall' || props.scene === 'winter';
-const check = useClearOfControls(root, '[data-part=cat], [data-part=hare]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
+const check = useClearOfControls(root, '[data-part=cat], [data-part=hare], [data-part=bare-tree], [data-part=sprouting-tree], [data-part=jack-o-lantern]', () => !ownSpots(), '[data-part=cat], [data-part=hare]');
 // another layout moves the controls: measure again once the layer is drawn for it
 watch(layout, check, { flush: 'post' });
 </script>
@@ -145,16 +145,16 @@ watch(layout, check, { flush: 'post' });
 @keyframes life-bat-bob { from { transform: translateY(-3px) rotate(-10deg); } to { transform: translateY(2px) rotate(6deg); } }
 @keyframes life-fly {
   0% { translate: -24px calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.5); }
-  25% { translate: 22cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.14); }
+  25% { translate: 22cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.24); }
   50% { translate: 48cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.46); }
-  75% { translate: 74cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.1); }
+  75% { translate: 74cqw calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.22); }
   100% { translate: calc(100cqw + 24px) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.36); }
 }
 @keyframes life-fly-rest {
   0% { translate: -24px calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.4); }
-  20% { translate: calc(var(--rest-x) / 2) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.12); }
+  20% { translate: calc(var(--rest-x) / 2) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.22); }
   35%, 65% { translate: var(--rest-x) var(--rest-y, 52cqh); }
-  85% { translate: calc((var(--rest-x) + 100cqw) / 2) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.1); }
+  85% { translate: calc((var(--rest-x) + 100cqw) / 2) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.22); }
   100% { translate: calc(100cqw + 24px) calc(var(--d, 0px) + (100cqh - var(--d, 0px)) * 0.3); }
 }
 @keyframes life-rest { 0%, 100% { opacity: 0; } 12%, 88% { opacity: 1; } }
