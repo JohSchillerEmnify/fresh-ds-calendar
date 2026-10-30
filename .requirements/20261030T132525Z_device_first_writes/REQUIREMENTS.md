@@ -3,7 +3,7 @@
 Spec: `spec/features/app/offline-changes.feature` (new, `@id:offline-changes`; all `@backlog`). ADR 0025 (accepted),
 ADR 0030 (live sync). Builds on slice 1 (`.requirements/20261025T062136Z_device_first_reads`, feature
 `last-known-state`). Model: `docs/architecture/models/web.c4` (`outbox`, `outboxSender`), view `sendingOfflineChanges`.
-Steps: `e2e/STEPS.md` "Offline changes". Status: owner decisions applied (2026-10-30); ADR 0031 accepted; build not started.
+Steps: `e2e/STEPS.md` "Offline changes". Status: owner decisions applied (2026-10-30); ADR 0031 accepted; built as one outbox (PR A-E of the plan in one branch): server `Idempotency-Key`, `web/src/lib/outbox*.ts`, `stores/outbox.ts`, `SyncFailedButton.vue`; all 26 scenarios green.
 
 Why a new feature file: `last-known-state.feature` is already about 360 lines and is about reading and syncing back;
 writing has its own rules (outbox, conflicts, refusals, sessions). The one old scenario there ("Without a connection a
