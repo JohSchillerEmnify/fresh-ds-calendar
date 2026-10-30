@@ -71,18 +71,25 @@ export function setDevicePerson(person: string): void {
   try { localStorage.setItem(PERSON_KEY, person); } catch { /* storage blocked: the data cannot be found offline */ }
 }
 
-const wipeListeners = new Set<() => void>();
+const wipeListeners = new Set<(keepOutbox: boolean) => void>();
 /** Calls `fn` whenever the device is wiped (the store drops what it holds in memory and any save still waiting). */
-export function onDeviceWipe(fn: () => void): void {
+export function onDeviceWipe(fn: (keepOutbox: boolean) => void): void {
   wipeListeners.add(fn);
 }
 
-/** Removes what this device keeps (sign-out, the sign-in page) and stops this page from saving again. Never throws. */
-export async function wipeDevice(): Promise<void> {
+/** The record of unsent changes (stores/outbox.ts). */
+export const OUTBOX_KEY = 'outbox';
+
+/** Removes what this device keeps and stops this page saving again; `keepOutbox` (sign-in page): the same person may send them later. */
+export async function wipeDevice(keepOutbox = false): Promise<void> {
   const db = deviceDb();
   wiped = true;
-  wipeListeners.forEach((fn) => fn());
+  wipeListeners.forEach((fn) => fn(keepOutbox));
   // the cached theme is device-wide, not per person: it goes with the data so the next person starts from the default
   try { for (const k of Object.keys(localStorage)) if (k === PERSON_KEY || k.startsWith('cal.theme')) localStorage.removeItem(k); } catch { /* storage blocked */ }
-  try { await db?.clear(); } catch { /* IndexedDB broken: nothing readable is left either */ }
+  try {
+    const kept = keepOutbox ? await db?.get(OUTBOX_KEY) : undefined;
+    await db?.clear();
+    if (kept !== undefined) await db?.putMany({ [OUTBOX_KEY]: kept });
+  } catch { /* IndexedDB broken: nothing readable is left either */ }
 }

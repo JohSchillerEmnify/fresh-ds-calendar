@@ -35,7 +35,9 @@ When('the app is hidden', async function (this: World) {
 When('I wait for the automatic sync', async function (this: World) {
   const status = this.page.getByTestId('sync-status').first();
   const before = await status.getAttribute('data-last-sync').catch(() => null);
-  const timeout = (this.pollIntervalMs || 30_000) + 5_000;
+  // while the live connection is up, an interval of 30 s or more is stretched to a minute (stores/sync.ts)
+  const poll = this.pollIntervalMs || 30_000;
+  const timeout = (poll >= 30_000 ? Math.max(poll, 60_000) : poll) + 5_000;
   this.extendTimeout(timeout);
   const response = this.page
     .waitForResponse((r) => ['/api/items', '/api/changes'].includes(new URL(r.url()).pathname), { timeout })

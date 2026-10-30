@@ -107,6 +107,8 @@ export class World {
   stillFinger?: boolean;
   /** The person of the last sign-in step ("they" in the sign-in scenarios). */
   person?: string;
+  /** The list a step that resizes the window works on (feature handwritten-lists). */
+  scaleTitle?: string;
   /** The week the last "without signing in" step opened. */
   weekOpened?: string;
   /** App sign-in (signin.steps.ts): the deep link the system browser ended on, the code in it, and the last exchange's HTTP status/body. */
@@ -201,10 +203,10 @@ export class World {
   }
 
   // --- waiting -------------------------------------------------------------------------------------------------
-  /** One of the three calendar views is rendered. */
+  /** One of the calendar views (or the Tasks view the person was sent away from) is rendered. */
   async calendarShown() {
     await expect(
-      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}, ${tid('year-view')}`).first(),
+      this.page.locator(`${tid('month-view')}, ${tid('week-view')}, ${tid('day-view')}, ${tid('year-view')}, ${tid('tasks-view')}`).first(),
     ).toBeVisible();
   }
 
@@ -266,8 +268,15 @@ export class World {
 
   /** "I switch to another device": fresh context with the same project options, no shared storage. */
   async switchDevice() {
+    await this.sendUnsent();
     this.context = await this.newDeviceContext();
     this.page = await this.context.newPage();
+  }
+
+  /** Waits (when online) until the open page has sent its unsent changes, so another device sees them. */
+  async sendUnsent() {
+    if (!this.page.url().startsWith('http') || !(await this.page.evaluate(() => navigator.onLine).catch(() => false))) return;
+    await expect.poll(() => this.page.evaluate(() => document.documentElement.dataset.unsynced ?? '0'), { timeout: 15_000 }).toBe('0');
   }
 
   /** A fresh browser context like another device's (no shared storage); closed when the scenario ends. */

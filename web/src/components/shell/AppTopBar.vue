@@ -19,6 +19,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
 import InstallPrompts from './InstallPrompts.vue';
 import MonthPicker from './MonthPicker.vue';
+import SyncFailedButton from './SyncFailedButton.vue';
 import SyncStatus from './SyncStatus.vue';
 import { LeadingWidgets, TopBarScene } from '@/features/motivation';
 import { useClockStore } from '@/stores/clock';
@@ -78,6 +79,7 @@ function toggleFilters() {
           <component :is="w" v-for="(w, i) in topBarWidgets.leading" :key="'l' + i" />
         </slot>
         <slot name="trailing-widgets"><component :is="w" v-for="(w, i) in topBarWidgets.trailing" :key="'t' + i" /></slot>
+        <SyncFailedButton />
         <SyncStatus />
         <InstallPrompts part="button" />
       </div>

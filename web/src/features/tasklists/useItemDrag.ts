@@ -32,6 +32,8 @@ export interface ItemDragOptions {
   signature: () => string;
   /** Items are picked up by their grip only (a note on the Canvas). */
   gripOnly: () => boolean;
+  /** Handwriting is on: a pen anywhere but on the grip writes instead of moving the row (decision R3). */
+  penWrites?: () => boolean;
   /** No drag now (an item title is being edited). */
   disabled: () => boolean;
   /** A row was dropped on place `to` (never called for the place it came from). */
@@ -86,7 +88,8 @@ export function useItemDrag(o: ItemDragOptions): void {
       const shift = (sp?.scrollTop ?? 0) - (seenScroll ?? 0);
       return { top: pickup!.top - shift, bottom: pickup!.bottom - shift };
     };
-    const onDown = (e: Event) => { fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP); };
+    let pen = false;
+    const onDown = (e: Event) => { fromGrip = !!(e.target as Element | null)?.closest?.(ITEM_GRIP); pen = (e as PointerEvent).pointerType === 'pen'; };
     row.addEventListener('pointerdown', onDown, true);
     const ctl = createDragController<number>(row, {
       hitTest: (_x, y, ctx) => {
@@ -108,7 +111,7 @@ export function useItemDrag(o: ItemDragOptions): void {
       onDrop: (t) => {
         if (t.key !== rowsOf().indexOf(row) && row.dataset.itemId) o.onMove(row.dataset.itemId, t.key);
       },
-      disabled: () => o.disabled() || (o.gripOnly() && !fromGrip),
+      disabled: () => o.disabled() || (o.gripOnly() && !fromGrip) || (!!o.penWrites?.() && pen && !fromGrip),
       scrollEl: () => scrollParent(row),
       onTarget: (t) => {
         held = t ? { row, to: t.key, own: ownSpan } : null;

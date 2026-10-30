@@ -179,8 +179,6 @@ export default {
   },
   drag: {
     newBlock: 'Neu · {from} – {to}',
-    moveFailed: '„{title}“ konnte nicht verschoben werden. {reason}',
-    resizeFailed: 'Die Länge von „{title}“ konnte nicht geändert werden. {reason}',
   },
   warning: {
     startsIn: '{title} beginnt in {duration}',

@@ -570,6 +570,79 @@ the live connection is blocked
 - Counting requests (section "Performance") is used with `/api/changes` to show that a device fetched nothing; the
   endpoint name follows the build (REQUIREMENTS "Live sync").
 
+## Offline changes (`@offline-changes`, ADR 0025 slice 2)
+
+```
+this device keeps {int} unsent change(s)
+this device keeps no unsent changes
+I wait until the changes are sent
+I close the app
+I switch to the second device
+I switch back to the first device
+the second device does not show the event {string}
+the server has the event {string} on {date} from {time} to {time}
+the server has no event {string}
+the server has the task list {string} with items:
+the server has no task list {string}
+the server refuses the next change as invalid
+I am told that the change to {string} was not saved because it was deleted elsewhere
+I am told that the change to {string} was not saved because the server refused it
+I am not told that a change was not saved
+I dismiss the notice
+I press Edit again in the notice
+the notice offers no Edit again
+1 minute passes
+I see the sync failed icon
+I do not see the sync failed icon
+I tap the sync failed icon
+I am told the last successful sync was at {string}
+the unsent changes list shows {string}
+the unsent changes list is empty
+Google deletes the task list {string}
+they ask to sign out in the settings
+they are asked whether to sign out and lose {int} unsent change(s)
+they choose to stay signed in
+they sign out anyway
+```
+
+- Hooks: `<html data-unsynced="N">` carries the outbox size for the waits; the icon is `sync-failed-icon` (top bar, beside
+  `sync-status`), its popover `sync-failed-popover` with the time (`sync-failed-last`), one `sync-failed-change` per unsent change
+  and `sync-failed-empty`. A refused change is a persistent snackbar `outbox-notice` (`outbox-notice-dismiss`,
+  `outbox-edit-again`). There is no per-item mark and no counter.
+- "this device keeps N unsent change(s)": the device store (IndexedDB) holds N outbox entries of the person, also while
+  signed out or on the sign-in page; "keeps no unsent changes": it holds none.
+- "N minutes pass" (existing, timeline) and "1 minute passes": with "the clock is running" the page's clock (Playwright `page.clock`) and the
+  server-side test clock move on by N minutes; with the server's time frozen (the offline scenarios) only the page's own `Date.now` jumps
+  (the app counts device time for the 5 minute rule); timers run in real time.
+- "I see/do not see the sync failed icon": `sync-failed-icon` is visible / not in the page. It shows when no send or sync
+  has succeeded for 5 minutes and goes at the next successful send or sync. "I tap the sync failed icon" opens its sheet.
+  "told the last successful sync was at T": `sync-failed-last` ends with T. "the unsent changes list shows X": one
+  `sync-failed-change` reads X (`<title> ticked`, `<title> created`, `<title> renamed`, `<title> changed`,
+  `<title> deleted`); "is empty": none and the sheet says nothing is unsent.
+- "Google deletes the task list T": deletes its Google event through `/api/__test/remote/*`.
+- "I wait until the changes are sent": waits until `data-unsynced` is `0` (at most the poll interval + 5 s; the
+  send is also started by `online`, focus and open).
+- "I close the app": navigates the page to `about:blank` (the page unloads, the device store stays);
+  "I open the app" (above) then loads it again. Deleting an item or entry enters the outbox when its undo time is
+  over ("the undo time is over" is reused), never before.
+- "I switch to the second device" / "I switch back to the first device": makes the page of "the app is open on a
+  second device" (or the first page) the current one without reloading; the network steps act on the current page's
+  context, so each device is offline on its own. "the second device does not show the event X": the second page
+  holds no chip for X (read without reload or focus).
+- Server checks ("the server has ..."): read through the test API (`GET /api/__test/remote/*`) for the signed-in
+  person (or the single owner), never through the page; an item table compares `item`/`done` in order. "the server
+  has the task list T with items" finds the list by title, dated or not.
+- "the server refuses the next change as invalid": `POST /api/__test/refuse-next-write { status: 400 }` (API.md); the next write request the server receives answers `400 VALIDATION_ERROR`, later ones are
+  normal.
+- Notices: a persistent notice (`save-failed-notice`, not a snackbar that fades) naming the entry as the person last saw
+  it on this device; "I dismiss the notice" presses its `save-failed-dismiss`; "not told that a change was not saved":
+  no `save-failed-notice` is visible. "I press Edit again in the notice" presses `save-failed-edit`, which reopens the
+  form of the failed change prefilled with what the person typed (an event or task list form; for something deleted
+  elsewhere it is the new-entry form); the button exists only where the person typed something (not for a tick), "the notice
+  offers no Edit again": the notice is visible and has no `save-failed-edit`.
+- Sign out with unsent changes: "they ask to sign out in the settings" presses `settings-signout` (Account) and stops at
+  the question (`unsent-changes-dialog`); "stay signed in" presses its Cancel, "sign out anyway" its confirm.
+
 ## Mobile
 
 ```
@@ -3358,3 +3431,170 @@ the floating toolbar is shown
 - Side menu hooks: `menu-button`, `side-menu` (`data-open`), `side-menu-view-<year|month|week|day|tasks>`,
   `side-menu-calendar` (`data-name`, checkbox), `side-menu-settings`; floating toolbar `list-toolbar` with
   `list-tool-filter|sort|fold`; overflow `card-overflow`; group `tasks-mode-group`.
+## Handwritten lists (`@id:handwritten-lists`, Labs; the `@backlog` scenarios are not built yet)
+
+```
+the Labs switch {string} is on
+the checkbox of the item number {int} is right of its grip handle
+the writing of the item number {int} starts at least {int} pixels right of its grip handle
+the Labs switch {string} is off
+the device reports pen support
+the device reports no pen support
+the device is an Android tablet that reports pen support
+the writing mode is {string}
+the calendar contains a task list {string} on {date} with the ink items {string}
+"jo@example.com" has an undated task list {string} with the ink items {string}
+the expanded task list {string} has more ink items than fit the screen
+I open the new task list form
+I open the new task list form on a screen {int} pixels wide
+I press the writing mode switch
+the new list form has no writing mode switch
+the new list form shows the writing mode switch with the pen icon
+the writing mode is {string} and the switch shows the pen icon
+the writing mode is {string} and the switch shows the keyboard icon
+the item writing area offers no writing mode switch
+I write an ink item with the pen
+I write an ink item on the note {string} with the pen
+I draw a stroke with the pen
+I drag with the mouse over the writing area
+I click the ink item number {int} with the mouse
+I click the next empty line and type {string}
+I drag the grip handle of the item number {int} above the item number {int} with the pen
+I long-press the item number {int} with the mouse and drag it above the item number {int}
+I long-press the item number {int} with a finger and drag it above the item number {int}
+the dialog shows no ruled lines to write on
+typing in the item field works as without the feature
+I swipe up on the writing area with a finger
+I rest my palm on the writing area and draw a stroke with the pen
+I tap the ink item number {int} with a finger
+the stroke is drawn on the line
+the stroke is drawn on the line, thicker where I pressed harder
+only the pen stroke is drawn
+nothing is drawn
+the list scrolls
+a pen stroke on the card draws nothing
+the expanded task list has {int} items
+I tick the item number {int}
+the item number {int} is ticked
+the item number {int} is ticked and nothing is drawn
+I can still tick the item number {int}
+I drag the item number {int} above the item number {int}
+I delete the item number {int}
+the ink items are in the order {string}
+the card of {string} shows {int} ink items, scaled down
+the task list {string} shows {int} ink items, scaled down
+the note {string} shows {int} ink items
+the dialog is larger than without the feature
+the dialog is as large as without the feature
+the dialog shows ruled lines to write on
+the item fields are ruled, ordinary text fields
+the form has no button that turns ink into text
+the device's handwriting recognition enters the text {string} in the item field
+the collapsed task list shows the items {string}
+the backup to Drive runs
+the backup holds the ink of the task list {string}
+the Labs setting {string} is on
+the Labs setting {string} is off
+the dialog fits the window
+I draw a stroke with a finger
+I swipe up on the writing area with two fingers
+I draw {int} stroke(s) with the pen
+I have drawn {int} stroke(s) with the pen
+I press the undo button
+the writing area shows {int} stroke(s)
+the device passes the pen double tap on
+I double tap the pen
+I touch the first stroke with the eraser end of the pen
+I touch the first stroke with the pen
+I press the eraser button
+the task list {string} holds about 200 KB of ink
+the app says the list is full and suggests starting a new list
+the stroke has the theme's text colour
+I choose the ink colour preset {string}
+the stroke is red
+I choose the custom ink colour {string} in the colour picker
+I choose the custom ink colour {string}
+the stroke has the colour {string}
+the theme is dark
+the stroke is adjusted so it is readable on the dark background
+the chosen ink colour is {string}
+I add the text item {string}
+the item number {int} is an ink item
+the item number {int} is a text item
+I draw a stroke with the pen on the ink item number {int}
+the ink item number {int} has one more stroke
+the template {string} has the ink items {string}
+I create a task list from the template {string}
+the new task list shows {int} ink items, scaled down
+the calendar contains a repeating task list {string} with the ink items {string}
+the next occurrence of the task list {string} is created
+the next occurrence shows {int} ink items, scaled down
+the home-screen widget lists the task list {string}
+the widget shows {int} small ink pictures for the task list {string}
+the door board shows the task list {string}
+the door board shows {int} small ink pictures for the task list {string}
+the notification for the task list {string} is shown
+the notification text mentions {string}
+a screen reader reads the item number {int} as {string}
+I filter the Tasks view by {string}
+the Tasks view shows the task list {string}
+the Tasks view does not show the task list {string}
+the title field is an ordinary text field
+the title field is not a writing area
+two devices have the task list {string} open
+the first device writes an ink item while offline
+the first device erases the ink item number {int} while offline
+the second device draws a stroke on the ink item number {int} while offline
+both devices reconnect
+both devices show {int} items in the task list {string}
+both devices show the ink item number {int} with {int} stroke(s)
+the ink item number {int} has the same strike line as the text item number {int}
+the ink item number {int} is faded to about half
+I note where the writing tools are
+every writing tool is at the mirror image of where it was, within {int} pixel
+I expand the task list {string} on a screen {int} pixels wide
+the ink of the item number {int} has the same proportions to its line as on a {int} pixel wide screen
+the ink of the item number {int} is not cut off
+I delete the task list {string}
+the server holds {int} ink item(s) for the task list {string}
+the server holds no ink for the task list {string}
+```
+
+- Ink items are created through the public API with a stroke list per item (`{ strokes: [[x, y, pressure]…] }`); the
+  Google description of an ink item is `☐/☑ Handwritten item` (assumption A3 of the feature).
+- "the Labs switch X is on/off": the switch `settings-labs-handwriting` in Settings > Labs (pref `labsHandwriting`).
+- Pen and finger strokes are dispatched as Pointer Events with the matching `pointerType`; a mouse drag (`pointerType` mouse) over the writing area must leave the ink unchanged (decision R1); the grip handle is the item's drag handle (`Drag <item> to reorder`), a pen drag on it moves the item, a pen drag elsewhere on the line draws (R3); "pen support" is the
+  `maxTouchPoints`/`PointerEvent` pen capability the device reports; "palm" is a simultaneous `touch` pointer.
+- "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
+  (the n-th ink item of the creating step is named by the n-th word).
+- "the add button covers no control of the writing area" is an added panel name of the existing step.
+- "the Labs setting X is on/off": the setting row of Settings > Labs (`settings-labs-draw-with-finger` for "Draw with
+  finger", pref `labsDrawWithFinger`), set through `PATCH /api/prefs` before the page opens. With it on, a finger stroke
+  is a `touch` pointer drawing; "two fingers" scroll is two simultaneous `touch` pointers moving.
+- Undo, eraser, colour: `ink-undo`, `ink-eraser` (toggle), `ink-color-<preset>` and `ink-color-custom` (colour picker).
+  "the eraser end of the pen" is a `pen` pointer with `buttons` 32 (eraser) per Pointer Events; "double tap the pen" is
+  the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
+- "holds about 200 KB of ink" creates strokes through the API until the list is just under the 200 KB limit.
+- "the dialog … without the feature": compared with the dialog size measured with the switch off.
+- Offline / sync (G1): "the network connection is lost / restored" are the existing steps; the ink is written into the
+  device outbox and pushed on reconnect. "two devices" = two browser contexts of the same person; "the first / second
+  device ... while offline" sets that context offline, acts, and keeps it offline until "both devices reconnect", which
+  restores both in the order first, second and waits for both to have synced. Steps are applied in the order written, so
+  "later" means the later step. A seeded ink item holds one stroke (A9); "erases the ink item" removes all its strokes.
+- Widget / door board / notification (G2): the widget picture is checked on the widget's render endpoint, the door board
+  on `door-board` (`ink-picture` elements per ink item), the notification on the payload the push or reminder carries
+  (the text "Handwritten item" for an ink item).
+- Screen reader (G3): "a screen reader reads the item number N as T" = the accessible name of the Nth item (`aria-label`)
+  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. "I filter the Tasks view by T" types T into the
+  Tasks view filter field; "shows / does not show the task list" looks for the list card by its title.
+- Title (G4): "an ordinary text field" = the title `input` is a text input without an ink canvas; "not a writing area" = no
+  `ink-writing-area` inside the title field's row.
+- Strike and fade (G6): "the same strike line" = the computed `text-decoration-line`/colour/thickness of the ink item's
+  strike layer equals the text item's; "faded to about half" = computed opacity between 0.4 and 0.6.
+- Left-handed writing tools (G7): "I note where the writing tools are" records the boxes of the mode switch, `ink-undo`,
+  `ink-eraser` and the colour control relative to the writing dialog; the mirror check works like the top bar's, with
+  the dialog's width W.
+- Scale (G8): the ink's bounding box divided by its line height is compared with the 1280 px run (tolerance 2 %); "not cut
+  off" = the ink's box lies inside the line's box.
+- Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.
+

@@ -90,3 +90,13 @@ Feature: Left-handed mode
     Then the "create button" is on the "right" side of the screen
     And the "settings button" is on the "right" side of the screen
     And the "open tasks tray" is on the "right" side of the screen
+
+  @mobile
+  Scenario: Ink rows are mirrored and leave a free strip for the palm (handwritten lists)
+    Given the Labs switch "Handwritten lists" is on
+    And the device reports pen support
+    And left-handed mode is on
+    And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+    And I expand the task list "Groceries"
+    Then the checkbox of the item number 1 is right of its grip handle
+    And the writing of the item number 1 starts at least 30 pixels right of its grip handle

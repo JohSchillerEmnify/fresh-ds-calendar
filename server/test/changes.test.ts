@@ -28,7 +28,7 @@ describe('first call (no cursor)', () => {
     expect(titles(r.events.upserts)).toEqual(['Dentist']);
     expect(r.taskLists.replace).toBe(true);
     expect(titles(r.taskLists.upserts)).toEqual(['Chores', 'Someday']);
-    expect(Object.keys(r.files).sort()).toEqual(['canvas', 'categoryShares', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
+    expect(Object.keys(r.files).sort()).toEqual(['canvas', 'categoryShares', 'ink', 'motivation', 'people', 'prefs', 'settings', 'tasksCalendarReminders', 'templates', 'theme', 'themes']);
   });
 
   it('answers each file in the shape of its own GET', async () => {

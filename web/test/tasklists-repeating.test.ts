@@ -7,6 +7,7 @@ import { createAppRouter } from '@/router';
 import type { TaskList } from '@/api/types';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
@@ -101,11 +102,11 @@ describe('the This task list / This and all following question', () => {
     expect(asked()).not.toBeNull();
     await choose('this');
     expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items']);
-    expect(m.calls.find((c) => c.method === 'POST')!.body).toEqual({ title: 'Mirror' });
+    expect(m.calls.find((c) => c.method === 'POST')!.body).toEqual({ id: expect.any(String), title: 'Mirror' });
   });
 
   const showsTwice = () => ({ status: 409, body: { error: { code: 'CONFLICT', message: 'This list shows twice on 2026-10-26; delete the other copy, then try again', key: 'tasklist.showsTwice', details: [{ field: 'date', issue: '2026-10-26' }] } } });
-  const snack = () => useUiStore().snackbars.find((x) => x.testid === 'tasklist-rollback')?.text;
+  const snack = () => useUiStore().snackbars.find((x) => x.testid === 'outbox-notice')?.text;
 
   it('an add for the following ones that answers 409 says what to do (translated), not just "undone"', async () => {
     await open(week(), { 'POST /api/tasklists/W_20261019/items': showsTwice });
@@ -137,9 +138,9 @@ describe('the This task list / This and all following question', () => {
     // the deferred remove lands after the list left the cache: it is sent directly
     useItemsStore().remove('W_20261019');
     const done = vi.fn();
-    removeItem('W_20261019', 'i1', {}, done, 'following');
-    await vi.waitFor(() => expect(done).toHaveBeenCalled());
-    expect(useUiStore().snackbars.map((x) => x.text)).toContain('This list shows twice on 2026-10-26. Delete the other copy, then try again.');
+    removeItem('W_20261019', 'i1', 'Floor', done, 'following');
+    expect(done).toHaveBeenCalled();
+    await vi.waitFor(() => expect(useUiStore().snackbars.map((x) => x.text)).toContain('This list shows twice on 2026-10-26. Delete the other copy, then try again.'));
   });
 
   it('adding for the following ones names the new item\'s id (a repeated request adds it once)', async () => {
@@ -211,25 +212,32 @@ describe('the This task list / This and all following question', () => {
     expect(q(tid('repeat-scope-following'))!.textContent!.trim()).toBe('This and all following task lists');
   });
 
-  it('removing an item that is still being added asks too, and the answer reaches the request', async () => {
-    let release!: () => void;
-    const added = week({ items: [...week().items, { id: 'i2', title: 'Mirror', done: false }], totalCount: 3 });
-    const m = await open(week(), {
-      'POST /api/tasklists/W_20261019/items': () => new Promise((r) => { release = () => r(added); }),
-      'DELETE /api/tasklists/W_20261019/items/i2': answer(week()),
-    });
+  it('removing an item that was just added asks too, and the answer reaches the request', async () => {
+    let server = week();
+    const routes: Record<string, (r: { body: { id: string } }) => unknown> = {
+      'GET /api/items': () => ({ items: [server] }),
+      'POST /api/tasklists/W_20261019/items': ({ body }) => {
+        server = week({ items: [...week().items, { id: body.id, title: 'Mirror', done: false }], totalCount: 3 });
+        routes[`DELETE /api/tasklists/W_20261019/items/${body.id}`] = answer(week());
+        return server;
+      },
+    };
+    const m = await open(week(), routes);
     q(tid('tasklist-add'))!.click();
     await nextTick();
     await enter(tid('tasklist-new-item'), 'Mirror');
     await choose('following');
-    // still in flight: the row has its temporary id
-    q(`${tid('tasklist-item')}[data-item-id^="tmp-"] ${tid('tasklist-item-delete')}`)!.click();
+    await flushPromises();
+    const row = [...document.querySelectorAll(tid('tasklist-item'))].find((r) => r.textContent!.includes('Mirror'))!;
+    (row.querySelector(tid('tasklist-item-delete')) as HTMLElement).click();
     await nextTick();
     expect(asked()).not.toBeNull();
     await choose('following');
-    release();
-    await flushPromises();
-    await vi.waitFor(() => expect(writes(m)).toEqual(['POST /api/tasklists/W_20261019/items?scope=following', 'DELETE /api/tasklists/W_20261019/items/i2?scope=following']));
+    await usePendingDeletesStore().flush();
+    await vi.waitFor(() => expect(writes(m)).toEqual([
+      'POST /api/tasklists/W_20261019/items?scope=following',
+      expect.stringMatching(/^DELETE \/api\/tasklists\/W_20261019\/items\/[\w-]{8,21}\?scope=following$/),
+    ]));
   });
 
   it('a this-only rename queued after a following one is not merged ahead of it', async () => {
@@ -299,10 +307,9 @@ describe('the task list form on a repeating list', () => {
     expect(writes(m)).toEqual(['PATCH /api/tasklists/W_20261019?scope=following']);
   });
 
-  it('a retry after the title request failed sends only the title (the other changes were saved, with their new version)', async () => {
-    let fail = true;
+  it('a title request that cannot be sent is kept: the form closes, the other changes were sent', async () => {
     const m = await form(week(), {
-      'PATCH /api/tasklists/W_20261019': ({ url, body }) => (url.search && fail
+      'PATCH /api/tasklists/W_20261019': ({ url, body }) => (url.search
         ? { status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'Google is unavailable' } } }
         : week({ ...body, etag: '"e2"' })),
     });
@@ -311,12 +318,8 @@ describe('the task list form on a repeating list', () => {
     q(tid('tasklist-save'))!.click();
     await flushPromises();
     await choose('following');
-    expect(q(tid('tasklist-dialog'))).not.toBeNull();
-    fail = false;
-    q(tid('tasklist-save'))!.click();
-    await flushPromises();
-    await choose('following');
-    expect(writes(m).filter((w) => w.includes('/api/tasklists/'))).toEqual(['PATCH /api/tasklists/W_20261019', 'PATCH /api/tasklists/W_20261019?scope=following', 'PATCH /api/tasklists/W_20261019?scope=following']);
+    await vi.waitFor(() => expect(writes(m).filter((w) => w.includes('/api/tasklists/')).slice(0, 2)).toEqual(['PATCH /api/tasklists/W_20261019', 'PATCH /api/tasklists/W_20261019?scope=following']));
+    expect(useOutboxStore().count).toBe(1);
   });
 
   it('cancel keeps the form open and sends nothing', async () => {

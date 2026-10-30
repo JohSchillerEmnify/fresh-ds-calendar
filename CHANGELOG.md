@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-30
+- Labs, handwritten lists: ink written on two devices at once is now merged stroke by stroke instead of one replacing the other; a resting palm no longer adds to a pen stroke; text mode has ruled lines; left-handed mode also mirrors the colour choice.
+- Labs: handwritten lists. Turn on Settings › Labs › "Handwritten lists" to write list items with a pen (Apple Pencil, Android or Windows stylus). On tablets and pen devices the opened list gets wider and ruled; the pen draws, mouse and finger tick as before ("Draw with finger" lets a finger write). Ink has pressure, colours, an eraser and undo, and syncs and works offline like everything else.
+- Changes you make without a connection are now kept on your device and sent automatically once you are back online, so nothing is undone any more. If nothing could be synced for 5 minutes, a red cloud icon in the top bar shows what is still waiting. If the server turns a change down, a notice offers "Edit again". Signing out asks first when changes have not been sent yet.
+
 ## 2026-10-26
 - Streak: Settings › Focus & motivation now has one "Streak" choice, Off, Flame or Plant, instead of the two switches "Streak flame" and "Plant". It is your own setting and follows you to every device. It starts as Off for everyone, so the top bar is quieter; pick Flame or Plant to bring one back. Your check-ins and your plant keep counting whatever you choose, and the "Checked in, day N" message always shows.
 - The sync icon in the top bar now shows only while syncing fails. To see it all the time, turn on "Sync indicator" in Settings › Calendar.

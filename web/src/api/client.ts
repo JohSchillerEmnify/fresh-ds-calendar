@@ -8,7 +8,7 @@
  * - 401 `UNAUTHENTICATED` / `GOOGLE_REAUTH` and 403 `CALENDAR_PERMISSION_MISSING` responses notify `onAuthError` listeners (sign-in, API.md "Sign-in").
  */
 import type {
-  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
+  AppConfig, BackupStatus, Calendar, CanvasArea, ChangeScope, InkStroke, CanvasDoc, CalendarEvent, CheckInResponse, CreateBirthdayInput, CreateEventInput, CreateTaskListInput, ErrorCode, Health,
   ItemsResponse, LocalDate, Me, Motivation, Person, Prefs, Settings, SettingsPatch, ReleaseNote, SummaryResponse, TaskList, TaskTemplate, TaskTemplateInput, UpdateEventInput,
   UpdateTaskListInput,
 } from './types';
@@ -88,6 +88,8 @@ export interface RequestOptions {
   ifMatch?: string | number;
   /** Let the request outlive the page (deferred deletes sent on `pagehide`). */
   keepalive?: boolean;
+  /** Makes a resent write harmless: the server answers the first result again (API.md Idempotency). */
+  idempotencyKey?: string;
 }
 
 type Fetch = typeof fetch;
@@ -124,6 +126,7 @@ export class ApiClient {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (o.ifMatch !== undefined && o.ifMatch !== null) headers['If-Match'] = String(o.ifMatch);
+    if (o.idempotencyKey) headers['Idempotency-Key'] = o.idempotencyKey;
     let res: Response;
     try {
       res = await this.fetchImpl(this.baseUrl + path, {
@@ -324,11 +327,14 @@ export class ApiClient {
   deleteTaskList(id: string, o?: RequestOptions) {
     return this.request<void>('DELETE', `/api/tasklists/${enc(id)}`, undefined, o);
   }
-  addTaskItem(id: string, item: { id?: string; title: string; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
+  addTaskItem(id: string, item: { id?: string; title?: string; strokes?: InkStroke[]; done?: boolean; index?: number }, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('POST', scoped(`/api/tasklists/${enc(id)}/items`, scope), item, o);
   }
   updateTaskItem(id: string, itemId: string, patch: { title?: string; done?: boolean }, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('PATCH', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), patch, o);
+  }
+  putItemInk(id: string, itemId: string, ink: { strokes: InkStroke[]; base: string[]; at: number }, o?: RequestOptions) {
+    return this.request<TaskList>('PUT', `/api/tasklists/${enc(id)}/items/${enc(itemId)}/ink`, ink, o);
   }
   deleteTaskItem(id: string, itemId: string, o?: RequestOptions, scope?: ChangeScope) {
     return this.request<TaskList>('DELETE', scoped(`/api/tasklists/${enc(id)}/items/${enc(itemId)}`, scope), undefined, o);

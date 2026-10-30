@@ -26,6 +26,7 @@ import { LABS_VIEWS, isLabsViewOn } from '@/features/labs/labs';
 import { StreakFlame } from '@/features/motivation';
 import { useMotivationStore } from '@/features/motivation/store';
 import ConfirmDialog from '@/components/m3/ConfirmDialog.vue';
+import { useSignOut } from '@/composables/useSignOut';
 import { useAuthStore } from '@/stores/auth';
 import { useBackupStore } from '@/stores/backup';
 import { useClockStore } from '@/stores/clock';
@@ -158,10 +159,7 @@ function saveBedtime(p: Partial<BedtimePrefs>) {
   for (const v of [p.bedtime, p.wake, p.weekendBedtime, p.weekendWake]) if (v !== undefined && !/^\d{2}:\d{2}$/.test(v)) return;
   void savePrefs({ bedtime: p as BedtimePrefs });
 }
-const bedtimeModes = computed(() => [
-  { value: 'fixed', label: t('bedtime.settings.mode.fixed'), testid: 'settings-bedtime-mode-fixed' },
-  { value: 'dynamic', label: t('bedtime.settings.mode.dynamic'), testid: 'settings-bedtime-mode-dynamic' },
-]);
+const bedtimeModes = computed(() => (['fixed', 'dynamic'] as const).map((m) => ({ value: m, label: t(`bedtime.settings.mode.${m}`), testid: `settings-bedtime-mode-${m}` })));
 /** The offered values plus the stored one, so a value set elsewhere still shows. */
 const withCurrent = (offered: number[], current: number) => (offered.includes(current) ? offered : [...offered, current].sort((a, b) => a - b));
 const sleepOptions = computed(() => withCurrent([6, 7, 8, 9, 10].map((h) => h * 60), bt.value.sleepMinutes).map((m) => ({ value: String(m), label: t('bedtime.settings.sleep.hours', { count: m / 60 }, m / 60) })));
@@ -194,6 +192,7 @@ onBeforeUnmount(() => motivation.stop());
 // --- backup to Google Drive (feature drive-backup) ---------------------------------------------
 const backup = useBackupStore();
 const confirmRestore = ref(false);
+const { asking: askLeave, leave, unsent: outbox } = useSignOut();
 void backup.load();
 const backupText = computed(() => {
   const s = backup.status;
@@ -358,6 +357,8 @@ async function resetDemo() {
             <div v-for="v in LABS_VIEWS" :key="v.id" class="row"><div class="grow"><span class="lab">{{ t(v.labelKey) }}</span></div><Switch :model-value="isLabsViewOn(v.id, labs.labsViews)" :label="t(v.labelKey)" :data-testid="`settings-labs-view-${v.id}`" @update:model-value="savePrefs({ labsViews: { [v.id]: $event } })" /></div>
             <div class="row"><div class="grow"><span class="lab">{{ t('settings.ownThemes.label') }}</span><span class="sub">{{ t('settings.ownThemes.hint') }}</span></div><Switch :model-value="labs.labsOwnThemes" :label="t('settings.ownThemes.label')" data-testid="settings-labs-own-themes" @update:model-value="savePrefs({ labsOwnThemes: $event })" /></div>
             <div class="row"><div class="grow"><span class="lab">{{ t('settings.labs.growCards.label') }}</span><span class="sub">{{ t('settings.labs.growCards.hint') }}</span></div><Switch :model-value="labs.labsGrowCards" :label="t('settings.labs.growCards.label')" data-testid="settings-labs-grow-cards" @update:model-value="savePrefs({ labsGrowCards: $event })" /></div>
+            <div class="row"><div class="grow"><span class="lab">{{ t('ink.settings.label') }}</span><span class="sub">{{ t('ink.settings.hint') }}</span></div><Switch :model-value="labs.labsHandwriting" :label="t('ink.settings.label')" data-testid="settings-labs-handwriting" @update:model-value="savePrefs({ labsHandwriting: $event })" /></div>
+            <div v-if="labs.labsHandwriting" class="row"><div class="grow"><span class="lab">{{ t('ink.settings.finger.label') }}</span><span class="sub">{{ t('ink.settings.finger.hint') }}</span></div><Switch :model-value="labs.labsDrawWithFinger" :label="t('ink.settings.finger.label')" data-testid="settings-labs-draw-with-finger" @update:model-value="savePrefs({ labsDrawWithFinger: $event })" /></div>
             <div class="row"><div class="grow"><span class="lab">{{ t('settings.labs.weekTwoRow.label') }}</span><span class="sub">{{ t('settings.labs.weekTwoRow.hint') }}</span></div><Switch :model-value="labs.weekTwoRow" :label="t('settings.labs.weekTwoRow.label')" data-testid="settings-week-two-row" @update:model-value="savePrefs({ weekTwoRow: $event })" /></div>
             <div v-if="labs.weekTwoRow" class="row col"><span class="lab">{{ t('settings.labs.weekTwoRow.split') }}</span><SegmentedButton :model-value="String(labs.weekTwoRowTop)" :options="weekSplitOptions" :label="t('settings.labs.weekTwoRow.split')" data-testid="settings-week-two-row-split" @update:model-value="savePrefs({ weekTwoRowTop: $event === '3' ? 3 : 4 })" /></div>
           </template>
@@ -365,8 +366,8 @@ async function resetDemo() {
 
         <section id="s-account" class="card" data-testid="settings-section" data-section="account" aria-labelledby="h-account">
           <h2 id="h-account">{{ title('account') }}</h2>
-          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="auth.signOut()">{{ t('settings.account.signOut') }}</Button></div>
-          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signOutAll.label') }}</span><span class="sub">{{ t('settings.account.signOutAll.hint') }}</span></div><Button variant="outlined" data-testid="settings-signout-all" @click="auth.signOutAll()">{{ t('settings.account.signOutAll.button') }}</Button></div>
+          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signedIn') }}</span><span class="sub">{{ auth.email }}</span></div><Button variant="outlined" data-testid="settings-signout" @click="leave('one')">{{ t('settings.account.signOut') }}</Button></div>
+          <div v-if="auth.status === 'in'" class="row"><div class="grow"><span class="lab">{{ t('settings.account.signOutAll.label') }}</span><span class="sub">{{ t('settings.account.signOutAll.hint') }}</span></div><Button variant="outlined" data-testid="settings-signout-all" @click="leave('all')">{{ t('settings.account.signOutAll.button') }}</Button></div>
           <div v-if="auth.calendarMissing" class="row"><div class="grow"><span class="lab">{{ t('settings.account.calendarAccess.label') }}</span><span class="sub">{{ t('settings.account.calendarAccess.hint') }}</span></div><Button variant="tonal" data-testid="settings-calendar-access" @click="auth.grantCalendar()">{{ t('settings.account.calendarAccess.grant') }}</Button></div>
           <template v-if="backup.status?.available">
             <div v-if="backup.status.permission === 'missing'" class="row">
@@ -392,6 +393,7 @@ async function resetDemo() {
       </div>
     </div>
     <IosInstallSheet v-if="installing" @close="installing = false" />
+    <ConfirmDialog :open="askLeave !== null" :title="t('outbox.signOutAsk', { count: outbox.count }, outbox.count)" :ok-label="t('outbox.signOutAnyway')" :cancel-label="t('outbox.stay')" @ok="leave(askLeave!, true)" @cancel="askLeave = null" />
     <ConfirmDialog :open="confirmRestore" :title="t('backup.restoreDialog.title')" :message="t('backup.restoreDialog.message')" :ok-label="t('backup.restoreDialog.ok')" @ok="runRestore" @cancel="confirmRestore = false" />
     <CategoryDialog v-if="adding" @close="adding = false" />
     <CategoryDialog v-if="editing" :category="editing" @close="editing = null" />

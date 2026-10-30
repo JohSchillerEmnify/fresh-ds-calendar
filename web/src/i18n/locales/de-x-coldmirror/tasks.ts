@@ -120,10 +120,7 @@ export default {
   dialog: {
     editTitle: 'Liste ändern, yo',
     newTitle: 'Neue Liste, fresh',
-    loadLatest: 'Neueste Version laden, Digga',
-    conflict: 'Post für mich, Post für mich! Die Liste wurde woanders geändert. Lad sie neu, du Oberpflaume.',
     failed: 'Fresh D. hat sich verhört. Probier\'s nochmal, Digga.',
-    reloadFailed: 'Neu laden ging nicht, yo.',
     title: 'Titel, yo',
     date: 'Datum, fresh',
     time: 'Uhrzeit (kann, muss nicht)',

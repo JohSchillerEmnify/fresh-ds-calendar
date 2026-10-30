@@ -8,6 +8,7 @@ import { displayTitle, itemSegments, neutralName } from '@/lib/items';
 import { enableTimerCounting } from '@/lib/timers';
 import { useClockStore } from '@/stores/clock';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useSettingsStore } from '@/stores/settings';
 import { useUiStore } from '@/stores/ui';
@@ -41,7 +42,7 @@ const tid = (id: string) => `[data-testid="${id}"]`;
 
 let wrapper: VueWrapper | null = null;
 let router: Router;
-async function setup(routes: Record<string, (r: { body: any; url: URL }) => unknown> = {}, path = '/week/2026-10-12') {
+async function setup(routes: Record<string, (r: { body: any; url: URL; headers: Record<string, string> }) => unknown> = {}, path = '/week/2026-10-12') {
   const m = mockFetch({
     'GET /api/config': () => config({ pollIntervalMs: 0 }),
     'GET /api/settings': () => settingsFixture(),
@@ -185,7 +186,7 @@ describe('expanded list', () => {
       if (behaviour.delay) await new Promise((r) => setTimeout(r, behaviour.delay));
       const itemId = url.pathname.split('/').pop()!;
       log.push({ itemId, body });
-      if (behaviour.fail?.(call)) return { status: 500, body: { error: { code: 'INTERNAL', message: 'boom' } } };
+      if (behaviour.fail?.(call)) return { status: 400, body: { error: { code: 'VALIDATION_ERROR', message: 'refused' } } };
       state = { ...state, items: state.items.map((i) => (i.id === itemId ? { ...i, ...body } : i)) };
       state = { ...state, doneCount: state.items.filter((i) => i.done).length };
       return state;
@@ -215,22 +216,32 @@ describe('expanded list', () => {
     expect(w.get(tid('tasklist-expanded-count')).text()).toBe('2/3');
   });
 
-  it('rolls back and shows a snackbar when the request fails', async () => {
+  it('rolls back and tells the person when the server refuses the change', async () => {
     const list = tl('G');
     const s = server(list, { fail: () => true });
-    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': s.handler });
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': s.handler, 'GET /api/tasklists/G': () => s.state });
     await checkbox(w, 0).setValue(true);
     expect(done(w)[0]).toBe('true');
     await flushPromises();
     expect(done(w)[0]).toBe('false');
-    expect(useUiStore().snackbars.some((x) => x.testid === 'tasklist-rollback')).toBe(true);
+    expect(useUiStore().snackbars.some((x) => x.testid === 'outbox-notice')).toBe(true);
     expect(useItemsStore().get('G')).toMatchObject({ doneCount: 0 });
   });
 
-  it('a dropped item moves at once with one PUT of the full order, and a failed save puts it back', async () => {
+  it('keeps the tick shown while it cannot be sent', async () => {
+    const list = tl('G');
+    const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': () => ({ status: 503, body: { error: { code: 'PROVIDER_UNAVAILABLE', message: 'x' } } }) });
+    await checkbox(w, 0).setValue(true);
+    await flushPromises();
+    expect(done(w)[0]).toBe('true');
+    expect(useOutboxStore().count).toBe(1);
+    expect(useUiStore().snackbars.some((x) => x.testid === 'outbox-notice')).toBe(false);
+  });
+
+  it('a dropped item moves at once with one PUT of the full order, and a refused save puts it back', async () => {
     const list = tl('G');
     const titles = (w: VueWrapper) => w.findAll(tid('tasklist-item-title')).map((x) => x.text());
-    const { w, m } = await open(list, { 'PUT /api/tasklists/G/items/order': () => ({ status: 500, body: { error: { code: 'INTERNAL', message: 'boom' } } }) });
+    const { w, m } = await open(list, { 'PUT /api/tasklists/G/items/order': () => ({ status: 400, body: { error: { code: 'VALIDATION_ERROR', message: 'boom' } } }), 'GET /api/tasklists/G': () => list });
     const before = titles(w);
     moveItemTo('G', 'G-i2', 0);
     await nextTick();
@@ -238,14 +249,14 @@ describe('expanded list', () => {
     await flushPromises();
     expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', 'G-i1']);
     expect(titles(w)).toEqual(before);
-    expect(useUiStore().snackbars.some((x) => x.testid === 'tasklist-rollback')).toBe(true);
+    expect(useUiStore().snackbars.some((x) => x.testid === 'outbox-notice')).toBe(true);
   });
 
   it('rapid ticks stay correct: one failure rolls back only itself, others survive', async () => {
     const list = tl('G');
     const s = server(list, { fail: (n) => n === 2, delay: 5 });
     const { w } = await open(list, {
-      'PATCH /api/tasklists/G/items/G-i0': s.handler, 'PATCH /api/tasklists/G/items/G-i1': s.handler, 'PATCH /api/tasklists/G/items/G-i2': s.handler,
+      'PATCH /api/tasklists/G/items/G-i0': s.handler, 'PATCH /api/tasklists/G/items/G-i1': s.handler, 'PATCH /api/tasklists/G/items/G-i2': s.handler, 'GET /api/tasklists/G': () => s.state,
     });
     await checkbox(w, 0).setValue(true);
     await checkbox(w, 1).setValue(true);
@@ -259,18 +270,17 @@ describe('expanded list', () => {
     expect(s.state.items.map((i) => i.done)).toEqual([true, false, true]);
   });
 
-  it('merges unsent patches for the same item: last write wins', async () => {
+  it('sends every change as it was made, in order (no merging)', async () => {
     const list = tl('G');
     const s = server(list, { delay: 10 });
     const { w } = await open(list, { 'PATCH /api/tasklists/G/items/G-i0': s.handler, 'PATCH /api/tasklists/G/items/G-i1': s.handler });
-    await checkbox(w, 1).setValue(true); // goes in flight
-    await checkbox(w, 0).setValue(true); // queued
-    await checkbox(w, 0).setValue(false); // merges into the queued op
+    await checkbox(w, 1).setValue(true);
     await checkbox(w, 0).setValue(true);
-    await new Promise((r) => setTimeout(r, 60));
+    await checkbox(w, 0).setValue(false);
+    await checkbox(w, 0).setValue(true);
+    await vi.waitFor(() => expect(s.log).toHaveLength(4));
     await flushPromises();
-    expect(s.log).toHaveLength(2);
-    expect(s.log[1]).toEqual({ itemId: 'G-i0', body: { done: true } });
+    expect(s.log.map((l) => [l.itemId, l.body.done])).toEqual([['G-i1', true], ['G-i0', true], ['G-i0', false], ['G-i0', true]]);
     expect(done(w)).toEqual(['true', 'true', 'false']);
   });
 
@@ -338,7 +348,7 @@ describe('expanded list', () => {
     const list = tl('G');
     let state = structuredClone(list);
     const { w, m } = await open(list, {
-      'POST /api/tasklists/G/items': ({ body }: any) => (state = { ...state, items: [...state.items, { id: 'new1', title: body.title, done: false }], totalCount: state.totalCount + 1 }),
+      'POST /api/tasklists/G/items': ({ body }: any) => (state = { ...state, items: [...state.items, { id: body.id, title: body.title, done: false }], totalCount: state.totalCount + 1 }),
       'PATCH /api/tasklists/G/items/G-i0': ({ body }: any) => (state = { ...state, items: state.items.map((i) => (i.id === 'G-i0' ? { ...i, ...body } : i)) }),
       'DELETE /api/tasklists/G/items/G-i1': () => (state = { ...state, items: state.items.filter((i) => i.id !== 'G-i1'), totalCount: 2 }),
       'PUT /api/tasklists/G/items/order': ({ body }: any) => (state = { ...state, items: body.itemIds.map((id: string) => state.items.find((i) => i.id === id)) }),
@@ -374,9 +384,8 @@ describe('expanded list', () => {
     moveItemTo('G', 'G-i2', 0);
     await nextTick();
     expect(w.findAll(tid('tasklist-item-title')).map((x) => x.text())).toEqual(['Bread', 'Oat milk', 'Butter']);
-    await flushPromises();
-    expect(m.calls.filter((c) => c.method === 'DELETE' || c.method === 'PUT').map((c) => c.method)).toEqual(['DELETE', 'PUT']);
-    expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', 'new1']);
+    await vi.waitFor(() => expect(m.calls.filter((c) => c.method === 'DELETE' || c.method === 'PUT').map((c) => c.method)).toEqual(['DELETE', 'PUT']));
+    expect(m.calls.find((c) => c.method === 'PUT')!.body.itemIds).toEqual(['G-i2', 'G-i0', m.calls.find((c) => c.method === 'POST')!.body.id]);
   });
 });
 
@@ -557,20 +566,21 @@ describe('dialog', () => {
     expect(patches[0]).not.toHaveProperty('tags');
     expect(w.emitted('close')).toHaveLength(1);
   });
-  it('shows a conflict message on 412 with a reload button', async () => {
+  it('answers a 412 by sending the same change again on the newest version', async () => {
     const list = tl('G');
-    const { pinia } = await setup({
-      'PATCH /api/tasklists/G': () => ({ status: 412, body: { error: { code: 'PRECONDITION_FAILED', message: 'changed' } } }),
+    const m412 = { status: 412, body: { error: { code: 'PRECONDITION_FAILED', message: 'changed' } } };
+    const { pinia, m } = await setup({
+      'PATCH /api/tasklists/G': ({ headers }) => (headers['If-Match'] === '"new"' ? { ...list, title: 'Mine', etag: '"newer"' } : m412),
       'GET /api/tasklists/G': () => ({ ...list, title: 'Fresh', etag: '"new"' }),
     });
     useItemsStore().upsert(list);
     const w = mountIn(TaskListDialog, { mode: 'edit', id: 'G' }, pinia);
     await flushPromises();
     await fill(w, 'Mine');
-    expect(w.get(tid('tasklist-error')).text()).toContain('changed elsewhere');
-    await w.get(tid('tasklist-reload')).trigger('click');
     await flushPromises();
-    expect((w.get(tid('tasklist-title')).element as HTMLInputElement).value).toBe('Fresh');
+    expect(m.calls.filter((c) => c.method === 'PATCH').map((c) => [c.headers['If-Match'], c.body])).toEqual([[list.etag, { title: 'Mine' }], ['"new"', { title: 'Mine' }]]);
+    expect(w.find(tid('tasklist-error')).exists()).toBe(false);
+    expect(useItemsStore().get('G')).toMatchObject({ title: 'Mine', etag: '"newer"' });
   });
   it('validateForm', () => {
     const base = { title: 'x', date: '2026-10-14', time: '', estimate: '', categoryId: 'none', items: '', repeat: '' as const };

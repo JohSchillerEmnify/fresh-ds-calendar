@@ -37,6 +37,9 @@ export function fitItems(i: FitInput): Fit {
   return { shown: lines, more: i.count - lines, inline: false };
 }
 
+/** The height of an item row on a card with ink. */
+const INK_ROW_PX = 24;
+
 /** Timed blocks shorter than this (about an hour or less) show the open items inline after the title, no footer row. */
 export const INLINE_BELOW_PX = 62;
 
@@ -60,6 +63,8 @@ export interface CardLayoutInput {
   open: number;
   /** All items, ticked ones included (the grown card shows them all). */
   total: number;
+  /** The list has an ink item: every row is as tall as the ink line (about 24 px; decision M3). */
+  inked?: boolean;
 }
 
 /** Result of {@link cardLayout}: the item fit plus the rows around it. */
@@ -90,7 +95,7 @@ export function cardLayout(i: CardLayoutInput): CardLayout {
       count: i.open,
       height: i.height || undefined,
       titleH: i.mini ? 15 : 17,
-      rowH: i.mini ? 11 : 14,
+      rowH: i.inked ? INK_ROW_PX : i.mini ? 11 : 14,
       pad: block ? 6 : 5,
       footH: block && i.timed && !i.mini ? 14 : 0,
       minLines: block ? 0 : 1,

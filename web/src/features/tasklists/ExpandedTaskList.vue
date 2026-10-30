@@ -15,6 +15,8 @@ import { useUiStore } from '@/stores/ui';
 import { useTaskCategories } from './categories';
 import TaskListView from './TaskListView.vue';
 import { useTaskList } from './useTaskList';
+import { useInkMode } from './useInkMode';
+import { useInkStore } from '@/stores/ink';
 
 const props = defineProps<{ id: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -22,6 +24,9 @@ const items = useItemsStore();
 const ui = useUiStore();
 const cats = useTaskCategories();
 
+/** In ink mode the list is wider, so a line is long enough to write on (decision M2). */
+const inkMode = useInkMode();
+const wide = computed(() => inkMode.ruled.value && useInkStore().mode === 'ink');
 const tl = useTaskList(() => props.id, { load: { onClose: () => emit('close') }, onGone: () => emit('close') });
 
 // --- placement ------------------------------------------------------------------------------------------------
@@ -32,7 +37,7 @@ const pos = ref<{ left: number; top: number; maxH: number } | null>(null);
 function place() {
   if (isPhone.value) { pos.value = null; return; }
   const card = document.querySelector(`[data-testid="tasklist-card"][data-tasklist-id="${CSS.escape(props.id)}"]`);
-  const W = 380, vw = window.innerWidth, vh = window.innerHeight;
+  const W = wide.value ? 640 : 380, vw = window.innerWidth, vh = window.innerHeight;
   if (!card) { pos.value = null; return; }
   const r = card.getBoundingClientRect();
   let left = r.right + 8 + W <= vw ? r.right + 8 : r.left - 8 - W >= 0 ? r.left - 8 - W : Math.min(Math.max(8, r.left), vw - W - 8);
@@ -40,7 +45,7 @@ function place() {
   left = Math.max(8, left);
   pos.value = { left, top, maxH: vh - top - 8 };
 }
-watch(isPhone, place);
+watch([isPhone, wide], place);
 
 let stops: Disposer[] = [];
 let opener: HTMLElement | null = null;
@@ -60,7 +65,7 @@ onBeforeUnmount(() => {
 
 <template>
   <AdaptiveSheet
-    ref="sheet" :open="!!tl" :label="tl ? neutralName(tl) : t('tasks.list.fallbackLabel')" testid="tasklist-expanded" :anchor="pos" :escape="false"
+    ref="sheet" :open="!!tl" :label="tl ? neutralName(tl) : t('tasks.list.fallbackLabel')" testid="tasklist-expanded" :anchor="pos" :escape="false" :wide="wide"
     :panel-attrs="{ 'data-tasklist-id': tl?.id ?? '', 'data-title': tl ? displayTitle(tl) : '' }"
     :panel-style="{ '--c': tl ? cats.color(tl) : 'transparent', borderTop: '4px solid var(--c)', background: 'color-mix(in srgb, var(--c) 7%, var(--md-sys-color-surface-container-low))' }"
     @close="emit('close')"

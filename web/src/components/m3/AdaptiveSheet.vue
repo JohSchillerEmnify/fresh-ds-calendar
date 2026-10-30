@@ -4,7 +4,7 @@
  * Renders nothing while closed (v-if), so no DOM or references are retained. Escape / Cancel close;
  * the scrim closes only when `dismissOnScrim` (feature dialogs pass `!dirty`).
  */
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { isPhone, acquireViewport } from '@/composables/useViewport';
 import { appTimeout, listen, type Disposer } from '@/lib/timers';
 import { createVelocityTracker } from '@/motion/spring';
@@ -17,9 +17,17 @@ const props = withDefaults(defineProps<{
   panelAttrs?: Record<string, string>; panelStyle?: Record<string, string>; anchor?: { left: number; top: number; maxH: number } | null; escape?: boolean;
   /** A drawer from this screen edge, full height (the side menu), instead of a sheet or a modal. */
   side?: 'left' | 'right';
+  /** With an `anchor`, the phone shows the same popover instead of a bottom sheet. */
+  anchoredOnPhone?: boolean;
+  /** A wider panel for a writing area (handwritten lists); a phone keeps its sheet. */
+  wide?: boolean;
 }>(), { dismissOnScrim: true, escape: true });
 const emit = defineEmits<{ close: [] }>();
 useOverlayHistory(() => props.open, () => emit('close'));
+/** Shown as a card at the anchor: on wide screens, and on phones when asked to. */
+const popover = computed(() => !!props.anchor && (!isPhone.value || props.anchoredOnPhone));
+/** Shown as a bottom sheet. */
+const sheet = computed(() => isPhone.value && !popover.value);
 const panel = ref<HTMLElement | null>(null);
 const drag = ref(0);
 const release = acquireViewport();
@@ -74,7 +82,7 @@ function startsAtTop(t: HTMLElement): boolean {
   return true;
 }
 function ts(e: TouchEvent) {
-  if (props.side || !isPhone.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
+  if (props.side || !sheet.value || closing.value || e.touches.length !== 1 || !panel.value) { phase = 'ignore'; return; }
   const t = e.target as HTMLElement;
   const inTop = e.touches[0].clientY - panel.value.getBoundingClientRect().top < TOP_ZONE;
   if (t.closest?.(NO_DRAG) || !(inTop || startsAtTop(t))) { phase = 'ignore'; return; }
@@ -128,14 +136,14 @@ onBeforeUnmount(() => stopTimer?.());
 </script>
 
 <template>
-  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : isPhone ? 'phone' : 'desk', { anchored: !side && !isPhone && !!anchor }]">
+  <div v-if="open" class="layer" :class="[side ? `drawer side-${side}` : sheet ? 'phone' : 'desk', { anchored: !side && popover }]">
     <div class="scrim" data-testid="sheet-scrim" :style="drag ? { opacity: 1 - Math.min(1, drag / 400) } : undefined" @click="dismissOnScrim && emit('close')" />
     <section
       ref="panel" class="panel" role="dialog" aria-modal="true" :aria-label="label" tabindex="-1" :data-testid="testid"
-      :data-presentation="side ? 'drawer' : isPhone ? 'sheet' : anchor ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && !isPhone && !!anchor }"
-      :style="[panelStyle, !isPhone && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
+      :data-presentation="side ? 'drawer' : sheet ? 'sheet' : popover ? 'popover' : 'modal'" v-bind="panelAttrs" :class="{ anchored: !side && popover, wide }"
+      :style="[panelStyle, !side && popover && anchor ? { left: anchor.left + 'px', top: anchor.top + 'px', maxHeight: anchor.maxH + 'px' } : null, drag ? { transform: `translateY(${drag}px)`, transition: closing ? 'transform 180ms ease-in' : 'none' } : null]"
     >
-      <div v-if="isPhone && !side" class="handle" aria-hidden="true"><span /></div>
+      <div v-if="sheet && !side" class="handle" aria-hidden="true"><span /></div>
       <div class="body"><slot /></div>
     </section>
   </div>
@@ -155,6 +163,7 @@ onBeforeUnmount(() => stopTimer?.());
 }
 .desk.anchored .scrim { background: rgb(0 0 0 / 0.12); }
 .desk .panel.anchored { position: fixed; width: min(380px, calc(100vw - 16px)); transform-origin: left top; }
+.desk .panel.anchored.wide { width: min(640px, calc(100vw - 16px)); }
 .desk { align-items: center; justify-content: center; }
 .desk .panel { width: min(520px, calc(100vw - 32px)); border-radius: var(--md-sys-shape-corner-extra-large); box-shadow: var(--md-sys-elevation-3); animation: zoom 260ms var(--md-sys-motion-spring) both; }
 .drawer { align-items: stretch; }
@@ -163,6 +172,7 @@ onBeforeUnmount(() => stopTimer?.());
 .drawer.side-left .panel { border-radius: 0 var(--md-sys-shape-corner-extra-large) var(--md-sys-shape-corner-extra-large) 0; padding-left: var(--safe-left); animation: from-left 280ms var(--md-sys-motion-emphasized) both; }
 .drawer.side-right .panel { border-radius: var(--md-sys-shape-corner-extra-large) 0 0 var(--md-sys-shape-corner-extra-large); padding-right: var(--safe-right); animation: from-right 280ms var(--md-sys-motion-emphasized) both; }
 .drawer .body { flex: 1; display: flex; flex-direction: column; padding: 12px; }
+.desk .panel.wide:not(.anchored) { width: min(760px, calc(100vw - 32px)); }
 .handle { display: flex; justify-content: center; align-items: center; min-height: 44px; margin: -12px 0; touch-action: none; cursor: grab; flex: none; }
 .handle span { width: 32px; height: 4px; border-radius: 2px; background: var(--md-sys-color-on-surface-variant); opacity: 0.4; }
 .body { border-radius: inherit; /* clips the scrollbar to the panel's rounding */ overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; min-height: 0; }

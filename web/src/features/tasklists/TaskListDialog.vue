@@ -7,6 +7,13 @@ import { api, ApiError } from '@/api/client';
 import type { Person, Reminders, TaskList, TaskTemplate } from '@/api/types';
 import { t, type MessageKey } from '@/i18n';
 import AdaptiveSheet from '@/components/m3/AdaptiveSheet.vue';
+import InkLine from './InkLine.vue';
+import InkTools from './InkTools.vue';
+import { useInkForm } from './useInkForm';
+import { usePenDoubleTap } from './usePenDoubleTap';
+import { useInkMode } from './useInkMode';
+import { useInkStore } from '@/stores/ink';
+import { usePrefsStore } from '@/stores/prefs';
 import Button from '@/components/m3/Button.vue';
 import IconButton from '@/components/m3/IconButton.vue';
 import { IconClose } from '@/components/icons';
@@ -17,6 +24,7 @@ import Switch from '@/components/m3/Switch.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { useDeviceStore } from '@/stores/device';
 import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { useAsyncSubmit } from '@/composables/useAsyncSubmit';
 import { enterNext } from '@/composables/useEnterNext';
@@ -30,12 +38,22 @@ import { useTaskCategories } from './categories';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import { useRepeatScope } from './repeatScope';
 import TemplatePill from './TemplatePill.vue';
-import { fillFromTemplate, templateFromForm, templateNameProblem } from './templates';
+import { fillFromTemplate, inkLinesOf, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
 
-const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number }>();
+const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number; draftList?: TaskList }>();
 const emit = defineEmits<{ close: [] }>();
 const items = useItemsStore();
+// handwriting (feature handwritten-lists): ink lines for the new list, in a wider ruled dialog where a pen is used
+const inkMode = useInkMode();
+const inkStore = useInkStore();
+const prefs = usePrefsStore();
+const inkForm = useInkForm();
+const toolsShown = computed(() => !editing.value && inkMode.enabled.value);
+const inking = computed(() => toolsShown.value && inkStore.mode === 'ink' && (inkMode.ruled.value || prefs.labsDrawWithFinger));
+const wide = computed(() => !editing.value && inkMode.ruled.value);
+usePenDoubleTap(inkForm.undo, () => inking.value);
+const outbox = useOutboxStore();
 const device = useDeviceStore();
 const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
@@ -52,7 +70,6 @@ const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
 const form = reactive<TaskListForm>(newTaskListForm(props.date === undefined ? '' : props.date, props.time, props.minutes));
 const error = ref('');
-const conflict = ref(false);
 const saving = ref(false);
 /** The list being edited, for the sharing controls (a shared list says who it is shared with). */
 const current = computed(() => {
@@ -84,6 +101,7 @@ function fill(src: TaskList) {
 onMounted(async () => {
   device.read('tasksCalendarReminders', () => api.tasksCalendarReminders()).then((r) => { taskDefaults.value = r.defaultReminders; }).catch(() => undefined);
   if (!editing.value) {
+    if (props.draftList) { fill(props.draftList); form.items = props.draftList.items.map((i) => i.title).join('\n'); }
     original = JSON.stringify(form);
     // the names already taken, for "Also save as template"
     templates.load().catch(() => undefined);
@@ -91,7 +109,7 @@ onMounted(async () => {
   }
   device.read('people', () => api.people()).then((r) => { people.value = r.people; }).catch(() => undefined);
   const cur = items.get(props.id!);
-  if (cur?.kind === 'tasklist') return fill(cur);
+  if (cur?.kind === 'tasklist') { fill(cur); if (props.draftList) { const [o, ot, or] = [original, originalTitle, originalReminders]; fill(props.draftList); [etag, original, originalTitle, originalReminders] = [cur.etag, o, ot, or]; } return; }
   loading.value = true;
   try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); }
   catch { ui.notify(t('tasks.list.gone')); emit('close'); }
@@ -122,6 +140,7 @@ const alsoTemplate = ref(false);
 const pill = ref<InstanceType<typeof TemplatePill> | null>(null);
 function pickTemplate(tpl: TaskTemplate) {
   Object.assign(form, fillFromTemplate(form, tpl, (id) => !!settings.categoryById(id)));
+  inkForm.set(inkLinesOf(tpl));
   pickedTemplate.value = tpl.name;
 }
 function manageTemplates() {
@@ -135,10 +154,16 @@ function templateProblem(): string {
   return templateNameProblem(templates.list, form.title);
 }
 
+/** Only the fields the person changed: a change sent later must not undo another field changed elsewhere (ADR 0031). */
+function changedFields<T extends Record<string, unknown>>(body: T, current: unknown): Partial<T> {
+  const cur = (current ?? {}) as Record<string, unknown>;
+  const same = (k: string) => k in cur && JSON.stringify(cur[k] ?? null) === JSON.stringify(body[k] ?? null);
+  return Object.fromEntries(Object.entries(body).filter(([k]) => !same(k))) as Partial<T>;
+}
+
 async function save() {
   const current = editing.value ? items.get(props.id!) : undefined;
-  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form)) ?? templateProblem();
-  conflict.value = false;
+  error.value = (current?.kind === 'tasklist' ? validateForm(form, current.items.length) : validateForm(form, parseItems(form.items).length + inkForm.written.value.length)) ?? templateProblem();
   if (error.value || saving.value) return;
   saving.value = true;
   // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones.
@@ -158,35 +183,26 @@ async function save() {
       const { title, ...rest } = body;
       const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' });
       if (othersChanged) {
-        const saved = await items.updateTaskList(props.id!, rest, etag);
-        // saved: a retry after a failed title request sends only the title (with the new version)
-        etag = saved.etag;
+        outbox.updateList(props.id!, rest, undefined, etag);
         original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
       }
-      await items.updateTaskList(props.id!, { title }, undefined, 'following');
-    } else if (editing.value) await items.updateTaskList(props.id!, body, etag);
+      outbox.updateList(props.id!, { title }, 'following');
+    } else if (editing.value) outbox.updateList(props.id!, changedFields(body, current), undefined, etag);
     else {
-      await items.createTaskList({
-        ...body, items: parseItems(form.items).map((title) => ({ title })), recurrence: (form.date && form.repeat) || null,
+      outbox.createList({
+        ...body, items: [...parseItems(form.items).map((title) => ({ title })), ...inkForm.written.value.map((strokes) => ({ title: '', strokes }))], recurrence: (form.date && form.repeat) || null,
       });
       // the list is saved; a template that fails now is only reported, the list stays
       if (alsoTemplate.value) {
-        await templates.add(templateFromForm(form, cats.on.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
+        await templates.add(templateFromForm(form, cats.on.value, inkForm.written.value)).catch((e: unknown) => ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.templates.saveFailed')));
       }
     }
     void lists.refresh().catch(() => undefined);
     emit('close');
   } catch (e) {
     saving.value = false;
-    if (e instanceof ApiError) {
-      error.value = e.isConflict ? t('tasks.dialog.conflict') : e.userMessage;
-      conflict.value = e.isConflict;
-    } else error.value = t('tasks.dialog.failed');
+    error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.failed');
   }
-}
-async function reload() {
-  try { const fresh = await api.getTaskList(props.id!); items.upsert(fresh); fill(fresh); error.value = ''; conflict.value = false; }
-  catch (e) { error.value = e instanceof ApiError ? e.userMessage : t('tasks.dialog.reloadFailed'); }
 }
 /** Runs a sharing call; on failure the dialog stays open with the server's message. */
 function sharingAction(fn: () => Promise<void>, failed: MessageKey) {
@@ -206,7 +222,7 @@ function remove() {
 </script>
 
 <template>
-  <AdaptiveSheet open :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
+  <AdaptiveSheet open :wide="wide" :label="editing ? t('tasks.dialog.editTitle') : t('tasks.dialog.newTitle')" testid="tasklist-dialog" :dismiss-on-scrim="!dirty" :escape="!scope.asking.value && !pill?.open" @close="emit('close')">
     <form class="form" novalidate @submit.prevent="save" @keydown.enter="enterNext">
       <NewKindSwitch v-if="!editing && props.date !== null" kind="tasklist" :date="form.date" :time="form.time || undefined" :minutes="props.minutes" />
       <div class="headrow">
@@ -214,7 +230,6 @@ function remove() {
         <TemplatePill v-if="!editing" ref="pill" :picked="pickedTemplate" @pick="pickTemplate" @manage="manageTemplates" />
       </div>
       <p v-if="error" class="err" role="alert" data-testid="tasklist-error">{{ error }}</p>
-      <div v-if="conflict" class="conflict"><Button variant="tonal" data-testid="tasklist-reload" @click="reload">{{ t('tasks.dialog.loadLatest') }}</Button></div>
       <TextField v-model="form.title" :label="t('tasks.dialog.title')" data-testid="tasklist-title" :maxlength="TITLE_MAX" autocomplete="off" enterkeyhint="next" />
       <div class="two" :class="{ dated: !!form.date }">
         <div class="datecell">
@@ -242,7 +257,13 @@ function remove() {
         <span class="remlab">{{ t('calendar.reminders.title') }}</span>
         <ReminderEditor v-model="form.reminders" prefix="tasklist" allow-default :default-minutes="taskDefaults" data-testid="tasklist-reminders" />
       </div>
-      <TextField v-if="!editing" v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
+      <InkTools v-if="toolsShown" :tools="inking" :can-undo="inkForm.canUndo.value" @undo="inkForm.undo" />
+      <div v-if="inking" class="inklines" :class="{ ruled: inkMode.ruled.value }" data-testid="tasklist-ink-lines">
+        <InkLine v-for="(line, i) in inkForm.shown.value" :key="i" class="inkrow" :strokes="line" editable :label="t('ink.area')" @change="inkForm.change(i, $event)" />
+      </div>
+      <div v-else-if="!editing" class="textlines" :class="{ ruled: inkMode.ruled.value || (toolsShown && inkStore.mode === 'text') }" data-testid="tasklist-text-lines">
+        <TextField v-model="form.items" :label="t('tasks.dialog.items')" multiline :rows="4" data-testid="tasklist-items" />
+      </div>
       <Select v-if="!editing && form.date" v-model="form.repeat" :label="t('tasks.dialog.repeat')" :options="repeatOptions" data-testid="tasklist-repeat" />
       <div v-if="!editing" class="tplrow">
         <span class="tpllab">{{ t('tasks.templates.alsoSave') }}</span>
@@ -263,6 +284,9 @@ function remove() {
 
 <style scoped>
 .form { display: flex; flex-direction: column; gap: 12px; }
+.inklines { --ink-h: 48px; display: flex; flex-direction: column; border-radius: 12px; background: var(--md-sys-color-surface-container-highest); padding: 0 12px; }
+.inklines.ruled .inkrow { border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.textlines.ruled :deep(textarea) { background: repeating-linear-gradient(transparent 0 31px, var(--md-sys-color-outline-variant) 31px 32px); line-height: 32px; }
 .headrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .h { margin: 4px 0 0; font: var(--md-sys-typescale-title-large); min-width: 0; }
 .tplrow { display: flex; align-items: center; gap: 12px; min-height: 44px; }

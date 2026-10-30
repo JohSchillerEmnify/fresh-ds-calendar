@@ -3,9 +3,11 @@ import { computed, ref } from 'vue';
 import { api, ApiError, type SyncErrorBeacon } from '@/api/client';
 import { appTimeout, DisposerBag, listen, type Disposer } from '@/lib/timers';
 import { startLiveSync } from '@/lib/liveSync';
+import { ports } from '@/lib/outboxPorts';
 import { useClockStore } from './clock';
 import { useDeviceStore } from './device';
 import { useItemsStore } from './items';
+import { useOutboxStore } from './outbox';
 import { checkServerVersion, checkVersion } from '@/pwa/update';
 import { t } from '@/i18n';
 
@@ -37,6 +39,8 @@ const RESUME_WINDOW_MS = 5000;
 export const useSyncStore = defineStore('sync', () => {
   const state = ref<SyncState>('idle');
   const lastSync = ref<string | null>(null);
+  /** The last successful sync: device time (the 5 minute rule) and app-clock time (what the person is told). */
+  const lastOk = ref<{ wall: number; app: number }>({ wall: Date.now(), app: useDeviceStore().syncedAt ?? useClockStore().nowMs() });
   const error = ref<ApiError | null>(null);
   const running = ref(false);
   /** The server is rate limited by Google but the screen still has data: no banner, only this flag (and `data-rate-limited`). */
@@ -126,6 +130,8 @@ export const useSyncStore = defineStore('sync', () => {
       await clock.load().catch(() => undefined);
       void checkVersion(clock.config.version, clock.config.apk);
     }
+    // what was changed without a connection goes first, so the sync below reads it back from the server
+    await useOutboxStore().flush(false);
     // the device store comes first: everything else reads what it took in (the version check runs beside it, it never fails)
     const device = await Promise.allSettled([useDeviceStore().sync(), withConfig ? undefined : checkServerVersion()]).then((r) => r.slice(0, 1));
     const list: [string, () => Promise<unknown>][] = [['device', () => Promise.resolve()], ...builtinTasks(), ...tasks.entries()];
@@ -141,6 +147,7 @@ export const useSyncStore = defineStore('sync', () => {
       error.value = null;
       state.value = 'idle';
       lastSync.value = new Date().toISOString();
+      lastOk.value = { wall: Date.now(), app: clock.nowMs() };
       pushWidget();
       if (pending) {
         const p = pending;
@@ -185,9 +192,13 @@ export const useSyncStore = defineStore('sync', () => {
     return syncNow('changed').catch(() => undefined);
   }
 
+  ports.resync = () => { void resyncAfterWrite(); };
+
   /** A fetch outside `run` (initial page load) succeeded: counts as a completed sync. */
   function markSynced(): void {
-    if (state.value !== 'error') lastSync.value = new Date().toISOString();
+    if (state.value === 'error') return;
+    lastSync.value = new Date().toISOString();
+    lastOk.value = { wall: Date.now(), app: useClockStore().nowMs() };
   }
 
   function retry(): Promise<void> {
@@ -266,5 +277,5 @@ export const useSyncStore = defineStore('sync', () => {
     bag.dispose();
   }
 
-  return { state, lastSync, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, resyncAfterWrite, retry, start, stop, schedule };
+  return { state, lastSync, lastOk, error, rateLimited, errorMessage, running, registerTask, reportError, clearError, markSynced, syncNow, resyncAfterWrite, retry, start, stop, schedule };
 });

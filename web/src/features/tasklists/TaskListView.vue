@@ -9,7 +9,7 @@ import { TITLE_MAX } from '@calendar/shared/limits';
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { IconClose, IconDragIndicator as IconGrip, IconExpandMore as IconChevron, IconDeleteOutline as IconDelete, IconEditOutline as IconEdit, IconAdd } from '@/components/icons';
-import { api, ApiError } from '@/api/client';
+import { ApiError } from '@/api/client';
 import type { TaskItem, TaskList } from '@/api/types';
 import { t } from '@/i18n';
 import Button from '@/components/m3/Button.vue';
@@ -21,7 +21,7 @@ import { catComes, catDuration, catSwipe, takeForcedCat } from '@/features/motiv
 import { displayTitle } from '@/lib/items';
 import { getMotionLevel, ProgressRing, RewardCheckbox, useCelebrate } from '@/motion';
 import { useClockStore } from '@/stores/clock';
-import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePendingDeletesStore } from '@/stores/pendingDeletes';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
@@ -29,11 +29,16 @@ import { useSyncStore } from '@/stores/sync';
 import { useUiStore } from '@/stores/ui';
 import { carriedLabel, isComplete } from './format';
 import { isCollapsed, setCollapsed } from './collapse';
-import { addItem, forget, moveItemTo, patchItem, removeItem, stableKey } from './ops';
+import { addItem, moveItemTo, patchItem } from './ops';
 import { useItemDrag } from './useItemDrag';
 import { badgeInitial, isMemberOnly, leaveList, withNames } from './sharing';
 import { useTaskListsStore } from './store';
 import StrikeLine from './StrikeLine.vue';
+import InkLine from './InkLine.vue';
+import InkTools from './InkTools.vue';
+import { useInkStore } from '@/stores/ink';
+import { useInkWriting } from './useInkWriting';
+import { useInkMode } from './useInkMode';
 import RepeatScopeDialog from './RepeatScopeDialog.vue';
 import SaveTemplateDialog from './SaveTemplateDialog.vue';
 import { useRepeatScope } from './repeatScope';
@@ -59,7 +64,6 @@ const emit = defineEmits<{
   /** A tick finished the list (the celebration is playing); `catMs` is the support cat's visit length (0 = no visit). */
   completed: [catMs: number];
 }>();
-const items = useItemsStore();
 const sync = useSyncStore();
 const pendingDeletes = usePendingDeletesStore();
 const ui = useUiStore();
@@ -67,6 +71,8 @@ const clock = useClockStore();
 const settings = useSettingsStore();
 const lists = useTaskListsStore();
 const prefs = usePrefsStore();
+const ink = useInkStore();
+const inkMode = useInkMode();
 
 const root = ref<HTMLElement | null>(null);
 const tl = useTaskList(() => props.id, { load: { seed: () => props.list, onClose: () => emit('close') } });
@@ -87,7 +93,6 @@ const badgeText = computed(() => {
 
 onBeforeUnmount(() => {
   flashStop?.();
-  forget(props.id);
 });
 
 // --- ticking --------------------------------------------------------------------------------------------------
@@ -193,13 +198,18 @@ async function commitRename() {
   const s = await scope.ask(tl.value);
   if (!s) return;
   try {
-    await items.updateTaskList(props.id, { title: v }, undefined, s);
+    useOutboxStore().updateList(props.id, { title: v }, s);
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.list.renameFailed'));
     if (e instanceof ApiError && e.isConflict) void sync.resyncAfterWrite();
   }
 }
 
+// --- handwriting (feature handwritten-lists) -------------------------------------------------------------------
+/** Pen writing happens in the open list (the sheet) and on Canvas notes; everywhere else ink is shown read-only. */
+const writing = computed(() => inkMode.enabled.value && (!!props.closable || !!props.compact));
+const inkWriting = useInkWriting(() => props.id, writing, () => (tl.value?.items ?? []).filter((i) => i.ink).map((i) => i.id));
+const inkLabel = (item: TaskItem, i: number): string => t(item.done ? 'ink.itemTicked' : 'ink.item', { n: i + 1, total: tl.value?.items.length ?? 0 });
 // --- list actions -----------------------------------------------------------------------------------------------
 function edit() { ui.openDialog('tasklist', { mode: 'edit', id: props.id }); }
 /** "Save as template" (feature tasklist-templates): a small sheet over this one asks for the name. */
@@ -227,18 +237,16 @@ function move(itemId: string, to: number) {
 }
 useItemDrag({
   root,
-  signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => stableKey(i.id)).join(',')}`,
+  signature: () => `${collapsed.value}|${(tl.value?.items ?? []).map((i) => i.id).join(',')}`,
   gripOnly: () => !!props.compact,
+  penWrites: () => writing.value,
   disabled: () => !!editingItem.value,
   onMove: move,
 });
-/** An item still being added (temporary id) has nothing to undo on the server yet: removed directly. */
 async function removeEntry(item: TaskItem, index: number) {
   const s = await scope.ask(tl.value);
   if (!s) return;
-  // an item still being added has nothing to undo on the server yet: removed directly, for the lists the answer names
-  if (item.id.startsWith('tmp-')) removeItem(props.id, item.id, {}, undefined, s);
-  else pendingDeletes.deleteTaskItem(props.id, item, index, s);
+  pendingDeletes.deleteTaskItem(props.id, item, index, s);
 }
 
 /** True while a field or the scope question owns Escape (the host must not close then). */
@@ -250,7 +258,7 @@ defineExpose({ root, busy });
   <section
     v-if="tl" ref="root" class="tlv" data-testid="tasklist-view" :data-tasklist-id="tl.id" :data-title="displayTitle(tl)"
     :style="{ '--c': cats.color(tl) }"
-    :data-collapsed="collapsed ? 'true' : 'false'"
+    :data-collapsed="collapsed ? 'true' : 'false'" :class="{ ruled: writing && inkMode.ruled.value, mirror: writing }"
   >
     <header class="head">
       <ProgressRing :done="tl.doneCount" :total="tl.totalCount" :size="40" :stroke="4.5" />
@@ -281,12 +289,15 @@ defineExpose({ root, busy });
 
         <ul class="list">
           <li
-            v-for="(item, i) in tl.items" :key="stableKey(item.id)" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
+            v-for="(item, i) in tl.items" :key="item.id" class="row" :class="{ ticked: item.done, flash: flashId === item.id }" data-testid="tasklist-item"
             :data-item-id="item.id" :data-title="item.title" :data-done="item.done"
           >
-            <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
+            <RewardCheckbox :model-value="item.done" :label="undefined" data-testid="tasklist-item-checkbox" :aria-label="item.ink ? inkLabel(item, i) : t('tasks.list.itemDone', { title: item.title })" @update:model-value="tick(item, $event)" />
+            <div v-if="item.ink" class="ititle inkcell" data-testid="tasklist-item-ink" @click="!writing && tick(item, !item.done)">
+              <InkLine :strokes="ink.strokes(item.id)" :editable="writing" :label="inkLabel(item, i)" @change="inkWriting.change(item.id, $event)" @tap="tick(item, !item.done)" />
+            </div>
             <input
-              v-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.itemTitle')"
+              v-else-if="editingItem === item.id" v-model="draft" class="item-in" data-testid="tasklist-item-title-input" :maxlength="TITLE_MAX" :aria-label="t('tasks.list.itemTitle')"
               @keydown.enter.prevent="commitEdit(item)" @keydown.esc.stop.prevent="cancelEdit" @blur="commitEdit(item)"
             />
             <button v-else class="ititle" type="button" data-testid="tasklist-item-title" @click="startEdit(item)"><span class="tt">{{ item.title }}</span></button>
@@ -294,7 +305,10 @@ defineExpose({ root, busy });
             <IconButton v-if="!compact" class="act" :label="t('tasks.list.deleteItem')" data-testid="tasklist-item-delete" @click="removeEntry(item, i)"><IconDelete /></IconButton>
           </li>
         </ul>
-        <p v-if="!tl.items.length" class="empty">{{ t('tasks.list.empty') }}</p>
+        <div v-if="writing && ink.mode === 'ink'" class="row nextline" data-testid="ink-next-line">
+          <InkLine :strokes="inkWriting.draft.value" editable :label="t('ink.area')" @change="inkWriting.changeDraft" @tap="openAdd" />
+        </div>
+        <p v-if="!tl.items.length && !(writing && ink.mode === 'ink')" class="empty">{{ t('tasks.list.empty') }}</p>
 
         <form v-if="adding && !compact" class="add" @submit.prevent="add">
           <input
@@ -302,6 +316,8 @@ defineExpose({ root, busy });
             :placeholder="t('tasks.list.addPlaceholder')" :aria-label="t('tasks.list.newItem')" @blur="closeAdd" @keydown.esc.stop.prevent="newTitle = ''; adding = false"
           />
         </form>
+
+        <InkTools v-if="writing && !compact" class="inktools" :can-undo="inkWriting.canUndo.value" @undo="inkWriting.undo" />
 
         <footer v-if="!compact" class="foot">
           <Button variant="text" class="squeeze" data-testid="tasklist-add" @click="openAdd"><template #icon><IconAdd /></template>{{ t('tasks.list.addItem') }}</Button>
@@ -375,6 +391,18 @@ html:not([data-motion='off']) .ititle { transition: opacity 240ms ease-out 60ms;
   .foot .tpl { padding: 0 10px; }
 }
 .grow { flex: 1; }
+/* an ink item: the line of ink takes the place of the title; a ticked one is struck through like a title and faded */
+.inkcell { padding: 0; min-height: 0; position: relative; }
+.ticked .inkcell::after { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1.6px; background: currentColor; }
+.nextline { padding-left: 44px; }
+/* where a pen is used the lines are ruled and a little taller, so a word fits on one */
+/* left-handed: checkbox on the right, grip on the left and a free strip before the writing, so the palm rests on the screen (decision G7) */
+html[data-hand='left'][data-touch] .mirror .row { flex-direction: row-reverse; }
+html[data-hand='left'][data-touch] .mirror .inkcell { margin-left: 40px; }
+html[data-hand='left'][data-touch] .mirror .nextline { padding-left: 40px; padding-right: 44px; }
+.ruled { --ink-h: 52px; }
+.ruled .row { min-height: 52px; border-bottom: 1px solid var(--md-sys-color-outline-variant); border-radius: 0; }
+.inktools { margin-top: 4px; }
 /* the tonal pill sits between "Add item" and Edit/Delete; compact so the footer stays one row on a phone */
 .foot .tpl { padding: 0 14px; }
 .danger { color: var(--md-sys-color-error); }

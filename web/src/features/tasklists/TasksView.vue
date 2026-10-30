@@ -13,7 +13,7 @@ import SegmentedButton from '@/components/m3/SegmentedButton.vue';
 import TextField from '@/components/m3/TextField.vue';
 import { displayTitle, neutralName } from '@/lib/items';
 import { useClockStore } from '@/stores/clock';
-import { useItemsStore } from '@/stores/items';
+import { useOutboxStore } from '@/stores/outbox';
 import { usePrefsStore } from '@/stores/prefs';
 import { useSettingsStore } from '@/stores/settings';
 import { useSyncStore } from '@/stores/sync';
@@ -31,7 +31,6 @@ import { matchesTasksFilter } from './tasksFilter';
 
 const tasks = useTasksViewStore();
 const cats = useTaskCategories();
-const items = useItemsStore();
 const prefs = usePrefsStore();
 const settings = useSettingsStore();
 const clock = useClockStore();
@@ -60,7 +59,7 @@ function chooseTab(next: TasksTab): void {
 /** "Copy": an open, undated copy appears in Open; the archived original stays. */
 async function copy(l: TaskList): Promise<void> {
   try {
-    await items.createTaskList(copyOf(l, cats.on.value));
+    useOutboxStore().createList(copyOf(l, cats.on.value));
     ui.notify(t('tasks.archive.copyCreated', { title: neutralName(l) }));
   } catch (e) {
     ui.notify(e instanceof ApiError ? e.userMessage : t('tasks.archive.copyFailed'));

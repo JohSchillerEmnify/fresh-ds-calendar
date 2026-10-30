@@ -85,10 +85,7 @@ export default {
   dialog: {
     editTitle: 'Aufgabnlisdn ändern',
     newTitle: 'Neue Aufgabnlisdn',
-    loadLatest: 'Neueste Version laden',
-    conflict: 'Die Aufgabnlisdn wurd woanders gändert. Lad sie amal neu un probier s widda.',
     failed: 'Etz is was schiefgangen. Probier s nochamal.',
-    reloadFailed: 'Neu laden hat ned bassd.',
     title: 'Titel',
     date: 'Datum',
     time: 'Uhrzeit (kann, muss ned)',
