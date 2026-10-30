@@ -28,8 +28,20 @@ export async function signIn(world: World, email: string, date = '2026-10-12', d
 
 const onSignIn = (world: World) => expect(world.page.getByTestId('signin-page')).toBeVisible();
 
+/** Per scenario: who may use the calendar (so that taking one person off keeps the others). */
+const allowed = new WeakMap<World, string[]>();
+
 Given('{string} and {string} may use the calendar', async function (this: World, a: string, b: string) {
+  allowed.set(this, [a, b]);
   await this.api.setAuth([a, b]);
+});
+
+Given('{string} may no longer use the calendar', async function (this: World, email: string) {
+  const before = allowed.get(this);
+  if (!before) throw new Error('"may no longer use the calendar" needs an earlier "and ... may use the calendar" step');
+  const rest = before.filter((e) => e !== email);
+  allowed.set(this, rest);
+  await this.api.setAuth(rest);
 });
 
 Given(
@@ -61,7 +73,10 @@ When('someone opens the week view for {date} without signing in', async function
 });
 
 When('they sign out in the settings', async function (this: World) {
-  await this.page.getByTestId('settings-button').click();
+  // a settings sub-page (the reminders) goes back inside the app, so the page keeps its push subscription
+  const button = this.page.getByTestId('settings-button');
+  if (await button.isVisible()) await button.click();
+  else if (!(await this.page.getByTestId('settings-signout').isVisible())) await this.page.getByRole('button', { name: 'Back' }).click();
   await this.page.getByTestId('settings-signout').click();
 });
 
