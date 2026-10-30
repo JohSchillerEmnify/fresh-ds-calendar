@@ -3150,3 +3150,67 @@ the top bar's widgets are in reverse order
 - The `@visual` region `top bar` is `top-bar` (scene and controls, the top safe area excluded); baselines are named
   `scene-<scene>-<layout>-<scheme>`.
 
+
+## Handwritten lists (`@id:handwritten-lists`, Labs; all `@backlog`, not built yet)
+
+```
+the Labs switch {string} is on
+the Labs switch {string} is off
+the device reports pen support
+the device reports no pen support
+the writing mode is {string}
+the calendar contains a task list {string} on {date} with the ink items {string}
+"jo@example.com" has an undated task list {string} with the ink items {string}
+the expanded task list {string} has more ink items than fit the screen
+I open the new task list form
+I open the new task list form on a screen {int} pixels wide
+I press the writing mode switch
+the new list form has no writing mode switch
+the new list form shows the writing mode switch with the pen icon
+the writing mode is {string} and the switch shows the pen icon
+the writing mode is {string} and the switch shows the keyboard icon
+the item writing area offers no writing mode switch
+I write an ink item with the pen
+I write an ink item on the note {string} with the pen
+I draw a stroke with the pen
+I draw a stroke with the mouse
+I swipe up on the writing area with a finger
+I rest my palm on the writing area and draw a stroke with the pen
+I tap the ink item number {int} with a finger
+the stroke is drawn on the line
+the stroke is drawn on the line, thicker where I pressed harder
+only the pen stroke is drawn
+nothing is drawn
+the list scrolls
+a pen stroke on the card draws nothing
+the expanded task list has {int} items
+I tick the item number {int}
+the item number {int} is ticked
+the item number {int} is ticked and nothing is drawn
+I can still tick the item number {int}
+I drag the item number {int} above the item number {int}
+I delete the item number {int}
+the ink items are in the order {string}
+the card of {string} shows {int} ink items, scaled down
+the task list {string} shows {int} ink items, scaled down
+the note {string} shows {int} ink items
+the dialog is larger than without the feature
+the dialog is as large as without the feature
+the dialog shows ruled lines to write on
+the item fields are ruled, ordinary text fields
+the form has no button that turns ink into text
+the device's handwriting recognition enters the text {string} in the item field
+the collapsed task list shows the items {string}
+the backup to Drive runs
+the backup holds the ink of the task list {string}
+```
+
+- Ink items are created through the public API with a stroke list per item (`{ strokes: [[x, y, pressure]…] }`); the
+  Google description of an ink item is `☐/☑ Handwritten item` (assumption A3 of the feature).
+- "the Labs switch X is on/off": the switch `settings-labs-handwriting` in Settings > Labs (pref `labsHandwriting`).
+- Pen, mouse and finger strokes are dispatched as Pointer Events with the matching `pointerType`; "pen support" is the
+  `maxTouchPoints`/`PointerEvent` pen capability the device reports; "palm" is a simultaneous `touch` pointer.
+- "the ink items are in the order X": the ink items' ids, in list order, as the comma-separated names given at creation
+  (the n-th ink item of the creating step is named by the n-th word).
+- "the add button covers no control of the writing area" is an added panel name of the existing step.
+- "the dialog … without the feature": compared with the dialog size measured with the switch off.
