@@ -1,0 +1,22 @@
+name: Leaks
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  leaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      # gitleaks rules over the whole history; the private denylist comes from the LEAK_DENYLIST secret (skipped with a warning when empty, e.g. on forks).
+      - run: scripts/leak-check.sh all
+        env:
+          LEAK_DENYLIST: ${{ secrets.LEAK_DENYLIST }}
