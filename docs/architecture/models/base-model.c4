@@ -80,11 +80,6 @@ model {
     description 'The geocoder (PLACE_SEARCH_URL) the browser asks for place suggestions'
   }
 
-  doorBoard = system 'Door board' {
-    #external
-    description 'The e-ink screen inside the front door and its renderer on the home server; shows reminders before leaving'
-  }
-
   owner -> calendar.web 'views and manages the calendar'
   calendar.web -> calendar.server 'reads and writes preferences'
   owner -> calendar.widget 'glances at the week'
@@ -94,5 +89,4 @@ model {
   owner -> aiChat 'asks for a theme with the copied prompt, pastes the answer back'
   calendar.web -> photon 'asks for place suggestions straight from the browser'
   calendar.web -> osmTiles 'loads map tiles straight from the browser'
-  doorBoard -> calendar.server 'reads reminders and today\'s events with its key'
 }

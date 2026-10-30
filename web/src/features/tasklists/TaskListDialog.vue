@@ -30,9 +30,6 @@ import { useRepeatScope } from './repeatScope';
 import TemplatePill from './TemplatePill.vue';
 import { fillFromTemplate, templateFromForm, templateNameProblem } from './templates';
 import { useTemplatesStore } from './templatesStore';
-import { usePluginEnabled } from '@/plugins';
-import DoorSwitch from '@/plugins/door/DoorSwitch.vue';
-import { DOOR_PLUGIN, hasDoor, withDoor } from '@/plugins/door/door';
 
 const props = defineProps<{ mode: 'create' | 'edit'; id?: string; date?: string | null; time?: string | null; minutes?: number }>();
 const emit = defineEmits<{ close: [] }>();
@@ -41,16 +38,12 @@ const pendingDeletes = usePendingDeletesStore();
 const settings = useSettingsStore();
 const ui = useUiStore();
 const lists = useTaskListsStore();
-/** Door plugin (ADR 0004): the "Show on door" switch exists only where the deployment turned the plugin on. */
-const doorOn = usePluginEnabled(DOOR_PLUGIN);
-const door = ref(false);
 
 const editing = computed(() => props.mode === 'edit');
 const loading = ref(false);
 let etag = '';
 let original = '';
 let originalTitle = '';
-let originalDoor = false;
 /** A changed title of a repeating list asks "This task list / This and all following task lists" on save (feature tasklist-repeating). */
 const scope = useRepeatScope();
 let originalReminders: Reminders = { useDefault: true, minutes: [] };
@@ -81,8 +74,6 @@ function fill(src: TaskList) {
     reminders: !src.reminders || src.reminders.useDefault ? { useDefault: true, minutes: [] } : { useDefault: false, minutes: [...src.reminders.minutes] },
   });
   if (src.reminders?.useDefault) taskDefaults.value = src.reminders.minutes;
-  door.value = hasDoor(src.tags);
-  originalDoor = door.value;
   originalTitle = form.title;
   original = JSON.stringify(form);
   originalReminders = form.reminders ? { ...form.reminders } : { useDefault: true, minutes: [] };
@@ -147,12 +138,10 @@ async function save() {
   conflict.value = false;
   if (error.value || saving.value) return;
   saving.value = true;
-  // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones — except with the door
-  // plugin on, where the whole array goes with the door tag set or cleared (the other tags stay).
+  // Tags are shelved (feature task-list-categories): no `tags` key, so the server keeps the stored ones.
   const body = {
     title: form.title.trim(), date: form.date || null, time: form.date ? form.time || null : null,
     estimateMinutes: form.estimate.trim() ? Number(form.estimate) : null,
-    ...(doorOn.value ? { tags: withDoor(current?.kind === 'tasklist' ? current.tags : [], door.value) } : {}),
     // categories off: the picker is hidden, so the stored category is left alone
     ...(cats.on.value ? { categoryId: form.categoryId === 'none' ? null : form.categoryId } : {}),
     // the reminders are only sent when they changed (a create: when the list has its own)
@@ -164,13 +153,12 @@ async function save() {
   try {
     if (editing.value && s === 'following') {
       const { title, ...rest } = body;
-      const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' }) || door.value !== originalDoor;
+      const othersChanged = JSON.stringify({ ...form, title: '' }) !== JSON.stringify({ ...JSON.parse(original), title: '' });
       if (othersChanged) {
         const saved = await items.updateTaskList(props.id!, rest, etag);
         // saved: a retry after a failed title request sends only the title (with the new version)
         etag = saved.etag;
         original = JSON.stringify({ ...form, title: (JSON.parse(original) as TaskListForm).title });
-        originalDoor = door.value;
       }
       await items.updateTaskList(props.id!, { title }, undefined, 'following');
     } else if (editing.value) await items.updateTaskList(props.id!, body, etag);
@@ -233,7 +221,6 @@ function remove() {
         <TextField v-model="form.time" :label="t('tasks.dialog.time')" type="time" data-testid="tasklist-time" />
       </div>
       <TextField v-model="form.estimate" :label="t('tasks.dialog.estimate')" type="number" inputmode="numeric" min="5" max="720" step="5" :enterkeyhint="editing ? 'done' : 'next'" data-testid="tasklist-estimate" />
-      <DoorSwitch v-if="doorOn" v-model="door" />
       <div v-if="cats.on.value" class="catrow">
         <span class="dot" :style="{ background: cat?.color ?? 'var(--md-sys-color-outline)' }" aria-hidden="true">{{ cat?.icon ?? '' }}</span>
         <Select v-model="form.categoryId" :label="t('tasks.dialog.category')" :options="catOptions" :disabled="memberOnly" :title="memberOnly ? t('sharing.ownerOnlyCategory') : undefined" class="grow" data-testid="tasklist-category" />

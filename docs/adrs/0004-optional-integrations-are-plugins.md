@@ -1,6 +1,6 @@
 # 0004 — Optional integrations are plugins: a folder each, loaded only when configured
 
-- Status: accepted (owner, 2026-10-19)
+- Status: accepted (owner, 2026-10-19); amended 2026-10-30: the door plugin moved to its own private repository, the registry here ships with no plugin
 - Views shaped: `server`, `web`, `doorRead`
 
 ## Context
@@ -31,6 +31,8 @@ README) and `web/src/plugins/<name>/` (the UI bits it adds) — and a **tiny reg
 
 ## Consequences
 
+- The calendar repository keeps only the seam (the server registry and `/api/config` list, the web `usePluginEnabled`). A
+  plugin's own code, specs, steps and docs live in its repository and are copied back in to plug it in.
 - Turning a plugin on is deployment configuration, never a code change or a default.
 - The e2e runner enables a plugin for its scenarios the same way the deployment does (its env on the
   TEST_MODE server; a test route may take it away again).

@@ -6,7 +6,6 @@
 import { Hono } from 'hono';
 import type { Ctx } from '../context.js';
 import { notFound } from '../lib/errors.js';
-import { doorPlugin } from './door/index.js';
 
 export interface Plugin {
   /** Path segment under `/api/` and the name the health answer lists. */
@@ -17,7 +16,7 @@ export interface Plugin {
   routes(ctx: Ctx): Hono;
 }
 
-export const plugins: Plugin[] = [doorPlugin];
+export const plugins: Plugin[] = [];
 
 /** Names of the plugins that are on right now. */
 export const enabledPlugins = (ctx: Ctx): string[] => plugins.filter((p) => p.enabled(ctx)).map((p) => p.name);

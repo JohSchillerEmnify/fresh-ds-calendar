@@ -56,7 +56,7 @@ export interface Ctx {
   /** PROVIDER=google: builds one person's provider (one OAuth client per person). */
   personProvider?: (sub: string) => CalendarProvider;
   /** Test override for /api/config (API.md `/api/__test/config`). */
-  overrides: { pollIntervalMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Door plugin key and person in place of the config's (null = no door). */ door?: { token: string; person: string } | null; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
+  overrides: { pollIntervalMs?: number; /** Test mode: every non-test `/api` answer waits this long (ms). */ slowMs?: number; version?: string; apk?: ApkInfo | null; notes?: ReleaseNote[]; /** Test mode: the places the stand-in place search knows (feature event-location). */ places?: TestPlace[] };
   /** Release notes parsed from CHANGELOG.md once at start. */
   releaseNotes: ReleaseNote[];
   health: { at: number; status: 'ok' | 'unavailable' } | null;

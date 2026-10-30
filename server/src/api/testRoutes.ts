@@ -104,17 +104,6 @@ export function testRoutes(ctx: Ctx): Hono {
     return c.json(configResponse(ctx));
   });
 
-  // "The door board has its key" / "its key is taken away": the door plugin's key and person from now on (`{ off: true }` = no door).
-  t.post('/door', async (c) => {
-    const d = (await body(c)) as { off?: unknown; token?: unknown; person?: unknown } | undefined;
-    if (d?.off === true) ctx.overrides.door = null;
-    else {
-      if (typeof d?.token !== 'string' || !d.token || typeof d.person !== 'string') throw validation('token and person are required');
-      ctx.overrides.door = { token: d.token, person: d.person.toLowerCase() };
-    }
-    return c.json(configResponse(ctx));
-  });
-
   t.post('/outage', async (c) => {
     const b = parse(outageSchema, await body(c));
     mock.setOutage(b.down, (b.status as 500 | 503 | undefined) ?? 503);

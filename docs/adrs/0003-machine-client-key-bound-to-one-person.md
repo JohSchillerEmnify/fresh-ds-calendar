@@ -1,6 +1,6 @@
 # 0003 — A machine client reads with its own key, bound to one person
 
-- Status: accepted (owner, 2026-10-19)
+- Status: Moved to the door repository 2026-10-30 (accepted, owner, 2026-10-19). The door plugin and this ADR live in `JohSchillerEmnify/fresh-ds-calendar-door`; the calendar keeps only the plugin seam (ADR 0004).
 - Views shaped: `doorRead`, `server`
 
 ## Context
