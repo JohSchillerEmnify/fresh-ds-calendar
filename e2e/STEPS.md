@@ -3239,6 +3239,35 @@ the new task list shows {int} ink items, scaled down
 the calendar contains a repeating task list {string} with the ink items {string}
 the next occurrence of the task list {string} is created
 the next occurrence shows {int} ink items, scaled down
+the home-screen widget lists the task list {string}
+the widget shows {int} small ink pictures for the task list {string}
+the door board shows the task list {string}
+the door board shows {int} small ink pictures for the task list {string}
+the notification for the task list {string} is shown
+the notification text mentions {string}
+a screen reader reads the item number {int} as {string}
+I filter the Tasks view by {string}
+the Tasks view shows the task list {string}
+the Tasks view does not show the task list {string}
+the title field is an ordinary text field
+the title field is not a writing area
+two devices have the task list {string} open
+the first device writes an ink item while offline
+the first device erases the ink item number {int} while offline
+the second device draws a stroke on the ink item number {int} while offline
+both devices reconnect
+both devices show {int} items in the task list {string}
+both devices show the ink item number {int} with {int} stroke(s)
+the ink item number {int} has the same strike line as the text item number {int}
+the ink item number {int} is faded to about half
+I note where the writing tools are
+every writing tool is at the mirror image of where it was, within {int} pixel
+I expand the task list {string} on a screen {int} pixels wide
+the ink of the item number {int} has the same proportions to its line as on a {int} pixel wide screen
+the ink of the item number {int} is not cut off
+I delete the task list {string}
+the server holds {int} ink item(s) for the task list {string}
+the server holds no ink for the task list {string}
 ```
 
 - Ink items are created through the public API with a stroke list per item (`{ strokes: [[x, y, pressure]…] }`); the
@@ -3257,3 +3286,24 @@ the next occurrence shows {int} ink items, scaled down
   the `pointerrawupdate`/`squeeze`-style pen event the browser passes on (best effort, only where the device does).
 - "holds about 200 KB of ink" creates strokes through the API until the list is just under the 200 KB limit.
 - "the dialog … without the feature": compared with the dialog size measured with the switch off.
+- Offline / sync (G1): "the network connection is lost / restored" are the existing steps; the ink is written into the
+  device outbox and pushed on reconnect. "two devices" = two browser contexts of the same person; "the first / second
+  device ... while offline" sets that context offline, acts, and keeps it offline until "both devices reconnect", which
+  restores both in the order first, second and waits for both to have synced. Steps are applied in the order written, so
+  "later" means the later step. A seeded ink item holds one stroke (A9); "erases the ink item" removes all its strokes.
+- Widget / door board / notification (G2): the widget picture is checked on the widget's render endpoint, the door board
+  on `door-board` (`ink-picture` elements per ink item), the notification on the payload the push or reminder carries
+  (the text "Handwritten item" for an ink item).
+- Screen reader (G3): "a screen reader reads the item number N as T" = the accessible name of the Nth item (`aria-label`)
+  equals T; "Handwritten item N of M" with ", ticked" appended when ticked. "I filter the Tasks view by T" types T into the
+  Tasks view filter field; "shows / does not show the task list" looks for the list card by its title.
+- Title (G4): "an ordinary text field" = the title `input` is a text input without an ink canvas; "not a writing area" = no
+  `ink-writing-area` inside the title field's row.
+- Strike and fade (G6): "the same strike line" = the computed `text-decoration-line`/colour/thickness of the ink item's
+  strike layer equals the text item's; "faded to about half" = computed opacity between 0.4 and 0.6.
+- Left-handed writing tools (G7): "I note where the writing tools are" records the boxes of the mode switch, `ink-undo`,
+  `ink-eraser` and the colour control relative to the writing dialog; the mirror check works like the top bar's, with
+  the dialog's width W.
+- Scale (G8): the ink's bounding box divided by its line height is compared with the 1280 px run (tolerance 2 %); "not cut
+  off" = the ink's box lies inside the line's box.
+- Deletion (A8): "the server holds N ink item(s) / no ink for the task list" asks the public API for the list's ink.

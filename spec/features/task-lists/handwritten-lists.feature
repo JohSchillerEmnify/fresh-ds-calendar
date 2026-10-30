@@ -38,9 +38,25 @@ Feature: Labs: handwritten lists
       takes two fingers. A resting palm never draws in either case.
   Q9. A phone where a stylus is used or reported gets the same ruled writing dialog as the tablet (one component), sized
       to fit the phone window. A phone without a pen keeps the unchanged dialog.
+  G1. Offline: the feature is built AFTER the device-first outbox (ADR 0025, branch docs/adr-device-first). Ink is
+      writable offline and synced later like everything else.
+  G2. Places that cannot show the app UI: the Android home-screen widget and the e-ink door board show a small picture
+      of the ink where possible; notifications and Google Calendar show the placeholder "Handwritten item".
+  G3. Screen readers read an ink item as "Handwritten item 2 of 5" plus its ticked state. Ink is not searchable:
+      search and filter find the list by its title only.
+  G4. The list title always stays text (keyboard or the device's own handwriting recognition).
+  G5. Conflicts: two devices change the same list -> merged per item: new strokes and items from both devices are
+      kept; only when the same line was erased on one device and extended on the other does the later change win.
+  G6. A ticked ink item is struck through with the same strike line as text items and faded to about half.
+  G7. Left-handed mode mirrors the writing tools (mode switch, undo, eraser, colour) to the other side, like the rest
+      of the app.
+  G8. Ink is stored relative to the line height and scaled to the line on every screen, so the same ink looks the same
+      on phone, tablet and desktop (smaller on a smaller line, never cut off).
 
   ASSUMPTIONS (not yet confirmed by the owner)
   A7. The chosen ink colour is remembered per device, like the writing mode (A4).
+  A8. Deleting an ink item or a whole list removes its ink from the server (not kept as an orphan).
+  A9. For G5, "erased" means the strokes of the line are removed (the item stays); a seeded ink item holds one stroke.
 
   Background:
     Given the calendar is empty
@@ -424,6 +440,166 @@ Feature: Labs: handwritten lists
       Given the calendar contains a repeating task list "Groceries" with the ink items "Milk, Eggs"
       When the next occurrence of the task list "Groceries" is created
       Then the next occurrence shows 2 ink items, scaled down
+
+  Rule: Ink is writable offline and synced later (decision G1, ADR 0025)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And I expand the task list "Groceries"
+
+    @backlog
+    Scenario: Ink written offline is visible at once and reaches another device after reconnecting
+      Given the network connection is lost
+      When I write an ink item with the pen
+      Then the expanded task list has 3 items
+      When the network connection is restored
+      And I switch to another device
+      And I open the Tasks view
+      Then the task list "Groceries" shows 3 ink items, scaled down
+
+  Rule: Where the app UI cannot be shown, ink is a small picture or a placeholder (decision G2)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+
+    @backlog
+    Scenario: The Android home-screen widget shows a small picture of the ink
+      When the home-screen widget lists the task list "Groceries"
+      Then the widget shows 2 small ink pictures for the task list "Groceries"
+
+    @backlog
+    Scenario: The door board shows a small picture of the ink
+      When the door board shows the task list "Groceries"
+      Then the door board shows 2 small ink pictures for the task list "Groceries"
+
+    @backlog
+    Scenario: A notification names an ink item "Handwritten item"
+      When the notification for the task list "Groceries" is shown
+      Then the notification text mentions "Handwritten item"
+
+  Rule: Screen readers read ink items by position, and search finds the list by its title only (decision G3)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs, Bread, Rice, Tea"
+      And I expand the task list "Groceries"
+
+    @backlog
+    Scenario: A screen reader reads an ink item with its position
+      Then a screen reader reads the item number 2 as "Handwritten item 2 of 5"
+
+    @backlog
+    Scenario: A screen reader adds the ticked state
+      When I tick the item number 2
+      Then a screen reader reads the item number 2 as "Handwritten item 2 of 5, ticked"
+
+    @backlog
+    Scenario: Search finds the list by its title
+      When I filter the Tasks view by "Groceries"
+      Then the Tasks view shows the task list "Groceries"
+
+    @backlog
+    Scenario: Search does not look into the ink or its placeholder
+      When I filter the Tasks view by "Handwritten"
+      Then the Tasks view does not show the task list "Groceries"
+
+  Rule: The list title always stays text (decision G4)
+
+    @backlog
+    Scenario: In ink mode the title is still an ordinary text field
+      Given the Labs switch "Handwritten lists" is on
+      And the writing mode is "ink"
+      When I open the new task list form
+      Then the title field is an ordinary text field
+      And the title field is not a writing area
+
+  Rule: Two devices that change the same list are merged per item (decision G5, assumption A9)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And two devices have the task list "Groceries" open
+
+    @backlog
+    Scenario: New items and new strokes from both devices are kept
+      When the first device writes an ink item while offline
+      And the second device draws a stroke on the ink item number 1 while offline
+      And both devices reconnect
+      Then both devices show 3 items in the task list "Groceries"
+      And both devices show the ink item number 1 with 2 strokes
+
+    @backlog
+    Scenario: A line erased on one device and extended later on the other keeps the later change
+      When the first device erases the ink item number 1 while offline
+      And the second device draws a stroke on the ink item number 1 while offline
+      And both devices reconnect
+      Then both devices show the ink item number 1 with 1 stroke
+
+    @backlog
+    Scenario: A line extended on one device and erased later on the other keeps the later change
+      When the second device draws a stroke on the ink item number 1 while offline
+      And the first device erases the ink item number 1 while offline
+      And both devices reconnect
+      Then both devices show the ink item number 1 with 0 strokes
+
+  Rule: A ticked ink item is struck through and faded like a text item (decision G6)
+
+    @backlog
+    Scenario: A ticked ink item has the strike line of a text item and is faded to about half
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Mixed" on 2026-10-14 with the ink items "Milk"
+      And I expand the task list "Mixed"
+      And I add the text item "Eggs"
+      When I tick the item number 1
+      And I tick the item number 2
+      Then the ink item number 1 has the same strike line as the text item number 2
+      And the ink item number 1 is faded to about half
+
+  Rule: Left-handed mode mirrors the writing tools (decision G7)
+
+    @backlog
+    Scenario: The mode switch, undo, eraser and colour buttons swap sides
+      Given the Labs switch "Handwritten lists" is on
+      And I open the new task list form
+      And I note where the writing tools are
+      When I turn on left-handed mode
+      And I open the new task list form
+      Then every writing tool is at the mirror image of where it was, within 1 pixel
+
+  Rule: Ink is scaled to the line on every screen (decision G8)
+
+    @backlog
+    Scenario Outline: The same ink looks the same on every screen size
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      When I expand the task list "Groceries" on a screen <width> pixels wide
+      Then the ink of the item number 1 has the same proportions to its line as on a 1280 pixel wide screen
+      And the ink of the item number 1 is not cut off
+
+      Examples:
+        | width |
+        | 390   |
+        | 820   |
+        | 1280  |
+
+  Rule: Deleting ink deletes it from the server (assumption A8)
+
+    Background:
+      Given the Labs switch "Handwritten lists" is on
+      And the calendar contains a task list "Groceries" on 2026-10-14 with the ink items "Milk, Eggs"
+      And I expand the task list "Groceries"
+
+    @backlog
+    Scenario: Deleting an ink item removes its ink
+      When I delete the item number 2
+      Then the server holds 1 ink item for the task list "Groceries"
+
+    @backlog
+    Scenario: Deleting the list removes all its ink
+      When I delete the task list "Groceries"
+      Then the server holds no ink for the task list "Groceries"
 
   @mobile @backlog
   Scenario: The add button never covers the writing area
