@@ -23,6 +23,8 @@ const cats = useTaskCategories();
 const CHIP_PX = 96;
 /** Room a block needs around its title (padding and border). */
 const CHIP_PAD_PX = 12;
+/** Side padding of a block (its title is clipped to the uncovered part minus both sides). */
+const BLOCK_PAD_PX = 4;
 const ROW_PX = 20;
 const TICK_PX = 12;
 /** Room one HH:MM label needs, gap included. */
@@ -65,7 +67,7 @@ const ticks = computed(() => approachTicks(props.nowMin, props.windowMin, track.
         <button
           type="button" class="block skin" :class="{ bare: c.titleOutside }" data-testid="approach-block" :aria-label="neutralName(c.segment.item)"
           :style="{ width: `${c.width}px`, '--c': cats.itemColor(c.segment.item), '--on-solid': onColor(cats.itemColor(c.segment.item)) }" @click="openItem(c.segment.item)"
-        ><span v-if="!c.titleOutside" class="label">{{ neutralName(c.segment.item) }}</span></button>
+        ><span v-if="!c.titleOutside" class="label" :style="c.visibleWidth < c.width ? { maxWidth: `${Math.max(0, c.visibleWidth - 2 * BLOCK_PAD_PX)}px` } : undefined">{{ neutralName(c.segment.item) }}</span></button>
         <!-- the block carries the entry's label; the title beside it is a second tap target only -->
         <span
           v-if="c.titleOutside && c.titleWidth > 0" class="title" data-testid="approach-title" aria-hidden="true"
