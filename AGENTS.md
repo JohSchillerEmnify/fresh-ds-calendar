@@ -39,6 +39,9 @@ The spec is the single source of truth. Code follows the spec, never the other w
 ## Gates and tools
 - **`pnpm verify` before every merge or push.** It runs tsc, the unit tests, i18n, the step contract, duplication and
   lint, in about a minute.
+- **Quality gates are a ratchet.** `pnpm verify` also runs `pnpm quality`: architecture layers (dependency-cruiser), duplication,
+  web/server type duplicates, size/complexity/comment limits and dead code (knip). `quality-baseline.json` holds today's numbers: any
+  increase fails. When you lower one, run `pnpm quality:ratchet` and commit the file; raising needs `--allow-increase "<reason>"`.
 - **e2e: targeted only.**
   - `pnpm e2e:affected` gives the `--grep`.
   - Run it with the mobile project and `--workers=1`.
