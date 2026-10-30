@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEmails } from './auth/people.js';
+import { logEvent } from './lib/diag.js';
 import { isValidTimeZone } from './lib/time.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,8 @@ export interface AppConfig {
   places: { searchUrl: string; tileUrl: string };
   /** Door plugin (ADR 0003/0004): the board's bearer key and the person whose calendar it sees; no token = no door. */
   door: { token: string | null; person: string | null };
+  /** True behind a reverse proxy that sets `X-Forwarded-For` (`TRUST_PROXY=1`): the last entry is then the client's address. */
+  trustProxy: boolean;
   google: {
     clientId: string | null;
     clientSecret: string | null;
@@ -77,6 +80,16 @@ function httpsUrl(v: string | undefined, fallback: string, ok: (u: string) => bo
 }
 
 const bool = (v: string | undefined, d: boolean) => (v === undefined || v === '' ? d : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase()));
+/** The shortest `DOOR_API_TOKEN` accepted (characters); a shorter key leaves the door off. */
+export const MIN_DOOR_TOKEN_LENGTH = 32;
+/** The door key, or null (door off) when unset or too short to resist guessing; a short key is logged and the console warned. */
+function doorToken(v: string | undefined): string | null {
+  if (!v) return null;
+  if (v.length >= MIN_DOOR_TOKEN_LENGTH) return v;
+  logEvent('door_key_too_short', { minLength: MIN_DOOR_TOKEN_LENGTH, length: v.length });
+  console.warn(`DOOR_API_TOKEN is shorter than ${MIN_DOOR_TOKEN_LENGTH} characters: the door plugin stays off (openssl rand -base64 32)`);
+  return null;
+}
 const list = (v: string | undefined) => (v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -103,7 +116,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       searchUrl: httpsUrl(env.PLACE_SEARCH_URL, DEFAULT_PLACE_SEARCH_URL),
       tileUrl: httpsUrl(env.MAP_TILE_URL, DEFAULT_MAP_TILE_URL, (u) => ['{z}', '{x}', '{y}'].every((k) => u.includes(k))),
     },
-    door: { token: env.DOOR_API_TOKEN || null, person: parseEmails(env.DOOR_PERSON)[0] ?? null },
+    door: { token: doorToken(env.DOOR_API_TOKEN), person: parseEmails(env.DOOR_PERSON)[0] ?? null },
+    trustProxy: bool(env.TRUST_PROXY, false),
     google: {
       clientId: env.GOOGLE_CLIENT_ID || null,
       clientSecret: env.GOOGLE_CLIENT_SECRET || null,
